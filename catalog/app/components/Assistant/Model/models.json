@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "id": "us.amazon.nova-lite-v1:0",
+      "name": "Amazon Nova Lite",
+      "description": "Fast, cost-effective model for quick responses"
+    },
+    {
+      "id": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+      "name": "Claude 3.5 Sonnet",
+      "description": "Advanced reasoning and analysis capabilities"
+    },
+    {
+      "id": "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+      "name": "Claude 3.5 Haiku",
+      "description": "Fast, efficient model for simple tasks"
+    },
+    {
+      "id": "us.anthropic.claude-3-opus-20240229-v1:0",
+      "name": "Claude 3 Opus",
+      "description": "Most capable model for complex tasks"
+    }
+  ]
+}

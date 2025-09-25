@@ -22,43 +22,102 @@ type ModelIdOverrideProps = Model.Assistant.API['devTools']['modelIdOverride']
 
 function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   const classes = useModelIdOverrideStyles()
+  const [customMode, setCustomMode] = React.useState(false)
 
   const handleModelIdChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setValue(event.target.value)
     },
     [setValue],
   )
 
-  const handleClear = React.useCallback(() => setValue(''), [setValue])
+  const handleClear = React.useCallback(() => {
+    setValue('')
+    setCustomMode(false)
+  }, [setValue])
+
+  const handleToggleCustom = React.useCallback(() => {
+    setCustomMode((prev) => !prev)
+    if (customMode) {
+      setValue('')
+    }
+  }, [customMode, setValue])
 
   return (
     <div className={classes.root}>
-      <M.TextField
-        label="Bedrock Model ID"
-        placeholder={Model.Assistant.DEFAULT_MODEL_ID}
-        value={value}
-        onChange={handleModelIdChange}
-        fullWidth
-        helperText="Leave empty to use default"
-        InputLabelProps={{ shrink: true }}
-        InputProps={{
-          endAdornment: value ? (
-            <M.InputAdornment position="end">
-              <M.IconButton
-                aria-label="Clear model ID override"
-                onClick={handleClear}
-                edge="end"
-                size="small"
+      {customMode ? (
+        <M.TextField
+          label="Custom Bedrock Model ID"
+          placeholder="Enter custom model ID"
+          value={value}
+          onChange={handleModelIdChange}
+          fullWidth
+          helperText="Enter a custom Bedrock model ID"
+          InputLabelProps={{ shrink: true }}
+          InputProps={{
+            endAdornment: (
+              <M.InputAdornment position="end">
+                <M.IconButton
+                  aria-label="Switch to preset models"
+                  onClick={handleToggleCustom}
+                  edge="end"
+                  size="small"
+                >
+                  <M.Tooltip arrow title="Switch to preset models">
+                    <ClearIcon />
+                  </M.Tooltip>
+                </M.IconButton>
+              </M.InputAdornment>
+            ),
+          }}
+        />
+      ) : (
+        <>
+          <M.FormControl fullWidth>
+            <M.InputLabel shrink>Bedrock Model</M.InputLabel>
+            <M.Select
+              value={value || Model.Assistant.DEFAULT_MODEL_ID}
+              onChange={handleModelIdChange}
+              displayEmpty
+            >
+              {Model.Assistant.MODELS.map((model) => (
+                <M.MenuItem key={model.id} value={model.id}>
+                  <div>
+                    <div>{model.name}</div>
+                    {model.description && (
+                      <M.Typography variant="caption" color="textSecondary">
+                        {model.description}
+                      </M.Typography>
+                    )}
+                  </div>
+                </M.MenuItem>
+              ))}
+            </M.Select>
+            <M.FormHelperText>
+              Select a model or{' '}
+              <M.Link
+                component="button"
+                onClick={handleToggleCustom}
+                style={{ verticalAlign: 'baseline' }}
               >
-                <M.Tooltip arrow title="Clear model ID override">
-                  <ClearIcon />
-                </M.Tooltip>
-              </M.IconButton>
-            </M.InputAdornment>
-          ) : null,
-        }}
-      />
+                enter custom model ID
+              </M.Link>
+            </M.FormHelperText>
+          </M.FormControl>
+          {value && value !== Model.Assistant.DEFAULT_MODEL_ID && (
+            <M.IconButton
+              aria-label="Reset to default"
+              onClick={handleClear}
+              size="small"
+              style={{ marginLeft: 8 }}
+            >
+              <M.Tooltip arrow title="Reset to default">
+                <ClearIcon />
+              </M.Tooltip>
+            </M.IconButton>
+          )}
+        </>
+      )}
     </div>
   )
 }
