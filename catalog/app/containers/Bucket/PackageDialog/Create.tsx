@@ -43,11 +43,6 @@ function DialogWrapper({
   return <M.Dialog {...props} />
 }
 
-export interface PackageCreationSuccess {
-  name: string
-  hash?: string
-}
-
 interface ConfirmReadmeProps {
   close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
 }
@@ -245,6 +240,7 @@ function PackageCreationForm({
   )
 }
 
+// FIXME
 // const prependSourceBucket = (
 //   buckets: BucketPreferences.SourceBuckets,
 //   bucket: string,
@@ -342,7 +338,7 @@ interface UsePackageCreationDialogProps {
   disableStateDisplay?: boolean
 }
 
-export function usePackageCreationDialog({
+export default function usePackageCreationDialog({
   s3Path,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps = {}) {

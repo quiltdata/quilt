@@ -81,7 +81,7 @@ interface CreatePackageProps {
 }
 
 function CreatePackage({ children }: CreatePackageProps) {
-  const { open, render } = PD.usePackageCreationDialog({
+  const { open, render } = PD.useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
   })

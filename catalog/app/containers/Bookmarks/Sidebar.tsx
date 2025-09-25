@@ -229,7 +229,7 @@ interface CreatePackageProps {
 
 function CreatePackage({ handles, onPackageDialog }: CreatePackageProps) {
   const addToPackage = AddToPackage.use()
-  const createDialog = PD.usePackageCreationDialog({
+  const createDialog = PD.useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
   })

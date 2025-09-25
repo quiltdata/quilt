@@ -201,7 +201,7 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const updateDialog = PD.usePackageCreationDialog()
+  const updateDialog = PD.useCreateDialog()
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
