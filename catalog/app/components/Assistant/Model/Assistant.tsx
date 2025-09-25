@@ -11,6 +11,7 @@ import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import useIsEnabled from './enabled'
+import modelsConfig from './models.json'
 
 export const DISABLED = Symbol('DISABLED')
 
@@ -20,7 +21,8 @@ function usePassThru<T>(val: T) {
   return ref
 }
 
-export const DEFAULT_MODEL_ID = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+export const MODELS = modelsConfig.models
+export const DEFAULT_MODEL_ID = MODELS[0]?.id || 'us.amazon.nova-lite-v1:0'
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
 
 function useModelIdOverride() {
