@@ -35,6 +35,7 @@ import { Manifest, useManifest } from './Manifest'
 import * as FI from './FilesState'
 import * as Uploads from './Uploads'
 import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
+import PACKAGE_PROMOTE from './gql/PackagePromote.generated'
 
 const README_PATH = 'README.md'
 
@@ -250,6 +251,10 @@ interface PackageSrc {
   hash?: string
 }
 
+export function isPackageHandle(h: PackageSrc): h is Required<PackageSrc> {
+  return !!h.hash
+}
+
 interface PackageDst {
   bucket: string
   name?: string
@@ -418,6 +423,85 @@ function useSubmit() {
   return { submit, progress: uploads.progress }
 }
 
+function useCopySubmit() {
+  const promotePackage = useMutation(PACKAGE_PROMOTE)
+
+  const copy = React.useCallback(
+    async (
+      formParams: FormParams,
+      src: Required<PackageSrc>,
+      destPrefix: string | null,
+    ): Promise<FormStatus> => {
+      if (formParams._tag === 'invalid') {
+        throw { _tag: 'submitFailed', error: formParams.error }
+      }
+
+      const { params } = formParams
+
+      try {
+        const { packagePromote: r } = await promotePackage({
+          params: {
+            bucket: params.bucket,
+            name: params.name,
+            message: params.message,
+            userMeta: params.userMeta,
+            workflow: params.workflow,
+          },
+          src: {
+            bucket: src.bucket,
+            name: src.name,
+            hash: src.hash,
+          },
+          destPrefix,
+        })
+
+        switch (r.__typename) {
+          case 'PackagePushSuccess':
+            return {
+              _tag: 'success',
+              handle: {
+                bucket: params.bucket,
+                name: params.name,
+                hash: r.revision.hash,
+              },
+            }
+          case 'OperationError':
+            throw { _tag: 'submitFailed', error: new Error(r.message) }
+          case 'InvalidInput':
+            const fields: Record<string, Error> = {}
+            let error = new Error('Something went wrong')
+            for (let err of r.errors) {
+              if (err.path === 'params.name') {
+                fields.name = new Error(err.message)
+              } else if (err.path === 'params.message') {
+                fields.message = new Error(err.message)
+              } else if (err.path === 'params.userMeta') {
+                fields.meta = new Error(err.message)
+              } else if (err.path === 'params.workflow') {
+                fields.workflow = new Error(err.message)
+              } else {
+                error = new Error(err.message)
+              }
+            }
+            throw { _tag: 'submitFailed', error, fields }
+          default:
+            assertNever(r)
+        }
+      } catch (e) {
+        Log.error('Error copying package:')
+        Log.error(e)
+        const error = new Error(
+          e instanceof Error ? `Unexpected error: ${e.message}` : 'Error copying package',
+        )
+        throw { _tag: 'submitFailed', error }
+      }
+    },
+    [promotePackage],
+  )
+
+  return { copy }
+}
+
 interface PackageDialogState {
   values: {
     files: {
@@ -465,6 +549,7 @@ interface PackageDialogState {
   params: FormParams
   formStatus: FormStatus
   submit: (whenNoFiles?: 'allow' | 'add-readme') => Promise<void>
+  copy: (src: Required<PackageSrc>, destPrefix: string | null) => Promise<void>
   progress: Uploads.UploadTotalProgress
 
   onAddReadme: (r: ReadmeReason | PromiseLike<ReadmeReason>) => Promise<void>
@@ -865,6 +950,7 @@ export function PackageDialogProvider({
   const files = useFiles(formStatus, entriesSchema, manifest, open)
 
   const { progress, submit } = useSubmit()
+  const { copy } = useCopySubmit()
 
   const params: FormParams = React.useMemo(() => {
     if (!workflow.value || workflow.status._tag === 'error') {
@@ -927,6 +1013,23 @@ export function PackageDialogProvider({
     [params, files, submit],
   )
 
+  const handleCopy = React.useCallback(
+    async (...rest: [Required<PackageSrc>, string | null]) => {
+      setFormStatus({ _tag: 'submitting' })
+      try {
+        const status = await copy(params, ...rest)
+        setFormStatus(status)
+      } catch (error) {
+        if (error instanceof Error) {
+          setFormStatus({ _tag: 'submitFailed', error, fields: {} })
+        } else {
+          setFormStatus(error as FormStatus)
+        }
+      }
+    },
+    [params, copy],
+  )
+
   const onAddReadme = React.useCallback(
     async (reasonPromise: ReadmeReason | PromiseLike<ReadmeReason>) => {
       const reason = await reasonPromise
@@ -976,6 +1079,7 @@ export function PackageDialogProvider({
         entriesSchema,
 
         submit: handleSubmit,
+        copy: handleCopy,
         formStatus,
         params,
         progress,

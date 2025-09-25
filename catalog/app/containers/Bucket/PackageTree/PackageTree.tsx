@@ -26,6 +26,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as XML from 'utils/XML'
 import assertNever from 'utils/assertNever'
+import type { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
@@ -173,9 +174,18 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
+  onSuccessor: (s: workflows.Successor) => void
 }
 
-function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  hashOrTag,
+  path,
+  crumbs,
+  onSuccessor,
+}: DirDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
@@ -193,21 +203,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
   )
 
   const updateDialog = PD.usePackageCreationDialog()
-
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
-
-  const { setOpen } = PD.useContext()
-  const onPackageCopyDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-    setOpen(false)
-  }, [setOpen])
-  const onSuccessor = React.useCallback(
-    (s: workflows.Successor) => {
-      setSuccessor(s)
-      setOpen(true)
-    },
-    [setOpen],
-  )
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
@@ -289,14 +284,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
 
   return (
     <>
-      <PackageCopyDialog
-        bucket={bucket}
-        hash={hash}
-        name={name}
-        successor={successor}
-        onClose={onPackageCopyDialogExited}
-      />
-
       <RevisionDeleteDialog
         error={deletionState.error}
         open={deletionState.opened}
@@ -852,15 +839,11 @@ function FileDisplay({
 }
 
 interface ResolverProviderProps {
-  bucket: string
-  name: string
-  hash: string
+  packageHandle: PackageHandle
 }
 
 function ResolverProvider({
-  bucket,
-  name,
-  hash,
+  packageHandle,
   children,
 }: React.PropsWithChildren<ResolverProviderProps>) {
   const client = urql.useClient()
@@ -870,7 +853,7 @@ function ResolverProvider({
   const resolveLogicalKey = React.useCallback(
     (path: string) =>
       client
-        .query(FILE_QUERY, { bucket, name, hash, path })
+        .query(FILE_QUERY, { ...packageHandle, path })
         .toPromise()
         .then((r) => {
           const file = r.data?.package?.revision?.file
@@ -881,7 +864,7 @@ function ResolverProvider({
             size: file.size,
           }
         }),
-    [client, bucket, name, hash],
+    [client, packageHandle],
   )
 
   return (
@@ -898,6 +881,68 @@ const useStyles = M.makeStyles({
     whiteSpace: 'nowrap',
   },
 })
+
+interface PackageRevisionProps {
+  packageHandle: PackageHandle
+  hashOrTag: string
+  path: string
+  crumbs: BreadCrumbs.Crumb[]
+  mode?: string
+}
+
+function PackageRevision({
+  packageHandle,
+  hashOrTag,
+  path,
+  crumbs,
+  mode,
+}: PackageRevisionProps) {
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
+
+  const closeCopyDialog = React.useCallback(() => setSuccessor(null), [])
+  const openCopyDialog = React.useCallback(
+    (s: workflows.Successor) => setSuccessor(s),
+    [],
+  )
+  const { bucket } = packageHandle
+  const copyDst = React.useMemo(
+    () => ({ bucket: successor?.slug || bucket }),
+    [bucket, successor],
+  )
+  const createDst = React.useMemo(() => ({ bucket }), [bucket])
+
+  const initialActions = PD.useInitialActions()
+  const isDir = path === '' || path.endsWith('/')
+
+  return (
+    <>
+      <PD.Provider src={packageHandle} dst={copyDst}>
+        <PackageCopyDialog successor={successor} onClose={closeCopyDialog} />
+      </PD.Provider>
+      <ResolverProvider packageHandle={packageHandle}>
+        {isDir ? (
+          <PD.Provider
+            src={packageHandle}
+            dst={createDst}
+            open={initialActions.includes('revisePackage')}
+          >
+            <DirDisplay
+              {...packageHandle}
+              {...{ hashOrTag, path }}
+              {...{ crumbs, onSuccessor: openCopyDialog }}
+            />
+          </PD.Provider>
+        ) : (
+          <FileDisplayQuery
+            {...packageHandle}
+            {...{ hashOrTag, path }}
+            {...{ crumbs, mode }}
+          />
+        )}
+      </ResolverProvider>
+    </>
+  )
+}
 
 interface PackageTreeProps {
   bucket: string
@@ -930,8 +975,6 @@ function PackageTree({
   //
   // const bucketCfg = data?.bucket.config
 
-  const isDir = s3paths.isDir(path)
-
   const getSegmentRoute = React.useCallback(
     (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
     [bucket, hashOrTag, name, urls],
@@ -939,6 +982,11 @@ function PackageTree({
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, 'ROOT', {
     tailSeparator: path.endsWith('/'),
   })
+
+  const packageHandle = React.useMemo(
+    () => (hash ? { bucket, name, hash } : null),
+    [bucket, name, hash],
+  )
 
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
@@ -952,8 +1000,6 @@ function PackageTree({
       }) || 'Selection will be lost. Clear selection and confirm navigation?',
     [urls, bucket, name, hashOrTag, hash],
   )
-
-  const initialActions = PD.useInitialActions()
 
   return (
     <FileView.Root>
@@ -1001,31 +1047,14 @@ function PackageTree({
         {' @ '}
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
-      {hash ? (
-        <PD.Provider
-          src={{ bucket, name, hash }}
-          dst={{ bucket }}
-          open={initialActions.includes('revisePackage')}
-        >
-          <ResolverProvider {...{ bucket, name, hash }}>
-            {isDir ? (
-              <DirDisplay
-                {...{
-                  bucket,
-                  name,
-                  hash,
-                  path,
-                  hashOrTag,
-                  crumbs,
-                }}
-              />
-            ) : (
-              <FileDisplayQuery
-                {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
-              />
-            )}
-          </ResolverProvider>
-        </PD.Provider>
+      {packageHandle ? (
+        <PackageRevision
+          packageHandle={packageHandle}
+          hashOrTag={hashOrTag}
+          path={path}
+          crumbs={crumbs}
+          mode={mode}
+        />
       ) : (
         <>
           <TopBar crumbs={crumbs} />

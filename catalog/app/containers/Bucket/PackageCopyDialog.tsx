@@ -1,27 +1,17 @@
-import * as FF from 'final-form'
-import * as R from 'ramda'
+import invariant from 'invariant'
 import * as React from 'react'
-import * as RF from 'react-final-form'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import cfg from 'constants/config'
-import * as AWS from 'utils/AWS'
-import * as Data from 'utils/Data'
-import { useMutation } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
-import { mkFormError, mapInputErrors } from 'utils/formTools'
-import * as tagged from 'utils/taggedV2'
-import * as Types from 'utils/types'
-import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
+import SelectWorkflow from './PackageDialog/SelectWorkflow'
 import * as PD from './PackageDialog'
-import PACKAGE_PROMOTE from './PackageDialog/gql/PackagePromote.generated'
-import * as requests from './requests'
+import * as State from './PackageDialog/state'
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   meta: {
@@ -38,11 +28,10 @@ function FormSkeleton({ animate }: FormSkeletonProps) {
 
   return (
     <>
-      <PD.TextFieldSkeleton animate={animate} />
-      <PD.TextFieldSkeleton animate={animate} />
-
-      <PD.MetaInputSkeleton className={classes.meta} animate={animate} />
       <PD.WorkflowsInputSkeleton animate={animate} />
+      <PD.TextFieldSkeleton animate={animate} />
+      <PD.TextFieldSkeleton animate={animate} />
+      <PD.MetaInputSkeleton className={classes.meta} animate={animate} />
     </>
   )
 }
@@ -80,275 +69,212 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DialogFormProps {
-  bucket: string
-  close: () => void
-  hash: string
-  initialMeta: PD.Manifest['meta']
-  name: string
-  setSubmitting: (submitting: boolean) => void
-  setSuccess: (success: PackageCreationSuccess) => void
-  setWorkflow: (workflow: workflows.Workflow) => void
-  successor: workflows.Successor
-  workflowsConfig: workflows.WorkflowsConfig
+function InputWorkflow() {
+  const {
+    formStatus,
+    metadataSchema: schema,
+    values: {
+      workflow: { status, value, onChange },
+    },
+    workflowsConfig,
+  } = State.use()
+  const error = React.useMemo(() => {
+    if (workflowsConfig._tag === 'error') return workflowsConfig.error.message
+    if (status._tag === 'error') return status.error.message
+    return undefined
+  }, [status, workflowsConfig])
+  if (workflowsConfig._tag === 'idle') return null
+  if (workflowsConfig._tag === 'loading') return <PD.WorkflowsInputSkeleton />
+  return (
+    <SelectWorkflow
+      disabled={schema._tag === 'loading' || formStatus._tag === 'submitting'}
+      error={error}
+      items={workflowsConfig.config.workflows}
+      onChange={onChange}
+      value={value}
+    />
+  )
 }
 
-function DialogForm({
-  bucket,
-  close,
-  hash,
-  initialMeta,
-  name: initialName,
-  responseError,
-  schema,
-  schemaLoading,
-  selectedWorkflow,
-  setSubmitting,
-  setSuccess,
-  setWorkflow,
-  successor,
-  validate: validateMetaInput,
-  workflowsConfig,
-}: DialogFormProps & PD.SchemaFetcherRenderProps) {
-  const nameValidator = PD.useNameValidator(selectedWorkflow)
+function InputName() {
   const {
-    values: { name },
-  } = PD.useContext()
-  const classes = useStyles()
-  const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
-
-  const copyPackage = useMutation(PACKAGE_PROMOTE)
-
-  interface FormData {
-    commitMessage: string
-    name: string
-    meta: Types.JsonRecord | undefined
-    workflow: workflows.Workflow
-  }
-
-  // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ commitMessage, meta, workflow }: FormData) => {
-    if (!name.value) return 'name'
-    try {
-      const { packagePromote: r } = await copyPackage({
-        params: {
-          bucket: successor.slug,
-          name: name.value,
-          message: commitMessage,
-          userMeta: requests.getMetaValue(meta, schema) ?? null,
-          workflow:
-            // eslint-disable-next-line no-nested-ternary
-            workflow.slug === workflows.notAvailable
-              ? null
-              : workflow.slug === workflows.notSelected
-                ? ''
-                : workflow.slug,
-        },
-        src: {
-          bucket,
-          name: initialName,
-          hash,
-        },
-        destPrefix: successor.copyData && cfg.packageRoot ? cfg.packageRoot : null,
-      })
-      switch (r.__typename) {
-        case 'PackagePushSuccess':
-          setSuccess({ name: name.value, hash: r.revision.hash, bucket: successor.slug })
-          return
-        case 'OperationError':
-          return mkFormError(r.message)
-        case 'InvalidInput':
-          return mapInputErrors(r.errors)
-        default:
-          assertNever(r)
-      }
-    } catch (e: any) {
-      // eslint-disable-next-line no-console
-      console.error('Error creating manifest:')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return mkFormError(
-        e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
-      )
-    }
-  }
-
-  const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
-    setSubmitting(true)
-    try {
-      return await onSubmit(...args)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-
-  // HACK: FIXME: it triggers name validation with correct workflow
-  const [hideMeta, setHideMeta] = React.useState(false)
-
-  const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
-      if (modified.workflow && values.workflow !== selectedWorkflow) {
-        setWorkflow(values.workflow)
-
-        // HACK: FIXME: it triggers name validation with correct workflow
-        setHideMeta(true)
-        setTimeout(() => {
-          setHideMeta(false)
-        }, 300)
-      }
-
-      if (modified?.name) name.onChange(values.name)
+    formStatus,
+    values: {
+      name: { value, onChange, status },
     },
-    [name, selectedWorkflow, setWorkflow],
+  } = State.use()
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
+    [onChange],
   )
+  return (
+    <M.TextField
+      InputLabelProps={{ shrink: true }}
+      fullWidth
+      margin="normal"
+      helperText={<PD.PackageNameWarning />}
+      disabled={formStatus._tag === 'submitting'}
+      error={status._tag === 'error'}
+      label="Name"
+      placeholder="e.g. user/package"
+      onChange={handleChange}
+      value={value || ''}
+    />
+  )
+}
 
+function InputMessage() {
+  const {
+    formStatus,
+    values: {
+      message: { status, value, onChange },
+    },
+  } = State.use()
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
+    [onChange],
+  )
+  return (
+    <M.TextField
+      InputLabelProps={{ shrink: true }}
+      fullWidth
+      margin="normal"
+      disabled={formStatus._tag === 'submitting'}
+      error={status._tag === 'error'}
+      helperText={status._tag === 'error' && status.error.message}
+      label="Message"
+      placeholder="Enter a commit message"
+      onChange={handleChange}
+      value={value || ''}
+    />
+  )
+}
+
+const useInputMetaStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingTop: t.spacing(3),
+    overflowY: 'auto',
+  },
+}))
+
+const InputMeta = React.forwardRef<HTMLDivElement>(function InputMeta(_, ref) {
+  const classes = useInputMetaStyles()
+  const {
+    formStatus,
+    metadataSchema: schema,
+    values: {
+      meta: { status, value, onChange },
+    },
+  } = State.use()
+  const errors = React.useMemo(() => {
+    if (schema._tag === 'error') return [schema.error]
+    if (status._tag === 'error') return status.errors
+    return []
+  }, [schema, status])
+  if (schema._tag === 'loading') {
+    return <PD.MetaInputSkeleton ref={ref} className={classes.root} />
+  }
+  return (
+    <PD.MetaInput
+      disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
+      className={classes.root}
+      errors={errors}
+      onChange={onChange}
+      ref={ref}
+      schema={schema._tag === 'ready' ? schema.schema : undefined}
+      value={value}
+    />
+  )
+})
+
+interface FormErrorProps {
+  error: Error
+}
+
+function FormError({ error }: FormErrorProps) {
+  return (
+    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+      <M.Icon color="error">error_outline</M.Icon>
+      <M.Box pl={1} />
+      <M.Typography variant="body2" color="error">
+        {error.message}
+      </M.Typography>
+    </M.Box>
+  )
+}
+
+interface PackageCopyFormProps {
+  successor: workflows.Successor
+}
+
+function PackageCopyForm({ successor }: PackageCopyFormProps) {
+  const { params, formStatus, src, copy, progress } = State.use()
+  const classes = useStyles()
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
+  const handleCopy = React.useCallback(
+    (event: React.FormEvent) => {
+      event.preventDefault()
+      invariant(src, 'Package handle must be provided')
+      invariant(
+        State.isPackageHandle(src),
+        'Full package handle with hash must be provided',
+      )
+      const destPrefix = successor.copyData && cfg.packageRoot ? cfg.packageRoot : null
+      copy(src, destPrefix)
+    },
+    [copy, src, successor],
+  )
+
   return (
-    <RF.Form
-      onSubmit={onSubmitWrapped}
-      subscription={{
-        error: true,
-        hasValidationErrors: true,
-        submitError: true,
-        submitFailed: true,
-        submitting: true,
-      }}
-    >
-      {({
-        error,
-        hasValidationErrors,
-        submitError,
-        submitFailed,
-        submitting,
-        handleSubmit,
-      }) => (
-        <>
-          <DialogTitle bucket={successor.slug} />
-          <M.DialogContent classes={dialogContentClasses}>
-            <form onSubmit={handleSubmit} className={classes.form}>
-              <RF.FormSpy
-                subscription={{ modified: true, values: true }}
-                onChange={onFormChange}
-              />
+    <>
+      <DialogTitle bucket={successor.slug} />
+      <M.DialogContent classes={dialogContentClasses}>
+        <form className={classes.form} onSubmit={handleCopy}>
+          <InputWorkflow />
+          <InputName />
+          <InputMessage />
+          <InputMeta ref={setEditorElement} />
+          <input type="submit" style={{ display: 'none' }} />
+        </form>
+      </M.DialogContent>
+      <M.DialogActions>
+        {formStatus._tag === 'submitting' && (
+          <PD.SubmitSpinner value={progress.percent}>
+            {successor.copyData
+              ? 'Copying files and writing manifest'
+              : 'Writing manifest'}
+          </PD.SubmitSpinner>
+        )}
 
-              <RF.FormSpy
-                subscription={{ modified: true, values: true }}
-                onChange={({ modified, values }) => {
-                  if (modified?.workflow) {
-                    setWorkflow(values.workflow)
-                  }
-                }}
-              />
+        {formStatus._tag === 'submitFailed' && !!formStatus.error && (
+          <FormError error={formStatus.error} />
+        )}
 
-              <RF.Field
-                component={PD.WorkflowInput}
-                name="workflow"
-                workflowsConfig={workflowsConfig}
-                initialValue={selectedWorkflow}
-                validate={validateWorkflow}
-                validateFields={['meta', 'workflow']}
-                errors={{
-                  required: 'Workflow is required for this bucket.',
-                }}
-              />
-
-              <RF.Field
-                component={PD.PackageNameInput}
-                errors={{
-                  required: 'Enter a package name',
-                  invalid: 'Invalid package name',
-                  pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
-                }}
-                helperText={<PD.PackageNameWarning />}
-                initialValue={initialName}
-                name="name"
-                workflow={selectedWorkflow || workflowsConfig}
-                validate={validators.composeAsync(
-                  validators.required,
-                  nameValidator.validate,
-                )}
-                validateFields={['name']}
-              />
-
-              <RF.Field
-                component={PD.CommitMessageInput}
-                name="commitMessage"
-                validate={validators.required as FF.FieldValidator<any>}
-                validateFields={['commitMessage']}
-                errors={{
-                  required: 'Enter a commit message',
-                }}
-              />
-
-              {schemaLoading || hideMeta ? (
-                <PD.MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
-              ) : (
-                <RF.Field
-                  className={classes.meta}
-                  component={PD.MetaInput}
-                  name="meta"
-                  bucket={successor.slug}
-                  schema={schema}
-                  schemaError={responseError}
-                  validate={validateMetaInput}
-                  validateFields={['meta']}
-                  isEqual={R.equals}
-                  ref={setEditorElement}
-                  initialValue={initialMeta}
-                />
-              )}
-
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
-          </M.DialogContent>
-          <M.DialogActions>
-            {submitting && (
-              <PD.SubmitSpinner>
-                {successor.copyData
-                  ? 'Copying files and writing manifest'
-                  : 'Writing manifest'}
-              </PD.SubmitSpinner>
-            )}
-
-            {!submitting && (!!error || !!submitError) && (
-              <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                <M.Icon color="error">error_outline</M.Icon>
-                <M.Box pl={1} />
-                <M.Typography variant="body2" color="error">
-                  {error || submitError}
-                </M.Typography>
-              </M.Box>
-            )}
-
-            <M.Button onClick={close} disabled={submitting}>
-              Cancel
-            </M.Button>
-            <M.Button
-              onClick={handleSubmit}
-              variant="contained"
-              color="primary"
-              disabled={submitting || (submitFailed && hasValidationErrors)}
-            >
-              Push
-            </M.Button>
-          </M.DialogActions>
-        </>
-      )}
-    </RF.Form>
+        <M.Button disabled={formStatus._tag === 'submitting'}>Cancel</M.Button>
+        <M.Button
+          onClick={handleCopy}
+          variant="contained"
+          color="primary"
+          disabled={params._tag === 'invalid' || formStatus._tag === 'submitting'}
+        >
+          Push
+        </M.Button>
+      </M.DialogActions>
+    </>
   )
 }
 
 interface DialogErrorProps {
   bucket: string
   error: Error
-  onCancel: () => void
 }
 
-function DialogError({ bucket, error, onCancel }: DialogErrorProps) {
+function DialogError({ bucket, error }: DialogErrorProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -364,17 +290,16 @@ function DialogError({ bucket, error, onCancel }: DialogErrorProps) {
           bucket
         </>
       }
-      onCancel={onCancel}
+      onCancel={() => {}}
     />
   )
 }
 
 interface DialogLoadingProps {
   bucket: string
-  onCancel: () => void
 }
 
-function DialogLoading({ bucket, onCancel }: DialogLoadingProps) {
+function DialogLoading({ bucket }: DialogLoadingProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -389,123 +314,63 @@ function DialogLoading({ bucket, onCancel }: DialogLoadingProps) {
           bucket
         </>
       }
-      onCancel={onCancel}
+      onCancel={() => {}}
     />
   )
 }
 
-interface PackageCreationSuccess {
-  bucket: string
-  name: string
-  hash: string
-}
-
-const DialogState = tagged.create(
-  'app/containers/Bucket/PackageCopyDialog:DialogState' as const,
-  {
-    Loading: () => {},
-    Error: (e: Error) => e,
-    Form: (v: { manifest: PD.Manifest; workflowsConfig: workflows.WorkflowsConfig }) => v,
-    Success: (v: PackageCreationSuccess) => v,
-  },
-)
-
 interface PackageCopyDialogProps {
-  bucket: string
   successor: workflows.Successor | null
-  name: string
-  hash: string
   onClose: () => void
 }
 
 export default function PackageCopyDialog({
-  bucket,
   successor,
-  name,
-  hash,
   onClose,
 }: PackageCopyDialogProps) {
-  const s3 = AWS.S3.use()
+  const { formStatus, workflowsConfig, manifest, setOpen } = State.use()
 
-  const [success, setSuccess] = React.useState<PackageCreationSuccess | null>(null)
-  const [submitting, setSubmitting] = React.useState(false)
-
-  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
-
-  const { open } = PD.useContext()
-
-  const manifestData = PD.useManifest({
-    bucket,
-    name,
-    hashOrTag: hash,
-    skipEntries: true,
-    pause: !successor || !open,
-  })
-
-  const workflowsData = Data.use(
-    requests.workflowsConfig,
-    { s3, bucket: successor ? successor.slug : '' },
-    { noAutoFetch: !successor || !open },
-  )
-
-  const state = React.useMemo(() => {
-    if (success) return DialogState.Success(success)
-    return workflowsData.case({
-      Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
-        manifestData.case({
-          Ok: (manifest: PD.Manifest) => DialogState.Form({ manifest, workflowsConfig }),
-          Err: DialogState.Error,
-          _: DialogState.Loading,
-        }),
-      Err: DialogState.Error,
-      _: DialogState.Loading,
-    })
-  }, [success, workflowsData, manifestData])
+  React.useEffect(() => {
+    setOpen(!!successor)
+  }, [setOpen, successor])
 
   const close = React.useCallback(() => {
-    if (submitting) return
-
+    if (formStatus._tag === 'submitting') return
     onClose()
-    setSuccess(null)
-  }, [submitting, onClose])
+  }, [formStatus, onClose])
 
-  Intercom.usePauseVisibilityWhen(open)
+  Intercom.usePauseVisibilityWhen(!!successor)
+
+  if (!successor) return null
 
   return (
-    <M.Dialog fullWidth onClose={close} open={!!open} scroll="body">
-      {DialogState.match({
-        Error: (e) =>
-          successor && <DialogError bucket={successor.slug} onCancel={close} error={e} />,
-        Loading: () =>
-          successor && <DialogLoading bucket={successor.slug} onCancel={close} />,
-        Form: ({ manifest, workflowsConfig }) =>
-          successor && (
-            <PD.SchemaFetcher
-              initialWorkflowId={manifest.workflowId}
-              workflowsConfig={workflowsConfig}
-              workflow={workflow}
-            >
-              {(schemaProps) => (
-                <DialogForm
-                  {...schemaProps}
-                  {...{
-                    bucket,
-                    close,
-                    setSubmitting,
-                    setSuccess,
-                    setWorkflow,
-                    workflowsConfig,
-                    initialMeta: manifest.meta,
-                    hash,
-                    name,
-                    successor,
-                  }}
-                />
-              )}
-            </PD.SchemaFetcher>
-          ),
-        Success: (props) => successor && <PD.DialogSuccess {...props} onClose={close} />,
-      })(state)}
+    <M.Dialog fullWidth onClose={close} open={!!successor} scroll="body">
+      {(() => {
+        if (formStatus._tag === 'success') {
+          return (
+            <PD.DialogSuccess
+              name={formStatus.handle.name}
+              hash={formStatus.handle.hash}
+              bucket={formStatus.handle.bucket}
+              onClose={close}
+            />
+          )
+        }
+
+        if (workflowsConfig._tag === 'error') {
+          return <DialogError bucket={successor.slug} error={workflowsConfig.error} />
+        }
+
+        if (manifest._tag === 'error') {
+          return <DialogError bucket={successor.slug} error={manifest.error} />
+        }
+
+        if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
+          return <DialogLoading bucket={successor.slug} />
+        }
+
+        return <PackageCopyForm successor={successor} />
+      })()}
     </M.Dialog>
   )
 }
