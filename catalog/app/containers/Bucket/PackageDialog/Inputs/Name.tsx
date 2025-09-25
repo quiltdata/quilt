@@ -1,14 +1,19 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as State from '../State'
+import type { FormStatus } from '../State/form'
+import type { NameState } from '../State/name'
 import { PackageNameWarning } from '../PackageDialog'
 
-export default function InputName() {
-  const {
-    formStatus,
-    name: { value, onChange, status },
-  } = State.use()
+interface InputNameProps {
+  formStatus: FormStatus
+  state: NameState
+}
+
+export default function InputName({
+  formStatus,
+  state: { value, onChange, status },
+}: InputNameProps) {
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
     [onChange],

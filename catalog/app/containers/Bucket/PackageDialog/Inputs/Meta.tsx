@@ -1,7 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as State from '../State'
+import type { FormStatus } from '../State/form'
+import type { SchemaStatus } from '../State/schema'
+import type { MetaState } from '../State/meta'
 import { MetaInput } from '../MetaInput'
 import { MetaInputSkeleton } from '../Skeleton'
 
@@ -14,13 +16,17 @@ const useInputMetaStyles = M.makeStyles((t) => ({
   },
 }))
 
-const InputMeta = React.forwardRef<HTMLDivElement>(function InputMeta(_, ref) {
+interface InputMetaProps {
+  formStatus: FormStatus
+  schema: SchemaStatus
+  state: MetaState
+}
+
+const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function InputMeta(
+  { formStatus, schema, state: { status, value, onChange } },
+  ref,
+) {
   const classes = useInputMetaStyles()
-  const {
-    formStatus,
-    metadataSchema: schema,
-    meta: { status, value, onChange },
-  } = State.use()
   const errors = React.useMemo(() => {
     if (schema._tag === 'error') return [schema.error]
     if (status._tag === 'error') return status.errors

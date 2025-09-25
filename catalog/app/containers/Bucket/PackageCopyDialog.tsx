@@ -84,12 +84,26 @@ function FormError({ error }: FormErrorProps) {
 }
 
 interface PackageCopyFormProps {
+  close: () => void
   successor: workflows.Successor
 }
 
-function PackageCopyForm({ successor }: PackageCopyFormProps) {
-  const { params, formStatus, src, copy, progress } = PD.useContext()
+function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
+  const {
+    copy,
+    formStatus,
+    message,
+    meta,
+    metadataSchema,
+    name,
+    params,
+    progress,
+    src,
+    workflow,
+    workflowsConfig,
+  } = PD.useContext()
   const classes = useStyles()
+
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
@@ -110,10 +124,20 @@ function PackageCopyForm({ successor }: PackageCopyFormProps) {
       <DialogTitle bucket={successor.slug} />
       <M.DialogContent classes={dialogContentClasses}>
         <form className={classes.form} onSubmit={handleCopy}>
-          <PD.Inputs.Workflow />
-          <PD.Inputs.Name />
-          <PD.Inputs.Message />
-          <PD.Inputs.Meta ref={setEditorElement} />
+          <PD.Inputs.Workflow
+            formStatus={formStatus}
+            schema={metadataSchema}
+            state={workflow}
+            config={workflowsConfig}
+          />
+          <PD.Inputs.Name formStatus={formStatus} state={name} />
+          <PD.Inputs.Message formStatus={formStatus} state={message} />
+          <PD.Inputs.Meta
+            formStatus={formStatus}
+            schema={metadataSchema}
+            state={meta}
+            ref={setEditorElement}
+          />
           <input type="submit" style={{ display: 'none' }} />
         </form>
       </M.DialogContent>
@@ -130,7 +154,9 @@ function PackageCopyForm({ successor }: PackageCopyFormProps) {
           <FormError error={formStatus.error} />
         )}
 
-        <M.Button disabled={formStatus._tag === 'submitting'}>Cancel</M.Button>
+        <M.Button disabled={formStatus._tag === 'submitting'} onClick={close}>
+          Cancel
+        </M.Button>
         <M.Button
           onClick={handleCopy}
           variant="contained"
@@ -244,7 +270,7 @@ export default function PackageCopyDialog({
           return <DialogLoading bucket={successor.slug} />
         }
 
-        return <PackageCopyForm successor={successor} />
+        return <PackageCopyForm successor={successor} close={close} />
       })()}
     </M.Dialog>
   )

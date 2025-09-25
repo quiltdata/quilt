@@ -114,13 +114,31 @@ function PackageCreationForm({
   currentBucketCanBeSuccessor,
   ui = {},
 }: PackageCreationFormProps) {
-  const { params, formStatus, dst, setDst, create, progress, onAddReadme } = State.use()
+  const {
+    create,
+    dst,
+    entriesSchema,
+    files,
+    formStatus,
+    message,
+    meta,
+    metadataSchema,
+    name,
+    onAddReadme,
+    params,
+    progress,
+    setDst,
+    workflow,
+    workflowsConfig,
+  } = State.use()
   const classes = useStyles()
+
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
+
   const handleSubmit = React.useCallback(
     (event) => {
       event.preventDefault()
@@ -151,13 +169,28 @@ function PackageCreationForm({
         <form className={classes.form} onSubmit={handleSubmit}>
           <Layout.Container>
             <Layout.LeftColumn>
-              <Inputs.Workflow />
-              <Inputs.Name />
-              <Inputs.Message />
-              <Inputs.Meta ref={setEditorElement} />
+              <Inputs.Workflow
+                formStatus={formStatus}
+                schema={metadataSchema}
+                state={workflow}
+                config={workflowsConfig}
+              />
+              <Inputs.Name formStatus={formStatus} state={name} />
+              <Inputs.Message formStatus={formStatus} state={message} />
+              <Inputs.Meta
+                formStatus={formStatus}
+                schema={metadataSchema}
+                state={meta}
+                ref={setEditorElement}
+              />
             </Layout.LeftColumn>
             <Layout.RightColumn>
-              <Inputs.Files />
+              <Inputs.Files
+                formStatus={formStatus}
+                schema={entriesSchema}
+                state={files}
+                progress={progress}
+              />
             </Layout.RightColumn>
           </Layout.Container>
 
@@ -222,6 +255,7 @@ interface RenderDialogProps {
   disableStateDisplay: boolean
   state: DialogState
   ui: PackageCreationDialogUIOptions
+  close: () => void
 }
 
 function RenderDialog({
@@ -229,6 +263,7 @@ function RenderDialog({
   disableStateDisplay,
   state,
   ui,
+  close,
 }: RenderDialogProps) {
   switch (state._tag) {
     case 'loading':
@@ -365,6 +400,7 @@ export function usePackageCreationDialog({
     >
       {!exited && (
         <RenderDialog
+          close={close}
           currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           disableStateDisplay={disableStateDisplay}
           state={state}

@@ -4,7 +4,10 @@ import * as M from '@material-ui/core'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import * as State from '../State'
+import type { FormStatus } from '../State/form'
+import type { SchemaStatus } from '../State/schema'
+import type { FilesState } from '../State/files'
+import type { UploadTotalProgress } from '../Uploads'
 import { FilesInput } from '../FilesInput'
 import { FilesInputSkeleton } from '../Skeleton'
 
@@ -18,14 +21,20 @@ const useInputFilesStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function InputFiles() {
+interface InputFilesProps {
+  formStatus: FormStatus
+  schema: SchemaStatus
+  state: FilesState
+  progress: UploadTotalProgress
+}
+
+export default function InputFiles({
+  formStatus,
+  schema,
+  state: { initial, status, value, onChange },
+  progress,
+}: InputFilesProps) {
   const classes = useInputFilesStyles()
-  const {
-    formStatus,
-    entriesSchema: schema,
-    progress,
-    files: { initial, status, value, onChange },
-  } = State.use()
   const { prefs } = BucketPreferences.use()
 
   if (schema._tag === 'loading') return <FilesInputSkeleton className={classes.root} />
