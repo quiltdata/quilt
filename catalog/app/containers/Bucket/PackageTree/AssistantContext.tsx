@@ -22,27 +22,43 @@ interface PackageMetadataContextProps {
 
 export const PackageMetadataContext = Assistant.Context.LazyContext(
   ({ bucket, name, revision }: PackageMetadataContextProps) => {
-    const msg = React.useMemo(() => {
-      if (!revision) return null
+    const messages = React.useMemo(() => {
+      if (!revision) return []
 
-      const data = {
+      const msgs: string[] = []
+
+      // System metadata in package-info tag
+      const systemData = {
         bucket,
         name,
         hash: revision.hash,
         modified: revision.modified,
         message: revision.message || null,
-        userMeta: revision.userMeta || null,
         workflow: revision.workflow || null,
         totalEntries: revision.totalEntries || null,
         totalBytes: revision.totalBytes || null,
       }
+      msgs.push(
+        XML.tag('package-info', {}, JSON.stringify(systemData, null, 2)).toString(),
+      )
 
-      return XML.tag('package-metadata', {}, JSON.stringify(data, null, 2)).toString()
+      // User metadata in package-metadata tag
+      if (revision.userMeta) {
+        msgs.push(
+          XML.tag(
+            'package-metadata',
+            {},
+            JSON.stringify(revision.userMeta, null, 2),
+          ).toString(),
+        )
+      }
+
+      return msgs
     }, [bucket, name, revision])
 
     return {
       markers: { packageMetadataReady: true },
-      messages: msg ? [msg] : [],
+      messages,
     }
   },
 )

@@ -86,8 +86,23 @@ Attributes:
 
 Add context providers for:
 
-- Package metadata
+- Package metadata (split into system and user metadata)
 - Package revision information
+
+#### Package Metadata Split
+
+Package metadata is exposed via two separate XML tags for better semantic separation:
+
+1. **`<package-info>`**: System-level package information
+   - bucket, name, hash
+   - modified timestamp
+   - commit message
+   - workflow information
+   - totalEntries, totalBytes
+
+2. **`<package-metadata>`**: User-defined metadata
+   - Contains only the userMeta field when present
+   - Omitted entirely if userMeta is null or undefined
 
 ## Key Components to Modify
 

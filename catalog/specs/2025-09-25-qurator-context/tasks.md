@@ -171,6 +171,13 @@ When implementing, follow the existing patterns in the codebase:
 - [x] Pass revision data through component hierarchy
 - [x] Fix infinite loop issue caused by urql cache key instability
 
+### 5.5 Split Package Metadata Context (2025-09-25)
+- [x] Split package metadata into two separate XML tags:
+  - `<package-info>`: System metadata (bucket, name, hash, modified, message, workflow, totalEntries, totalBytes)
+  - `<package-metadata>`: User metadata (userMeta only, when present)
+- [x] Update PackageMetadataContext to emit multiple messages
+- [x] Maintain backward compatibility with existing marker `packageMetadataReady`
+
 ## Task 6: Testing and Validation
 
 ### 6.1 Manual Testing Checklist
