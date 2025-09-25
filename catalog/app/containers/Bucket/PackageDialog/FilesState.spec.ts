@@ -13,6 +13,8 @@ import {
   EMPTY_DIR_MARKER,
 } from './FilesState'
 
+jest.mock('constants/config', () => ({}))
+
 describe('utils/object', () => {
   describe('renameKey', () => {
     it('should rename key', () => {

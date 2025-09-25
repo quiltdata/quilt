@@ -15,7 +15,7 @@ import PACKAGE_EXISTS_QUERY from '../gql/PackageExists.generated'
 
 import type { FormStatus } from './form'
 
-function getUsernamePrefix(username?: string | null) {
+export function getUsernamePrefix(username?: string | null) {
   if (!username) return ''
   const name = username.includes('@') ? username.split('@')[0] : username
   // see PACKAGE_NAME_FORMAT at quilt3/util.py

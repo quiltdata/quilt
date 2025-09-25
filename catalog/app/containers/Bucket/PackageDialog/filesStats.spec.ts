@@ -2,6 +2,8 @@ import type * as Model from 'model'
 import { calcStats } from './filesStats'
 import { FilesState, FileWithHash } from './FilesState'
 
+jest.mock('constants/config', () => ({}))
+
 // Mock the dependencies
 jest.mock('./PackageDialog', () => ({
   MAX_UPLOAD_SIZE: 20 * 1000 * 1000 * 1000, // 20GB

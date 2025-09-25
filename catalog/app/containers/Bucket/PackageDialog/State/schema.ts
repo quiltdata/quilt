@@ -22,7 +22,7 @@ export type SchemaStatus =
 
 export function mkMetaValidator(schema?: JsonSchema) {
   const schemaValidator = makeSchemaValidator(schema)
-  if (!schema) return () => undefined
+  // if (!schema) return () => undefined
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {

@@ -1,29 +1,12 @@
-import { basename } from 'path'
-
 import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
-import * as APIConnector from 'utils/APIConnector'
-import * as AWS from 'utils/AWS'
-import * as JSONPointer from 'utils/JSONPointer'
-import log from 'utils/Logging'
 import { mkFormError } from 'utils/formTools'
-import {
-  JsonSchema,
-  makeSchemaDefaultsSetter,
-  makeSchemaValidator,
-} from 'utils/JSONSchema'
-import * as packageHandleUtils from 'utils/packageHandle'
-import * as s3paths from 'utils/s3paths'
 import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
-
-import * as requests from '../requests'
-import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
 // XXX: keep in sync w/ the backend
@@ -32,140 +15,6 @@ export const MAX_S3_SIZE = cfg.chunkedChecksums
   ? 5 * 10 ** 12 // 5 TB
   : 50 * 10 ** 9 // 50 GB
 export const MAX_FILE_COUNT = 1000
-
-export const ERROR_MESSAGES = {
-  UPLOAD: 'Error uploading files',
-  MANIFEST: 'Error creating manifest',
-}
-
-function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
-  fn: (...args: I) => Promise<O>,
-  wait: number,
-  getKey: (...args: I) => K = R.identity as unknown as (...args: I) => K,
-) {
-  type Resolver = (result: Promise<O>) => void
-  const cache = {} as Record<K, Promise<O>>
-  let timer: null | ReturnType<typeof setTimeout>
-  let resolveList: Resolver[] = []
-
-  return (...args: I) => {
-    const key = getKey(...args)
-    if (key in cache) return cache[key]
-
-    return new Promise((resolveNew: Resolver) => {
-      if (timer) clearTimeout(timer)
-
-      timer = setTimeout(() => {
-        timer = null
-
-        const result = fn(...args)
-        cache[key] = result
-
-        resolveList.forEach((resolve) => resolve(result))
-
-        resolveList = []
-      }, wait)
-
-      resolveList.push(resolveNew)
-    })
-  }
-}
-
-interface ApiRequest {
-  <O>(opts: {
-    endpoint: string
-    method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-    body?: {}
-  }): Promise<O>
-}
-
-const validateName = (req: ApiRequest) =>
-  cacheDebounce(async (name: string) => {
-    if (name) {
-      const res = await req<{ valid: boolean }>({
-        endpoint: '/package_name_valid',
-        method: 'POST',
-        body: { name },
-      })
-      if (!res.valid) return 'invalid'
-    }
-    return undefined
-  }, 200)
-
-export function useNameValidator(workflow?: workflows.Workflow) {
-  const req: ApiRequest = APIConnector.use()
-  const [counter, setCounter] = React.useState(0)
-  const [processing, setProcessing] = React.useState(false)
-  const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
-
-  const validator = React.useMemo(() => validateName(req), [req])
-
-  const validate = React.useCallback(
-    async (name: string) => {
-      if (workflow?.packageNamePattern?.test(name) === false) {
-        return 'pattern'
-      }
-
-      setProcessing(true)
-      try {
-        const error = await validator(name)
-        setProcessing(false)
-        return error
-      } catch (e) {
-        setProcessing(false)
-        return e instanceof Error ? (e.message as string) : ''
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [counter, validator, workflow?.packageNamePattern],
-  )
-
-  return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
-}
-
-export function useNameExistence(bucket: string) {
-  const client = urql.useClient()
-  const validate = React.useCallback(
-    async (name: string) => {
-      if (name) {
-        const res = await client
-          .query(
-            PACKAGE_EXISTS_QUERY,
-            { bucket, name },
-            { requestPolicy: 'network-only' },
-          )
-          .toPromise()
-        if (res.data?.package) return 'exists'
-      }
-      return undefined
-    },
-    [bucket, client],
-  )
-  return cacheDebounce(validate, 200)
-}
-
-export function mkMetaValidator(schema?: JsonSchema) {
-  // TODO: move schema validation to utils/validators
-  //       but don't forget that validation depends on library.
-  //       Maybe we should split validators to files at first
-  const schemaValidator = makeSchemaValidator(schema)
-  return function validateMeta(value: object | null) {
-    const jsonObjectErr = value && !R.is(Object, value)
-    if (jsonObjectErr) {
-      return new Error('Metadata must be a valid JSON object')
-    }
-
-    if (schema) {
-      const setDefaults = makeSchemaDefaultsSetter(schema)
-      const errors = schemaValidator(setDefaults(value || {}))
-      if (errors.length) return errors
-    }
-
-    return undefined
-  }
-}
-
-export type MetaValidator = ReturnType<typeof mkMetaValidator>
 
 interface FieldProps {
   error?: string
@@ -244,31 +93,6 @@ export const useContentStyles = M.makeStyles({
   },
 })
 
-export function getUsernamePrefix(username?: string | null) {
-  if (!username) return ''
-  const name = username.includes('@') ? username.split('@')[0] : username
-  // see PACKAGE_NAME_FORMAT at quilt3/util.py
-  const validParts = name.match(/\w+/g)
-  return validParts ? `${validParts.join('')}/` : ''
-}
-
-export const getDefaultPackageName = (
-  workflow: { packageName: packageHandleUtils.NameTemplates },
-  { directory, username }: { directory?: string; username: string },
-) => {
-  const usernamePrefix = getUsernamePrefix(username)
-  const templateBasedName =
-    typeof directory === 'string'
-      ? packageHandleUtils.execTemplate(workflow?.packageName, 'files', {
-          directory: basename(directory),
-          username: s3paths.ensureNoSlash(usernamePrefix),
-        })
-      : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
-          username: s3paths.ensureNoSlash(usernamePrefix),
-        })
-  return typeof templateBasedName === 'string' ? templateBasedName : usernamePrefix
-}
-
 interface DialogWrapperProps {
   exited: boolean
 }
@@ -291,21 +115,8 @@ export function DialogWrapper({
   return <M.Dialog {...props} />
 }
 
-function isAjvError(e: Error | ErrorObject): e is ErrorObject {
-  return !!(e as ErrorObject).instancePath
-}
-
 export function isEntryError(e: Error | ErrorObject): e is EntryValidationError {
   return !!(e as EntryValidationError)?.data?.logical_key
-}
-
-function useFetchEntriesSchema(workflow?: workflows.Workflow) {
-  const s3 = AWS.S3.use()
-  return React.useMemo(async () => {
-    const schemaUrl = workflow?.entriesSchema
-    if (!schemaUrl) return null
-    return requests.objectSchema({ s3, schemaUrl })
-  }, [s3, workflow])
 }
 
 export interface ValidationEntry {
@@ -319,42 +130,3 @@ interface EntryValidationError extends ErrorObject {
 }
 
 export type EntriesValidationErrors = (Error | EntryValidationError)[]
-
-export const EMPTY_ENTRIES_ERRORS: EntriesValidationErrors = []
-
-function injectEntryIntoErrors(
-  errors: (Error | ErrorObject)[],
-  entries: ValidationEntry[],
-): EntriesValidationErrors {
-  if (!errors?.length) return errors as Error[]
-  return errors.map((error) => {
-    if (!isAjvError(error)) return error
-    try {
-      const pointer = JSONPointer.parse(error.instancePath)
-      // `entries` value is an array,
-      // so the first item of the pointer is an index
-      const index: number = Number(pointer[0] as string)
-      error.data = entries[index]
-      return error as EntryValidationError
-    } catch (e) {
-      log.debug(e)
-      return error instanceof Error ? error : new Error('Unknown error')
-    }
-  })
-}
-
-export function useEntriesValidator(workflow?: workflows.Workflow) {
-  const entriesSchemaAsync = useFetchEntriesSchema(workflow)
-
-  return React.useCallback(
-    async (entries: ValidationEntry[]) => {
-      const entriesSchema = await entriesSchemaAsync
-      // TODO: Show error if there is network error
-      if (!entriesSchema) return undefined
-
-      const errors = makeSchemaValidator(entriesSchema)(entries)
-      return injectEntryIntoErrors(errors, entries)
-    },
-    [entriesSchemaAsync],
-  )
-}
