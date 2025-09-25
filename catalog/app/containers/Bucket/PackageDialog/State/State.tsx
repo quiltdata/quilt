@@ -1,4 +1,3 @@
-import invariant from 'invariant'
 import * as React from 'react'
 
 import type { UploadTotalProgress } from '../Uploads'
@@ -13,9 +12,19 @@ import type { WorkflowsConfigStatus, WorkflowState } from './workflow'
 import type { MetaState } from './meta'
 import type { FormParams } from './params'
 import type { CopyHandler } from './copy'
-import { CreateHandler, ReadmeHandler } from './create'
+import type { CreateHandler, ReadmeHandler } from './create'
 
-export { isPackageHandle } from './manifest'
+import { useFiles } from './files'
+import { useFormStatus } from './form'
+import { useManifestRequest } from './manifest'
+import { useMessage } from './message'
+import { useName } from './name'
+import { useMetadataSchema, useEntriesSchema } from './schema'
+import { useWorkflowsConfig, useWorkflow } from './workflow'
+import { useMeta } from './meta'
+import { useParams } from './params'
+import { useCopyHandler } from './copy'
+import { useCreateHandler } from './create'
 
 interface PackageDst {
   bucket: string
@@ -45,7 +54,7 @@ export interface State {
   formStatus: FormStatus
 
   // Create
-  // ---
+
   entriesSchema: SchemaStatus
 
   files: FilesState
@@ -55,15 +64,81 @@ export interface State {
   onAddReadme: ReadmeHandler
 
   // Copy
-  // ---
 
   copy: CopyHandler
 }
 
-export const Context = React.createContext<State | null>(null)
+interface UseStateProps {
+  src?: PackageSrc
+  dst: { bucket: string; name?: string }
+  open?: boolean | FilesState['value']['added']
+}
 
-export function useContext(): State {
-  const context = React.useContext(Context)
-  invariant(context, 'useContext must be used within PackageDialogProvider')
-  return context
+export function useState({
+  src: initialSrc,
+  dst: initialDst,
+  open: initialOpen = false,
+}: UseStateProps): State {
+  const [open, setOpen] = React.useState(initialOpen)
+
+  const { formStatus, setFormStatus } = useFormStatus(initialOpen)
+
+  const [src, setSrc] = React.useState(initialSrc)
+  const [dst, setDst] = React.useState(initialDst)
+
+  const reset = React.useCallback(() => {
+    setSrc(initialSrc)
+    setDst(initialDst)
+  }, [initialSrc, initialDst])
+  React.useEffect(() => reset(), [reset])
+
+  const manifest = useManifestRequest(!!open, src)
+  const workflowsConfig = useWorkflowsConfig(!!open, dst)
+
+  const workflow = useWorkflow(manifest, workflowsConfig)
+
+  const metadataSchema = useMetadataSchema(workflow.value)
+  const entriesSchema = useEntriesSchema(workflow.value)
+
+  const name = useName(formStatus, dst, setDst, src, workflow.value)
+  const message = useMessage(formStatus)
+  const meta = useMeta(formStatus, metadataSchema, manifest)
+  const files = useFiles(formStatus, entriesSchema, manifest, open)
+
+  const params = useParams(dst, workflow, name, message, metadataSchema, meta)
+
+  const { create, progress, onAddReadme } = useCreateHandler(params, files, setFormStatus)
+  const copy = useCopyHandler(params, setFormStatus)
+
+  return {
+    files,
+    message,
+    meta,
+    name,
+    workflow,
+
+    reset,
+
+    src,
+    setSrc,
+
+    dst,
+    setDst,
+
+    open,
+    setOpen,
+
+    manifest,
+    workflowsConfig,
+    metadataSchema,
+    entriesSchema,
+
+    create,
+    copy,
+    formStatus,
+    params,
+    progress,
+
+    onAddReadme,
+  }
 }
