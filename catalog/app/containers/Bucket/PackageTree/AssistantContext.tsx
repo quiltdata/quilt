@@ -7,28 +7,42 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as XML from 'utils/XML'
 
 interface PackageMetadataContextProps {
+  bucket: string
   name: string
-  hash: string
-  created?: Date
-  message?: string
+  revision?: {
+    hash: string
+    modified?: any
+    message?: string | null
+    userMeta?: any
+    workflow?: any
+    totalEntries?: number | null
+    totalBytes?: number | null
+  } | null
 }
 
 export const PackageMetadataContext = Assistant.Context.LazyContext(
-  ({ name, hash, created, message }: PackageMetadataContextProps) => {
+  ({ bucket, name, revision }: PackageMetadataContextProps) => {
     const msg = React.useMemo(() => {
-      const metadata = {
+      if (!revision) return null
+
+      const data = {
+        bucket,
         name,
-        hash,
-        created: created?.toISOString(),
-        message: message || null,
+        hash: revision.hash,
+        modified: revision.modified,
+        message: revision.message || null,
+        userMeta: revision.userMeta || null,
+        workflow: revision.workflow || null,
+        totalEntries: revision.totalEntries || null,
+        totalBytes: revision.totalBytes || null,
       }
 
-      return XML.tag('package-metadata', {}, JSON.stringify(metadata, null, 2)).toString()
-    }, [name, hash, created, message])
+      return XML.tag('package-metadata', {}, JSON.stringify(data, null, 2)).toString()
+    }, [bucket, name, revision])
 
     return {
       markers: { packageMetadataReady: true },
-      messages: [msg],
+      messages: msg ? [msg] : [],
     }
   },
 )

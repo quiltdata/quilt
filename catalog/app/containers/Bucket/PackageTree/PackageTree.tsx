@@ -926,6 +926,7 @@ interface PackageTreeProps {
   name: string
   hashOrTag: string
   hash?: string
+  revision?: any
   path: string
   mode?: string
   resolvedFrom?: string
@@ -937,6 +938,7 @@ function PackageTree({
   name,
   hashOrTag,
   hash,
+  revision,
   path,
   mode,
   resolvedFrom,
@@ -1023,7 +1025,11 @@ function PackageTree({
       </M.Typography>
       {hash ? (
         <>
-          <AssistantContext.PackageMetadataContext name={name} hash={hash} />
+          <AssistantContext.PackageMetadataContext
+            bucket={bucket}
+            name={name}
+            revision={revision}
+          />
           <ResolverProvider {...{ bucket, name, hash }}>
             <AssistantContext.PackageRootContext
               bucket={bucket}
@@ -1112,6 +1118,7 @@ function PackageTreeQueries({
               name,
               hashOrTag,
               hash: d.package.revision?.hash,
+              revision: d.package.revision,
               path,
               mode,
               resolvedFrom,
