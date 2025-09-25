@@ -35,7 +35,7 @@ export function useMeta(
     return mkMetaValidator(schema.schema)
   }, [schema])
   const status: MetaStatus = React.useMemo(() => {
-    if (form._tag !== 'submitFailed') return { _tag: 'ok' }
+    if (form._tag !== 'error') return { _tag: 'ok' }
     if (form.fields?.meta) return { _tag: 'error', errors: [form.fields.meta] }
     const errors = validate(meta || {})
     if (!errors) return { _tag: 'ok' }

@@ -3,7 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
-import { mkFormError } from 'utils/formTools'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
 // XXX: keep in sync w/ the backend
@@ -12,19 +11,6 @@ export const MAX_S3_SIZE = cfg.chunkedChecksums
   ? 5 * 10 ** 12 // 5 TB
   : 50 * 10 ** 9 // 50 GB
 export const MAX_FILE_COUNT = 1000
-
-export function useCryptoApiValidation() {
-  return React.useCallback(
-    () =>
-      !!window.crypto?.subtle?.digest
-        ? {}
-        : mkFormError(
-            'Quilt requires the Web Cryptography API. Please try another browser.',
-          ),
-
-    [],
-  )
-}
 
 export function calcDialogHeight(windowHeight: number, metaHeight: number): number {
   const neededSpace = 345 /* space to fit other inputs */ + metaHeight

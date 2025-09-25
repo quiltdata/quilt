@@ -167,7 +167,7 @@ export function useFiles(
     return mkMetaValidator(schema.schema)
   }, [schema])
   const status: FilesStatus = React.useMemo(() => {
-    if (form._tag !== 'submitFailed') return { _tag: 'ok' }
+    if (form._tag !== 'error') return { _tag: 'ok' }
     if (form.fields?.files) return { _tag: 'error', error: form.fields.files }
 
     // Validate hashes are ready and valid

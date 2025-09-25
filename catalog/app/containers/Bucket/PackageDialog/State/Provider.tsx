@@ -13,7 +13,7 @@ interface ProviderProps {
 }
 
 export function Provider({ children, dst, src, open = false }: ProviderProps) {
-  const contextValue = useState({ src, dst, open })
+  const contextValue = useState(dst, src, open)
   return <Context.Provider value={contextValue}>{children}</Context.Provider>
 }
 

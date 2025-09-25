@@ -142,10 +142,10 @@ function useNameStatus(
   const existence = useNameExistence(dst, src)
   const validation = useNameValidator(dst)
   return React.useMemo(() => {
-    if (form._tag === 'submitFailed' && form.fields?.name) {
+    if (form._tag === 'error' && form.fields?.name) {
       return { _tag: 'error', error: form.fields.name }
     }
-    if (form._tag === 'submitFailed' || dirty) {
+    if (form._tag === 'error' || dirty) {
       const namePatternValidation = validateNamePattern(dst, workflow)
       if (namePatternValidation._tag !== 'ok') return namePatternValidation
       if (validation._tag !== 'ok') return validation

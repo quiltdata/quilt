@@ -68,17 +68,11 @@ export interface State {
   copy: CopyHandler
 }
 
-interface UseStateProps {
-  src?: PackageSrc
-  dst: { bucket: string; name?: string }
-  open?: boolean | FilesState['value']['added']
-}
-
-export function useState({
-  src: initialSrc,
-  dst: initialDst,
-  open: initialOpen = false,
-}: UseStateProps): State {
+export function useState(
+  initialDst: { bucket: string; name?: string },
+  initialSrc?: PackageSrc,
+  initialOpen: boolean | FilesState['value']['added'] = false,
+): State {
   const [open, setOpen] = React.useState(initialOpen)
 
   const { formStatus, setFormStatus } = useFormStatus(initialOpen)

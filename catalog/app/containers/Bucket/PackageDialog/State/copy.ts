@@ -20,7 +20,7 @@ function useCopy() {
       destPrefix: string | null,
     ): Promise<FormStatus> => {
       if (formParams._tag === 'invalid') {
-        throw { _tag: 'submitFailed', error: formParams.error }
+        throw { _tag: 'error', error: formParams.error }
       }
 
       const { params } = formParams
@@ -39,7 +39,7 @@ function useCopy() {
               },
             }
           case 'OperationError':
-            throw { _tag: 'submitFailed', error: new Error(r.message) }
+            throw { _tag: 'error', error: new Error(r.message) }
           case 'InvalidInput':
             const fields: Record<string, Error> = {}
             let error = new Error('Something went wrong')
@@ -56,7 +56,7 @@ function useCopy() {
                 error = new Error(err.message)
               }
             }
-            throw { _tag: 'submitFailed', error, fields }
+            throw { _tag: 'error', error, fields }
           default:
             assertNever(r)
         }
@@ -66,7 +66,7 @@ function useCopy() {
         const error = new Error(
           e instanceof Error ? `Unexpected error: ${e.message}` : 'Error copying package',
         )
-        throw { _tag: 'submitFailed', error }
+        throw { _tag: 'error', error }
       }
     },
     [promotePackage],
@@ -92,7 +92,7 @@ export function useCopyHandler(
         setFormStatus(status)
       } catch (error) {
         if (error instanceof Error) {
-          setFormStatus({ _tag: 'submitFailed', error, fields: {} })
+          setFormStatus({ _tag: 'error', error, fields: {} })
         } else {
           setFormStatus(error as FormStatus)
         }

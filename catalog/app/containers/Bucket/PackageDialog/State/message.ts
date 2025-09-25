@@ -13,7 +13,7 @@ export interface MessageState {
 export function useMessage(form: FormStatus): MessageState {
   const [message, setMessage] = React.useState<string>()
   const status: MessageStatus = React.useMemo(() => {
-    if (form._tag !== 'submitFailed') return { _tag: 'ok' }
+    if (form._tag !== 'error') return { _tag: 'ok' }
     if (form.fields?.message) return { _tag: 'error', error: form.fields.message }
     if (!message) return { _tag: 'error', error: new Error('Enter a commit message') }
     return { _tag: 'ok' }

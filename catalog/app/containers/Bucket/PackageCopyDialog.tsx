@@ -151,7 +151,7 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
           </PD.SubmitSpinner>
         )}
 
-        {formStatus._tag === 'submitFailed' && !!formStatus.error && (
+        {formStatus._tag === 'error' && !!formStatus.error && (
           <FormError error={formStatus.error} />
         )}
 

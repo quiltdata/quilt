@@ -35,7 +35,7 @@ function useCreate() {
         })
       } catch (e) {
         Log.error(e)
-        throw { _tag: 'submitFailed', error: new Error('Error uploading files') }
+        throw { _tag: 'error', error: new Error('Error uploading files') }
       }
     },
     [uploads],
@@ -49,7 +49,7 @@ function useCreate() {
         whenNoFiles?: 'allow' | 'add-readme',
       ): Promise<FormStatus> => {
         if (formParams._tag === 'invalid') {
-          throw { _tag: 'submitFailed', error: formParams.error }
+          throw { _tag: 'error', error: formParams.error }
         }
 
         const { params } = formParams
@@ -100,7 +100,7 @@ function useCreate() {
                 },
               }
             case 'OperationError':
-              throw { _tag: 'submitFailed', error: new Error(r.message) }
+              throw { _tag: 'error', error: new Error(r.message) }
             case 'InvalidInput':
               const fields: Record<string, Error> = {}
               let error = new Error('Something went wrong')
@@ -111,7 +111,7 @@ function useCreate() {
                   error = new Error(err.message)
                 }
               }
-              throw { _tag: 'submitFailed', error, fields }
+              throw { _tag: 'error', error, fields }
             default:
               assertNever(r)
           }
@@ -123,7 +123,7 @@ function useCreate() {
               ? `Unexpected error: ${e.message}`
               : 'Error creating manifest',
           )
-          throw { _tag: 'submitFailed', error }
+          throw { _tag: 'error', error }
         }
       },
       [constructPackage, upload],
@@ -153,7 +153,7 @@ export function useCreateHandler(
       try {
         if (files.status._tag === 'error') {
           throw {
-            _tag: 'submitFailed',
+            _tag: 'error',
             error: new Error(
               'Files must be finished hashing and conform entries JSON Schema',
             ),
@@ -165,7 +165,7 @@ export function useCreateHandler(
         setFormStatus(status)
       } catch (error) {
         if (error instanceof Error) {
-          setFormStatus({ _tag: 'submitFailed', error, fields: {} })
+          setFormStatus({ _tag: 'error', error, fields: {} })
         } else {
           setFormStatus(error as FormStatus)
         }
