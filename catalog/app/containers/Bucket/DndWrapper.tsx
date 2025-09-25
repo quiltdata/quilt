@@ -6,7 +6,7 @@ import { Publish as IconPublish } from '@material-ui/icons'
 
 import useDragging from 'utils/dragging'
 
-import * as FI from './PackageDialog/FilesState'
+import * as FI from './PackageDialog/Inputs/Files/State'
 import type * as Toolbar from './Toolbar'
 
 const useStyles = M.makeStyles((t) => ({

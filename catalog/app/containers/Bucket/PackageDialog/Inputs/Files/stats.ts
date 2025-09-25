@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 
-import * as PD from './PackageDialog'
-import { isS3File, FilesState } from './FilesState'
+import { isS3File, FilesState } from './State'
+import { MAX_UPLOAD_SIZE, MAX_S3_SIZE, MAX_FILE_COUNT } from './constants'
 
 export interface StatsWarning {
   upload: boolean
@@ -39,9 +39,9 @@ export const calcStats = (
     false,
   )
   const warn = {
-    upload: upload.size > PD.MAX_UPLOAD_SIZE,
-    s3: s3.size > PD.MAX_S3_SIZE,
-    count: upload.count + s3.count > PD.MAX_FILE_COUNT,
+    upload: upload.size > MAX_UPLOAD_SIZE,
+    s3: s3.size > MAX_S3_SIZE,
+    count: upload.count + s3.count > MAX_FILE_COUNT,
   }
   const hasWarning = warn.upload || warn.s3 || warn.count
   return {

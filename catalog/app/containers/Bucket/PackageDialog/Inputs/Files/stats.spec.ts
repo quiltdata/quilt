@@ -1,17 +1,17 @@
 import type * as Model from 'model'
-import { calcStats } from './filesStats'
-import { FilesState, FileWithHash } from './FilesState'
+import { calcStats } from './stats'
+import { FilesState, FileWithHash } from './State'
 
 jest.mock('constants/config', () => ({}))
 
 // Mock the dependencies
-jest.mock('./PackageDialog', () => ({
+jest.mock('./constants', () => ({
   MAX_UPLOAD_SIZE: 20 * 1000 * 1000 * 1000, // 20GB
   MAX_S3_SIZE: 50 * 1000 * 1000 * 1000, // 50GB
   MAX_FILE_COUNT: 1000,
 }))
 
-jest.mock('./S3FilePicker', () => ({
+jest.mock('./State', () => ({
   isS3File: jest.fn(
     (f: any) => f && typeof f === 'object' && 'bucket' in f && 'key' in f,
   ),

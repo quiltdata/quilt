@@ -16,11 +16,32 @@ import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
 import * as Layout from './Layout'
-import * as PD from './PackageDialog'
 import * as State from './State'
 import { FormSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 // import { useUploads } from './Uploads'
+
+interface DialogWrapperProps {
+  exited: boolean
+}
+
+function DialogWrapper({
+  exited,
+  ...props
+}: DialogWrapperProps & React.ComponentProps<typeof M.Dialog>) {
+  const refProps = { exited, onExited: props.onExited }
+  const ref = React.useRef<typeof refProps>()
+  ref.current = refProps
+  React.useEffect(
+    () => () => {
+      // call onExited on unmount if it has not been called yet
+      if (!ref.current!.exited && ref.current!.onExited)
+        (ref.current!.onExited as () => void)()
+    },
+    [],
+  )
+  return <M.Dialog {...props} />
+}
 
 export interface PackageCreationSuccess {
   name: string
@@ -62,7 +83,6 @@ interface FormErrorProps {
 }
 
 function FormError({ error }: FormErrorProps) {
-  // if (!error || error === CANCEL) return null
   return (
     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
       <M.Icon color="error">error_outline</M.Icon>
@@ -136,7 +156,7 @@ function PackageCreationForm({
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
-  const dialogContentClasses = PD.useContentStyles({ metaHeight })
+  const dialogContentClasses = Layout.useContentStyles({ metaHeight })
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
 
@@ -383,14 +403,14 @@ export function usePackageCreationDialog({
   const state: DialogState = React.useMemo<DialogState>(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (waitingListing) return { _tag: 'loading', waitListing: true }
-    if (workflowsConfig._tag === 'loading') return { _tag: 'loading', waitListing: true }
+    if (workflowsConfig._tag === 'loading') return { _tag: 'loading', waitListing: false }
     if (workflowsConfig._tag === 'error')
       return { _tag: 'error', error: workflowsConfig.error }
     return { _tag: 'ready' }
   }, [waitingListing, workflowsConfig, formStatus])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
-    <PD.DialogWrapper
+    <DialogWrapper
       exited={exited}
       fullWidth
       maxWidth={formStatus._tag === 'success' ? 'sm' : 'lg'}
@@ -408,7 +428,7 @@ export function usePackageCreationDialog({
           ui={ui}
         />
       )}
-    </PD.DialogWrapper>
+    </DialogWrapper>
   )
 
   return { open, close, render }

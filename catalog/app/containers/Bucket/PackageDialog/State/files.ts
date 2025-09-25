@@ -10,7 +10,7 @@ import * as Model from 'model'
 import Log from 'utils/Logging'
 import assertNever from 'utils/assertNever'
 
-import * as FI from '../FilesState'
+import * as FI from '../Inputs/Files/State'
 import { Manifest } from '../Manifest'
 
 import type { FormStatus } from './form'

@@ -12,7 +12,7 @@ import * as s3paths from 'utils/s3paths'
 import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
-import type { LocalFile } from './FilesInput'
+import type { LocalFile } from './Inputs/Files/Input'
 
 interface UploadResult extends S3.ManagedUpload.SendData {
   VersionId: string

@@ -1,6 +1,23 @@
-import * as M from '@material-ui/core'
-import * as React from 'react'
 import cx from 'classnames'
+import * as R from 'ramda'
+import * as React from 'react'
+import * as M from '@material-ui/core'
+
+export function calcDialogHeight(windowHeight: number, metaHeight: number): number {
+  const neededSpace = 345 /* space to fit other inputs */ + metaHeight
+  const availableSpace = windowHeight - 200 /* free space for headers */
+  const minimalSpace = 420 /* minimal height */
+  if (availableSpace < minimalSpace) return minimalSpace
+  return R.clamp(minimalSpace, availableSpace, neededSpace)
+}
+
+export const useContentStyles = M.makeStyles({
+  root: {
+    height: ({ metaHeight }: { metaHeight: number }) =>
+      calcDialogHeight(window.innerHeight, metaHeight),
+    paddingTop: 0,
+  },
+})
 
 // TODO: use grid
 const useContainerStyles = M.makeStyles({

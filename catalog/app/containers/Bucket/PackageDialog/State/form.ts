@@ -2,7 +2,7 @@ import * as React from 'react'
 
 import type { PackageHandle } from 'utils/packageHandle'
 
-import type { FilesState } from '../FilesState'
+import type { FilesState } from '../Inputs/Files/State'
 
 export type FormStatus =
   | { _tag: 'idle' }

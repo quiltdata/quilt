@@ -8,8 +8,9 @@ import type { FormStatus } from '../State/form'
 import type { SchemaStatus } from '../State/schema'
 import type { FilesState } from '../State/files'
 import type { UploadTotalProgress } from '../Uploads'
-import { FilesInput } from '../FilesInput'
 import { FilesInputSkeleton } from '../Skeleton'
+
+import { FilesInput } from './Files/Input'
 
 const useInputFilesStyles = M.makeStyles((t) => ({
   root: {

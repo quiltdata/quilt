@@ -19,9 +19,10 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
-import * as Selection from '../Selection'
+import * as Selection from '../../../Selection'
 
 import EditFileMeta from './EditFileMeta'
+import * as S3FilePicker from './S3FilePicker'
 import {
   computeHash,
   FilesEntryState,
@@ -29,18 +30,16 @@ import {
   FilesEntryDir,
   FilesEntryType,
   FilesAction,
-  // FileWithHash,
   FilesState,
   handleFilesAction,
   isS3File,
   EMPTY_DIR_MARKER,
-} from './FilesState'
-import * as PD from './PackageDialog'
-import * as S3FilePicker from './S3FilePicker'
-import { calcStats, Stats, StatsWarning } from './filesStats'
+} from './State'
+import { MAX_UPLOAD_SIZE, MAX_S3_SIZE, MAX_FILE_COUNT } from './constants'
+import { calcStats, Stats, StatsWarning } from './stats'
 
-export { FilesAction } from './FilesState'
-export type { LocalFile, FilesState } from './FilesState'
+export { FilesAction } from './State'
+export type { LocalFile, FilesState } from './State'
 
 interface Progress {
   total: number
@@ -906,17 +905,17 @@ function DropzoneMessage({ label: defaultLabel, error, warn }: DropzoneMessagePr
         {warn.upload && (
           <p>
             Total size of local files exceeds recommended maximum of{' '}
-            {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+            {readableBytes(MAX_UPLOAD_SIZE)}.
           </p>
         )}
         {warn.s3 && (
           <p>
             Total size of files from S3 exceeds recommended maximum of{' '}
-            {readableBytes(PD.MAX_S3_SIZE)}.
+            {readableBytes(MAX_S3_SIZE)}.
           </p>
         )}
         {warn.count && (
-          <p>Total number of files exceeds recommended maximum of {PD.MAX_FILE_COUNT}.</p>
+          <p>Total number of files exceeds recommended maximum of {MAX_FILE_COUNT}.</p>
         )}
       </div>
     )

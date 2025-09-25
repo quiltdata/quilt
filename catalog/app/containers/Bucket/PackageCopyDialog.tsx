@@ -7,6 +7,7 @@ import * as Intercom from 'components/Intercom'
 import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
@@ -221,6 +222,40 @@ function DialogLoading({ bucket }: DialogLoadingProps) {
   )
 }
 
+interface RenderDialogProps {
+  close: () => void
+  state: DialogState
+  successor: workflows.Successor
+}
+
+function RenderDialog({ close, state, successor }: RenderDialogProps) {
+  switch (state._tag) {
+    case 'loading':
+      return <DialogLoading bucket={successor.slug} />
+    case 'error':
+      return <DialogError bucket={successor.slug} error={state.error} />
+    case 'success':
+      return (
+        <PD.DialogSuccess
+          name={state.name}
+          hash={state.hash}
+          bucket={state.bucket}
+          onClose={close}
+        />
+      )
+    case 'ready':
+      return <PackageCopyForm successor={successor} close={close} />
+    default:
+      assertNever(state)
+  }
+}
+
+type DialogState =
+  | { _tag: 'loading'; waitListing?: boolean }
+  | { _tag: 'error'; error: Error }
+  | { _tag: 'ready' }
+  | { _tag: 'success'; bucket: string; name: string; hash: string }
+
 interface PackageCopyDialogProps {
   successor: workflows.Successor | null
   onClose: () => void
@@ -243,36 +278,25 @@ export default function PackageCopyDialog({
 
   Intercom.usePauseVisibilityWhen(!!successor)
 
+  const state: DialogState = React.useMemo<DialogState>(() => {
+    if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
+    if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
+      return { _tag: 'loading' }
+    }
+    if (manifest._tag === 'error') {
+      return { _tag: 'error', error: manifest.error }
+    }
+    if (workflowsConfig._tag === 'error') {
+      return { _tag: 'error', error: workflowsConfig.error }
+    }
+    return { _tag: 'ready' }
+  }, [workflowsConfig, formStatus, manifest])
+
   if (!successor) return null
 
   return (
     <M.Dialog fullWidth onClose={close} open={!!successor} scroll="body">
-      {(() => {
-        if (formStatus._tag === 'success') {
-          return (
-            <PD.DialogSuccess
-              name={formStatus.handle.name}
-              hash={formStatus.handle.hash}
-              bucket={formStatus.handle.bucket}
-              onClose={close}
-            />
-          )
-        }
-
-        if (workflowsConfig._tag === 'error') {
-          return <DialogError bucket={successor.slug} error={workflowsConfig.error} />
-        }
-
-        if (manifest._tag === 'error') {
-          return <DialogError bucket={successor.slug} error={manifest.error} />
-        }
-
-        if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
-          return <DialogLoading bucket={successor.slug} />
-        }
-
-        return <PackageCopyForm successor={successor} close={close} />
-      })()}
+      {successor && <RenderDialog successor={successor} close={close} state={state} />}
     </M.Dialog>
   )
 }

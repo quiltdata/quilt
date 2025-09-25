@@ -11,7 +11,7 @@ import {
   FilesEntry,
   groupAddedFiles,
   EMPTY_DIR_MARKER,
-} from './FilesState'
+} from './State'
 
 jest.mock('constants/config', () => ({}))
 
