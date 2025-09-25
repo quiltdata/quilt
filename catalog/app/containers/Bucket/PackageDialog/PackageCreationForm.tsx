@@ -1,9 +1,7 @@
-import cx from 'classnames'
 import * as React from 'react'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
-import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Dialogs from 'utils/Dialogs'
 import * as Intercom from 'components/Intercom'
 import assertNever from 'utils/assertNever'
@@ -16,204 +14,13 @@ import * as requests from '../requests'
 import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
-import * as FI from './FilesInput'
+import * as Inputs from './Inputs'
 import * as Layout from './Layout'
-import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
-import SelectWorkflow from './SelectWorkflow'
 import * as State from './state'
-import {
-  FormSkeleton,
-  MetaInputSkeleton,
-  FilesInputSkeleton,
-  WorkflowsInputSkeleton,
-} from './Skeleton'
+import { FormSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 // import { useUploads } from './Uploads'
-
-function InputWorkflow() {
-  const {
-    formStatus,
-    metadataSchema: schema,
-    values: {
-      workflow: { status, value, onChange },
-    },
-    workflowsConfig,
-  } = State.use()
-  const error = React.useMemo(() => {
-    if (workflowsConfig._tag === 'error') return workflowsConfig.error.message
-    if (status._tag === 'error') return status.error.message
-    return undefined
-  }, [status, workflowsConfig])
-  if (workflowsConfig._tag === 'idle') return null
-  if (workflowsConfig._tag === 'loading') return <WorkflowsInputSkeleton />
-  return (
-    <SelectWorkflow
-      disabled={schema._tag === 'loading' || formStatus._tag === 'submitting'}
-      error={error}
-      items={workflowsConfig.config.workflows}
-      onChange={onChange}
-      value={value}
-    />
-  )
-}
-
-function InputName() {
-  const {
-    formStatus,
-    values: {
-      name: { value, onChange, status },
-    },
-  } = State.use()
-  const handleChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
-    [onChange],
-  )
-  return (
-    <M.TextField
-      /*style*/
-      InputLabelProps={{ shrink: true }}
-      fullWidth
-      margin="normal"
-      /*constants*/
-      helperText={<PD.PackageNameWarning />}
-      disabled={formStatus._tag === 'submitting'}
-      error={status._tag === 'error'}
-      label="Name"
-      placeholder="e.g. user/package"
-      /*data*/
-      onChange={handleChange}
-      value={value || ''}
-    />
-  )
-}
-
-function InputMessage() {
-  const {
-    formStatus,
-    values: {
-      message: { status, value, onChange },
-    },
-  } = State.use()
-  const handleChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
-    [onChange],
-  )
-  return (
-    <M.TextField
-      /*style*/
-      InputLabelProps={{ shrink: true }}
-      fullWidth
-      margin="normal"
-      /*constants*/
-      disabled={formStatus._tag === 'submitting'}
-      error={status._tag === 'error'}
-      helperText={status._tag === 'error' && status.error.message}
-      label="Message"
-      placeholder="Enter a commit message"
-      /*data*/
-      onChange={handleChange}
-      value={value || ''}
-    />
-  )
-}
-
-const useInputMetaStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    paddingTop: t.spacing(3),
-    overflowY: 'auto',
-  },
-}))
-
-const InputMeta = React.forwardRef<HTMLDivElement>(function InputMeta(_, ref) {
-  const classes = useInputMetaStyles()
-  const {
-    formStatus,
-    metadataSchema: schema,
-    values: {
-      meta: { status, value, onChange },
-    },
-  } = State.use()
-  const errors = React.useMemo(() => {
-    if (schema._tag === 'error') return [schema.error]
-    if (status._tag === 'error') return status.errors
-    return []
-  }, [schema, status])
-  if (schema._tag === 'loading') {
-    return <MetaInputSkeleton ref={ref} className={classes.root} />
-  }
-  return (
-    <MI.MetaInput
-      disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
-      className={classes.root}
-      errors={errors}
-      onChange={onChange}
-      ref={ref}
-      schema={schema._tag === 'ready' ? schema.schema : undefined}
-      value={value}
-    />
-  )
-})
-
-const useInputFilesStyles = M.makeStyles((t) => ({
-  root: {
-    height: '100%',
-    overflowY: 'auto',
-  },
-  error: {
-    height: `calc(90% - ${t.spacing()}px)`,
-  },
-}))
-
-function InputFiles() {
-  const classes = useInputFilesStyles()
-  const {
-    formStatus,
-    entriesSchema: schema,
-    progress,
-    values: {
-      files: { initial, status, value, onChange },
-    },
-  } = State.use()
-  // const uploads = useUploads()
-  // const onFilesAction = React.useMemo(
-  //   () =>
-  //     FI.FilesAction.match({
-  //       _: () => {},
-  //       Revert: uploads.remove,
-  //       RevertDir: uploads.removeByPrefix,
-  //       Reset: uploads.reset,
-  //     }),
-  //   [uploads],
-  // )
-  const { prefs } = BucketPreferences.use()
-
-  if (schema._tag === 'loading') return <FilesInputSkeleton className={classes.root} />
-
-  return BucketPreferences.Result.match(
-    {
-      Ok: () => (
-        <FI.FilesInput
-          disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
-          className={cx(classes.root, { [classes.error]: status._tag === 'error' })}
-          value={value}
-          initial={initial}
-          onChange={onChange}
-          error={status._tag === 'error' ? status.error : undefined}
-          errors={status._tag === 'error' ? status.errors : undefined}
-          title="Files"
-          totalProgress={progress}
-          // onFilesAction={onFilesAction}
-        />
-      ),
-      Pending: () => <FilesInputSkeleton className={classes.root} />,
-      Init: () => null,
-    },
-    prefs,
-  )
-}
 
 export interface PackageCreationSuccess {
   name: string
@@ -344,13 +151,13 @@ function PackageCreationForm({
         <form className={classes.form} onSubmit={handleSubmit}>
           <Layout.Container>
             <Layout.LeftColumn>
-              <InputWorkflow />
-              <InputName />
-              <InputMessage />
-              <InputMeta ref={setEditorElement} />
+              <Inputs.Workflow />
+              <Inputs.Name />
+              <Inputs.Message />
+              <Inputs.Meta ref={setEditorElement} />
             </Layout.LeftColumn>
             <Layout.RightColumn>
-              <InputFiles />
+              <Inputs.Files />
             </Layout.RightColumn>
           </Layout.Container>
 
