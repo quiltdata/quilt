@@ -98,6 +98,7 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
     name,
     params,
     progress,
+    setSrc,
     src,
     workflow,
     workflowsConfig,
@@ -130,7 +131,7 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
             state={workflow}
             config={workflowsConfig}
           />
-          <PD.Inputs.Name formStatus={formStatus} state={name} />
+          <PD.Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
           <PD.Inputs.Message formStatus={formStatus} state={message} />
           <PD.Inputs.Meta
             formStatus={formStatus}

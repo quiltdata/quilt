@@ -13,7 +13,7 @@ import type { WorkflowsConfigStatus, WorkflowState } from './workflow'
 import type { MetaState } from './meta'
 import type { FormParams } from './params'
 import type { CopyHandler } from './copy'
-import type { CreateHandler, ReadmeHandler } from './create'
+import { CreateHandler, ReadmeHandler } from './create'
 
 export { isPackageHandle } from './manifest'
 
@@ -60,14 +60,10 @@ export interface State {
   copy: CopyHandler
 }
 
-const Context = React.createContext<State | null>(null)
+export const Context = React.createContext<State | null>(null)
 
 export function useContext(): State {
   const context = React.useContext(Context)
   invariant(context, 'useContext must be used within PackageDialogProvider')
   return context
 }
-
-export const use = useContext
-
-export { Context }

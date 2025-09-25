@@ -128,9 +128,10 @@ function PackageCreationForm({
     params,
     progress,
     setDst,
+    setSrc,
     workflow,
     workflowsConfig,
-  } = State.use()
+  } = State.useContext()
   const classes = useStyles()
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
@@ -175,7 +176,7 @@ function PackageCreationForm({
                 state={workflow}
                 config={workflowsConfig}
               />
-              <Inputs.Name formStatus={formStatus} state={name} />
+              <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
               <Inputs.Message formStatus={formStatus} state={message} />
               <Inputs.Meta
                 formStatus={formStatus}
@@ -332,7 +333,7 @@ export function usePackageCreationDialog({
     open: isOpen,
     setOpen,
     workflowsConfig,
-  } = State.use()
+  } = State.useContext()
 
   const [exited, setExited] = React.useState(!isOpen)
   const currentBucketCanBeSuccessor = s3Path !== undefined

@@ -5,16 +5,12 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
-import { RestoreOutlined as IconRestoreOutlined } from '@material-ui/icons'
-import * as Lab from '@material-ui/lab'
 
 import cfg from 'constants/config'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as JSONPointer from 'utils/JSONPointer'
 import log from 'utils/Logging'
-import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
 import { mkFormError } from 'utils/formTools'
 import {
   JsonSchema,
@@ -27,7 +23,6 @@ import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
-import * as State from './State'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
@@ -272,53 +267,6 @@ export const getDefaultPackageName = (
           username: s3paths.ensureNoSlash(usernamePrefix),
         })
   return typeof templateBasedName === 'string' ? templateBasedName : usernamePrefix
-}
-
-const usePackageNameWarningStyles = M.makeStyles((t) => ({
-  root: {
-    marginRight: '4px',
-    verticalAlign: '-5px',
-  },
-  success: {
-    color: t.palette.success.main,
-  },
-  error: {
-    color: t.palette.error.main,
-  },
-  existing: {
-    color: t.palette.text.hint,
-  },
-}))
-
-export const PackageNameWarning = () => {
-  const {
-    name: { status },
-    setSrc,
-  } = State.use()
-  const classes = usePackageNameWarningStyles()
-
-  switch (status._tag) {
-    case 'idle':
-      return <></>
-    case 'loading':
-      return <Lab.Skeleton width={160} />
-    case 'new-revision':
-      return <span className={classes.existing}>Existing package</span>
-    case 'exists':
-      return (
-        <>
-          <IconRestoreOutlined className={classes.root} fontSize="small" />
-          Existing package. Want to{' '}
-          <StyledLink onClick={() => setSrc(status.dst)}>load and revise it</StyledLink>?
-        </>
-      )
-    case 'new':
-      return <span className={classes.success}>New package</span>
-    case 'error':
-      return <>{status.error.message}</>
-    default:
-      assertNever(status)
-  }
 }
 
 interface DialogWrapperProps {
