@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import * as State from '../state'
+import * as State from '../State'
 import { WorkflowsInputSkeleton } from '../Skeleton'
 import SelectWorkflow from '../SelectWorkflow'
 
@@ -8,9 +8,7 @@ export default function InputWorkflow() {
   const {
     formStatus,
     metadataSchema: schema,
-    values: {
-      workflow: { status, value, onChange },
-    },
+    workflow: { status, value, onChange },
     workflowsConfig,
   } = State.use()
   const error = React.useMemo(() => {

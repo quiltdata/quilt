@@ -16,7 +16,7 @@ import { Manifest } from '../Manifest'
 import type { FormStatus } from './form'
 import { mkMetaValidator, SchemaStatus } from './schema'
 
-export const README_PATH = 'README.md'
+const README_PATH = 'README.md'
 
 export type FormFiles = {
   local: {
@@ -48,7 +48,13 @@ export async function createReadmeFile(name: string) {
   const f = new File(contents, README_PATH, { type: 'text/markdown' })
   const localFile = FI.computeHash(f) as FI.LocalFile
   await localFile.hash.promise
-  return localFile
+
+  return {
+    file: localFile,
+    path: README_PATH,
+    hash: localFile.hash.value,
+    size: localFile.size,
+  }
 }
 
 type ManifestStatus =

@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import * as State from '../state'
+import * as State from '../State'
 import { FilesInput } from '../FilesInput'
 import { FilesInputSkeleton } from '../Skeleton'
 
@@ -24,9 +24,7 @@ export default function InputFiles() {
     formStatus,
     entriesSchema: schema,
     progress,
-    values: {
-      files: { initial, status, value, onChange },
-    },
+    files: { initial, status, value, onChange },
   } = State.use()
   const { prefs } = BucketPreferences.use()
 

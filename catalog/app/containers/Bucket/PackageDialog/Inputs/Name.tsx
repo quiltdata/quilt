@@ -1,15 +1,13 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as State from '../state'
-import * as PD from '../PackageDialog'
+import * as State from '../State'
+import { PackageNameWarning } from '../PackageDialog'
 
 export default function InputName() {
   const {
     formStatus,
-    values: {
-      name: { value, onChange, status },
-    },
+    name: { value, onChange, status },
   } = State.use()
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
@@ -22,7 +20,7 @@ export default function InputName() {
       fullWidth
       margin="normal"
       /*constants*/
-      helperText={<PD.PackageNameWarning />}
+      helperText={<PackageNameWarning />}
       disabled={formStatus._tag === 'submitting'}
       error={status._tag === 'error'}
       label="Name"

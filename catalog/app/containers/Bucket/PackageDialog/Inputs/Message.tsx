@@ -1,14 +1,12 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as State from '../state'
+import * as State from '../State'
 
 export default function InputMessage() {
   const {
     formStatus,
-    values: {
-      message: { status, value, onChange },
-    },
+    message: { status, value, onChange },
   } = State.use()
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),

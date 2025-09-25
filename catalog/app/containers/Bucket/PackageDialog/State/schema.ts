@@ -12,7 +12,7 @@ import * as Request from 'utils/useRequest'
 import * as Types from 'utils/types'
 import * as workflows from 'utils/workflows'
 
-import * as requests from '../../requests'
+import { metadataSchema, objectSchema } from '../../requests'
 
 export type SchemaStatus =
   | { _tag: 'idle' }
@@ -38,10 +38,7 @@ export function mkMetaValidator(schema?: JsonSchema) {
 export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
   const s3 = AWS.S3.use()
   const schemaUrl = workflow?.schema?.url
-  const req = React.useCallback(
-    () => requests.metadataSchema({ s3, schemaUrl }),
-    [schemaUrl, s3],
-  )
+  const req = React.useCallback(() => metadataSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
 
   if (!schemaUrl) return { _tag: 'ready' }
@@ -56,10 +53,7 @@ export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
 export function useEntriesSchema(workflow?: workflows.Workflow): SchemaStatus {
   const s3 = AWS.S3.use()
   const schemaUrl = workflow?.entriesSchema || ''
-  const req = React.useCallback(
-    () => requests.objectSchema({ s3, schemaUrl }),
-    [schemaUrl, s3],
-  )
+  const req = React.useCallback(() => objectSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
 
   if (!schemaUrl) return { _tag: 'ready' }

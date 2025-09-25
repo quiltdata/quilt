@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as State from '../state'
+import * as State from '../State'
 import { MetaInput } from '../MetaInput'
 import { MetaInputSkeleton } from '../Skeleton'
 
@@ -19,9 +19,7 @@ const InputMeta = React.forwardRef<HTMLDivElement>(function InputMeta(_, ref) {
   const {
     formStatus,
     metadataSchema: schema,
-    values: {
-      meta: { status, value, onChange },
-    },
+    meta: { status, value, onChange },
   } = State.use()
   const errors = React.useMemo(() => {
     if (schema._tag === 'error') return [schema.error]

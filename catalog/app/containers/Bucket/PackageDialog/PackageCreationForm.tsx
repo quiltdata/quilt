@@ -17,7 +17,7 @@ import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
 import * as Layout from './Layout'
 import * as PD from './PackageDialog'
-import * as State from './state'
+import * as State from './State'
 import { FormSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 // import { useUploads } from './Uploads'
@@ -114,7 +114,7 @@ function PackageCreationForm({
   currentBucketCanBeSuccessor,
   ui = {},
 }: PackageCreationFormProps) {
-  const { params, formStatus, dst, setDst, submit, progress, onAddReadme } = State.use()
+  const { params, formStatus, dst, setDst, create, progress, onAddReadme } = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -124,9 +124,9 @@ function PackageCreationForm({
   const handleSubmit = React.useCallback(
     (event) => {
       event.preventDefault()
-      submit()
+      create()
     },
-    [submit],
+    [create],
   )
 
   return (

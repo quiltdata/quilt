@@ -27,7 +27,7 @@ import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
-import * as State from './state'
+import * as State from './State'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
@@ -292,9 +292,7 @@ const usePackageNameWarningStyles = M.makeStyles((t) => ({
 
 export const PackageNameWarning = () => {
   const {
-    values: {
-      name: { status },
-    },
+    name: { status },
     setSrc,
   } = State.use()
   const classes = usePackageNameWarningStyles()
