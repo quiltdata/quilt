@@ -192,6 +192,22 @@ This directory contains experimental results...
 - `bucketContextFilesReady`: Bucket root context file loaded
 - `dirContextFilesReady`: Directory hierarchy context files loaded
 - `fileContextFilesReady`: File parent hierarchy context files loaded
-- `packageMetadataReady`: Package metadata loaded
+- `packageMetadataReady`: Package metadata loaded (includes userMeta)
 - `packageContextFilesReady`: Package root context file loaded
 - `packageDirContextFilesReady`: Package directory hierarchy loaded
+
+## Important Implementation Notes
+
+### GraphQL Cache Key Consistency
+The urql GraphQL client uses cache keys for deduplication and caching. For `PackageRevision` entities, the cache key is defined as:
+```typescript
+PackageRevision: (r) => r.hash ? `${r.hash}:${r.modified?.valueOf() || ''}` : null
+```
+
+This means all queries that fetch PackageRevision must include the `modified` field to ensure consistent cache keys. Without it, queries will have different cache keys causing infinite re-fetch loops.
+
+### Package Metadata Access
+Package metadata (userMeta) is fetched at the PackageTree level and passed down as props to avoid:
+1. Duplicate queries
+2. Data fetching inside LazyContext (causes infinite loops)
+3. Cache inconsistencies

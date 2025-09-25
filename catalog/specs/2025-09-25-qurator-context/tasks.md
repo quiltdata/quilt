@@ -164,6 +164,13 @@ When implementing, follow the existing patterns in the codebase:
 - [x] Include bucket attribute on all context files
 - [x] Include package-name attribute on package context files
 
+### 5.4 Expose Package Metadata (userMeta)
+- [x] Extend Revision.graphql query to include userMeta, workflow, totalEntries
+- [x] Add modified field to all package queries for cache key consistency
+- [x] Update PackageMetadataContext to receive revision data as props
+- [x] Pass revision data through component hierarchy
+- [x] Fix infinite loop issue caused by urql cache key instability
+
 ## Task 6: Testing and Validation
 
 ### 6.1 Manual Testing Checklist
