@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
 
@@ -17,21 +17,24 @@ const noop = () => {}
 const emptyState: Model.State = {
   bucket: 'any',
 
-  catalogName: { value: undefined, setValue: noop },
-  catalogNames: { data: undefined, loadMore: noop },
-  database: { value: undefined, setValue: noop },
-  databases: { data: undefined, loadMore: noop },
-  execution: undefined,
-  executions: { data: undefined, loadMore: noop },
-  queries: { data: undefined, loadMore: noop },
-  query: { value: undefined, setValue: noop },
-  queryBody: { value: undefined, setValue: noop },
-  results: { data: undefined, loadMore: noop },
-  workgroups: { data: undefined, loadMore: noop },
-  workgroup: { data: undefined, loadMore: noop },
+  catalogName: { value: Model.Init, setValue: noop },
+  catalogNames: { data: Model.Init, loadMore: noop },
+  database: { value: Model.Init, setValue: noop },
+  databases: { data: Model.Init, loadMore: noop },
+  execution: Model.Init,
+  executions: { data: Model.Init, loadMore: noop },
+  queries: { data: Model.Init, loadMore: noop },
+  query: { value: Model.Init, setValue: noop },
+  queryBody: { value: Model.Init, setValue: noop },
+  results: { data: Model.Init, loadMore: noop },
+  workgroups: { data: Model.Init, loadMore: noop },
+  workgroup: Model.Init,
 
-  submit: () => Promise.resolve({ id: 'bar' }),
-  queryRun: undefined,
+  submit: () => Promise.resolve(Model.Payload({ id: 'bar' })),
+  queryRun: Model.None,
+
+  toWorkgroup: (workgroup: string) => `/bucket/any/athena/${workgroup}`,
+  toExecution: (executionId: string) => `/bucket/any/athena/workgroup/${executionId}`,
 }
 
 interface ProviderProps {
@@ -49,96 +52,96 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
   afterAll(() => {})
 
   it('should render skeletons', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider value={emptyState}>
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render selected values', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider
         value={{
           ...emptyState,
-          catalogName: Model.wrapValue('foo', noop),
-          catalogNames: Model.wrapData({ list: ['foo'] }, noop),
-          databases: Model.wrapData({ list: ['bar'] }, noop),
-          database: Model.wrapValue('bar', noop),
+          catalogName: Model.wrapValue(Model.Payload('foo'), noop),
+          catalogNames: Model.wrapData(Model.Payload({ list: ['foo'] }), noop),
+          databases: Model.wrapData(Model.Payload({ list: ['bar'] }), noop),
+          database: Model.wrapValue(Model.Payload('bar'), noop),
         }}
       >
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show no value (zero-width space) if selected no value', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider
         value={{
           ...emptyState,
-          catalogName: { value: null, setValue: noop },
-          catalogNames: Model.wrapData({ list: ['any'] }, noop),
-          databases: Model.wrapData({ list: ['any'] }, noop),
-          database: { value: null, setValue: noop },
+          catalogName: { value: Model.None, setValue: noop },
+          catalogNames: Model.wrapData(Model.Payload({ list: ['any'] }), noop),
+          databases: Model.wrapData(Model.Payload({ list: ['any'] }), noop),
+          database: { value: Model.None, setValue: noop },
         }}
       >
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should disable selection if no spare values', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider
         value={{
           ...emptyState,
-          catalogName: { value: null, setValue: noop },
-          catalogNames: Model.wrapData({ list: [] }, noop),
-          databases: Model.wrapData({ list: [] }, noop),
-          database: { value: null, setValue: noop },
+          catalogName: { value: Model.None, setValue: noop },
+          catalogNames: Model.wrapData(Model.Payload({ list: [] }), noop),
+          databases: Model.wrapData(Model.Payload({ list: [] }), noop),
+          database: { value: Model.None, setValue: noop },
         }}
       >
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show error when values failed', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <WithGlobalDialogs>
         <Provider
           value={{
             ...emptyState,
-            catalogName: { value: new Error('Value fail'), setValue: noop },
-            database: { value: new Error('Value fail'), setValue: noop },
+            catalogName: { value: Model.Err(new Error('Value fail')), setValue: noop },
+            database: { value: Model.Err(new Error('Value fail')), setValue: noop },
           }}
         >
           <Database />
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show error when data failed', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <WithGlobalDialogs>
         <Provider
           value={{
             ...emptyState,
-            catalogNames: { data: new Error('Data fail'), loadMore: noop },
-            databases: { data: new Error('Data fail'), loadMore: noop },
+            catalogNames: { data: Model.Err(new Error('Data fail')), loadMore: noop },
+            databases: { data: Model.Err(new Error('Data fail')), loadMore: noop },
           }}
         >
           <Database />
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })
