@@ -102,22 +102,22 @@ When implementing, follow the existing patterns in the codebase:
 ### 4.1 Update File AssistantContext
 **File:** `app/containers/Bucket/File/AssistantContext.ts`
 
-- [ ] Import `ContextFiles` module
-- [ ] Create `FileContextFiles` provider:
-  - Accept props: `{ bucket, path, s3 }`
+- [x] Import `ContextFiles` module
+- [x] Create `FileContextFiles` provider:
+  - Accept props: `{ bucket, path }`
   - Get parent directory from file path
   - Use `loadContextFileHierarchy` for parent dir
   - Format as XML context messages
   - Add marker `fileContextFilesReady`
-- [ ] Export all context providers
+- [x] Export all context providers
 
 ### 4.2 Integrate into File component
 **File:** `app/containers/Bucket/File/File.js`
 
-- [ ] Import updated `AssistantContext`
-- [ ] Add `<AssistantContext.FileContextFiles>` component
-- [ ] Pass bucket, path (file path), and s3
-- [ ] Place alongside existing version contexts
+- [x] Import updated `AssistantContext`
+- [x] Add `<AssistantContext.FileContextFiles>` component
+- [x] Pass bucket, path (file path)
+- [x] Place alongside existing version contexts
 
 ## Task 5: Create Package Context Providers
 

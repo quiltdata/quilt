@@ -391,6 +391,7 @@ function File() {
       <AssistantContext.CurrentVersionContext
         {...{ version, objExistsData, versionExistsData }}
       />
+      <AssistantContext.FileContextFiles bucket={bucket} path={path} />
 
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 

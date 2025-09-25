@@ -2,6 +2,8 @@ import * as Eff from 'effect'
 import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
+import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
+import * as AWS from 'utils/AWS'
 import * as XML from 'utils/XML'
 
 import { ObjectExistence } from '../requests'
@@ -99,6 +101,59 @@ export const CurrentVersionContext = Assistant.Context.LazyContext(
     return {
       markers: { currentVersionReady: Eff.Option.isSome(msg) },
       messages: Eff.Option.toArray(msg),
+    }
+  },
+)
+
+interface FileContextFilesProps {
+  bucket: string
+  path: string
+}
+
+export const FileContextFiles = Assistant.Context.LazyContext(
+  ({ bucket, path }: FileContextFilesProps) => {
+    const s3 = AWS.S3.use()
+    const [contextFiles, setContextFiles] = React.useState<
+      ContextFiles.ContextFileContent[] | null
+    >(null)
+    const [loading, setLoading] = React.useState(true)
+
+    React.useEffect(() => {
+      const loadContextFiles = async () => {
+        setLoading(true)
+        try {
+          // Get parent directory of the file
+          const lastSlash = path.lastIndexOf('/')
+          const parentPath = lastSlash > 0 ? path.substring(0, lastSlash) : ''
+
+          // Load hierarchy from parent directory up to (but excluding) bucket root
+          const files = await ContextFiles.loadContextFileHierarchy(
+            s3,
+            bucket,
+            parentPath,
+            '', // Stop at bucket root (empty string)
+          )
+          setContextFiles(files)
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Error loading file context files:', error)
+          setContextFiles([])
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      loadContextFiles()
+    }, [bucket, path, s3])
+
+    const messages = React.useMemo(() => {
+      if (!contextFiles || contextFiles.length === 0) return []
+      return ContextFiles.formatContextFilesAsMessages(contextFiles)
+    }, [contextFiles])
+
+    return {
+      markers: { fileContextFilesReady: !loading && contextFiles !== null },
+      messages,
     }
   },
 )
