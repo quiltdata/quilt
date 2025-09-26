@@ -27,7 +27,6 @@ export const Ready = (schema?: JsonSchema) => ({ _tag: 'ready' as const, schema 
 
 export function mkMetaValidator(schema?: JsonSchema) {
   const schemaValidator = makeSchemaValidator(schema)
-  // if (!schema) return () => undefined
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
@@ -46,13 +45,13 @@ export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
   const req = React.useCallback(() => metadataSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
 
-  if (!schemaUrl) return { _tag: 'ready' }
+  if (!schemaUrl) return Ready()
 
-  if (result === Request.Idle) return { _tag: 'idle' }
-  if (result === Request.Loading) return { _tag: 'loading' }
-  if (result instanceof Error) return { _tag: 'error', error: result }
+  if (result === Request.Idle) return Idle
+  if (result === Request.Loading) return Loading
+  if (result instanceof Error) return Err(result)
 
-  return { _tag: 'ready', schema: result }
+  return Ready(result)
 }
 
 export function useEntriesSchema(workflow?: workflows.Workflow): SchemaStatus {
@@ -61,11 +60,11 @@ export function useEntriesSchema(workflow?: workflows.Workflow): SchemaStatus {
   const req = React.useCallback(() => objectSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
 
-  if (!schemaUrl) return { _tag: 'ready' }
+  if (!schemaUrl) return Ready()
 
-  if (result === Request.Idle) return { _tag: 'idle' }
-  if (result === Request.Loading) return { _tag: 'loading' }
-  if (result instanceof Error) return { _tag: 'error', error: result }
+  if (result === Request.Idle) return Idle
+  if (result === Request.Loading) return Loading
+  if (result instanceof Error) return Err(result)
 
-  return { _tag: 'ready', schema: result }
+  return Ready(result)
 }

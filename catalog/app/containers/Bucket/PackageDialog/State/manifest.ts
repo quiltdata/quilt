@@ -6,7 +6,7 @@ export type ManifestStatus =
   | { _tag: 'idle' }
   | { _tag: 'loading' }
   | { _tag: 'error'; error: Error }
-  | { _tag: 'ready'; manifest: Manifest | undefined }
+  | { _tag: 'ready'; manifest?: Manifest }
 
 export const Idle = { _tag: 'idle' as const }
 export const Loading = { _tag: 'loading' as const }
