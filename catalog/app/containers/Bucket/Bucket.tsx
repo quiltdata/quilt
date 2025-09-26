@@ -12,6 +12,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
+import * as AssistantContext from './AssistantContext'
 import * as BucketNav from './BucketNav'
 import CatchNotFound from './CatchNotFound'
 import type { RouteMap } from './Routes'
@@ -56,7 +57,12 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
           </M.AppBar>
           <Container>
             {bucketExistenceData.case({
-              Ok: () => children,
+              Ok: () => (
+                <>
+                  <AssistantContext.BucketContext bucket={bucket} />
+                  {children}
+                </>
+              ),
               Err: displayError(),
               _: () => <SuspensePlaceholder />,
             })}

@@ -2,6 +2,8 @@ import * as Eff from 'effect'
 import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
+import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
+import * as AWS from 'utils/AWS'
 import * as XML from 'utils/XML'
 
 import { ObjectExistence } from '../requests'
@@ -99,6 +101,51 @@ export const CurrentVersionContext = Assistant.Context.LazyContext(
     return {
       markers: { currentVersionReady: Eff.Option.isSome(msg) },
       messages: Eff.Option.toArray(msg),
+    }
+  },
+)
+
+interface FileContextFilesProps {
+  bucket: string
+  path: string
+}
+
+export const FileContextFiles = Assistant.Context.LazyContext(
+  ({ bucket, path }: FileContextFilesProps) => {
+    const s3 = AWS.S3.use()
+
+    const loader = React.useCallback(async () => {
+      // Get parent directory of the file
+      const lastSlash = path.lastIndexOf('/')
+      const parentPath = lastSlash > 0 ? path.substring(0, lastSlash) : ''
+
+      // Load hierarchy from parent directory up to (but excluding) bucket root
+      return ContextFiles.loadContextFileHierarchy(
+        s3,
+        bucket,
+        parentPath,
+        '', // Stop at bucket root (empty string)
+      )
+    }, [bucket, path, s3])
+
+    const { files: contextFiles, loading } = ContextFiles.useContextFileLoader(loader, [
+      bucket,
+      path,
+      s3,
+    ])
+
+    const messages = React.useMemo(() => {
+      if (!contextFiles || contextFiles.length === 0) return []
+      const attrs: ContextFiles.ContextFileAttributes = {
+        scope: 'bucket',
+        bucket,
+      }
+      return ContextFiles.formatContextFilesAsMessages(contextFiles, attrs)
+    }, [contextFiles, bucket])
+
+    return {
+      markers: { fileContextFilesReady: !loading && contextFiles !== null },
+      messages,
     }
   },
 )

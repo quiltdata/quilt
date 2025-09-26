@@ -17,7 +17,10 @@ export type containers_Bucket_PackageDialog_gql_ManifestQuery = {
     { readonly __typename: 'Package' } & Pick<Types.Package, 'bucket' | 'name'> & {
         readonly revision: Types.Maybe<
           { readonly __typename: 'PackageRevision' } & Types.MakeMaybe<
-            Pick<Types.PackageRevision, 'hash' | 'userMeta' | 'contentsFlatMap'>,
+            Pick<
+              Types.PackageRevision,
+              'hash' | 'modified' | 'userMeta' | 'contentsFlatMap'
+            >,
             'contentsFlatMap'
           > & {
               readonly workflow: Types.Maybe<
@@ -121,6 +124,7 @@ export const containers_Bucket_PackageDialog_gql_ManifestDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'userMeta' } },
                       {
                         kind: 'Field',

@@ -17,7 +17,7 @@ export type containers_Bucket_PackageTree_gql_DirQuery = {
         readonly revision: Types.Maybe<
           { readonly __typename: 'PackageRevision' } & Pick<
             Types.PackageRevision,
-            'hash'
+            'hash' | 'modified'
           > & {
               readonly dir: Types.Maybe<
                 { readonly __typename: 'PackageDir' } & Pick<
@@ -120,6 +120,7 @@ export const containers_Bucket_PackageTree_gql_DirDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'dir' },
