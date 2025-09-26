@@ -23,6 +23,22 @@ export type FormStatus =
     }
   | { _tag: 'success'; handle: PackageHandle }
 
+export const Idle = { _tag: 'idle' as const }
+export const Ready = { _tag: 'ready' as const }
+export const Submitting = { _tag: 'submitting' as const }
+export const EmptyFiles = { _tag: 'emptyFiles' as const }
+export const Err = (
+  error: Error,
+  fields?: {
+    files?: Error
+    message?: Error
+    name?: Error
+    userMeta?: Error
+    workflow?: Error
+  },
+) => ({ _tag: 'error' as const, error, fields })
+export const Success = (handle: PackageHandle) => ({ _tag: 'success' as const, handle })
+
 export interface FormState {
   formStatus: FormStatus
   setFormStatus: React.Dispatch<React.SetStateAction<FormStatus>>

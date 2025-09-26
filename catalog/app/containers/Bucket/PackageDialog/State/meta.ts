@@ -11,6 +11,13 @@ export type MetaStatus =
   | { _tag: 'error'; errors: (Error | ErrorObject)[] }
   | { _tag: 'ok' }
 
+export const Err = (errors: Error | ErrorObject | (Error | ErrorObject)[]) => ({
+  _tag: 'error' as const,
+  errors: Array.isArray(errors) ? errors : [errors],
+})
+
+export const Ok = { _tag: 'ok' as const }
+
 export interface MetaState {
   onChange: (m: Types.JsonRecord) => void
   status: MetaStatus
@@ -35,11 +42,12 @@ export function useMeta(
     return mkMetaValidator(schema.schema)
   }, [schema])
   const status: MetaStatus = React.useMemo(() => {
-    if (form._tag !== 'error') return { _tag: 'ok' }
-    if (form.fields?.userMeta) return { _tag: 'error', errors: [form.fields.userMeta] }
+    if (form._tag !== 'error') return Ok
+    if (form.fields?.userMeta) return Err(form.fields.userMeta)
     const errors = validate(meta || {})
-    if (!errors) return { _tag: 'ok' }
-    return { _tag: 'error', errors }
+    return errors ? Err(errors) : Ok
   }, [form, meta, validate])
   return React.useMemo(() => ({ value, status, onChange: setMeta }), [status, value])
 }
+
+export { useMeta as use }

@@ -1,13 +1,19 @@
 import { renderHook, act } from '@testing-library/react-hooks'
 
-import { useMeta } from './meta'
+import * as Form from './form'
+import * as Manifest from './manifest'
+import { useMeta, Err, Ok } from './meta'
+import * as Schema from './schema'
 
 jest.mock('constants/config', () => ({}))
 
 const mkMetaValidator = jest.fn()
 jest.mock('./schema', () => ({
+  ...jest.requireActual('./schema'),
   mkMetaValidator: () => mkMetaValidator(),
 }))
+
+const SchemaReady = Schema.Ready()
 
 describe('containers/Bucket/PackageDialog/State/meta', () => {
   describe('useMeta', () => {
@@ -16,17 +22,15 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
     })
 
     describe('value', () => {
-      const form = { _tag: 'idle' } as const
-      const schema = { _tag: 'ready', schema: {} } as const
-
       test('should use fallback meta from manifest when local meta is undefined', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
-          useMeta(form, schema, {
-            _tag: 'ready',
-            manifest: { meta: { title: 'Test Package' } },
-          }),
+          useMeta(
+            Form.Idle,
+            SchemaReady,
+            Manifest.Ready({ meta: { title: 'Test Package' } }),
+          ),
         )
 
         expect(result.current.value).toEqual({ title: 'Test Package' })
@@ -36,10 +40,11 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
-          useMeta(form, schema, {
-            _tag: 'ready',
-            manifest: { meta: { title: 'Manifest Title' } },
-          }),
+          useMeta(
+            Form.Idle,
+            SchemaReady,
+            Manifest.Ready({ meta: { title: 'Manifest Title' } }),
+          ),
         )
 
         act(() => {
@@ -52,7 +57,9 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
       test('should return undefined when manifest is not ready and no local meta', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
-        const { result } = renderHook(() => useMeta(form, schema, { _tag: 'loading' }))
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Loading),
+        )
 
         expect(result.current.value).toBeUndefined()
       })
@@ -61,7 +68,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
-          useMeta(form, schema, { _tag: 'ready', manifest: {} }),
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({})),
         )
 
         expect(result.current.value).toBeUndefined()
@@ -70,110 +77,98 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
 
     describe('status', () => {
       describe('form not in error state', () => {
-        const form = { _tag: 'idle' } as const
-        const schema = { _tag: 'ready', schema: {} } as const
-        const manifest = { _tag: 'ready', manifest: undefined } as const
-
         test('should return ok status when form has no errors and validation passes', () => {
           mkMetaValidator.mockReturnValue(() => undefined)
 
-          const { result } = renderHook(() => useMeta(form, schema, manifest))
+          const { result } = renderHook(() =>
+            useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
+          )
 
-          expect(result.current.status).toEqual({ _tag: 'ok' })
+          expect(result.current.status).toEqual(Ok)
         })
 
         test('should ignore validation errors when form is not in error state', () => {
           const validationError = new Error('Validation failed')
           mkMetaValidator.mockReturnValue(() => [validationError])
 
-          const { result } = renderHook(() => useMeta(form, schema, manifest))
+          const { result } = renderHook(() =>
+            useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
+          )
 
-          expect(result.current.status).toEqual({ _tag: 'ok' })
+          expect(result.current.status).toEqual(Ok)
         })
       })
 
       describe('form in error state', () => {
-        const form = { _tag: 'error', error: new Error('Form error') } as const
-        const manifest = { _tag: 'ready', manifest: undefined } as const
-
         test('should return error status when form has userMeta field error', () => {
           mkMetaValidator.mockReturnValue(() => undefined)
 
           const userMetaError = new Error('Invalid metadata format')
-          const formWithMetaError = {
-            _tag: 'error',
-            error: new Error('Form error'),
-            fields: { userMeta: userMetaError },
-          } as const
 
           const { result } = renderHook(() =>
-            useMeta(formWithMetaError, { _tag: 'ready', schema: {} }, manifest),
+            useMeta(
+              Form.Err(new Error('Form error'), { userMeta: userMetaError }),
+              SchemaReady,
+              Manifest.Ready(),
+            ),
           )
 
-          expect(result.current.status).toEqual({
-            _tag: 'error',
-            errors: [userMetaError],
-          })
+          expect(result.current.status).toEqual(Err(userMetaError))
         })
 
         test('should return error status when schema is in error state', () => {
           const schemaError = new Error('Schema loading failed')
           mkMetaValidator.mockReturnValue(() => [schemaError])
 
-          const schema = { _tag: 'error', error: schemaError } as const
+          const { result } = renderHook(() =>
+            useMeta(
+              Form.Err(new Error('Form error')),
+              Schema.Err(schemaError),
+              Manifest.Ready(),
+            ),
+          )
 
-          const { result } = renderHook(() => useMeta(form, schema, manifest))
-
-          expect(result.current.status).toEqual({
-            _tag: 'error',
-            errors: [schemaError],
-          })
+          expect(result.current.status).toEqual(Err(schemaError))
         })
 
         test('should return error status when schema is not ready (idle/loading)', () => {
           const notReadyError = new Error('Schema is not ready')
           mkMetaValidator.mockReturnValue(() => [notReadyError])
 
-          const schema = { _tag: 'loading' } as const
+          const { result } = renderHook(() =>
+            useMeta(Form.Err(new Error('Form error')), Schema.Loading, Manifest.Ready()),
+          )
 
-          const { result } = renderHook(() => useMeta(form, schema, manifest))
-
-          expect(result.current.status).toEqual({
-            _tag: 'error',
-            errors: [notReadyError],
-          })
+          expect(result.current.status).toEqual(Err(notReadyError))
         })
 
         test('should return ok status when schema is ready and validation passes', () => {
           mkMetaValidator.mockReturnValue(() => undefined)
 
-          const schema = { _tag: 'ready', schema: { type: 'object' } } as const
-
-          const { result } = renderHook(() => useMeta(form, schema, manifest))
+          const { result } = renderHook(() =>
+            useMeta(Form.Err(new Error('Form error')), SchemaReady, Manifest.Ready()),
+          )
 
           act(() => {
             result.current.onChange({ valid: 'meta' })
           })
 
-          expect(result.current.status).toEqual({ _tag: 'ok' })
+          expect(result.current.status).toEqual(Ok)
         })
 
         test('should return error status when schema validation fails', () => {
           const validationErrors = [new Error('Required field missing')]
           mkMetaValidator.mockReturnValue(() => validationErrors)
 
-          const schema = { _tag: 'ready', schema: { type: 'object' } } as const
-
-          const { result } = renderHook(() => useMeta(form, schema, manifest))
+          const { result } = renderHook(() =>
+            useMeta(Form.Err(new Error('Form error')), SchemaReady, Manifest.Ready()),
+          )
 
           act(() => {
             result.current.onChange({ invalid: 'meta' })
           })
 
-          expect(result.current.status).toEqual({
-            _tag: 'error',
-            errors: validationErrors,
-          })
+          expect(result.current.status).toEqual(Err(validationErrors))
         })
       })
     })

@@ -8,6 +8,11 @@ export type ManifestStatus =
   | { _tag: 'error'; error: Error }
   | { _tag: 'ready'; manifest: Manifest | undefined }
 
+export const Idle = { _tag: 'idle' as const }
+export const Loading = { _tag: 'loading' as const }
+export const Err = (error: Error) => ({ _tag: 'error' as const, error })
+export const Ready = (manifest?: Manifest) => ({ _tag: 'ready' as const, manifest })
+
 export interface PackageSrc {
   bucket: string
   name: string
@@ -27,13 +32,8 @@ export function useManifestRequest(open: boolean, src?: PackageSrc): ManifestSta
     pause,
   })
   return React.useMemo(() => {
-    if (!open) return { _tag: 'idle' }
-    if (!src) return { _tag: 'ready' }
-    return data.case({
-      Ok: (manifest: Manifest | undefined) => ({ _tag: 'ready', manifest }),
-      Pending: () => ({ _tag: 'loading' }),
-      Init: () => ({ _tag: 'idle' }),
-      Err: (error: Error) => ({ _tag: 'error', error }),
-    })
+    if (!open) return Idle
+    if (!src) return Ready()
+    return data.case({ Ok: Ready, Pending: () => Loading, Init: () => Idle, Err })
   }, [src, open, data])
 }

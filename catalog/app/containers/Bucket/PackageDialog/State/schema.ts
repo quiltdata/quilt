@@ -20,6 +20,11 @@ export type SchemaStatus =
   | { _tag: 'error'; error: Error }
   | { _tag: 'ready'; schema?: JsonSchema }
 
+export const Idle = { _tag: 'idle' as const }
+export const Loading = { _tag: 'loading' as const }
+export const Err = (error: Error) => ({ _tag: 'error' as const, error })
+export const Ready = (schema?: JsonSchema) => ({ _tag: 'ready' as const, schema })
+
 export function mkMetaValidator(schema?: JsonSchema) {
   const schemaValidator = makeSchemaValidator(schema)
   // if (!schema) return () => undefined
