@@ -17,21 +17,29 @@ export const BucketContext = Assistant.Context.LazyContext(
     const [loading, setLoading] = React.useState(true)
 
     React.useEffect(() => {
-      const loadContextFile = async () => {
+      const loadContextFiles = async () => {
         setLoading(true)
         try {
-          const file = await ContextFiles.loadContextFile(s3, bucket, '')
-          setContextFiles(file ? [file] : [])
+          // Load both README.md and AGENTS.md from bucket root
+          const promises = [
+            ContextFiles.loadContextFile(s3, bucket, '', 'README.md'),
+            ContextFiles.loadContextFile(s3, bucket, '', 'AGENTS.md'),
+          ]
+          const results = await Promise.all(promises)
+          const validFiles = results.filter(
+            (file): file is ContextFiles.ContextFileContent => file !== null,
+          )
+          setContextFiles(validFiles)
         } catch (error) {
           // eslint-disable-next-line no-console
-          console.error('Error loading bucket context file:', error)
+          console.error('Error loading bucket context files:', error)
           setContextFiles([])
         } finally {
           setLoading(false)
         }
       }
 
-      loadContextFile()
+      loadContextFiles()
     }, [bucket, s3])
 
     const messages = React.useMemo(() => {

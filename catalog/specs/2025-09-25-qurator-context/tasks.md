@@ -244,6 +244,54 @@ When implementing, follow the existing patterns in the codebase:
 - [x] Consolidate tool message rendering logic
 - [x] Use dedicated styles instead of inline styling
 
+## Task 9: Add AGENTS.md Support with Size and Count Limits
+
+### 9.1 Update ContextFiles Module
+**File:** `app/components/Assistant/Model/ContextFiles.ts`
+
+- [x] Add CONTEXT_FILE_NAMES = ['README.md', 'AGENTS.md']
+- [x] Update MAX_CONTEXT_FILE_SIZE from 100_000 to 10_000 (10KB)
+- [x] Add MAX_NON_ROOT_FILES = 10 constant
+- [x] Update `loadContextFile` to accept filename parameter
+- [x] Update `loadContextFileHierarchy` to:
+  - Load both README.md and AGENTS.md at each level
+  - Apply 10 file limit for non-root files
+  - Prioritize closer files over distant ones
+  - Exclude root files from count limit
+
+### 9.2 Update Bucket Context
+**File:** `app/containers/Bucket/AssistantContext.tsx`
+
+- [x] Load both README.md and AGENTS.md from bucket root
+- [x] Apply 10KB truncation limit
+
+### 9.3 Update Directory Context
+**File:** `app/containers/Bucket/DirAssistantContext.ts`
+
+- [x] Load both README.md and AGENTS.md in hierarchy
+- [x] Apply 10 file limit (excluding root)
+- [x] Prioritize by proximity
+
+### 9.4 Update File Context
+**File:** `app/containers/Bucket/File/AssistantContext.ts`
+
+- [x] Load both README.md and AGENTS.md from parent hierarchy
+- [x] Apply limits and prioritization
+
+### 9.5 Update Package Contexts
+**File:** `app/containers/Bucket/PackageTree/AssistantContext.tsx`
+
+- [x] Update PackageRootContext to load both files
+- [x] Update PackageDirContext to load both files with limits
+- [x] Apply proximity prioritization
+
+### 9.6 Testing
+- [ ] Verify AGENTS.md files load correctly
+- [ ] Test 10KB truncation
+- [ ] Verify 10 file limit works
+- [ ] Confirm root files always included
+- [ ] Test proximity prioritization
+
 ## Completion Checklist
 
 - [ ] All context files load correctly

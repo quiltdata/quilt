@@ -7,16 +7,18 @@ export interface ContextFileContent {
   truncated: boolean
 }
 
-const MAX_CONTEXT_FILE_SIZE = 100_000 // 100KB default
-const CONTEXT_FILE_NAME = 'README.md'
+export const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
+export const MAX_NON_ROOT_FILES = 10 // Maximum non-root context files
+export const CONTEXT_FILE_NAMES = ['README.md', 'AGENTS.md']
 
 export async function loadContextFile(
   s3: S3,
   bucket: string,
   path: string,
+  fileName: string = 'README.md',
 ): Promise<ContextFileContent | null> {
   try {
-    const key = path ? `${path}/${CONTEXT_FILE_NAME}` : CONTEXT_FILE_NAME
+    const key = path ? `${path}/${fileName}` : fileName
     const response = await s3
       .getObject({
         Bucket: bucket,
@@ -38,7 +40,7 @@ export async function loadContextFile(
       return null
     }
     // eslint-disable-next-line no-console
-    console.error(`Error loading context file from ${path}:`, error)
+    console.error(`Error loading context file ${fileName} from ${path}:`, error)
     return null
   }
 }
@@ -72,11 +74,38 @@ export async function loadContextFileHierarchy(
   stopAt?: string,
 ): Promise<ContextFileContent[]> {
   const pathChain = buildPathChain(currentPath, stopAt)
+  const isRootPath = (path: string) => path === '' || path === stopAt
 
-  const promises = pathChain.map((path) => loadContextFile(s3, bucket, path))
+  // Load all context files (README.md and AGENTS.md) at each level
+  const promises: Promise<ContextFileContent | null>[] = []
+  const fileMetadata: { path: string; fileName: string; isRoot: boolean }[] = []
+
+  for (const path of pathChain) {
+    for (const fileName of CONTEXT_FILE_NAMES) {
+      promises.push(loadContextFile(s3, bucket, path, fileName))
+      fileMetadata.push({ path, fileName, isRoot: isRootPath(path) })
+    }
+  }
+
   const results = await Promise.all(promises)
 
-  return results.filter((content): content is ContextFileContent => content !== null)
+  // Filter out nulls and associate with metadata
+  const validFiles: (ContextFileContent & { isRoot: boolean })[] = []
+  results.forEach((content, index) => {
+    if (content !== null) {
+      validFiles.push({ ...content, isRoot: fileMetadata[index].isRoot })
+    }
+  })
+
+  // Separate root and non-root files
+  const rootFiles = validFiles.filter((f) => f.isRoot)
+  const nonRootFiles = validFiles.filter((f) => !f.isRoot)
+
+  // Apply limit to non-root files (prioritize closer files, which come first in the array)
+  const limitedNonRootFiles = nonRootFiles.slice(0, MAX_NON_ROOT_FILES)
+
+  // Combine root files (always included) with limited non-root files
+  return [...limitedNonRootFiles, ...rootFiles].map(({ isRoot, ...file }) => file)
 }
 
 export function buildPackagePathChain(
@@ -118,7 +147,7 @@ export function formatContextFileAsXML(
   attrs?: ContextFileAttributes,
 ): string {
   const truncatedNote = content.truncated
-    ? `\n[Content truncated at ${MAX_CONTEXT_FILE_SIZE}B]`
+    ? `\n[Content truncated at ${MAX_CONTEXT_FILE_SIZE.toLocaleString()} bytes]`
     : ''
 
   const xmlAttrs: Record<string, string> = {

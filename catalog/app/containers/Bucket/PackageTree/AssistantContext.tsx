@@ -73,8 +73,9 @@ export const PackageRootContext = Assistant.Context.LazyContext(
   ({ bucket, name, hash }: PackageRootContextProps) => {
     const s3 = AWS.S3.use()
     const resolveLogicalKey = LogicalKeyResolver.use()
-    const [contextFile, setContextFile] =
-      React.useState<ContextFiles.ContextFileContent | null>(null)
+    const [contextFile, setContextFile] = React.useState<
+      ContextFiles.ContextFileContent[] | null
+    >(null)
     const [loading, setLoading] = React.useState(true)
 
     React.useEffect(() => {
@@ -86,30 +87,47 @@ export const PackageRootContext = Assistant.Context.LazyContext(
       const loadContext = async () => {
         setLoading(true)
         try {
-          const resolved = await resolveLogicalKey('README.md')
-          if (resolved && resolved.key) {
-            const response = await s3
-              .getObject({
-                Bucket: resolved.bucket,
-                Key: resolved.key,
-              })
-              .promise()
+          // Load all files in parallel
+          const promises = ContextFiles.CONTEXT_FILE_NAMES.map(async (fileName) => {
+            try {
+              const resolved = await resolveLogicalKey(fileName)
+              if (resolved && resolved.key) {
+                const response = await s3
+                  .getObject({
+                    Bucket: resolved.bucket,
+                    Key: resolved.key,
+                  })
+                  .promise()
 
-            const content = response.Body?.toString('utf-8') || ''
-            const truncated = content.length > 100_000
-            const finalContent = truncated ? content.slice(0, 100_000) : content
+                const content = response.Body?.toString('utf-8') || ''
+                const truncated = content.length > ContextFiles.MAX_CONTEXT_FILE_SIZE
+                const finalContent = truncated
+                  ? content.slice(0, ContextFiles.MAX_CONTEXT_FILE_SIZE)
+                  : content
 
-            setContextFile({
-              path: '/README.md',
-              content: finalContent,
-              truncated,
-            })
-          } else {
-            setContextFile(null)
-          }
+                return {
+                  path: `/${fileName}`,
+                  content: finalContent,
+                  truncated,
+                }
+              }
+              return null
+            } catch (error) {
+              // eslint-disable-next-line no-console
+              console.debug(`No ${fileName} at package root or error loading:`, error)
+              return null
+            }
+          })
+
+          const results = await Promise.all(promises)
+          const files = results.filter(
+            (file): file is ContextFiles.ContextFileContent => file !== null,
+          )
+
+          setContextFile(files.length > 0 ? files : null)
         } catch (error) {
           // eslint-disable-next-line no-console
-          console.debug('No README.md at package root or error loading:', error)
+          console.error('Error loading package root context files:', error)
           setContextFile(null)
         } finally {
           setLoading(false)
@@ -120,13 +138,13 @@ export const PackageRootContext = Assistant.Context.LazyContext(
     }, [bucket, name, hash, resolveLogicalKey, s3])
 
     const messages = React.useMemo(() => {
-      if (!contextFile) return []
+      if (!contextFile || contextFile.length === 0) return []
       const attrs: ContextFiles.ContextFileAttributes = {
         scope: 'package',
         bucket,
         packageName: name,
       }
-      return [ContextFiles.formatContextFileAsXML(contextFile, attrs)]
+      return ContextFiles.formatContextFilesAsMessages(contextFile, attrs)
     }, [contextFile, bucket, name])
 
     return {
@@ -162,20 +180,28 @@ export const PackageDirContext = Assistant.Context.LazyContext(
         setLoading(true)
         try {
           const pathSegments = path.split('/').filter(Boolean)
-          const paths: string[] = []
 
-          // Exclude root README (handled by PackageRootContext)
+          // Build list of paths and filenames to check
+          const pathsToCheck: { path: string; fileName: string }[] = []
+
+          // Exclude root files (handled by PackageRootContext)
           for (let i = pathSegments.length; i > 0; i--) {
             const dirPath = pathSegments.slice(0, i).join('/')
-            const readmePath = `${dirPath}/README.md`
-            paths.push(readmePath)
+            for (const fileName of ContextFiles.CONTEXT_FILE_NAMES) {
+              pathsToCheck.push({
+                path: `${dirPath}/${fileName}`,
+                fileName,
+              })
+            }
           }
 
-          const files: ContextFiles.ContextFileContent[] = []
+          // Load files with limit (prioritize closer directories)
+          const limitedPaths = pathsToCheck.slice(0, ContextFiles.MAX_NON_ROOT_FILES)
 
-          for (const readmePath of paths) {
+          // Load all files in parallel
+          const promises = limitedPaths.map(async ({ path: filePath }) => {
             try {
-              const resolved = await resolveLogicalKey(readmePath)
+              const resolved = await resolveLogicalKey(filePath)
               if (resolved && resolved.key) {
                 const response = await s3
                   .getObject({
@@ -185,20 +211,29 @@ export const PackageDirContext = Assistant.Context.LazyContext(
                   .promise()
 
                 const content = response.Body?.toString('utf-8') || ''
-                const truncated = content.length > 100_000
-                const finalContent = truncated ? content.slice(0, 100_000) : content
+                const truncated = content.length > ContextFiles.MAX_CONTEXT_FILE_SIZE
+                const finalContent = truncated
+                  ? content.slice(0, ContextFiles.MAX_CONTEXT_FILE_SIZE)
+                  : content
 
-                files.push({
-                  path: `/${readmePath}`,
+                return {
+                  path: `/${filePath}`,
                   content: finalContent,
                   truncated,
-                })
+                }
               }
+              return null
             } catch (error) {
               // eslint-disable-next-line no-console
-              console.debug(`No ${readmePath} in package:`, error)
+              console.debug(`No ${filePath} in package:`, error)
+              return null
             }
-          }
+          })
+
+          const results = await Promise.all(promises)
+          const files = results.filter(
+            (file): file is ContextFiles.ContextFileContent => file !== null,
+          )
 
           setContextFiles(files)
         } catch (error) {

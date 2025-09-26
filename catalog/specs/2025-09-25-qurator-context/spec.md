@@ -16,43 +16,53 @@ The qurator currently uses:
 
 ### 1. Automatic Context File Loading
 
-#### README.md Hierarchy Loading
+#### Context File Hierarchy Loading
 
-Automatically load and aggregate README.md files following the directory hierarchy:
+Automatically load and aggregate context files (README.md and AGENTS.md) following the directory hierarchy:
 
 1. **For regular bucket browsing:**
    - Start at current directory
    - Walk up the directory tree to bucket root
-   - Load each README.md found in the path
+   - Load each README.md and AGENTS.md found in the path
    - Aggregate in order: most specific (current dir) → least specific (bucket root)
 
 2. **For package browsing:**
    - Start at current location within package
    - Walk up to package root following package structure
    - Continue from package root to bucket root (package is treated as direct child of bucket)
-   - Load README.md files at each level
+   - Load README.md and AGENTS.md files at each level
 
 Example hierarchy:
 ```
 bucket/
 ├── README.md                    # Bucket context
+├── AGENTS.md                    # Bucket agent context
 ├── data/
 │   ├── README.md                # Data directory context
+│   ├── AGENTS.md                # Data directory agent context
 │   └── experiments/
-│       └── README.md            # Experiments context
+│       ├── README.md            # Experiments context
+│       └── AGENTS.md            # Experiments agent context
 └── packages/
     └── my-package@v1.2.3/       # Package root
         ├── README.md            # Package context
+        ├── AGENTS.md            # Package agent context
         └── analysis/
-            └── README.md        # Analysis within package
+            ├── README.md        # Analysis within package
+            └── AGENTS.md        # Analysis agent context
 ```
 
 When viewing `bucket/packages/my-package@v1.2.3/analysis/`:
-- Load: analysis/README.md → my-package@v1.2.3/README.md → bucket/README.md
+- Load: analysis/README.md, analysis/AGENTS.md → my-package@v1.2.3/README.md, my-package@v1.2.3/AGENTS.md → bucket/README.md, bucket/AGENTS.md
+- Apply file limit: Maximum 10 non-root context files, prioritizing closer directories
+- Truncate each file to 10KB if necessary
 
 #### Context File Format
 
-README.md files can contain anything.
+README.md and AGENTS.md files can contain anything. Files are:
+- Truncated to 10KB (10,000 bytes) if larger
+- Limited to 10 non-root files total (root files always included)
+- Prioritized by proximity (closer directories first)
 
 #### XML Context Representation
 
@@ -146,6 +156,7 @@ Reduce visual prominence of tool call messages to keep focus on the conversation
    - Adding README.md files with context
    - Providing domain-specific instructions
    - Documenting common workflows
+   - Providing agent-specific instructions via AGENTS.md
 
 3. Improved assistance for:
    - Navigation suggestions

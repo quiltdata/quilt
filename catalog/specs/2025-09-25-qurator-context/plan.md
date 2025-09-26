@@ -90,20 +90,23 @@ interface ContextFileContent {
   truncated: boolean
 }
 
-const MAX_CONTEXT_FILE_SIZE = 100_000 // 100KB default
-const CONTEXT_FILE_NAME = 'README.md'
+const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
+const MAX_NON_ROOT_FILES = 10 // Maximum non-root context files
+const CONTEXT_FILE_NAMES = ['README.md', 'AGENTS.md']
 
-async function loadContextFile(s3, bucket, path): Promise<ContextFileContent | null> {
-  // Try to load context file at path
+async function loadContextFile(s3, bucket, path, fileName): Promise<ContextFileContent | null> {
+  // Try to load context file (README.md or AGENTS.md) at path
   // Handle 404 gracefully (return null)
-  // Truncate if larger than MAX_CONTEXT_FILE_SIZE
+  // Truncate if larger than MAX_CONTEXT_FILE_SIZE (10KB)
   // Return content with metadata
 }
 
 async function loadContextFileHierarchy(s3, bucket, currentPath, stopAt?: string): Promise<ContextFileContent[]> {
   // Build path chain from current to root (or stopAt)
-  // Load context files in parallel
+  // Load both README.md and AGENTS.md at each level in parallel
   // Filter out nulls (missing context files)
+  // Apply MAX_NON_ROOT_FILES limit (root files always included)
+  // Prioritize by proximity (closer files first)
   // Return ordered by specificity
 }
 
