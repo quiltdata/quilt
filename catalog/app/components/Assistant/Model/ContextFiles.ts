@@ -9,7 +9,7 @@ export interface ContextFileContent {
 
 export const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
 export const MAX_NON_ROOT_FILES = 10 // Maximum non-root context files
-export const CONTEXT_FILE_NAMES = ['README.md', 'AGENTS.md']
+export const CONTEXT_FILE_NAMES = ['AGENTS.md', 'README.md']
 
 export async function loadContextFile(
   s3: S3,
