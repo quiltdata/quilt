@@ -26,6 +26,12 @@ import { useParams } from './params'
 import { useCopyHandler } from './copy'
 import { useCreateHandler } from './create'
 
+export type DialogStatus =
+  | { _tag: 'loading'; waitListing?: boolean }
+  | { _tag: 'error'; error: Error }
+  | { _tag: 'ready' }
+  | { _tag: 'success'; bucket: string; name: string; hash: string }
+
 export interface PackageDst {
   bucket: string
   name?: string

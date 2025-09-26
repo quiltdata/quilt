@@ -247,12 +247,6 @@ function PackageCreationForm({
   )
 }
 
-type DialogState =
-  | { _tag: 'loading'; waitListing?: boolean }
-  | { _tag: 'error'; error: Error }
-  | { _tag: 'ready' }
-  | { _tag: 'success'; bucket: string; name: string; hash: string }
-
 interface PackageCreationDialogUIOptions {
   resetFiles?: React.ReactNode
   submit?: React.ReactNode
@@ -267,7 +261,7 @@ interface RenderDialogProps {
   currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
-  dialogState: DialogState
+  dialogStatus: PDModel.DialogStatus
   formState: PDModel.State
   ui: PackageCreationDialogUIOptions
 }
@@ -277,17 +271,17 @@ function RenderDialog({
   currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
-  dialogState,
+  dialogStatus,
   formState,
   ui,
 }: RenderDialogProps) {
-  switch (dialogState._tag) {
+  switch (dialogStatus._tag) {
     case 'loading':
       return (
         <DialogLoading
           skeletonElement={<FormSkeleton />}
           title={
-            dialogState.waitListing
+            dialogStatus.waitListing
               ? 'Fetching list of files inside selected directories. It can take a while…'
               : 'Fetching package manifest. One moment…'
           }
@@ -298,7 +292,7 @@ function RenderDialog({
     case 'error':
       return (
         <DialogError
-          error={dialogState.error}
+          error={dialogStatus.error}
           skeletonElement={<FormSkeleton animate={false} />}
           title={ui.title || 'Create package'}
           submitText={ui.submit}
@@ -308,9 +302,9 @@ function RenderDialog({
     case 'success':
       return (
         <DialogSuccess
-          name={dialogState.name}
-          hash={dialogState.hash}
-          bucket={dialogState.bucket}
+          name={dialogStatus.name}
+          hash={dialogStatus.hash}
+          bucket={dialogStatus.bucket}
           onClose={close}
           browseText={ui.successBrowse}
           title={ui.successTitle}
@@ -329,7 +323,7 @@ function RenderDialog({
         />
       )
     default:
-      assertNever(dialogState)
+      assertNever(dialogStatus)
   }
 }
 
@@ -378,16 +372,15 @@ export default function useCreateDialog({
       setOpen(true)
       setExited(false)
 
-      if (!initial?.selection) {
+      if (initial?.selection) {
+        setWaitingListing(true)
+
+        const handles = Selection.toHandlesList(initial?.selection)
+        const filesMap = await getFiles(handles)
+        setOpen(filesMap)
+
         setWaitingListing(false)
-        return
       }
-      const handles = Selection.toHandlesList(initial?.selection)
-      const filesMap = await getFiles(handles)
-
-      setOpen(filesMap)
-
-      setWaitingListing(false)
     },
     [getFiles, setOpen, setDst],
   )
@@ -403,7 +396,7 @@ export default function useCreateDialog({
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
-  const dialogState: DialogState = React.useMemo<DialogState>(() => {
+  const dialogStatus: PDModel.DialogStatus = React.useMemo(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (waitingListing) return { _tag: 'loading', waitListing: true }
     if (workflowsConfig._tag === 'loading') return { _tag: 'loading', waitListing: false }
@@ -428,7 +421,7 @@ export default function useCreateDialog({
           currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           disableStateDisplay={disableStateDisplay}
           delayHashing={delayHashing}
-          dialogState={dialogState}
+          dialogStatus={dialogStatus}
           formState={state}
           ui={ui}
         />

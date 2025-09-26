@@ -449,11 +449,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const src = React.useMemo(() => ({ bucket, name }), [bucket, name])
   const dst = React.useMemo(() => ({ bucket }), [bucket])
-
-  const updateDialog = PD.useCreateDialog({
-    dst,
-    src,
-  })
+  const updateDialog = PD.useCreateDialog({ dst, src })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>

@@ -233,38 +233,32 @@ function DialogLoading({ bucket }: DialogLoadingProps) {
 
 interface RenderDialogProps {
   close: () => void
-  dialogState: DialogState
+  dialogStatus: PDModel.DialogStatus
   formState: PDModel.State
   successor: workflows.Successor
 }
 
-function RenderDialog({ close, dialogState, formState, successor }: RenderDialogProps) {
-  switch (dialogState._tag) {
+function RenderDialog({ close, dialogStatus, formState, successor }: RenderDialogProps) {
+  switch (dialogStatus._tag) {
     case 'loading':
       return <DialogLoading bucket={successor.slug} />
     case 'error':
-      return <DialogError bucket={successor.slug} error={dialogState.error} />
+      return <DialogError bucket={successor.slug} error={dialogStatus.error} />
     case 'success':
       return (
         <PDDialogSuccess
-          name={dialogState.name}
-          hash={dialogState.hash}
-          bucket={dialogState.bucket}
+          name={dialogStatus.name}
+          hash={dialogStatus.hash}
+          bucket={dialogStatus.bucket}
           onClose={close}
         />
       )
     case 'ready':
       return <PackageCopyForm successor={successor} close={close} state={formState} />
     default:
-      assertNever(dialogState)
+      assertNever(dialogStatus)
   }
 }
-
-type DialogState =
-  | { _tag: 'loading'; waitListing?: boolean }
-  | { _tag: 'error'; error: Error }
-  | { _tag: 'ready' }
-  | { _tag: 'success'; bucket: string; name: string; hash: string }
 
 interface PackageCopyDialogProps {
   successor: workflows.Successor | null
@@ -298,7 +292,7 @@ export default function PackageCopyDialog({
 
   Intercom.usePauseVisibilityWhen(open)
 
-  const dialogState: DialogState = React.useMemo<DialogState>(() => {
+  const dialogStatus: PDModel.DialogStatus = React.useMemo(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
       return { _tag: 'loading' }
@@ -318,7 +312,7 @@ export default function PackageCopyDialog({
         <RenderDialog
           successor={successor}
           close={close}
-          dialogState={dialogState}
+          dialogStatus={dialogStatus}
           formState={state}
         />
       )}
