@@ -214,3 +214,26 @@ Package metadata (userMeta) is fetched at the PackageTree level and passed down 
 1. Duplicate queries
 2. Data fetching inside LazyContext (causes infinite loops)
 3. Cache inconsistencies
+
+## Code Review Findings (2025-09-26)
+
+### Code Duplication
+- All context providers follow identical loading pattern (useState, useEffect, useMemo)
+- PackageRootContext and PackageDirContext have ~90% code overlap
+- Could extract into custom hook `useContextFileLoader`
+
+### Type Safety Issues
+- Using `any` types for `modified`, `userMeta`, `workflow` fields
+- Should define proper interfaces for package metadata
+
+### Refactoring Opportunities
+1. **Extract common hook**: Create `useContextFileLoader` to DRY context loading
+2. **Consolidate package contexts**: Share logic between PackageRoot and PackageDir
+3. **Type definitions**: Replace `any` with proper interfaces
+4. **Error handling**: Centralize error logging strategy
+5. **Component extraction**: Move ToolMessage to separate component file
+
+### Performance Notes
+- Proper use of Promise.all() for parallel loading
+- Correct memoization patterns
+- No performance bottlenecks identified
