@@ -170,9 +170,8 @@ export function useFiles(
     if (form._tag !== 'error') return { _tag: 'ok' }
     if (form.fields?.files) return { _tag: 'error', error: form.fields.files }
 
-    // Validate hashes are ready and valid
-    const hashihgError = FI.validateHashingComplete(value)
-    switch (hashihgError) {
+    const hashingError = FI.validateHashingComplete(value)
+    switch (hashingError) {
       case undefined:
         break
       case FI.HASHING:
@@ -185,15 +184,15 @@ export function useFiles(
           ),
         }
       default:
-        assertNever(hashihgError)
+        assertNever(hashingError)
     }
 
     // Validate entries meta
     const entries = filesStateToEntries(value)
     const errors = validate(entries as unknown as Types.JsonArray)
-    const mappedErros = mapErrorsToLogicalKeys(entries, errors)
-    if (mappedErros instanceof Error) return { _tag: 'error', error: mappedErros }
-    if (mappedErros) return { _tag: 'error', errors: mappedErros }
+    const mappedErrors = mapErrorsToLogicalKeys(entries, errors)
+    if (mappedErrors instanceof Error) return { _tag: 'error', error: mappedErrors }
+    if (mappedErrors) return { _tag: 'error', errors: mappedErrors }
     return { _tag: 'ok' }
   }, [form, validate, value])
   return React.useMemo(
