@@ -306,34 +306,34 @@ When implementing, follow the existing patterns in the codebase:
 ### 10.1 Extract Common Loading Pattern
 **File:** `app/components/Assistant/Model/ContextFiles.ts`
 
-- [ ] Create `useContextFileLoader` custom hook
-- [ ] Extract common useState, useEffect, useMemo pattern
-- [ ] Handle loading states and error cases uniformly
-- [ ] Return standardized result shape: `{ files, loading, error }`
+- [x] Create `useContextFileLoader` custom hook
+- [x] Extract common useState, useEffect, useMemo pattern
+- [x] Handle loading states and error cases uniformly
+- [x] Return standardized result shape: `{ files, loading, error }`
 
 ### 10.2 Refactor Context Providers
 **Files:** All `AssistantContext.tsx` files
 
-- [ ] Replace duplicate loading code with useContextFileLoader hook
-- [ ] Maintain existing API contract and behavior
-- [ ] Verify no regressions in functionality
-- [ ] Test all context markers still work correctly
+- [x] Replace duplicate loading code with useContextFileLoader hook
+- [x] Maintain existing API contract and behavior
+- [x] Verify no regressions in functionality
+- [x] Test all context markers still work correctly
 
 ### 10.3 Consolidate Package Context Logic
 **File:** `app/containers/Bucket/PackageTree/AssistantContext.tsx`
 
-- [ ] Extract shared logic between PackageRootContext and PackageDirContext
-- [ ] Create helper functions for LogicalKeyResolver operations
-- [ ] Reduce code duplication by ~50%
-- [ ] Consider shared base implementation with specialized parameters
+- [x] Extract shared logic between PackageRootContext and PackageDirContext
+- [x] Create helper functions for LogicalKeyResolver operations
+- [x] Reduce code duplication by ~50%
+- [x] Consider shared base implementation with specialized parameters
 
 ### 10.4 Standardize Error Handling
 **File:** `app/components/Assistant/Model/ContextFiles.ts`
 
-- [ ] Remove unnecessary console.error/console.debug statements
-- [ ] Log only critical errors that require debugging
-- [ ] Use consistent error handling pattern across all contexts
-- [ ] Return empty arrays/null gracefully without logging for expected cases (404s)
+- [x] Remove unnecessary console.error/console.debug statements
+- [x] Log only critical errors that require debugging
+- [x] Use consistent error handling pattern across all contexts
+- [x] Return empty arrays/null gracefully without logging for expected cases (404s)
 
 ## Reference Files
 
