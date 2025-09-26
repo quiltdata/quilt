@@ -61,7 +61,7 @@ type ManifestStatus =
   | { _tag: 'idle' }
   | { _tag: 'loading' }
   | { _tag: 'error'; error: Error }
-  | { _tag: 'ready'; manifest: Manifest | undefined }
+  | { _tag: 'ready'; manifest?: Manifest }
 
 interface ValidationEntry {
   logical_key: string
