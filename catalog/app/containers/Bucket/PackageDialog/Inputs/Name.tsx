@@ -64,6 +64,12 @@ function PackageNameWarning({ status, setSrc }: PackageNameWarningProps) {
   }
 }
 
+/**
+ * Package name input field with status display.
+ *
+ * Shows whether the package name is new or existing, and provides
+ * a link to load existing packages for revision.
+ */
 export default function InputName({
   formStatus,
   state: { value, onChange, status },

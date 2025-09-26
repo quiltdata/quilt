@@ -94,6 +94,12 @@ interface InputWorkflowProps {
   config: WorkflowsConfigStatus
 }
 
+/**
+ * Workflow selection dropdown for data quality validation.
+ *
+ * Allows users to select a workflow that defines validation rules
+ * and metadata schemas for the package.
+ */
 export default function InputWorkflow({
   formStatus,
   schema,

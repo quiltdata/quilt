@@ -915,8 +915,8 @@ function PackageRevision({
 
   return (
     <>
-      <PD.Provider src={packageHandle} dst={copyDst}>
-        <PD.Copy successor={successor} onClose={closeCopyDialog} />
+      <PD.Provider src={packageHandle} dst={copyDst} open={!!successor}>
+        {successor && <PD.Copy successor={successor} onClose={closeCopyDialog} />}
       </PD.Provider>
       <ResolverProvider packageHandle={packageHandle}>
         {isDir ? (

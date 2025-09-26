@@ -412,6 +412,12 @@ interface InputMetaProps {
   state: MetaState
 }
 
+/**
+ * Package metadata editor with drag-and-drop file support.
+ *
+ * Provides a JSON editor for package metadata with field-level error display
+ * and can import from spreadsheet files (XLSX, CSV).
+ */
 const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function InputMeta(
   { formStatus, schema, state: { status, value, onChange } },
   ref,

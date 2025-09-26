@@ -334,6 +334,13 @@ interface UseCreateDialogDialogOptions {
   disableStateDisplay?: boolean
 }
 
+/**
+ * Main package creation/editing form hook.
+ *
+ * Opens the primary form for creating new packages and editing existing ones.
+ * Includes file panel for managing package contents.
+ * Must be used within `<PD.Provider>` wrapper.
+ */
 export default function useCreateDialog({
   disableStateDisplay = false,
   delayHashing = false,

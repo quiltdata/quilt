@@ -265,26 +265,30 @@ type DialogState =
   | { _tag: 'success'; bucket: string; name: string; hash: string }
 
 interface PackageCopyDialogProps {
-  successor: workflows.Successor | null
+  successor: workflows.Successor
   onClose: () => void
 }
 
+/**
+ * Package copying dialog form without file panel.
+ *
+ * Opens a dialog form for copying existing packages.
+ * All files from the existing manifest are copied to the new package
+ * (content or URLs depending on workflow's copyData setting).
+ * Must be wrapped in `<PD.Provider>`.
+ */
 export default function PackageCopyDialog({
   successor,
   onClose,
 }: PackageCopyDialogProps) {
-  const { formStatus, workflowsConfig, manifest, setOpen } = State.useContext()
-
-  React.useEffect(() => {
-    setOpen(!!successor)
-  }, [setOpen, successor])
+  const { formStatus, workflowsConfig, manifest, open } = State.useContext()
 
   const close = React.useCallback(() => {
     if (formStatus._tag === 'submitting') return
     onClose()
   }, [formStatus, onClose])
 
-  Intercom.usePauseVisibilityWhen(!!successor)
+  Intercom.usePauseVisibilityWhen(open)
 
   const state: DialogState = React.useMemo<DialogState>(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
@@ -300,11 +304,9 @@ export default function PackageCopyDialog({
     return { _tag: 'ready' }
   }, [workflowsConfig, formStatus, manifest])
 
-  if (!successor) return null
-
   return (
-    <M.Dialog fullWidth onClose={close} open={!!successor} scroll="body">
-      {successor && <RenderDialog successor={successor} close={close} state={state} />}
+    <M.Dialog fullWidth onClose={close} open={!!open} scroll="body">
+      {<RenderDialog successor={successor} close={close} state={state} />}
     </M.Dialog>
   )
 }

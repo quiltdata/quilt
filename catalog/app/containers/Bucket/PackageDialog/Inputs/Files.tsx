@@ -75,6 +75,12 @@ function WithSourceBuckets({
   )
 }
 
+/**
+ * File management panel for package contents.
+ *
+ * Provides drag-and-drop file uploading, directory browsing, and file
+ * organization interface.
+ */
 export default function InputFiles({
   delayHashing,
   formStatus,

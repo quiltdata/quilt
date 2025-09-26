@@ -9,6 +9,12 @@ interface InputMessageProps {
   state: MessageState
 }
 
+/**
+ * Package commit message input field.
+ *
+ * Provides a text field for entering a commit message that describes
+ * the changes in the package revision.
+ */
 export default function InputMessage({
   formStatus,
   state: { status, value, onChange },

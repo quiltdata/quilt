@@ -68,14 +68,26 @@ export interface State {
   copy: CopyHandler
 }
 
+// TODO: split states for Create.tsx and Copy.tsx
+//       so, for example, Copy.tsx didn't include `files` and `entriesSchema` fetching
+
+/**
+ * Main state hook for PackageDialog forms.
+ *
+ * Orchestrates all form state including validation, file management,
+ * schema loading, and API handlers for create/copy operations.
+ */
 export function useState(
   initialDst: { bucket: string; name?: string },
   initialSrc?: PackageSrc,
   initialOpen: boolean | FilesState['value']['added'] = false,
 ): State {
   const [open, setOpen] = React.useState(initialOpen)
+  React.useEffect(() => {
+    setOpen(initialOpen)
+  }, [initialOpen])
 
-  const { formStatus, setFormStatus } = useFormStatus(initialOpen)
+  const { formStatus, setFormStatus } = useFormStatus(open)
 
   const [src, setSrc] = React.useState(initialSrc)
   const [dst, setDst] = React.useState(initialDst)

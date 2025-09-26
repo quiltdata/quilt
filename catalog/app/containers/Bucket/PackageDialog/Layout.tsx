@@ -28,6 +28,12 @@ const useContainerStyles = M.makeStyles({
   },
 })
 
+/**
+ * Form layout container with adaptive height calculation.
+ *
+ * Calculates dialog height to maximize screen usage without scrolling,
+ * based on metadata editor height and available viewport space.
+ */
 export function Container({ children }: React.PropsWithChildren<{}>) {
   const classes = useContainerStyles()
 
@@ -62,6 +68,11 @@ export function Column({
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
+/**
+ * Right column for file management panel.
+ *
+ * Reusable layout component used in Create dialog for file operations.
+ */
 export const RightColumn = Column
 
 const useLeftColumnStyles = M.makeStyles((t) => ({
@@ -72,6 +83,12 @@ const useLeftColumnStyles = M.makeStyles((t) => ({
   },
 }))
 
+/**
+ * Left column for form inputs (workflow, name, message, metadata).
+ *
+ * Reusable layout component shared between Create and Copy dialogs
+ * with responsive spacing and overflow handling.
+ */
 export function LeftColumn(props: React.PropsWithChildren<{}>) {
   const classes = useLeftColumnStyles()
   return <Column className={classes.root} {...props} />
