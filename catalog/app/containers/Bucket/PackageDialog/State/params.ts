@@ -25,6 +25,15 @@ export type FormParams =
       }
     }
 
+export const Invalid = (error: Error) => ({ _tag: 'invalid' as const, error })
+export const Ok = (params: {
+  bucket: string
+  message: string
+  name: string
+  userMeta: Types.JsonRecord | null
+  workflow: string | null
+}) => ({ _tag: 'ok' as const, params })
+
 interface PackageDst {
   bucket: string
   name?: string
@@ -46,34 +55,28 @@ export function useParams(
 ): FormParams {
   return React.useMemo(() => {
     if (!workflow.value || workflow.status._tag === 'error') {
-      return { _tag: 'invalid', error: new Error('Valid workflow required') }
+      return Invalid(new Error('Valid workflow required'))
     }
     if (!name.value || name.status._tag === 'error') {
-      return { _tag: 'invalid', error: new Error('Valid name required') }
+      return Invalid(new Error('Valid name required'))
     }
     if (!message.value || message.status._tag === 'error') {
-      return { _tag: 'invalid', error: new Error('Valid message required') }
+      return Invalid(new Error('Valid message required'))
     }
 
     if (metadataSchema._tag !== 'ready') {
-      return {
-        _tag: 'invalid',
-        error: new Error('Metadata JSON Schema is not ready'),
-      }
+      return Invalid(new Error('Metadata JSON Schema is not ready'))
     }
     if (meta.status._tag === 'error') {
-      return { _tag: 'invalid', error: new Error('Metadata must be valid') }
+      return Invalid(new Error('Metadata must be valid'))
     }
 
-    return {
-      _tag: 'ok',
-      params: {
-        bucket: dst.bucket,
-        message: message.value,
-        name: name.value,
-        userMeta: getMetaValue(meta.value, metadataSchema.schema) ?? null,
-        workflow: workflowSelectionToWorkflow(workflow.value),
-      },
-    }
+    return Ok({
+      bucket: dst.bucket,
+      message: message.value,
+      name: name.value,
+      userMeta: getMetaValue(meta.value, metadataSchema.schema) ?? null,
+      workflow: workflowSelectionToWorkflow(workflow.value),
+    })
   }, [dst, workflow, name, message, metadataSchema, meta])
 }
