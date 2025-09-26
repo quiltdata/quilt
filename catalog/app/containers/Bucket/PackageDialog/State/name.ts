@@ -2,6 +2,7 @@ import { basename } from 'path'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { useDebounce } from 'use-debounce'
 
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
@@ -98,18 +99,18 @@ function useNameExistence(dst: PackageDst, src?: PackageSrc): NameStatus {
 
 function useNameValidator(dst: PackageDst): NameValidationStatus {
   const apiReq = APIConnector.use()
+  const [debouncedName] = useDebounce(dst.name, 300)
   const req = React.useCallback(async () => {
-    // FIXME: debounce
     const res = await apiReq({
       endpoint: '/package_name_valid',
       method: 'POST',
-      body: { name: dst.name },
+      body: { name: debouncedName },
     })
     return res.valid
       ? { _tag: 'ok' as const }
       : { _tag: 'error' as const, error: new Error('Invalid package name') }
-  }, [apiReq, dst.name])
-  const result = Request.use(req, !!dst.name)
+  }, [apiReq, debouncedName])
+  const result = Request.use(req, !!debouncedName)
   return React.useMemo(() => {
     if (result === Request.Idle) return { _tag: 'idle' }
     if (result === Request.Loading) return { _tag: 'loading' }
