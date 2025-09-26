@@ -4,7 +4,10 @@ import { MemoryRouter } from 'react-router-dom'
 
 import Results from './Results'
 
+jest.mock('constants/config', () => ({}))
+
 jest.mock('@material-ui/core', () => ({
+  ...jest.requireActual('@material-ui/core'),
   Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
   Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
   makeStyles: () => () => ({}),
@@ -73,8 +76,9 @@ jest.mock('../model', () => ({
   },
 }))
 
-jest.mock('containers/Bucket/PackageDialog/PackageCreationForm', () => ({
-  usePackageCreationDialog: () => ({
+jest.mock('containers/Bucket/PackageDialog', () => ({
+  Provider: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
+  useCreateDialog: () => ({
     open: jest.fn(),
     render: () => <>Don't forget to render dialog</>,
   }),
