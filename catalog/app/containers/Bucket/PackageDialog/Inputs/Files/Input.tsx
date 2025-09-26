@@ -367,10 +367,6 @@ interface IntermediateEntry {
   meta?: Model.EntryMeta
 }
 
-// function matchErrorToEntry(path: string, errors: PD.EntriesValidationErrors | null) {
-//   return errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)
-// }
-
 const computeEntries = ({
   value: { added, deleted, existing },
   errors,

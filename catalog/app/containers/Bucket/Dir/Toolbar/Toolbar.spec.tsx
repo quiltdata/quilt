@@ -19,19 +19,21 @@ jest.mock('./Add', () => ({
 jest.mock('./Get', () => ({
   Options: () => <div>"Get" popover</div>,
 }))
+
 jest.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
   Options: () => <>"Organize" popover</>,
 }))
+
 jest.mock('./CreatePackage', () => ({
   Options: () => <>"Create package" popover</>,
   useSuccessors: () => {},
 }))
 
 jest.mock('containers/Bucket/PackageDialog', () => ({
-  usePackageCreationDialog: () => ({
+  useCreateDialog: () => ({
     open: jest.fn(),
     render: jest.fn(),
   }),

@@ -117,6 +117,7 @@ interface PackageCreationFormProps {
   close: () => void
   currentBucketCanBeSuccessor: boolean
   disableStateDisplay: boolean
+  delayHashing: boolean
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -127,6 +128,7 @@ interface PackageCreationFormProps {
 function PackageCreationForm({
   close,
   currentBucketCanBeSuccessor,
+  delayHashing,
   ui = {},
 }: PackageCreationFormProps) {
   const {
@@ -144,6 +146,7 @@ function PackageCreationForm({
     progress,
     setDst,
     setSrc,
+    src,
     workflow,
     workflowsConfig,
   } = State.useContext()
@@ -206,6 +209,8 @@ function PackageCreationForm({
                 schema={entriesSchema}
                 state={files}
                 progress={progress}
+                delayHashing={delayHashing}
+                bucket={src?.bucket || dst.bucket}
               />
             </Layout.RightColumn>
           </Layout.Container>
@@ -240,18 +245,6 @@ function PackageCreationForm({
   )
 }
 
-// FIXME
-// const prependSourceBucket = (
-//   buckets: BucketPreferences.SourceBuckets,
-//   bucket: string,
-// ): BucketPreferences.SourceBuckets =>
-//   buckets.list.find((b) => b === bucket)
-//     ? buckets
-//     : {
-//         getDefault: () => bucket,
-//         list: R.prepend(bucket, buckets.list),
-//       }
-
 type DialogState =
   | { _tag: 'loading'; waitListing?: boolean }
   | { _tag: 'error'; error: Error }
@@ -268,19 +261,21 @@ interface PackageCreationDialogUIOptions {
 }
 
 interface RenderDialogProps {
+  close: () => void
   currentBucketCanBeSuccessor: boolean
+  delayHashing: boolean
   disableStateDisplay: boolean
   state: DialogState
   ui: PackageCreationDialogUIOptions
-  close: () => void
 }
 
 function RenderDialog({
+  close,
   currentBucketCanBeSuccessor,
+  delayHashing,
   disableStateDisplay,
   state,
   ui,
-  close,
 }: RenderDialogProps) {
   switch (state._tag) {
     case 'loading':
@@ -323,6 +318,7 @@ function RenderDialog({
         <PackageCreationForm
           close={close}
           currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
+          delayHashing={delayHashing}
           disableStateDisplay={disableStateDisplay}
           ui={ui}
         />
@@ -332,16 +328,17 @@ function RenderDialog({
   }
 }
 
-interface UsePackageCreationDialogProps {
-  s3Path?: string
+interface UseCreateDialogDialogOptions {
+  currentBucketCanBeSuccessor?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
 }
 
-export default function usePackageCreationDialog({
-  s3Path,
+export default function useCreateDialog({
   disableStateDisplay = false,
-}: UsePackageCreationDialogProps = {}) {
+  delayHashing = false,
+  currentBucketCanBeSuccessor = false,
+}: UseCreateDialogDialogOptions = {}) {
   const {
     formStatus,
     setDst,
@@ -352,7 +349,6 @@ export default function usePackageCreationDialog({
   } = State.useContext()
 
   const [exited, setExited] = React.useState(!isOpen)
-  const currentBucketCanBeSuccessor = s3Path !== undefined
 
   const [waitingListing, setWaitingListing] = React.useState(false)
   const getFiles = requests.useFilesListing()
@@ -420,6 +416,7 @@ export default function usePackageCreationDialog({
           close={close}
           currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           disableStateDisplay={disableStateDisplay}
+          delayHashing={delayHashing}
           state={state}
           ui={ui}
         />
