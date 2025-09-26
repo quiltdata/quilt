@@ -217,6 +217,33 @@ When implementing, follow the existing patterns in the codebase:
 - [ ] Check that truncation works correctly
 - [ ] Ensure no duplicate loads of same README
 
+## Task 8: De-emphasize Tool Call Message UI
+
+### 8.1 Visual Treatment
+- [x] Reduce visual prominence of tool call message boxes
+  - Fainter background color (grey[600])
+  - Added hover effect (opacity 0.5 -> 1.0)
+  - Maintain readability while being less distracting
+
+### 8.2 Replace Labels with Icons
+- [x] Replace "Tool Use" text label with Build icon
+- [x] Replace status text with icons (progress/success/error)
+  - Progress: CircularProgress spinner (14px)
+  - Success: CheckCircleOutline icon
+  - Error: ErrorOutline icon
+
+### 8.3 Collapse Tool Details
+- [x] Hide JSON details under collapsible spoiler/accordion
+- [x] Default to collapsed state
+- [x] Click header to toggle expansion
+- [x] Use Material-UI Collapse for smooth animation
+- [x] Preserve details for debugging purposes
+
+### 8.4 Code Refactoring
+- [x] Extract reusable ToolMessage component
+- [x] Consolidate tool message rendering logic
+- [x] Use dedicated styles instead of inline styling
+
 ## Completion Checklist
 
 - [ ] All context files load correctly

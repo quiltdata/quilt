@@ -113,6 +113,28 @@ Package metadata is exposed via two separate XML tags for better semantic separa
 3. **New Context Providers**
    - Package metadata context provider
 
+### 3. De-emphasize Tool Call Message UI
+
+Reduce visual prominence of tool call messages to keep focus on the conversation flow:
+
+1. **Visual Treatment**
+   - Use fainter background color for tool call message boxes
+   - Reduce border emphasis while maintaining readability
+   - Create less distracting visual hierarchy
+
+2. **Replace Text Labels with Icons**
+   - Replace "Tool Use" text label with appropriate icon
+   - Use status icons instead of text for progress/success/error states:
+     - Progress: spinner or loading animation
+     - Success: checkmark icon
+     - Error: warning/error icon
+
+3. **Collapse Tool Details by Default**
+   - Hide JSON details under collapsible spoiler/accordion
+   - Default to collapsed state to reduce visual noise
+   - Provide clear expansion affordance for debugging
+   - Preserve full details for troubleshooting purposes
+
 ## Expected Outcomes
 
 1. Assistant has better awareness of:
@@ -129,3 +151,8 @@ Package metadata is exposed via two separate XML tags for better semantic separa
    - Navigation suggestions
    - Data discovery
    - Package operations
+
+4. Cleaner UI experience:
+   - Less visual distraction from tool call messages
+   - Focus remains on conversation content
+   - Debugging capabilities preserved but de-emphasized
