@@ -1,10 +1,45 @@
 import * as React from 'react'
+import type { S3 } from 'aws-sdk'
 
 import * as Assistant from 'components/Assistant'
 import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
 import * as AWS from 'utils/AWS'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as XML from 'utils/XML'
+
+// Helper function for loading a single context file via LogicalKeyResolver
+async function loadPackageContextFile(
+  s3: S3,
+  resolveLogicalKey: LogicalKeyResolver.LogicalKeyResolver,
+  filePath: string,
+): Promise<ContextFiles.ContextFileContent | null> {
+  try {
+    const resolved = await resolveLogicalKey(filePath)
+    if (!resolved || !resolved.key) return null
+
+    const response = await s3
+      .getObject({
+        Bucket: resolved.bucket,
+        Key: resolved.key,
+      })
+      .promise()
+
+    const content = response.Body?.toString('utf-8') || ''
+    const truncated = content.length > ContextFiles.MAX_CONTEXT_FILE_SIZE
+    const finalContent = truncated
+      ? content.slice(0, ContextFiles.MAX_CONTEXT_FILE_SIZE)
+      : content
+
+    return {
+      path: `/${filePath}`,
+      content: finalContent,
+      truncated,
+    }
+  } catch (error) {
+    // 404s are expected, don't log them
+    return null
+  }
+}
 
 interface PackageMetadataContextProps {
   bucket: string
@@ -73,69 +108,28 @@ export const PackageRootContext = Assistant.Context.LazyContext(
   ({ bucket, name, hash }: PackageRootContextProps) => {
     const s3 = AWS.S3.use()
     const resolveLogicalKey = LogicalKeyResolver.use()
-    const [contextFile, setContextFile] = React.useState<
-      ContextFiles.ContextFileContent[] | null
-    >(null)
-    const [loading, setLoading] = React.useState(true)
 
-    React.useEffect(() => {
-      if (!resolveLogicalKey) {
-        setLoading(false)
-        return
-      }
+    const loader = React.useCallback(async () => {
+      if (!resolveLogicalKey) return []
 
-      const loadContext = async () => {
-        setLoading(true)
-        try {
-          // Load all files in parallel
-          const promises = ContextFiles.CONTEXT_FILE_NAMES.map(async (fileName) => {
-            try {
-              const resolved = await resolveLogicalKey(fileName)
-              if (resolved && resolved.key) {
-                const response = await s3
-                  .getObject({
-                    Bucket: resolved.bucket,
-                    Key: resolved.key,
-                  })
-                  .promise()
+      // Load all files in parallel
+      const promises = ContextFiles.CONTEXT_FILE_NAMES.map((fileName) =>
+        loadPackageContextFile(s3, resolveLogicalKey, fileName),
+      )
 
-                const content = response.Body?.toString('utf-8') || ''
-                const truncated = content.length > ContextFiles.MAX_CONTEXT_FILE_SIZE
-                const finalContent = truncated
-                  ? content.slice(0, ContextFiles.MAX_CONTEXT_FILE_SIZE)
-                  : content
+      const results = await Promise.all(promises)
+      return results.filter(
+        (file): file is ContextFiles.ContextFileContent => file !== null,
+      )
+    }, [resolveLogicalKey, s3])
 
-                return {
-                  path: `/${fileName}`,
-                  content: finalContent,
-                  truncated,
-                }
-              }
-              return null
-            } catch (error) {
-              // eslint-disable-next-line no-console
-              console.debug(`No ${fileName} at package root or error loading:`, error)
-              return null
-            }
-          })
-
-          const results = await Promise.all(promises)
-          const files = results.filter(
-            (file): file is ContextFiles.ContextFileContent => file !== null,
-          )
-
-          setContextFile(files.length > 0 ? files : null)
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Error loading package root context files:', error)
-          setContextFile(null)
-        } finally {
-          setLoading(false)
-        }
-      }
-
-      loadContext()
-    }, [bucket, name, hash, resolveLogicalKey, s3])
+    const { files: contextFile, loading } = ContextFiles.useContextFileLoader(loader, [
+      bucket,
+      name,
+      hash,
+      resolveLogicalKey,
+      s3,
+    ])
 
     const messages = React.useMemo(() => {
       if (!contextFile || contextFile.length === 0) return []
@@ -165,88 +159,45 @@ export const PackageDirContext = Assistant.Context.LazyContext(
   ({ bucket, name, hash, path }: PackageDirContextProps) => {
     const s3 = AWS.S3.use()
     const resolveLogicalKey = LogicalKeyResolver.use()
-    const [contextFiles, setContextFiles] = React.useState<
-      ContextFiles.ContextFileContent[] | null
-    >(null)
-    const [loading, setLoading] = React.useState(true)
 
-    React.useEffect(() => {
-      if (!resolveLogicalKey) {
-        setLoading(false)
-        return
-      }
+    const loader = React.useCallback(async () => {
+      if (!resolveLogicalKey) return []
 
-      const loadContextFiles = async () => {
-        setLoading(true)
-        try {
-          const pathSegments = path.split('/').filter(Boolean)
+      const pathSegments = path.split('/').filter(Boolean)
 
-          // Build list of paths and filenames to check
-          const pathsToCheck: { path: string; fileName: string }[] = []
+      // Build list of paths and filenames to check
+      const pathsToCheck: string[] = []
 
-          // Exclude root files (handled by PackageRootContext)
-          for (let i = pathSegments.length; i > 0; i--) {
-            const dirPath = pathSegments.slice(0, i).join('/')
-            for (const fileName of ContextFiles.CONTEXT_FILE_NAMES) {
-              pathsToCheck.push({
-                path: `${dirPath}/${fileName}`,
-                fileName,
-              })
-            }
-          }
-
-          // Load files with limit (prioritize closer directories)
-          const limitedPaths = pathsToCheck.slice(0, ContextFiles.MAX_NON_ROOT_FILES)
-
-          // Load all files in parallel
-          const promises = limitedPaths.map(async ({ path: filePath }) => {
-            try {
-              const resolved = await resolveLogicalKey(filePath)
-              if (resolved && resolved.key) {
-                const response = await s3
-                  .getObject({
-                    Bucket: resolved.bucket,
-                    Key: resolved.key,
-                  })
-                  .promise()
-
-                const content = response.Body?.toString('utf-8') || ''
-                const truncated = content.length > ContextFiles.MAX_CONTEXT_FILE_SIZE
-                const finalContent = truncated
-                  ? content.slice(0, ContextFiles.MAX_CONTEXT_FILE_SIZE)
-                  : content
-
-                return {
-                  path: `/${filePath}`,
-                  content: finalContent,
-                  truncated,
-                }
-              }
-              return null
-            } catch (error) {
-              // eslint-disable-next-line no-console
-              console.debug(`No ${filePath} in package:`, error)
-              return null
-            }
-          })
-
-          const results = await Promise.all(promises)
-          const files = results.filter(
-            (file): file is ContextFiles.ContextFileContent => file !== null,
-          )
-
-          setContextFiles(files)
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Error loading package directory context files:', error)
-          setContextFiles([])
-        } finally {
-          setLoading(false)
+      // Exclude root files (handled by PackageRootContext)
+      for (let i = pathSegments.length; i > 0; i--) {
+        const dirPath = pathSegments.slice(0, i).join('/')
+        for (const fileName of ContextFiles.CONTEXT_FILE_NAMES) {
+          pathsToCheck.push(`${dirPath}/${fileName}`)
         }
       }
 
-      loadContextFiles()
-    }, [bucket, name, hash, path, resolveLogicalKey, s3])
+      // Load files with limit (prioritize closer directories)
+      const limitedPaths = pathsToCheck.slice(0, ContextFiles.MAX_NON_ROOT_FILES)
+
+      // Load all files in parallel
+      const promises = limitedPaths.map((filePath) =>
+        loadPackageContextFile(s3, resolveLogicalKey, filePath),
+      )
+
+      const results = await Promise.all(promises)
+      return results.filter(
+        (file): file is ContextFiles.ContextFileContent => file !== null,
+      )
+    }, [path, resolveLogicalKey, s3])
+
+    const { files: contextFiles, loading } = ContextFiles.useContextFileLoader(loader, [
+      bucket,
+      name,
+      hash,
+      path,
+      resolveLogicalKey,
+      s3,
+    ])
 
     const messages = React.useMemo(() => {
       if (!contextFiles || contextFiles.length === 0) return []

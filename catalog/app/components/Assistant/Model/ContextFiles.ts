@@ -1,4 +1,5 @@
 import type { S3 } from 'aws-sdk'
+import * as React from 'react'
 import * as XML from 'utils/XML'
 
 export interface ContextFileContent {
@@ -36,11 +37,8 @@ export async function loadContextFile(
       truncated,
     }
   } catch (error: any) {
-    if (error.statusCode === 404 || error.code === 'NoSuchKey') {
-      return null
-    }
-    // eslint-disable-next-line no-console
-    console.error(`Error loading context file ${fileName} from ${path}:`, error)
+    // 404s are expected when context files don't exist
+    // Don't log them as they're not errors
     return null
   }
 }
@@ -173,4 +171,53 @@ export function formatContextFilesAsMessages(
   if (files.length === 0) return []
 
   return files.map((file) => formatContextFileAsXML(file, attrs))
+}
+
+// Custom hook for loading context files with consistent error handling
+export interface UseContextFileLoaderResult {
+  files: ContextFileContent[] | null
+  loading: boolean
+  error: Error | null
+}
+
+export function useContextFileLoader(
+  loader: () => Promise<ContextFileContent[]>,
+  deps: React.DependencyList,
+): UseContextFileLoaderResult {
+  const [files, setFiles] = React.useState<ContextFileContent[] | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<Error | null>(null)
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    const loadFiles = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const result = await loader()
+        if (!cancelled) {
+          setFiles(result)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error(String(err)))
+          setFiles([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadFiles()
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+
+  return { files, loading, error }
 }

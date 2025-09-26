@@ -66,34 +66,24 @@ interface DirContextFilesProps {
 export const DirContextFiles = Assistant.Context.LazyContext(
   ({ bucket, path }: DirContextFilesProps) => {
     const s3 = AWS.S3.use()
-    const [contextFiles, setContextFiles] = React.useState<
-      ContextFiles.ContextFileContent[] | null
-    >(null)
-    const [loading, setLoading] = React.useState(true)
 
-    React.useEffect(() => {
-      const loadContextFiles = async () => {
-        setLoading(true)
-        try {
-          // Load hierarchy from current path up to (but excluding) bucket root
-          const files = await ContextFiles.loadContextFileHierarchy(
-            s3,
-            bucket,
-            path,
-            '', // Stop at bucket root (empty string)
-          )
-          setContextFiles(files)
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Error loading directory context files:', error)
-          setContextFiles([])
-        } finally {
-          setLoading(false)
-        }
-      }
+    const loader = React.useCallback(
+      async () =>
+        // Load hierarchy from current path up to (but excluding) bucket root
+        ContextFiles.loadContextFileHierarchy(
+          s3,
+          bucket,
+          path,
+          '', // Stop at bucket root (empty string)
+        ),
+      [bucket, path, s3],
+    )
 
-      loadContextFiles()
-    }, [bucket, path, s3])
+    const { files: contextFiles, loading } = ContextFiles.useContextFileLoader(loader, [
+      bucket,
+      path,
+      s3,
+    ])
 
     const messages = React.useMemo(() => {
       if (!contextFiles || contextFiles.length === 0) return []
