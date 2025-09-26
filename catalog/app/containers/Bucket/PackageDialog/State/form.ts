@@ -47,15 +47,12 @@ export interface FormState {
 export function useFormStatus(initialOpen: boolean | FilesState['added']): FormState {
   const [formStatus, setFormStatus] = React.useState<FormStatus>(() => {
     if (!window.crypto?.subtle?.digest) {
-      return {
-        _tag: 'error',
-        error: new Error(
-          'Quilt requires the Web Cryptography API. Please try another browser.',
-        ),
-      }
+      return Err(
+        new Error('Quilt requires the Web Cryptography API. Please try another browser.'),
+      )
     }
-    if (initialOpen) return { _tag: 'ready' }
-    return { _tag: 'idle' }
+    if (initialOpen) return Ready
+    return Idle
   })
 
   return {
@@ -63,3 +60,5 @@ export function useFormStatus(initialOpen: boolean | FilesState['added']): FormS
     setFormStatus,
   }
 }
+
+export { useFormStatus as use }
