@@ -231,7 +231,7 @@ function ResultsContainer({ className }: ResultsContainerProps) {
       <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
         {doQueryResultsContainManifestEntries(results.data) ? (
           <React.Suspense fallback={<M.CircularProgress />}>
-            <CreatePackage queryResults={results.data} />
+            <CreatePackage bucket={bucket} queryResults={results.data} />
           </React.Suspense>
         ) : (
           <SeeDocsForCreatingPackage />

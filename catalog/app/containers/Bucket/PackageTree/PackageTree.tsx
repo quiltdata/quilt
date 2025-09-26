@@ -167,9 +167,7 @@ const useDirDisplayStyles = M.makeStyles((t) => ({
 }))
 
 interface DirDisplayProps {
-  bucket: string
-  name: string
-  hash: string
+  packageHandle: PackageHandle
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
@@ -177,9 +175,7 @@ interface DirDisplayProps {
 }
 
 function DirDisplay({
-  bucket,
-  name,
-  hash,
+  packageHandle,
   hashOrTag,
   path,
   crumbs,
@@ -189,19 +185,26 @@ function DirDisplay({
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
 
+  const initialActions = PD.useInitialActions()
+
   const dirQuery = GQL.useQuery(DIR_QUERY, {
-    bucket,
-    name,
-    hash,
+    ...packageHandle,
     path: s3paths.ensureNoSlash(path),
+  })
+
+  const { bucket, name, hash } = packageHandle
+
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const updateDialog = PD.useCreateDialog({
+    src: packageHandle,
+    dst,
+    open: initialActions.includes('revisePackage'),
   })
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
     [urls, bucket, name, hashOrTag],
   )
-
-  const updateDialog = PD.useCreateDialog()
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
@@ -257,11 +260,6 @@ function DirDisplay({
       setDeletionState(R.mergeLeft({ error, loading: false }))
     }
   }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
-
-  const packageHandle = React.useMemo(
-    () => ({ bucket, name, hash }),
-    [bucket, name, hash],
-  )
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
@@ -908,29 +906,25 @@ function PackageRevision({
     () => ({ bucket: successor?.slug || bucket }),
     [bucket, successor],
   )
-  const createDst = React.useMemo(() => ({ bucket }), [bucket])
 
-  const initialActions = PD.useInitialActions()
   const isDir = path === '' || path.endsWith('/')
 
   return (
     <>
-      <PD.Provider src={packageHandle} dst={copyDst} open={!!successor}>
-        {successor && <PD.Copy successor={successor} onClose={closeCopyDialog} />}
-      </PD.Provider>
+      <PD.Copy
+        successor={successor}
+        src={packageHandle}
+        dst={copyDst}
+        open={!!successor}
+        onClose={closeCopyDialog}
+      />
       <ResolverProvider packageHandle={packageHandle}>
         {isDir ? (
-          <PD.Provider
-            src={packageHandle}
-            dst={createDst}
-            open={initialActions.includes('revisePackage')}
-          >
-            <DirDisplay
-              {...packageHandle}
-              {...{ hashOrTag, path }}
-              {...{ crumbs, onSuccessor: openCopyDialog }}
-            />
-          </PD.Provider>
+          <DirDisplay
+            packageHandle={packageHandle}
+            {...{ hashOrTag, path }}
+            {...{ crumbs, onSuccessor: openCopyDialog }}
+          />
         ) : (
           <FileDisplayQuery
             {...packageHandle}

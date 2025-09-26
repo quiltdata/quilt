@@ -16,7 +16,7 @@ import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
 import * as Layout from './Layout'
-import * as State from './State'
+import * as PDModel from './State'
 import { FormSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 // import { useUploads } from './Uploads'
@@ -118,6 +118,7 @@ interface PackageCreationFormProps {
   currentBucketCanBeSuccessor: boolean
   disableStateDisplay: boolean
   delayHashing: boolean
+  state: PDModel.State
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -129,6 +130,7 @@ function PackageCreationForm({
   close,
   currentBucketCanBeSuccessor,
   delayHashing,
+  state,
   ui = {},
 }: PackageCreationFormProps) {
   const {
@@ -149,7 +151,7 @@ function PackageCreationForm({
     src,
     workflow,
     workflowsConfig,
-  } = State.useContext()
+  } = state
   const classes = useStyles()
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
@@ -265,7 +267,8 @@ interface RenderDialogProps {
   currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
-  state: DialogState
+  dialogState: DialogState
+  formState: PDModel.State
   ui: PackageCreationDialogUIOptions
 }
 
@@ -274,16 +277,17 @@ function RenderDialog({
   currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
-  state,
+  dialogState,
+  formState,
   ui,
 }: RenderDialogProps) {
-  switch (state._tag) {
+  switch (dialogState._tag) {
     case 'loading':
       return (
         <DialogLoading
           skeletonElement={<FormSkeleton />}
           title={
-            state.waitListing
+            dialogState.waitListing
               ? 'Fetching list of files inside selected directories. It can take a while…'
               : 'Fetching package manifest. One moment…'
           }
@@ -294,7 +298,7 @@ function RenderDialog({
     case 'error':
       return (
         <DialogError
-          error={state.error}
+          error={dialogState.error}
           skeletonElement={<FormSkeleton animate={false} />}
           title={ui.title || 'Create package'}
           submitText={ui.submit}
@@ -304,9 +308,9 @@ function RenderDialog({
     case 'success':
       return (
         <DialogSuccess
-          name={state.name}
-          hash={state.hash}
-          bucket={state.bucket}
+          name={dialogState.name}
+          hash={dialogState.hash}
+          bucket={dialogState.bucket}
           onClose={close}
           browseText={ui.successBrowse}
           title={ui.successTitle}
@@ -320,18 +324,22 @@ function RenderDialog({
           currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           delayHashing={delayHashing}
           disableStateDisplay={disableStateDisplay}
+          state={formState}
           ui={ui}
         />
       )
     default:
-      assertNever(state)
+      assertNever(dialogState)
   }
 }
 
-interface UseCreateDialogDialogOptions {
+interface UseCreateDialogOptions {
   currentBucketCanBeSuccessor?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  dst: PDModel.PackageDst
+  src?: PDModel.PackageSrc
+  open?: boolean | PDModel.FilesState['value']['added']
 }
 
 /**
@@ -339,23 +347,19 @@ interface UseCreateDialogDialogOptions {
  *
  * Opens the primary form for creating new packages and editing existing ones.
  * Includes file panel for managing package contents.
- * Must be used within `<PD.Provider>` wrapper.
  */
 export default function useCreateDialog({
   disableStateDisplay = false,
   delayHashing = false,
   currentBucketCanBeSuccessor = false,
-}: UseCreateDialogDialogOptions = {}) {
-  const {
-    formStatus,
-    setDst,
-    reset,
-    open: isOpen,
-    setOpen,
-    workflowsConfig,
-  } = State.useContext()
+  dst: initialDst,
+  src: initialSrc,
+  open: initialOpen,
+}: UseCreateDialogOptions) {
+  const state = PDModel.useState(initialDst, initialSrc, initialOpen)
+  const { formStatus, setDst, reset, workflowsConfig, open: isOpen, setOpen } = state
 
-  const [exited, setExited] = React.useState(!isOpen)
+  const [exited, setExited] = React.useState(true)
 
   const [waitingListing, setWaitingListing] = React.useState(false)
   const getFiles = requests.useFilesListing()
@@ -399,7 +403,7 @@ export default function useCreateDialog({
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
-  const state: DialogState = React.useMemo<DialogState>(() => {
+  const dialogState: DialogState = React.useMemo<DialogState>(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (waitingListing) return { _tag: 'loading', waitListing: true }
     if (workflowsConfig._tag === 'loading') return { _tag: 'loading', waitListing: false }
@@ -424,7 +428,8 @@ export default function useCreateDialog({
           currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           disableStateDisplay={disableStateDisplay}
           delayHashing={delayHashing}
-          state={state}
+          dialogState={dialogState}
+          formState={state}
           ui={ui}
         />
       )}

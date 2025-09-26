@@ -16,23 +16,6 @@ import * as SearchUIModel from '../model'
 
 import ColumnTitle from './ColumnTitle'
 
-interface CreatePackageWrapperProps {
-  className: string
-}
-
-function CreatePackageWrapper({ className }: CreatePackageWrapperProps) {
-  const bucket = useBucketStrict()
-  const btn = React.useCallback(
-    (onOpen) => <CreatePackageButton className={className} onClick={onOpen} />,
-    [className],
-  )
-  return (
-    <PD.Provider dst={{ bucket }}>
-      <CreatePackage>{btn}</CreatePackage>
-    </PD.Provider>
-  )
-}
-
 const useCreatePackageStyles = M.makeStyles({
   label: {
     display: 'block',
@@ -77,17 +60,20 @@ function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
 }
 
 interface CreatePackageProps {
-  children: (onOpen: () => void) => React.ReactNode
+  className: string
 }
 
-function CreatePackage({ children }: CreatePackageProps) {
+function CreatePackage({ className }: CreatePackageProps) {
+  const bucket = useBucketStrict()
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
   const { open, render } = PD.useCreateDialog({
+    dst,
     delayHashing: true,
     disableStateDisplay: true,
   })
   return (
     <>
-      {children(open)}
+      <CreatePackageButton className={className} onClick={open} />
       {render({
         successTitle: 'Package created',
         successRenderMessage: ({ packageLink }) => (
@@ -270,7 +256,7 @@ export default function Results({ onFilters }: ResultsProps) {
             {r._tag === 'data' &&
               (r.data.__typename === 'ObjectsSearchResultSet' ||
                 r.data.__typename === 'PackagesSearchResultSet') && (
-                <CreatePackageWrapper className={classes.create} />
+                <CreatePackage className={classes.create} />
               )}
           </RRDom.Route>
         </RRDom.Switch>

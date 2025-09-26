@@ -11,10 +11,16 @@ import useCreateDialog from './PackageDialog/Create'
 
 const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`
 
-function CreatePackage() {
+interface CreatePackageProps {
+  bucket: string
+}
+
+function CreatePackage({ bucket }: CreatePackageProps) {
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
   const createDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
+    dst,
   })
   const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
   return (
@@ -78,10 +84,11 @@ function BareFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => voi
 
 interface NoPackagesProps {
   className?: string
+  bucket: string
   onRefine: (action: NoResults.Refine) => void
 }
 
-export default function NoPackages({ className, onRefine }: NoPackagesProps) {
+export default function NoPackages({ bucket, className, onRefine }: NoPackagesProps) {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const numFilters = state.filter.order.length + state.userMetaFilters.filters.size
@@ -90,7 +97,7 @@ export default function NoPackages({ className, onRefine }: NoPackagesProps) {
     <Empty
       className={className}
       title="No matching packages"
-      primary={<CreatePackage />}
+      primary={<CreatePackage bucket={bucket} />}
       secondary={
         <>
           or{' '}

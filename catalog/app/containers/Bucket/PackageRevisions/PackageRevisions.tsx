@@ -447,7 +447,13 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
-  const updateDialog = PD.useCreateDialog()
+  const src = React.useMemo(() => ({ bucket, name }), [bucket, name])
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+
+  const updateDialog = PD.useCreateDialog({
+    dst,
+    src,
+  })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -542,12 +548,12 @@ export default function PackageRevisionsWrapper() {
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (
-    <PD.Provider src={{ bucket, name }} dst={{ bucket }}>
+    <>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <PackageRevisions {...{ bucket, name, page }} />
       </WithPackagesSupport>
-    </PD.Provider>
+    </>
   )
 }
 

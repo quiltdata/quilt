@@ -1,2 +1,3 @@
 export * from './State'
-export * from './Provider'
+export type { PackageSrc } from './manifest'
+export type { FilesState } from './files'

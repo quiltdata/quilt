@@ -223,15 +223,18 @@ function Drawer({
 }
 
 interface CreatePackageProps {
+  bucket: string
   handles: Model.S3.S3ObjectLocation[]
   onPackageDialog: (error?: Error) => void
 }
 
-function CreatePackage({ handles, onPackageDialog }: CreatePackageProps) {
+function CreatePackage({ bucket, handles, onPackageDialog }: CreatePackageProps) {
   const addToPackage = AddToPackage.use()
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
   const createDialog = PD.useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
+    dst,
   })
   const [traversing, setTraversing] = React.useState(false)
   const headFile = useHeadFile()
@@ -317,9 +320,11 @@ export default function Sidebar({ bookmarks, bucket }: SidebarProps) {
         open={bookmarks.isOpened}
       >
         {bucket ? (
-          <PD.Provider dst={{ bucket }}>
-            <CreatePackage handles={handles} onPackageDialog={onPackageDialog} />
-          </PD.Provider>
+          <CreatePackage
+            bucket={bucket}
+            handles={handles}
+            onPackageDialog={onPackageDialog}
+          />
         ) : (
           <M.Button color="primary" disabled variant="contained">
             Create package

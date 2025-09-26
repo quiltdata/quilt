@@ -26,7 +26,7 @@ import { useParams } from './params'
 import { useCopyHandler } from './copy'
 import { useCreateHandler } from './create'
 
-interface PackageDst {
+export interface PackageDst {
   bucket: string
   name?: string
 }
@@ -78,7 +78,7 @@ export interface State {
  * schema loading, and API handlers for create/copy operations.
  */
 export function useState(
-  initialDst: { bucket: string; name?: string },
+  initialDst: PackageDst,
   initialSrc?: PackageSrc,
   initialOpen: boolean | FilesState['value']['added'] = false,
 ): State {

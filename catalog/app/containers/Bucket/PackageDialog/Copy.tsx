@@ -16,7 +16,7 @@ import PDDialogSuccess from './DialogSuccess'
 import * as Inputs from './Inputs'
 import * as Layout from './Layout'
 import * as Skeleton from './Skeleton'
-import * as State from './State'
+import * as PDModel from './State'
 import { isPackageHandle } from './State/manifest'
 import SubmitSpinner from './SubmitSpinner'
 
@@ -95,9 +95,10 @@ function FormError({ error }: FormErrorProps) {
 interface PackageCopyFormProps {
   close: () => void
   successor: workflows.Successor
+  state: PDModel.State
 }
 
-function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
+function PackageCopyForm({ close, successor, state }: PackageCopyFormProps) {
   const {
     copy,
     formStatus,
@@ -111,7 +112,7 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
     src,
     workflow,
     workflowsConfig,
-  } = State.useContext()
+  } = state
   const classes = useStyles()
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
@@ -232,29 +233,30 @@ function DialogLoading({ bucket }: DialogLoadingProps) {
 
 interface RenderDialogProps {
   close: () => void
-  state: DialogState
+  dialogState: DialogState
+  formState: PDModel.State
   successor: workflows.Successor
 }
 
-function RenderDialog({ close, state, successor }: RenderDialogProps) {
-  switch (state._tag) {
+function RenderDialog({ close, dialogState, formState, successor }: RenderDialogProps) {
+  switch (dialogState._tag) {
     case 'loading':
       return <DialogLoading bucket={successor.slug} />
     case 'error':
-      return <DialogError bucket={successor.slug} error={state.error} />
+      return <DialogError bucket={successor.slug} error={dialogState.error} />
     case 'success':
       return (
         <PDDialogSuccess
-          name={state.name}
-          hash={state.hash}
-          bucket={state.bucket}
+          name={dialogState.name}
+          hash={dialogState.hash}
+          bucket={dialogState.bucket}
           onClose={close}
         />
       )
     case 'ready':
-      return <PackageCopyForm successor={successor} close={close} />
+      return <PackageCopyForm successor={successor} close={close} state={formState} />
     default:
-      assertNever(state)
+      assertNever(dialogState)
   }
 }
 
@@ -265,8 +267,11 @@ type DialogState =
   | { _tag: 'success'; bucket: string; name: string; hash: string }
 
 interface PackageCopyDialogProps {
-  successor: workflows.Successor
+  successor: workflows.Successor | null
   onClose: () => void
+  dst: { bucket: string; name?: string }
+  src: PDModel.PackageSrc
+  open: boolean
 }
 
 /**
@@ -275,13 +280,16 @@ interface PackageCopyDialogProps {
  * Opens a dialog form for copying existing packages.
  * All files from the existing manifest are copied to the new package
  * (content or URLs depending on workflow's copyData setting).
- * Must be wrapped in `<PD.Provider>`.
  */
 export default function PackageCopyDialog({
   successor,
   onClose,
+  dst,
+  src,
+  open: initialOpen,
 }: PackageCopyDialogProps) {
-  const { formStatus, workflowsConfig, manifest, open } = State.useContext()
+  const state = PDModel.useState(dst, src, initialOpen)
+  const { formStatus, workflowsConfig, manifest, open } = state
 
   const close = React.useCallback(() => {
     if (formStatus._tag === 'submitting') return
@@ -290,7 +298,7 @@ export default function PackageCopyDialog({
 
   Intercom.usePauseVisibilityWhen(open)
 
-  const state: DialogState = React.useMemo<DialogState>(() => {
+  const dialogState: DialogState = React.useMemo<DialogState>(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
       return { _tag: 'loading' }
@@ -306,7 +314,14 @@ export default function PackageCopyDialog({
 
   return (
     <M.Dialog fullWidth onClose={close} open={!!open} scroll="body">
-      {<RenderDialog successor={successor} close={close} state={state} />}
+      {!!successor && (
+        <RenderDialog
+          successor={successor}
+          close={close}
+          dialogState={dialogState}
+          formState={state}
+        />
+      )}
     </M.Dialog>
   )
 }
