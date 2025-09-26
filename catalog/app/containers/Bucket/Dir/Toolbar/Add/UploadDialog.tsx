@@ -5,7 +5,8 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { useUploads } from 'containers/Bucket/PackageDialog/Uploads'
-import * as FI from 'containers/Bucket/PackageDialog/FilesInput'
+import * as FI from 'containers/Bucket/PackageDialog/Inputs/Files/State'
+import { FilesInput } from 'containers/Bucket/PackageDialog/Inputs/Files/Input'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 import Log from 'utils/Logging'
 import * as s3paths from 'utils/s3paths'
@@ -40,22 +41,16 @@ interface UploadDialogProps {
 
 export default function UploadDialog({
   handle,
-  initial = {},
+  initial: added = {},
   onClose,
 }: UploadDialogProps) {
-  const [value, setValue] = React.useState<FI.FilesState['added']>(initial)
+  const [value, setValue] = React.useState<FI.FilesState['added']>(added)
   const classes = useUploadDialogStyles()
 
   const [uploadState, setUploadState] = React.useState<UploadState>({ _tag: 'idle' })
 
   const submitting = uploadState._tag === 'uploading'
-  const meta = React.useMemo(
-    () => ({
-      initial: toFilesState(initial),
-      submitting,
-    }),
-    [initial, submitting],
-  )
+  const initial = React.useMemo(() => toFilesState(added), [added])
 
   const { progress, remove, removeByPrefix, reset, upload } = useUploads()
   const onFilesAction = React.useMemo(
@@ -78,7 +73,6 @@ export default function UploadDialog({
         files,
         bucket: handle.bucket,
         getCanonicalKey: (key) => s3paths.withoutPrefix('/', join(handle.path, key)),
-        getMeta: () => null,
       })
       setUploadState({ _tag: 'success', count: Object.keys(uploadedEntries).length })
     } catch (e) {
@@ -130,15 +124,16 @@ export default function UploadDialog({
         )}
 
         {showUploadUI && (
-          <FI.FilesInput
+          <FilesInput
             className={classes.drop}
-            input={input}
-            meta={meta}
+            disabled={submitting}
+            initial={initial}
+            noMeta
+            onChange={input.onChange}
             onFilesAction={onFilesAction}
             title="Upload files"
             totalProgress={progress}
-            validationErrors={null}
-            noMeta
+            value={input.value}
           />
         )}
       </M.DialogContent>

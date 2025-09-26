@@ -17,12 +17,12 @@ import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import type * as Model from 'model'
 
-import * as Listing from '../Listing'
-import * as Selection from '../Selection'
-import { displayError } from '../errors'
-import * as requests from '../requests'
+import * as Listing from '../../../Listing'
+import * as Selection from '../../../Selection'
+import { displayError } from '../../../errors'
+import * as requests from '../../../requests'
 
-import SubmitSpinner from './SubmitSpinner'
+import SubmitSpinner from '../../SubmitSpinner'
 
 const useSelectionWidgetStyles = M.makeStyles((t) => ({
   backdrop: {
