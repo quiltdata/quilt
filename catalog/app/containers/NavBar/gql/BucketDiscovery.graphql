@@ -1,0 +1,10 @@
+query BucketDiscovery {
+  bucketConfigs {
+    name
+    title
+    description
+    tags
+    relevanceScore
+    lastIndexed
+  }
+}

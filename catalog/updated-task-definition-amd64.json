@@ -1,0 +1,156 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "nginx-catalog",
+      "image": "850787717197.dkr.ecr.us-east-1.amazonaws.com/quiltdata/catalog:mcp-integration-amd64",
+      "cpu": 0,
+      "links": [],
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "entryPoint": [],
+      "command": [],
+      "environment": [
+        {
+          "name": "ALWAYS_REQUIRE_AUTH",
+          "value": "true"
+        },
+        {
+          "name": "API_GATEWAY",
+          "value": "https://rrt44g7nlg.execute-api.us-east-1.amazonaws.com/prod"
+        },
+        {
+          "name": "QURATOR",
+          "value": "true"
+        },
+        {
+          "name": "ANALYTICS_BUCKET",
+          "value": "sales-prod-analyticsbucket-komyakmcvebb"
+        },
+        {
+          "name": "MIXPANEL_TOKEN",
+          "value": "e3385877c980efdce0a7eaec5a8a8277"
+        },
+        {
+          "name": "SERVICE_BUCKET",
+          "value": "sales-prod-servicebucket-o7icx5nu3mpw"
+        },
+        {
+          "name": "S3_PROXY_URL",
+          "value": "https://demo-s3-proxy.quiltdata.com"
+        },
+        {
+          "name": "CHUNKED_CHECKSUMS",
+          "value": "true"
+        },
+        {
+          "name": "INTERCOM_APP_ID",
+          "value": "eprutqnr"
+        },
+        {
+          "name": "STACK_VERSION",
+          "value": "1.62.1"
+        },
+        {
+          "name": "SSO_PROVIDERS",
+          "value": "   "
+        },
+        {
+          "name": "REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "PASSWORD_AUTH",
+          "value": "SIGN_IN_ONLY"
+        },
+        {
+          "name": "SENTRY_DSN",
+          "value": "https://cfde44007c3844aab3d1ee3f0ba53a1a@sentry.io/1410550"
+        },
+        {
+          "name": "REGISTRY_URL",
+          "value": "https://demo-registry.quiltdata.com"
+        },
+        {
+          "name": "SSO_AUTH",
+          "value": "DISABLED"
+        },
+        {
+          "name": "NO_DOWNLOAD",
+          "value": "false"
+        },
+        {
+          "name": "PACKAGE_ROOT",
+          "value": ""
+        },
+        {
+          "name": "CATALOG_MODE",
+          "value": "PRODUCT"
+        }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [
+        {
+          "sourceVolume": "nginx-tmp",
+          "containerPath": "/tmp/"
+        },
+        {
+          "sourceVolume": "nginx-var-lib-nginx-tmp",
+          "containerPath": "/var/lib/nginx/tmp/"
+        },
+        {
+          "sourceVolume": "nginx-run",
+          "containerPath": "/run/"
+        }
+      ],
+      "volumesFrom": [],
+      "secrets": [],
+      "readonlyRootFilesystem": true,
+      "dnsServers": [],
+      "dnsSearchDomains": [],
+      "extraHosts": [],
+      "dockerSecurityOptions": [],
+      "dockerLabels": {},
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "sales-prod",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "registry"
+        },
+        "secretOptions": []
+      },
+      "systemControls": [],
+      "credentialSpecs": []
+    }
+  ],
+  "family": "sales-prod-nginx_catalog",
+  "taskRoleArn": "arn:aws:iam::850787717197:role/sales-prod-AmazonECSTaskExecutionRole-psyJbxNf8dSA",
+  "executionRoleArn": "arn:aws:iam::850787717197:role/sales-prod-AmazonECSTaskExecutionRole-psyJbxNf8dSA",
+  "networkMode": "awsvpc",
+  "volumes": [
+    {
+      "name": "nginx-tmp",
+      "host": {}
+    },
+    {
+      "name": "nginx-var-lib-nginx-tmp",
+      "host": {}
+    },
+    {
+      "name": "nginx-run",
+      "host": {}
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512"
+}
