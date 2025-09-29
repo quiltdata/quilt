@@ -25,61 +25,17 @@ const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
 const chromeLauncher = require('chrome-launcher');
 const CDP = require('chrome-remote-interface');
+const minimist = require('minimist');
 
 // Configuration constants
 const STATIC_DEV_DIR = path.resolve(__dirname, '../../static-dev');
 const CONFIG_OUTPUT_PATH = path.join(STATIC_DEV_DIR, 'config.js');
 
 /**
- * Parse command line arguments
- */
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const options = {
-    stack: null,
-    auth: true,
-    help: false,
-    manualAuth: false
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    switch (arg) {
-      case '--stack':
-        if (i + 1 >= args.length) {
-          throw new Error('--stack requires a URL argument');
-        }
-        options.stack = args[++i];
-        break;
-
-      case '--no-auth':
-        options.auth = false;
-        break;
-
-      case '--manual-auth':
-        options.manualAuth = true;
-        break;
-
-      case '--help':
-      case '-h':
-        options.help = true;
-        break;
-
-      default:
-        throw new Error(`Unknown option: ${arg}`);
-    }
-  }
-
-  return options;
-}
-
-/**
  * Show help message
  */
 function showHelp() {
-  console.log(`
-Connect to Quilt Stack Script
+  console.log(`Connect to Quilt Stack Script
 
 Usage:
   node connect-stack.js [options]
@@ -88,15 +44,14 @@ Options:
   --stack <url>      Stack URL to connect to (overrides quilt3 config)
   --no-auth          Skip authentication flow
   --manual-auth      Use manual credential collection (fallback mode)
-  --help             Show this help message
+  --help, -h         Show this help message
 
-Environment Variables:
 Examples:
   node connect-stack.js
   node connect-stack.js --stack https://my-stack.example.com
-  node connect-stack.js --no-auth
-`);
+  node connect-stack.js --no-auth`);
 }
+
 
 /**
  * Get stack URL from quilt3 config CLI
@@ -662,13 +617,18 @@ if (typeof window !== 'undefined' && window.localStorage) {
  */
 async function main() {
   try {
+    // Check platform compatibility
     if (process.platform === 'win32') {
       console.error('❌ Windows is not supported for connect-stack.js. Please run this script from macOS or Linux.');
       process.exit(1);
     }
 
     // Parse command line arguments
-    const options = parseArgs();
+    const options = minimist(process.argv.slice(2), {
+      boolean: ['no-auth', 'manual-auth', 'help'],
+      string: ['stack'],
+      alias: { h: 'help' }
+    });
 
     if (options.help) {
       showHelp();
@@ -685,8 +645,8 @@ async function main() {
 
     // Step 3: Handle authentication
     let credentials = null;
-    if (options.auth) {
-      const credentialCollector = CredentialCollector.create(stackUrl, options.manualAuth);
+    if (!options['no-auth']) {
+      const credentialCollector = CredentialCollector.create(stackUrl, options['manual-auth']);
       await credentialCollector.collect();
       credentials = credentialCollector.getStoredCredentials();
     } else {
@@ -694,7 +654,7 @@ async function main() {
     }
 
     // Step 4: Generate and write config
-    const configGenerator = new ConfigGenerator(stackUrl, options.auth, credentials);
+    const configGenerator = new ConfigGenerator(stackUrl, !options['no-auth'], credentials);
     const { config: catalogConfig } = await configGenerator.generateConfig();
     await configGenerator.writeConfigFile(catalogConfig, CONFIG_OUTPUT_PATH);
 

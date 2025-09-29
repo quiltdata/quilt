@@ -26,6 +26,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const chromeLauncher = require('chrome-launcher');
 const CDP = require('chrome-remote-interface');
+const minimist = require('minimist');
 
 // Configuration
 const DEFAULT_PORT = 3000;
@@ -33,93 +34,28 @@ const DEFAULT_TIMEOUT = 30;
 const OUTPUT_DIR = path.resolve(__dirname, '../../build/test-results');
 
 /**
- * Parse command line arguments
- */
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const options = {
-    port: DEFAULT_PORT,
-    timeout: DEFAULT_TIMEOUT,
-    headless: false,
-    noServer: false,
-    url: null,
-    help: false
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    switch (arg) {
-      case '--port':
-        if (i + 1 >= args.length) throw new Error('--port requires a port number');
-        options.port = parseInt(args[++i], 10);
-        if (isNaN(options.port) || options.port <= 0 || options.port > 65535) {
-          throw new Error('Invalid port number');
-        }
-        break;
-
-      case '--timeout':
-        if (i + 1 >= args.length) throw new Error('--timeout requires a number');
-        options.timeout = parseInt(args[++i], 10);
-        if (isNaN(options.timeout) || options.timeout <= 0) {
-          throw new Error('Invalid timeout value');
-        }
-        break;
-
-      case '--headless':
-        options.headless = true;
-        break;
-
-      case '--no-server':
-        options.noServer = true;
-        break;
-
-      case '--url':
-        if (i + 1 >= args.length) throw new Error('--url requires a URL');
-        options.url = args[++i];
-        break;
-
-      case '--help':
-      case '-h':
-        options.help = true;
-        break;
-
-      default:
-        throw new Error(`Unknown option: ${arg}`);
-    }
-  }
-
-  if (!options.url) {
-    options.url = `http://localhost:${options.port}`;
-  }
-
-  return options;
-}
-
-/**
  * Show help message
  */
 function showHelp() {
-  console.log(`
-Test Stack Script
+  console.log(`Test Stack Script - Automated catalog testing with Chrome DevTools
 
 Usage:
   node test-stack.js [options]
 
 Options:
-  --port <port>          Port for dev server (default: 3000)
-  --timeout <seconds>    Test timeout in seconds (default: 30)
-  --headless             Run browser in headless mode
-  --no-server            Skip starting server (assume already running)
-  --url <url>            Test a specific URL (default: http://localhost:PORT)
-  --help                 Show this help message
+  --port <port>      Port for dev server (default: ${DEFAULT_PORT})
+  --timeout <sec>    Test timeout in seconds (default: ${DEFAULT_TIMEOUT})
+  --headless         Run browser in headless mode
+  --no-server        Skip starting server (assume already running)
+  --url <url>        Test a specific URL (default: http://localhost:PORT)
+  --help, -h         Show this help message
 
 Examples:
   node test-stack.js                           # Test with default settings
   node test-stack.js --headless --timeout 60  # Headless mode with 60s timeout
-  node test-stack.js --no-server --port 8080  # Test existing server on port 8080
-`);
+  node test-stack.js --no-server --port 8080  # Test existing server on port 8080`);
 }
+
 
 /**
  * Port Cleanup Utility - Shared port management functionality
@@ -777,11 +713,36 @@ async function main() {
     }
 
     // Parse arguments
-    const options = parseArgs();
+    const options = minimist(process.argv.slice(2), {
+      boolean: ['headless', 'no-server', 'help'],
+      string: ['url'],
+      default: {
+        port: DEFAULT_PORT,
+        timeout: DEFAULT_TIMEOUT
+      },
+      alias: { h: 'help' }
+    });
 
     if (options.help) {
       showHelp();
       return;
+    }
+
+    // Validate port
+    if (options.port <= 0 || options.port > 65535) {
+      console.error('❌ Port must be between 1 and 65535');
+      process.exit(1);
+    }
+
+    // Validate timeout
+    if (options.timeout <= 0) {
+      console.error('❌ Timeout must be greater than 0');
+      process.exit(1);
+    }
+
+    // Set default URL if not provided
+    if (!options.url) {
+      options.url = `http://localhost:${options.port}`;
     }
 
     console.log('🧪 Quilt Catalog Test Script');
@@ -791,7 +752,7 @@ async function main() {
     console.log(`Headless: ${options.headless}`);
 
     // Start server if needed
-    if (!options.noServer) {
+    if (!options['no-server']) {
       serverManager = new ServerManager(options.port);
       await serverManager.start();
       console.log('✅ Server is ready');
