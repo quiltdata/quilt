@@ -149,241 +149,37 @@ function validateUrl(url) {
 }
 
 /**
- * Auth Manager - Manual credential extraction and validation
+ * Base Credential Collector - Common credential extraction functionality
  */
-class AuthManager {
-  constructor(stackUrl, manualAuth = false) {
+class CredentialCollector {
+  constructor(stackUrl) {
     this.stackUrl = stackUrl;
     this.credentials = null;
-    this.manualAuth = manualAuth;
   }
 
-  async authenticate() {
-    console.log('🔐 Starting authentication flow...');
+  async collect() {
+    console.log('🔐 Starting credential collection...');
 
     try {
-      const loginUrl = `${this.stackUrl}/login`;
-
       // First check if credentials already exist
       console.log('📍 Checking for existing credentials...');
 
       if (await this.checkExistingCredentials()) {
-        console.log('✅ Using existing valid credentials, skipping authentication');
+        console.log('✅ Using existing valid credentials, skipping collection');
         return;
       }
 
-      console.log('\n' + '='.repeat(80));
-      console.log('🤖 AUTOMATED AUTHENTICATION WITH CHROME DEVTOOLS');
-      console.log('='.repeat(80));
-      console.log('\n✨ This script will now automatically:');
-      console.log('   • Launch Chrome browser with the login page');
-      console.log('   • Monitor localStorage for authentication credentials');
-      console.log('   • Extract credentials automatically once you log in');
-      console.log('\n📍 You only need to complete the login process!');
-
-      // Get credentials from user
-      if (this.manualAuth) {
-        console.log('📋 Using manual credential collection mode...');
-        this.credentials = await this.getCredentialsFromUserManual();
-      } else {
-        try {
-          this.credentials = await this.getCredentialsFromUser();
-          console.log('✅ Authentication credentials received and validated');
-        } catch (error) {
-          console.log(`❌ Automated credential collection failed: ${error.message}`);
-          console.log('\n💡 Fallback: You can try the following options:');
-          console.log('   1. Run the script again (Chrome might not have launched properly)');
-          console.log('   2. Use --manual-auth flag for manual credential collection');
-          console.log('   3. Use --no-auth flag to skip authentication');
-          console.log('   4. Ensure Chrome is installed and accessible');
-          console.log('   5. Check if the stack URL is correct and accessible');
-          throw error;
-        }
-      }
+      // Delegate to subclass implementation
+      await this.performCollection();
 
     } catch (error) {
-      throw new Error(`Authentication failed: ${error.message}`);
+      throw new Error(`Credential collection failed: ${error.message}`);
     }
   }
 
-  async getCredentialsFromUser() {
-    console.log('🚀 Starting automated credential collection with Chrome DevTools...');
-
-    let chrome = null;
-    let client = null;
-
-    try {
-      // Launch Chrome with DevTools enabled
-      console.log('🌐 Launching Chrome browser...');
-      chrome = await chromeLauncher.launch({
-        chromeFlags: [
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-features=TranslateUI',
-          '--disable-ipc-flooding-protection',
-          '--no-first-run',
-          '--no-default-browser-check'
-        ],
-        startingUrl: `${this.stackUrl}/login`
-      });
-
-      console.log(`✅ Chrome launched on port ${chrome.port}`);
-
-      // Connect to Chrome DevTools Protocol
-      client = await CDP({ port: chrome.port });
-      const { Page, Runtime } = client;
-
-      // Enable necessary domains
-      await Page.enable();
-      await Runtime.enable();
-
-      console.log('⏳ Waiting for user to complete authentication...');
-      console.log('   Please complete the login process in the browser window that opened.');
-      console.log('   This script will automatically detect when credentials are available.');
-
-      // Wait for authentication and extract credentials
-      const credentials = await this.waitForCredentials(Page, Runtime);
-
-      console.log('✅ Credentials automatically extracted!');
-      return credentials;
-
-    } catch (error) {
-      throw new Error(`Automated credential collection failed: ${error.message}`);
-    } finally {
-      // Clean up - ensure proper shutdown sequence
-      console.log('🧹 Cleaning up Chrome processes...');
-
-      if (client) {
-        try {
-          await client.close();
-          console.log('✅ Chrome DevTools connection closed');
-        } catch (error) {
-          console.log(`⚠️  Error closing Chrome DevTools: ${error.message}`);
-        }
-      }
-
-      if (chrome) {
-        try {
-          await chrome.kill();
-          console.log('✅ Chrome process terminated');
-
-          // Wait a bit to ensure Chrome fully shuts down
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          console.log('✅ Chrome cleanup completed');
-        } catch (error) {
-          console.log(`⚠️  Error killing Chrome: ${error.message}`);
-        }
-      }
-    }
-  }
-
-  async getCredentialsFromUserManual() {
-    const readline = require('readline');
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    const question = (prompt) => new Promise((resolve) => {
-      rl.question(prompt, resolve);
-    });
-
-    try {
-      // Open browser manually
-      const { exec } = require('child_process');
-      const loginUrl = `${this.stackUrl}/login`;
-      const openCommand = process.platform === 'darwin' ? 'open' :
-                          process.platform === 'win32' ? 'start' : 'xdg-open';
-      exec(`${openCommand} ${JSON.stringify(loginUrl)}`);
-
-      console.log('🔑 Manual credential collection mode');
-      console.log('📋 INSTRUCTIONS TO GET CREDENTIALS:');
-      console.log('   1. Complete the login in your browser');
-      console.log('   2. Open Developer Tools (F12 or Cmd+Option+I on Mac)');
-      console.log('   3. Go to the "Application" or "Storage" tab');
-      console.log('   4. Expand "Local Storage" on the left');
-      console.log(`   5. Click on "${this.stackUrl}"`);
-      console.log('   6. Look for these keys: TOKENS and USER');
-      console.log('   7. Copy the VALUES (not the keys) for both\n');
-
-      // Get TOKENS
-      console.log('Step 1: Paste the value of the TOKENS key:');
-      const tokensInput = await question('TOKENS value: ');
-
-      // Get USER
-      console.log('\nStep 2: Paste the value of the USER key:');
-      const userInput = await question('USER value: ');
-
-      rl.close();
-
-      // Parse and validate the credentials
-      const credentials = this.parseAndValidateCredentials(tokensInput, userInput);
-
-      return credentials;
-    } catch (error) {
-      rl.close();
-      throw error;
-    }
-  }
-
-  async waitForCredentials(Page, Runtime, maxAttempts = 60, intervalMs = 2000) {
-    console.log('🔍 Monitoring localStorage for authentication credentials...');
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        // Execute script to check localStorage
-        const result = await Runtime.evaluate({
-          expression: `
-            (() => {
-              try {
-                const tokens = localStorage.getItem('TOKENS');
-                const user = localStorage.getItem('USER');
-
-                if (tokens && user) {
-                  return {
-                    success: true,
-                    tokens: JSON.parse(tokens),
-                    user: JSON.parse(user)
-                  };
-                }
-                return { success: false, message: 'Credentials not yet available' };
-              } catch (e) {
-                return { success: false, message: e.message };
-              }
-            })()
-          `,
-          returnByValue: true
-        });
-
-        if (result.result && result.result.value) {
-          const data = result.result.value;
-
-          if (data.success) {
-            console.log(`✅ Credentials detected after ${attempt} attempts`);
-
-            // Validate the credentials
-            return this.parseAndValidateCredentials(
-              JSON.stringify(data.tokens),
-              JSON.stringify(data.user)
-            );
-          }
-        }
-
-        // Show progress every 10 attempts
-        if (attempt % 10 === 0) {
-          console.log(`   Still waiting... (attempt ${attempt}/${maxAttempts})`);
-        }
-
-        // Wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-
-      } catch (error) {
-        console.log(`   Attempt ${attempt} failed: ${error.message}`);
-      }
-    }
-
-    throw new Error(`Timeout: Credentials not detected after ${maxAttempts} attempts (${(maxAttempts * intervalMs) / 1000} seconds)`);
+  // Abstract method - must be implemented by subclasses
+  async performCollection() {
+    throw new Error('performCollection must be implemented by subclass');
   }
 
   parseAndValidateCredentials(tokensInput, userInput) {
@@ -479,6 +275,235 @@ class AuthManager {
 
   getStoredCredentials() {
     return this.credentials;
+  }
+
+  static create(stackUrl, useInteractive = false) {
+    if (useInteractive) {
+      return new InteractiveCredentialCollector(stackUrl);
+    } else {
+      return new ChromeCredentialCollector(stackUrl);
+    }
+  }
+}
+
+/**
+ * Chrome DevTools Credential Collector - Automated credential extraction via Chrome
+ */
+class ChromeCredentialCollector extends CredentialCollector {
+  async performCollection() {
+    console.log('\n' + '='.repeat(80));
+    console.log('🤖 AUTOMATED AUTHENTICATION WITH CHROME DEVTOOLS');
+    console.log('='.repeat(80));
+    console.log('\n✨ This script will now automatically:');
+    console.log('   • Launch Chrome browser with the login page');
+    console.log('   • Monitor localStorage for authentication credentials');
+    console.log('   • Extract credentials automatically once you log in');
+    console.log('\n📍 You only need to complete the login process!');
+
+    try {
+      this.credentials = await this.getCredentialsFromUser();
+      console.log('✅ Authentication credentials received and validated');
+    } catch (error) {
+      console.log(`❌ Automated credential collection failed: ${error.message}`);
+      console.log('\n💡 Fallback: You can try the following options:');
+      console.log('   1. Run the script again (Chrome might not have launched properly)');
+      console.log('   2. Use --manual-auth flag for manual credential collection');
+      console.log('   3. Use --no-auth flag to skip authentication');
+      console.log('   4. Ensure Chrome is installed and accessible');
+      console.log('   5. Check if the stack URL is correct and accessible');
+      throw error;
+    }
+  }
+
+  async getCredentialsFromUser() {
+    console.log('🚀 Starting automated credential collection with Chrome DevTools...');
+
+    let chrome = null;
+    let client = null;
+
+    try {
+      // Launch Chrome with DevTools enabled
+      console.log('🌐 Launching Chrome browser...');
+      chrome = await chromeLauncher.launch({
+        chromeFlags: [
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection',
+          '--no-first-run',
+          '--no-default-browser-check'
+        ],
+        startingUrl: `${this.stackUrl}/login`
+      });
+
+      console.log(`✅ Chrome launched on port ${chrome.port}`);
+
+      // Connect to Chrome DevTools Protocol
+      client = await CDP({ port: chrome.port });
+      const { Page, Runtime } = client;
+
+      // Enable necessary domains
+      await Page.enable();
+      await Runtime.enable();
+
+      console.log('⏳ Waiting for user to complete authentication...');
+      console.log('   Please complete the login process in the browser window that opened.');
+      console.log('   This script will automatically detect when credentials are available.');
+
+      // Wait for authentication and extract credentials
+      const credentials = await this.waitForCredentials(Page, Runtime);
+
+      console.log('✅ Credentials automatically extracted!');
+      return credentials;
+
+    } catch (error) {
+      throw new Error(`Automated credential collection failed: ${error.message}`);
+    } finally {
+      // Clean up - ensure proper shutdown sequence
+      console.log('🧹 Cleaning up Chrome processes...');
+
+      if (client) {
+        try {
+          await client.close();
+          console.log('✅ Chrome DevTools connection closed');
+        } catch (error) {
+          console.log(`⚠️  Error closing Chrome DevTools: ${error.message}`);
+        }
+      }
+
+      if (chrome) {
+        try {
+          await chrome.kill();
+          console.log('✅ Chrome process terminated');
+
+          // Wait a bit to ensure Chrome fully shuts down
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('✅ Chrome cleanup completed');
+        } catch (error) {
+          console.log(`⚠️  Error killing Chrome: ${error.message}`);
+        }
+      }
+    }
+  }
+
+  async waitForCredentials(Page, Runtime, maxAttempts = 60, intervalMs = 2000) {
+    console.log('🔍 Monitoring localStorage for authentication credentials...');
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Execute script to check localStorage
+        const result = await Runtime.evaluate({
+          expression: `
+            (() => {
+              try {
+                const tokens = localStorage.getItem('TOKENS');
+                const user = localStorage.getItem('USER');
+
+                if (tokens && user) {
+                  return {
+                    success: true,
+                    tokens: JSON.parse(tokens),
+                    user: JSON.parse(user)
+                  };
+                }
+                return { success: false, message: 'Credentials not yet available' };
+              } catch (e) {
+                return { success: false, message: e.message };
+              }
+            })()
+          `,
+          returnByValue: true
+        });
+
+        if (result.result && result.result.value) {
+          const data = result.result.value;
+
+          if (data.success) {
+            console.log(`✅ Credentials detected after ${attempt} attempts`);
+
+            // Validate the credentials
+            return this.parseAndValidateCredentials(
+              JSON.stringify(data.tokens),
+              JSON.stringify(data.user)
+            );
+          }
+        }
+
+        // Show progress every 10 attempts
+        if (attempt % 10 === 0) {
+          console.log(`   Still waiting... (attempt ${attempt}/${maxAttempts})`);
+        }
+
+        // Wait before next attempt
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+
+      } catch (error) {
+        console.log(`   Attempt ${attempt} failed: ${error.message}`);
+      }
+    }
+
+    throw new Error(`Timeout: Credentials not detected after ${maxAttempts} attempts (${(maxAttempts * intervalMs) / 1000} seconds)`);
+  }
+
+}
+
+/**
+ * Interactive Credential Collector - Manual credential extraction via user input
+ */
+class InteractiveCredentialCollector extends CredentialCollector {
+  async performCollection() {
+    console.log('📋 Using interactive credential collection mode...');
+    this.credentials = await this.getCredentialsFromUser();
+  }
+
+  async getCredentialsFromUser() {
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    const question = (prompt) => new Promise((resolve) => {
+      rl.question(prompt, resolve);
+    });
+
+    try {
+      // Open browser manually
+      const { exec } = require('child_process');
+      const loginUrl = `${this.stackUrl}/login`;
+      const openCommand = process.platform === 'darwin' ? 'open' :
+                          process.platform === 'win32' ? 'start' : 'xdg-open';
+      exec(`${openCommand} ${JSON.stringify(loginUrl)}`);
+
+      console.log('🔑 Manual credential collection mode');
+      console.log('📋 INSTRUCTIONS TO GET CREDENTIALS:');
+      console.log('   1. Complete the login in your browser');
+      console.log('   2. Open Developer Tools (F12 or Cmd+Option+I on Mac)');
+      console.log('   3. Go to the "Application" or "Storage" tab');
+      console.log('   4. Expand "Local Storage" on the left');
+      console.log(`   5. Click on "${this.stackUrl}"`);
+      console.log('   6. Look for these keys: TOKENS and USER');
+      console.log('   7. Copy the VALUES (not the keys) for both\n');
+
+      // Get TOKENS
+      console.log('Step 1: Paste the value of the TOKENS key:');
+      const tokensInput = await question('TOKENS value: ');
+
+      // Get USER
+      console.log('\nStep 2: Paste the value of the USER key:');
+      const userInput = await question('USER value: ');
+
+      rl.close();
+
+      // Parse and validate the credentials
+      const credentials = this.parseAndValidateCredentials(tokensInput, userInput);
+
+      return credentials;
+    } catch (error) {
+      rl.close();
+      throw error;
+    }
   }
 
 }
@@ -655,9 +680,9 @@ async function main() {
     // Step 3: Handle authentication
     let credentials = null;
     if (options.auth) {
-      const authManager = new AuthManager(stackUrl, options.manualAuth);
-      await authManager.authenticate();
-      credentials = authManager.getStoredCredentials();
+      const credentialCollector = CredentialCollector.create(stackUrl, options.manualAuth);
+      await credentialCollector.collect();
+      credentials = credentialCollector.getStoredCredentials();
     } else {
       console.log('⏭️  Skipping authentication (--no-auth specified)');
     }
@@ -697,6 +722,8 @@ if (require.main === module) {
 module.exports = {
   getQuilt3StackUrl,
   validateUrl,
-  AuthManager,
+  CredentialCollector,
+  ChromeCredentialCollector,
+  InteractiveCredentialCollector,
   ConfigGenerator
 };
