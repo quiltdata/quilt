@@ -31,6 +31,13 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
     [setValue],
   )
 
+  const handleSelectChange = React.useCallback(
+    (event: React.ChangeEvent<{ name?: string | undefined; value: unknown }>) => {
+      setValue(event.target.value as string)
+    },
+    [setValue],
+  )
+
   const handleClear = React.useCallback(() => {
     setValue('')
     setCustomMode(false)
@@ -77,7 +84,7 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
             <M.InputLabel shrink>Bedrock Model</M.InputLabel>
             <M.Select
               value={value || Model.Assistant.DEFAULT_MODEL_ID}
-              onChange={handleModelIdChange}
+              onChange={handleSelectChange}
               displayEmpty
             >
               {Model.Assistant.MODELS.map((model) => (
