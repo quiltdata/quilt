@@ -10,6 +10,7 @@ jest.mock('constants/config', () => ({}))
 
 describe('containers/Bucket/PackageDialog/State/params', () => {
   const onChange = jest.fn()
+  const resetDirty = jest.fn()
 
   const dst = { bucket: 'test-bucket', name: 'test-package' }
 
@@ -23,6 +24,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     value: 'test-package',
     status: { _tag: 'new' as const },
     onChange,
+    resetDirty,
   }
 
   const message = {
@@ -175,6 +177,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: undefined,
         status: { _tag: 'error' as const, error: new Error('Name required') },
         onChange,
+        resetDirty,
       }
 
       const { result } = renderHook(() =>
@@ -189,6 +192,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: 'test-name',
         status: { _tag: 'error' as const, error: new Error('Name error') },
         onChange,
+        resetDirty,
       }
 
       const { result } = renderHook(() =>

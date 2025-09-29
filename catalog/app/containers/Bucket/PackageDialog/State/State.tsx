@@ -98,12 +98,6 @@ export function useState(
   const [src, setSrc] = React.useState(initialSrc)
   const [dst, setDst] = React.useState(initialDst)
 
-  const reset = React.useCallback(() => {
-    setSrc(initialSrc)
-    setDst(initialDst)
-  }, [initialSrc, initialDst])
-  React.useEffect(() => reset(), [reset])
-
   const manifest = useManifestRequest(!!open, src)
   const workflowsConfig = useWorkflowsConfig(!!open, dst)
 
@@ -121,6 +115,14 @@ export function useState(
 
   const { create, progress, onAddReadme } = useCreateHandler(params, files, setFormStatus)
   const copy = useCopyHandler(params, setFormStatus)
+
+  const { resetDirty } = name
+  const reset = React.useCallback(() => {
+    setSrc(initialSrc)
+    setDst(initialDst)
+    resetDirty()
+  }, [initialSrc, initialDst, resetDirty])
+  React.useEffect(() => reset(), [reset])
 
   return {
     files,

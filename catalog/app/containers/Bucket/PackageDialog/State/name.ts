@@ -68,6 +68,7 @@ export interface NameState {
   value: string | undefined
   status: NameStatus
   onChange: (n: string) => void
+  resetDirty: () => void
 }
 
 function useNameExistence(dst: PackageDst, src?: PackageSrc): NameStatus {
@@ -178,16 +179,17 @@ export function useName(
     }
   }, [nameFallback, dst.name, setDst])
 
-  const nameStatus = useNameStatus(form, dirty, dst, src, workflow)
+  const status = useNameStatus(form, dirty, dst, src, workflow)
+  const onChange = React.useCallback(
+    (n: string) => {
+      setDirty(true)
+      setDst((d) => ({ ...d, name: n }))
+    },
+    [setDst],
+  )
+  const resetDirty = React.useCallback(() => setDirty(false), [])
   return React.useMemo(
-    () => ({
-      value: dst.name,
-      status: nameStatus,
-      onChange: (n: string) => {
-        setDirty(true)
-        setDst((d) => ({ ...d, name: n }))
-      },
-    }),
-    [dst, nameStatus, setDst],
+    () => ({ value: dst.name, status, onChange, resetDirty }),
+    [dst.name, onChange, resetDirty, status],
   )
 }
