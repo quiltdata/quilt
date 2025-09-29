@@ -22,7 +22,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
     })
 
     describe('value', () => {
-      test('should use fallback meta from manifest when local meta is undefined', () => {
+      it('should use fallback meta from manifest when local meta is undefined', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
@@ -36,7 +36,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.value).toEqual({ title: 'Test Package' })
       })
 
-      test('should prioritize local meta over manifest meta when both exist', () => {
+      it('should prioritize local meta over manifest meta when both exist', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
@@ -54,7 +54,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.value).toEqual({ title: 'Local Title' })
       })
 
-      test('should return undefined when manifest is not ready and no local meta', () => {
+      it('should return undefined when manifest is not ready and no local meta', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
@@ -64,7 +64,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.value).toBeUndefined()
       })
 
-      test('should return undefined when manifest is ready but has no meta and no local meta', () => {
+      it('should return undefined when manifest is ready but has no meta and no local meta', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
         const { result } = renderHook(() =>
@@ -77,7 +77,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
 
     describe('status', () => {
       describe('form not in error state', () => {
-        test('should return ok status when form has no errors and validation passes', () => {
+        it('should return ok status when form has no errors and validation passes', () => {
           mkMetaValidator.mockReturnValue(() => undefined)
 
           const { result } = renderHook(() =>
@@ -87,7 +87,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           expect(result.current.status).toEqual(Ok)
         })
 
-        test('should ignore validation errors when form is not in error state', () => {
+        it('should ignore validation errors when form is not in error state', () => {
           const validationError = new Error('Validation failed')
           mkMetaValidator.mockReturnValue(() => [validationError])
 
@@ -100,7 +100,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
       })
 
       describe('form in error state', () => {
-        test('should return error status when form has userMeta field error', () => {
+        it('should return error status when form has userMeta field error', () => {
           mkMetaValidator.mockReturnValue(() => undefined)
 
           const userMetaError = new Error('Invalid metadata format')
@@ -116,7 +116,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           expect(result.current.status).toEqual(Err(userMetaError))
         })
 
-        test('should return error status when schema is in error state', () => {
+        it('should return error status when schema is in error state', () => {
           const schemaError = new Error('Schema loading failed')
           mkMetaValidator.mockReturnValue(() => [schemaError])
 
@@ -131,7 +131,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           expect(result.current.status).toEqual(Err(schemaError))
         })
 
-        test('should return error status when schema is not ready (idle/loading)', () => {
+        it('should return error status when schema is not ready (idle/loading)', () => {
           const notReadyError = new Error('Schema is not ready')
           mkMetaValidator.mockReturnValue(() => [notReadyError])
 
@@ -142,7 +142,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           expect(result.current.status).toEqual(Err(notReadyError))
         })
 
-        test('should return ok status when schema is ready and validation passes', () => {
+        it('should return ok status when schema is ready and validation passes', () => {
           mkMetaValidator.mockReturnValue(() => undefined)
 
           const { result } = renderHook(() =>
@@ -156,7 +156,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           expect(result.current.status).toEqual(Ok)
         })
 
-        test('should return error status when schema validation fails', () => {
+        it('should return error status when schema validation fails', () => {
           const validationErrors = [new Error('Required field missing')]
           mkMetaValidator.mockReturnValue(() => validationErrors)
 

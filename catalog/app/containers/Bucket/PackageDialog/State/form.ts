@@ -44,19 +44,19 @@ export interface FormState {
   setFormStatus: React.Dispatch<React.SetStateAction<FormStatus>>
 }
 
-export function useFormStatus(open: boolean | FilesState['added']): FormState {
-  const [formStatus, setFormStatus] = React.useState<FormStatus>(() => {
-    if (!window.crypto?.subtle?.digest) {
-      return Err(
-        new Error('Quilt requires the Web Cryptography API. Please try another browser.'),
-      )
-    }
-    return open ? Ready : Idle
-  })
+function setter(open: boolean | FilesState['added']) {
+  if (!window.crypto?.subtle?.digest) {
+    return Err(
+      new Error('Quilt requires the Web Cryptography API. Please try another browser.'),
+    )
+  }
+  return open ? Ready : Idle
+}
 
-  React.useEffect(() => {
-    if (!open) setFormStatus(Idle)
-  }, [open])
+export function useFormStatus(open: boolean | FilesState['added']): FormState {
+  const [formStatus, setFormStatus] = React.useState<FormStatus>(() => setter(open))
+
+  React.useEffect(() => setFormStatus(setter(open)), [open])
 
   return {
     formStatus,

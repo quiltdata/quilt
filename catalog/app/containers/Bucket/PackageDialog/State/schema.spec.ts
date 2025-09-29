@@ -51,20 +51,20 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
   })
 
   describe('useMetadataSchema', () => {
-    test('should return ready when no workflow', () => {
+    it('should return ready when no workflow', () => {
       const { result } = renderHook(() => useMetadataSchema())
 
       expect(result.current).toEqual(Ready())
     })
 
-    test('should return ready when workflow has no schema', () => {
+    it('should return ready when workflow has no schema', () => {
       const workflow = { name: 'test' } as any
       const { result } = renderHook(() => useMetadataSchema(workflow))
 
       expect(result.current).toEqual(Ready())
     })
 
-    test('should call metadataSchema with correct parameters from workflow', async () => {
+    it('should call metadataSchema with correct parameters from workflow', async () => {
       const workflow = { schema: { url: 'https://example.com/schema.json' } } as any
 
       const { waitForNextUpdate, unmount } = renderHook(() => useMetadataSchema(workflow))
@@ -79,20 +79,20 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
   })
 
   describe('useEntriesSchema', () => {
-    test('should return ready when no workflow', () => {
+    it('should return ready when no workflow', () => {
       const { result } = renderHook(() => useEntriesSchema())
 
       expect(result.current).toEqual(Ready())
     })
 
-    test('should return ready when workflow has no entriesSchema', () => {
+    it('should return ready when workflow has no entriesSchema', () => {
       const workflow = { name: 'test' } as any
       const { result } = renderHook(() => useEntriesSchema(workflow))
 
       expect(result.current).toEqual(Ready())
     })
 
-    test('should call objectSchema with correct parameters from workflow', async () => {
+    it('should call objectSchema with correct parameters from workflow', async () => {
       const workflow = { entriesSchema: 'https://example.com/entries.json' } as any
 
       const { waitForNextUpdate, unmount } = renderHook(() => useEntriesSchema(workflow))

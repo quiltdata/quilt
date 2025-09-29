@@ -40,7 +40,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
   }
 
   describe('valid params', () => {
-    test('should return valid params when all inputs are valid', () => {
+    it('should return valid params when all inputs are valid', () => {
       const { result } = renderHook(() =>
         useParams(dst, workflow, name, message, Schema.Ready({}), meta),
       )
@@ -56,7 +56,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       )
     })
 
-    test('should handle null userMeta when meta value is empty', () => {
+    it('should handle null userMeta when meta value is empty', () => {
       const emptyMeta = {
         value: {},
         status: Meta.Ok,
@@ -73,7 +73,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    test('should apply schema defaults through getMetaValue', () => {
+    it('should apply schema defaults through getMetaValue', () => {
       const schemaWithDefaults = {
         type: 'object',
         properties: {
@@ -108,7 +108,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    test('should handle workflow notAvailable as null', () => {
+    it('should handle workflow notAvailable as null', () => {
       const workflowNotAvailable = {
         value: { slug: workflows.notAvailable } as workflows.Workflow,
         status: { _tag: 'ok' as const },
@@ -125,7 +125,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    test('should handle workflow notSelected as empty string', () => {
+    it('should handle workflow notSelected as empty string', () => {
       const workflowNotSelected = {
         value: { slug: workflows.notSelected } as workflows.Workflow,
         status: { _tag: 'ok' as const },
@@ -144,7 +144,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
   })
 
   describe('validation failures', () => {
-    test('should return invalid when workflow value is missing', () => {
+    it('should return invalid when workflow value is missing', () => {
       const invalidWorkflow = {
         value: undefined,
         status: { _tag: 'ok' as const },
@@ -158,7 +158,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid workflow required')))
     })
 
-    test('should return invalid when workflow status is error', () => {
+    it('should return invalid when workflow status is error', () => {
       const workflowError = {
         value: { slug: 'test-workflow' } as workflows.Workflow,
         status: { _tag: 'error' as const, error: new Error('Workflow error') },
@@ -172,7 +172,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid workflow required')))
     })
 
-    test('should return invalid when name value is missing', () => {
+    it('should return invalid when name value is missing', () => {
       const invalidName = {
         value: undefined,
         status: { _tag: 'error' as const, error: new Error('Name required') },
@@ -187,7 +187,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
-    test('should return invalid when name status is error', () => {
+    it('should return invalid when name status is error', () => {
       const nameError = {
         value: 'test-name',
         status: { _tag: 'error' as const, error: new Error('Name error') },
@@ -202,7 +202,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
-    test('should return invalid when message value is missing', () => {
+    it('should return invalid when message value is missing', () => {
       const invalidMessage = {
         value: undefined,
         status: { _tag: 'error' as const, error: new Error('Message required') },
@@ -216,7 +216,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid message required')))
     })
 
-    test('should return invalid when message status is error', () => {
+    it('should return invalid when message status is error', () => {
       const messageError = {
         value: 'test message',
         status: { _tag: 'error' as const, error: new Error('Message error') },
@@ -230,7 +230,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid message required')))
     })
 
-    test('should return invalid when metadataSchema is not ready', () => {
+    it('should return invalid when metadataSchema is not ready', () => {
       const { result } = renderHook(() =>
         useParams(dst, workflow, name, message, Schema.Idle, meta),
       )
@@ -240,7 +240,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       )
     })
 
-    test('should return invalid when meta status is error', () => {
+    it('should return invalid when meta status is error', () => {
       const metaError = {
         value: { title: 'Test' },
         status: Meta.Err(new Error('Meta validation error')),
@@ -256,7 +256,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
   })
 
   describe('memoization', () => {
-    test('should recompute when dependencies change', () => {
+    it('should recompute when dependencies change', () => {
       const { result, rerender } = renderHook(
         (params) =>
           useParams(
@@ -286,7 +286,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(secondResult).not.toBe(firstResult)
     })
 
-    test('should return consistent results when dependencies stay the same', () => {
+    it('should return consistent results when dependencies stay the same', () => {
       const { result, rerender } = renderHook(() =>
         useParams(dst, workflow, name, message, Schema.Ready({}), meta),
       )
