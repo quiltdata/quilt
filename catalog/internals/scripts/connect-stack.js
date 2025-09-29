@@ -437,12 +437,12 @@ class AuthManager {
         return false;
       }
 
-      // Use eval to parse JavaScript object (not just JSON)
+      // Use JSON.parse to safely parse the credentials object
       let credentialsData;
       try {
-        credentialsData = eval('(' + credentialsMatch[1] + ')');
-      } catch (evalError) {
-        console.log(`📍 Could not parse existing credentials: ${evalError.message}`);
+        credentialsData = JSON.parse(credentialsMatch[1]);
+      } catch (parseError) {
+        console.log(`📍 Could not parse existing credentials: ${parseError.message}`);
         return false;
       }
 

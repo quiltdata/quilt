@@ -122,6 +122,46 @@ Examples:
 }
 
 /**
+ * Port Cleanup Utility - Shared port management functionality
+ */
+class PortManager {
+  static async killPortProcess(port) {
+    console.log(`🧹 Killing process on port ${port}...`);
+
+    return new Promise((resolve, reject) => {
+      const killProcess = spawn('npm', ['run', 'stop'], {
+        cwd: path.resolve(__dirname, '../..'),
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let output = '';
+
+      killProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      killProcess.stderr.on('data', (data) => {
+        output += data.toString();
+      });
+
+      killProcess.on('exit', (code) => {
+        console.log(`📟 Kill command output: ${output.trim()}`);
+        if (code === 0 || output.includes('No process found')) {
+          console.log('✅ Port cleanup completed');
+          resolve();
+        } else {
+          reject(new Error(`Failed to kill process on port ${port}`));
+        }
+      });
+
+      killProcess.on('error', (error) => {
+        reject(new Error(`Failed to run stop command: ${error.message}`));
+      });
+    });
+  }
+}
+
+/**
  * Server Manager - Handle webpack dev server lifecycle
  */
 class ServerManager {
@@ -137,7 +177,7 @@ class ServerManager {
     // Pre-emptively clean up any existing processes on the port
     try {
       console.log('🧹 Cleaning up any existing processes on port...');
-      await this.killPortProcess();
+      await PortManager.killPortProcess(this.port);
       // Wait a moment after cleanup
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
@@ -181,7 +221,7 @@ class ServerManager {
         // Check for port already in use error
         if (output.includes('EADDRINUSE') || output.includes('address already in use')) {
           console.log('🛑 Port already in use, attempting to kill existing process...');
-          this.killPortProcess().then(() => {
+          PortManager.killPortProcess(this.port).then(() => {
             console.log('🔄 Retrying server start...');
             // Retry starting the server
             setTimeout(() => {
@@ -199,7 +239,7 @@ class ServerManager {
           // Check if it's a port conflict
           if (errorOutput.includes('EADDRINUSE') || errorOutput.includes('address already in use')) {
             console.log('🛑 Port conflict detected, attempting to kill existing process...');
-            this.killPortProcess().then(() => {
+            PortManager.killPortProcess(this.port).then(() => {
               console.log('🔄 Retrying server start...');
               // Retry starting the server
               setTimeout(() => {
@@ -228,40 +268,6 @@ class ServerManager {
     });
   }
 
-  async killPortProcess() {
-    console.log(`🧹 Killing process on port ${this.port}...`);
-
-    return new Promise((resolve, reject) => {
-      const killProcess = spawn('npm', ['run', 'stop'], {
-        cwd: path.resolve(__dirname, '../..'),
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-
-      let output = '';
-
-      killProcess.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      killProcess.stderr.on('data', (data) => {
-        output += data.toString();
-      });
-
-      killProcess.on('exit', (code) => {
-        console.log(`📟 Kill command output: ${output.trim()}`);
-        if (code === 0 || output.includes('No process found')) {
-          console.log('✅ Port cleanup completed');
-          resolve();
-        } else {
-          reject(new Error(`Failed to kill process on port ${this.port}`));
-        }
-      });
-
-      killProcess.on('error', (error) => {
-        reject(new Error(`Failed to run stop command: ${error.message}`));
-      });
-    });
-  }
 
   async retryStart() {
     console.log('🔄 Attempting to restart server...');
