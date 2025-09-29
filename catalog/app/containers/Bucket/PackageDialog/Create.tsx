@@ -326,6 +326,17 @@ function RenderDialog({
   }
 }
 
+function useResolveFiles() {
+  const getFiles = requests.useFilesListing()
+  return React.useCallback(
+    async (
+      handles?: Model.S3.S3ObjectLocation[],
+      files?: Record<string, Model.S3File>,
+    ) => (handles ? { ...(await getFiles(handles)), ...files } : files),
+    [getFiles],
+  )
+}
+
 interface UseCreateDialogOptions {
   currentBucketCanBeSuccessor?: boolean
   delayHashing?: boolean
@@ -355,13 +366,14 @@ export default function useCreateDialog({
   const [exited, setExited] = React.useState(true)
 
   const [waitingListing, setWaitingListing] = React.useState(false)
-  const getFiles = requests.useFilesListing()
+  const resolveFiles = useResolveFiles()
 
   const open = React.useCallback(
     async (initial?: {
       successor?: workflows.Successor
       path?: string
       handles?: Model.S3.S3ObjectLocation[]
+      files?: Record<string, Model.S3File>
     }) => {
       if (initial?.successor) {
         setDst((d) => (initial.successor ? { ...d, bucket: initial.successor.slug } : d))
@@ -370,16 +382,18 @@ export default function useCreateDialog({
       setOpen(true)
       setExited(false)
 
-      if (initial?.handles && initial.handles.length) {
+      if (initial?.handles?.length || initial?.files) {
         setWaitingListing(true)
 
-        const filesMap = await getFiles(initial.handles)
-        setOpen(filesMap)
+        const filesMap = await resolveFiles(initial.handles, initial.files)
+        if (filesMap && Object.keys(filesMap).length) {
+          setOpen(filesMap)
+        }
 
         setWaitingListing(false)
       }
     },
-    [getFiles, setOpen, setDst],
+    [resolveFiles, setOpen, setDst],
   )
 
   const close = React.useCallback(() => {
