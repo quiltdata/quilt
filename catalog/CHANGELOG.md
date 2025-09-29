@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Scripts to connect to a Quilt stack and run automated catalog smoke tests locally ([#4565](https://github.com/quiltdata/quilt/pull/4565))
+- [Added] Automation to connect to a Quilt stack and run catalog smoke tests locally ([#4567](https://github.com/quiltdata/quilt/pull/4567))
 - [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))
 - [Changed] Improve handling of no results on packages tab ([#4539](https://github.com/quiltdata/quilt/pull/4539))
 - [Changed] Removed unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
