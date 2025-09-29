@@ -368,7 +368,6 @@ export default function useCreateDialog({
         setDst((d) => (initial.successor ? { ...d, bucket: initial.successor.slug } : d))
       }
 
-      setWaitingListing(true)
       setOpen(true)
       setExited(false)
 
