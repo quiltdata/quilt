@@ -745,11 +745,11 @@ async function main() {
       options.url = `http://localhost:${options.port}`;
     }
 
-    console.log('🧪 Quilt Catalog Test Script');
-    console.log('============================');
-    console.log(`URL: ${options.url}`);
-    console.log(`Timeout: ${options.timeout}s`);
-    console.log(`Headless: ${options.headless}`);
+    console.log(`🧪 Quilt Catalog Test Script
+============================
+URL: ${options.url}
+Timeout: ${options.timeout}s
+Headless: ${options.headless}`);
 
     // Start server if needed
     if (!options['no-server']) {
@@ -777,12 +777,13 @@ async function main() {
     process.exit(results.success ? 0 : 1);
 
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
-    console.error('\n💡 Troubleshooting tips:');
-    console.error('   • Make sure Chrome is installed');
-    console.error('   • Check if the port is already in use');
-    console.error('   • Verify the catalog config is correct');
-    console.error('   • Try running with --headless for CI environments');
+    console.error(`❌ Test failed: ${error.message}
+
+💡 Troubleshooting tips:
+   • Make sure Chrome is installed
+   • Check if the port is already in use
+   • Verify the catalog config is correct
+   • Try running with --headless for CI environments`);
 
     process.exit(1);
   } finally {

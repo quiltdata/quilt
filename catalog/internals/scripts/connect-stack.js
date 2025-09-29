@@ -246,26 +246,30 @@ class CredentialCollector {
  */
 class ChromeCredentialCollector extends CredentialCollector {
   async performCollection() {
-    console.log('\n' + '='.repeat(80));
-    console.log('🤖 AUTOMATED AUTHENTICATION WITH CHROME DEVTOOLS');
-    console.log('='.repeat(80));
-    console.log('\n✨ This script will now automatically:');
-    console.log('   • Launch Chrome browser with the login page');
-    console.log('   • Monitor localStorage for authentication credentials');
-    console.log('   • Extract credentials automatically once you log in');
-    console.log('\n📍 You only need to complete the login process!');
+    console.log(`
+${'='.repeat(80)}
+🤖 AUTOMATED AUTHENTICATION WITH CHROME DEVTOOLS
+${'='.repeat(80)}
+
+✨ This script will now automatically:
+   • Launch Chrome browser with the login page
+   • Monitor localStorage for authentication credentials
+   • Extract credentials automatically once you log in
+
+📍 You only need to complete the login process!`);
 
     try {
       this.credentials = await this.getCredentialsFromUser();
       console.log('✅ Authentication credentials received and validated');
     } catch (error) {
-      console.log(`❌ Automated credential collection failed: ${error.message}`);
-      console.log('\n💡 Fallback: You can try the following options:');
-      console.log('   1. Run the script again (Chrome might not have launched properly)');
-      console.log('   2. Use --manual-auth flag for manual credential collection');
-      console.log('   3. Use --no-auth flag to skip authentication');
-      console.log('   4. Ensure Chrome is installed and accessible');
-      console.log('   5. Check if the stack URL is correct and accessible');
+      console.log(`❌ Automated credential collection failed: ${error.message}
+
+💡 Fallback: You can try the following options:
+   1. Run the script again (Chrome might not have launched properly)
+   2. Use --manual-auth flag for manual credential collection
+   3. Use --no-auth flag to skip authentication
+   4. Ensure Chrome is installed and accessible
+   5. Check if the stack URL is correct and accessible`);
       throw error;
     }
   }
@@ -302,9 +306,9 @@ class ChromeCredentialCollector extends CredentialCollector {
       await Page.enable();
       await Runtime.enable();
 
-      console.log('⏳ Waiting for user to complete authentication...');
-      console.log('   Please complete the login process in the browser window that opened.');
-      console.log('   This script will automatically detect when credentials are available.');
+      console.log(`⏳ Waiting for user to complete authentication...
+   Please complete the login process in the browser window that opened.
+   This script will automatically detect when credentials are available.`);
 
       // Wait for authentication and extract credentials
       const credentials = await this.waitForCredentials(Page, Runtime);
@@ -431,15 +435,16 @@ class InteractiveCredentialCollector extends CredentialCollector {
                           process.platform === 'win32' ? 'start' : 'xdg-open';
       exec(`${openCommand} ${JSON.stringify(loginUrl)}`);
 
-      console.log('🔑 Manual credential collection mode');
-      console.log('📋 INSTRUCTIONS TO GET CREDENTIALS:');
-      console.log('   1. Complete the login in your browser');
-      console.log('   2. Open Developer Tools (F12 or Cmd+Option+I on Mac)');
-      console.log('   3. Go to the "Application" or "Storage" tab');
-      console.log('   4. Expand "Local Storage" on the left');
-      console.log(`   5. Click on "${this.stackUrl}"`);
-      console.log('   6. Look for these keys: TOKENS and USER');
-      console.log('   7. Copy the VALUES (not the keys) for both\n');
+      console.log(`🔑 Manual credential collection mode
+📋 INSTRUCTIONS TO GET CREDENTIALS:
+   1. Complete the login in your browser
+   2. Open Developer Tools (F12 or Cmd+Option+I on Mac)
+   3. Go to the "Application" or "Storage" tab
+   4. Expand "Local Storage" on the left
+   5. Click on "${this.stackUrl}"
+   6. Look for these keys: TOKENS and USER
+   7. Copy the VALUES (not the keys) for both
+`);
 
       // Get TOKENS
       console.log('Step 1: Paste the value of the TOKENS key:');
@@ -516,11 +521,11 @@ class ConfigGenerator {
       qurator: stackInfo?.qurator || false
     };
 
-    console.log('✅ Generated catalog configuration');
-    console.log(`   📍 Registry URL: ${config.registryUrl}`);
-    console.log(`   📍 API Gateway: ${config.apiGatewayEndpoint}`);
-    console.log(`   📍 S3 Proxy: ${config.s3Proxy}`);
-    console.log(`   📍 GraphQL will be: ${config.registryUrl}/graphql`);
+    console.log(`✅ Generated catalog configuration
+   📍 Registry URL: ${config.registryUrl}
+   📍 API Gateway: ${config.apiGatewayEndpoint}
+   📍 S3 Proxy: ${config.s3Proxy}
+   📍 GraphQL will be: ${config.registryUrl}/graphql`);
     return { config, credentials: this.credentials };
   }
 
