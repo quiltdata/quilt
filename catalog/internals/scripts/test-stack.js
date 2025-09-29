@@ -166,12 +166,40 @@ class ServerManager {
         const output = data.toString();
         errorOutput += output;
         console.error(`📟 Server Error: ${output.trim()}`);
+
+        // Check for port already in use error
+        if (output.includes('EADDRINUSE') || output.includes('address already in use')) {
+          console.log('🛑 Port already in use, attempting to kill existing process...');
+          this.killPortProcess().then(() => {
+            console.log('🔄 Retrying server start...');
+            // Retry starting the server
+            setTimeout(() => {
+              this.retryStart().then(resolve).catch(reject);
+            }, 2000);
+          }).catch(() => {
+            reject(new Error(`Port ${this.port} is already in use and could not be freed. Error: ${errorOutput}`));
+          });
+        }
       });
 
       // Handle process exit
       this.process.on('exit', (code) => {
         if (code !== 0 && !this.ready) {
-          reject(new Error(`Server exited with code ${code}. Error: ${errorOutput}`));
+          // Check if it's a port conflict
+          if (errorOutput.includes('EADDRINUSE') || errorOutput.includes('address already in use')) {
+            console.log('🛑 Port conflict detected, attempting to kill existing process...');
+            this.killPortProcess().then(() => {
+              console.log('🔄 Retrying server start...');
+              // Retry starting the server
+              setTimeout(() => {
+                this.retryStart().then(resolve).catch(reject);
+              }, 2000);
+            }).catch(() => {
+              reject(new Error(`Port ${this.port} is already in use and could not be freed. Error: ${errorOutput}`));
+            });
+          } else {
+            reject(new Error(`Server exited with code ${code}. Error: ${errorOutput}`));
+          }
         }
       });
 
@@ -186,6 +214,101 @@ class ServerManager {
           reject(new Error('Server startup timeout'));
         }
       }, 30000); // 30 second timeout
+    });
+  }
+
+  async killPortProcess() {
+    console.log(`🧹 Killing process on port ${this.port}...`);
+
+    return new Promise((resolve, reject) => {
+      const killProcess = spawn('npm', ['run', 'stop'], {
+        cwd: path.resolve(__dirname, '../..'),
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let output = '';
+
+      killProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      killProcess.stderr.on('data', (data) => {
+        output += data.toString();
+      });
+
+      killProcess.on('exit', (code) => {
+        console.log(`📟 Kill command output: ${output.trim()}`);
+        if (code === 0 || output.includes('No process found')) {
+          console.log('✅ Port cleanup completed');
+          resolve();
+        } else {
+          reject(new Error(`Failed to kill process on port ${this.port}`));
+        }
+      });
+
+      killProcess.on('error', (error) => {
+        reject(new Error(`Failed to run stop command: ${error.message}`));
+      });
+    });
+  }
+
+  async retryStart() {
+    console.log('🔄 Attempting to restart server...');
+    this.ready = false;
+    this.process = null;
+
+    return new Promise((resolve, reject) => {
+      // Start the webpack dev server using npm run start
+      this.process = spawn('npm', ['run', 'start'], {
+        cwd: path.resolve(__dirname, '../..'),
+        env: { ...process.env, PORT: this.port.toString() },
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let serverOutput = '';
+      let errorOutput = '';
+
+      // Capture stdout
+      this.process.stdout.on('data', (data) => {
+        const output = data.toString();
+        serverOutput += output;
+        console.log(`📟 Server: ${output.trim()}`);
+
+        // Check if server is ready
+        if (output.includes('webpack compiled') ||
+            output.includes('compiled successfully') ||
+            output.includes(`Local:`) ||
+            output.includes(`localhost:${this.port}`)) {
+          this.ready = true;
+          resolve();
+        }
+      });
+
+      // Capture stderr
+      this.process.stderr.on('data', (data) => {
+        const output = data.toString();
+        errorOutput += output;
+        console.error(`📟 Server Error: ${output.trim()}`);
+      });
+
+      // Handle process exit
+      this.process.on('exit', (code) => {
+        if (code !== 0 && !this.ready) {
+          reject(new Error(`Server retry failed with code ${code}. Error: ${errorOutput}`));
+        }
+      });
+
+      // Handle process errors
+      this.process.on('error', (error) => {
+        reject(new Error(`Failed to restart server: ${error.message}`));
+      });
+
+      // Timeout if server doesn't start on retry
+      setTimeout(() => {
+        if (!this.ready) {
+          reject(new Error('Server restart timeout'));
+        }
+      }, 15000); // 15 second timeout for retry
     });
   }
 
