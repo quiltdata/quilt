@@ -27,11 +27,32 @@ const { spawn } = require('child_process');
 const chromeLauncher = require('chrome-launcher');
 const CDP = require('chrome-remote-interface');
 const minimist = require('minimist');
+const { constants: HTTP_STATUS } = require('http2');
 
 // Configuration
 const DEFAULT_PORT = 3000;
 const DEFAULT_TIMEOUT = 30;
 const OUTPUT_DIR = path.resolve(__dirname, '../../build/test-results');
+
+// Timeouts and intervals (in milliseconds)
+const PORT_CLEANUP_WAIT = 1000;
+const RETRY_DELAY = 2000;
+const SERVER_START_TIMEOUT = 30000;
+const SERVER_RESTART_TIMEOUT = 15000;
+const GRACEFUL_SHUTDOWN_TIMEOUT = 5000;
+const APP_INITIALIZATION_WAIT = 3000;
+
+// Port validation
+const MIN_PORT = 1;
+const MAX_PORT = 65535;
+
+
+
+// Progress reporting
+const PROGRESS_REPORT_INTERVAL = 10;
+
+// Chrome cleanup
+const CHROME_CLEANUP_WAIT = 2000;
 
 /**
  * Show help message
@@ -115,7 +136,7 @@ class ServerManager {
       console.log('🧹 Cleaning up any existing processes on port...');
       await PortManager.killPortProcess(this.port);
       // Wait a moment after cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, PORT_CLEANUP_WAIT));
     } catch (error) {
       // Ignore cleanup errors - port might just be free
       console.log('📍 Port cleanup completed (or was already clean)');
@@ -162,7 +183,7 @@ class ServerManager {
             // Retry starting the server
             setTimeout(() => {
               this.retryStart().then(resolve).catch(reject);
-            }, 2000);
+            }, RETRY_DELAY);
           }).catch(() => {
             reject(new Error(`Port ${this.port} is already in use and could not be freed. Error: ${errorOutput}`));
           });
@@ -180,7 +201,7 @@ class ServerManager {
               // Retry starting the server
               setTimeout(() => {
                 this.retryStart().then(resolve).catch(reject);
-              }, 2000);
+              }, RETRY_DELAY);
             }).catch(() => {
               reject(new Error(`Port ${this.port} is already in use and could not be freed. Error: ${errorOutput}`));
             });
@@ -200,7 +221,7 @@ class ServerManager {
         if (!this.ready) {
           reject(new Error('Server startup timeout'));
         }
-      }, 30000); // 30 second timeout
+      }, SERVER_START_TIMEOUT); // 30 second timeout
     });
   }
 
@@ -261,7 +282,7 @@ class ServerManager {
         if (!this.ready) {
           reject(new Error('Server restart timeout'));
         }
-      }, 15000); // 15 second timeout for retry
+      }, SERVER_RESTART_TIMEOUT); // 15 second timeout for retry
     });
   }
 
@@ -277,7 +298,7 @@ class ServerManager {
             this.process.kill('SIGKILL');
           }
           resolve();
-        }, 5000);
+        }, GRACEFUL_SHUTDOWN_TIMEOUT);
 
         this.process.on('exit', () => {
           clearTimeout(timeout);
@@ -362,7 +383,7 @@ class BrowserTestManager {
 
       // Give the app time to initialize
       console.log('⏳ Waiting for application to initialize...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, APP_INITIALIZATION_WAIT));
 
       // Capture final state
       await this.capturePageState(Page, Runtime, Performance);
@@ -427,7 +448,7 @@ class BrowserTestManager {
 
     // Capture failed responses
     Network.responseReceived((params) => {
-      if (params.response.status >= 400) {
+      if (params.response.status >= HTTP_STATUS.HTTP_STATUS_BAD_REQUEST) {
         this.results.networkErrors.push({
           url: params.response.url,
           status: params.response.status,
@@ -729,8 +750,8 @@ async function main() {
     }
 
     // Validate port
-    if (options.port <= 0 || options.port > 65535) {
-      console.error('❌ Port must be between 1 and 65535');
+    if (options.port <= MIN_PORT || options.port > MAX_PORT) {
+      console.error(`❌ Port must be between ${MIN_PORT} and ${MAX_PORT}`);
       process.exit(1);
     }
 

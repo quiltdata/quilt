@@ -26,10 +26,34 @@ const exec = promisify(require('child_process').exec);
 const chromeLauncher = require('chrome-launcher');
 const CDP = require('chrome-remote-interface');
 const minimist = require('minimist');
+const { constants: HTTP_STATUS } = require('http2');
 
 // Configuration constants
 const STATIC_DEV_DIR = path.resolve(__dirname, '../../static-dev');
 const CONFIG_OUTPUT_PATH = path.join(STATIC_DEV_DIR, 'config.js');
+
+// Authentication constants
+const TOKEN_MIN_REMAINING_TIME = 300; // 5 minutes in seconds
+const CREDENTIAL_POLL_INTERVAL = 2000; // 2 seconds
+const MAX_CREDENTIAL_ATTEMPTS = 60;
+const PROGRESS_REPORT_INTERVAL = 10;
+const CHROME_CLEANUP_WAIT = 2000;
+
+// HTTP constants
+const HTTP_REQUEST_TIMEOUT = 5000;
+
+// LocalStorage keys
+const TOKENS_KEY = 'TOKENS';
+const USER_KEY = 'USER';
+
+// Auth modes
+const AUTH_MODE = {
+  ENABLED: 'ENABLED',
+  DISABLED: 'DISABLED'
+};
+
+// Development mode
+const DEV_MODE = 'LOCAL';
 
 /**
  * Show help message
@@ -202,7 +226,7 @@ class CredentialCollector {
         const now = Math.floor(Date.now() / 1000);
         const exp = credentialsData.tokens.exp;
 
-        if (exp > now + 300) { // Token valid for at least 5 more minutes
+        if (exp > now + TOKEN_MIN_REMAINING_TIME) { // Token valid for at least 5 more minutes
           console.log('✅ Found valid existing credentials');
           console.log(`   Token expires: ${new Date(exp * 1000).toLocaleString()}`);
 
@@ -337,7 +361,7 @@ ${'='.repeat(80)}
           console.log('✅ Chrome process terminated');
 
           // Wait a bit to ensure Chrome fully shuts down
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, CHROME_CLEANUP_WAIT));
           console.log('✅ Chrome cleanup completed');
         } catch (error) {
           console.log(`⚠️  Error killing Chrome: ${error.message}`);
@@ -346,7 +370,7 @@ ${'='.repeat(80)}
     }
   }
 
-  async waitForCredentials(Page, Runtime, maxAttempts = 60, intervalMs = 2000) {
+  async waitForCredentials(Page, Runtime, maxAttempts = MAX_CREDENTIAL_ATTEMPTS, intervalMs = CREDENTIAL_POLL_INTERVAL) {
     console.log('🔍 Monitoring localStorage for authentication credentials...');
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -356,8 +380,8 @@ ${'='.repeat(80)}
           expression: `
             (() => {
               try {
-                const tokens = localStorage.getItem('TOKENS');
-                const user = localStorage.getItem('USER');
+                const tokens = localStorage.getItem('${TOKENS_KEY}');
+                const user = localStorage.getItem('${USER_KEY}');
 
                 if (tokens && user) {
                   return {
@@ -390,7 +414,7 @@ ${'='.repeat(80)}
         }
 
         // Show progress every 10 attempts
-        if (attempt % 10 === 0) {
+        if (attempt % PROGRESS_REPORT_INTERVAL === 0) {
           console.log(`   Still waiting... (attempt ${attempt}/${maxAttempts})`);
         }
 
@@ -496,7 +520,7 @@ class ConfigGenerator {
     const config = {
       // Required fields from server config
       region: stackInfo?.region || 'us-east-1',
-      mode: 'LOCAL', // Override to LOCAL for development mode
+      mode: DEV_MODE, // Override to LOCAL for development mode
       alwaysRequiresAuth: this.auth,
       serviceBucket: stackInfo?.serviceBucket || 'quilt-example',
 
@@ -509,8 +533,8 @@ class ConfigGenerator {
       mixpanelToken: '',
 
       // Auth settings from server
-      passwordAuth: stackInfo?.passwordAuth || 'ENABLED',
-      ssoAuth: stackInfo?.ssoAuth || 'DISABLED',
+      passwordAuth: stackInfo?.passwordAuth || AUTH_MODE.ENABLED,
+      ssoAuth: stackInfo?.ssoAuth || AUTH_MODE.DISABLED,
       ssoProviders: stackInfo?.ssoProviders || '',
       stackVersion: stackInfo?.stackVersion || '1.0.0',
 
@@ -539,12 +563,12 @@ class ConfigGenerator {
 
       const client = this.stackUrl.startsWith('https:') ? https : http;
       const request = client.get(configUrl, {
-        timeout: 5000,
+        timeout: HTTP_REQUEST_TIMEOUT,
         headers: {
           'User-Agent': 'Quilt-Catalog-Connect-Script/1.0.0'
         }
       }, (response) => {
-        if (response.statusCode === 200) {
+        if (response.statusCode === HTTP_STATUS.HTTP_STATUS_OK) {
           let data = '';
           response.on('data', chunk => data += chunk);
           response.on('end', () => {
@@ -596,8 +620,8 @@ window.QUILT_AUTH_CREDENTIALS = {
 // Inject credentials into localStorage when the page loads
 if (typeof window !== 'undefined' && window.localStorage) {
   try {
-    localStorage.setItem('TOKENS', JSON.stringify(window.QUILT_AUTH_CREDENTIALS.tokens));
-    localStorage.setItem('USER', JSON.stringify(window.QUILT_AUTH_CREDENTIALS.user));
+    localStorage.setItem('${TOKENS_KEY}', JSON.stringify(window.QUILT_AUTH_CREDENTIALS.tokens));
+    localStorage.setItem('${USER_KEY}', JSON.stringify(window.QUILT_AUTH_CREDENTIALS.user));
     console.log('✅ Authentication credentials loaded from connect-stack.js');
   } catch (e) {
     console.error('Failed to set auth credentials in localStorage:', e);
