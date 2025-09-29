@@ -67,8 +67,6 @@ function useCreate() {
           }
         }
 
-        Log.log(local, files.remote, params)
-
         const uploadedEntries = await upload(params.bucket, params.name, local)
 
         const entries = Object.entries({
