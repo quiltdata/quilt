@@ -134,6 +134,17 @@ class ServerManager {
   async start() {
     console.log('🚀 Starting webpack dev server...');
 
+    // Pre-emptively clean up any existing processes on the port
+    try {
+      console.log('🧹 Cleaning up any existing processes on port...');
+      await this.killPortProcess();
+      // Wait a moment after cleanup
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      // Ignore cleanup errors - port might just be free
+      console.log('📍 Port cleanup completed (or was already clean)');
+    }
+
     return new Promise((resolve, reject) => {
       // Start the webpack dev server using npm run start
       this.process = spawn('npm', ['run', 'start'], {
@@ -370,8 +381,8 @@ class BrowserTestManager {
         '--disable-ipc-flooding-protection',
         '--no-first-run',
         '--no-default-browser-check',
-        '--disable-web-security', // Allow CORS for testing
-        '--disable-features=VizDisplayCompositor'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-dev-shm-usage'
       ];
 
       if (this.options.headless) {

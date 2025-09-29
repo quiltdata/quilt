@@ -167,6 +167,11 @@ class AuthManager {
       // First check if credentials already exist
       console.log('📍 Checking for existing credentials...');
 
+      if (await this.checkExistingCredentials()) {
+        console.log('✅ Using existing valid credentials, skipping authentication');
+        return;
+      }
+
       console.log('\n' + '='.repeat(80));
       console.log('🤖 AUTOMATED AUTHENTICATION WITH CHROME DEVTOOLS');
       console.log('='.repeat(80));
@@ -246,12 +251,29 @@ class AuthManager {
     } catch (error) {
       throw new Error(`Automated credential collection failed: ${error.message}`);
     } finally {
-      // Clean up
+      // Clean up - ensure proper shutdown sequence
+      console.log('🧹 Cleaning up Chrome processes...');
+
       if (client) {
-        await client.close();
+        try {
+          await client.close();
+          console.log('✅ Chrome DevTools connection closed');
+        } catch (error) {
+          console.log(`⚠️  Error closing Chrome DevTools: ${error.message}`);
+        }
       }
+
       if (chrome) {
-        await chrome.kill();
+        try {
+          await chrome.kill();
+          console.log('✅ Chrome process terminated');
+
+          // Wait a bit to ensure Chrome fully shuts down
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('✅ Chrome cleanup completed');
+        } catch (error) {
+          console.log(`⚠️  Error killing Chrome: ${error.message}`);
+        }
       }
     }
   }
@@ -396,9 +418,63 @@ class AuthManager {
   }
 
   async checkExistingCredentials() {
-    // In a future version, this could check a local cache file
-    // For now, we always require fresh credentials
-    return false;
+    try {
+      const configPath = path.join(STATIC_DEV_DIR, 'config.js');
+
+      // Check if config file exists
+      if (!await fs.access(configPath).then(() => true).catch(() => false)) {
+        console.log('📍 No existing config file found');
+        return false;
+      }
+
+      // Read and parse the config file
+      const configContent = await fs.readFile(configPath, 'utf8');
+
+      // Extract credentials from the config file
+      const credentialsMatch = configContent.match(/window\.QUILT_AUTH_CREDENTIALS = ({[\s\S]*?});/);
+      if (!credentialsMatch) {
+        console.log('📍 No credentials found in existing config');
+        return false;
+      }
+
+      // Use eval to parse JavaScript object (not just JSON)
+      let credentialsData;
+      try {
+        credentialsData = eval('(' + credentialsMatch[1] + ')');
+      } catch (evalError) {
+        console.log(`📍 Could not parse existing credentials: ${evalError.message}`);
+        return false;
+      }
+
+      // Check if token is still valid (not expired)
+      if (credentialsData.tokens && credentialsData.tokens.exp) {
+        const now = Math.floor(Date.now() / 1000);
+        const exp = credentialsData.tokens.exp;
+
+        if (exp > now + 300) { // Token valid for at least 5 more minutes
+          console.log('✅ Found valid existing credentials');
+          console.log(`   Token expires: ${new Date(exp * 1000).toLocaleString()}`);
+
+          // Store the credentials for reuse
+          this.credentials = {
+            tokens: credentialsData.tokens,
+            user: credentialsData.user
+          };
+
+          return true;
+        } else {
+          console.log('⏰ Existing credentials are expired or expiring soon');
+          return false;
+        }
+      }
+
+      console.log('📍 Existing credentials format not recognized');
+      return false;
+
+    } catch (error) {
+      console.log(`📍 Could not check existing credentials: ${error.message}`);
+      return false;
+    }
   }
 
   getStoredCredentials() {
