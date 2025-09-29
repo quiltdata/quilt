@@ -16,7 +16,6 @@
  * Options:
  *   --stack <url>      Stack URL to connect to (overrides quilt3 config)
  *   --no-auth          Skip authentication flow
- *   --port <port>      Port for dev server (default: 3000)
  *   --help             Show help
  */
 
@@ -39,7 +38,6 @@ function parseArgs() {
   const options = {
     stack: null,
     auth: true,
-    port: process.env.PORT || 3000,
     help: false,
     manualAuth: false
   };
@@ -61,16 +59,6 @@ function parseArgs() {
 
       case '--manual-auth':
         options.manualAuth = true;
-        break;
-
-      case '--port':
-        if (i + 1 >= args.length) {
-          throw new Error('--port requires a port number');
-        }
-        options.port = parseInt(args[++i], 10);
-        if (isNaN(options.port) || options.port <= 0 || options.port > 65535) {
-          throw new Error('Invalid port number');
-        }
         break;
 
       case '--help':
@@ -100,17 +88,13 @@ Options:
   --stack <url>      Stack URL to connect to (overrides quilt3 config)
   --no-auth          Skip authentication flow
   --manual-auth      Use manual credential collection (fallback mode)
-  --port <port>      Port for dev server (default: 3000)
   --help             Show this help message
 
 Environment Variables:
-  PORT              Dev server port (alternative to --port)
-
 Examples:
   node connect-stack.js
   node connect-stack.js --stack https://my-stack.example.com
   node connect-stack.js --no-auth
-  node connect-stack.js --port 8080
 `);
 }
 
@@ -178,7 +162,6 @@ class AuthManager {
     console.log('🔐 Starting authentication flow...');
 
     try {
-      const { exec } = require('child_process');
       const loginUrl = `${this.stackUrl}/login`;
 
       // First check if credentials already exist
@@ -572,6 +555,11 @@ if (typeof window !== 'undefined' && window.localStorage) {
  */
 async function main() {
   try {
+    if (process.platform === 'win32') {
+      console.error('❌ Windows is not supported for connect-stack.js. Please run this script from macOS or Linux.');
+      process.exit(1);
+    }
+
     // Parse command line arguments
     const options = parseArgs();
 

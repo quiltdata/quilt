@@ -456,6 +456,14 @@ class BrowserTestManager {
 
     // Capture network errors
     Network.loadingFailed((params) => {
+      const benignErrors = new Set([
+        'net::ERR_ABORTED',
+        'net::ERR_FAILED',
+        'net::ERR_BLOCKED_BY_CLIENT'
+      ]);
+
+      if (benignErrors.has(params.errorText)) return;
+
       this.results.networkErrors.push({
         url: params.request?.url || 'Unknown URL',
         errorText: params.errorText,
@@ -746,6 +754,11 @@ async function main() {
   let serverManager = null;
 
   try {
+    if (process.platform === 'win32') {
+      console.error('❌ Windows is not supported for test-stack.js. Please run this script from macOS or Linux.');
+      process.exit(1);
+    }
+
     // Parse arguments
     const options = parseArgs();
 

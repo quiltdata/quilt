@@ -9,24 +9,24 @@ A Node.js script for connecting to a Quilt stack and generating the necessary co
 
 ### Features
 
-- **Config Reader**: Parses quilt3 Python config from `~/.quilt/config.yml` or `QUILT_CONFIG` environment variable using js-yaml
-- **Stack Resolver**: Extracts and validates stack URL from the config
-- **Auth Manager**: Handles Chrome-based authentication using Puppeteer
-- **Config Generator**: Creates a `config.json` compatible with the existing catalog `Config.ts` structure
-- **Integration**: Generates config that works with the existing `npm start` task
+- **Stack Resolver**: Reads the active stack URL via the `quilt3 config` CLI or accepts a `--stack` override
+- **Auth Manager**: Automates Chrome DevTools to capture catalog credentials with an interactive manual fallback
+- **Config Generator**: Fetches stack metadata and emits a `static-dev/config.js` compatible with the catalog `Config.ts` schema
+- **Integration**: Works with `npm run build:config` and `npm run start:connected` for local development flows
+- **Platform Guard**: Fails fast on Windows (macOS and Linux are currently supported)
 
 ### Usage
 
 #### Basic Usage
 
 ```bash
-# Connect using existing quilt3 config
-npm run connect:stack
+# Generate config using the current quilt3 CLI settings
+npm run build:config
 
-# Connect to specific stack
-npm run connect:stack -- --stack https://your-stack.example.com
+# Generate config for a specific stack
+npm run build:config -- --stack https://your-stack.example.com
 
-# Connect and start dev server in one command
+# Generate config, run smoke tests, and launch the dev server
 npm run start:connected
 ```
 
@@ -36,17 +36,15 @@ npm run start:connected
 node ./internals/scripts/connect-stack.js [options]
 
 Options:
-  --config <path>    Path to quilt3 config file (default: ~/.quilt/config.yml)
-  --stack <url>      Stack URL to connect to (overrides config file)
+  --stack <url>      Stack URL to connect to (overrides quilt3 config)
   --no-auth          Skip authentication flow
-  --port <port>      Port for dev server (default: 3000)
+  --manual-auth      Use manual credential collection (fallback mode)
   --help             Show help message
 ```
 
 #### Environment Variables
 
-- `QUILT_CONFIG`: Path to quilt3 config file (alternative to `--config`)
-- `PORT`: Dev server port (alternative to `--port`)
+This script relies on the quilt3 CLI and does not require additional environment variables.
 
 ### Examples
 
@@ -60,23 +58,18 @@ node connect-stack.js --stack https://my-stack.example.com
 # Skip authentication
 node connect-stack.js --no-auth
 
-# Specify custom port
-node connect-stack.js --port 8080
-
 # Combined options
-node connect-stack.js --stack https://my-stack.example.com --no-auth --port 8080
+node connect-stack.js --stack https://my-stack.example.com --no-auth
 ```
 
 ### How It Works
 
-1. **Get Config**: The script runs the `quilt3 config` CLI command to retrieve the current quilt3 configuration
+1. **Get Config**: The script runs the `quilt3 config` CLI command to retrieve the active stack URL
 
-2. **Resolve Stack URL**: Extracts the stack URL from:
-   - `--stack` command line option (highest priority)
-   - Various fields from quilt3 config output (`default_registry`, `default_remote_registry`, etc.)
+2. **Resolve Stack URL**: Uses the CLI output or honors the `--stack` override when provided
 
 3. **Authenticate** (optional):
-   - Launches Chrome browser using Puppeteer
+   - Launches Chrome via `chrome-launcher`
    - Navigates to the stack's login page
    - Waits for user to complete authentication
    - Extracts authentication tokens from cookies/localStorage
@@ -110,18 +103,18 @@ This file is automatically served by the webpack dev server and loaded by the ca
 
 ### Dependencies
 
-- `js-yaml`: For parsing YAML config files
-- `puppeteer`: For Chrome-based authentication (installed automatically if needed)
+- `chrome-launcher`: For driving a local Chrome instance
+- `chrome-remote-interface`: For interacting with Chrome DevTools Protocol
 
 ### Error Handling
 
 The script includes comprehensive error handling for:
 
-- Missing config files (graceful fallback)
+- Missing stack URL configuration (via `quilt3 config` or `--stack`)
 - Invalid URLs
 - Network errors when fetching stack info
 - Authentication timeouts
-- Chrome/Puppeteer installation issues
+- Chrome launch or DevTools connectivity issues
 
 ### Integration with Webpack
 
