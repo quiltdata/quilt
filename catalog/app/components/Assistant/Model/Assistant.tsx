@@ -22,7 +22,8 @@ function usePassThru<T>(val: T) {
 }
 
 export const MODELS = modelsConfig.models
-export const DEFAULT_MODEL_ID = MODELS[0]?.id || 'us.amazon.nova-lite-v1:0'
+export const DEFAULT_MODEL_ID =
+  MODELS.length > 0 ? MODELS[0].id : 'us.amazon.nova-lite-v1:0'
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
 
 function useModelIdOverride() {

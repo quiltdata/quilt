@@ -44,11 +44,13 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   }, [setValue])
 
   const handleToggleCustom = React.useCallback(() => {
-    setCustomMode((prev) => !prev)
-    if (customMode) {
-      setValue('')
-    }
-  }, [customMode, setValue])
+    setCustomMode((prev) => {
+      if (prev) {
+        setValue('')
+      }
+      return !prev
+    })
+  }, [setValue])
 
   return (
     <div className={classes.root}>
@@ -102,13 +104,20 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
             </M.Select>
             <M.FormHelperText>
               Select a model or{' '}
-              <M.Link
-                component="button"
+              <M.Button
+                variant="text"
+                size="small"
                 onClick={handleToggleCustom}
-                style={{ verticalAlign: 'baseline' }}
+                style={{
+                  textTransform: 'none',
+                  padding: 0,
+                  minWidth: 'auto',
+                  verticalAlign: 'baseline',
+                  fontSize: 'inherit',
+                }}
               >
                 enter custom model ID
-              </M.Link>
+              </M.Button>
             </M.FormHelperText>
           </M.FormControl>
           {value && value !== Model.Assistant.DEFAULT_MODEL_ID && (
