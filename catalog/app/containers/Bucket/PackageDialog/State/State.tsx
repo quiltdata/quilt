@@ -74,6 +74,10 @@ export interface State {
   copy: CopyHandler
 }
 
+interface Options {
+  disableRestore: boolean
+}
+
 // TODO: split states for Create.tsx and Copy.tsx
 //       so, for example, Copy.tsx didn't include `files` and `entriesSchema` fetching
 
@@ -87,6 +91,7 @@ export function useState(
   initialDst: PackageDst,
   initialSrc?: PackageSrc,
   initialOpen: boolean | FilesState['value']['added'] = false,
+  { disableRestore }: Options = { disableRestore: false },
 ): State {
   const [open, setOpen] = React.useState(initialOpen)
   React.useEffect(() => {
@@ -106,7 +111,7 @@ export function useState(
   const metadataSchema = useMetadataSchema(workflow.value)
   const entriesSchema = useEntriesSchema(workflow.value)
 
-  const name = useName(formStatus, dst, setDst, src, workflow.value)
+  const name = useName(formStatus, dst, setDst, src, workflow.value, disableRestore)
   const message = useMessage(formStatus)
   const meta = useMeta(formStatus, metadataSchema, manifest)
   const files = useFiles(formStatus, entriesSchema, manifest, open)

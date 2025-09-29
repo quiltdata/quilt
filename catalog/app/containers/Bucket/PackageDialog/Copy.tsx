@@ -282,7 +282,9 @@ export default function PackageCopyDialog({
   src,
   open: initialOpen,
 }: PackageCopyDialogProps) {
-  const state = PDModel.useState(dst, src, initialOpen)
+  const state = PDModel.useState(dst, src, initialOpen, {
+    disableRestore: true,
+  })
   const { formStatus, workflowsConfig, manifest, open } = state
 
   const close = React.useCallback(() => {

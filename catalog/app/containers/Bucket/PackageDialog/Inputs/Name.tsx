@@ -10,12 +10,6 @@ import type { FormStatus } from '../State/form'
 import type { NameState } from '../State/name'
 import type { PackageSrc } from '../State/manifest'
 
-interface InputNameProps {
-  formStatus: FormStatus
-  state: NameState
-  setSrc: (src: PackageSrc) => void
-}
-
 const usePackageNameWarningStyles = M.makeStyles((t) => ({
   root: {
     marginRight: '4px',
@@ -62,6 +56,12 @@ function PackageNameWarning({ status, setSrc }: PackageNameWarningProps) {
     default:
       assertNever(status)
   }
+}
+
+interface InputNameProps {
+  formStatus: FormStatus
+  state: NameState
+  setSrc: (src: PackageSrc) => void
 }
 
 /**

@@ -71,7 +71,11 @@ export interface NameState {
   resetDirty: () => void
 }
 
-function useNameExistence(dst: PackageDst, src?: PackageSrc): NameStatus {
+function useNameExistence(
+  dst: PackageDst,
+  src?: PackageSrc,
+  disableRestore: boolean = false,
+): NameStatus {
   const pause =
     !dst.bucket || !dst.name || (dst.bucket === src?.bucket && dst.name === src.name)
   const packageExistsQuery = GQL.useQuery(
@@ -89,13 +93,15 @@ function useNameExistence(dst: PackageDst, src?: PackageSrc): NameStatus {
         if (!r) return { _tag: 'new' }
         switch (r.__typename) {
           default:
-            return { _tag: 'exists', dst: { bucket: dst.bucket, name: r.name } }
+            return disableRestore
+              ? { _tag: 'new-revision' }
+              : { _tag: 'exists', dst: { bucket: dst.bucket, name: r.name } }
         }
       },
       fetching: () => ({ _tag: 'loading' }),
       error: (error) => ({ _tag: 'error', error }),
     })
-  }, [dst, packageExistsQuery, src])
+  }, [disableRestore, dst, packageExistsQuery, src])
 }
 
 function useNameValidator(dst: PackageDst): NameValidationStatus {
@@ -140,8 +146,9 @@ function useNameStatus(
   dst: PackageDst,
   src?: PackageSrc,
   workflow?: workflows.Workflow,
+  disableRestore?: boolean,
 ): NameStatus {
-  const existence = useNameExistence(dst, src)
+  const existence = useNameExistence(dst, src, disableRestore)
   const validation = useNameValidator(dst)
   return React.useMemo(() => {
     if (form._tag === 'error' && form.fields?.name) {
@@ -170,6 +177,7 @@ export function useName(
   setDst: React.Dispatch<React.SetStateAction<PackageDst>>,
   src?: PackageSrc,
   workflow?: workflows.Workflow,
+  disableRestore?: boolean,
 ): NameState {
   const [dirty, setDirty] = React.useState(false)
   const nameFallback = useNameFallback(workflow)
@@ -179,7 +187,7 @@ export function useName(
     }
   }, [nameFallback, dst.name, setDst])
 
-  const status = useNameStatus(form, dirty, dst, src, workflow)
+  const status = useNameStatus(form, dirty, dst, src, workflow, disableRestore)
   const onChange = React.useCallback(
     (n: string) => {
       setDirty(true)

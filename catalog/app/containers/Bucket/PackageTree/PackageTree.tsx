@@ -194,7 +194,7 @@ function DirDisplay({
 
   const { bucket, name, hash } = packageHandle
 
-  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const dst = React.useMemo(() => ({ bucket, name }), [bucket, name])
   const updateDialog = PD.useCreateDialog({
     src: packageHandle,
     dst,
@@ -902,8 +902,8 @@ function PackageRevision({
   )
   const { bucket } = packageHandle
   const copyDst = React.useMemo(
-    () => ({ bucket: successor?.slug || bucket }),
-    [bucket, successor],
+    () => ({ bucket: successor?.slug || bucket, name: packageHandle.name }),
+    [bucket, successor, packageHandle.name],
   )
 
   const isDir = path === '' || path.endsWith('/')
@@ -916,6 +916,7 @@ function PackageRevision({
         dst={copyDst}
         open={!!successor}
         onClose={closeCopyDialog}
+        key={successor?.slug || 'none'}
       />
       <ResolverProvider packageHandle={packageHandle}>
         {isDir ? (
