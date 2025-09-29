@@ -512,13 +512,19 @@ class InteractiveCredentialCollector extends CredentialCollector {
  * Config Generator - Create ConfigJson-compatible configuration
  */
 class ConfigGenerator {
-  static async generateConfig(stackUrl, auth = true, credentials = null) {
+  constructor(stackUrl, auth = true, credentials = null) {
+    this.stackUrl = stackUrl;
+    this.auth = auth;
+    this.credentials = credentials;
+  }
+
+  async generateConfig() {
     console.log('⚙️  Generating catalog configuration...');
 
     // Try to fetch stack information
     let stackInfo = null;
     try {
-      stackInfo = await this.fetchStackInfo(stackUrl);
+      stackInfo = await this.fetchStackInfo();
       console.log('✅ Successfully fetched stack information');
     } catch (error) {
       console.log(`⚠️  Could not fetch stack info: ${error.message}`);
@@ -531,13 +537,13 @@ class ConfigGenerator {
       // Required fields from server config
       region: stackInfo?.region || 'us-east-1',
       mode: 'LOCAL', // Override to LOCAL for development mode
-      alwaysRequiresAuth: auth,
+      alwaysRequiresAuth: this.auth,
       serviceBucket: stackInfo?.serviceBucket || 'quilt-example',
 
       // CRITICAL: Use server's actual endpoints, not derived ones
-      apiGatewayEndpoint: stackInfo?.apiGatewayEndpoint || `${stackUrl}/api`,
-      registryUrl: stackInfo?.registryUrl || stackUrl,
-      s3Proxy: stackInfo?.s3Proxy || `${stackUrl}/proxy`,
+      apiGatewayEndpoint: stackInfo?.apiGatewayEndpoint || `${this.stackUrl}/api`,
+      registryUrl: stackInfo?.registryUrl || this.stackUrl,
+      s3Proxy: stackInfo?.s3Proxy || `${this.stackUrl}/proxy`,
 
       // Use empty for local dev to avoid tracking
       mixpanelToken: '',
@@ -560,18 +566,18 @@ class ConfigGenerator {
     console.log(`   📍 API Gateway: ${config.apiGatewayEndpoint}`);
     console.log(`   📍 S3 Proxy: ${config.s3Proxy}`);
     console.log(`   📍 GraphQL will be: ${config.registryUrl}/graphql`);
-    return { config, credentials };
+    return { config, credentials: this.credentials };
   }
 
-  static async fetchStackInfo(stackUrl) {
+  async fetchStackInfo() {
     const https = require('https');
     const http = require('http');
 
     return new Promise((resolve, reject) => {
-      const configUrl = `${stackUrl}/config.json`;
+      const configUrl = `${this.stackUrl}/config.json`;
       console.log(`🔍 Fetching stack config from: ${configUrl}`);
 
-      const client = stackUrl.startsWith('https:') ? https : http;
+      const client = this.stackUrl.startsWith('https:') ? https : http;
       const request = client.get(configUrl, {
         timeout: 5000,
         headers: {
@@ -605,7 +611,7 @@ class ConfigGenerator {
     });
   }
 
-  static async writeConfigFile(config, outputPath, credentials = null) {
+  async writeConfigFile(config, outputPath) {
     console.log(`📝 Writing config to: ${outputPath}`);
 
     // Ensure output directory exists
@@ -618,13 +624,13 @@ window.QUILT_CATALOG_CONFIG = ${JSON.stringify(config, null, 2)};
 `;
 
     // If credentials are provided, add them to localStorage simulation
-    if (credentials) {
+    if (this.credentials) {
       configJs += `
 // Authentication credentials from Stack
 // These would normally be in localStorage, but we're injecting them here for dev
 window.QUILT_AUTH_CREDENTIALS = {
-  tokens: ${JSON.stringify(credentials.tokens, null, 2)},
-  user: ${JSON.stringify(credentials.user, null, 2)}
+  tokens: ${JSON.stringify(this.credentials.tokens, null, 2)},
+  user: ${JSON.stringify(this.credentials.user, null, 2)}
 };
 
 // Inject credentials into localStorage when the page loads
@@ -645,7 +651,7 @@ if (typeof window !== 'undefined' && window.localStorage) {
 
     await fs.writeFile(outputPath, configJs, 'utf8');
     console.log('✅ Config file written successfully');
-    if (credentials) {
+    if (this.credentials) {
       console.log('✅ Authentication credentials included');
     }
   }
@@ -687,15 +693,10 @@ async function main() {
       console.log('⏭️  Skipping authentication (--no-auth specified)');
     }
 
-    // Step 4: Generate config
-    const { config: catalogConfig } = await ConfigGenerator.generateConfig(
-      stackUrl,
-      options.auth,
-      credentials
-    );
-
-    // Step 5: Write config file
-    await ConfigGenerator.writeConfigFile(catalogConfig, CONFIG_OUTPUT_PATH, credentials);
+    // Step 4: Generate and write config
+    const configGenerator = new ConfigGenerator(stackUrl, options.auth, credentials);
+    const { config: catalogConfig } = await configGenerator.generateConfig();
+    await configGenerator.writeConfigFile(catalogConfig, CONFIG_OUTPUT_PATH);
 
     console.log('');
     console.log('🎉 Successfully connected to Quilt stack!');
