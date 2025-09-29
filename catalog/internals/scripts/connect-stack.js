@@ -442,16 +442,23 @@ class ConfigGenerator {
     }
 
     // Build configuration matching ConfigJson interface
+    // Use server config as base, but override for local development
     const config = {
-      // Required fields
+      // Required fields from server config
       region: stackInfo?.region || 'us-east-1',
-      mode: 'LOCAL', // Development mode
+      mode: 'LOCAL', // Override to LOCAL for development mode
       alwaysRequiresAuth: auth,
       serviceBucket: stackInfo?.serviceBucket || 'quilt-example',
+
+      // CRITICAL: Use server's actual endpoints, not derived ones
       apiGatewayEndpoint: stackInfo?.apiGatewayEndpoint || `${stackUrl}/api`,
-      registryUrl: stackUrl,
+      registryUrl: stackInfo?.registryUrl || stackUrl,
       s3Proxy: stackInfo?.s3Proxy || `${stackUrl}/proxy`,
-      mixpanelToken: '', // Empty for local dev
+
+      // Use empty for local dev to avoid tracking
+      mixpanelToken: '',
+
+      // Auth settings from server
       passwordAuth: stackInfo?.passwordAuth || 'ENABLED',
       ssoAuth: stackInfo?.ssoAuth || 'DISABLED',
       ssoProviders: stackInfo?.ssoProviders || '',
@@ -465,6 +472,10 @@ class ConfigGenerator {
     };
 
     console.log('✅ Generated catalog configuration');
+    console.log(`   📍 Registry URL: ${config.registryUrl}`);
+    console.log(`   📍 API Gateway: ${config.apiGatewayEndpoint}`);
+    console.log(`   📍 S3 Proxy: ${config.s3Proxy}`);
+    console.log(`   📍 GraphQL will be: ${config.registryUrl}/graphql`);
     return { config, credentials };
   }
 

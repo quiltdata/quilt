@@ -352,7 +352,8 @@ class BrowserTestManager {
       networkErrors: [],
       jsErrors: [],
       performanceMetrics: {},
-      screenshots: []
+      screenshots: [],
+      testConfig: null // Will store config used for this test
     };
   }
 
@@ -499,6 +500,35 @@ class BrowserTestManager {
       });
       this.results.html = htmlResult.result.value;
 
+      // Capture configuration used for this test (excluding credentials)
+      const configResult = await Runtime.evaluate({
+        expression: `
+          (() => {
+            try {
+              const config = window.QUILT_CATALOG_CONFIG;
+              if (config) {
+                // Create a copy without sensitive data
+                const sanitizedConfig = { ...config };
+                // Remove any potential sensitive fields
+                delete sanitizedConfig.mixpanelToken;
+                delete sanitizedConfig.sentryDSN;
+                delete sanitizedConfig.intercomAppId;
+                return sanitizedConfig;
+              }
+              return null;
+            } catch (e) {
+              return { error: e.message };
+            }
+          })()
+        `,
+        returnByValue: true
+      });
+
+      if (configResult.result && configResult.result.value) {
+        this.results.testConfig = configResult.result.value;
+        console.log('✅ Test configuration captured');
+      }
+
       // Capture performance metrics
       const performanceResult = await Performance.getMetrics();
       this.results.performanceMetrics = performanceResult.metrics.reduce((acc, metric) => {
@@ -603,6 +633,24 @@ class TestReporter {
             <li><strong>Console Logs:</strong> ${results.consoleLogs.length}</li>
         </ul>
     </div>
+
+    ${results.testConfig ? `
+    <div class="section">
+        <h2>🔧 Test Configuration</h2>
+        <div class="log-entry info-entry">
+            <strong>Registry URL:</strong> ${results.testConfig.registryUrl}<br>
+            <strong>API Gateway:</strong> ${results.testConfig.apiGatewayEndpoint}<br>
+            <strong>S3 Proxy:</strong> ${results.testConfig.s3Proxy}<br>
+            <strong>GraphQL Endpoint:</strong> ${results.testConfig.registryUrl}/graphql<br>
+            <strong>Mode:</strong> ${results.testConfig.mode}<br>
+            <strong>Stack Version:</strong> ${results.testConfig.stackVersion}
+        </div>
+        <details>
+            <summary>Full Configuration</summary>
+            <pre>${JSON.stringify(results.testConfig, null, 2)}</pre>
+        </details>
+    </div>
+    ` : ''}
 
     ${results.jsErrors.length > 0 ? `
     <div class="section">
