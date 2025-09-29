@@ -114,6 +114,8 @@ function mapErrorsToLogicalKeys(
   }
 }
 
+const EMPTY_FILES = {}
+
 // Convert FilesState to entries consumed by Schema validation
 function filesStateToEntries(files: FI.FilesState): readonly ValidationEntry[] {
   return FP.function.pipe(
@@ -130,11 +132,12 @@ function filesStateToEntries(files: FI.FilesState): readonly ValidationEntry[] {
 }
 
 function mergeFiles(manifest: ManifestStatus, files?: Partial<FI.FilesState>) {
-  const existing = manifest._tag === 'ready' ? manifest.manifest?.entries || {} : {}
+  const existing =
+    manifest._tag === 'ready' ? manifest.manifest?.entries || EMPTY_FILES : EMPTY_FILES
   return {
     existing,
-    added: files?.added || {},
-    deleted: files?.deleted || {},
+    added: files?.added || EMPTY_FILES,
+    deleted: files?.deleted || EMPTY_FILES,
   }
 }
 
@@ -145,9 +148,9 @@ export function useFiles(
   open: boolean | FI.FilesState['added'],
 ): FilesState {
   const [initial, setInitial] = React.useState<FI.FilesState>({
-    added: {},
-    existing: {},
-    deleted: {},
+    added: EMPTY_FILES,
+    existing: EMPTY_FILES,
+    deleted: EMPTY_FILES,
   })
   const [files, setFiles] = React.useState<Partial<FI.FilesState>>(initial.added)
   const value = React.useMemo(() => mergeFiles(manifest, files), [manifest, files])
