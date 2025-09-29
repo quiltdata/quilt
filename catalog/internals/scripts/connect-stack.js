@@ -295,7 +295,7 @@ class AuthManager {
       const loginUrl = `${this.stackUrl}/login`;
       const openCommand = process.platform === 'darwin' ? 'open' :
                           process.platform === 'win32' ? 'start' : 'xdg-open';
-      exec(`${openCommand} "${loginUrl}"`);
+      exec(`${openCommand} ${JSON.stringify(loginUrl)}`);
 
       console.log('🔑 Manual credential collection mode');
       console.log('📋 INSTRUCTIONS TO GET CREDENTIALS:');
