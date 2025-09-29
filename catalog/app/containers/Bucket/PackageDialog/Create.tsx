@@ -6,8 +6,8 @@ import * as Dialogs from 'utils/Dialogs'
 import * as Intercom from 'components/Intercom'
 import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
+import * as Model from 'model'
 
-import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import * as requests from '../requests'
 
@@ -361,7 +361,7 @@ export default function useCreateDialog({
     async (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: Selection.ListingSelection
+      handles?: Model.S3.S3ObjectLocation[]
     }) => {
       if (initial?.successor) {
         setDst((d) => (initial.successor ? { ...d, bucket: initial.successor.slug } : d))
@@ -370,11 +370,10 @@ export default function useCreateDialog({
       setOpen(true)
       setExited(false)
 
-      if (initial?.selection) {
+      if (initial?.handles && initial.handles.length) {
         setWaitingListing(true)
 
-        const handles = Selection.toHandlesList(initial?.selection)
-        const filesMap = await getFiles(handles)
+        const filesMap = await getFiles(initial.handles)
         setOpen(filesMap)
 
         setWaitingListing(false)

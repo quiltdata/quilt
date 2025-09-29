@@ -1,25 +1,58 @@
-import path from 'path'
-
-import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import * as style from 'constants/style'
-import * as AddToPackage from 'containers/AddToPackage'
 import * as PD from 'containers/Bucket/PackageDialog'
-import {
-  useBucketListing,
-  BucketListingResult,
-} from 'containers/Bucket/requests/bucketListing'
 import type * as Model from 'model'
-import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import { trimCenter } from 'utils/string'
 
 import { useBookmarks } from './Provider'
+
+function CreatePackageInBucket({
+  children,
+  bucket,
+  handles,
+  bookmarks: { hide },
+}: Required<CreatePackageProps>) {
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const createDialog = PD.useCreateDialog({
+    delayHashing: true,
+    disableStateDisplay: true,
+    dst,
+  })
+  const onClick = React.useCallback(() => {
+    createDialog.open({ handles })
+    hide()
+  }, [createDialog, handles, hide])
+  return (
+    <>
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+      <>{children(onClick)}</>
+    </>
+  )
+}
+
+interface CreatePackageProps {
+  bucket?: string
+  handles: Model.S3.S3ObjectLocation[]
+  bookmarks: NonNullable<ReturnType<typeof useBookmarks>>
+  children: (onClick?: () => void) => React.ReactNode
+}
+
+function CreatePackage({ bucket, children, handles, bookmarks }: CreatePackageProps) {
+  if (!bucket || !handles.length) return <>{children()}</>
+
+  return <CreatePackageInBucket {...{ bookmarks, bucket, handles, children }} />
+}
 
 const useBookmarksItemStyles = M.makeStyles((t) => ({
   iconWrapper: {
@@ -78,69 +111,6 @@ function NoBookmarks() {
   )
 }
 
-// TODO: add entry with size from <Listing /> but try to re-use existing types
-function useHeadFile() {
-  const s3: S3 = AWS.S3.use()
-  return React.useCallback(
-    async ({
-      bucket,
-      key,
-      version,
-    }: Model.S3.S3ObjectLocation): Promise<Model.S3File> => {
-      const { ContentLength: size } = await s3
-        .headObject({ Bucket: bucket, Key: key, VersionId: version })
-        .promise()
-      return { bucket, key, size: size || 0, version }
-    },
-    [s3],
-  )
-}
-
-function isBucketListingResult(
-  r: BucketListingResult | Model.S3File,
-): r is BucketListingResult {
-  return !!(r as BucketListingResult).files
-}
-
-function useHandlesToS3Files(
-  bucketListing: (r: $TSFixMe) => Promise<BucketListingResult>,
-  headFile: (h: Model.S3.S3ObjectLocation) => Promise<Model.S3File>,
-) {
-  return React.useCallback(
-    async (handles: Model.S3.S3ObjectLocation[]) => {
-      const requests = handles.map((handle) =>
-        s3paths.isDir(handle.key)
-          ? bucketListing({
-              bucket: handle.bucket,
-              path: s3paths.ensureNoSlash(handle.key),
-              delimiter: false,
-              drain: true,
-            })
-          : headFile(handle),
-      )
-      const responses = await Promise.all(requests)
-      return responses.reduce(
-        (memo, response) =>
-          isBucketListingResult(response)
-            ? response.files.reduce(
-                (acc, file) => ({
-                  ...acc,
-                  [path.relative(path.join(response.path, '..'), file.key)]: file,
-                }),
-                memo,
-              )
-            : {
-                ...memo,
-                // TODO: handle the same key from another bucket
-                [path.basename(response.key)]: response,
-              },
-        {} as Record<string, Model.S3File>,
-      )
-    },
-    [bucketListing, headFile],
-  )
-}
-
 const useDrawerStyles = M.makeStyles((t) => ({
   root: {
     maxWidth: '60vw',
@@ -151,9 +121,6 @@ const useDrawerStyles = M.makeStyles((t) => ({
     margin: t.spacing(3, 0, 0),
     gap: t.spacing(1),
   },
-  error: {
-    margin: t.spacing(1, 0, 2),
-  },
   listWrapper: {
     margin: t.spacing(2, 0, 0),
     maxHeight: '80vh',
@@ -162,24 +129,15 @@ const useDrawerStyles = M.makeStyles((t) => ({
 }))
 
 interface DrawerProps {
-  children: React.ReactNode
-  error: Error | null
   handles: Model.S3.S3ObjectLocation[]
-  onClear: () => void
   onClose?: () => void
-  onRemove: (handle: Model.S3.S3ObjectLocation) => void
+  onPackage?: () => void
   open?: boolean
+  onRemove: (handle: Model.S3.S3ObjectLocation) => void
+  onClear: () => void
 }
 
-function Drawer({
-  children,
-  error,
-  handles,
-  onClear,
-  onClose,
-  onRemove,
-  open,
-}: DrawerProps) {
+function Drawer({ handles, onClear, onClose, onRemove, onPackage, open }: DrawerProps) {
   const classes = useDrawerStyles()
   return (
     <M.Drawer anchor="left" open={open} onClose={onClose}>
@@ -200,12 +158,6 @@ function Drawer({
             <NoBookmarks />
           )}
         </M.Paper>
-        {error && (
-          <Lab.Alert className={classes.error} severity="error">
-            <Lab.AlertTitle>{error.name}</Lab.AlertTitle>
-            {error.message}
-          </Lab.Alert>
-        )}
         <div className={classes.actions}>
           <M.Button
             color="primary"
@@ -215,63 +167,17 @@ function Drawer({
           >
             Clear bookmarks
           </M.Button>
-          {children}
+          <M.Button
+            color="primary"
+            disabled={!onPackage}
+            onClick={onPackage}
+            variant="contained"
+          >
+            Create package
+          </M.Button>
         </div>
       </div>
     </M.Drawer>
-  )
-}
-
-interface CreatePackageProps {
-  bucket: string
-  handles: Model.S3.S3ObjectLocation[]
-  onPackageDialog: (error?: Error) => void
-}
-
-function CreatePackage({ bucket, handles, onPackageDialog }: CreatePackageProps) {
-  const addToPackage = AddToPackage.use()
-  const dst = React.useMemo(() => ({ bucket }), [bucket])
-  const createDialog = PD.useCreateDialog({
-    delayHashing: true,
-    disableStateDisplay: true,
-    dst,
-  })
-  const [traversing, setTraversing] = React.useState(false)
-  const headFile = useHeadFile()
-  const bucketListing = useBucketListing()
-  const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
-  const handleSubmit = React.useCallback(async () => {
-    if (!addToPackage) throw new Error('Add to Package is not ready')
-    setTraversing(true)
-    try {
-      const files = await handlesToS3Files(handles)
-      addToPackage?.merge(files)
-      createDialog.open()
-      onPackageDialog()
-    } catch (e) {
-      onPackageDialog(e instanceof Error ? e : new Error(`${e}`))
-    }
-    setTraversing(false)
-  }, [addToPackage, onPackageDialog, createDialog, handlesToS3Files, handles])
-  return (
-    <>
-      <M.Button
-        color="primary"
-        disabled={traversing || !handles.length}
-        onClick={handleSubmit}
-        startIcon={traversing && <M.CircularProgress size={16} />}
-        variant="contained"
-      >
-        Create package
-      </M.Button>
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
-    </>
   )
 }
 
@@ -286,7 +192,6 @@ export default function Sidebar({ bookmarks, bucket }: SidebarProps) {
     () => (entries ? Object.values(entries) : []),
     [entries],
   )
-  const [error, setError] = React.useState<Error | null>(null)
   const handleRemove = React.useCallback(
     (handle: Model.S3.S3ObjectLocation) => {
       const isLastBookmark = handles.length === 1
@@ -299,38 +204,21 @@ export default function Sidebar({ bookmarks, bucket }: SidebarProps) {
     bookmarks.clear('main')
     bookmarks.hide()
   }, [bookmarks])
-  const onPackageDialog = React.useCallback(
-    (e?: Error) => {
-      if (e) {
-        setError(e)
-      } else {
-        bookmarks.hide()
-      }
-    },
-    [bookmarks],
-  )
+
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <Drawer
-        error={error}
-        handles={handles}
-        onClose={bookmarks.hide}
-        onRemove={handleRemove}
-        onClear={handleClear}
-        open={bookmarks.isOpened}
-      >
-        {bucket ? (
-          <CreatePackage
-            bucket={bucket}
+      <CreatePackage bookmarks={bookmarks} bucket={bucket} handles={handles}>
+        {(onPackage) => (
+          <Drawer
             handles={handles}
-            onPackageDialog={onPackageDialog}
+            onClose={bookmarks.hide}
+            onRemove={handleRemove}
+            onPackage={onPackage}
+            onClear={handleClear}
+            open={bookmarks.isOpened}
           />
-        ) : (
-          <M.Button color="primary" disabled variant="contained">
-            Create package
-          </M.Button>
         )}
-      </Drawer>
+      </CreatePackage>
     </M.MuiThemeProvider>
   )
 }
