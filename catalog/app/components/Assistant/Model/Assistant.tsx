@@ -48,10 +48,61 @@ export function validateModelId(modelId: string): { isValid: boolean; error?: st
     }
   }
 
-  // If it matches the pattern but isn't in our known list, warn but allow
+  // If it matches the pattern but isn't in our known list, it needs to be tested
   return {
     isValid: true,
-    error: `Warning: "${modelId}" is not in the preset models list. Make sure this model is available in your AWS Bedrock account.`,
+    error: `Custom model "${modelId}" will be tested for availability in your AWS Bedrock account.`,
+  }
+}
+
+// Test if a model is actually available in AWS Bedrock
+export async function testModelAvailability(
+  modelId: string,
+  bedrockClient: any,
+): Promise<{ available: boolean; error?: string }> {
+  if (!modelId || modelId.trim() === '') {
+    return { available: true } // Empty uses default, which is always available
+  }
+
+  try {
+    // Try to make a minimal converse call to test the model
+    await bedrockClient
+      .converse({
+        modelId,
+        messages: [{ role: 'user', content: [{ text: 'test' }] }],
+        inferenceConfig: { maxTokens: 1 }, // Minimal request to reduce cost
+      })
+      .promise()
+
+    return { available: true }
+  } catch (error: any) {
+    // Parse AWS error codes
+    if (error.code === 'ValidationException') {
+      if (error.message?.includes('model') || error.message?.includes('Model')) {
+        return {
+          available: false,
+          error: `Model "${modelId}" not found or not available in your AWS Bedrock account.`,
+        }
+      }
+    }
+    if (error.code === 'AccessDeniedException') {
+      return {
+        available: false,
+        error: `Access denied to model "${modelId}". Check your AWS permissions and model access in the AWS Console.`,
+      }
+    }
+    if (error.code === 'ThrottlingException') {
+      return {
+        available: true,
+        error: `Model "${modelId}" is available but currently throttled. Try again later.`,
+      }
+    }
+
+    // For any other error, assume model might be available but there's a different issue
+    return {
+      available: true,
+      error: `Unable to test model "${modelId}": ${error.message || error.code || 'Unknown error'}`,
+    }
   }
 }
 

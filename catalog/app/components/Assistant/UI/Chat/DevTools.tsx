@@ -5,9 +5,12 @@ import {
   Clear as ClearIcon,
   Delete as DeleteIcon,
   GetApp as GetAppIcon,
+  CheckCircle as CheckIcon,
+  Error as ErrorIcon,
 } from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
+import * as AWS from 'utils/AWS'
 
 import * as Model from '../../Model'
 
@@ -26,11 +29,14 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   const [validationDialog, setValidationDialog] = React.useState<{
     open: boolean
     message: string
-    severity: 'error' | 'warning'
+    severity: 'error' | 'warning' | 'success'
   }>({ open: false, message: '', severity: 'error' })
+  const [isTestingModel, setIsTestingModel] = React.useState(false)
+
+  const bedrockClient = AWS.Bedrock.useClient()
 
   const showValidationDialog = React.useCallback(
-    (message: string, severity: 'error' | 'warning') => {
+    (message: string, severity: 'error' | 'warning' | 'success') => {
       setValidationDialog({ open: true, message, severity })
     },
     [],
@@ -41,7 +47,7 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   }, [])
 
   const validateAndSetValue = React.useCallback(
-    (modelId: string) => {
+    async (modelId: string) => {
       const validation = Model.Assistant.validateModelId(modelId)
 
       if (!validation.isValid) {
@@ -49,15 +55,52 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
         return false
       }
 
-      if (validation.error) {
-        // Show warning but still allow the value
+      // Test ALL models (including preset ones) for real availability
+      if (modelId && modelId.trim() !== '') {
+        setIsTestingModel(true)
+        try {
+          const availability = await Model.Assistant.testModelAvailability(
+            modelId,
+            bedrockClient,
+          )
+
+          if (!availability.available) {
+            showValidationDialog(
+              availability.error || `Model "${modelId}" is not available.`,
+              'error',
+            )
+            setIsTestingModel(false)
+            return false
+          }
+
+          if (availability.error) {
+            // Show warning but allow the value
+            showValidationDialog(availability.error, 'warning')
+          } else {
+            // Show success for all tested models
+            const isPresetModel = Model.Assistant.MODELS.some(
+              (model) => model.id === modelId,
+            )
+            const message = isPresetModel
+              ? `✅ Preset model "${modelId}" is available!`
+              : `✅ Custom model "${modelId}" is available!`
+            showValidationDialog(message, 'success')
+          }
+        } catch (error) {
+          showValidationDialog(`Failed to test model "${modelId}": ${error}`, 'error')
+          setIsTestingModel(false)
+          return false
+        }
+        setIsTestingModel(false)
+      } else if (validation.error) {
+        // Show info for validation warnings
         showValidationDialog(validation.error, 'warning')
       }
 
       setValue(modelId)
       return true
     },
-    [setValue, showValidationDialog],
+    [setValue, showValidationDialog, bedrockClient],
   )
 
   const handleModelIdChange = React.useCallback(
@@ -68,21 +111,16 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
     [setValue],
   )
 
-  const handleModelIdBlur = React.useCallback(
-    (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      validateAndSetValue(event.target.value)
-    },
-    [validateAndSetValue],
-  )
-
-  const handleModelIdKeyPress = React.useCallback(
+  const handleModelIdKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Enter') {
-        // Use current value instead of trying to access event.target.value
-        validateAndSetValue(value)
+        const target = event.target as HTMLInputElement | HTMLTextAreaElement
+        if (target && target.value !== undefined) {
+          validateAndSetValue(target.value)
+        }
       }
     },
-    [validateAndSetValue, value],
+    [validateAndSetValue],
   )
 
   const handleSelectChange = React.useCallback(
@@ -92,6 +130,12 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
     },
     [validateAndSetValue],
   )
+
+  const handleTestModel = React.useCallback(() => {
+    if (value) {
+      validateAndSetValue(value)
+    }
+  }, [value, validateAndSetValue])
 
   const handleClear = React.useCallback(() => {
     setValue('')
@@ -112,27 +156,48 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
       {customMode ? (
         <M.TextField
           label="Custom Bedrock Model ID"
-          placeholder="Enter custom model ID (press Enter or tab out to validate)"
+          placeholder="Enter custom model ID (press Enter to test)"
           value={value}
           onChange={handleModelIdChange}
-          onBlur={handleModelIdBlur}
-          onKeyPress={handleModelIdKeyPress}
+          onKeyDown={handleModelIdKeyDown}
           fullWidth
-          helperText="Enter a custom Bedrock model ID (press Enter or tab out to validate)"
+          disabled={isTestingModel}
+          helperText={
+            isTestingModel
+              ? 'Testing model availability in AWS Bedrock...'
+              : 'Enter a custom Bedrock model ID (press Enter to test availability)'
+          }
           InputLabelProps={{ shrink: true }}
           InputProps={{
             endAdornment: (
               <M.InputAdornment position="end">
-                <M.IconButton
-                  aria-label="Switch to preset models"
-                  onClick={handleToggleCustom}
-                  edge="end"
-                  size="small"
-                >
-                  <M.Tooltip arrow title="Switch to preset models">
-                    <ClearIcon />
-                  </M.Tooltip>
-                </M.IconButton>
+                {isTestingModel ? (
+                  <M.CircularProgress size={20} />
+                ) : (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <M.IconButton
+                      aria-label="Test model availability"
+                      onClick={handleTestModel}
+                      edge="end"
+                      size="small"
+                      disabled={!value || value.trim() === ''}
+                    >
+                      <M.Tooltip arrow title="Test model availability">
+                        <CheckIcon />
+                      </M.Tooltip>
+                    </M.IconButton>
+                    <M.IconButton
+                      aria-label="Switch to preset models"
+                      onClick={handleToggleCustom}
+                      edge="end"
+                      size="small"
+                    >
+                      <M.Tooltip arrow title="Switch to preset models">
+                        <ClearIcon />
+                      </M.Tooltip>
+                    </M.IconButton>
+                  </div>
+                )}
               </M.InputAdornment>
             ),
           }}
@@ -198,15 +263,25 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
         fullWidth
       >
         <M.DialogTitle>
-          {validationDialog.severity === 'error'
-            ? 'Invalid Model ID'
-            : 'Model ID Warning'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {validationDialog.severity === 'error' && <ErrorIcon color="error" />}
+            {validationDialog.severity === 'warning' && <ErrorIcon color="inherit" />}
+            {validationDialog.severity === 'success' && (
+              <CheckIcon style={{ color: '#4caf50' }} />
+            )}
+            {validationDialog.severity === 'error' && 'Invalid Model ID'}
+            {validationDialog.severity === 'warning' && 'Model ID Information'}
+            {validationDialog.severity === 'success' && 'Model Available'}
+          </div>
         </M.DialogTitle>
         <M.DialogContent>
           <M.Typography>{validationDialog.message}</M.Typography>
         </M.DialogContent>
         <M.DialogActions>
-          <M.Button onClick={handleCloseValidationDialog} color="primary">
+          <M.Button
+            onClick={handleCloseValidationDialog}
+            color={validationDialog.severity === 'success' ? 'primary' : 'default'}
+          >
             OK
           </M.Button>
         </M.DialogActions>
