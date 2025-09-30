@@ -26,6 +26,35 @@ export const DEFAULT_MODEL_ID =
   MODELS.length > 0 ? MODELS[0].id : 'us.amazon.nova-lite-v1:0'
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
 
+// Validation function to check if a model ID is valid
+export function validateModelId(modelId: string): { isValid: boolean; error?: string } {
+  if (!modelId || modelId.trim() === '') {
+    return { isValid: true } // Empty is valid (will use default)
+  }
+
+  // Check if it's in our predefined models list
+  const isKnownModel = MODELS.some((model) => model.id === modelId)
+  if (isKnownModel) {
+    return { isValid: true }
+  }
+
+  // For custom model IDs, validate the format (AWS Bedrock model ID pattern)
+  const bedrockModelPattern = /^[a-z0-9.-]+:[a-z0-9.-]+:[0-9]+$/
+  if (!bedrockModelPattern.test(modelId)) {
+    return {
+      isValid: false,
+      error:
+        'Invalid model ID format. Expected format: provider.model-name-version:region:number (e.g., us.amazon.nova-lite-v1:0)',
+    }
+  }
+
+  // If it matches the pattern but isn't in our known list, warn but allow
+  return {
+    isValid: true,
+    error: `Warning: "${modelId}" is not in the preset models list. Make sure this model is available in your AWS Bedrock account.`,
+  }
+}
+
 function useModelIdOverride() {
   const [value, setValue] = React.useState(
     () =>

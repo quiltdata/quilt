@@ -23,19 +23,74 @@ type ModelIdOverrideProps = Model.Assistant.API['devTools']['modelIdOverride']
 function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   const classes = useModelIdOverrideStyles()
   const [customMode, setCustomMode] = React.useState(false)
+  const [validationDialog, setValidationDialog] = React.useState<{
+    open: boolean
+    message: string
+    severity: 'error' | 'warning'
+  }>({ open: false, message: '', severity: 'error' })
+
+  const showValidationDialog = React.useCallback(
+    (message: string, severity: 'error' | 'warning') => {
+      setValidationDialog({ open: true, message, severity })
+    },
+    [],
+  )
+
+  const handleCloseValidationDialog = React.useCallback(() => {
+    setValidationDialog((prev) => ({ ...prev, open: false }))
+  }, [])
+
+  const validateAndSetValue = React.useCallback(
+    (modelId: string) => {
+      const validation = Model.Assistant.validateModelId(modelId)
+
+      if (!validation.isValid) {
+        showValidationDialog(`Invalid Model ID: ${validation.error}`, 'error')
+        return false
+      }
+
+      if (validation.error) {
+        // Show warning but still allow the value
+        showValidationDialog(validation.error, 'warning')
+      }
+
+      setValue(modelId)
+      return true
+    },
+    [setValue, showValidationDialog],
+  )
 
   const handleModelIdChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      // Allow typing without validation
       setValue(event.target.value)
     },
     [setValue],
   )
 
+  const handleModelIdBlur = React.useCallback(
+    (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      validateAndSetValue(event.target.value)
+    },
+    [validateAndSetValue],
+  )
+
+  const handleModelIdKeyPress = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Enter') {
+        // Use current value instead of trying to access event.target.value
+        validateAndSetValue(value)
+      }
+    },
+    [validateAndSetValue, value],
+  )
+
   const handleSelectChange = React.useCallback(
     (event: React.ChangeEvent<{ name?: string | undefined; value: unknown }>) => {
-      setValue(event.target.value as string)
+      const modelId = event.target.value as string
+      validateAndSetValue(modelId)
     },
-    [setValue],
+    [validateAndSetValue],
   )
 
   const handleClear = React.useCallback(() => {
@@ -57,11 +112,13 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
       {customMode ? (
         <M.TextField
           label="Custom Bedrock Model ID"
-          placeholder="Enter custom model ID"
+          placeholder="Enter custom model ID (press Enter or tab out to validate)"
           value={value}
           onChange={handleModelIdChange}
+          onBlur={handleModelIdBlur}
+          onKeyPress={handleModelIdKeyPress}
           fullWidth
-          helperText="Enter a custom Bedrock model ID"
+          helperText="Enter a custom Bedrock model ID (press Enter or tab out to validate)"
           InputLabelProps={{ shrink: true }}
           InputProps={{
             endAdornment: (
@@ -134,6 +191,26 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
           )}
         </>
       )}
+      <M.Dialog
+        open={validationDialog.open}
+        onClose={handleCloseValidationDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <M.DialogTitle>
+          {validationDialog.severity === 'error'
+            ? 'Invalid Model ID'
+            : 'Model ID Warning'}
+        </M.DialogTitle>
+        <M.DialogContent>
+          <M.Typography>{validationDialog.message}</M.Typography>
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={handleCloseValidationDialog} color="primary">
+            OK
+          </M.Button>
+        </M.DialogActions>
+      </M.Dialog>
     </div>
   )
 }
