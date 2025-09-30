@@ -1,5 +1,5 @@
 [project]
-name = "iceberg"
+name = "t4_lambda_iceberg"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
