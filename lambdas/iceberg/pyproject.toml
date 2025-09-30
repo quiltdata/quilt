@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
-requires-python = ">=3.13"
+requires-python = "==3.11.*"
 dependencies = [
     "boto3>=1.40.41,<2.0.0",
     "quilt-shared",
