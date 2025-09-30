@@ -167,6 +167,14 @@ export const bucketPackageRevisions = route(
 
 export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
 
+export const bucketPackageCompare = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/compare/:revisionLeft/:revisionRight/`,
+  (bucket: string, name: string, revisionLeft: string, revisionRight: string) =>
+    `/b/${bucket}/packages/${name}/${revisionLeft}/compare/${revisionRight}/`,
+)
+
+export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
+
 export const bucketQueries = route(
   '/b/:bucket/queries',
   (bucket: string) => `/b/${bucket}/queries`,

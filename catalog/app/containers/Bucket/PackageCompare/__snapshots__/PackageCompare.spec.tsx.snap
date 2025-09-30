@@ -1,0 +1,312 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/PackageCompare/PackageCompare should match snapshot 1`] = `
+<div
+  className="MuiBox-root MuiBox-root-25"
+>
+  <div
+    className="MuiBox-root MuiBox-root-26"
+  >
+    <h5
+      className="MuiTypography-root MuiTypography-h5"
+    >
+      <a
+        href="/b/test-bucket/packages/test-package"
+      >
+        test-package
+      </a>
+       
+      revision comparison
+    </h5>
+  </div>
+  <div
+    className="MuiBox-root MuiBox-root-27"
+  >
+    <div
+      className="MuiBox-root MuiBox-root-28"
+    >
+      <div
+        className="MuiPaper-root MuiTableContainer-root MuiPaper-elevation1 MuiPaper-rounded"
+      >
+        <table
+          className="MuiTable-root"
+          role={null}
+        >
+          <thead
+            className="MuiTableHead-root"
+            role={null}
+          >
+            <tr
+              className="MuiTableRow-root MuiTableRow-head"
+              role={null}
+            >
+              <th
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-head"
+                role="columnheader"
+                scope="col"
+              >
+                <h6
+                  className="MuiTypography-root MuiTypography-h6"
+                >
+                  <div
+                    className="MuiBox-root MuiBox-root-29"
+                  >
+                    <div
+                      className="MuiBox-root MuiBox-root-30"
+                    >
+                      hash1
+                    </div>
+                    <button
+                      className="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall MuiIconButton-edgeEnd"
+                      disabled={false}
+                      onBlur={[Function]}
+                      onClick={[Function]}
+                      onDragLeave={[Function]}
+                      onFocus={[Function]}
+                      onKeyDown={[Function]}
+                      onKeyUp={[Function]}
+                      onMouseDown={[Function]}
+                      onMouseLeave={[Function]}
+                      onMouseUp={[Function]}
+                      onTouchEnd={[Function]}
+                      onTouchMove={[Function]}
+                      onTouchStart={[Function]}
+                      tabIndex={0}
+                      type="button"
+                    >
+                      <span
+                        className="MuiIconButton-label"
+                      >
+                        <span
+                          aria-hidden={true}
+                          className="material-icons MuiIcon-root MuiIcon-fontSizeSmall"
+                        >
+                          file_copy
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </h6>
+              </th>
+              <th
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-head"
+                role="columnheader"
+                scope="col"
+              >
+                <h6
+                  className="MuiTypography-root MuiTypography-h6"
+                >
+                  <div
+                    className="MuiBox-root MuiBox-root-31"
+                  >
+                    <div
+                      className="MuiBox-root MuiBox-root-32"
+                    >
+                      hash2
+                    </div>
+                    <button
+                      className="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall MuiIconButton-edgeEnd"
+                      disabled={false}
+                      onBlur={[Function]}
+                      onClick={[Function]}
+                      onDragLeave={[Function]}
+                      onFocus={[Function]}
+                      onKeyDown={[Function]}
+                      onKeyUp={[Function]}
+                      onMouseDown={[Function]}
+                      onMouseLeave={[Function]}
+                      onMouseUp={[Function]}
+                      onTouchEnd={[Function]}
+                      onTouchMove={[Function]}
+                      onTouchStart={[Function]}
+                      tabIndex={0}
+                      type="button"
+                    >
+                      <span
+                        className="MuiIconButton-label"
+                      >
+                        <span
+                          aria-hidden={true}
+                          className="material-icons MuiIcon-root MuiIcon-fontSizeSmall"
+                        >
+                          file_copy
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </h6>
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            className="MuiTableBody-root"
+            role={null}
+          >
+            <tr
+              className="MuiTableRow-root"
+              role={null}
+            >
+              <td
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-body"
+              >
+                <a
+                  href="/b/test-bucket/packages/test-package/tree/hash1"
+                >
+                  2023-01-01T00:00:00.000Z
+                </a>
+              </td>
+              <td
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-body"
+              >
+                <a
+                  href="/b/test-bucket/packages/test-package/tree/hash2"
+                >
+                  2023-01-02T00:00:00.000Z
+                </a>
+              </td>
+            </tr>
+            <tr
+              className="MuiTableRow-root"
+              role={null}
+            >
+              <td
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-body"
+              >
+                <p
+                  className="MuiTypography-root MuiTypography-body2"
+                >
+                  Test message 1
+                </p>
+              </td>
+              <td
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-body"
+              >
+                <p
+                  className="MuiTypography-root MuiTypography-body2"
+                >
+                  Test message 2
+                </p>
+              </td>
+            </tr>
+            <tr
+              className="MuiTableRow-root"
+              role={null}
+            >
+              <td
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-body"
+              >
+                <p
+                  className="MuiTypography-root MuiTypography-body2"
+                >
+                  1000 bytes
+                </p>
+              </td>
+              <td
+                aria-sort={null}
+                className="MuiTableCell-root MuiTableCell-body"
+              >
+                <p
+                  className="MuiTypography-root MuiTypography-body2"
+                >
+                  2000 bytes
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div
+        className="MuiBox-root MuiBox-root-33"
+      >
+        <h6
+          className="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom"
+        >
+          Metadata Comparison
+        </h6>
+        <div
+          className="MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded"
+        >
+          <div
+            className="MuiBox-root MuiBox-root-34"
+          >
+            <div
+              data-testid="diff-viewer"
+            >
+              <div>
+                hash1 Metadata
+              </div>
+              <div>
+                hash2 Metadata
+              </div>
+              <pre>
+                {
+  "test": "meta1"
+}
+              </pre>
+              <pre>
+                {
+  "test": "meta2"
+}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        className="MuiBox-root MuiBox-root-35"
+      >
+        <h6
+          className="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom"
+        >
+          Entries Comparison
+        </h6>
+        <div
+          className="MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded"
+        >
+          <div
+            className="MuiBox-root MuiBox-root-36"
+          >
+            <div
+              data-testid="diff-viewer"
+            >
+              <div>
+                hash1 Entries
+              </div>
+              <div>
+                hash2 Entries
+              </div>
+              <pre>
+                {
+  "file1.txt": {
+    "size": 100
+  },
+  "file2.txt": {
+    "size": 200
+  }
+}
+              </pre>
+              <pre>
+                {
+  "file1.txt": {
+    "size": 100
+  },
+  "file2.txt": {
+    "size": 200
+  }
+}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
