@@ -13,6 +13,7 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import * as Notifications from 'containers/Notifications'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import * as Model from 'model'
@@ -22,6 +23,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import Log from 'utils/Logging'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as XML from 'utils/XML'
@@ -707,11 +709,16 @@ function FileDisplay({
     [file, packageHandle],
   )
 
+  const { push } = Notifications.use()
   const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
-  const handleEdit = React.useCallback(
-    () => history.push(editUrl(path)),
-    [editUrl, history, path],
-  )
+  const handleEdit = React.useCallback(() => {
+    try {
+      history.push(editUrl(path))
+    } catch (error) {
+      Log.error(error)
+      if (error instanceof Error) push(error.message)
+    }
+  }, [editUrl, history, path, push])
   const packageUri = React.useMemo(
     () => ({
       ...packageHandle,
