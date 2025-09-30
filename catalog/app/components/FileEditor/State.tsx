@@ -3,6 +3,7 @@ import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
 import { isQuickPreviewAvailable } from 'components/Preview/quick'
+import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import parseSearch from 'utils/parseSearch'
@@ -16,25 +17,34 @@ function useRedirect() {
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
   // TODO: put this into FileEditor/routes
-  const { add, next } = parseSearch(location.search, true)
-  return React.useCallback(
-    ({ bucket, key, version }: Model.S3File) => {
-      if (next) {
-        history.push(next)
-        return
+
+  const getRedirectRoute = React.useCallback(
+    (fileHandle: Model.S3File) => {
+      const { add, next } = parseSearch(location.search, true)
+      if (next) return next
+
+      if (add) {
+        try {
+          const packageHandle = PackageUri.parse(add)
+          if (packageHandle.path) {
+            return urls.bucketPackageAdd(packageHandle.bucket, packageHandle.name, {
+              [packageHandle.path!]: s3paths.handleToS3Url(fileHandle),
+            })
+          }
+          throw new Error('"add" parameter must contain `PackageUri` with "path"')
+        } catch (error) {
+          Log.error(error)
+        }
       }
-      if (!add) {
-        history.push(urls.bucketFile(bucket, key, { version }))
-        return
-      }
-      const packageHandle = PackageUri.parse(add)
-      history.push(
-        urls.bucketPackageAdd(packageHandle.bucket, packageHandle.name, {
-          [packageHandle.path!]: s3paths.handleToS3Url({ bucket, key, version }),
-        }),
-      )
+
+      const { bucket, key, version } = fileHandle
+      return urls.bucketFile(bucket, key, { version })
     },
-    [history, add, next, urls],
+    [location.search, urls],
+  )
+  return React.useCallback(
+    (file: Model.S3File) => history.push(getRedirectRoute(file)),
+    [history, getRedirectRoute],
   )
 }
 
