@@ -453,7 +453,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
   // Navigate when both hashes are selected
   React.useEffect(() => {
     const { left, right } = hashes
-    if (hashes.left && hashes.right) {
+    if (left && right) {
       setHashes({ left: null, right: null }) // Reset state after navigation
       history.push(urls.bucketPackageCompare(bucket, name, left, right))
     }

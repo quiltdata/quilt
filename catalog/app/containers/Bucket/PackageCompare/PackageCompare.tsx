@@ -1,17 +1,16 @@
 import * as dateFns from 'date-fns'
 import invariant from 'invariant'
 import * as React from 'react'
+import ReactDiffViewer from 'react-diff-viewer-continued'
 import * as RRDom from 'react-router-dom'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
-import ReactDiffViewer from 'react-diff-viewer-continued'
 import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import copyToClipboard from 'utils/clipboard'
 import { readableBytes, trimCenter } from 'utils/string'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -20,6 +19,7 @@ import { displayError } from '../errors'
 
 import REVISION_LIST_QUERY from '../PackageRevisions/gql/RevisionList.generated'
 import MANIFEST_QUERY from '../PackageDialog/gql/Manifest.generated'
+import RevisionsList from './RevisionsList'
 
 type RevisionFields = NonNullable<
   NonNullable<
@@ -81,6 +81,10 @@ interface RevisionCompareTableProps {
   name: string
   leftRevision: RevisionFields | null
   rightRevision: RevisionFields | null
+  left: PackageHandle
+  right: PackageHandle
+  onLeftChange: (hash: string) => void
+  onRightChange: (hash: string) => void
 }
 
 function RevisionCompareTable({
@@ -88,6 +92,10 @@ function RevisionCompareTable({
   name,
   leftRevision,
   rightRevision,
+  left,
+  right,
+  onLeftChange,
+  onRightChange,
 }: RevisionCompareTableProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -98,11 +106,11 @@ function RevisionCompareTable({
     {
       bucket,
       name,
-      hashOrTag: leftRevision?.hash || 'latest',
+      hashOrTag: left.hash || 'latest',
       max: 10000,
       skipEntries: false,
     },
-    { pause: !leftRevision?.hash },
+    { pause: !left.hash },
   )
 
   const rightManifestQuery = GQL.useQuery(
@@ -110,32 +118,14 @@ function RevisionCompareTable({
     {
       bucket,
       name,
-      hashOrTag: rightRevision?.hash || 'latest',
+      hashOrTag: right.hash || 'latest',
       max: 10000,
       skipEntries: false,
     },
-    { pause: !rightRevision?.hash },
+    { pause: !right.hash },
   )
 
   const formatDate = (date: Date) => dateFns.format(date, 'MMMM do yyyy - h:mma')
-
-  const renderHash = (revision: RevisionFields | null) => {
-    if (!revision) return '-'
-    return (
-      <M.Box display="flex" alignItems="center">
-        <M.Box className={classes.hash} flexGrow={1}>
-          {revision.hash}
-        </M.Box>
-        <M.IconButton
-          size="small"
-          onClick={() => copyToClipboard(revision.hash)}
-          edge="end"
-        >
-          <M.Icon fontSize="small">file_copy</M.Icon>
-        </M.IconButton>
-      </M.Box>
-    )
-  }
 
   const renderManifestDiff = () => {
     // Check if both manifests have loaded
@@ -178,8 +168,8 @@ function RevisionCompareTable({
           oldValue={leftManifestString}
           newValue={rightManifestString}
           splitView={true}
-          leftTitle={leftRevision?.hash ? trimCenter(leftRevision.hash, 15) : 'Left'}
-          rightTitle={rightRevision?.hash ? trimCenter(rightRevision.hash, 15) : 'Right'}
+          leftTitle={left.hash ? trimCenter(left.hash, 15) : 'Left'}
+          rightTitle={right.hash ? trimCenter(right.hash, 15) : 'Right'}
           showDiffOnly={false}
           hideLineNumbers={false}
         />
@@ -223,8 +213,8 @@ function RevisionCompareTable({
           oldValue={leftMetadataString}
           newValue={rightMetadataString}
           splitView={true}
-          leftTitle={leftRevision?.hash ? trimCenter(leftRevision.hash, 15) : 'Left'}
-          rightTitle={rightRevision?.hash ? trimCenter(rightRevision.hash, 15) : 'Right'}
+          leftTitle={left.hash ? trimCenter(left.hash, 15) : 'Left'}
+          rightTitle={right.hash ? trimCenter(right.hash, 15) : 'Right'}
           showDiffOnly={false}
           hideLineNumbers={false}
         />
@@ -239,14 +229,18 @@ function RevisionCompareTable({
           <M.TableHead>
             <M.TableRow>
               <M.TableCell component="th" scope="col">
-                <M.Typography variant="h6">
-                  {leftRevision ? renderHash(leftRevision) : 'Left Revision'}
-                </M.Typography>
+                <RevisionsList
+                  packageHandle={left}
+                  onChange={onLeftChange}
+                  label="Left Revision"
+                />
               </M.TableCell>
               <M.TableCell component="th" scope="col">
-                <M.Typography variant="h6">
-                  {rightRevision ? renderHash(rightRevision) : 'Right Revision'}
-                </M.Typography>
+                <RevisionsList
+                  packageHandle={right}
+                  onChange={onRightChange}
+                  label="Right Revision"
+                />
               </M.TableCell>
             </M.TableRow>
           </M.TableHead>
@@ -353,6 +347,22 @@ interface PackageCompareProps {
 
 export function PackageCompare({ left, right }: PackageCompareProps) {
   const { urls } = NamedRoutes.use()
+  const history = RRDom.useHistory()
+
+  // Handlers for revision selection - navigate to new comparison URL
+  const handleLeftChange = React.useCallback(
+    (hash: string) => {
+      history.push(urls.bucketPackageCompare(left.bucket, left.name, hash, right.hash))
+    },
+    [history, urls, left.bucket, left.name, right.hash],
+  )
+
+  const handleRightChange = React.useCallback(
+    (hash: string) => {
+      history.push(urls.bucketPackageCompare(left.bucket, left.name, left.hash, hash))
+    },
+    [history, urls, left.bucket, left.name, left.hash],
+  )
 
   // Fetch revision data for both revisions
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
@@ -435,6 +445,10 @@ export function PackageCompare({ left, right }: PackageCompareProps) {
               name={left.name}
               leftRevision={leftRevision}
               rightRevision={rightRevision}
+              left={left}
+              right={right}
+              onLeftChange={handleLeftChange}
+              onRightChange={handleRightChange}
             />
           ),
         })}
