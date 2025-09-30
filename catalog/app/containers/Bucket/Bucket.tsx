@@ -93,6 +93,9 @@ export default function Bucket() {
             <Route path={paths.bucketPackageList} exact>
               <PackageList />
             </Route>
+            <Route path={paths.bucketPackageAdd} exact>
+              <PackageTree />
+            </Route>
             <Route path={paths.bucketPackageDetail} exact>
               <PackageTree />
             </Route>

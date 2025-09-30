@@ -3,28 +3,38 @@ import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
 import { isQuickPreviewAvailable } from 'components/Preview/quick'
-import * as AddToPackage from 'containers/AddToPackage'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageUri from 'utils/PackageUri'
 import parseSearch from 'utils/parseSearch'
+import * as s3paths from 'utils/s3paths'
 
 import { detect, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
 function useRedirect() {
-  const addToPackage = AddToPackage.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
   // TODO: put this into FileEditor/routes
   const { add, next } = parseSearch(location.search, true)
   return React.useCallback(
-    ({ bucket, key, size, version }: Model.S3File) => {
-      if (add && addToPackage?.append) {
-        addToPackage.append(add, { bucket, key, size, version })
+    ({ bucket, key, version }: Model.S3File) => {
+      if (next) {
+        history.push(next)
+        return
       }
-      history.push(next || urls.bucketFile(bucket, key, { version }))
+      if (!add) {
+        history.push(urls.bucketFile(bucket, key, { version }))
+        return
+      }
+      const packageHandle = PackageUri.parse(add)
+      history.push(
+        urls.bucketPackageAdd(packageHandle.bucket, packageHandle.name, {
+          [packageHandle.path!]: s3paths.handleToS3Url({ bucket, key, version }),
+        }),
+      )
     },
-    [history, next, addToPackage, add, urls],
+    [history, add, next, urls],
   )
 }
 

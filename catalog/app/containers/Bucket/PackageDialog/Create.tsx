@@ -2,11 +2,11 @@ import * as React from 'react'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
-import * as Dialogs from 'utils/Dialogs'
 import * as Intercom from 'components/Intercom'
+import * as Model from 'model'
+import * as Dialogs from 'utils/Dialogs'
 import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
-import * as Model from 'model'
 
 import * as Successors from '../Successors'
 import * as requests from '../requests'
@@ -344,6 +344,7 @@ interface UseCreateDialogOptions {
   dst: PDModel.PackageDst
   src?: PDModel.PackageSrc
   open?: boolean | PDModel.FilesState['value']['added']
+  onClose?: () => void
 }
 
 /**
@@ -359,11 +360,12 @@ export default function useCreateDialog({
   dst: initialDst,
   src: initialSrc,
   open: initialOpen,
+  onClose,
 }: UseCreateDialogOptions) {
   const state = PDModel.useState(initialDst, initialSrc, initialOpen)
   const { formStatus, setDst, reset, workflowsConfig, open: isOpen, setOpen } = state
 
-  const [exited, setExited] = React.useState(true)
+  const [exited, setExited] = React.useState(!initialOpen)
 
   const [waitingListing, setWaitingListing] = React.useState(false)
   const resolveFiles = useResolveFiles()
@@ -399,7 +401,9 @@ export default function useCreateDialog({
   const close = React.useCallback(() => {
     setOpen(false)
     reset()
-  }, [reset, setOpen])
+
+    if (onClose) onClose()
+  }, [reset, setOpen, onClose])
 
   const handleExited = React.useCallback(() => {
     setExited(true)
@@ -440,5 +444,5 @@ export default function useCreateDialog({
     </DialogWrapper>
   )
 
-  return { open, close, render }
+  return { open, close, render, onClose }
 }

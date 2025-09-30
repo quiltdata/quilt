@@ -157,6 +157,24 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   )
 }
 
+function useCreateDialog(packageHandle: PackageHandle) {
+  const history = RRDom.useHistory()
+  const { paths, urls } = NamedRoutes.use<RouteMap>()
+
+  const open = !!RRDom.useRouteMatch({ path: paths.bucketPackageAdd, exact: true })
+
+  const { push } = history
+  const onClose = React.useCallback(() => {
+    if (!open) return
+
+    const { bucket, name } = packageHandle
+    // `bucketPackageDetail` only, because `bucketPackageAdd` is on top of "latest", not specific revision
+    push(urls.bucketPackageDetail(bucket, name))
+  }, [open, packageHandle, push, urls])
+
+  return PD.useCreateDialog({ src: packageHandle, dst: packageHandle, open, onClose })
+}
+
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -185,8 +203,6 @@ function DirDisplay({
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
 
-  const initialActions = PD.useInitialActions()
-
   const dirQuery = GQL.useQuery(DIR_QUERY, {
     ...packageHandle,
     path: s3paths.ensureNoSlash(path),
@@ -194,12 +210,7 @@ function DirDisplay({
 
   const { bucket, name, hash } = packageHandle
 
-  const dst = React.useMemo(() => ({ bucket, name }), [bucket, name])
-  const updateDialog = PD.useCreateDialog({
-    src: packageHandle,
-    dst,
-    open: initialActions.includes('revisePackage'),
-  })
+  const updateDialog = useCreateDialog(packageHandle)
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
@@ -208,7 +219,7 @@ function DirDisplay({
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
-    if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
+    if (prev && !R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
   const { prefs } = BucketPreferences.use()
@@ -601,6 +612,7 @@ interface RouteMap {
   bucketFile: Routes.BucketFileArgs
   bucketPackageTree: Routes.BucketPackageTreeArgs
   bucketPackageDetail: Routes.BucketPackageDetailArgs
+  bucketPackageAdd: Routes.BucketPackageAddFilesArgs
   bucketPackageList: Routes.BucketPackageListArgs
 }
 
