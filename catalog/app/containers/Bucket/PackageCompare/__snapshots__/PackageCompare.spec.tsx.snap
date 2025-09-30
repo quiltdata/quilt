@@ -240,10 +240,10 @@ exports[`containers/Bucket/PackageCompare/PackageCompare should match snapshot 1
               data-testid="diff-viewer"
             >
               <div>
-                hash1 Metadata
+                hash1
               </div>
               <div>
-                hash2 Metadata
+                hash2
               </div>
               <pre>
                 {
@@ -273,36 +273,18 @@ exports[`containers/Bucket/PackageCompare/PackageCompare should match snapshot 1
           <div
             className="MuiBox-root MuiBox-root-36"
           >
-            <div
-              data-testid="diff-viewer"
+            <p
+              className="MuiTypography-root MuiTypography-body2 MuiTypography-colorTextSecondary"
+              style={
+                {
+                  "fontStyle": "italic",
+                  "padding": 16,
+                  "textAlign": "center",
+                }
+              }
             >
-              <div>
-                hash1 Entries
-              </div>
-              <div>
-                hash2 Entries
-              </div>
-              <pre>
-                {
-  "file1.txt": {
-    "size": 100
-  },
-  "file2.txt": {
-    "size": 200
-  }
-}
-              </pre>
-              <pre>
-                {
-  "file1.txt": {
-    "size": 100
-  },
-  "file2.txt": {
-    "size": 200
-  }
-}
-              </pre>
-            </div>
+              Manifest entries are identical
+            </p>
           </div>
         </div>
       </div>

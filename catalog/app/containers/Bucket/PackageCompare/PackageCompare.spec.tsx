@@ -87,6 +87,10 @@ jest.mock('utils/clipboard', () => jest.fn())
 jest.mock('utils/string', () => ({
   readableBytes: (bytes: number) => `${bytes} bytes`,
   readableQuantity: (qty: number) => `${qty}`,
+  trimCenter: (str: string, maxLength: number = 20) =>
+    str.length > maxLength
+      ? `${str.substring(0, Math.floor(maxLength / 2) - 1)}...${str.substring(str.length - Math.floor(maxLength / 2) + 1)}`
+      : str,
 }))
 
 // Mock date-fns

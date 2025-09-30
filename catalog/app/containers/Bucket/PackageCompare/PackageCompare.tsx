@@ -12,7 +12,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
-import { readableBytes } from 'utils/string'
+import { readableBytes, trimCenter } from 'utils/string'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import WithPackagesSupport from '../WithPackagesSupport'
@@ -157,14 +157,29 @@ function RevisionCompareTable({
     const leftManifestString = leftData ? JSON.stringify(leftData, null, 2) : ''
     const rightManifestString = rightData ? JSON.stringify(rightData, null, 2) : ''
 
+    // Don't show diff if the manifests are identical
+    if (leftManifestString === rightManifestString) {
+      return (
+        <M.Box>
+          <M.Typography
+            variant="body2"
+            color="textSecondary"
+            style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
+          >
+            Manifest entries are identical
+          </M.Typography>
+        </M.Box>
+      )
+    }
+
     return (
       <M.Box>
         <ReactDiffViewer
           oldValue={leftManifestString}
           newValue={rightManifestString}
           splitView={true}
-          leftTitle={`${leftRevision?.hash?.substring(0, 8) || 'Left'} Entries`}
-          rightTitle={`${rightRevision?.hash?.substring(0, 8) || 'Right'} Entries`}
+          leftTitle={leftRevision?.hash ? trimCenter(leftRevision.hash, 15) : 'Left'}
+          rightTitle={rightRevision?.hash ? trimCenter(rightRevision.hash, 15) : 'Right'}
           showDiffOnly={false}
           hideLineNumbers={false}
         />
@@ -187,14 +202,29 @@ function RevisionCompareTable({
     const leftMetadataString = JSON.stringify(leftMetadata, null, 2)
     const rightMetadataString = JSON.stringify(rightMetadata, null, 2)
 
+    // Don't show diff if the metadata is identical
+    if (leftMetadataString === rightMetadataString) {
+      return (
+        <M.Box>
+          <M.Typography
+            variant="body2"
+            color="textSecondary"
+            style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
+          >
+            Metadata is identical
+          </M.Typography>
+        </M.Box>
+      )
+    }
+
     return (
       <M.Box>
         <ReactDiffViewer
           oldValue={leftMetadataString}
           newValue={rightMetadataString}
           splitView={true}
-          leftTitle={`${leftRevision?.hash?.substring(0, 8) || 'Left'} Metadata`}
-          rightTitle={`${rightRevision?.hash?.substring(0, 8) || 'Right'} Metadata`}
+          leftTitle={leftRevision?.hash ? trimCenter(leftRevision.hash, 15) : 'Left'}
+          rightTitle={rightRevision?.hash ? trimCenter(rightRevision.hash, 15) : 'Right'}
           showDiffOnly={false}
           hideLineNumbers={false}
         />
