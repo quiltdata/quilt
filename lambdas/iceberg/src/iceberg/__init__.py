@@ -20,54 +20,80 @@ QUILT_ICEBERG_WORKGROUP = os.getenv("QUILT_ICEBERG_WORKGROUP")
 def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, delete: bool) -> str:
     # TODO: support delete
     return f"""
-        INSERT INTO package_revision (registry, pkg_name, top_hash, timestamp, message, metadata)
-        SELECT
-            '{bucket}' AS registry,
-            pkg_name,
-            top_hash,
-            from_unixtime(CAST(timestamp AS bigint)),
-            message,
-            user_meta AS metadata
-        FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
-        WHERE pkg_name = '{pkg_name}' AND timestamp = '{pointer}'
+        MERGE INTO package_revision (registry, pkg_name, top_hash, timestamp, message, metadata) AS t
+        USING (
+            SELECT
+                '{bucket}' AS registry,
+                pkg_name,
+                top_hash,
+                from_unixtime(CAST(timestamp AS bigint)),
+                message,
+                user_meta AS metadata
+            FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
+            WHERE pkg_name = '{pkg_name}' AND timestamp = '{pointer}'
+            LIMIT 1
+        ) AS s
+        ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.timestamp = s.timestamp
+        WHEN MATCHED THEN
+            UPDATE SET top_hash = s.top_hash, message = s.message, metadata = s.metadata
+        WHEN NOT MATCHED THEN
+            INSERT (registry, pkg_name, top_hash, timestamp, message, metadata)
+            VALUES (s.registry, s.pkg_name, s.top_hash, s.timestamp, s.message, s.metadata)
     """
 
 
 def make_query_package_tag(*, bucket: str, pkg_name: str, pointer: str, delete: bool) -> str:
     # TODO: support delete
     return f"""
-        INSERT INTO package_tag (registry, pkg_name, tag_name, top_hash)
-        SELECT
-            '{bucket}' AS registry,
-            pkg_name,
-            timestamp AS tag_name,
-            top_hash
-        FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
-        WHERE pkg_name = '{pkg_name}' AND timestamp = '{pointer}'
+        MERGE INTO package_tag AS t
+        USING (
+            SELECT
+                '{bucket}' AS registry,
+                pkg_name,
+                timestamp AS tag_name,
+                top_hash
+            FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
+            WHERE pkg_name = '{pkg_name}' AND timestamp = '{pointer}'
+            LIMIT 1
+        ) AS s
+        ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.tag_name = s.tag_name
+        WHEN MATCHED THEN
+            UPDATE SET top_hash = s.top_hash
+        WHEN NOT MATCHED THEN
+            INSERT (registry, pkg_name, tag_name, top_hash)
+            VALUES (s.registry, s.pkg_name, s.tag_name, s.top_hash)
     """
 
 
 def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str:
     # TODO: support delete
     return f"""
-        INSERT INTO package_entry (registry, top_hash, logical_key, physical_key, multihash, size, metadata)
-        SELECT
-            '{bucket}' AS registry,
-            '{top_hash}',
-            logical_key,
-            physical_keys[1],
-            concat(
-                CASE hash.type
-                WHEN 'SHA256' THEN '1220'
-                WHEN 'sha2-256-chunked' THEN '90ea0220'
-                END,
-                hash.value
-            ) AS multihash,
-            size,
-            meta AS metadata
-        FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_manifests"
-        WHERE $path = '{quilt_shared.const.MANIFESTS_PREFIX}{top_hash}'
-            AND logical_key IS NOT NULL
+        MERGE INTO package_entry (registry, top_hash, logical_key, physical_key, multihash, size, metadata) AS t
+        USING (
+            SELECT
+                '{bucket}' AS registry,
+                '{top_hash}',
+                logical_key,
+                physical_keys[1],
+                concat(
+                    CASE hash.type
+                    WHEN 'SHA256' THEN '1220'
+                    WHEN 'sha2-256-chunked' THEN '90ea0220'
+                    END,
+                    hash.value
+                ) AS multihash,
+                size,
+                meta AS metadata
+            FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_manifests"
+            WHERE $path = '{quilt_shared.const.MANIFESTS_PREFIX}{top_hash}'
+                AND logical_key IS NOT NULL
+        ) AS s
+        ON t.registry = s.registry AND t.top_hash = s.top_hash AND t.logical_key = s.logical_key
+        WHEN MATCHED THEN
+            UPDATE SET physical_key = s.physical_key, multihash = s.multihash, size = s.size, metadata = s.metadata
+        WHEN NOT MATCHED THEN
+            INSERT (registry, top_hash, logical_key, physical_key, multihash, size, metadata)
+            VALUES (s.registry, s.top_hash, s.logical_key, s.physical_key, s.multihash, s.size, s.metadata)
     """
 
 
