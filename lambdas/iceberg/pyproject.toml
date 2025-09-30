@@ -1,0 +1,28 @@
+[project]
+name = "iceberg"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.40.41,<2.0.0",
+    "quilt-shared",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = [
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "pytest-env>=1.1.5",
+    "pytest-mock>=3.15.1",
+]
+
+[tool.uv.sources]
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/df53c9ce125ea051e0d1ac41d58796336e202256.zip", subdirectory = "py-shared" }
