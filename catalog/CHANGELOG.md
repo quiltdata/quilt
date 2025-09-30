@@ -18,9 +18,11 @@ where verb is one of
 
 ## Changes
 
+- [Added] Package Dialog can now reuse manifest from existing packages when entering their names ([#4564](https://github.com/quiltdata/quilt/pull/4564))
+- [Changed] Refactor Package Dialog: add centralized state management with strict TypeScript typing and remove "react-final-form" ([#4564](https://github.com/quiltdata/quilt/pull/4564))
 - [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))
 - [Changed] Improve handling of no results on packages tab ([#4539](https://github.com/quiltdata/quilt/pull/4539))
-- [Changed] Removed unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
+- [Changed] Remove unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
 - [Added] File upload and deletion functionality to manage files directly in buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Refactor toolbar layout in Bucket tab for improved consistency and maintainability ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Make 'add bucket' buttons on the main page route to 'add bucket' admin page instead of bucket list ([#4538](https://github.com/quiltdata/quilt/pull/4538))

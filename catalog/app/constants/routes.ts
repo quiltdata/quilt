@@ -96,10 +96,10 @@ export const bucketSearch = route(
 )
 
 interface BucketFileOpts {
-  add?: string
+  add?: string // PackageURI for adding this file to
+  next?: string
   edit?: boolean
   mode?: string
-  next?: string
   version?: string
 }
 
@@ -133,16 +133,24 @@ export const bucketPackageList = route(
 )
 export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
-interface BucketPackageDetailOpts {
-  action?: string
-}
-
 export const bucketPackageDetail = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  (bucket: string, name: string, { action }: BucketPackageDetailOpts = {}) =>
-    `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
+  (bucket: string, name: string) => `/b/${bucket}/packages/${name}`,
 )
+
 export type BucketPackageDetailArgs = Parameters<typeof bucketPackageDetail.url>
+
+interface BucketPackageAddFilesOpts {
+  [logicalKey: string]: string // S3 url
+}
+
+export const bucketPackageAddFiles = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/add-files`,
+  (bucket: string, name: string, files: BucketPackageAddFilesOpts = {}) =>
+    `/b/${bucket}/packages/${name}/add/${mkSearch(files)}`,
+)
+
+export type BucketPackageAddFilesArgs = Parameters<typeof bucketPackageAddFiles.url>
 
 export const bucketPackageTree = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
