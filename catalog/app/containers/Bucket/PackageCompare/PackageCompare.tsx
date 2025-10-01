@@ -13,7 +13,7 @@ import WithPackagesSupport from '../WithPackagesSupport'
 
 import RevisionsList from './RevisionsList'
 import MetadataDiff from './Diff/Metadata'
-import ManifestDiff from './Diff/Manifest'
+import EntriesDiff from './Diff/Entries'
 import SystemMetaTable from './SystemMetaTable'
 import { useRevision } from './useRevision'
 
@@ -119,7 +119,7 @@ export function RevisionsCompare({
           Entries
         </M.Typography>
         <M.Paper square variant="outlined">
-          <ManifestDiff left={leftRevisionResult} right={rightRevisionResult} />
+          <EntriesDiff left={leftRevisionResult} right={rightRevisionResult} />
         </M.Paper>
       </div>
     </div>
