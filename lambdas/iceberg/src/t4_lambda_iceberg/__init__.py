@@ -20,7 +20,7 @@ QUILT_ICEBERG_WORKGROUP = os.getenv("QUILT_ICEBERG_WORKGROUP")
 def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, delete: bool) -> str:
     # TODO: support delete
     return f"""
-        MERGE INTO package_revision (registry, pkg_name, top_hash, timestamp, message, metadata) AS t
+        MERGE INTO package_revision AS t
         USING (
             SELECT
                 '{bucket}' AS registry,
@@ -68,7 +68,7 @@ def make_query_package_tag(*, bucket: str, pkg_name: str, pointer: str, delete: 
 def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str:
     # TODO: support delete
     return f"""
-        MERGE INTO package_entry (registry, top_hash, logical_key, physical_key, multihash, size, metadata) AS t
+        MERGE INTO package_entry AS t
         USING (
             SELECT
                 '{bucket}' AS registry,
