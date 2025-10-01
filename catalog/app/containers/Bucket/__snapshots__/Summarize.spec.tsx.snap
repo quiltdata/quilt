@@ -2,13 +2,13 @@
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should not render buttons when there are files out there 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-1"
 />
 `;
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should render both links 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-7"
 >
   <div>
     Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
@@ -41,7 +41,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_summarize link 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-5"
 >
   <div>
     Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
@@ -61,7 +61,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_su
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should render readme link 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-3"
 >
   <div>
     Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import { WorkflowsConfigLink } from './HelpLinks'
 
@@ -43,16 +43,14 @@ jest.mock('react-router-dom', () => ({
 describe('components/FileEditor/HelpLinks', () => {
   describe('WorkflowsConfigLink', () => {
     it('should render', () => {
-      const tree = renderer
-        .create(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should throw outside bucket', () => {
       jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
       useParams.mockImplementationOnce(() => ({}))
-      const tree = () => renderer.create(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
+      const tree = () => render(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
       expect(tree).toThrowError('`bucket` must be defined')
     })
   })

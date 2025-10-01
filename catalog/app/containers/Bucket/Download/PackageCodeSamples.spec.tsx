@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import PackageCodeSamples from './PackageCodeSamples'
 
@@ -26,7 +26,7 @@ describe('containers/Bucket/CodeSamples/Package', () => {
       path: 'path',
       catalog: 'catalog',
     }
-    const tree = renderer.create(<PackageCodeSamples {...props} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<PackageCodeSamples {...props} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
 import AsyncResult from 'utils/AsyncResult'
@@ -78,46 +78,40 @@ describe('components/FileEditor/FileEditor', () => {
       loadMode.mockImplementationOnce(() => {
         throw Promise.resolve(null)
       })
-      const tree = renderer
-        .create(
-          <Editor
-            {...state}
-            className="root"
-            editing={{ brace: 'json' }}
-            handle={handle}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <Editor
+          {...state}
+          className="root"
+          editing={{ brace: 'json' }}
+          handle={handle}
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows TextEditor', () => {
-      const tree = renderer
-        .create(
-          <Editor
-            {...state}
-            className="root"
-            editing={{ brace: 'json' }}
-            handle={handle}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <Editor
+          {...state}
+          className="root"
+          editing={{ brace: 'json' }}
+          handle={handle}
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows an empty TextEditor', () => {
-      const tree = renderer
-        .create(
-          <Editor
-            {...state}
-            empty
-            className="root"
-            editing={{ brace: 'json' }}
-            handle={handle}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <Editor
+          {...state}
+          empty
+          className="root"
+          editing={{ brace: 'json' }}
+          handle={handle}
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows Skeleton while loading data', () => {
@@ -125,17 +119,15 @@ describe('components/FileEditor/FileEditor', () => {
         AsyncResult.case(cases, AsyncResult.Pending()),
       )
       const { result } = renderHook(() => useState(handle))
-      const tree = renderer
-        .create(
-          <Editor
-            {...result.current}
-            className="root"
-            editing={{ brace: 'json' }}
-            handle={handle}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <Editor
+          {...result.current}
+          className="root"
+          editing={{ brace: 'json' }}
+          handle={handle}
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows Error when loading failed', () => {
@@ -143,17 +135,15 @@ describe('components/FileEditor/FileEditor', () => {
         AsyncResult.case(cases, AsyncResult.Err(new Error('Fail'))),
       )
       const { result } = renderHook(() => useState(handle))
-      const tree = renderer
-        .create(
-          <Editor
-            {...result.current}
-            className="root"
-            editing={{ brace: 'json' }}
-            handle={handle}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <Editor
+          {...result.current}
+          className="root"
+          editing={{ brace: 'json' }}
+          handle={handle}
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })

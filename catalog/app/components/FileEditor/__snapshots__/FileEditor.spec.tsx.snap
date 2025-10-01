@@ -2,7 +2,7 @@
 
 exports[`components/FileEditor/FileEditor Editor shows Error when loading failed 1`] = `
 <div
-  className="makeStyles-tab-1 makeStyles-active-2"
+  class="makeStyles-tab-9 makeStyles-active-10"
 >
   <div>
     <div
@@ -14,7 +14,7 @@ exports[`components/FileEditor/FileEditor Editor shows Error when loading failed
 
 exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading data 1`] = `
 <div
-  className="makeStyles-tab-1 makeStyles-active-2"
+  class="makeStyles-tab-7 makeStyles-active-8"
 >
   <div
     id="Skeleton"
@@ -24,7 +24,7 @@ exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading da
 
 exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
 <div
-  className="makeStyles-tab-1 makeStyles-active-2"
+  class="makeStyles-tab-3 makeStyles-active-4"
 >
   <div
     id="Text Editor"
@@ -40,22 +40,21 @@ exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
 
 exports[`components/FileEditor/FileEditor Editor shows an empty TextEditor 1`] = `
 <div
-  className="makeStyles-tab-1 makeStyles-active-2"
+  class="makeStyles-tab-5 makeStyles-active-6"
 >
   <div
     id="Text Editor"
   >
     <span
       id="initialValue"
-    >
-      
-    </span>
+    />
   </div>
 </div>
 `;
 
 exports[`components/FileEditor/FileEditor Editor shows skeleton when loadMode is not resolved yet 1`] = `
 <div
-  id="Skeleton"
+  class="makeStyles-tab-1 makeStyles-active-2"
+  style="display: none;"
 />
 `;
