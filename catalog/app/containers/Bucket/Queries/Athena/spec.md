@@ -29,7 +29,9 @@ interface ValueController<T> {
 
 ### Story 1: View Execution Results
 
-**URL:** `/b/{bucket}/queries/athena/{workgroupId}/{executionId}`
+```ts
+const { bucket, workgroupId, executionId } = useURLParams()
+```
 
 ```xml
 <Athena :bucket :workgroupId :executionId>
@@ -57,7 +59,9 @@ interface ValueController<T> {
 
 ### Story 2: Main Query Interface
 
-**URL:** `/b/{bucket}/queries/athena/{workgroupId}`
+```ts
+const { bucket, workgroupId } = useURLParams()
+```
 
 ```xml
 <Athena :bucket :workgroupId>
@@ -84,7 +88,9 @@ interface ValueController<T> {
 
 ### Story 3: Landing Page (No Workgroup Selected)
 
-**URL:** `/b/{bucket}/queries/athena`
+```ts
+const { bucket } = useURLParams()
+```
 
 ```xml
 <Athena :bucket>
@@ -96,6 +102,10 @@ interface ValueController<T> {
 
 ### Story 4: User Selects Different Workgroup
 
+```ts
+const { bucket, workgroupId } = useURLParams()
+```
+
 ```xml
 <Athena :bucket :workgroupId>
   <workgroups>
@@ -105,6 +115,10 @@ interface ValueController<T> {
 ```
 
 ### Story 5: User Edits Query Text
+
+```ts
+const { bucket, workgroupId } = useURLParams()
+```
 
 ```xml
 <Athena :bucket :workgroupId>
@@ -129,6 +143,10 @@ interface ValueController<T> {
 ```
 
 ### Story 6: User Submits Query
+
+```ts
+const { bucket, workgroupId } = useURLParams()
+```
 
 ```xml
 <Athena :bucket :workgroupId>

@@ -135,8 +135,8 @@ function getSelectedWorkflow({ workflows }: WorkflowsConfig, selectedWorkflow?: 
 }
 
 function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
-  const config = useWorkflowConfig(bucket)
-  const schema = useMetadataSchema(config, selectedWorkflow)
+  const { result: config } = useWorkflowConfig(bucket)
+  const { result: schema } = useMetadataSchema(config, selectedWorkflow)
 
   if (config === Request.Loading || config === Request.Idle) return config
   if (config instanceof Error) {

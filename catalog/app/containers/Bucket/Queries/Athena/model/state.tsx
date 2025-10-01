@@ -25,7 +25,7 @@ export interface State {
    * If workgroup doesn't exist, then its value is Error
    * It can't be null
    */
-  workgroup: Model.DataController<requests.Workgroup>
+  workgroup: Model.Data<requests.Workgroup>
   /** List of named queries, including query body for each query */
   queries: Model.DataController<Model.List<requests.Query>>
   /** Selected named query */
@@ -59,49 +59,66 @@ export interface State {
    * Error when submit failed or when validation failed (e.g. no database selected)
    */
   queryRun: Model.Value<requests.QueryRun>
+
+  /** URL generators */
+  toWorkgroup: (workgroup: string) => string
+  toExecution: (executionId: string) => string
 }
 
 export const Ctx = React.createContext<State | null>(null)
 
 interface ProviderProps {
-  preferences?: BucketPreferences.AthenaPreferences
+  bucket: string
   children: React.ReactNode
+  preferences?: BucketPreferences.AthenaPreferences
+  queryExecutionId?: string
+  workgroupId?: requests.Workgroup
 }
 
-export function Provider({ preferences, children }: ProviderProps) {
+export function Provider({
+  bucket,
+  preferences,
+  queryExecutionId,
+  workgroupId,
+  children,
+}: ProviderProps) {
   const { urls } = NamedRoutes.use()
-
-  const {
-    bucket,
-    queryExecutionId,
-    workgroup: workgroupId,
-  } = RRDom.useParams<{
-    bucket: string
-    queryExecutionId?: string
-    workgroup?: requests.Workgroup
-  }>()
-  invariant(!!bucket, '`bucket` must be defined')
 
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 
   const workgroups = requests.useWorkgroups()
-  const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
-  const queries = requests.useQueries(workgroup.data)
+  const workgroup = requests.useWorkgroup(workgroups.data, workgroupId, preferences)
+  const queries = requests.useQueries(workgroup)
   const query = requests.useQuery(queries.data, execution)
-  const queryBody = requests.useQueryBody(query.value, query.setValue, execution)
-  const catalogNames = requests.useCatalogNames(workgroup.data)
+  const resetQuery = React.useCallback(() => query.setValue(null), [query])
+  const queryBody = requests.useQueryBody(query.value, resetQuery, execution)
+  const catalogNames = requests.useCatalogNames(workgroup)
   const catalogName = requests.useCatalogName(catalogNames.data, execution)
   const databases = requests.useDatabases(catalogName.value)
   const database = requests.useDatabase(databases.data, execution)
-  const executions = requests.useExecutions(workgroup.data, queryExecutionId)
+  const executions = requests.useExecutions(workgroup, queryExecutionId)
   const results = requests.useResults(execution)
 
   const [queryRun, submit] = requests.useQueryRun({
-    workgroup: workgroup.data,
+    workgroup: workgroup,
     catalogName: catalogName.value,
     database: database.value,
     queryBody: queryBody.value,
   })
+
+  const toWorkgroup = React.useCallback(
+    (w: string) => urls.bucketAthenaWorkgroup(bucket, w),
+    [bucket, urls],
+  )
+  const toExecution = React.useCallback(
+    (e: string) => {
+      if (!Model.hasData(workgroup)) {
+        throw new Error('Workgroup not ready')
+      }
+      return urls.bucketAthenaExecution(bucket, workgroup.data, e)
+    },
+    [bucket, workgroup, urls],
+  )
 
   const value: State = {
     bucket,
@@ -122,18 +139,17 @@ export function Provider({ preferences, children }: ProviderProps) {
 
     submit,
     queryRun,
+
+    toWorkgroup,
+    toExecution,
   }
 
-  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
-    return (
-      <RRDom.Redirect
-        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.id)}
-      />
-    )
+  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.data.id) {
+    return <RRDom.Redirect to={toExecution(queryRun.data.id)} />
   }
 
-  if (Model.hasData(workgroup.data) && !workgroupId) {
-    return <RRDom.Redirect to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)} />
+  if (Model.hasData(workgroup) && !workgroupId) {
+    return <RRDom.Redirect to={toWorkgroup(workgroup.data)} />
   }
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
