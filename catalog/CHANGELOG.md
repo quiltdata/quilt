@@ -19,6 +19,7 @@ where verb is one of
 ## Changes
 
 - [Changed] Qurator: make tool messages less prominent ([#4572](https://github.com/quiltdata/quilt/pull/4572))
+- [Fixed] Qurator: Limit total search results contents context to 100k characters to avoid context window overflow ([#4573](https://github.com/quiltdata/quilt/pull/4573))
 - [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))
 - [Changed] Improve handling of no results on packages tab ([#4539](https://github.com/quiltdata/quilt/pull/4539))
 - [Changed] Removed unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))

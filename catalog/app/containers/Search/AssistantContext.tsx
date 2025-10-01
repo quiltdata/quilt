@@ -178,15 +178,16 @@ function useSearchContextModel(): MaybeEitherSearchContext {
   )
 }
 
-const MAX_CONTENT_LENGTH = 10_000
+const MAX_CONTENT_TOTAL_LENGTH = 100_000
 
-function truncateIndexedContent(hit: FirstPageHits[number]) {
+function truncateIndexedContent(hit: FirstPageHits[number], total: number) {
   switch (hit.__typename) {
     case 'SearchHitObject':
-      return (hit.indexedContent?.length ?? 0) > MAX_CONTENT_LENGTH
+      const limit = Math.floor(MAX_CONTENT_TOTAL_LENGTH / total)
+      return (hit.indexedContent?.length ?? 0) > limit
         ? {
             ...hit,
-            indexedContent: hit.indexedContent?.slice(0, MAX_CONTENT_LENGTH),
+            indexedContent: hit.indexedContent?.slice(0, limit),
             indexedContentTruncated: true,
           }
         : hit
@@ -249,7 +250,11 @@ function useSearchContext() {
               XML.tag(
                 'search-result',
                 { index },
-                JSON.stringify(truncateIndexedContent(hit), null, 2),
+                JSON.stringify(
+                  truncateIndexedContent(hit, ctx.firstPage.length),
+                  null,
+                  2,
+                ),
               ),
             ),
           )
