@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import * as GQL from 'utils/GraphQL'
 import type { PackageHandle } from 'utils/packageHandle'
 
-import REVISION_LIST_QUERY from '../PackageRevisions/gql/RevisionList.generated'
+import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
 type RevisionFields = NonNullable<
   NonNullable<

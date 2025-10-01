@@ -1,7 +1,7 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
 
-import { PackageCompare } from './PackageCompare'
+import { RevisionsCompare } from './PackageCompare'
 
 // Mock config
 jest.mock('constants/config', () => ({}))
@@ -20,7 +20,7 @@ jest.mock('@material-ui/core', () => ({
 
 // Mock GraphQL hook
 jest.mock('utils/GraphQL', () => ({
-  useQuery: jest.fn((query, variables) => {
+  useQuery: jest.fn((_query, variables) => {
     // Return different mock data based on the query type
     if (variables.max !== undefined) {
       // This is a manifest query
@@ -153,6 +153,8 @@ describe('containers/Bucket/PackageCompare/PackageCompare', () => {
       name: 'test-package',
       hash: 'hash2',
     },
+    onLeftChange: () => {},
+    onRightChange: () => {},
   }
 
   beforeEach(() => {
@@ -160,12 +162,12 @@ describe('containers/Bucket/PackageCompare/PackageCompare', () => {
   })
 
   it('should render without crashing', () => {
-    const tree = renderer.create(<PackageCompare {...mockPackageHandles} />)
+    const tree = renderer.create(<RevisionsCompare {...mockPackageHandles} />)
     expect(tree).toBeTruthy()
   })
 
   it('should render comparison table with both revisions', () => {
-    const tree = renderer.create(<PackageCompare {...mockPackageHandles} />)
+    const tree = renderer.create(<RevisionsCompare {...mockPackageHandles} />)
     const instance = tree.root
 
     // Check that table structure exists
@@ -176,7 +178,7 @@ describe('containers/Bucket/PackageCompare/PackageCompare', () => {
   })
 
   it('should match snapshot', () => {
-    const tree = renderer.create(<PackageCompare {...mockPackageHandles} />)
+    const tree = renderer.create(<RevisionsCompare {...mockPackageHandles} />)
     expect(tree).toMatchSnapshot()
   })
 })

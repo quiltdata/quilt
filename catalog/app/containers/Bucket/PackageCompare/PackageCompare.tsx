@@ -1,459 +1,259 @@
+import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import invariant from 'invariant'
 import * as React from 'react'
-import ReactDiffViewer from 'react-diff-viewer-continued'
 import * as RRDom from 'react-router-dom'
-import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
-import Skeleton from 'components/Skeleton'
-import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import { readableBytes, trimCenter } from 'utils/string'
+import { readableBytes } from 'utils/string'
 import type { PackageHandle } from 'utils/packageHandle'
 
+import * as FileView from '../FileView'
 import WithPackagesSupport from '../WithPackagesSupport'
-import { displayError } from '../errors'
 
-import REVISION_LIST_QUERY from '../PackageRevisions/gql/RevisionList.generated'
-import MANIFEST_QUERY from '../PackageDialog/gql/Manifest.generated'
 import RevisionsList from './RevisionsList'
+import MetadataDiff from './Diff/Metadata'
+import ManifestDiff from './Diff/Manifest'
+import { Revision, useRevision } from './useRevision'
 
-type RevisionFields = NonNullable<
-  NonNullable<
-    ResultOf<typeof REVISION_LIST_QUERY>['package']
-  >['revisions']['page'][number]
->
+interface ModifiedProps {
+  packageHandle: PackageHandle
+  revision: Revision
+}
 
-const useStyles = M.makeStyles((t) => ({
-  table: {
-    '& th, & td': {
-      border: `1px solid ${t.palette.divider}`,
-      padding: t.spacing(1, 2),
-    },
-  },
-  mono: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-  hash: {
-    color: t.palette.text.secondary,
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: t.typography.body2.fontSize,
-    wordBreak: 'break-all',
-  },
-}))
-
-function RevisionSkeleton() {
+function Modified({
+  packageHandle: { bucket, name },
+  revision: { modified, hash },
+}: ModifiedProps) {
+  const { urls } = NamedRoutes.use()
+  const formatted = React.useMemo(
+    () => dateFns.format(modified, 'MMMM do yyyy - h:mma'),
+    [modified],
+  )
   return (
-    <>
-      <M.TableRow>
-        <M.TableCell>
-          <Skeleton width={150} height={20} />
-        </M.TableCell>
-        <M.TableCell>
-          <Skeleton width={150} height={20} />
-        </M.TableCell>
-      </M.TableRow>
-      <M.TableRow>
-        <M.TableCell>
-          <Skeleton width="100%" height={20} />
-        </M.TableCell>
-        <M.TableCell>
-          <Skeleton width="100%" height={20} />
-        </M.TableCell>
-      </M.TableRow>
-      <M.TableRow>
-        <M.TableCell>
-          <Skeleton width={80} height={20} />
-        </M.TableCell>
-        <M.TableCell>
-          <Skeleton width={80} height={20} />
-        </M.TableCell>
-      </M.TableRow>
-    </>
+    <M.Typography variant="body2">
+      <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>{formatted}</StyledLink>
+    </M.Typography>
   )
 }
 
-interface RevisionCompareTableProps {
-  bucket: string
-  name: string
-  leftRevision: RevisionFields | null
-  rightRevision: RevisionFields | null
+function ModifiedSkeleton() {
+  return (
+    <M.Typography variant="body2">
+      <Lab.Skeleton width={120} />
+    </M.Typography>
+  )
+}
+
+const useMessageStyles = M.makeStyles((t) => ({
+  empty: {
+    color: t.palette.text.secondary,
+    fontStyle: 'italic',
+  },
+}))
+
+interface MessageProps {
+  revision: Revision
+}
+
+function Message({ revision: { message } }: MessageProps) {
+  const classes = useMessageStyles()
+  return (
+    <M.Typography className={cx(!message && classes.empty)} variant="body2">
+      {message || 'No message'}
+    </M.Typography>
+  )
+}
+
+function MessageSkeleton() {
+  return (
+    <M.Typography variant="body2">
+      <Lab.Skeleton width={240} />
+    </M.Typography>
+  )
+}
+
+interface SizeProps {
+  revision: Revision
+}
+
+function Size({ revision: { totalBytes } }: SizeProps) {
+  return <M.Typography variant="body2">{readableBytes(totalBytes)}</M.Typography>
+}
+
+function SizeSkeleton() {
+  return (
+    <M.Typography variant="body2">
+      <Lab.Skeleton width={60} />
+    </M.Typography>
+  )
+}
+
+const useHeaderStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gridColumnGap: t.spacing(4),
+  },
+}))
+
+interface HeaderProps {
   left: PackageHandle
   right: PackageHandle
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
 }
 
-function RevisionCompareTable({
-  bucket,
-  name,
-  leftRevision,
-  rightRevision,
+function Header({ left, right, onLeftChange, onRightChange }: HeaderProps) {
+  const classes = useHeaderStyles()
+  return (
+    <div className={classes.root}>
+      <RevisionsList packageHandle={left} onChange={onLeftChange} label="Left Revision" />
+      <RevisionsList
+        packageHandle={right}
+        onChange={onRightChange}
+        label="Right Revision"
+      />
+    </div>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  root: {},
+  systemMeta: {
+    padding: t.spacing(2),
+  },
+  table: {
+    marginTop: t.spacing(1),
+  },
+  userMeta: {
+    marginTop: t.spacing(4),
+  },
+  entries: {
+    marginTop: t.spacing(4),
+  },
+}))
+
+interface RevisionsCompareProps {
+  left: PackageHandle
+  right: PackageHandle
+  onLeftChange: (hash: string) => void
+  onRightChange: (hash: string) => void
+}
+
+export function RevisionsCompare({
   left,
   right,
   onLeftChange,
   onRightChange,
-}: RevisionCompareTableProps) {
+}: RevisionsCompareProps) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
 
-  // Fetch manifests for both revisions
-  const leftManifestQuery = GQL.useQuery(
-    MANIFEST_QUERY,
-    {
-      bucket,
-      name,
-      hashOrTag: left.hash || 'latest',
-      max: 10000,
-      skipEntries: false,
-    },
-    { pause: !left.hash },
-  )
+  const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
+  const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
 
-  const rightManifestQuery = GQL.useQuery(
-    MANIFEST_QUERY,
-    {
-      bucket,
-      name,
-      hashOrTag: right.hash || 'latest',
-      max: 10000,
-      skipEntries: false,
-    },
-    { pause: !right.hash },
-  )
-
-  const formatDate = (date: Date) => dateFns.format(date, 'MMMM do yyyy - h:mma')
-
-  const renderManifestDiff = () => {
-    // Check if both manifests have loaded
-    const leftData = leftManifestQuery.data?.package?.revision?.contentsFlatMap
-    const rightData = rightManifestQuery.data?.package?.revision?.contentsFlatMap
-
-    if (leftManifestQuery.fetching || rightManifestQuery.fetching) {
-      return <Skeleton width="100%" height={200} />
-    }
-
-    if (leftManifestQuery.error || rightManifestQuery.error) {
-      return (
-        <M.Typography variant="body2" color="error">
-          Error loading manifests
-        </M.Typography>
-      )
-    }
-
-    const leftManifestString = leftData ? JSON.stringify(leftData, null, 2) : ''
-    const rightManifestString = rightData ? JSON.stringify(rightData, null, 2) : ''
-
-    // Don't show diff if the manifests are identical
-    if (leftManifestString === rightManifestString) {
-      return (
-        <M.Box>
-          <M.Typography
-            variant="body2"
-            color="textSecondary"
-            style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
-          >
-            Manifest entries are identical
-          </M.Typography>
-        </M.Box>
-      )
-    }
-
-    return (
-      <M.Box>
-        <ReactDiffViewer
-          oldValue={leftManifestString}
-          newValue={rightManifestString}
-          splitView={true}
-          leftTitle={left.hash ? trimCenter(left.hash, 15) : 'Left'}
-          rightTitle={right.hash ? trimCenter(right.hash, 15) : 'Right'}
-          showDiffOnly={false}
-          hideLineNumbers={false}
-        />
-      </M.Box>
-    )
+  // Return null if either revision is idle
+  if (leftRevisionResult._tag === 'idle' || rightRevisionResult._tag === 'idle') {
+    return null
   }
 
-  const renderMetadataDiff = () => {
-    if (!leftRevision && !rightRevision) {
-      return (
-        <M.Typography variant="body2" color="textSecondary">
-          No revision data available
-        </M.Typography>
-      )
-    }
+  if (leftRevisionResult._tag === 'error') {
+    return <Lab.Alert severity="error">{leftRevisionResult.error.message}</Lab.Alert>
+  }
 
-    const leftMetadata = leftRevision?.userMeta || {}
-    const rightMetadata = rightRevision?.userMeta || {}
-
-    const leftMetadataString = JSON.stringify(leftMetadata, null, 2)
-    const rightMetadataString = JSON.stringify(rightMetadata, null, 2)
-
-    // Don't show diff if the metadata is identical
-    if (leftMetadataString === rightMetadataString) {
-      return (
-        <M.Box>
-          <M.Typography
-            variant="body2"
-            color="textSecondary"
-            style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
-          >
-            Metadata is identical
-          </M.Typography>
-        </M.Box>
-      )
-    }
-
-    return (
-      <M.Box>
-        <ReactDiffViewer
-          oldValue={leftMetadataString}
-          newValue={rightMetadataString}
-          splitView={true}
-          leftTitle={left.hash ? trimCenter(left.hash, 15) : 'Left'}
-          rightTitle={right.hash ? trimCenter(right.hash, 15) : 'Right'}
-          showDiffOnly={false}
-          hideLineNumbers={false}
-        />
-      </M.Box>
-    )
+  if (rightRevisionResult._tag === 'error') {
+    return <Lab.Alert severity="error">{rightRevisionResult.error.message}</Lab.Alert>
   }
 
   return (
-    <M.Box>
-      <M.TableContainer component={M.Paper}>
+    <div className={classes.root}>
+      <M.Paper className={classes.systemMeta}>
+        <Header
+          left={left}
+          right={right}
+          onLeftChange={onLeftChange}
+          onRightChange={onRightChange}
+        />
+
         <M.Table className={classes.table}>
-          <M.TableHead>
-            <M.TableRow>
-              <M.TableCell component="th" scope="col">
-                <RevisionsList
-                  packageHandle={left}
-                  onChange={onLeftChange}
-                  label="Left Revision"
-                />
-              </M.TableCell>
-              <M.TableCell component="th" scope="col">
-                <RevisionsList
-                  packageHandle={right}
-                  onChange={onRightChange}
-                  label="Right Revision"
-                />
-              </M.TableCell>
-            </M.TableRow>
-          </M.TableHead>
           <M.TableBody>
             <M.TableRow>
               <M.TableCell>
-                {leftRevision ? (
-                  <StyledLink
-                    to={urls.bucketPackageTree(bucket, name, leftRevision.hash)}
-                  >
-                    {formatDate(leftRevision.modified)}
-                  </StyledLink>
+                {leftRevisionResult._tag === 'loading' ? (
+                  <ModifiedSkeleton />
                 ) : (
-                  '-'
+                  <Modified packageHandle={left} revision={leftRevisionResult.revision} />
                 )}
               </M.TableCell>
               <M.TableCell>
-                {rightRevision ? (
-                  <StyledLink
-                    to={urls.bucketPackageTree(bucket, name, rightRevision.hash)}
-                  >
-                    {formatDate(rightRevision.modified)}
-                  </StyledLink>
+                {rightRevisionResult._tag === 'loading' ? (
+                  <ModifiedSkeleton />
                 ) : (
-                  '-'
+                  <Modified
+                    packageHandle={right}
+                    revision={rightRevisionResult.revision}
+                  />
                 )}
               </M.TableCell>
             </M.TableRow>
             <M.TableRow>
               <M.TableCell>
-                {leftRevision?.message ? (
-                  <M.Typography variant="body2">{leftRevision.message}</M.Typography>
+                {leftRevisionResult._tag === 'loading' ? (
+                  <MessageSkeleton />
                 ) : (
-                  <M.Typography
-                    variant="body2"
-                    color="textSecondary"
-                    style={{ fontStyle: 'italic' }}
-                  >
-                    No message
-                  </M.Typography>
+                  <Message revision={leftRevisionResult.revision} />
                 )}
               </M.TableCell>
               <M.TableCell>
-                {rightRevision?.message ? (
-                  <M.Typography variant="body2">{rightRevision.message}</M.Typography>
+                {rightRevisionResult._tag === 'loading' ? (
+                  <MessageSkeleton />
                 ) : (
-                  <M.Typography
-                    variant="body2"
-                    color="textSecondary"
-                    style={{ fontStyle: 'italic' }}
-                  >
-                    No message
-                  </M.Typography>
+                  <Message revision={rightRevisionResult.revision} />
                 )}
               </M.TableCell>
             </M.TableRow>
             <M.TableRow>
               <M.TableCell>
-                {leftRevision ? (
-                  <M.Typography variant="body2">
-                    {readableBytes(leftRevision.totalBytes)}
-                  </M.Typography>
+                {leftRevisionResult._tag === 'loading' ? (
+                  <SizeSkeleton />
                 ) : (
-                  '-'
+                  <Size revision={leftRevisionResult.revision} />
                 )}
               </M.TableCell>
               <M.TableCell>
-                {rightRevision ? (
-                  <M.Typography variant="body2">
-                    {readableBytes(rightRevision.totalBytes)}
-                  </M.Typography>
+                {rightRevisionResult._tag === 'loading' ? (
+                  <SizeSkeleton />
                 ) : (
-                  '-'
+                  <Size revision={rightRevisionResult.revision} />
                 )}
               </M.TableCell>
             </M.TableRow>
           </M.TableBody>
         </M.Table>
-      </M.TableContainer>
+      </M.Paper>
 
-      {/* Metadata Diff Section */}
-      <M.Box mt={3}>
+      <div className={classes.userMeta}>
         <M.Typography variant="h6" gutterBottom>
           Metadata Comparison
         </M.Typography>
-        <M.Paper>{renderMetadataDiff()}</M.Paper>
-      </M.Box>
+        <M.Paper>
+          <MetadataDiff left={leftRevisionResult} right={rightRevisionResult} />
+        </M.Paper>
+      </div>
 
-      {/* Entries Diff Section */}
-      <M.Box mt={3}>
+      <div className={classes.entries}>
         <M.Typography variant="h6" gutterBottom>
           Entries Comparison
         </M.Typography>
-        <M.Paper>{renderManifestDiff()}</M.Paper>
-      </M.Box>
-    </M.Box>
-  )
-}
-
-interface PackageCompareProps {
-  left: PackageHandle
-  right: PackageHandle
-}
-
-export function PackageCompare({ left, right }: PackageCompareProps) {
-  const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-
-  // Handlers for revision selection - navigate to new comparison URL
-  const handleLeftChange = React.useCallback(
-    (hash: string) => {
-      history.push(urls.bucketPackageCompare(left.bucket, left.name, hash, right.hash))
-    },
-    [history, urls, left.bucket, left.name, right.hash],
-  )
-
-  const handleRightChange = React.useCallback(
-    (hash: string) => {
-      history.push(urls.bucketPackageCompare(left.bucket, left.name, left.hash, hash))
-    },
-    [history, urls, left.bucket, left.name, left.hash],
-  )
-
-  // Fetch revision data for both revisions
-  const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
-    bucket: left.bucket,
-    name: left.name,
-    page: 1,
-    perPage: 100, // Fetch enough to find our revisions
-  })
-
-  // Find the specific revisions we need
-  const { leftRevision, rightRevision } = React.useMemo(() => {
-    const revisions = revisionListQuery.data?.package?.revisions.page || []
-    const leftRev = revisions.find((r) => r.hash === left.hash) || null
-    const rightRev = revisions.find((r) => r.hash === right.hash) || null
-    return { leftRevision: leftRev, rightRevision: rightRev }
-  }, [revisionListQuery.data, left.hash, right.hash])
-
-  return (
-    <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <M.Box
-        pt={{ xs: 2, sm: 3 }}
-        pb={{ xs: 2, sm: 1 }}
-        px={{ xs: 2, sm: 0 }}
-        display="flex"
-        alignItems="center"
-      >
-        <M.Typography variant="h5">
-          <StyledLink to={urls.bucketPackageDetail(left.bucket, left.name)}>
-            {left.name}
-          </StyledLink>{' '}
-          revision comparison
-        </M.Typography>
-      </M.Box>
-
-      <M.Box px={{ xs: 2, sm: 0 }}>
-        {GQL.fold(revisionListQuery, {
-          error: displayError(),
-          fetching: () => (
-            <M.Box>
-              <M.TableContainer component={M.Paper}>
-                <M.Table>
-                  <M.TableHead>
-                    <M.TableRow>
-                      <M.TableCell component="th" scope="col">
-                        <M.Typography variant="h6">Left Revision</M.Typography>
-                      </M.TableCell>
-                      <M.TableCell component="th" scope="col">
-                        <M.Typography variant="h6">Right Revision</M.Typography>
-                      </M.TableCell>
-                    </M.TableRow>
-                  </M.TableHead>
-                  <M.TableBody>
-                    <RevisionSkeleton />
-                  </M.TableBody>
-                </M.Table>
-              </M.TableContainer>
-
-              <M.Box mt={3}>
-                <M.Typography variant="h6" gutterBottom>
-                  Metadata Comparison
-                </M.Typography>
-                <M.Paper>
-                  <Skeleton width="100%" height={200} />
-                </M.Paper>
-              </M.Box>
-
-              <M.Box mt={3}>
-                <M.Typography variant="h6" gutterBottom>
-                  Entries Comparison
-                </M.Typography>
-                <M.Paper>
-                  <Skeleton width="100%" height={200} />
-                </M.Paper>
-              </M.Box>
-            </M.Box>
-          ),
-          data: () => (
-            <RevisionCompareTable
-              bucket={left.bucket}
-              name={left.name}
-              leftRevision={leftRevision}
-              rightRevision={rightRevision}
-              left={left}
-              right={right}
-              onLeftChange={handleLeftChange}
-              onRightChange={handleRightChange}
-            />
-          ),
-        })}
-      </M.Box>
-    </M.Box>
+        <M.Paper>
+          <ManifestDiff left={leftRevisionResult} right={rightRevisionResult} />
+        </M.Paper>
+      </div>
+    </div>
   )
 }
 
@@ -470,23 +270,45 @@ export default function PackageCompareWrapper() {
   invariant(!!revisionLeft, '`revisionLeft` must be defined')
   invariant(!!revisionRight, '`revisionRight` must be defined')
 
-  const left: PackageHandle = {
-    bucket,
-    name,
-    hash: revisionLeft,
-  }
+  const { push } = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
 
-  const right: PackageHandle = {
-    bucket,
-    name,
-    hash: revisionRight,
-  }
+  const left: PackageHandle = React.useMemo(
+    () => ({ bucket, name, hash: revisionLeft }),
+    [bucket, name, revisionLeft],
+  )
+
+  const right: PackageHandle = React.useMemo(
+    () => ({ bucket, name, hash: revisionRight }),
+    [bucket, name, revisionRight],
+  )
+
+  const handleLeftChange = React.useCallback(
+    (hash: string) => push(urls.bucketPackageCompare(bucket, name, hash, revisionRight)),
+    [bucket, name, push, revisionRight, urls],
+  )
+  const handleRightChange = React.useCallback(
+    (hash: string) => push(urls.bucketPackageCompare(bucket, name, revisionLeft, hash)),
+    [bucket, name, push, revisionLeft, urls],
+  )
 
   return (
     <>
       <MetaTitle>{[`${name} comparison`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageCompare left={left} right={right} />
+        <FileView.Root>
+          <M.Typography variant="body1" gutterBottom>
+            <StyledLink to={urls.bucketPackageDetail(left.bucket, left.name)}>
+              {left.name}
+            </StyledLink>
+          </M.Typography>
+          <RevisionsCompare
+            left={left}
+            right={right}
+            onLeftChange={handleLeftChange}
+            onRightChange={handleRightChange}
+          />
+        </FileView.Root>
       </WithPackagesSupport>
     </>
   )
