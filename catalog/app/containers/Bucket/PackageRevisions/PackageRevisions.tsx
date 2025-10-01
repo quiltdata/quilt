@@ -332,7 +332,6 @@ const useRevisionStyles = M.makeStyles((t) => ({
 interface RevisionProps extends RevisionFields {
   bucket: string
   name: string
-  onCompare?: (hash: string) => void
 }
 
 function Revision({
@@ -345,7 +344,6 @@ function Revision({
   totalEntries,
   totalBytes,
   accessCounts,
-  onCompare,
 }: RevisionProps) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
@@ -381,7 +379,12 @@ function Revision({
       hash={
         <>
           <M.Box className={classes.hash} component="span" order={{ xs: 1, sm: 0 }}>
-            {hash}
+            <RRDom.Link
+              to={urls.bucketPackageCompare(bucket, name, hash)}
+              title="Compare revision"
+            >
+              {hash}
+            </RRDom.Link>
           </M.Box>
           <M.IconButton onClick={() => copyToClipboard(hash)} edge={xs ? 'start' : false}>
             <M.Icon>file_copy</M.Icon>
@@ -403,14 +406,6 @@ function Revision({
             &nbsp;
             <Format.Plural value={totalEntries ?? 0} one="file" other="files" />
           </M.Typography>
-          {onCompare && (
-            <>
-              <M.Box pr={2} />
-              <M.IconButton onClick={() => onCompare(hash)} title="Compare revisions">
-                <M.Icon>compare</M.Icon>
-              </M.IconButton>
-            </>
-          )}
         </>
       }
       counts={({ sparklineW, sparklineH }) =>
@@ -431,33 +426,6 @@ interface PackageRevisionsProps {
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const { prefs } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-
-  const [hashes, setHashes] = React.useState<{
-    left: string | null
-    right: string | null
-  }>({ left: null, right: null })
-
-  const handleCompare = React.useCallback((hash: string) => {
-    setHashes(({ left, right }) => {
-      if (left === null) {
-        return { left: hash, right: null }
-      } else if (right === null) {
-        return { left, right: hash }
-      } else {
-        return { left: hash, right: null }
-      }
-    })
-  }, [])
-
-  // Navigate when both hashes are selected
-  React.useEffect(() => {
-    const { left, right } = hashes
-    if (left && right) {
-      setHashes({ left: null, right: null }) // Reset state after navigation
-      history.push(urls.bucketPackageCompare(bucket, name, left, right))
-    }
-  }, [hashes, history, urls, bucket, name])
 
   const actualPage = page || 1
 
@@ -557,7 +525,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                   (dd.package?.revisions.page || []).map((r) => (
                     <Revision
                       key={`${r.hash}:${r.modified.valueOf()}`}
-                      {...{ bucket, name, onCompare: handleCompare, ...r }}
+                      {...{ bucket, name, ...r }}
                     />
                   )),
               })}

@@ -32,7 +32,7 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   list: {
-    width: 420,
+    width: 560,
   },
 }))
 
@@ -131,6 +131,12 @@ export default function RevisionInfo({
                       }
                     />
                     <M.ListItemSecondaryAction>
+                      <M.IconButton
+                        title="Compare with this version"
+                        href={urls.bucketPackageCompare(bucket, name, hash, r.hash)}
+                      >
+                        <M.Icon>compare_arrows</M.Icon>
+                      </M.IconButton>
                       <M.IconButton
                         title="Copy package revision's canonical catalog URI to the clipboard"
                         href={getHttpsUri(r.hash)}
