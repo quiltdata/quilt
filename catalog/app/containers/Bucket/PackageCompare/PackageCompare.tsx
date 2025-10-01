@@ -42,6 +42,7 @@ function Header({ left, right, onLeftChange, onRightChange }: HeaderProps) {
         packageHandle={packageHandle}
         value={left.hash}
         onChange={onLeftChange}
+        temporaryRemoveNone
       />
       <RevisionsList
         packageHandle={packageHandle}

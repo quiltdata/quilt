@@ -13,12 +13,6 @@ type RevisionFields = NonNullable<
   >['revisions']['page'][number]
 >
 
-interface RevisionsListProps {
-  packageHandle: { bucket: string; name: string }
-  value: string
-  onChange: (hash: string) => void
-}
-
 const useStyles = M.makeStyles((t) => ({
   select: {
     minWidth: 300,
@@ -28,7 +22,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface RevisionsListProps {
+  packageHandle: { bucket: string; name: string }
+  value: string
+  onChange: (hash: string) => void
+  temporaryRemoveNone?: boolean
+}
+
 export default function RevisionsList({
+  temporaryRemoveNone = false,
   packageHandle,
   onChange,
   value,
@@ -54,9 +56,11 @@ export default function RevisionsList({
       disabled={revisionListQuery.fetching}
       fullWidth
     >
-      <M.MenuItem value="">
-        <em>None</em>
-      </M.MenuItem>
+      {!temporaryRemoveNone && (
+        <M.MenuItem value="">
+          <em>None</em>
+        </M.MenuItem>
+      )}
       {GQL.fold(revisionListQuery, {
         data: (d) =>
           d.package?.revisions.page.map((r: RevisionFields) => (
