@@ -56,6 +56,7 @@
     "@material-ui/data-grid": "^4.0.0-alpha.27",
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.58",
+    "@modelcontextprotocol/sdk": "^1.18.1",
     "@rehooks/component-size": "^1.0.3",
     "@sentry/react": "^7.119.2",
     "@urql/devtools": "^2.0.3",

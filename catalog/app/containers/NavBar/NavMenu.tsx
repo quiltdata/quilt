@@ -182,6 +182,7 @@ function useNavItems(): NavItem[] {
 
   return [
     customNavLink,
+    mkNavItem('to', urls.agent(), 'Agent', 'assistant'),
     mkNavItem('to', urls.uriResolver(), 'URI', 'public'),
     mkNavItem('href', URLS.docs, 'Docs', 'menu_book'),
     cfg.mode === 'OPEN' && mkNavItem('href', URLS.jobs, 'Jobs', 'work'),

@@ -53,6 +53,9 @@ export const activationError = route('/activation_error')
 // Profile
 export const profile = route('/profile')
 
+// Agent (MCP)
+export const agent = route('/agent')
+
 // Global search
 interface SearchOpts {
   q?: string
