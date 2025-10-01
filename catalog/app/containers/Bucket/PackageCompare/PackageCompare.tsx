@@ -106,19 +106,19 @@ export function RevisionsCompare({
       </M.Paper>
 
       <div className={classes.userMeta}>
-        <M.Typography variant="h6" gutterBottom>
-          Metadata Comparison
+        <M.Typography variant="subtitle1" gutterBottom>
+          User metadata
         </M.Typography>
-        <M.Paper>
+        <M.Paper square variant="outlined">
           <MetadataDiff left={leftRevisionResult} right={rightRevisionResult} />
         </M.Paper>
       </div>
 
       <div className={classes.entries}>
-        <M.Typography variant="h6" gutterBottom>
-          Entries Comparison
+        <M.Typography variant="subtitle1" gutterBottom>
+          Entries
         </M.Typography>
-        <M.Paper>
+        <M.Paper square variant="outlined">
           <ManifestDiff left={leftRevisionResult} right={rightRevisionResult} />
         </M.Paper>
       </div>
