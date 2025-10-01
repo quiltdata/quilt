@@ -1,15 +1,11 @@
-import cx from 'classnames'
-import * as dateFns from 'date-fns'
 import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import { readableBytes } from 'utils/string'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import * as FileView from '../FileView'
@@ -18,80 +14,8 @@ import WithPackagesSupport from '../WithPackagesSupport'
 import RevisionsList from './RevisionsList'
 import MetadataDiff from './Diff/Metadata'
 import ManifestDiff from './Diff/Manifest'
-import { Revision, useRevision } from './useRevision'
-
-interface ModifiedProps {
-  packageHandle: PackageHandle
-  revision: Revision
-}
-
-function Modified({
-  packageHandle: { bucket, name },
-  revision: { modified, hash },
-}: ModifiedProps) {
-  const { urls } = NamedRoutes.use()
-  const formatted = React.useMemo(
-    () => dateFns.format(modified, 'MMMM do yyyy - h:mma'),
-    [modified],
-  )
-  return (
-    <M.Typography variant="body2">
-      <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>{formatted}</StyledLink>
-    </M.Typography>
-  )
-}
-
-function ModifiedSkeleton() {
-  return (
-    <M.Typography variant="body2">
-      <Lab.Skeleton width={120} />
-    </M.Typography>
-  )
-}
-
-const useMessageStyles = M.makeStyles((t) => ({
-  empty: {
-    color: t.palette.text.secondary,
-    fontStyle: 'italic',
-  },
-}))
-
-interface MessageProps {
-  revision: Revision
-}
-
-function Message({ revision: { message } }: MessageProps) {
-  const classes = useMessageStyles()
-  return (
-    <M.Typography className={cx(!message && classes.empty)} variant="body2">
-      {message || 'No message'}
-    </M.Typography>
-  )
-}
-
-function MessageSkeleton() {
-  return (
-    <M.Typography variant="body2">
-      <Lab.Skeleton width={240} />
-    </M.Typography>
-  )
-}
-
-interface SizeProps {
-  revision: Revision
-}
-
-function Size({ revision: { totalBytes } }: SizeProps) {
-  return <M.Typography variant="body2">{readableBytes(totalBytes)}</M.Typography>
-}
-
-function SizeSkeleton() {
-  return (
-    <M.Typography variant="body2">
-      <Lab.Skeleton width={60} />
-    </M.Typography>
-  )
-}
+import SystemMetaTable from './SystemMetaTable'
+import { useRevision } from './useRevision'
 
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
@@ -156,19 +80,6 @@ export function RevisionsCompare({
   const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
   const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
 
-  // Return null if either revision is idle
-  if (leftRevisionResult._tag === 'idle' || rightRevisionResult._tag === 'idle') {
-    return null
-  }
-
-  if (leftRevisionResult._tag === 'error') {
-    return <Lab.Alert severity="error">{leftRevisionResult.error.message}</Lab.Alert>
-  }
-
-  if (rightRevisionResult._tag === 'error') {
-    return <Lab.Alert severity="error">{rightRevisionResult.error.message}</Lab.Alert>
-  }
-
   return (
     <div className={classes.root}>
       <M.Paper className={classes.systemMeta}>
@@ -179,61 +90,12 @@ export function RevisionsCompare({
           onRightChange={onRightChange}
         />
 
-        <M.Table className={classes.table}>
-          <M.TableBody>
-            <M.TableRow>
-              <M.TableCell>
-                {leftRevisionResult._tag === 'loading' ? (
-                  <ModifiedSkeleton />
-                ) : (
-                  <Modified packageHandle={left} revision={leftRevisionResult.revision} />
-                )}
-              </M.TableCell>
-              <M.TableCell>
-                {rightRevisionResult._tag === 'loading' ? (
-                  <ModifiedSkeleton />
-                ) : (
-                  <Modified
-                    packageHandle={right}
-                    revision={rightRevisionResult.revision}
-                  />
-                )}
-              </M.TableCell>
-            </M.TableRow>
-            <M.TableRow>
-              <M.TableCell>
-                {leftRevisionResult._tag === 'loading' ? (
-                  <MessageSkeleton />
-                ) : (
-                  <Message revision={leftRevisionResult.revision} />
-                )}
-              </M.TableCell>
-              <M.TableCell>
-                {rightRevisionResult._tag === 'loading' ? (
-                  <MessageSkeleton />
-                ) : (
-                  <Message revision={rightRevisionResult.revision} />
-                )}
-              </M.TableCell>
-            </M.TableRow>
-            <M.TableRow>
-              <M.TableCell>
-                {leftRevisionResult._tag === 'loading' ? (
-                  <SizeSkeleton />
-                ) : (
-                  <Size revision={leftRevisionResult.revision} />
-                )}
-              </M.TableCell>
-              <M.TableCell>
-                {rightRevisionResult._tag === 'loading' ? (
-                  <SizeSkeleton />
-                ) : (
-                  <Size revision={rightRevisionResult.revision} />
-                )}
-              </M.TableCell>
-            </M.TableRow>
-          </M.TableBody>
-        </M.Table>
+        <SystemMetaTable
+          left={left}
+          right={right}
+          leftRevision={leftRevisionResult}
+          rightRevision={rightRevisionResult}
+        />
       </M.Paper>
 
       <div className={classes.userMeta}>
