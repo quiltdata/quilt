@@ -14,10 +14,7 @@ type RevisionFields = NonNullable<
 >
 
 const useStyles = M.makeStyles((t) => ({
-  select: {
-    minWidth: 300,
-  },
-  mono: {
+  hash: {
     fontFamily: t.typography.monospace.fontFamily,
   },
 }))
@@ -36,7 +33,6 @@ export default function RevisionsList({
   value,
 }: RevisionsListProps) {
   const classes = useStyles()
-
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
     bucket: packageHandle.bucket || '',
     name: packageHandle.name || '',
@@ -65,22 +61,16 @@ export default function RevisionsList({
         data: (d) =>
           d.package?.revisions.page.map((r: RevisionFields) => (
             <M.MenuItem key={r.hash} value={r.hash}>
-              <M.Box>
-                <M.Typography variant="body2">
-                  {dateFns.format(r.modified, 'MMM d yyyy - h:mma')}
-                </M.Typography>
-                <M.Typography variant="caption" color="textSecondary">
-                  {r.message || 'No message'}
-                </M.Typography>
-                <M.Typography
-                  variant="caption"
-                  className={classes.mono}
-                  color="textSecondary"
-                  display="block"
-                >
-                  {r.hash}
-                </M.Typography>
-              </M.Box>
+              <M.ListItemText
+                primary={dateFns.format(r.modified, 'MMM d yyyy - h:mma')}
+                secondary={
+                  <>
+                    {r.message || 'No message'}
+                    <br />
+                    <span className={classes.hash}>{r.hash}</span>
+                  </>
+                }
+              />
             </M.MenuItem>
           )) || [],
         error: () => [

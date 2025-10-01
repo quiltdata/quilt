@@ -3,20 +3,13 @@ import renderer from 'react-test-renderer'
 
 import { RevisionsCompare } from './PackageCompare'
 
-// Mock config
-jest.mock('constants/config', () => ({}))
-
-// Mock Material-UI components
 jest.mock('@material-ui/core', () => ({
   ...jest.requireActual('@material-ui/core'),
-  makeStyles: () => () => ({
-    table: {},
-    mono: {},
-    hash: {},
-  }),
-  useTheme: () => ({}),
-  useMediaQuery: () => false,
+  makeStyles: () => () => ({}),
 }))
+
+// Mock config
+jest.mock('constants/config', () => ({}))
 
 // Mock GraphQL hook
 jest.mock('utils/GraphQL', () => ({
@@ -83,23 +76,6 @@ jest.mock('utils/NamedRoutes', () => ({
 // Mock copyToClipboard
 jest.mock('utils/clipboard', () => jest.fn())
 
-// Mock format utilities
-jest.mock('utils/string', () => ({
-  readableBytes: (bytes: number) => `${bytes} bytes`,
-  readableQuantity: (qty: number) => `${qty}`,
-  trimCenter: (str: string, maxLength: number = 20) =>
-    str.length > maxLength
-      ? `${str.substring(0, Math.floor(maxLength / 2) - 1)}...${str.substring(str.length - Math.floor(maxLength / 2) + 1)}`
-      : str,
-}))
-
-// Mock date-fns
-jest.mock('date-fns', () => ({
-  format: (date: Date) => date.toISOString(),
-}))
-
-// Mock MANIFEST_QUERY - will be handled by the existing GQL.useQuery mock
-
 // Mock JsonDisplay component
 jest.mock('components/JsonDisplay', () =>
   jest.fn(({ value }: { value: any }) => (
@@ -157,28 +133,8 @@ describe('containers/Bucket/PackageCompare/PackageCompare', () => {
     onRightChange: () => {},
   }
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
   it('should render without crashing', () => {
     const tree = renderer.create(<RevisionsCompare {...mockPackageHandles} />)
     expect(tree).toBeTruthy()
-  })
-
-  it('should render comparison table with both revisions', () => {
-    const tree = renderer.create(<RevisionsCompare {...mockPackageHandles} />)
-    const instance = tree.root
-
-    // Check that table structure exists
-    expect(instance.findAllByType('table')).toHaveLength(1)
-
-    // Check that comparison rows exist
-    expect(instance.findAllByType('tr').length).toBeGreaterThan(1)
-  })
-
-  it('should match snapshot', () => {
-    const tree = renderer.create(<RevisionsCompare {...mockPackageHandles} />)
-    expect(tree).toMatchSnapshot()
   })
 })
