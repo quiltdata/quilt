@@ -22,25 +22,31 @@ const useHeaderStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gridColumnGap: t.spacing(4),
+    alignItems: 'flex-start',
   },
 }))
 
 interface HeaderProps {
   left: PackageHandle
-  right: PackageHandle
+  right: PackageHandle | null
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
 }
 
 function Header({ left, right, onLeftChange, onRightChange }: HeaderProps) {
   const classes = useHeaderStyles()
+  const packageHandle = React.useMemo(() => left, [left])
   return (
     <div className={classes.root}>
-      <RevisionsList packageHandle={left} onChange={onLeftChange} label="Left Revision" />
       <RevisionsList
-        packageHandle={right}
+        packageHandle={packageHandle}
+        value={left.hash}
+        onChange={onLeftChange}
+      />
+      <RevisionsList
+        packageHandle={packageHandle}
+        value={right?.hash || ''}
         onChange={onRightChange}
-        label="Right Revision"
       />
     </div>
   )
@@ -64,7 +70,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface RevisionsCompareProps {
   left: PackageHandle
-  right: PackageHandle
+  right: PackageHandle | null
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
 }
@@ -78,7 +84,7 @@ export function RevisionsCompare({
   const classes = useStyles()
 
   const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
-  const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
+  const rightRevisionResult = useRevision(left.bucket, left.name, right?.hash || null)
 
   return (
     <div className={classes.root}>
@@ -130,18 +136,17 @@ export default function PackageCompareWrapper() {
   invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
   invariant(!!revisionLeft, '`revisionLeft` must be defined')
-  invariant(!!revisionRight, '`revisionRight` must be defined')
 
   const { push } = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
 
-  const left: PackageHandle = React.useMemo(
+  const left = React.useMemo(
     () => ({ bucket, name, hash: revisionLeft }),
     [bucket, name, revisionLeft],
   )
 
-  const right: PackageHandle = React.useMemo(
-    () => ({ bucket, name, hash: revisionRight }),
+  const right = React.useMemo(
+    () => (revisionRight ? { bucket, name, hash: revisionRight } : null),
     [bucket, name, revisionRight],
   )
 

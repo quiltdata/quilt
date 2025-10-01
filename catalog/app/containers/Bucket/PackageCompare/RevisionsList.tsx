@@ -4,7 +4,6 @@ import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
 import * as GQL from 'utils/GraphQL'
-import type { PackageHandle } from 'utils/packageHandle'
 
 import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
@@ -15,9 +14,9 @@ type RevisionFields = NonNullable<
 >
 
 interface RevisionsListProps {
-  packageHandle: PackageHandle | null
+  packageHandle: { bucket: string; name: string }
+  value: string
   onChange: (hash: string) => void
-  label?: string
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -29,15 +28,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function RevisionsList({ packageHandle, onChange }: RevisionsListProps) {
+export default function RevisionsList({
+  packageHandle,
+  onChange,
+  value,
+}: RevisionsListProps) {
   const classes = useStyles()
 
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
-    bucket: packageHandle?.bucket || '',
-    name: packageHandle?.name || '',
+    bucket: packageHandle.bucket || '',
+    name: packageHandle.name || '',
     page: 1,
     perPage: 100, // Get enough revisions for the dropdown
-    pause: !packageHandle,
   })
 
   const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
@@ -46,7 +48,7 @@ export default function RevisionsList({ packageHandle, onChange }: RevisionsList
 
   return (
     <M.Select
-      value={packageHandle?.hash || ''}
+      value={value}
       onChange={handleChange}
       displayEmpty
       disabled={revisionListQuery.fetching}

@@ -173,7 +173,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface SystemMetaTableProps {
   left: PackageHandle
-  right: PackageHandle
+  right: PackageHandle | null
   leftRevision: RevisionResult
   rightRevision: RevisionResult
 }
@@ -189,7 +189,7 @@ export default function SystemMetaTable({
   return (
     <div className={classes.grid}>
       <ColumnWrapper packageHandle={left} result={leftRevision} />
-      <ColumnWrapper packageHandle={right} result={rightRevision} />
+      {right && <ColumnWrapper packageHandle={right} result={rightRevision} />}
     </div>
   )
 }
