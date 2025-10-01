@@ -85,7 +85,7 @@ def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str
                 size,
                 meta AS metadata
             FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_manifests"
-            WHERE $path = '{quilt_shared.const.MANIFESTS_PREFIX}{top_hash}'
+            WHERE "$path" = '{quilt_shared.const.MANIFESTS_PREFIX}{top_hash}'
                 AND logical_key IS NOT NULL
         ) AS s
         ON t.registry = s.registry AND t.top_hash = s.top_hash AND t.logical_key = s.logical_key
