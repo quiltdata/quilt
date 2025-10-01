@@ -37,29 +37,25 @@ export default function ManifestDiff({ left: left, right: right }: ManifestDiffP
 
   if (leftManifestString === rightManifestString) {
     return (
-      <M.Box>
-        <M.Typography
-          variant="body2"
-          color="textSecondary"
-          style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
-        >
-          Manifest entries are identical
-        </M.Typography>
-      </M.Box>
+      <M.Typography
+        variant="body2"
+        color="textSecondary"
+        style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
+      >
+        Manifest entries are identical
+      </M.Typography>
     )
   }
 
   return (
-    <M.Box>
-      <ReactDiffViewer
-        oldValue={leftManifestString}
-        newValue={rightManifestString}
-        splitView={true}
-        leftTitle={trimCenter(left.revision.hash, 15)}
-        rightTitle={trimCenter(right.revision.hash, 15)}
-        showDiffOnly={false}
-        hideLineNumbers={false}
-      />
-    </M.Box>
+    <ReactDiffViewer
+      oldValue={leftManifestString}
+      newValue={rightManifestString}
+      splitView={true}
+      leftTitle={trimCenter(left.revision.hash, 15)}
+      rightTitle={trimCenter(right.revision.hash, 15)}
+      showDiffOnly={false}
+      hideLineNumbers={false}
+    />
   )
 }

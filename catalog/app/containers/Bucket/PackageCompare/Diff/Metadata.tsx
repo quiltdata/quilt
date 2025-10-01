@@ -37,29 +37,25 @@ export default function MetadataDiff({ left: left, right: right }: MetadataDiffP
 
   if (leftMetadataString === rightMetadataString) {
     return (
-      <M.Box>
-        <M.Typography
-          variant="body2"
-          color="textSecondary"
-          style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
-        >
-          Metadata is identical
-        </M.Typography>
-      </M.Box>
+      <M.Typography
+        variant="body2"
+        color="textSecondary"
+        style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
+      >
+        Metadata is identical
+      </M.Typography>
     )
   }
 
   return (
-    <M.Box>
-      <ReactDiffViewer
-        oldValue={leftMetadataString}
-        newValue={rightMetadataString}
-        splitView={true}
-        leftTitle={trimCenter(left.revision.hash, 15)}
-        rightTitle={trimCenter(right.revision.hash, 15)}
-        showDiffOnly={false}
-        hideLineNumbers={false}
-      />
-    </M.Box>
+    <ReactDiffViewer
+      oldValue={leftMetadataString}
+      newValue={rightMetadataString}
+      splitView={true}
+      leftTitle={trimCenter(left.revision.hash, 15)}
+      rightTitle={trimCenter(right.revision.hash, 15)}
+      showDiffOnly={false}
+      hideLineNumbers={false}
+    />
   )
 }
