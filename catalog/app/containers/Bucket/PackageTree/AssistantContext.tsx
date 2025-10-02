@@ -58,7 +58,7 @@ export const PackageContext = Assistant.Context.LazyContext<PackageContextProps>
   ({ bucket, name, path, revision }) =>
     Assistant.Context.merge(
       useMetadataContext(bucket, name, revision),
-      ContextFiles.usePackageRootContextFiles(bucket, name),
-      ContextFiles.usePackageDirContextFiles(bucket, name, S3Paths.getPrefix(path)),
+      ContextFiles.usePackageRootContextFiles(bucket),
+      ContextFiles.usePackageDirContextFiles(bucket, S3Paths.getPrefix(path)),
     ),
 )

@@ -23,7 +23,6 @@ interface ContextFileContent {
 interface ContextFile extends ContextFileContent {
   scope: ContextFileScope
   bucket: string
-  packageName?: string
   path: string
 }
 
@@ -56,7 +55,7 @@ function useLoadBucketContextFile(bucket: string) {
   )
 }
 
-function useLoadPackageContextFile(bucket: string, packageName: string) {
+function useLoadPackageContextFile(bucket: string) {
   const resolve = LogicalKeyResolver.useStrict()
   const load = useLoadFile()
   return React.useCallback(
@@ -65,11 +64,8 @@ function useLoadPackageContextFile(bucket: string, packageName: string) {
         .then(load)
         // could not resolve the logical key, most likely because it doesn't exist
         .catch(() => null)
-        .then(
-          (content) =>
-            content && { scope: 'package', bucket, path, packageName, ...content },
-        ),
-    [bucket, packageName, load, resolve],
+        .then((content) => content && { scope: 'package', bucket, path, ...content }),
+    [bucket, load, resolve],
   )
 }
 
@@ -137,18 +133,18 @@ export function useBucketDirContextFiles(bucket: string, path: string) {
   )
 }
 
-export function usePackageRootContextFiles(bucket: string, name: string) {
+export function usePackageRootContextFiles(bucket: string) {
   return useContextFiles(
     'packageRootContextFilesReady',
-    useLoadPackageContextFile(bucket, name),
+    useLoadPackageContextFile(bucket),
     CONTEXT_FILE_NAMES,
   )
 }
 
-export function usePackageDirContextFiles(bucket: string, name: string, path: string) {
+export function usePackageDirContextFiles(bucket: string, path: string) {
   return useContextFiles(
     'packageDirContextFilesReady',
-    useLoadPackageContextFile(bucket, name),
+    useLoadPackageContextFile(bucket),
     useBuildPathChain(path),
     MAX_NON_ROOT_FILES,
   )
