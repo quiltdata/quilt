@@ -74,7 +74,7 @@ def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str
                 '{bucket}' AS registry,
                 '{top_hash}' AS top_hash,
                 logical_key,
-                physical_keys[1],
+                physical_keys[1] AS physical_key,
                 concat(
                     CASE hash.type
                     WHEN 'SHA256' THEN '1220'
