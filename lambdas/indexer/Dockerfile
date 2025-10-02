@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.11.2025.09.23.13@sha256:283f21edbe42f9f1c3f42b2a7830ab514bd2b93d35ab8b0525113e82aa3c3285 AS base
+FROM public.ecr.aws/lambda/python:3.11.2025.10.01.20@sha256:dfdda50c4407eee7ad523a931e480583a5b37a6479fc0cbabccd32275bd40ec6 AS base
 
 FROM base AS build
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
