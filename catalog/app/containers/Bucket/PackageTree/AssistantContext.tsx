@@ -1,4 +1,3 @@
-import * as Eff from 'effect'
 import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
@@ -57,20 +56,21 @@ interface PackageContextProps {
 export const PackageContext = Assistant.Context.LazyContext(
   ({ bucket, name, path, revision }: PackageContextProps) => {
     const dir = S3Paths.getPrefix(path)
-    const dirMsgO = ContextFiles.usePackageDirContextFiles(bucket, name, dir)
-    const rootMsgO = ContextFiles.usePackageRootContextFiles(bucket, name)
+    const dirCtx = ContextFiles.usePackageDirContextFiles(bucket, name, dir)
+    const rootCtx = ContextFiles.usePackageRootContextFiles(bucket, name)
     const metadataMsg = useMetadataContext(bucket, name, revision)
+
+    const messages = React.useMemo(
+      () => [...metadataMsg, ...rootCtx.messages, ...dirCtx.messages],
+      [metadataMsg, rootCtx.messages, dirCtx.messages],
+    )
 
     return {
       markers: {
-        packageRootContextFilesReady: Eff.Option.isSome(rootMsgO),
-        packageDirContextFilesReady: Eff.Option.isSome(dirMsgO),
+        packageRootContextFilesReady: rootCtx.ready,
+        packageDirContextFilesReady: dirCtx.ready,
       },
-      messages: [
-        ...metadataMsg,
-        ...Eff.Option.getOrElse(rootMsgO, () => []),
-        ...Eff.Option.getOrElse(dirMsgO, () => []),
-      ],
+      messages,
     }
   },
 )

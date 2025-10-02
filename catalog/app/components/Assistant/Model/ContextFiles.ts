@@ -1,5 +1,4 @@
 import type { S3 } from 'aws-sdk'
-import * as Eff from 'effect'
 import * as React from 'react'
 
 import type { S3ObjectLocation } from 'model/S3'
@@ -8,27 +7,6 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as XML from 'utils/XML'
 import * as S3Paths from 'utils/s3paths'
 import * as Request from 'utils/useRequest'
-
-function resultToEffect<T>(
-  r: Request.Result<T>,
-): Eff.Option.Option<Eff.Either.Either<T, Error>> {
-  if (r === Request.Idle || r === Request.Loading) return Eff.Option.none()
-  const e = r instanceof Error ? Eff.Either.left(r) : Eff.Either.right(r)
-  return Eff.Option.some(e)
-}
-
-function useContextFiles(load: () => Promise<ContextFile[]>) {
-  const res = Request.use(load)
-  return Eff.pipe(
-    resultToEffect(res),
-    Eff.Option.map(
-      Eff.flow(
-        Eff.Either.getOrElse(() => []),
-        Eff.Array.map(format),
-      ),
-    ),
-  )
-}
 
 type ContextFileScope = 'bucket' | 'package'
 
@@ -93,6 +71,19 @@ function buildPathChain(path: string): string[] {
         ...buildPathChain(S3Paths.up(path)),
       ]
     : []
+}
+
+function useContextFiles(load: () => Promise<ContextFile[]>) {
+  const r = Request.use(load)
+  const ready = r !== Request.Loading && r !== Request.Idle
+  const messages = React.useMemo(
+    () =>
+      r === Request.Loading || r === Request.Idle || r instanceof Error
+        ? []
+        : r.map(format),
+    [r],
+  )
+  return { ready, messages }
 }
 
 export function useBucketRootContextFiles(bucket: string) {

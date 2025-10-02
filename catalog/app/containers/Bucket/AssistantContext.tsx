@@ -1,5 +1,3 @@
-import * as Eff from 'effect'
-
 import * as Assistant from 'components/Assistant'
 import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
 
@@ -9,10 +7,10 @@ interface BucketContextProps {
 
 export const BucketContext = Assistant.Context.LazyContext(
   ({ bucket }: BucketContextProps) => {
-    const messagesO = ContextFiles.useBucketRootContextFiles(bucket)
+    const { ready, messages } = ContextFiles.useBucketRootContextFiles(bucket)
     return {
-      markers: { bucketContextFilesReady: Eff.Option.isSome(messagesO) },
-      messages: Eff.Option.getOrUndefined(messagesO),
+      markers: { bucketContextFilesReady: ready },
+      messages,
     }
   },
 )
