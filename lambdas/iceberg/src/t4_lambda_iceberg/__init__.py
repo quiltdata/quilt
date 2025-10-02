@@ -25,8 +25,8 @@ def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, del
             SELECT
                 '{bucket}' AS registry,
                 pkg_name,
-                top_hash,
                 from_unixtime(CAST(timestamp AS bigint)) AS timestamp,
+                top_hash,
                 message,
                 user_meta AS metadata
             FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
@@ -37,8 +37,8 @@ def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, del
         WHEN MATCHED THEN
             UPDATE SET top_hash = s.top_hash, message = s.message, metadata = s.metadata
         WHEN NOT MATCHED THEN
-            INSERT (registry, pkg_name, top_hash, timestamp, message, metadata)
-            VALUES (s.registry, s.pkg_name, s.top_hash, s.timestamp, s.message, s.metadata)
+            INSERT (registry, pkg_name, timestamp, top_hash, message, metadata)
+            VALUES (s.registry, s.pkg_name, s.timestamp, s.top_hash, s.message, s.metadata)
     """
 
 
@@ -75,13 +75,8 @@ def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str
                 '{top_hash}' AS top_hash,
                 logical_key,
                 physical_keys[1] AS physical_key,
-                concat(
-                    CASE hash.type
-                    WHEN 'SHA256' THEN '1220'
-                    WHEN 'sha2-256-chunked' THEN '90ea0220'
-                    END,
-                    hash.value
-                ) AS multihash,
+                hash.type AS hash_type,
+                hash.value AS hash_value,
                 size,
                 meta AS metadata
             FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_manifests"
@@ -90,10 +85,12 @@ def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str
         ) AS s
         ON t.registry = s.registry AND t.top_hash = s.top_hash AND t.logical_key = s.logical_key
         WHEN MATCHED THEN
-            UPDATE SET physical_key = s.physical_key, multihash = s.multihash, size = s.size, metadata = s.metadata
+            UPDATE SET physical_key = s.physical_key, hash_type = s.hash_type, hash_value = s.hash_value,
+                size = s.size, metadata = s.metadata
         WHEN NOT MATCHED THEN
-            INSERT (registry, top_hash, logical_key, physical_key, multihash, size, metadata)
-            VALUES (s.registry, s.top_hash, s.logical_key, s.physical_key, s.multihash, s.size, s.metadata)
+            INSERT (registry, top_hash, logical_key, physical_key, hash_type, hash_value, size, metadata)
+            VALUES (s.registry, s.top_hash, s.logical_key,
+                s.physical_key, s.hash_type, s.hash_value, s.size, s.metadata)
     """
 
 
