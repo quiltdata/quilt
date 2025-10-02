@@ -907,7 +907,6 @@ interface PackageTreeProps {
   bucket: string
   name: string
   hashOrTag: string
-  hash?: string
   revision?: RevisionData
   path: string
   mode?: string
@@ -919,13 +918,13 @@ function PackageTree({
   bucket,
   name,
   hashOrTag,
-  hash,
   revision,
   path,
   mode,
   resolvedFrom,
   revisionListQuery,
 }: PackageTreeProps) {
+  const hash = revision?.hash
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
 
@@ -1006,32 +1005,30 @@ function PackageTree({
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
       {hash ? (
-        <>
-          <ResolverProvider {...{ bucket, name, hash }}>
-            <AssistantContext.PackageContext
-              bucket={bucket}
-              name={name}
-              path={path}
-              revision={revision ?? null}
+        <ResolverProvider {...{ bucket, name, hash }}>
+          <AssistantContext.PackageContext
+            bucket={bucket}
+            name={name}
+            path={path}
+            revision={revision ?? null}
+          />
+          {isDir ? (
+            <DirDisplay
+              {...{
+                bucket,
+                name,
+                hash,
+                path,
+                hashOrTag,
+                crumbs,
+              }}
             />
-            {isDir ? (
-              <DirDisplay
-                {...{
-                  bucket,
-                  name,
-                  hash,
-                  path,
-                  hashOrTag,
-                  crumbs,
-                }}
-              />
-            ) : (
-              <FileDisplayQuery
-                {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
-              />
-            )}
-          </ResolverProvider>
-        </>
+          ) : (
+            <FileDisplayQuery
+              {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
+            />
+          )}
+        </ResolverProvider>
       ) : (
         <>
           <TopBar crumbs={crumbs} />
@@ -1095,7 +1092,6 @@ function PackageTreeQueries({
               bucket,
               name,
               hashOrTag,
-              hash: d.package.revision?.hash,
               revision: d.package.revision,
               path,
               mode,

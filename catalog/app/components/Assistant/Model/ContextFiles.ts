@@ -60,7 +60,7 @@ async function loadContextFile(
   }
 }
 
-export function useRootContextFiles(bucket: string) {
+export function useBucketRootContextFiles(bucket: string) {
   const s3 = AWS.S3.use()
   const load = React.useCallback(async () => {
     const results = await Promise.all(
@@ -94,7 +94,7 @@ function buildPathChain(path: string): string[] {
     : []
 }
 
-export function useDirContextFiles(bucket: string, path: string) {
+export function useBucketDirContextFiles(bucket: string, path: string) {
   const s3 = AWS.S3.use()
 
   const load = React.useCallback(async () => {

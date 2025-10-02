@@ -9,7 +9,7 @@ interface BucketContextProps {
 
 export const BucketContext = Assistant.Context.LazyContext(
   ({ bucket }: BucketContextProps) => {
-    const messagesO = ContextFiles.useRootContextFiles(bucket)
+    const messagesO = ContextFiles.useBucketRootContextFiles(bucket)
     return {
       markers: { bucketContextFilesReady: Eff.Option.isSome(messagesO) },
       messages: Eff.Option.getOrUndefined(messagesO),

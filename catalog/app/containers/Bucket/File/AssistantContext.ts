@@ -112,7 +112,10 @@ interface FileContextFilesProps {
 
 export const FileContextFiles = Assistant.Context.LazyContext(
   ({ bucket, path }: FileContextFilesProps) => {
-    const messagesO = ContextFiles.useDirContextFiles(bucket, S3Paths.getPrefix(path))
+    const messagesO = ContextFiles.useBucketDirContextFiles(
+      bucket,
+      S3Paths.getPrefix(path),
+    )
     return {
       markers: { fileContextFilesReady: Eff.Option.isSome(messagesO) },
       messages: Eff.Option.getOrUndefined(messagesO),

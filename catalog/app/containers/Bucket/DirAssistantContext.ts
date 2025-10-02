@@ -64,7 +64,7 @@ interface DirContextFilesProps {
 
 export const DirContextFiles = Assistant.Context.LazyContext(
   ({ bucket, path }: DirContextFilesProps) => {
-    const messagesO = ContextFiles.useDirContextFiles(bucket, path)
+    const messagesO = ContextFiles.useBucketDirContextFiles(bucket, path)
     return {
       markers: { dirContextFilesReady: Eff.Option.isSome(messagesO) },
       messages: Eff.Option.getOrUndefined(messagesO),

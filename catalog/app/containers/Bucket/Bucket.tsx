@@ -57,12 +57,7 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
           </M.AppBar>
           <Container>
             {bucketExistenceData.case({
-              Ok: () => (
-                <>
-                  <AssistantContext.BucketContext bucket={bucket} />
-                  {children}
-                </>
-              ),
+              Ok: () => children,
               Err: displayError(),
               _: () => <SuspensePlaceholder />,
             })}
@@ -83,6 +78,7 @@ export default function Bucket() {
     <BucketPreferences.Provider bucket={bucket}>
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket}>
+        <AssistantContext.BucketContext bucket={bucket} />
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Switch>
             <Route path={paths.bucketFile} exact strict>
