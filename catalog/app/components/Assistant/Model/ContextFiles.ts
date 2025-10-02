@@ -1,223 +1,208 @@
 import type { S3 } from 'aws-sdk'
+import * as Eff from 'effect'
 import * as React from 'react'
-import * as XML from 'utils/XML'
 
-export interface ContextFileContent {
-  path: string
-  content: string
-  truncated: boolean
+import type { S3ObjectLocation } from 'model/S3'
+import * as AWS from 'utils/AWS'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import * as XML from 'utils/XML'
+import * as S3Paths from 'utils/s3paths'
+import * as Request from 'utils/useRequest'
+
+function resultToEffect<T>(
+  r: Request.Result<T>,
+): Eff.Option.Option<Eff.Either.Either<T, Error>> {
+  if (r === Request.Idle || r === Request.Loading) return Eff.Option.none()
+  const e = r instanceof Error ? Eff.Either.left(r) : Eff.Either.right(r)
+  return Eff.Option.some(e)
 }
+
+type ContextFileScope = 'bucket' | 'package'
 
 export const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
 export const MAX_NON_ROOT_FILES = 10 // Maximum non-root context files
 export const CONTEXT_FILE_NAMES = ['AGENTS.md', 'README.md']
 
-export async function loadContextFile(
+interface ContextFileContext {
+  scope: ContextFileScope
+  bucket: string
+  packageName?: string
+  path: string
+}
+
+interface ContextFile extends ContextFileContext {
+  content: string
+  truncated: boolean
+}
+
+async function loadContextFile(
   s3: S3,
-  bucket: string,
-  path: string,
-  fileName: string = 'README.md',
-): Promise<ContextFileContent | null> {
+  loc: S3ObjectLocation,
+  ctx: ContextFileContext,
+): Promise<ContextFile | null> {
   try {
-    const key = path ? `${path}/${fileName}` : fileName
     const response = await s3
       .getObject({
-        Bucket: bucket,
-        Key: key,
+        Bucket: loc.bucket,
+        Key: loc.key,
+        VersionId: loc.version,
       })
       .promise()
 
-    const content = response.Body?.toString('utf-8') || ''
-    const truncated = content.length > MAX_CONTEXT_FILE_SIZE
-    const finalContent = truncated ? content.slice(0, MAX_CONTEXT_FILE_SIZE) : content
+    const fullContent = response.Body?.toString('utf-8') || ''
+    const truncated = fullContent.length > MAX_CONTEXT_FILE_SIZE
+    const content = truncated ? fullContent.slice(0, MAX_CONTEXT_FILE_SIZE) : fullContent
 
-    return {
-      path: `/${key}`,
-      content: finalContent,
-      truncated,
-    }
-  } catch (error: any) {
-    // 404s are expected when context files don't exist
-    // Don't log them as they're not errors
+    return { content, truncated, ...ctx }
+  } catch {
+    // Context file could not be loaded, most likely because it doesn't exist
     return null
   }
 }
 
-export function buildPathChain(currentPath: string, stopAt?: string): string[] {
-  if (!currentPath) return []
-
-  const segments = currentPath.split('/').filter(Boolean)
-  const paths: string[] = []
-
-  for (let i = segments.length; i > 0; i--) {
-    const path = segments.slice(0, i).join('/')
-    if (stopAt !== undefined && path === stopAt) break
-    paths.push(path)
-  }
-
-  // Add root if not stopping at it
-  // stopAt === undefined means include root
-  // stopAt === '' means exclude root
-  if (stopAt === undefined) {
-    paths.push('')
-  }
-
-  return paths
+export function useRootContextFiles(bucket: string) {
+  const s3 = AWS.S3.use()
+  const load = React.useCallback(async () => {
+    const results = await Promise.all(
+      CONTEXT_FILE_NAMES.map((key) =>
+        loadContextFile(s3, { bucket, key }, { scope: 'bucket', bucket, path: key }),
+      ),
+    )
+    return results.filter((file): file is ContextFile => file !== null)
+  }, [bucket, s3])
+  const res = Request.use(load)
+  return Eff.pipe(
+    resultToEffect(res),
+    Eff.Option.map(
+      Eff.flow(
+        Eff.Either.getOrElse(() => []),
+        Eff.Array.map(format),
+      ),
+    ),
+  )
 }
 
-export async function loadContextFileHierarchy(
+function buildPathChain(path: string): string[] {
+  // FIXME: check edge cases, like leading/trailing slashes, multiple slashes, etc.
+  return path
+    ? [
+        ...CONTEXT_FILE_NAMES.map(
+          (basename) => `${S3Paths.ensureNoSlash(path)}/${basename}`,
+        ),
+        ...buildPathChain(S3Paths.up(path)),
+      ]
+    : []
+}
+
+export function useDirContextFiles(bucket: string, path: string) {
+  const s3 = AWS.S3.use()
+
+  const load = React.useCallback(async () => {
+    const pathChain = buildPathChain(path)
+    const results = await Promise.all(
+      pathChain.map((key) =>
+        loadContextFile(s3, { bucket, key }, { scope: 'bucket', bucket, path: key }),
+      ),
+    )
+    return results
+      .filter((file): file is ContextFile => file !== null)
+      .slice(0, MAX_NON_ROOT_FILES)
+  }, [bucket, path, s3])
+
+  const res = Request.use(load)
+
+  return Eff.pipe(
+    resultToEffect(res),
+    Eff.Option.map(
+      Eff.flow(
+        Eff.Either.getOrElse(() => []),
+        Eff.Array.map(format),
+      ),
+    ),
+  )
+}
+
+async function loadPackageContextFile(
   s3: S3,
-  bucket: string,
-  currentPath: string,
-  stopAt?: string,
-): Promise<ContextFileContent[]> {
-  const pathChain = buildPathChain(currentPath, stopAt)
-  const isRootPath = (path: string) => path === '' || path === stopAt
-
-  // Load all context files (README.md and AGENTS.md) at each level
-  const promises: Promise<ContextFileContent | null>[] = []
-  const fileMetadata: { path: string; fileName: string; isRoot: boolean }[] = []
-
-  for (const path of pathChain) {
-    for (const fileName of CONTEXT_FILE_NAMES) {
-      promises.push(loadContextFile(s3, bucket, path, fileName))
-      fileMetadata.push({ path, fileName, isRoot: isRootPath(path) })
-    }
+  resolveLogicalKey: LogicalKeyResolver.LogicalKeyResolver,
+  logicalKey: string,
+  ctx: Omit<ContextFileContext, 'path' | 'scope'>,
+): Promise<ContextFile | null> {
+  try {
+    const resolved = await resolveLogicalKey(logicalKey)
+    return await loadContextFile(s3, resolved, {
+      scope: 'package',
+      path: logicalKey,
+      ...ctx,
+    })
+  } catch {
+    // could not resolve logical key, most likely because it doesn't exist
+    return null
   }
-
-  const results = await Promise.all(promises)
-
-  // Filter out nulls and associate with metadata
-  const validFiles: (ContextFileContent & { isRoot: boolean })[] = []
-  results.forEach((content, index) => {
-    if (content !== null) {
-      validFiles.push({ ...content, isRoot: fileMetadata[index].isRoot })
-    }
-  })
-
-  // Separate root and non-root files
-  const rootFiles = validFiles.filter((f) => f.isRoot)
-  const nonRootFiles = validFiles.filter((f) => !f.isRoot)
-
-  // Apply limit to non-root files (prioritize closer files, which come first in the array)
-  const limitedNonRootFiles = nonRootFiles.slice(0, MAX_NON_ROOT_FILES)
-
-  // Combine root files (always included) with limited non-root files
-  return [...limitedNonRootFiles, ...rootFiles].map(({ isRoot, ...file }) => file)
 }
 
-export function buildPackagePathChain(
-  packagePath: string,
-  packageRoot: string,
-): string[] {
-  const paths: string[] = []
+export function usePackageRootContextFiles(bucket: string, name: string) {
+  const s3 = AWS.S3.use()
+  const resolver = LogicalKeyResolver.useStrict()
 
-  // Build chain within package first
-  if (packagePath && packagePath !== packageRoot) {
-    const relativePath = packagePath.slice(packageRoot.length).replace(/^\//, '')
-    const segments = relativePath.split('/').filter(Boolean)
+  const load = React.useCallback(async () => {
+    const results = await Promise.all(
+      CONTEXT_FILE_NAMES.map((key) =>
+        loadPackageContextFile(s3, resolver, key, { bucket, packageName: name }),
+      ),
+    )
+    return results.filter((file): file is ContextFile => file !== null)
+  }, [bucket, name, s3, resolver])
 
-    for (let i = segments.length; i > 0; i--) {
-      paths.push(`${packageRoot}/${segments.slice(0, i).join('/')}`)
-    }
-  }
+  const res = Request.use(load)
 
-  // Add package root
-  paths.push(packageRoot)
-
-  // Add package parent directories up to bucket (but exclude bucket root)
-  const packageParentSegments = packageRoot.split('/').filter(Boolean)
-  for (let i = packageParentSegments.length - 1; i > 0; i--) {
-    paths.push(packageParentSegments.slice(0, i).join('/'))
-  }
-
-  return paths
+  return Eff.pipe(
+    resultToEffect(res),
+    Eff.Option.map(
+      Eff.flow(
+        Eff.Either.getOrElse(() => []),
+        Eff.Array.map(format),
+      ),
+    ),
+  )
 }
 
-export interface ContextFileAttributes {
-  scope: 'bucket' | 'package'
-  bucket: string
-  packageName?: string
+export function usePackageDirContextFiles(bucket: string, name: string, path: string) {
+  const s3 = AWS.S3.use()
+  const resolver = LogicalKeyResolver.useStrict()
+
+  const load = React.useCallback(async () => {
+    const pathChain = buildPathChain(path)
+    const results = await Promise.all(
+      pathChain.map((key) =>
+        loadPackageContextFile(s3, resolver, key, { bucket, packageName: name }),
+      ),
+    )
+    return results
+      .filter((file): file is ContextFile => file !== null)
+      .slice(0, MAX_NON_ROOT_FILES)
+  }, [bucket, name, path, s3, resolver])
+
+  const res = Request.use(load)
+
+  return Eff.pipe(
+    resultToEffect(res),
+    Eff.Option.map(
+      Eff.flow(
+        Eff.Either.getOrElse(() => []),
+        Eff.Array.map(format),
+      ),
+    ),
+  )
 }
 
-export function formatContextFileAsXML(
-  content: ContextFileContent,
-  attrs?: ContextFileAttributes,
-): string {
-  const truncatedNote = content.truncated
-    ? `\n[Content truncated at ${MAX_CONTEXT_FILE_SIZE.toLocaleString()} bytes]`
-    : ''
-
-  const xmlAttrs: Record<string, string> = {
-    path: content.path,
-    truncated: content.truncated.toString(),
-  }
-
-  if (attrs) {
-    xmlAttrs.scope = attrs.scope
-    xmlAttrs.bucket = attrs.bucket
-    if (attrs.packageName) {
-      xmlAttrs['package-name'] = attrs.packageName
-    }
-  }
-
-  return XML.tag('context-file', xmlAttrs, content.content + truncatedNote).toString()
-}
-
-export function formatContextFilesAsMessages(
-  files: ContextFileContent[],
-  attrs?: ContextFileAttributes,
-): string[] {
-  if (files.length === 0) return []
-
-  return files.map((file) => formatContextFileAsXML(file, attrs))
-}
-
-// Custom hook for loading context files with consistent error handling
-export interface UseContextFileLoaderResult {
-  files: ContextFileContent[] | null
-  loading: boolean
-  error: Error | null
-}
-
-export function useContextFileLoader(
-  loader: () => Promise<ContextFileContent[]>,
-  deps: React.DependencyList,
-): UseContextFileLoaderResult {
-  const [files, setFiles] = React.useState<ContextFileContent[] | null>(null)
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<Error | null>(null)
-
-  React.useEffect(() => {
-    let cancelled = false
-
-    const loadFiles = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const result = await loader()
-        if (!cancelled) {
-          setFiles(result)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)))
-          setFiles([])
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadFiles()
-
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
-
-  return { files, loading, error }
+export function format({ content, truncated, ...attrs }: ContextFile): string {
+  return XML.tag(
+    'context-file',
+    attrs,
+    content,
+    truncated
+      ? `[Content truncated at ${MAX_CONTEXT_FILE_SIZE.toLocaleString()} bytes]`
+      : null,
+  ).toString()
 }

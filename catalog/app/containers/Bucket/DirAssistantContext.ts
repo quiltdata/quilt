@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
 import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
-import * as AWS from 'utils/AWS'
 import * as XML from 'utils/XML'
 
 import type { BucketListingResult } from './requests'
@@ -65,38 +64,10 @@ interface DirContextFilesProps {
 
 export const DirContextFiles = Assistant.Context.LazyContext(
   ({ bucket, path }: DirContextFilesProps) => {
-    const s3 = AWS.S3.use()
-
-    const loader = React.useCallback(
-      async () =>
-        // Load hierarchy from current path up to (but excluding) bucket root
-        ContextFiles.loadContextFileHierarchy(
-          s3,
-          bucket,
-          path,
-          '', // Stop at bucket root (empty string)
-        ),
-      [bucket, path, s3],
-    )
-
-    const { files: contextFiles, loading } = ContextFiles.useContextFileLoader(loader, [
-      bucket,
-      path,
-      s3,
-    ])
-
-    const messages = React.useMemo(() => {
-      if (!contextFiles || contextFiles.length === 0) return []
-      const attrs: ContextFiles.ContextFileAttributes = {
-        scope: 'bucket',
-        bucket,
-      }
-      return ContextFiles.formatContextFilesAsMessages(contextFiles, attrs)
-    }, [contextFiles, bucket])
-
+    const messagesO = ContextFiles.useDirContextFiles(bucket, path)
     return {
-      markers: { dirContextFilesReady: !loading && contextFiles !== null },
-      messages,
+      markers: { dirContextFilesReady: Eff.Option.isSome(messagesO) },
+      messages: Eff.Option.getOrUndefined(messagesO),
     }
   },
 )
