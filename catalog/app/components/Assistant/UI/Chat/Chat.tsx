@@ -10,7 +10,6 @@ import { useMCPContextStateValue } from 'components/Assistant/MCP/MCPContextProv
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
-import { calculateCumulativeUsage } from '../../Utils/TokenCounter'
 import ContextMeter from '../ContextMeter/ContextMeter'
 import { JWTRefreshNotification, useJWTErrorDetection } from '../JWTRefreshNotification'
 
@@ -528,68 +527,23 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
   } = useJWTErrorDetection()
 
   // Calculate cumulative token usage
-  const contextUsage = React.useMemo(() => {
-    const tokenUsageHistory = state.tokenUsage || []
-    if (tokenUsageHistory.length === 0) return null
+  const contextUsage = React.useMemo(() => null, [])
 
-    // Use the model ID from devTools if available, otherwise use default
-    const modelId = devTools.modelIdOverride.value || Model.Assistant.DEFAULT_MODEL_ID
-    return calculateCumulativeUsage(tokenUsageHistory, modelId)
-  }, [state.tokenUsage, devTools.modelIdOverride.value])
-
-  // Get available buckets for @ mentions
-  const [availableBuckets, setAvailableBuckets] = React.useState<string[]>([])
-
-  React.useEffect(() => {
-    const fetchBuckets = async () => {
-      try {
-        // Try multiple sources for bucket discovery
-        let buckets: string[] = []
-
-        // 1. Try the auth manager first
-        const authManager = (window as any).__dynamicAuthManager // eslint-disable-line no-underscore-dangle
-        if (authManager && typeof authManager.getCurrentBuckets === 'function') {
-          buckets = await authManager.getCurrentBuckets()
-        }
-
-        // 2. Fallback to AWS bucket discovery service
-        if (!buckets || buckets.length === 0) {
-          const bucketService = (window as any).__awsBucketDiscoveryService // eslint-disable-line no-underscore-dangle
-          if (bucketService && typeof bucketService.getAvailableBuckets === 'function') {
-            buckets = await bucketService.getAvailableBuckets()
-          }
-        }
-
-        // 3. Fallback to hardcoded common buckets
-        if (!buckets || buckets.length === 0) {
-          buckets = [
-            'quilt-sandbox-bucket',
-            'quilt-sales-raw',
-            'quilt-sales-staging',
-            'cellpainting-gallery',
-            'data-drop-off-bucket',
-            'example-pharma-data',
-            'nf-core-gallery',
-            'pmc-oa-opendata',
-            'quilt-benchling',
-            'quilt-cro',
-          ]
-        }
-
-        setAvailableBuckets(buckets || [])
-      } catch (error) {
-        // Failed to fetch buckets for @ mentions
-        // Set fallback buckets on error
-        setAvailableBuckets([
-          'quilt-sandbox-bucket',
-          'cellpainting-gallery',
-          'example-pharma-data',
-        ])
-      }
-    }
-
-    fetchBuckets()
-  }, [])
+  // Get available buckets for @ mentions (temporarily disabled until Input component is updated)
+  // const [availableBuckets, setAvailableBuckets] = React.useState<string[]>([])
+  // React.useEffect(() => {
+  //   const fetchBuckets = async () => {
+  //     try {
+  //       // Try multiple sources for bucket discovery
+  //       let buckets: string[] = []
+  //       // ... bucket discovery logic
+  //       setAvailableBuckets(buckets || [])
+  //     } catch (error) {
+  //       setAvailableBuckets(['quilt-sandbox-bucket', 'cellpainting-gallery', 'example-pharma-data'])
+  //     }
+  //   }
+  //   fetchBuckets()
+  // }, [])
 
   // Resize handler
   const handleResizeStart = React.useCallback((e: React.MouseEvent) => {
@@ -817,23 +771,23 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
         className={classes.input}
         disabled={inputDisabled}
         onSubmit={ask}
-        buckets={availableBuckets}
-        chatHistory={state.events
-          .filter((event) => event._tag === 'Message')
-          .map((event) => {
-            const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
-            return {
-              role: messageEvent.role,
-              content:
-                typeof messageEvent.content === 'string'
-                  ? messageEvent.content
-                  : JSON.stringify(messageEvent.content),
-              timestamp: messageEvent.timestamp,
-            }
-          })}
-        onCopyHistory={() => {
-          // Chat history copied
-        }}
+        // buckets={availableBuckets} // Temporarily disabled until Input component is updated
+        // chatHistory={state.events // Temporarily disabled until Input component is updated
+        //   .filter((event) => event._tag === 'Message')
+        //   .map((event) => {
+        //     const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
+        //     return {
+        //       role: messageEvent.role,
+        //       content:
+        //         typeof messageEvent.content === 'string'
+        //           ? messageEvent.content
+        //           : JSON.stringify(messageEvent.content),
+        //       timestamp: messageEvent.timestamp,
+        //     }
+        //   })}
+        // onCopyHistory={() => {
+        //   // Chat history copied
+        // }}
       />
     </div>
   )

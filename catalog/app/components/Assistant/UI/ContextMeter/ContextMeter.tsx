@@ -147,9 +147,7 @@ export default function ContextMeter({ usage, className }: ContextMeterProps) {
     <div className={classes.tooltipContent}>
       <div className={classes.tooltipRow}>
         <span className={classes.tooltipLabel}>Model:</span>
-        <span className={classes.tooltipValue}>
-          {modelId?.split('.').pop()?.split('-')[0] || 'Unknown'}
-        </span>
+        <span className={classes.tooltipValue}>Unknown</span>
       </div>
       <div className={classes.tooltipRow}>
         <span className={classes.tooltipLabel}>Context limit:</span>
@@ -174,7 +172,7 @@ export default function ContextMeter({ usage, className }: ContextMeterProps) {
           {usage.outputTokens.toLocaleString()}
         </span>
       </div>
-      {usage.isCritical ? (
+      {usage.isCritical && (
         <>
           <M.Divider style={{ margin: '8px 0' }} />
           <div className={classes.criticalMessage}>
@@ -182,7 +180,8 @@ export default function ContextMeter({ usage, className }: ContextMeterProps) {
             <span>Context nearly full! Consider starting a new conversation.</span>
           </div>
         </>
-      ) : usage.isNearLimit ? (
+      )}
+      {!usage.isCritical && usage.isNearLimit && (
         <>
           <M.Divider style={{ margin: '8px 0' }} />
           <div className={classes.warningMessage}>
@@ -193,7 +192,8 @@ export default function ContextMeter({ usage, className }: ContextMeterProps) {
             </span>
           </div>
         </>
-      ) : (
+      )}
+      {!usage.isCritical && !usage.isNearLimit && (
         <>
           <M.Divider style={{ margin: '8px 0' }} />
           <div className={classes.tooltipRow}>

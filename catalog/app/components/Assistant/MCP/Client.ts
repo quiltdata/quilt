@@ -41,6 +41,11 @@ export class QuiltMCPClient implements MCPClient {
   private reduxTokenGetter: (() => Promise<string | null>) | null = null
 
   constructor() {
+    // Debug: Log the raw configuration
+    console.log('🔍 MCP Client: Raw config object:', cfg)
+    console.log('🔍 MCP Client: mcpEndpoint value:', cfg.mcpEndpoint)
+    console.log('🔍 MCP Client: mcpEndpoint type:', typeof cfg.mcpEndpoint)
+
     // Use configuration-based URL selection
     if (cfg.mcpEndpoint && cfg.mcpEndpoint.trim() !== '') {
       this.baseUrl = cfg.mcpEndpoint.endsWith('/')
@@ -49,9 +54,16 @@ export class QuiltMCPClient implements MCPClient {
 
       // Detect if this is an SSE endpoint
       this.isSSEEndpoint = this.detectSSEEndpoint(cfg.mcpEndpoint)
+
+      console.log('✅ MCP Client: Using configured endpoint:', this.baseUrl)
     } else {
-      this.baseUrl = 'http://localhost:8000/mcp/'
+      // Use HTTPS fallback for production compatibility
+      this.baseUrl = 'https://demo.quiltdata.com/mcp/'
       this.isSSEEndpoint = false
+      console.log(
+        '⚠️ MCP Client: No endpoint configured, using HTTPS fallback:',
+        this.baseUrl,
+      )
     }
 
     // Log configuration for debugging (development only)
