@@ -15,7 +15,7 @@ type RevisionData = NonNullable<
 >['revision']
 
 function useMetadataContext(bucket: string, name: string, revision: RevisionData) {
-  return React.useMemo(() => {
+  const messages = React.useMemo(() => {
     if (!revision) return []
 
     const { userMeta, __typename: ignore, ...systemMeta } = revision
@@ -44,6 +44,7 @@ function useMetadataContext(bucket: string, name: string, revision: RevisionData
 
     return msgs
   }, [bucket, name, revision])
+  return { messages }
 }
 
 interface PackageContextProps {
@@ -54,25 +55,10 @@ interface PackageContextProps {
 }
 
 export const PackageContext = Assistant.Context.LazyContext<PackageContextProps>(
-  ({ bucket, name, path, revision }) => {
-    const dirCtx = ContextFiles.usePackageDirContextFiles(
-      bucket,
-      name,
-      S3Paths.getPrefix(path),
-    )
-    const rootCtx = ContextFiles.usePackageRootContextFiles(bucket, name)
-    const metadataMsg = useMetadataContext(bucket, name, revision)
-
-    const messages = React.useMemo(
-      () => [...metadataMsg, ...rootCtx.messages, ...dirCtx.messages],
-      [metadataMsg, rootCtx.messages, dirCtx.messages],
-    )
-
-    const markers = {
-      ...rootCtx.markers,
-      ...dirCtx.markers,
-    }
-
-    return { markers, messages }
-  },
+  ({ bucket, name, path, revision }) =>
+    Assistant.Context.merge(
+      useMetadataContext(bucket, name, revision),
+      ContextFiles.usePackageRootContextFiles(bucket, name),
+      ContextFiles.usePackageDirContextFiles(bucket, name, S3Paths.getPrefix(path)),
+    ),
 )
