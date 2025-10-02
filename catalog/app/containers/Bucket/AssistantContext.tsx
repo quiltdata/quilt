@@ -5,12 +5,6 @@ interface BucketContextProps {
   bucket: string
 }
 
-export const BucketContext = Assistant.Context.LazyContext(
-  ({ bucket }: BucketContextProps) => {
-    const { ready, messages } = ContextFiles.useBucketRootContextFiles(bucket)
-    return {
-      markers: { bucketContextFilesReady: ready },
-      messages,
-    }
-  },
+export const BucketContext = Assistant.Context.LazyContext<BucketContextProps>(
+  ({ bucket }) => ContextFiles.useBucketRootContextFiles(bucket),
 )

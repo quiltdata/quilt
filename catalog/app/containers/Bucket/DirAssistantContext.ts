@@ -62,12 +62,6 @@ interface DirContextFilesProps {
   path: string
 }
 
-export const DirContextFiles = Assistant.Context.LazyContext(
-  ({ bucket, path }: DirContextFilesProps) => {
-    const { ready, messages } = ContextFiles.useBucketDirContextFiles(bucket, path)
-    return {
-      markers: { dirContextFilesReady: ready },
-      messages,
-    }
-  },
+export const DirContextFiles = Assistant.Context.LazyContext<DirContextFilesProps>(
+  ({ bucket, path }) => ContextFiles.useBucketDirContextFiles(bucket, path),
 )

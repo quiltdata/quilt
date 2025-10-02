@@ -53,10 +53,13 @@ interface PackageContextProps {
   revision: RevisionData
 }
 
-export const PackageContext = Assistant.Context.LazyContext(
-  ({ bucket, name, path, revision }: PackageContextProps) => {
-    const dir = S3Paths.getPrefix(path)
-    const dirCtx = ContextFiles.usePackageDirContextFiles(bucket, name, dir)
+export const PackageContext = Assistant.Context.LazyContext<PackageContextProps>(
+  ({ bucket, name, path, revision }) => {
+    const dirCtx = ContextFiles.usePackageDirContextFiles(
+      bucket,
+      name,
+      S3Paths.getPrefix(path),
+    )
     const rootCtx = ContextFiles.usePackageRootContextFiles(bucket, name)
     const metadataMsg = useMetadataContext(bucket, name, revision)
 
@@ -65,12 +68,11 @@ export const PackageContext = Assistant.Context.LazyContext(
       [metadataMsg, rootCtx.messages, dirCtx.messages],
     )
 
-    return {
-      markers: {
-        packageRootContextFilesReady: rootCtx.ready,
-        packageDirContextFilesReady: dirCtx.ready,
-      },
-      messages,
+    const markers = {
+      ...rootCtx.markers,
+      ...dirCtx.markers,
     }
+
+    return { markers, messages }
   },
 )

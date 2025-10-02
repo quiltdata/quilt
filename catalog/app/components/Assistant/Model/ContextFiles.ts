@@ -93,6 +93,7 @@ function useBuildPathChain(path: string): string[] {
 }
 
 function useContextFiles(
+  marker: string,
   load: (path: string) => Promise<ContextFile | null>,
   paths: string[],
   limit?: number,
@@ -113,15 +114,23 @@ function useContextFiles(
         : r.map(format),
     [r],
   )
-  return { ready, messages }
+  return {
+    markers: { [marker]: ready },
+    messages,
+  }
 }
 
 export function useBucketRootContextFiles(bucket: string) {
-  return useContextFiles(useLoadBucketContextFile(bucket), CONTEXT_FILE_NAMES)
+  return useContextFiles(
+    'bucketRootContextFilesReady',
+    useLoadBucketContextFile(bucket),
+    CONTEXT_FILE_NAMES,
+  )
 }
 
 export function useBucketDirContextFiles(bucket: string, path: string) {
   return useContextFiles(
+    'bucketDirContextFilesReady',
     useLoadBucketContextFile(bucket),
     useBuildPathChain(path),
     MAX_NON_ROOT_FILES,
@@ -129,11 +138,16 @@ export function useBucketDirContextFiles(bucket: string, path: string) {
 }
 
 export function usePackageRootContextFiles(bucket: string, name: string) {
-  return useContextFiles(useLoadPackageContextFile(bucket, name), CONTEXT_FILE_NAMES)
+  return useContextFiles(
+    'packageRootContextFilesReady',
+    useLoadPackageContextFile(bucket, name),
+    CONTEXT_FILE_NAMES,
+  )
 }
 
 export function usePackageDirContextFiles(bucket: string, name: string, path: string) {
   return useContextFiles(
+    'packageDirContextFilesReady',
     useLoadPackageContextFile(bucket, name),
     useBuildPathChain(path),
     MAX_NON_ROOT_FILES,
