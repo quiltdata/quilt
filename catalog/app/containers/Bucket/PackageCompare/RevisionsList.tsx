@@ -14,8 +14,14 @@ type RevisionFields = NonNullable<
 >
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+  },
   hash: {
     fontFamily: t.typography.monospace.fontFamily,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
 }))
 
@@ -51,6 +57,7 @@ export default function RevisionsList({
       displayEmpty
       disabled={revisionListQuery.fetching}
       fullWidth
+      className={classes.root}
     >
       {!temporaryRemoveNone && (
         <M.MenuItem value="">

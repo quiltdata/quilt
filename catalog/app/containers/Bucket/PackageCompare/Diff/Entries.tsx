@@ -1,17 +1,113 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import assertNever from 'utils/assertNever'
 import JsonDisplay from 'components/JsonDisplay'
-import Code from 'components/Code'
 import * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import { readableBytes, trimCenter } from 'utils/string'
+import { readableBytes } from 'utils/string'
 import * as s3paths from 'utils/s3paths'
 
-import type { RevisionResult } from '../useRevision'
+import type { Revision, RevisionResult } from '../useRevision'
+
+import Change from './Diff'
+import type { Dir, Side } from './Diff'
+
+type Changes =
+  | { _tag: 'unmodified'; logicalKey: string }
+  | { _tag: 'introduced'; logicalKey: string; entry: Model.PackageEntry; dir: Dir }
+  | {
+      _tag: 'modified'
+      logicalKey: string
+      left: Partial<Model.PackageEntry>
+      right: Partial<Model.PackageEntry>
+    }
+
+const useEntrySideStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+    padding: t.spacing(1),
+    borderLeft: `1px solid ${t.palette.divider}`,
+    borderRight: `1px solid ${t.palette.divider}`,
+  },
+  hash: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
+  hideOverflow: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+}))
+
+interface EntrySideProps {
+  logicalKey: string
+  side: Side
+  changes: Partial<Model.PackageEntry> | 'introduced' | 'unmodified'
+  dir: Dir
+}
+
+function EntrySide({ changes, logicalKey, dir, side }: EntrySideProps) {
+  const classes = useEntrySideStyles()
+  if (changes === 'introduced') {
+    return (
+      <M.Typography className={classes.root} variant="subtitle2" color="textSecondary">
+        <Change dir={dir} side={side}>
+          {logicalKey}
+        </Change>
+      </M.Typography>
+    )
+  }
+  if (changes === 'unmodified') {
+    return (
+      <M.Typography className={classes.root} variant="subtitle2" color="textSecondary">
+        {logicalKey}
+      </M.Typography>
+    )
+  }
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="subtitle2" color="textSecondary">
+        {logicalKey}
+      </M.Typography>
+
+      {changes.physicalKey && (
+        <M.Typography className={classes.hideOverflow}>
+          <M.Typography variant="body2" component="span">
+            <b>URL</b>:{' '}
+          </M.Typography>
+          <Change dir={dir} side={side}>
+            <PhysicalKey url={changes.physicalKey} />
+          </Change>
+        </M.Typography>
+      )}
+
+      {changes.hash && (
+        <M.Typography className={classes.hideOverflow}>
+          <M.Typography variant="body2" component="span">
+            <b>Hash</b>:{' '}
+          </M.Typography>
+          <Change dir={dir} side={side} className={classes.hash}>
+            {changes.hash.value}
+          </Change>
+        </M.Typography>
+      )}
+
+      {changes.size && (
+        <M.Typography variant="body2" className={classes.hideOverflow}>
+          <b>Size</b>:{' '}
+          <Change dir={dir} side={side}>
+            {readableBytes(changes.size)}
+          </Change>
+        </M.Typography>
+      )}
+
+      {changes.meta && <JsonDisplay value={changes.meta} />}
+    </div>
+  )
+}
 
 interface PhysicalKeyProps {
   className?: string
@@ -31,27 +127,64 @@ function PhysicalKey({ className, url }: PhysicalKeyProps) {
   )
 }
 
+function getEntryChanges(
+  entry: Model.PackageEntry,
+  modified: Record<keyof Model.PackageEntry, boolean>,
+) {
+  return {
+    physicalKey: modified.physicalKey ? entry.physicalKey : undefined,
+    hash: modified.hash ? entry.hash : undefined,
+    size: modified.size ? entry.size : undefined,
+    meta: modified.meta ? entry.meta : undefined,
+  }
+}
+
+function useChanges(
+  dir: Dir,
+  logicalKey: string,
+  left?: Model.PackageEntry,
+  right?: Model.PackageEntry,
+): Changes {
+  if (!left || !right) {
+    const entry = left || right
+    if (!entry) {
+      throw new Error('Must be at least one entry')
+    }
+    return { _tag: 'introduced', logicalKey, entry, dir }
+  }
+
+  const physicalKey = left.physicalKey !== right.physicalKey
+  const hash = left.hash.value !== right.hash.value
+  const size = left.size !== right.size
+  const meta = JSON.stringify(left.meta) !== JSON.stringify(right.meta)
+  if (!physicalKey && !hash && !size && !meta) return { _tag: 'unmodified', logicalKey }
+  const modified = { physicalKey, hash, size, meta }
+  return {
+    _tag: 'modified',
+    logicalKey,
+    left: getEntryChanges(left, modified),
+    right: getEntryChanges(right, modified),
+  }
+}
+
 const useStyles = M.makeStyles((t) => ({
   table: {},
   entryRow: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: t.spacing(1),
+    borderTop: `1px solid ${t.palette.divider}`,
+    borderBottom: `1px solid ${t.palette.divider}`,
+  },
+  hash: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
+  colorInherit: {
+    color: 'inherit',
   },
   entryCell: {
+    overflow: 'hidden',
     padding: t.spacing(1),
     border: `1px solid ${t.palette.divider}`,
-    fontFamily: 'monospace',
-    fontSize: '0.875rem',
-  },
-  added: {
-    backgroundColor: t.palette.success.light,
-  },
-  removed: {
-    backgroundColor: t.palette.error.light,
-  },
-  modified: {
-    backgroundColor: t.palette.warning.light,
   },
 }))
 
@@ -59,80 +192,110 @@ interface EntriesRowProps {
   logicalKey: string
   left?: Model.PackageEntry
   right?: Model.PackageEntry
+  dir: Dir
 }
 
-function EntriesRow({ logicalKey, left, right }: EntriesRowProps) {
+function EntriesRow({ dir, logicalKey, left, right }: EntriesRowProps) {
   const classes = useStyles()
 
-  const isAdded = !left && right
-  const isRemoved = left && !right
-  const isModified =
-    left &&
-    right &&
-    (left.physicalKey !== right.physicalKey ||
-      left.hash.value !== right.hash.value ||
-      left.size !== right.size ||
-      JSON.stringify(left.meta) !== JSON.stringify(right.meta))
+  const changes = useChanges(dir, logicalKey, left, right)
 
-  if (!isModified)
+  switch (changes._tag) {
+    case 'unmodified':
+      return (
+        <div className={classes.entryRow}>
+          <M.Typography variant="subtitle2" color="textSecondary">
+            <M.Box p={1}>{logicalKey}</M.Box>
+          </M.Typography>
+          <M.Typography variant="subtitle2" color="textSecondary" component="i">
+            Unmodified
+          </M.Typography>
+        </div>
+      )
+    case 'introduced':
+      return (
+        <EntrySide logicalKey={logicalKey} side="left" dir={dir} changes="introduced" />
+      )
+    case 'modified':
+      return (
+        <div className={classes.entryRow}>
+          <EntrySide
+            logicalKey={logicalKey}
+            side="left"
+            dir={dir}
+            changes={changes.left}
+          />
+          <EntrySide
+            logicalKey={logicalKey}
+            side="right"
+            dir={dir}
+            changes={changes.right}
+          />
+        </div>
+      )
+    default:
+      assertNever(changes)
+  }
+}
+
+interface EntriesDiffProps {
+  left: Revision
+  right: Revision
+}
+
+function EntriesDiff({ left, right }: EntriesDiffProps) {
+  const classes = useStyles()
+
+  const entries = React.useMemo(() => {
+    const leftData = left.contentsFlatMap || {}
+    const rightData = right.contentsFlatMap || {}
+
+    const logicalKeys = Object.keys({ ...leftData, ...rightData }).sort()
+    return { left: leftData, right: rightData, keys: logicalKeys }
+  }, [left.contentsFlatMap, right.contentsFlatMap])
+
+  const dir: Dir = React.useMemo(
+    () => (left.modified > right.modified ? 'ltr' : 'rtl'),
+    [left.modified, right.modified],
+  )
+
+  if (entries.keys.length === 0) {
     return (
-      <div className={classes.entryCell}>
-        <M.Typography variant="subtitle2">{logicalKey}</M.Typography>
-      </div>
+      <M.Typography
+        variant="body2"
+        color="textSecondary"
+        style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
+      >
+        No entries found
+      </M.Typography>
     )
+  }
 
   return (
-    <div className={classes.entryRow}>
-      <div className={cx(classes.entryCell, isRemoved && classes.removed)}>
-        <M.Typography variant="subtitle2">{logicalKey}</M.Typography>
-        <PhysicalKey
-          className={cx(left.physicalKey !== right.physicalKey && classes.removed)}
-          url={left.physicalKey}
-        />
-        <br />
-        <Code className={cx(left.hash.value !== right.hash.value && classes.removed)}>
-          {left.hash.value}
-        </Code>
-        <br />
-        <M.Typography
-          className={cx(left.size !== right.size && classes.removed)}
-          variant="body2"
-        >
-          {readableBytes(left.size)}
-        </M.Typography>
-        <JsonDisplay value={left.meta} />
+    <div className={classes.table}>
+      <div className={classes.entryRow}>
+        <div className={classes.entryCell}>{left.hash}</div>
+        <div className={classes.entryCell}>{right.hash}</div>
       </div>
-      <div className={cx(classes.entryCell, isAdded && classes.added)}>
-        <M.Typography variant="subtitle2">{logicalKey}</M.Typography>
-        <PhysicalKey
-          className={cx(left.physicalKey !== right.physicalKey && classes.added)}
-          url={right.physicalKey}
+      {entries.keys.map((logicalKey) => (
+        <EntriesRow
+          key={logicalKey}
+          logicalKey={logicalKey}
+          left={entries.left[logicalKey]}
+          right={entries.right[logicalKey]}
+          dir={dir}
         />
-        <br />
-        <Code className={cx(left.hash.value !== right.hash.value && classes.added)}>
-          {right.hash.value}
-        </Code>
-        <br />
-        <M.Typography
-          className={cx(left.size !== right.size && classes.added)}
-          variant="body2"
-        >
-          {readableBytes(right.size)}
-        </M.Typography>
-        <JsonDisplay value={right.meta} />
-      </div>
+      ))}
     </div>
   )
 }
 
-interface EntriesDiffProps {
+interface EntriesDiffWrapperProps {
   left: RevisionResult
   right: RevisionResult
 }
 
-export default function EntriesDiff({ left: left, right: right }: EntriesDiffProps) {
-  const classes = useStyles()
-
+export default function EntriesDiffHandler({ left, right }: EntriesDiffWrapperProps) {
   if (left._tag === 'idle' || right._tag === 'idle') {
     return null
   }
@@ -149,41 +312,5 @@ export default function EntriesDiff({ left: left, right: right }: EntriesDiffPro
     )
   }
 
-  const leftData = left.revision.contentsFlatMap || {}
-  const rightData = right.revision.contentsFlatMap || {}
-
-  const logicalKeys = Object.keys({ ...leftData, ...rightData }).sort()
-
-  if (logicalKeys.length === 0) {
-    return (
-      <M.Typography
-        variant="body2"
-        color="textSecondary"
-        style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
-      >
-        No entries found
-      </M.Typography>
-    )
-  }
-
-  return (
-    <div className={classes.table}>
-      <div className={classes.entryRow}>
-        <div className={classes.entryCell} style={{ fontWeight: 'bold' }}>
-          {trimCenter(left.revision.hash, 12)}
-        </div>
-        <div className={classes.entryCell} style={{ fontWeight: 'bold' }}>
-          {trimCenter(right.revision.hash, 12)}
-        </div>
-      </div>
-      {logicalKeys.map((logicalKey) => (
-        <EntriesRow
-          key={logicalKey}
-          logicalKey={logicalKey}
-          left={leftData[logicalKey]}
-          right={rightData[logicalKey]}
-        />
-      ))}
-    </div>
-  )
+  return <EntriesDiff left={left.revision} right={right.revision} />
 }

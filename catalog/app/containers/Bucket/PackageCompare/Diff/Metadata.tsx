@@ -3,7 +3,6 @@ import ReactDiffViewer from 'react-diff-viewer-continued'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import { trimCenter } from 'utils/string'
 
 import type { RevisionResult } from '../useRevision'
 
@@ -52,9 +51,9 @@ export default function MetadataDiff({ left: left, right: right }: MetadataDiffP
       oldValue={leftMetadataString}
       newValue={rightMetadataString}
       splitView={true}
-      leftTitle={trimCenter(left.revision.hash, 15)}
-      rightTitle={trimCenter(right.revision.hash, 15)}
-      showDiffOnly={false}
+      leftTitle={left.revision.hash}
+      rightTitle={right.revision.hash}
+      showDiffOnly
       hideLineNumbers={false}
     />
   )

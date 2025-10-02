@@ -11,6 +11,7 @@ import type { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
 import { Revision, RevisionResult } from './useRevision'
+import Change, { Dir, Side } from './Diff/Diff'
 
 interface ModifiedProps {
   packageHandle: PackageHandle
@@ -55,7 +56,11 @@ interface MessageProps {
 function Message({ revision: { message } }: MessageProps) {
   const classes = useMessageStyles()
   return (
-    <M.Typography className={cx(!message && classes.empty)} variant="body2">
+    <M.Typography
+      className={cx(!message && classes.empty)}
+      variant="body2"
+      component="span"
+    >
       {message || 'No message'}
     </M.Typography>
   )
@@ -74,7 +79,11 @@ interface SizeProps {
 }
 
 function Size({ revision: { totalBytes } }: SizeProps) {
-  return <M.Typography variant="body2">{readableBytes(totalBytes)}</M.Typography>
+  return (
+    <M.Typography variant="body2" component="span">
+      <M.Tooltip title={`${totalBytes} B`}>{readableBytes(totalBytes)}</M.Tooltip>
+    </M.Typography>
+  )
 }
 
 function SizeSkeleton() {
@@ -87,7 +96,7 @@ function SizeSkeleton() {
 
 const useColumnStyles = M.makeStyles((t) => ({
   cell: {
-    padding: t.spacing(2, 0),
+    padding: t.spacing(1, 0),
     whiteSpace: 'nowrap',
     '& + &': {
       borderTop: `1px solid ${t.palette.divider}`,
@@ -98,9 +107,12 @@ const useColumnStyles = M.makeStyles((t) => ({
 interface ColumnProps {
   packageHandle: PackageHandle
   revision: Revision
+  other?: Revision
+  side: Side
+  dir: Dir
 }
 
-function Column({ packageHandle, revision }: ColumnProps) {
+function Column({ packageHandle, revision, other, side, dir }: ColumnProps) {
   const classes = useColumnStyles()
   return (
     <div>
@@ -108,10 +120,22 @@ function Column({ packageHandle, revision }: ColumnProps) {
         <Modified packageHandle={packageHandle} revision={revision} />
       </div>
       <div className={classes.cell}>
-        <Message revision={revision} />
+        {!other || revision.message == other.message ? (
+          <Message revision={revision} />
+        ) : (
+          <Change dir={dir} side={side}>
+            <Message revision={revision} />
+          </Change>
+        )}
       </div>
       <div className={classes.cell}>
-        <Size revision={revision} />
+        {!other || revision.totalBytes === other.totalBytes ? (
+          <Size revision={revision} />
+        ) : (
+          <Change dir={dir} side={side}>
+            <Size revision={revision} />
+          </Change>
+        )}
       </div>
     </div>
   )
@@ -145,9 +169,19 @@ function ColumnError({ error }: ColumnErrorProps) {
 interface ColumnWrapperProps {
   packageHandle: PackageHandle
   result: RevisionResult
+  other: RevisionResult
+  side: Side
 }
 
-function ColumnWrapper({ packageHandle, result }: ColumnWrapperProps) {
+function ColumnWrapper({ packageHandle, result, other, side }: ColumnWrapperProps) {
+  const dir: Dir = React.useMemo(() => {
+    if (result._tag !== 'ok' || other._tag !== 'ok') return 'ltr'
+    const map =
+      result.revision.modified > other.revision.modified
+        ? ({ left: 'ltr', right: 'rtl' } as Record<Side, Dir>)
+        : ({ left: 'rtl', right: 'ltr' } as Record<Side, Dir>)
+    return map[side]
+  }, [result, other, side])
   switch (result._tag) {
     case 'idle':
       return null
@@ -156,7 +190,22 @@ function ColumnWrapper({ packageHandle, result }: ColumnWrapperProps) {
     case 'error':
       return <ColumnError error={result.error} />
     case 'ok':
-      return <Column packageHandle={packageHandle} revision={result.revision} />
+      return other._tag === 'ok' ? (
+        <Column
+          packageHandle={packageHandle}
+          revision={result.revision}
+          other={other.revision}
+          dir={dir}
+          side={side}
+        />
+      ) : (
+        <Column
+          packageHandle={packageHandle}
+          revision={result.revision}
+          side={side}
+          dir="ltr"
+        />
+      )
     default:
       assertNever(result)
   }
@@ -166,7 +215,7 @@ const useStyles = M.makeStyles((t) => ({
   grid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gridColumnGap: t.spacing(4),
+    gridColumnGap: t.spacing(8),
     marginTop: t.spacing(1),
   },
 }))
@@ -188,8 +237,20 @@ export default function SystemMetaTable({
 
   return (
     <div className={classes.grid}>
-      <ColumnWrapper packageHandle={left} result={leftRevision} />
-      {right && <ColumnWrapper packageHandle={right} result={rightRevision} />}
+      <ColumnWrapper
+        other={rightRevision}
+        packageHandle={left}
+        result={leftRevision}
+        side="left"
+      />
+      {right && (
+        <ColumnWrapper
+          other={leftRevision}
+          packageHandle={right}
+          result={rightRevision}
+          side="right"
+        />
+      )}
     </div>
   )
 }

@@ -131,6 +131,7 @@ describe('containers/Bucket/PackageCompare/PackageCompare', () => {
     },
     onLeftChange: () => {},
     onRightChange: () => {},
+    onSwap: () => {},
   }
 
   it('should render without crashing', () => {

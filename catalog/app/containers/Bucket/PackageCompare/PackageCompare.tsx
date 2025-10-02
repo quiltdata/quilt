@@ -20,9 +20,13 @@ import { useRevision } from './useRevision'
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gridColumnGap: t.spacing(4),
+    gridTemplateColumns: `1fr ${t.spacing(4)}px 1fr`,
+    gridColumnGap: t.spacing(2),
     alignItems: 'flex-start',
+  },
+  swap: {
+    alignSelf: 'flex-end',
+    marginBottom: t.spacing(-2),
   },
 }))
 
@@ -31,9 +35,10 @@ interface HeaderProps {
   right: PackageHandle | null
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
+  onSwap: () => void
 }
 
-function Header({ left, right, onLeftChange, onRightChange }: HeaderProps) {
+function Header({ left, right, onLeftChange, onRightChange, onSwap }: HeaderProps) {
   const classes = useHeaderStyles()
   const packageHandle = React.useMemo(() => left, [left])
   return (
@@ -44,6 +49,9 @@ function Header({ left, right, onLeftChange, onRightChange }: HeaderProps) {
         onChange={onLeftChange}
         temporaryRemoveNone
       />
+      <M.IconButton onClick={onSwap} size="small" className={classes.swap}>
+        <M.Icon>compare_arrows</M.Icon>
+      </M.IconButton>
       <RevisionsList
         packageHandle={packageHandle}
         value={right?.hash || ''}
@@ -74,6 +82,7 @@ interface RevisionsCompareProps {
   right: PackageHandle | null
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
+  onSwap: () => void
 }
 
 export function RevisionsCompare({
@@ -81,6 +90,7 @@ export function RevisionsCompare({
   right,
   onLeftChange,
   onRightChange,
+  onSwap,
 }: RevisionsCompareProps) {
   const classes = useStyles()
 
@@ -95,6 +105,7 @@ export function RevisionsCompare({
           right={right}
           onLeftChange={onLeftChange}
           onRightChange={onRightChange}
+          onSwap={onSwap}
         />
 
         <SystemMetaTable
@@ -159,6 +170,10 @@ export default function PackageCompareWrapper() {
     (hash: string) => push(urls.bucketPackageCompare(bucket, name, revisionLeft, hash)),
     [bucket, name, push, revisionLeft, urls],
   )
+  const handleSwap = React.useCallback(
+    () => push(urls.bucketPackageCompare(bucket, name, revisionRight, revisionLeft)),
+    [bucket, name, push, revisionLeft, revisionRight, urls],
+  )
 
   return (
     <>
@@ -175,6 +190,7 @@ export default function PackageCompareWrapper() {
             right={right}
             onLeftChange={handleLeftChange}
             onRightChange={handleRightChange}
+            onSwap={handleSwap}
           />
         </FileView.Root>
       </WithPackagesSupport>
