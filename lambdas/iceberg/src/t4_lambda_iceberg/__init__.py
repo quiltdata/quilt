@@ -11,10 +11,10 @@ athena = boto3.client("athena")
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
-QUILT_USER_ATHENA_DATABASE = os.getenv("QUILT_USER_ATHENA_DATABASE")
-QUILT_ICEBERG_GLUE_DB = os.getenv("QUILT_ICEBERG_GLUE_DB")
-QUILT_ICEBERG_BUCKET = os.getenv("QUILT_ICEBERG_BUCKET")
-QUILT_ICEBERG_WORKGROUP = os.getenv("QUILT_ICEBERG_WORKGROUP")
+QUILT_USER_ATHENA_DATABASE = os.environ["QUILT_USER_ATHENA_DATABASE"]
+QUILT_ICEBERG_GLUE_DB = os.environ["QUILT_ICEBERG_GLUE_DB"]
+QUILT_ICEBERG_BUCKET = os.environ["QUILT_ICEBERG_BUCKET"]
+QUILT_ICEBERG_WORKGROUP = os.environ["QUILT_ICEBERG_WORKGROUP"]
 
 
 def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, delete: bool) -> str:
