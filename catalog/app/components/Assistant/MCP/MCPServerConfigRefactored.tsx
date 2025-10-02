@@ -6,12 +6,12 @@ import {
   Error as ErrorIcon,
   Settings as SettingsIcon,
   Cloud as CloudIcon,
-  Science as ScienceIcon,
   LocalHospital as HospitalIcon,
   School as SchoolIcon,
 } from '@material-ui/icons'
 import {
   MCP_SERVER_TEMPLATES,
+  MCP_SERVER_CATEGORIES,
   getServersByCategory,
   getAllCategories,
 } from './MCPServerTemplates'
@@ -227,7 +227,7 @@ const getCategoryIcon = (categoryId: string) => {
     case 'biomedical':
       return <HospitalIcon />
     case 'research':
-      return <ScienceIcon />
+      return <SettingsIcon />
     case 'education':
       return <SchoolIcon />
     case 'cloud':
@@ -344,17 +344,20 @@ export function MCPServerConfigRefactored({
       <M.DialogContent className={classes.dialogContent}>
         {!selectedTemplate ? (
           <>
-            {categories.map((category) => {
-              const servers = getServersByCategory(category.id)
+            {categories.map((categoryId) => {
+              const servers = getServersByCategory(categoryId)
               if (servers.length === 0) return null
 
+              const category =
+                MCP_SERVER_CATEGORIES[categoryId as keyof typeof MCP_SERVER_CATEGORIES]
+
               return (
-                <div key={category.id} className={classes.categorySection}>
+                <div key={categoryId} className={classes.categorySection}>
                   <div className={classes.categoryHeader}>
                     <span className={classes.categoryIcon}>
-                      {getCategoryIcon(category.id)}
+                      {getCategoryIcon(categoryId)}
                     </span>
-                    <span className={classes.categoryTitle}>{category.name}</span>
+                    <span className={classes.categoryTitle}>{category.label}</span>
                     <span className={classes.categoryCount}>
                       {servers.length} server{servers.length !== 1 ? 's' : ''}
                     </span>
