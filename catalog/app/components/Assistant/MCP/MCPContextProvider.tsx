@@ -8,14 +8,14 @@ import * as Context from 'components/Assistant/Model/Context'
 import * as Tool from 'components/Assistant/Model/Tool'
 import { useAuthState, AuthState } from 'containers/NavBar/NavMenu'
 
-import { mcpClient } from './Client'
-import type { MCPTool, MCPToolResult } from './types'
-import { MCPServerDebugTest } from './MCPServerDebugTest'
 import {
   DynamicAuthManager,
   findTokenInState,
 } from '../../../services/DynamicAuthManager'
 import { resolveRoleName } from '../../../services/mcpAuthorization'
+import { mcpClient } from './Client'
+import type { MCPTool, MCPToolResult } from './types'
+import { MCPServerDebugTest } from './MCPServerDebugTest'
 
 const JSON_SCHEMA_URL = 'https://json-schema.org/draft/2020-12/schema'
 
@@ -72,7 +72,6 @@ function mapRoleNameToAWSRole(quiltRoleName: string): string {
 
   return roleMapping[canonical] || canonical
 }
-
 
 function mapResultContent(block: MCPToolResult['content'][number]) {
   if (!block) {
@@ -133,11 +132,23 @@ function createDescriptor(tool: MCPTool): [string, Tool.Descriptor<any>] {
   const executor: Tool.Executor<Record<string, unknown>> = (args) =>
     Eff.Effect.tryPromise({
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      try: async (_signal: AbortSignal) =>
-        mcpClient.callTool({
-          name: tool.name,
-          arguments: (args ?? {}) as Record<string, unknown>,
-        }),
+      try: async (_signal: AbortSignal) => {
+        const parameters = (args ?? {}) as Record<string, unknown>
+        console.info('[MCP] Invoking tool', tool.name, { arguments: parameters })
+        try {
+          const result = await mcpClient.callTool({
+            name: tool.name,
+            arguments: parameters,
+          })
+          console.info('[MCP] Tool completed', tool.name, {
+            isError: result?.isError ?? false,
+          })
+          return result
+        } catch (toolError) {
+          console.error('[MCP] Tool call failed', tool.name, toolError)
+          throw toolError
+        }
+      },
       catch: (error) => (error instanceof Error ? error : new Error(String(error))),
     }).pipe(
       Eff.Effect.map((raw) => Eff.Option.some(toToolResult(tool.name, raw))),
@@ -182,7 +193,7 @@ function useMCPContextState(): State {
     const extractTokenFromStore = async (): Promise<string | null> => {
       try {
         console.log('🔍 MCP Client: Redux token getter called...')
-        
+
         // Use DynamicAuthManager to get enhanced token
         const enhancedToken = await authManager.getCurrentToken()
         if (enhancedToken) {
@@ -191,7 +202,9 @@ function useMCPContextState(): State {
         }
 
         // Fallback: get original token directly from Redux
-        console.log('⚠️ MCP Client: No enhanced token available, falling back to original Redux token')
+        console.log(
+          '⚠️ MCP Client: No enhanced token available, falling back to original Redux token',
+        )
         const reduxState = store.getState() as any
         const { token, source } = findTokenInState(reduxState)
         if (token) {
@@ -368,41 +381,67 @@ export function MCPContextProvider({ children }: React.PropsWithChildren<{}>) {
     logAuthStatus()
   }, [])
 
-  const messages = React.useMemo(() => {
+  const { infoMessages, guidanceMessages } = React.useMemo(() => {
     if (state.status === 'ready') {
-      const lines = [
+      const infoLines = [
         'MCP toolchain connected. The following tools are available for use via the Model Context Protocol:',
       ]
 
-      if (state.summary) lines.push(state.summary)
-      return lines
+      if (state.summary) infoLines.push(state.summary)
+
+      const preferredToolInstructions: string[] = []
+      if (state.tools['packaging.create']) {
+        preferredToolInstructions.push(
+          'For package creation or updates, call the `packaging.create` MCP tool directly instead of giving code snippets.',
+        )
+      }
+      if (state.tools['buckets.objects_put']) {
+        preferredToolInstructions.push(
+          'To place or update objects in S3 buckets, call `buckets.objects_put` with the desired text content.',
+        )
+      }
+      if (state.tools['search.unified_search']) {
+        preferredToolInstructions.push(
+          'Use `search.unified_search` to inspect existing packages, buckets, or objects before mutating state.',
+        )
+      }
+
+      preferredToolInstructions.push(
+        'When a user asks for bucket or package operations, prefer invoking the applicable MCP tool(s) so the action completes inside the UI.',
+      )
+
+      return {
+        infoMessages: infoLines,
+        guidanceMessages: preferredToolInstructions,
+      }
     }
 
     if (state.status === 'error' && state.error) {
-      const lines = [`MCP toolchain unavailable: ${state.error}`]
-      return lines
+      return {
+        infoMessages: [`MCP toolchain unavailable: ${state.error}`],
+        guidanceMessages: [],
+      }
     }
 
-    return []
-  }, [state.status, state.summary, state.error])
+    return { infoMessages: [], guidanceMessages: [] }
+  }, [state.status, state.summary, state.error, state.tools])
 
   Context.usePushContext(
     React.useMemo(
       () => ({
         tools: state.tools,
-        messages,
+        messages: infoMessages,
+        toolGuidance: guidanceMessages,
         markers: { 'mcp:ready': state.status === 'ready' },
       }),
-      [state.tools, messages, state.status],
+      [state.tools, infoMessages, guidanceMessages, state.status],
     ),
   )
 
   return (
     <MCPContextStateCtx.Provider value={state}>
       {children}
-      {process.env.NODE_ENV === 'development' && (
-        <MCPServerDebugTest />
-      )}
+      {process.env.NODE_ENV === 'development' && <MCPServerDebugTest />}
     </MCPContextStateCtx.Provider>
   )
 }

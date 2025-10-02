@@ -223,8 +223,20 @@ export const ConversationActor = Eff.Effect.succeed(
             }
 
             const ctxService = yield* Context.ConversationContext
-            const { tools } = yield* ctxService.context
+            const { tools, toolGuidance } = yield* ctxService.context
+            if (toolGuidance?.length) {
+              // eslint-disable-next-line no-console
+              console.info('[MCP] Tool guidance available', toolGuidance)
+            }
             const calls: Record<string, ToolCall> = {}
+            if (toolGuidance?.length && toolUses.length === 0) {
+              // eslint-disable-next-line no-console
+              console.info(
+                '[MCP] No tool uses returned; guidance available',
+                toolGuidance,
+              )
+            }
+
             for (const tu of toolUses) {
               const fiber = yield* Eff.Effect.fork(
                 Eff.Effect.gen(function* () {

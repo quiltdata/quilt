@@ -14,6 +14,7 @@ export interface ContextShape {
   messages: string[]
   tools: Tool.Collection
   markers: Record<string, boolean>
+  toolGuidance: string[]
 }
 
 const ContextAggregator = DistributedContext<Partial<ContextShape>>()
@@ -24,6 +25,7 @@ const ROOT_CONTEXT: ContextShape = {
   tools: {},
   messages: [],
   markers: {},
+  toolGuidance: [],
 }
 
 const aggregateContext = (contexts: Partial<ContextShape>[]) =>
@@ -33,6 +35,7 @@ const aggregateContext = (contexts: Partial<ContextShape>[]) =>
       tools: { ...acc.tools, ...next.tools },
       messages: acc.messages.concat(next.messages || []),
       markers: { ...acc.markers, ...next.markers },
+      toolGuidance: acc.toolGuidance.concat(next.toolGuidance || []),
     }),
     ROOT_CONTEXT,
   )
