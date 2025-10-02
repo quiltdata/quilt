@@ -1,6 +1,6 @@
 import * as Eff from 'effect'
 
-export type AttrValue = string | number
+export type AttrValue = string | number | boolean | null | undefined
 
 export type Attrs = Record<string, AttrValue>
 
@@ -25,6 +25,10 @@ export class Tag {
     return new Tag(name, attrs, children)
   }
 
+  attr(name: string, value: AttrValue) {
+    return new Tag(this.name, { ...this.attrsProp, [name]: value }, this.childrenProp)
+  }
+
   attrs(attrs: Attrs) {
     return new Tag(this.name, { ...this.attrsProp, ...attrs }, this.childrenProp)
   }
@@ -35,7 +39,11 @@ export class Tag {
 
   toString(): string {
     const attrs = Object.entries(this.attrsProp)
-      .map(([k, v]) => ` ${k}=${JSON.stringify(v)}`)
+      .map(([k, v]) => {
+        if (v === null || v === undefined || v === false) return ''
+        if (v === true) return ` ${k}`
+        return ` ${k}=${JSON.stringify(v)}`
+      })
       .join('')
 
     const children = Eff.pipe(
