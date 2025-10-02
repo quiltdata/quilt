@@ -16,8 +16,15 @@ export type containers_Bucket_PackageTree_gql_RevisionQuery = {
         readonly revision: Types.Maybe<
           { readonly __typename: 'PackageRevision' } & Pick<
             Types.PackageRevision,
-            'hash' | 'totalBytes'
-          >
+            'hash' | 'modified' | 'totalBytes' | 'message' | 'userMeta' | 'totalEntries'
+          > & {
+              readonly workflow: Types.Maybe<
+                { readonly __typename: 'PackageWorkflow' } & Pick<
+                  Types.PackageWorkflow,
+                  'id' | 'config'
+                >
+              >
+            }
         >
       }
   >
@@ -96,7 +103,22 @@ export const containers_Bucket_PackageTree_gql_RevisionDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'totalBytes' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'userMeta' } },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'workflow' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'config' } },
+                          ],
+                        },
+                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'totalEntries' } },
                     ],
                   },
                 },

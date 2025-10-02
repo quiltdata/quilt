@@ -4,6 +4,7 @@ query ($bucket: String!, $name: String!, $hash: String!, $path: String!) {
     name
     revision(hashOrTag: $hash) {
       hash
+      modified
       dir(path: $path) {
         path
         metadata
