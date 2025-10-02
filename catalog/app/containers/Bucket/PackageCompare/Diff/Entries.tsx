@@ -1,6 +1,8 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+import * as Icons from '@material-ui/icons'
 
 import assertNever from 'utils/assertNever'
 import JsonDisplay from 'components/JsonDisplay'
@@ -14,6 +16,82 @@ import type { Revision, RevisionResult } from '../useRevision'
 
 import Change from './Diff'
 import type { Dir, Side } from './Diff'
+
+const useIntroducedStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.body2,
+  },
+  cell: {
+    padding: t.spacing(1.5, 1),
+  },
+}))
+
+interface IntroducedProps {
+  className: string
+  dir: Dir
+  logicalKey: string
+}
+
+function Introduced({ className, dir, logicalKey }: IntroducedProps) {
+  const classes = useIntroducedStyles()
+  return (
+    <GridRow className={cx(classes.root, className)}>
+      <div className={classes.cell}>
+        <Change dir={dir} side="left">
+          {logicalKey}
+        </Change>
+      </div>
+      <div className={classes.cell}>
+        <Change dir={dir} side="right">
+          {logicalKey}
+        </Change>
+      </div>
+    </GridRow>
+  )
+}
+
+const useUnmodifiedStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    padding: t.spacing(1.5, 1),
+  },
+  label: {
+    paddingLeft: t.spacing(1),
+  },
+}))
+
+interface UnmodifiedProps {
+  className: string
+  logicalKey: string
+}
+
+function Unmodified({ className, logicalKey }: UnmodifiedProps) {
+  const classes = useUnmodifiedStyles()
+  return (
+    <GridRow className={cx(classes.root, className)}>
+      <span>{logicalKey}</span>
+      <i className={classes.label}>Unmodified</i>
+    </GridRow>
+  )
+}
+
+const useGridRowStyles = M.makeStyles({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+  },
+})
+
+interface GridRowProps {
+  className?: string
+  children: React.ReactNode
+}
+
+function GridRow({ className, children }: GridRowProps) {
+  const classes = useGridRowStyles()
+  return <div className={cx(className, classes.root)}>{children}</div>
+}
 
 type Changes =
   | { _tag: 'unmodified'; logicalKey: string }
@@ -29,82 +107,75 @@ const useEntrySideStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
     padding: t.spacing(1),
-    borderLeft: `1px solid ${t.palette.divider}`,
-    borderRight: `1px solid ${t.palette.divider}`,
   },
   hash: {
     fontFamily: t.typography.monospace.fontFamily,
   },
-  hideOverflow: {
+  property: {
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    alignItems: 'center',
+    marginTop: t.spacing(1),
+  },
+  value: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+  },
+  icon: {
+    color: t.palette.text.secondary,
+    marginRight: t.spacing(1),
   },
 }))
 
 interface EntrySideProps {
+  className?: string
   logicalKey: string
   side: Side
-  changes: Partial<Model.PackageEntry> | 'introduced' | 'unmodified'
+  changes: Partial<Model.PackageEntry>
   dir: Dir
 }
 
-function EntrySide({ changes, logicalKey, dir, side }: EntrySideProps) {
+function EntrySide({ className, changes, logicalKey, dir, side }: EntrySideProps) {
   const classes = useEntrySideStyles()
-  if (changes === 'introduced') {
-    return (
-      <M.Typography className={classes.root} variant="subtitle2" color="textSecondary">
-        <Change dir={dir} side={side}>
-          {logicalKey}
-        </Change>
-      </M.Typography>
-    )
-  }
-  if (changes === 'unmodified') {
-    return (
-      <M.Typography className={classes.root} variant="subtitle2" color="textSecondary">
-        {logicalKey}
-      </M.Typography>
-    )
-  }
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       <M.Typography variant="subtitle2" color="textSecondary">
         {logicalKey}
       </M.Typography>
 
       {changes.physicalKey && (
-        <M.Typography className={classes.hideOverflow}>
-          <M.Typography variant="body2" component="span">
-            <b>URL</b>:{' '}
-          </M.Typography>
-          <Change dir={dir} side={side}>
+        <M.Typography className={classes.property}>
+          <Icons.LinkOutlined className={classes.icon} fontSize="small" />
+          <Change dir={dir} side={side} className={classes.value}>
             <PhysicalKey url={changes.physicalKey} />
           </Change>
         </M.Typography>
       )}
 
       {changes.hash && (
-        <M.Typography className={classes.hideOverflow}>
-          <M.Typography variant="body2" component="span">
-            <b>Hash</b>:{' '}
-          </M.Typography>
-          <Change dir={dir} side={side} className={classes.hash}>
+        <M.Typography className={classes.property}>
+          <Icons.LockOutlined className={classes.icon} fontSize="small" />
+          <Change dir={dir} side={side} className={cx(classes.hash, classes.value)}>
             {changes.hash.value}
           </Change>
         </M.Typography>
       )}
 
       {changes.size && (
-        <M.Typography variant="body2" className={classes.hideOverflow}>
-          <b>Size</b>:{' '}
-          <Change dir={dir} side={side}>
+        <M.Typography variant="body2" className={classes.property}>
+          <Icons.InsertDriveFileOutlined className={classes.icon} fontSize="small" />
+          <Change dir={dir} side={side} className={classes.value}>
             {readableBytes(changes.size)}
           </Change>
         </M.Typography>
       )}
 
-      {changes.meta && <JsonDisplay value={changes.meta} />}
+      {changes.meta && (
+        <div className={classes.property}>
+          <Icons.Code className={classes.icon} fontSize="small" />
+          <JsonDisplay value={changes.meta} />
+        </div>
+      )}
     </div>
   )
 }
@@ -168,11 +239,7 @@ function useChanges(
 }
 
 const useStyles = M.makeStyles((t) => ({
-  table: {},
   entryRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    borderTop: `1px solid ${t.palette.divider}`,
     borderBottom: `1px solid ${t.palette.divider}`,
   },
   hash: {
@@ -181,44 +248,40 @@ const useStyles = M.makeStyles((t) => ({
   colorInherit: {
     color: 'inherit',
   },
-  entryCell: {
+  head: {
     overflow: 'hidden',
     padding: t.spacing(1),
-    border: `1px solid ${t.palette.divider}`,
+    background: t.palette.background.default,
+    '& + &': {
+      borderLeft: `1px solid ${t.palette.divider}`,
+    },
+  },
+  side: {
+    borderLeft: `1px solid ${t.palette.divider}`,
   },
 }))
 
 interface EntriesRowProps {
+  className: string
   logicalKey: string
   left?: Model.PackageEntry
   right?: Model.PackageEntry
   dir: Dir
 }
 
-function EntriesRow({ dir, logicalKey, left, right }: EntriesRowProps) {
+function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps) {
   const classes = useStyles()
 
   const changes = useChanges(dir, logicalKey, left, right)
 
   switch (changes._tag) {
     case 'unmodified':
-      return (
-        <div className={classes.entryRow}>
-          <M.Typography variant="subtitle2" color="textSecondary">
-            <M.Box p={1}>{logicalKey}</M.Box>
-          </M.Typography>
-          <M.Typography variant="subtitle2" color="textSecondary" component="i">
-            Unmodified
-          </M.Typography>
-        </div>
-      )
+      return <Unmodified className={className} logicalKey={logicalKey} />
     case 'introduced':
-      return (
-        <EntrySide logicalKey={logicalKey} side="left" dir={dir} changes="introduced" />
-      )
+      return <Introduced className={className} dir={dir} logicalKey={logicalKey} />
     case 'modified':
       return (
-        <div className={classes.entryRow}>
+        <GridRow className={className}>
           <EntrySide
             logicalKey={logicalKey}
             side="left"
@@ -226,12 +289,13 @@ function EntriesRow({ dir, logicalKey, left, right }: EntriesRowProps) {
             changes={changes.left}
           />
           <EntrySide
+            className={classes.side}
             logicalKey={logicalKey}
             side="right"
             dir={dir}
             changes={changes.right}
           />
-        </div>
+        </GridRow>
       )
     default:
       assertNever(changes)
@@ -272,13 +336,14 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
   }
 
   return (
-    <div className={classes.table}>
-      <div className={classes.entryRow}>
-        <div className={classes.entryCell}>{left.hash}</div>
-        <div className={classes.entryCell}>{right.hash}</div>
-      </div>
+    <div>
+      <GridRow className={classes.entryRow}>
+        <div className={classes.head}>{left.hash}</div>
+        <div className={classes.head}>{right.hash}</div>
+      </GridRow>
       {entries.keys.map((logicalKey) => (
         <EntriesRow
+          className={classes.entryRow}
           key={logicalKey}
           logicalKey={logicalKey}
           left={entries.left[logicalKey]}

@@ -17,6 +17,7 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: M.fade(t.palette.success.light, 0.3),
   },
   removed: {
+    textDecoration: 'line-through',
     backgroundColor: M.fade(t.palette.error.light, 0.3),
   },
 }))

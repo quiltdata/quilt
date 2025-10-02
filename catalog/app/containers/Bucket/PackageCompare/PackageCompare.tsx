@@ -49,7 +49,12 @@ function Header({ left, right, onLeftChange, onRightChange, onSwap }: HeaderProp
         onChange={onLeftChange}
         temporaryRemoveNone
       />
-      <M.IconButton onClick={onSwap} size="small" className={classes.swap}>
+      <M.IconButton
+        onClick={onSwap}
+        size="small"
+        className={classes.swap}
+        disabled={!right}
+      >
         <M.Icon>compare_arrows</M.Icon>
       </M.IconButton>
       <RevisionsList
@@ -116,23 +121,27 @@ export function RevisionsCompare({
         />
       </M.Paper>
 
-      <div className={classes.userMeta}>
-        <M.Typography variant="subtitle1" gutterBottom>
-          User metadata
-        </M.Typography>
-        <M.Paper square variant="outlined">
-          <MetadataDiff left={leftRevisionResult} right={rightRevisionResult} />
-        </M.Paper>
-      </div>
+      {right?.hash && (
+        <div className={classes.userMeta}>
+          <M.Typography variant="subtitle1" gutterBottom>
+            User metadata
+          </M.Typography>
+          <M.Paper square variant="outlined">
+            <MetadataDiff left={leftRevisionResult} right={rightRevisionResult} />
+          </M.Paper>
+        </div>
+      )}
 
-      <div className={classes.entries}>
-        <M.Typography variant="subtitle1" gutterBottom>
-          Entries
-        </M.Typography>
-        <M.Paper square variant="outlined">
-          <EntriesDiff left={leftRevisionResult} right={rightRevisionResult} />
-        </M.Paper>
-      </div>
+      {right?.hash && (
+        <div className={classes.entries}>
+          <M.Typography variant="subtitle1" gutterBottom>
+            Entries
+          </M.Typography>
+          <M.Paper square variant="outlined">
+            <EntriesDiff left={leftRevisionResult} right={rightRevisionResult} />
+          </M.Paper>
+        </div>
+      )}
     </div>
   )
 }
