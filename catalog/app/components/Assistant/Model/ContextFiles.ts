@@ -17,6 +17,19 @@ function resultToEffect<T>(
   return Eff.Option.some(e)
 }
 
+function useContextFiles(load: () => Promise<ContextFile[]>) {
+  const res = Request.use(load)
+  return Eff.pipe(
+    resultToEffect(res),
+    Eff.Option.map(
+      Eff.flow(
+        Eff.Either.getOrElse(() => []),
+        Eff.Array.map(format),
+      ),
+    ),
+  )
+}
+
 type ContextFileScope = 'bucket' | 'package'
 
 export const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
@@ -35,50 +48,38 @@ interface ContextFile extends ContextFileContext {
   truncated: boolean
 }
 
-async function loadContextFile(
-  s3: S3,
-  loc: S3ObjectLocation,
-  ctx: ContextFileContext,
-): Promise<ContextFile | null> {
-  try {
-    const response = await s3
-      .getObject({
-        Bucket: loc.bucket,
-        Key: loc.key,
-        VersionId: loc.version,
-      })
-      .promise()
-
-    const fullContent = response.Body?.toString('utf-8') || ''
-    const truncated = fullContent.length > MAX_CONTEXT_FILE_SIZE
-    const content = truncated ? fullContent.slice(0, MAX_CONTEXT_FILE_SIZE) : fullContent
-
-    return { content, truncated, ...ctx }
-  } catch {
-    // Context file could not be loaded, most likely because it doesn't exist
-    return null
-  }
+function useLoadContextFile() {
+  const s3: S3 = AWS.S3.use()
+  return React.useCallback(
+    (loc: S3ObjectLocation, ctx: ContextFileContext): Promise<ContextFile | null> =>
+      s3
+        .getObject({ Bucket: loc.bucket, Key: loc.key, VersionId: loc.version })
+        .promise()
+        .then((r) => r.Body?.toString('utf-8') || '')
+        .then((content) => ({
+          truncated: content.length > MAX_CONTEXT_FILE_SIZE,
+          content: content.slice(0, MAX_CONTEXT_FILE_SIZE),
+          ...ctx,
+        }))
+        // could not load the file, most likely because it doesn't exist
+        .catch(() => null),
+    [s3],
+  )
 }
 
-export function useBucketRootContextFiles(bucket: string) {
-  const s3 = AWS.S3.use()
-  const load = React.useCallback(async () => {
-    const results = await Promise.all(
-      CONTEXT_FILE_NAMES.map((key) =>
-        loadContextFile(s3, { bucket, key }, { scope: 'bucket', bucket, path: key }),
-      ),
-    )
-    return results.filter((file): file is ContextFile => file !== null)
-  }, [bucket, s3])
-  const res = Request.use(load)
-  return Eff.pipe(
-    resultToEffect(res),
-    Eff.Option.map(
-      Eff.flow(
-        Eff.Either.getOrElse(() => []),
-        Eff.Array.map(format),
-      ),
-    ),
+function useLoadPackageContextFile() {
+  const resolve = LogicalKeyResolver.useStrict()
+  const load = useLoadContextFile()
+  return React.useCallback(
+    (
+      logicalKey: string,
+      ctx: Omit<ContextFileContext, 'path' | 'scope'>,
+    ): Promise<ContextFile | null> =>
+      Promise.resolve(resolve(logicalKey))
+        .then((loc) => load(loc, { scope: 'package', path: logicalKey, ...ctx }))
+        // could not resolve the logical key, most likely because it doesn't exist
+        .catch(() => null),
+    [load, resolve],
   )
 }
 
@@ -94,106 +95,58 @@ function buildPathChain(path: string): string[] {
     : []
 }
 
-export function useBucketDirContextFiles(bucket: string, path: string) {
-  const s3 = AWS.S3.use()
-
-  const load = React.useCallback(async () => {
-    const pathChain = buildPathChain(path)
-    const results = await Promise.all(
-      pathChain.map((key) =>
-        loadContextFile(s3, { bucket, key }, { scope: 'bucket', bucket, path: key }),
-      ),
-    )
-    return results
-      .filter((file): file is ContextFile => file !== null)
-      .slice(0, MAX_NON_ROOT_FILES)
-  }, [bucket, path, s3])
-
-  const res = Request.use(load)
-
-  return Eff.pipe(
-    resultToEffect(res),
-    Eff.Option.map(
-      Eff.flow(
-        Eff.Either.getOrElse(() => []),
-        Eff.Array.map(format),
-      ),
-    ),
-  )
-}
-
-async function loadPackageContextFile(
-  s3: S3,
-  resolveLogicalKey: LogicalKeyResolver.LogicalKeyResolver,
-  logicalKey: string,
-  ctx: Omit<ContextFileContext, 'path' | 'scope'>,
-): Promise<ContextFile | null> {
-  try {
-    const resolved = await resolveLogicalKey(logicalKey)
-    return await loadContextFile(s3, resolved, {
-      scope: 'package',
-      path: logicalKey,
-      ...ctx,
-    })
-  } catch {
-    // could not resolve logical key, most likely because it doesn't exist
-    return null
-  }
-}
-
-export function usePackageRootContextFiles(bucket: string, name: string) {
-  const s3 = AWS.S3.use()
-  const resolver = LogicalKeyResolver.useStrict()
-
+export function useBucketRootContextFiles(bucket: string) {
+  const loadFile = useLoadContextFile()
   const load = React.useCallback(async () => {
     const results = await Promise.all(
       CONTEXT_FILE_NAMES.map((key) =>
-        loadPackageContextFile(s3, resolver, key, { bucket, packageName: name }),
+        loadFile({ bucket, key }, { scope: 'bucket', bucket, path: key }),
       ),
     )
     return results.filter((file): file is ContextFile => file !== null)
-  }, [bucket, name, s3, resolver])
-
-  const res = Request.use(load)
-
-  return Eff.pipe(
-    resultToEffect(res),
-    Eff.Option.map(
-      Eff.flow(
-        Eff.Either.getOrElse(() => []),
-        Eff.Array.map(format),
-      ),
-    ),
-  )
+  }, [bucket, loadFile])
+  return useContextFiles(load)
 }
 
-export function usePackageDirContextFiles(bucket: string, name: string, path: string) {
-  const s3 = AWS.S3.use()
-  const resolver = LogicalKeyResolver.useStrict()
-
+export function useBucketDirContextFiles(bucket: string, path: string) {
+  const loadFile = useLoadContextFile()
   const load = React.useCallback(async () => {
     const pathChain = buildPathChain(path)
     const results = await Promise.all(
       pathChain.map((key) =>
-        loadPackageContextFile(s3, resolver, key, { bucket, packageName: name }),
+        loadFile({ bucket, key }, { scope: 'bucket', bucket, path: key }),
       ),
     )
     return results
       .filter((file): file is ContextFile => file !== null)
       .slice(0, MAX_NON_ROOT_FILES)
-  }, [bucket, name, path, s3, resolver])
+  }, [bucket, path, loadFile])
+  return useContextFiles(load)
+}
 
-  const res = Request.use(load)
+export function usePackageRootContextFiles(bucket: string, name: string) {
+  const loadFile = useLoadPackageContextFile()
+  const load = React.useCallback(async () => {
+    const results = await Promise.all(
+      CONTEXT_FILE_NAMES.map((key) => loadFile(key, { bucket, packageName: name })),
+    )
+    return results.filter((file): file is ContextFile => file !== null)
+  }, [bucket, name, loadFile])
+  return useContextFiles(load)
+}
 
-  return Eff.pipe(
-    resultToEffect(res),
-    Eff.Option.map(
-      Eff.flow(
-        Eff.Either.getOrElse(() => []),
-        Eff.Array.map(format),
-      ),
-    ),
-  )
+export function usePackageDirContextFiles(bucket: string, name: string, path: string) {
+  const loadFile = useLoadPackageContextFile()
+  const load = React.useCallback(async () => {
+    const pathChain = buildPathChain(path)
+    const results = await Promise.all(
+      pathChain.map((key) => loadFile(key, { bucket, packageName: name })),
+    )
+    return results
+      .filter((file): file is ContextFile => file !== null)
+      .slice(0, MAX_NON_ROOT_FILES)
+  }, [bucket, name, path, loadFile])
+  return useContextFiles(load)
 }
 
 export function format({ content, truncated, ...attrs }: ContextFile): string {
