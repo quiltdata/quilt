@@ -26,7 +26,7 @@ def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, del
                 '{bucket}' AS registry,
                 pkg_name,
                 top_hash,
-                from_unixtime(CAST(timestamp AS bigint)),
+                from_unixtime(CAST(timestamp AS bigint)) AS timestamp,
                 message,
                 user_meta AS metadata
             FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
@@ -72,7 +72,7 @@ def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str
         USING (
             SELECT
                 '{bucket}' AS registry,
-                '{top_hash}',
+                '{top_hash}' AS top_hash,
                 logical_key,
                 physical_keys[1],
                 concat(
