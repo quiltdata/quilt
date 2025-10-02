@@ -10,9 +10,14 @@ import { useMCPContextStateValue } from 'components/Assistant/MCP/MCPContextProv
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
+import { calculateCumulativeUsage } from '../../Utils/TokenCounter'
+import ContextMeter from '../ContextMeter/ContextMeter'
+import { JWTRefreshNotification, useJWTErrorDetection } from '../JWTRefreshNotification'
 
+import Settings from '../Settings'
 import DevTools from './DevTools'
 import Input from './Input'
+import ThinkingIndicator from './ThinkingIndicator'
 
 const BG = {
   intense: M.colors.indigo[900],
@@ -333,7 +338,7 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
-      Processing...
+      <ThinkingIndicator />
     </MessageContainer>
   )
 }
@@ -342,11 +347,21 @@ interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   onToggleDevTools: () => void
+  onToggleSettings: () => void
   devToolsOpen: boolean
+  settingsOpen: boolean
   className?: string
 }
 
-function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: MenuProps) {
+function Menu({
+  state,
+  dispatch,
+  devToolsOpen,
+  settingsOpen,
+  onToggleDevTools,
+  onToggleSettings,
+  className,
+}: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
 
   const isIdle = state._tag === 'Idle'
@@ -368,9 +383,16 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
     closeMenu()
   }, [closeMenu, onToggleDevTools])
 
+  const showSettings = React.useCallback(() => {
+    onToggleSettings()
+    closeMenu()
+  }, [closeMenu, onToggleSettings])
+
+  const panelOpen = devToolsOpen || settingsOpen
+
   return (
     <>
-      <M.Fade in={!devToolsOpen}>
+      <M.Fade in={!panelOpen}>
         <M.IconButton
           aria-label="menu"
           aria-haspopup="true"
@@ -380,11 +402,14 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
           <M.Icon>menu</M.Icon>
         </M.IconButton>
       </M.Fade>
-      <M.Fade in={devToolsOpen}>
-        <M.Tooltip title="Close Developer Tools">
+      <M.Fade in={panelOpen}>
+        <M.Tooltip title="Close">
           <M.IconButton
             aria-label="close"
-            onClick={onToggleDevTools}
+            onClick={() => {
+              if (devToolsOpen) onToggleDevTools()
+              if (settingsOpen) onToggleSettings()
+            }}
             className={className}
           >
             <M.Icon>close</M.Icon>
@@ -395,6 +420,7 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
+        <M.MenuItem onClick={showSettings}>Settings</M.MenuItem>
         <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
       </M.Menu>
     </>
@@ -414,13 +440,46 @@ const useStyles = M.makeStyles((t) => ({
     top: t.spacing(1),
     zIndex: 1,
   },
+  contextMeter: {
+    position: 'absolute',
+    right: t.spacing(2),
+    bottom: t.spacing(10),
+    zIndex: 1,
+  },
   devTools: {
-    height: '50%',
     position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  resizeHandle: {
+    height: 4,
+    background:
+      'linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 50%, transparent 100%)',
+    cursor: 'ns-resize',
+    position: 'relative',
+    zIndex: 2,
+    transition: 'background 0.2s ease',
+    '&:hover': {
+      background:
+        'linear-gradient(to bottom, transparent 0%, rgba(102, 126, 234, 0.4) 50%, transparent 100%)',
+    },
+    '&:active': {
+      background:
+        'linear-gradient(to bottom, transparent 0%, rgba(102, 126, 234, 0.6) 50%, transparent 100%)',
+    },
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: -4,
+      left: 0,
+      right: 0,
+      height: 12,
+    },
   },
   historyContainer: {
     flexGrow: 1,
     overflowY: 'auto',
+    minHeight: 0, // Important for flex child to shrink
     // TODO: nice overflow markers
     // position: 'relative',
     // '&::before': {
@@ -439,7 +498,10 @@ const useStyles = M.makeStyles((t) => ({
     padding: `${t.spacing(3)}px`,
     paddingBottom: 0,
   },
-  input: {},
+  input: {
+    flexShrink: 0, // Prevent input from shrinking
+    minHeight: 120, // Ensure minimum height for input area
+  },
 }))
 
 interface ChatProps {
@@ -452,6 +514,116 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const mcpState = useMCPContextStateValue()
+
+  // Resizable panel state
+  const [settingsHeight, setSettingsHeight] = React.useState(70) // Percentage
+  const [isResizing, setIsResizing] = React.useState(false)
+  const chatContainerRef = React.useRef<HTMLDivElement>(null)
+
+  // JWT error detection
+  const {
+    showNotification: showJWTNotification,
+    dismissNotification: dismissJWTNotification,
+    resetErrors: resetJWTErrors,
+  } = useJWTErrorDetection()
+
+  // Calculate cumulative token usage
+  const contextUsage = React.useMemo(() => {
+    const tokenUsageHistory = state.tokenUsage || []
+    if (tokenUsageHistory.length === 0) return null
+
+    // Use the model ID from devTools if available, otherwise use default
+    const modelId = devTools.modelIdOverride.value || Model.Assistant.DEFAULT_MODEL_ID
+    return calculateCumulativeUsage(tokenUsageHistory, modelId)
+  }, [state.tokenUsage, devTools.modelIdOverride.value])
+
+  // Get available buckets for @ mentions
+  const [availableBuckets, setAvailableBuckets] = React.useState<string[]>([])
+
+  React.useEffect(() => {
+    const fetchBuckets = async () => {
+      try {
+        // Try multiple sources for bucket discovery
+        let buckets: string[] = []
+
+        // 1. Try the auth manager first
+        const authManager = (window as any).__dynamicAuthManager // eslint-disable-line no-underscore-dangle
+        if (authManager && typeof authManager.getCurrentBuckets === 'function') {
+          buckets = await authManager.getCurrentBuckets()
+        }
+
+        // 2. Fallback to AWS bucket discovery service
+        if (!buckets || buckets.length === 0) {
+          const bucketService = (window as any).__awsBucketDiscoveryService // eslint-disable-line no-underscore-dangle
+          if (bucketService && typeof bucketService.getAvailableBuckets === 'function') {
+            buckets = await bucketService.getAvailableBuckets()
+          }
+        }
+
+        // 3. Fallback to hardcoded common buckets
+        if (!buckets || buckets.length === 0) {
+          buckets = [
+            'quilt-sandbox-bucket',
+            'quilt-sales-raw',
+            'quilt-sales-staging',
+            'cellpainting-gallery',
+            'data-drop-off-bucket',
+            'example-pharma-data',
+            'nf-core-gallery',
+            'pmc-oa-opendata',
+            'quilt-benchling',
+            'quilt-cro',
+          ]
+        }
+
+        setAvailableBuckets(buckets || [])
+      } catch (error) {
+        // Failed to fetch buckets for @ mentions
+        // Set fallback buckets on error
+        setAvailableBuckets([
+          'quilt-sandbox-bucket',
+          'cellpainting-gallery',
+          'example-pharma-data',
+        ])
+      }
+    }
+
+    fetchBuckets()
+  }, [])
+
+  // Resize handler
+  const handleResizeStart = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  React.useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!chatContainerRef.current) return
+
+      const containerRect = chatContainerRef.current.getBoundingClientRect()
+      const mouseY = e.clientY - containerRect.top
+      const newHeight = (mouseY / containerRect.height) * 100
+
+      // Clamp between 30% and 90%
+      const clampedHeight = Math.max(30, Math.min(90, newHeight))
+      setSettingsHeight(clampedHeight)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
 
   const mcpStatusBanner = React.useMemo(() => {
     switch (mcpState.status) {
@@ -506,24 +678,64 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
   )
 
   const [devToolsOpen, setDevToolsOpen] = React.useState(false)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
 
-  const toggleDevTools = React.useCallback(
-    () => setDevToolsOpen((prev) => !prev),
-    [setDevToolsOpen],
-  )
+  const toggleDevTools = React.useCallback(() => {
+    setDevToolsOpen((prev) => !prev)
+    setSettingsOpen(false)
+  }, [setDevToolsOpen, setSettingsOpen])
+
+  const toggleSettings = React.useCallback(() => {
+    setSettingsOpen((prev) => !prev)
+    setDevToolsOpen(false)
+  }, [setSettingsOpen, setDevToolsOpen])
 
   return (
-    <div className={classes.chat}>
+    <div className={classes.chat} ref={chatContainerRef}>
+      {contextUsage && (
+        <ContextMeter usage={contextUsage} className={classes.contextMeter} />
+      )}
       <Menu
         state={state}
         dispatch={dispatch}
         onToggleDevTools={toggleDevTools}
+        onToggleSettings={toggleSettings}
         devToolsOpen={devToolsOpen}
+        settingsOpen={settingsOpen}
         className={classes.menu}
       />
+      <M.Slide direction="down" mountOnEnter unmountOnExit in={settingsOpen}>
+        <M.Paper
+          square
+          className={classes.devTools}
+          style={{ height: `${settingsHeight}%` }}
+        >
+          <Settings modelIdOverride={devTools.modelIdOverride} />
+          <div
+            className={classes.resizeHandle}
+            onMouseDown={handleResizeStart}
+            style={{
+              cursor: isResizing ? 'ns-resize' : undefined,
+              userSelect: isResizing ? 'none' : undefined,
+            }}
+          />
+        </M.Paper>
+      </M.Slide>
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
-        <M.Paper square className={classes.devTools}>
+        <M.Paper
+          square
+          className={classes.devTools}
+          style={{ height: `${settingsHeight}%` }}
+        >
           <DevTools state={state} {...devTools} />
+          <div
+            className={classes.resizeHandle}
+            onMouseDown={handleResizeStart}
+            style={{
+              cursor: isResizing ? 'ns-resize' : undefined,
+              userSelect: isResizing ? 'none' : undefined,
+            }}
+          />
         </M.Paper>
       </M.Slide>
       <div className={classes.historyContainer}>
@@ -546,6 +758,12 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
                 </M.Typography>
               )}
             </M.Box>
+          )}
+          {showJWTNotification && (
+            <JWTRefreshNotification
+              onRefresh={resetJWTErrors}
+              onDismiss={dismissJWTNotification}
+            />
           )}
           <MessageContainer>
             Hi! I'm Qurator, your AI assistant. How can I help you?
@@ -595,7 +813,28 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
           <div ref={scrollRef} />
         </div>
       </div>
-      <Input className={classes.input} disabled={inputDisabled} onSubmit={ask} />
+      <Input
+        className={classes.input}
+        disabled={inputDisabled}
+        onSubmit={ask}
+        buckets={availableBuckets}
+        chatHistory={state.events
+          .filter((event) => event._tag === 'Message')
+          .map((event) => {
+            const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
+            return {
+              role: messageEvent.role,
+              content:
+                typeof messageEvent.content === 'string'
+                  ? messageEvent.content
+                  : JSON.stringify(messageEvent.content),
+              timestamp: messageEvent.timestamp,
+            }
+          })}
+        onCopyHistory={() => {
+          // Chat history copied
+        }}
+      />
     </div>
   )
 }
