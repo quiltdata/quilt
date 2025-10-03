@@ -491,6 +491,9 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
     }
   }, [state.events])
 
+  // Track when a query was stopped by the user
+  const [lastStoppedQuery, setLastStoppedQuery] = React.useState<Date | null>(null)
+
   // Get available buckets for @ mentions
   const [availableBuckets, setAvailableBuckets] = React.useState<string[]>([])
 
@@ -733,6 +736,13 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
               <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
             ),
           })}
+          {lastStoppedQuery && (
+            <MessageContainer timestamp={lastStoppedQuery} color="faint">
+              <span style={{ color: '#f44336', fontStyle: 'italic' }}>
+                Query stopped by user
+              </span>
+            </MessageContainer>
+          )}
           <div ref={scrollRef} />
         </div>
       </div>
