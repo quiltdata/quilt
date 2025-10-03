@@ -38,7 +38,7 @@ function ChangeLine({ change: { added, removed, value }, dir }: ChangeLineProps)
   }, [added, removed, dir])
   return (
     <Change order={order}>
-      <pre>{value}</pre>
+      <pre style={{ margin: 0 }}>{value}</pre>
     </Change>
   )
 }
@@ -72,7 +72,17 @@ function MetadataDiffComponent({ left, right }: { left: Revision; right: Revisio
   )
 
   const changes = React.useMemo(
-    () => diffJson(left.userMeta || {}, right.userMeta || {}),
+    () =>
+      diffJson(left.userMeta || {}, right.userMeta || {})
+        .map((c) => ({
+          ...c,
+          value: c.value
+            .replace(/}/g, '')
+            .replace(/{/g, '')
+            .replace(/]/g, '')
+            .replace(/]/g, ''),
+        }))
+        .filter((c) => c.value.trim()),
     [left.userMeta, right.userMeta],
   )
 
