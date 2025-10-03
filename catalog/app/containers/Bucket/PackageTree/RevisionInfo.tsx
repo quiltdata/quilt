@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
@@ -12,6 +13,22 @@ import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
 import type REVISION_LIST_QUERY from './gql/RevisionList.generated'
+
+type RevisionListQuery = GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
+
+function getPreviousHash(revisionListQuery: RevisionListQuery, hash?: string) {
+  return GQL.fold(revisionListQuery, {
+    data: (d) => {
+      if (!d.package) return null
+      const revisions = d.package.revisions.page
+      if (revisions.length < 2) return null
+      const base = revisions.findIndex((r) => r.hash === hash)
+      return revisions[base + 1]?.hash
+    },
+    error: () => null,
+    fetching: () => null,
+  })
+}
 
 const useRevisionInfoStyles = M.makeStyles((t) => ({
   revision: {
@@ -34,6 +51,9 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
   list: {
     width: 560,
   },
+  shortcut: {
+    margin: t.spacing(-0.5, 0, -0.5, 1),
+  },
 }))
 
 interface RevisionInfoProps {
@@ -42,7 +62,7 @@ interface RevisionInfoProps {
   path: string
   hashOrTag: string
   hash?: string
-  revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
+  revisionListQuery: RevisionListQuery
 }
 
 export default function RevisionInfo({
@@ -74,6 +94,11 @@ export default function RevisionInfo({
       push('Canonical URI copied to clipboard')
     }
 
+  const prevHash = React.useMemo(
+    () => getPreviousHash(revisionListQuery, hash),
+    [hash, revisionListQuery],
+  )
+
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -87,15 +112,27 @@ export default function RevisionInfo({
       </span>
 
       {!!hash && (
-        <M.IconButton
-          size="small"
-          title="Copy package revision's canonical catalog URI to the clipboard"
-          href={getHttpsUri(hash)}
-          onClick={copyHttpsUri(hash)}
-          style={{ marginTop: -4, marginBottom: -4 }}
-        >
-          <M.Icon>link</M.Icon>
-        </M.IconButton>
+        <>
+          {prevHash && (
+            <M.IconButton
+              className={classes.shortcut}
+              size="small"
+              title="What changed"
+              href={urls.bucketPackageCompare(bucket, name, prevHash, hash)}
+            >
+              <Icons.CompareArrows />
+            </M.IconButton>
+          )}
+          <M.IconButton
+            size="small"
+            title="Copy package revision's canonical catalog URI to the clipboard"
+            href={getHttpsUri(hash)}
+            onClick={copyHttpsUri(hash)}
+            className={classes.shortcut}
+          >
+            <M.Icon>link</M.Icon>
+          </M.IconButton>
+        </>
       )}
 
       <M.Popover
@@ -135,7 +172,7 @@ export default function RevisionInfo({
                         title="Compare with this version"
                         href={urls.bucketPackageCompare(bucket, name, hash, r.hash)}
                       >
-                        <M.Icon>compare_arrows</M.Icon>
+                        <Icons.CompareArrows />
                       </M.IconButton>
                       <M.IconButton
                         title="Copy package revision's canonical catalog URI to the clipboard"
