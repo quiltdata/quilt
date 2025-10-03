@@ -13,7 +13,7 @@ import WithPackagesSupport from '../WithPackagesSupport'
 
 import * as Diff from './Diff'
 import RevisionsList from './RevisionsList'
-import SystemMetaTable from './SystemMetaTable'
+// import SystemMetaTable from './SystemMetaTable'
 import { useRevision } from './useRevision'
 
 const useHeaderStyles = M.makeStyles((t) => ({
@@ -21,11 +21,7 @@ const useHeaderStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridTemplateColumns: `1fr ${t.spacing(4)}px 1fr`,
     gridColumnGap: t.spacing(2),
-    alignItems: 'flex-start',
-  },
-  swap: {
-    alignSelf: 'flex-end',
-    marginBottom: t.spacing(-2),
+    alignItems: 'center',
   },
 }))
 
@@ -48,12 +44,7 @@ function Header({ left, right, onLeftChange, onRightChange, onSwap }: HeaderProp
         onChange={onLeftChange}
         temporaryRemoveNone
       />
-      <M.IconButton
-        onClick={onSwap}
-        size="small"
-        className={classes.swap}
-        disabled={!right}
-      >
+      <M.IconButton onClick={onSwap} size="small" disabled={!right}>
         <M.Icon>compare_arrows</M.Icon>
       </M.IconButton>
       <RevisionsList
@@ -67,9 +58,6 @@ function Header({ left, right, onLeftChange, onRightChange, onSwap }: HeaderProp
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
-  systemMeta: {
-    padding: t.spacing(2),
-  },
   table: {
     marginTop: t.spacing(1),
   },
@@ -103,22 +91,22 @@ export function RevisionsCompare({
 
   return (
     <div className={classes.root}>
-      <M.Paper className={classes.systemMeta}>
-        <Header
-          left={left}
-          right={right}
-          onLeftChange={onLeftChange}
-          onRightChange={onRightChange}
-          onSwap={onSwap}
-        />
+      <Header
+        left={left}
+        right={right}
+        onLeftChange={onLeftChange}
+        onRightChange={onRightChange}
+        onSwap={onSwap}
+      />
 
+      {/*
         <SystemMetaTable
           left={left}
           right={right}
           leftRevision={leftRevisionResult}
           rightRevision={rightRevisionResult}
         />
-      </M.Paper>
+        */}
 
       {right?.hash && (
         <div className={classes.userMeta}>
