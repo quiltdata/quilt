@@ -11,9 +11,8 @@ import type { PackageHandle } from 'utils/packageHandle'
 import * as FileView from '../FileView'
 import WithPackagesSupport from '../WithPackagesSupport'
 
+import * as Diff from './Diff'
 import RevisionsList from './RevisionsList'
-import MetadataDiff from './Diff/Metadata'
-import EntriesDiff from './Diff/Entries'
 import SystemMetaTable from './SystemMetaTable'
 import { useRevision } from './useRevision'
 
@@ -127,7 +126,7 @@ export function RevisionsCompare({
             User metadata
           </M.Typography>
           <M.Paper square variant="outlined">
-            <MetadataDiff left={leftRevisionResult} right={rightRevisionResult} />
+            <Diff.Metadata left={leftRevisionResult} right={rightRevisionResult} />
           </M.Paper>
         </div>
       )}
@@ -138,7 +137,7 @@ export function RevisionsCompare({
             Entries
           </M.Typography>
           <M.Paper square variant="outlined">
-            <EntriesDiff left={leftRevisionResult} right={rightRevisionResult} />
+            <Diff.Entries left={leftRevisionResult} right={rightRevisionResult} />
           </M.Paper>
         </div>
       )}

@@ -11,7 +11,7 @@ import type { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
 import { Revision, RevisionResult } from './useRevision'
-import Change, { Dir, Side } from './Diff/Diff'
+import * as Diff from './Diff'
 
 interface ModifiedProps {
   packageHandle: PackageHandle
@@ -108,11 +108,10 @@ interface ColumnProps {
   packageHandle: PackageHandle
   revision: Revision
   other?: Revision
-  side: Side
-  dir: Dir
+  order: Diff.Order
 }
 
-function Column({ packageHandle, revision, other, side, dir }: ColumnProps) {
+function Column({ packageHandle, revision, other, order }: ColumnProps) {
   const classes = useColumnStyles()
   return (
     <div>
@@ -123,18 +122,18 @@ function Column({ packageHandle, revision, other, side, dir }: ColumnProps) {
         {!other || revision.message == other.message ? (
           <Message revision={revision} />
         ) : (
-          <Change dir={dir} side={side}>
+          <Diff.Change order={order}>
             <Message revision={revision} />
-          </Change>
+          </Diff.Change>
         )}
       </div>
       <div className={classes.cell}>
         {!other || revision.totalBytes === other.totalBytes ? (
           <Size revision={revision} />
         ) : (
-          <Change dir={dir} side={side}>
+          <Diff.Change order={order}>
             <Size revision={revision} />
-          </Change>
+          </Diff.Change>
         )}
       </div>
     </div>
@@ -170,18 +169,14 @@ interface ColumnWrapperProps {
   packageHandle: PackageHandle
   result: RevisionResult
   other: RevisionResult
-  side: Side
 }
 
-function ColumnWrapper({ packageHandle, result, other, side }: ColumnWrapperProps) {
-  const dir: Dir = React.useMemo(() => {
-    if (result._tag !== 'ok' || other._tag !== 'ok') return 'ltr'
-    const map =
-      result.revision.modified > other.revision.modified
-        ? ({ left: 'ltr', right: 'rtl' } as Record<Side, Dir>)
-        : ({ left: 'rtl', right: 'ltr' } as Record<Side, Dir>)
-    return map[side]
-  }, [result, other, side])
+function ColumnWrapper({ packageHandle, result, other }: ColumnWrapperProps) {
+  const order: Diff.Order = React.useMemo(() => {
+    if (result._tag !== 'ok' || other._tag !== 'ok') return 'limbo' as const
+    return result.revision.modified > other.revision.modified ? 'latter' : 'former'
+  }, [result, other])
+
   switch (result._tag) {
     case 'idle':
       return null
@@ -195,16 +190,10 @@ function ColumnWrapper({ packageHandle, result, other, side }: ColumnWrapperProp
           packageHandle={packageHandle}
           revision={result.revision}
           other={other.revision}
-          dir={dir}
-          side={side}
+          order={order}
         />
       ) : (
-        <Column
-          packageHandle={packageHandle}
-          revision={result.revision}
-          side={side}
-          dir="ltr"
-        />
+        <Column packageHandle={packageHandle} revision={result.revision} order={order} />
       )
     default:
       assertNever(result)
@@ -237,18 +226,12 @@ export default function SystemMetaTable({
 
   return (
     <div className={classes.grid}>
-      <ColumnWrapper
-        other={rightRevision}
-        packageHandle={left}
-        result={leftRevision}
-        side="left"
-      />
+      <ColumnWrapper other={rightRevision} packageHandle={left} result={leftRevision} />
       {right && (
         <ColumnWrapper
           other={leftRevision}
           packageHandle={right}
           result={rightRevision}
-          side="right"
         />
       )}
     </div>

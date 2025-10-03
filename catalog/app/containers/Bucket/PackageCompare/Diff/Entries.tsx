@@ -14,10 +14,10 @@ import * as s3paths from 'utils/s3paths'
 
 import type { Revision, RevisionResult } from '../useRevision'
 
-import Change from './Diff'
-import type { Dir, Side } from './Diff'
+import Change from './Change'
+import type { Dir, Order } from './Change'
 
-const useIntroducedStyles = M.makeStyles((t) => ({
+const useAddedStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
   },
@@ -26,25 +26,21 @@ const useIntroducedStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface IntroducedProps {
+interface AddedProps {
   className: string
   dir: Dir
   logicalKey: string
 }
 
-function Introduced({ className, dir, logicalKey }: IntroducedProps) {
-  const classes = useIntroducedStyles()
+function Added({ className, dir, logicalKey }: AddedProps) {
+  const classes = useAddedStyles()
   return (
     <GridRow className={cx(classes.root, className)}>
       <div className={classes.cell}>
-        <Change dir={dir} side="left">
-          {logicalKey}
-        </Change>
+        <Change order={dir === 'forward' ? 'former' : 'latter'}>{logicalKey}</Change>
       </div>
       <div className={classes.cell}>
-        <Change dir={dir} side="right">
-          {logicalKey}
-        </Change>
+        <Change order={dir === 'forward' ? 'latter' : 'former'}>{logicalKey}</Change>
       </div>
     </GridRow>
   )
@@ -95,7 +91,7 @@ function GridRow({ className, children }: GridRowProps) {
 
 type Changes =
   | { _tag: 'unmodified'; logicalKey: string }
-  | { _tag: 'introduced'; logicalKey: string; entry: Model.PackageEntry; dir: Dir }
+  | { _tag: 'added'; logicalKey: string; entry: Model.PackageEntry; dir: Dir }
   | {
       _tag: 'modified'
       logicalKey: string
@@ -130,12 +126,11 @@ const useEntrySideStyles = M.makeStyles((t) => ({
 interface EntrySideProps {
   className?: string
   logicalKey: string
-  side: Side
   changes: Partial<Model.PackageEntry>
-  dir: Dir
+  order: Order
 }
 
-function EntrySide({ className, changes, logicalKey, dir, side }: EntrySideProps) {
+function EntrySide({ className, changes, logicalKey, order }: EntrySideProps) {
   const classes = useEntrySideStyles()
   return (
     <div className={cx(classes.root, className)}>
@@ -146,7 +141,7 @@ function EntrySide({ className, changes, logicalKey, dir, side }: EntrySideProps
       {changes.physicalKey && (
         <M.Typography className={classes.property}>
           <Icons.LinkOutlined className={classes.icon} fontSize="small" />
-          <Change dir={dir} side={side} className={classes.value}>
+          <Change order={order} className={classes.value}>
             <PhysicalKey url={changes.physicalKey} />
           </Change>
         </M.Typography>
@@ -155,7 +150,7 @@ function EntrySide({ className, changes, logicalKey, dir, side }: EntrySideProps
       {changes.hash && (
         <M.Typography className={classes.property}>
           <Icons.LockOutlined className={classes.icon} fontSize="small" />
-          <Change dir={dir} side={side} className={cx(classes.hash, classes.value)}>
+          <Change order={order} className={cx(classes.hash, classes.value)}>
             {changes.hash.value}
           </Change>
         </M.Typography>
@@ -164,7 +159,7 @@ function EntrySide({ className, changes, logicalKey, dir, side }: EntrySideProps
       {changes.size && (
         <M.Typography variant="body2" className={classes.property}>
           <Icons.InsertDriveFileOutlined className={classes.icon} fontSize="small" />
-          <Change dir={dir} side={side} className={classes.value}>
+          <Change order={order} className={classes.value}>
             {readableBytes(changes.size)}
           </Change>
         </M.Typography>
@@ -221,7 +216,7 @@ function useChanges(
     if (!entry) {
       throw new Error('Must be at least one entry')
     }
-    return { _tag: 'introduced', logicalKey, entry, dir }
+    return { _tag: 'added', logicalKey, entry, dir }
   }
 
   const physicalKey = left.physicalKey !== right.physicalKey
@@ -277,22 +272,20 @@ function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps
   switch (changes._tag) {
     case 'unmodified':
       return <Unmodified className={className} logicalKey={logicalKey} />
-    case 'introduced':
-      return <Introduced className={className} dir={dir} logicalKey={logicalKey} />
+    case 'added':
+      return <Added className={className} dir={dir} logicalKey={logicalKey} />
     case 'modified':
       return (
         <GridRow className={className}>
           <EntrySide
             logicalKey={logicalKey}
-            side="left"
-            dir={dir}
+            order={dir === 'forward' ? 'former' : 'latter'}
             changes={changes.left}
           />
           <EntrySide
             className={classes.side}
             logicalKey={logicalKey}
-            side="right"
-            dir={dir}
+            order={dir === 'forward' ? 'latter' : 'former'}
             changes={changes.right}
           />
         </GridRow>
@@ -315,11 +308,15 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
     const rightData = right.contentsFlatMap || {}
 
     const logicalKeys = Object.keys({ ...leftData, ...rightData }).sort()
-    return { left: leftData, right: rightData, keys: logicalKeys }
+    return {
+      left: leftData,
+      right: rightData,
+      keys: logicalKeys,
+    }
   }, [left.contentsFlatMap, right.contentsFlatMap])
 
   const dir: Dir = React.useMemo(
-    () => (left.modified > right.modified ? 'ltr' : 'rtl'),
+    () => (left.modified > right.modified ? 'backward' : 'forward'),
     [left.modified, right.modified],
   )
 
