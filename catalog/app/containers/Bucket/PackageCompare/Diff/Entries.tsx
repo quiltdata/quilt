@@ -205,7 +205,7 @@ function getEntryChanges(
   }
 }
 
-function useChanges(
+function getChanges(
   dir: Dir,
   logicalKey: string,
   left?: Model.PackageEntry,
@@ -233,24 +233,7 @@ function useChanges(
   }
 }
 
-const useStyles = M.makeStyles((t) => ({
-  entryRow: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-  },
-  hash: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-  colorInherit: {
-    color: 'inherit',
-  },
-  head: {
-    overflow: 'hidden',
-    padding: t.spacing(1),
-    background: t.palette.background.default,
-    '& + &': {
-      borderLeft: `1px solid ${t.palette.divider}`,
-    },
-  },
+const useEntriesRowStyles = M.makeStyles((t) => ({
   side: {
     borderLeft: `1px solid ${t.palette.divider}`,
   },
@@ -265,9 +248,12 @@ interface EntriesRowProps {
 }
 
 function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps) {
-  const classes = useStyles()
+  const classes = useEntriesRowStyles()
 
-  const changes = useChanges(dir, logicalKey, left, right)
+  const changes = React.useMemo(
+    () => getChanges(dir, logicalKey, left, right),
+    [dir, logicalKey, left, right],
+  )
 
   switch (changes._tag) {
     case 'unmodified':
@@ -294,6 +280,20 @@ function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps
       assertNever(changes)
   }
 }
+
+const useStyles = M.makeStyles((t) => ({
+  row: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+  },
+  head: {
+    overflow: 'hidden',
+    padding: t.spacing(1),
+    background: t.palette.background.default,
+    '& + &': {
+      borderLeft: `1px solid ${t.palette.divider}`,
+    },
+  },
+}))
 
 interface EntriesDiffProps {
   left: Revision
@@ -334,13 +334,13 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
 
   return (
     <div>
-      <GridRow className={classes.entryRow}>
+      <GridRow className={classes.row}>
         <div className={classes.head}>{left.hash}</div>
         <div className={classes.head}>{right.hash}</div>
       </GridRow>
       {entries.keys.map((logicalKey) => (
         <EntriesRow
-          className={classes.entryRow}
+          className={classes.row}
           key={logicalKey}
           logicalKey={logicalKey}
           left={entries.left[logicalKey]}
