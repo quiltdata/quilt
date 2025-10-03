@@ -11,6 +11,7 @@ import usePrevious from 'utils/usePrevious'
 import * as Model from '../../Model'
 import { JWTRefreshNotification, useJWTErrorDetection } from '../JWTRefreshNotification'
 import Settings from '../Settings'
+import { getContextLimit } from '../../Utils/TokenCounter'
 
 import DevTools from './DevTools'
 import Input from './Input'
@@ -468,6 +469,21 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
     resetErrors: resetJWTErrors,
   } = useJWTErrorDetection()
 
+  // Get the selected model from settings
+  const selectedModel = React.useMemo(() => {
+    try {
+      // eslint-disable-next-line no-underscore-dangle
+      const modelIdOverride = (window as any).__modelIdOverride
+      if (modelIdOverride?.value) {
+        return modelIdOverride.value
+      }
+      // Fallback to default model
+      return 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
+    } catch {
+      return 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
+    }
+  }, [])
+
   // Calculate cumulative token usage
   const contextUsage = React.useMemo(() => {
     // TODO: Re-enable token tracking in the conversation state
@@ -477,9 +493,10 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
 
     // Rough estimation: average 500 tokens per message pair
     const estimatedTokens = messageCount * 500
-    const contextLimit = 200000 // Claude 3.5 Sonnet context limit
+    const contextLimit = getContextLimit(selectedModel)
 
     return {
+      modelName: selectedModel,
       inputTokens: Math.floor(estimatedTokens * 0.6),
       outputTokens: Math.floor(estimatedTokens * 0.4),
       totalTokens: estimatedTokens,
@@ -489,7 +506,7 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
       isNearLimit: estimatedTokens / contextLimit > 0.75,
       isCritical: estimatedTokens / contextLimit > 0.9,
     }
-  }, [state.events])
+  }, [state.events, selectedModel])
 
   // Track when a query was stopped by the user
   const [lastStoppedQuery, setLastStoppedQuery] = React.useState<Date | null>(null)

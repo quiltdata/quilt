@@ -147,7 +147,11 @@ export default function ContextMeter({ usage, className }: ContextMeterProps) {
     <div className={classes.tooltipContent}>
       <div className={classes.tooltipRow}>
         <span className={classes.tooltipLabel}>Model:</span>
-        <span className={classes.tooltipValue}>Unknown</span>
+        <span className={classes.tooltipValue}>
+          {usage.modelName
+            ? usage.modelName.split('/').pop()?.split(':')[0] || usage.modelName
+            : 'Unknown'}
+        </span>
       </div>
       <div className={classes.tooltipRow}>
         <span className={classes.tooltipLabel}>Context limit:</span>

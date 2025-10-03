@@ -23,8 +23,8 @@ export const CONTEXT_LIMITS = {
   'anthropic.claude-3-haiku-20240307-v1:0': 200_000,
 
   // Amazon Nova Models
-  'us.amazon.nova-pro-v1:0': 300_000,
-  'us.amazon.nova-lite-v1:0': 300_000,
+  'us.amazon.nova-pro-v1:0': 200_000,
+  'us.amazon.nova-lite-v1:0': 200_000,
   'us.amazon.nova-micro-v1:0': 128_000,
 
   // Meta Llama Models
@@ -56,6 +56,7 @@ export interface TokenUsage {
 }
 
 export interface CumulativeUsage extends TokenUsage {
+  modelName?: string
   percentUsed: number
   tokensRemaining: number
   contextLimit: number
