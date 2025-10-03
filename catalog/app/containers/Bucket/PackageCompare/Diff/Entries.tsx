@@ -16,13 +16,11 @@ import type { Revision, RevisionResult } from '../useRevision'
 
 import Change from './Change'
 import type { Dir, Order } from './Change'
+import GridRow from './GridRow'
 
 const useAddedStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
-  },
-  cell: {
-    padding: t.spacing(1.5, 1),
   },
 }))
 
@@ -35,13 +33,9 @@ interface AddedProps {
 function Added({ className, dir, logicalKey }: AddedProps) {
   const classes = useAddedStyles()
   return (
-    <GridRow className={cx(classes.root, className)}>
-      <div className={classes.cell}>
-        <Change order={dir === 'forward' ? 'former' : 'latter'}>{logicalKey}</Change>
-      </div>
-      <div className={classes.cell}>
-        <Change order={dir === 'forward' ? 'latter' : 'former'}>{logicalKey}</Change>
-      </div>
+    <GridRow className={cx(classes.root, className)} divided>
+      <Change order={dir === 'forward' ? 'former' : 'latter'}>{logicalKey}</Change>
+      <Change order={dir === 'forward' ? 'latter' : 'former'}>{logicalKey}</Change>
     </GridRow>
   )
 }
@@ -50,10 +44,6 @@ const useUnmodifiedStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
-    padding: t.spacing(1.5, 1),
-  },
-  label: {
-    paddingLeft: t.spacing(1),
   },
 }))
 
@@ -66,112 +56,56 @@ function Unmodified({ className, logicalKey }: UnmodifiedProps) {
   const classes = useUnmodifiedStyles()
   return (
     <GridRow className={cx(classes.root, className)}>
-      <span>{logicalKey}</span>
-      <i className={classes.label}>Unmodified</i>
+      {logicalKey}
+      <i>Unmodified</i>
     </GridRow>
   )
 }
 
-const useGridRowStyles = M.makeStyles({
-  root: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-  },
-})
+type Modifications = Record<keyof Model.PackageEntry, boolean>
 
-interface GridRowProps {
-  className?: string
-  children: React.ReactNode
+function getEntryChanges(
+  entry: Model.PackageEntry,
+  modified: Modifications,
+): Partial<Model.PackageEntry> {
+  return {
+    physicalKey: modified.physicalKey ? entry.physicalKey : undefined,
+    hash: modified.hash ? entry.hash : undefined,
+    size: modified.size ? entry.size : undefined,
+    meta: modified.meta ? entry.meta : undefined,
+  }
 }
 
-function GridRow({ className, children }: GridRowProps) {
-  const classes = useGridRowStyles()
-  return <div className={cx(className, classes.root)}>{children}</div>
-}
-
-type Changes =
-  | { _tag: 'unmodified'; logicalKey: string }
-  | { _tag: 'added'; logicalKey: string; entry: Model.PackageEntry; dir: Dir }
-  | {
-      _tag: 'modified'
-      logicalKey: string
-      left: Partial<Model.PackageEntry>
-      right: Partial<Model.PackageEntry>
-    }
-
-const useEntrySideStyles = M.makeStyles((t) => ({
-  root: {
-    overflow: 'hidden',
-    padding: t.spacing(1),
-  },
-  hash: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-  property: {
-    whiteSpace: 'nowrap',
-    display: 'flex',
-    alignItems: 'center',
-    marginTop: t.spacing(1),
-  },
-  value: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  icon: {
-    color: t.palette.text.secondary,
-    marginRight: t.spacing(1),
-  },
-}))
-
-interface EntrySideProps {
-  className?: string
+interface ModifiedProps {
+  className: string
   logicalKey: string
-  changes: Partial<Model.PackageEntry>
-  order: Order
+  dir: Dir
+  left: Model.PackageEntry
+  right: Model.PackageEntry
+  modified: Modifications
 }
 
-function EntrySide({ className, changes, logicalKey, order }: EntrySideProps) {
-  const classes = useEntrySideStyles()
+function Modified({ className, dir, logicalKey, left, right, modified }: ModifiedProps) {
+  const changes = React.useMemo(
+    () => ({
+      left: getEntryChanges(left, modified),
+      right: getEntryChanges(right, modified),
+    }),
+    [left, right, modified],
+  )
   return (
-    <div className={cx(classes.root, className)}>
-      <M.Typography variant="subtitle2" color="textSecondary">
-        {logicalKey}
-      </M.Typography>
-
-      {changes.physicalKey && (
-        <M.Typography className={classes.property}>
-          <Icons.LinkOutlined className={classes.icon} fontSize="small" />
-          <Change order={order} className={classes.value}>
-            <PhysicalKey url={changes.physicalKey} />
-          </Change>
-        </M.Typography>
-      )}
-
-      {changes.hash && (
-        <M.Typography className={classes.property}>
-          <Icons.LockOutlined className={classes.icon} fontSize="small" />
-          <Change order={order} className={cx(classes.hash, classes.value)}>
-            {changes.hash.value}
-          </Change>
-        </M.Typography>
-      )}
-
-      {changes.size && (
-        <M.Typography variant="body2" className={classes.property}>
-          <Icons.InsertDriveFileOutlined className={classes.icon} fontSize="small" />
-          <Change order={order} className={classes.value}>
-            {readableBytes(changes.size)}
-          </Change>
-        </M.Typography>
-      )}
-
-      {changes.meta && (
-        <div className={classes.property}>
-          <Icons.Code className={classes.icon} fontSize="small" />
-          <JsonDisplay value={changes.meta} />
-        </div>
-      )}
-    </div>
+    <GridRow className={className} dense divided>
+      <EntrySide
+        logicalKey={logicalKey}
+        order={dir === 'forward' ? 'former' : 'latter'}
+        changes={changes.left}
+      />
+      <EntrySide
+        logicalKey={logicalKey}
+        order={dir === 'forward' ? 'latter' : 'former'}
+        changes={changes.right}
+      />
+    </GridRow>
   )
 }
 
@@ -193,53 +127,110 @@ function PhysicalKey({ className, url }: PhysicalKeyProps) {
   )
 }
 
-function getEntryChanges(
-  entry: Model.PackageEntry,
-  modified: Record<keyof Model.PackageEntry, boolean>,
-) {
-  return {
-    physicalKey: modified.physicalKey ? entry.physicalKey : undefined,
-    hash: modified.hash ? entry.hash : undefined,
-    size: modified.size ? entry.size : undefined,
-    meta: modified.meta ? entry.meta : undefined,
-  }
+type Changes =
+  | { _tag: 'added'; entry: Model.PackageEntry }
+  | { _tag: 'unmodified' }
+  | {
+      _tag: 'modified'
+      modified: Modifications
+      left: Model.PackageEntry
+      right: Model.PackageEntry
+    }
+
+const useEntrySideStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.body1,
+  },
+  hash: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
+  property: {
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    alignItems: 'center',
+    margin: t.spacing(1, 0, 0),
+  },
+  value: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  icon: {
+    color: t.palette.text.secondary,
+    marginRight: t.spacing(1),
+  },
+}))
+
+interface EntrySideProps {
+  className?: string
+  logicalKey: string
+  changes: Partial<Model.PackageEntry>
+  order: Order
 }
 
-function getChanges(
-  dir: Dir,
-  logicalKey: string,
-  left?: Model.PackageEntry,
-  right?: Model.PackageEntry,
-): Changes {
+function EntrySide({ changes, logicalKey, order }: EntrySideProps) {
+  const classes = useEntrySideStyles()
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="subtitle2" color="textSecondary">
+        {logicalKey}
+      </M.Typography>
+
+      {changes.physicalKey && (
+        <p className={classes.property}>
+          <Icons.LinkOutlined className={classes.icon} fontSize="small" />
+          <Change order={order} className={classes.value}>
+            <PhysicalKey url={changes.physicalKey} />
+          </Change>
+        </p>
+      )}
+
+      {changes.hash && (
+        <p className={classes.property}>
+          <Icons.LockOutlined className={classes.icon} fontSize="small" />
+          <Change order={order} className={cx(classes.hash, classes.value)}>
+            {changes.hash.value}
+          </Change>
+        </p>
+      )}
+
+      {changes.size && (
+        <p className={classes.property}>
+          <Icons.InsertDriveFileOutlined className={classes.icon} fontSize="small" />
+          <Change order={order} className={classes.value}>
+            {readableBytes(changes.size)}
+          </Change>
+        </p>
+      )}
+
+      {changes.meta && (
+        <div className={classes.property}>
+          <Icons.Code className={classes.icon} fontSize="small" />
+          <JsonDisplay value={changes.meta} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function getChanges(left?: Model.PackageEntry, right?: Model.PackageEntry): Changes {
   if (!left || !right) {
     const entry = left || right
     if (!entry) {
       throw new Error('Must be at least one entry')
     }
-    return { _tag: 'added', logicalKey, entry, dir }
+    return { _tag: 'added', entry }
   }
 
   const physicalKey = left.physicalKey !== right.physicalKey
   const hash = left.hash.value !== right.hash.value
   const size = left.size !== right.size
   const meta = JSON.stringify(left.meta) !== JSON.stringify(right.meta)
-  if (!physicalKey && !hash && !size && !meta) return { _tag: 'unmodified', logicalKey }
-  const modified = { physicalKey, hash, size, meta }
-  return {
-    _tag: 'modified',
-    logicalKey,
-    left: getEntryChanges(left, modified),
-    right: getEntryChanges(right, modified),
-  }
+  if (!physicalKey && !hash && !size && !meta) return { _tag: 'unmodified' }
+
+  return { _tag: 'modified', modified: { physicalKey, hash, size, meta }, left, right }
 }
 
-const useEntriesRowStyles = M.makeStyles((t) => ({
-  side: {
-    borderLeft: `1px solid ${t.palette.divider}`,
-  },
-}))
-
-interface EntriesRowProps {
+interface RowProps {
   className: string
   logicalKey: string
   left?: Model.PackageEntry
@@ -247,13 +238,8 @@ interface EntriesRowProps {
   dir: Dir
 }
 
-function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps) {
-  const classes = useEntriesRowStyles()
-
-  const changes = React.useMemo(
-    () => getChanges(dir, logicalKey, left, right),
-    [dir, logicalKey, left, right],
-  )
+function Row({ className, dir, logicalKey, left, right }: RowProps) {
+  const changes = React.useMemo(() => getChanges(left, right), [left, right])
 
   switch (changes._tag) {
     case 'unmodified':
@@ -262,19 +248,14 @@ function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps
       return <Added className={className} dir={dir} logicalKey={logicalKey} />
     case 'modified':
       return (
-        <GridRow className={className}>
-          <EntrySide
-            logicalKey={logicalKey}
-            order={dir === 'forward' ? 'former' : 'latter'}
-            changes={changes.left}
-          />
-          <EntrySide
-            className={classes.side}
-            logicalKey={logicalKey}
-            order={dir === 'forward' ? 'latter' : 'former'}
-            changes={changes.right}
-          />
-        </GridRow>
+        <Modified
+          className={className}
+          dir={dir}
+          logicalKey={logicalKey}
+          left={changes.left}
+          right={changes.right}
+          modified={changes.modified}
+        />
       )
     default:
       assertNever(changes)
@@ -284,14 +265,20 @@ function EntriesRow({ className, dir, logicalKey, left, right }: EntriesRowProps
 const useStyles = M.makeStyles((t) => ({
   row: {
     borderBottom: `1px solid ${t.palette.divider}`,
+    '&:last-child': {
+      borderBottom: 'none',
+    },
   },
   head: {
-    overflow: 'hidden',
-    padding: t.spacing(1),
     background: t.palette.background.default,
-    '& + &': {
-      borderLeft: `1px solid ${t.palette.divider}`,
-    },
+    ...t.typography.caption,
+  },
+  empty: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: t.spacing(2),
   },
 }))
 
@@ -321,25 +308,17 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
   )
 
   if (entries.keys.length === 0) {
-    return (
-      <M.Typography
-        variant="body2"
-        color="textSecondary"
-        style={{ fontStyle: 'italic', textAlign: 'center', padding: 16 }}
-      >
-        No entries found
-      </M.Typography>
-    )
+    return <div className={classes.empty}>No entries found</div>
   }
 
   return (
     <div>
-      <GridRow className={classes.row}>
-        <div className={classes.head}>{left.hash}</div>
-        <div className={classes.head}>{right.hash}</div>
+      <GridRow className={cx(classes.row, classes.head)} dense divided>
+        {left.hash}
+        {right.hash}
       </GridRow>
       {entries.keys.map((logicalKey) => (
-        <EntriesRow
+        <Row
           className={classes.row}
           key={logicalKey}
           logicalKey={logicalKey}
