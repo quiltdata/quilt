@@ -29,5 +29,5 @@ interface ChangeProps {
 
 export default function Change({ className, children, order }: ChangeProps) {
   const classes = useStyles()
-  return <span className={cx(classes.root, classes[order], className)}>{children}</span>
+  return <div className={cx(classes.root, classes[order], className)}>{children}</div>
 }
