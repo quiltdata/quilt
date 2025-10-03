@@ -93,30 +93,6 @@ jest.mock('utils/StyledLink', () =>
   )),
 )
 
-// Mock react-diff-viewer-continued
-jest.mock('react-diff-viewer-continued', () =>
-  jest.fn(
-    ({
-      oldValue,
-      newValue,
-      leftTitle,
-      rightTitle,
-    }: {
-      oldValue: string
-      newValue: string
-      leftTitle: string
-      rightTitle: string
-    }) => (
-      <div data-testid="diff-viewer">
-        <div>{leftTitle}</div>
-        <div>{rightTitle}</div>
-        <pre>{oldValue}</pre>
-        <pre>{newValue}</pre>
-      </div>
-    ),
-  ),
-)
-
 describe('containers/Bucket/PackageCompare/PackageCompare', () => {
   const mockPackageHandles = {
     left: {
