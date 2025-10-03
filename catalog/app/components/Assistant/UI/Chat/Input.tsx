@@ -40,6 +40,7 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     minHeight: 120,
     padding: '16px 20px',
+    paddingRight: 120, // Add space for context meter and copy button
     display: 'flex',
     flexDirection: 'column',
   },

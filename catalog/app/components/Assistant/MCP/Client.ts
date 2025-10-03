@@ -25,6 +25,9 @@ export class QuiltMCPClient implements MCPClient {
 
   private sessionId: string | null = null
 
+  // Server information
+  private serverInfo: { name?: string; version?: string } | null = null
+
   // OAuth properties
   private oauthDiscovery: OAuthDiscovery | null = null
 
@@ -127,6 +130,13 @@ export class QuiltMCPClient implements MCPClient {
       currentRole: this.currentRole,
       availableRoles: this.availableRoles,
     }
+  }
+
+  /**
+   * Get server information (name and version)
+   */
+  getServerInfo(): { name?: string; version?: string } | null {
+    return this.serverInfo
   }
 
   /**
@@ -499,6 +509,15 @@ export class QuiltMCPClient implements MCPClient {
         }
 
         console.log('🔍 Parsed MCP Data:', data)
+
+        // Capture server information from the initialize response
+        if (data?.result?.serverInfo) {
+          this.serverInfo = {
+            name: data.result.serverInfo.name,
+            version: data.result.serverInfo.version,
+          }
+          console.log('✅ MCP Server Info captured:', this.serverInfo)
+        }
 
         const sessionIdFromBody = data?.result?.sessionId
         const resolvedSessionId = sessionIdFromHeaders || sessionIdFromBody

@@ -10,6 +10,7 @@ interface MCPServer {
   status: 'connected' | 'disconnected' | 'loading'
   endpoint?: string
   toolCount?: number
+  version?: string
   tools?: Array<{
     name: string
     description: string
@@ -252,8 +253,10 @@ export function MCPServerSelectorRedesigned({
     try {
       if (mcpClient.hasSession()) {
         const tools = await mcpClient.listAvailableTools()
+        const serverInfo = mcpClient.getServerInfo()
         quiltServer.status = 'connected'
         quiltServer.toolCount = tools.length
+        quiltServer.version = serverInfo?.version
         quiltServer.tools = tools.map((t) => ({
           name: t.name,
           description: t.description || '',
@@ -261,8 +264,10 @@ export function MCPServerSelectorRedesigned({
       } else {
         await mcpClient.initialize()
         const tools = await mcpClient.listAvailableTools()
+        const serverInfo = mcpClient.getServerInfo()
         quiltServer.status = 'connected'
         quiltServer.toolCount = tools.length
+        quiltServer.version = serverInfo?.version
         quiltServer.tools = tools.map((t) => ({
           name: t.name,
           description: t.description || '',
@@ -369,7 +374,20 @@ export function MCPServerSelectorRedesigned({
                 </div>
                 <div className={classes.serverInfo}>
                   <div className={classes.serverTitle}>{server.name}</div>
-                  <div className={classes.serverDescription}>{server.description}</div>
+                  <div className={classes.serverDescription}>
+                    {server.description}
+                    {server.version && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: '0.7rem',
+                          color: 'rgba(45, 39, 83, 0.6)',
+                        }}
+                      >
+                        v{server.version}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {server.toolCount !== undefined && server.toolCount > 0 && (
                   <>

@@ -36,14 +36,14 @@ export function MCPServerDebugTest() {
         // Try to call a tool that should require S3 permissions
         const toolCall = await mcpClient.callTool({
           name: 'mcp_quilt-mcp-server_list_available_resources',
-          arguments: {}
+          arguments: {},
         })
         toolTestResult = { success: true, result: toolCall }
         console.log('✅ Tool call successful:', toolCall)
       } catch (error) {
-        toolTestResult = { 
-          success: false, 
-          error: error instanceof Error ? error.message : String(error) 
+        toolTestResult = {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
         }
         console.log('❌ Tool call failed:', error)
       }
@@ -56,7 +56,7 @@ export function MCPServerDebugTest() {
           const tokenParts = token.split('.')
           if (tokenParts.length === 3) {
             const payload = JSON.parse(
-              atob(tokenParts[1] + '='.repeat((4 - (tokenParts[1].length % 4)) % 4))
+              atob(tokenParts[1] + '='.repeat((4 - (tokenParts[1].length % 4)) % 4)),
             )
             tokenDecoded = payload
             console.log('🔍 Decoded Token Payload:', payload)
@@ -72,14 +72,13 @@ export function MCPServerDebugTest() {
         tools,
         toolTestResult,
         tokenDecoded,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
-
     } catch (error) {
       console.error('❌ MCP Server Debug Test failed:', error)
       setTestResults({
         error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
     } finally {
       setIsLoading(false)
@@ -91,14 +90,15 @@ export function MCPServerDebugTest() {
       <Typography variant="h6" gutterBottom>
         MCP Server Debug Test
       </Typography>
-      
+
       <Typography variant="body2" color="textSecondary" paragraph>
-        This test will verify what the MCP server is receiving and whether it can access the enhanced permissions.
+        This test will verify what the MCP server is receiving and whether it can access
+        the enhanced permissions.
       </Typography>
 
-      <Button 
-        variant="contained" 
-        color="primary" 
+      <Button
+        variant="contained"
+        color="primary"
         onClick={testMCPServerPermissions}
         disabled={isLoading}
         style={{ marginBottom: 16 }}
@@ -111,7 +111,7 @@ export function MCPServerDebugTest() {
           <Typography variant="h6" gutterBottom>
             Test Results
           </Typography>
-          
+
           {testResults.error ? (
             <Alert severity="error">
               <Typography variant="body2">
@@ -159,7 +159,11 @@ export function MCPServerDebugTest() {
                 </>
               )}
 
-              <Typography variant="caption" color="textSecondary" style={{ marginTop: 16, display: 'block' }}>
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                style={{ marginTop: 16, display: 'block' }}
+              >
                 Test completed at: {testResults.timestamp}
               </Typography>
             </>

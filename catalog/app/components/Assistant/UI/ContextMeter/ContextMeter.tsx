@@ -56,6 +56,10 @@ const useStyles = M.makeStyles((t) => ({
   circularProgress: {
     transition: 'all 0.3s ease-in-out',
   },
+  circularProgressBackground: {
+    position: 'absolute',
+    color: 'rgba(107, 79, 207, 0.15)', // Light purple background
+  },
   tooltip: {
     fontSize: '0.875rem',
     background: 'rgba(255, 255, 255, 0.98)',
@@ -223,14 +227,23 @@ export default function ContextMeter({ usage, className }: ContextMeterProps) {
         role="status"
         aria-label={`Context usage: ${usage.percentUsed.toFixed(1)}%`}
       >
-        <M.CircularProgress
-          variant="determinate"
-          value={Math.min(usage.percentUsed, 100)}
-          size={16}
-          thickness={6}
-          className={classes.circularProgress}
-          style={{ color: circleColor }}
-        />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <M.CircularProgress
+            variant="determinate"
+            value={100}
+            size={16}
+            thickness={6}
+            className={classes.circularProgressBackground}
+          />
+          <M.CircularProgress
+            variant="determinate"
+            value={Math.min(usage.percentUsed, 100)}
+            size={16}
+            thickness={6}
+            className={classes.circularProgress}
+            style={{ color: circleColor, position: 'absolute' }}
+          />
+        </div>
         <span className={classes.percentage}>{usage.percentUsed.toFixed(1)}%</span>
       </div>
     </M.Tooltip>
