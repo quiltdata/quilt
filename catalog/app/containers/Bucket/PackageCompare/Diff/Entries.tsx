@@ -176,30 +176,30 @@ function EntrySide({ changes, logicalKey, order }: EntrySideProps) {
       </M.Typography>
 
       {changes.physicalKey && (
-        <p className={classes.property}>
+        <div className={classes.property}>
           <Icons.LinkOutlined className={classes.icon} fontSize="small" />
           <Change order={order} className={classes.value}>
             <PhysicalKey url={changes.physicalKey} />
           </Change>
-        </p>
+        </div>
       )}
 
       {changes.hash && (
-        <p className={classes.property}>
+        <div className={classes.property}>
           <Icons.LockOutlined className={classes.icon} fontSize="small" />
           <Change order={order} className={cx(classes.hash, classes.value)}>
             {changes.hash.value}
           </Change>
-        </p>
+        </div>
       )}
 
       {changes.size && (
-        <p className={classes.property}>
+        <div className={classes.property}>
           <Icons.InsertDriveFileOutlined className={classes.icon} fontSize="small" />
           <Change order={order} className={classes.value}>
             {readableBytes(changes.size)}
           </Change>
-        </p>
+        </div>
       )}
 
       {changes.meta && (
