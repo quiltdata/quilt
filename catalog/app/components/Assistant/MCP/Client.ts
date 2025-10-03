@@ -41,6 +41,21 @@ export class QuiltMCPClient implements MCPClient {
   private reduxTokenGetter: (() => Promise<string | null>) | null = null
 
   constructor() {
+    // Expose global function for quick debug toggle
+    if (typeof window !== 'undefined') {
+      ;(window as any).enableMCPDebug = (enabled: boolean = true) => {
+        localStorage.setItem('mcp-debug-logging', enabled ? 'true' : 'false')
+        console.log(
+          `🐛 MCP Debug Logging ${enabled ? 'enabled' : 'disabled'}. ` +
+            'Changes will take effect on next MCP request.',
+        )
+        // Dispatch event to notify UI
+        window.dispatchEvent(
+          new CustomEvent('mcp-debug-changed', { detail: { enabled } }),
+        )
+      }
+    }
+
     // Debug: Log the raw configuration
     console.log('🔍 MCP Client: Raw config object:', cfg)
     console.log('🔍 MCP Client: mcpEndpoint value:', cfg.mcpEndpoint)
@@ -241,6 +256,15 @@ export class QuiltMCPClient implements MCPClient {
 
     if (this.sessionId) {
       headers['mcp-session-id'] = this.sessionId
+    }
+
+    // Add debug logging header if enabled
+    const debugEnabled = localStorage.getItem('mcp-debug-logging') === 'true'
+    if (debugEnabled) {
+      headers['X-MCP-Debug'] = 'true'
+      console.log(
+        '🐛 MCP Debug Logging: Enabled - Detailed logs will be sent to CloudWatch',
+      )
     }
 
     // Primary Authentication: Bearer Token (Redux or OAuth)

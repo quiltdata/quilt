@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
@@ -10,25 +9,24 @@ import { useMCPContextStateValue } from 'components/Assistant/MCP/MCPContextProv
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
-import ContextMeter from '../ContextMeter/ContextMeter'
 import { JWTRefreshNotification, useJWTErrorDetection } from '../JWTRefreshNotification'
-
 import Settings from '../Settings'
+
 import DevTools from './DevTools'
 import Input from './Input'
 import ThinkingIndicator from './ThinkingIndicator'
 
 const BG = {
   intense: M.colors.indigo[900],
-  normal: M.colors.common.white,
-  faint: M.colors.grey[600],
+  bright: M.colors.indigo[500],
+  faint: M.colors.common.white,
 }
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
   align_right: {},
   color_intense: {},
-  color_normal: {},
+  color_bright: {},
   color_faint: {},
   messageContainer: {
     display: 'flex',
@@ -52,17 +50,13 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
       background: BG.intense,
       color: M.fade(t.palette.common.white, 0.8),
     },
-    '$color_normal &': {
-      background: BG.normal,
-      color: t.palette.text.primary,
+    '$color_bright &': {
+      background: BG.bright,
+      color: t.palette.common.white,
     },
     '$color_faint &': {
       background: BG.faint,
-      color: t.palette.getContrastText(BG.faint),
-      opacity: 0.5,
-      '&:hover': {
-        opacity: 1,
-      },
+      color: t.palette.text.primary,
     },
     '$align_right &': {
       borderBottomRightRadius: 0,
@@ -93,7 +87,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
 }))
 
 interface MessageContainerProps {
-  color?: 'intense' | 'normal' | 'faint'
+  color?: 'intense' | 'bright' | 'faint'
   align?: 'left' | 'right'
   children: React.ReactNode
   actions?: React.ReactNode
@@ -101,7 +95,7 @@ interface MessageContainerProps {
 }
 
 function MessageContainer({
-  color = 'normal',
+  color = 'faint',
   align = 'left',
   children,
   actions,
@@ -141,32 +135,6 @@ const useMessageActionStyles = M.makeStyles({
   },
 })
 
-const useToolMessageStyles = M.makeStyles((t) => ({
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-    userSelect: 'none',
-    '&:hover': {
-      opacity: 0.8,
-    },
-  },
-  icon: {
-    fontSize: '1rem',
-    color: 'inherit',
-  },
-  toolName: {
-    marginLeft: t.spacing(1),
-    marginRight: t.spacing(1),
-  },
-  spinner: {
-    color: 'inherit',
-  },
-  details: {
-    marginTop: t.spacing(1),
-  },
-}))
-
 interface MessageActionProps {
   children: React.ReactNode
   className?: string
@@ -190,42 +158,6 @@ interface ConversationStateProps {
   state: Model.Conversation.State['_tag']
 }
 
-interface ToolMessageProps {
-  name: string
-  status?: 'success' | 'error' | 'running'
-  details: Record<string, any>
-  timestamp: Date
-  actions?: React.ReactNode
-}
-
-function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageProps) {
-  const classes = useToolMessageStyles()
-  const [expanded, setExpanded] = React.useState(false)
-
-  const toggleExpanded = React.useCallback(() => {
-    setExpanded((prev) => !prev)
-  }, [])
-
-  return (
-    <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
-      <div className={classes.header} onClick={toggleExpanded}>
-        <Icons.Build className={classes.icon} />
-        <span className={classes.toolName}>{name}</span>
-        {status === 'success' && <Icons.CheckCircleOutline className={classes.icon} />}
-        {status === 'error' && <Icons.ErrorOutline className={classes.icon} />}
-        {status === 'running' && (
-          <M.CircularProgress size={14} thickness={4} className={classes.spinner} />
-        )}
-      </div>
-      <M.Collapse in={expanded}>
-        <div className={classes.details}>
-          <JsonDisplay defaultExpanded={2} name="details" value={details} />
-        </div>
-      </M.Collapse>
-    </MessageContainer>
-  )
-}
-
 type MessageEventProps = ConversationDispatchProps &
   ConversationStateProps &
   ReturnType<typeof Model.Conversation.Event.Message>
@@ -246,7 +178,7 @@ function MessageEvent({
 
   return (
     <MessageContainer
-      color={role === 'user' ? 'intense' : 'normal'}
+      color={role === 'user' ? 'intense' : 'faint'}
       align={role === 'user' ? 'right' : 'left'}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
       timestamp={timestamp}
@@ -284,13 +216,18 @@ function ToolUseEvent({
     [toolUseId, input, result],
   )
   return (
-    <ToolMessage
-      name={name}
-      status={result.status}
-      details={details}
+    <MessageContainer
+      color="bright"
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
-    />
+    >
+      <span>
+        Tool Use: <b>{name}</b> ({result.status})
+      </span>
+      <M.Box py={0.5}>
+        <JsonDisplay name="details" value={details} />
+      </M.Box>
+    </MessageContainer>
   )
 }
 
@@ -313,13 +250,18 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
   const names = Eff.Record.collect(calls, (_k, v) => v.name)
 
   return (
-    <ToolMessage
-      name={names.join(', ')}
-      status="running"
-      details={details}
+    <MessageContainer
+      color="bright"
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
-    />
+    >
+      <span>
+        Tool Use: <b>{names.join(', ')}</b>
+      </span>
+      <M.Box py={0.5}>
+        <JsonDisplay name="details" value={details} />
+      </M.Box>
+    </MessageContainer>
   )
 }
 
@@ -527,23 +469,47 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
   } = useJWTErrorDetection()
 
   // Calculate cumulative token usage
-  const contextUsage = React.useMemo(() => null, [])
+  const contextUsage = React.useMemo(() => {
+    // TODO: Re-enable token tracking in the conversation state
+    // For now, estimate based on message count
+    const messageCount = state.events.filter((e) => e._tag === 'Message').length
+    if (messageCount === 0) return null
 
-  // Get available buckets for @ mentions (temporarily disabled until Input component is updated)
-  // const [availableBuckets, setAvailableBuckets] = React.useState<string[]>([])
-  // React.useEffect(() => {
-  //   const fetchBuckets = async () => {
-  //     try {
-  //       // Try multiple sources for bucket discovery
-  //       let buckets: string[] = []
-  //       // ... bucket discovery logic
-  //       setAvailableBuckets(buckets || [])
-  //     } catch (error) {
-  //       setAvailableBuckets(['quilt-sandbox-bucket', 'cellpainting-gallery', 'example-pharma-data'])
-  //     }
-  //   }
-  //   fetchBuckets()
-  // }, [])
+    // Rough estimation: average 500 tokens per message pair
+    const estimatedTokens = messageCount * 500
+    const contextLimit = 200000 // Claude 3.5 Sonnet context limit
+
+    return {
+      inputTokens: Math.floor(estimatedTokens * 0.6),
+      outputTokens: Math.floor(estimatedTokens * 0.4),
+      totalTokens: estimatedTokens,
+      contextLimit,
+      percentUsed: (estimatedTokens / contextLimit) * 100,
+      tokensRemaining: contextLimit - estimatedTokens,
+      isNearLimit: estimatedTokens / contextLimit > 0.75,
+      isCritical: estimatedTokens / contextLimit > 0.9,
+    }
+  }, [state.events])
+
+  // Get available buckets for @ mentions
+  const [availableBuckets, setAvailableBuckets] = React.useState<string[]>([])
+
+  React.useEffect(() => {
+    const fetchBuckets = async () => {
+      try {
+        // eslint-disable-next-line no-underscore-dangle
+        const authManager = (window as any).__dynamicAuthManager
+        if (authManager) {
+          const buckets = await authManager.getCurrentBuckets()
+          setAvailableBuckets(buckets || [])
+        }
+      } catch (error) {
+        // Failed to fetch buckets for @ mentions
+      }
+    }
+
+    fetchBuckets()
+  }, [])
 
   // Resize handler
   const handleResizeStart = React.useCallback((e: React.MouseEvent) => {
@@ -626,10 +592,16 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
 
   const ask = React.useCallback(
     (content: string) => {
+      setLastStoppedQuery(null) // Clear stopped message when starting new query
       dispatch(Model.Conversation.Action.Ask({ content }))
     },
     [dispatch],
   )
+
+  const handleStop = React.useCallback(() => {
+    setLastStoppedQuery(new Date())
+    dispatch(Model.Conversation.Action.Abort())
+  }, [dispatch])
 
   const [devToolsOpen, setDevToolsOpen] = React.useState(false)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
@@ -646,9 +618,6 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
 
   return (
     <div className={classes.chat} ref={chatContainerRef}>
-      {contextUsage && (
-        <ContextMeter usage={contextUsage} className={classes.contextMeter} />
-      )}
       <Menu
         state={state}
         dispatch={dispatch}
@@ -771,23 +740,26 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
         className={classes.input}
         disabled={inputDisabled}
         onSubmit={ask}
-        // buckets={availableBuckets} // Temporarily disabled until Input component is updated
-        // chatHistory={state.events // Temporarily disabled until Input component is updated
-        //   .filter((event) => event._tag === 'Message')
-        //   .map((event) => {
-        //     const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
-        //     return {
-        //       role: messageEvent.role,
-        //       content:
-        //         typeof messageEvent.content === 'string'
-        //           ? messageEvent.content
-        //           : JSON.stringify(messageEvent.content),
-        //       timestamp: messageEvent.timestamp,
-        //     }
-        //   })}
-        // onCopyHistory={() => {
-        //   // Chat history copied
-        // }}
+        onStop={handleStop}
+        isRunning={state._tag !== 'Idle'}
+        buckets={availableBuckets}
+        contextUsage={contextUsage}
+        chatHistory={state.events
+          .filter((event) => event._tag === 'Message')
+          .map((event) => {
+            const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
+            return {
+              role: messageEvent.role,
+              content:
+                typeof messageEvent.content === 'string'
+                  ? messageEvent.content
+                  : JSON.stringify(messageEvent.content),
+              timestamp: messageEvent.timestamp,
+            }
+          })}
+        onCopyHistory={() => {
+          // Chat history copied - handler in Input component
+        }}
       />
     </div>
   )
