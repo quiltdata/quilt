@@ -195,12 +195,28 @@ const useLabelStyles = M.makeStyles({
 
 const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
 
+export type ChatHistoryMessage =
+  | {
+      type: 'message'
+      role: string
+      content: string
+      timestamp?: Date
+    }
+  | {
+      type: 'tool'
+      name: string
+      toolUseId: string
+      input: Record<string, any>
+      result: { status: string; content: any[] }
+      timestamp?: Date
+    }
+
 interface ChatInputProps {
   className?: string
   disabled?: boolean
   onSubmit: (value: string) => void
   buckets?: string[]
-  chatHistory?: Array<{ role: string; content: string; timestamp?: Date }>
+  chatHistory?: ChatHistoryMessage[]
   onCopyHistory?: () => void
   onStop?: () => void
   isRunning?: boolean
@@ -255,25 +271,43 @@ export default function ChatInput({
     localStorage.setItem('mcp-additional-servers', JSON.stringify(servers))
   }, [])
 
+  const formatHistoryItem = React.useCallback((item: ChatHistoryMessage) => {
+    const timestamp = item.timestamp
+      ? item.timestamp.toLocaleString()
+      : new Date().toLocaleString()
+
+    if (item.type === 'tool') {
+      // Format tool use with expanded details
+      const inputStr = JSON.stringify(item.input, null, 2)
+      const resultStr = JSON.stringify(item.result, null, 2)
+      return `[${timestamp}] Tool Use: ${item.name}
+Tool Use ID: ${item.toolUseId}
+Status: ${item.result.status}
+
+Input:
+${inputStr}
+
+Result:
+${resultStr}`
+    } else {
+      // Regular message
+      const role = item.role === 'user' ? 'User' : 'Qurator'
+      return `[${timestamp}] ${role}: ${item.content}`
+    }
+  }, [])
+
   const handleCopyHistory = React.useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
 
-      if (chatHistory.length === 0) {
+      if (!chatHistory || chatHistory.length === 0) {
         return
       }
 
       try {
-        const historyText = chatHistory
-          .map((message) => {
-            const role = message.role === 'user' ? 'User' : 'Qurator'
-            const timestamp = message.timestamp
-              ? message.timestamp.toLocaleString()
-              : new Date().toLocaleString()
-            return `[${timestamp}] ${role}: ${message.content}`
-          })
-          .join('\n\n')
+        const separator = `\n\n${'='.repeat(80)}\n\n`
+        const historyText = chatHistory.map(formatHistoryItem).join(separator)
 
         await navigator.clipboard.writeText(historyText)
 
@@ -286,16 +320,9 @@ export default function ChatInput({
         }, 2000)
       } catch (err) {
         // Fallback for older browsers
+        const separator = `\n\n${'='.repeat(80)}\n\n`
         const textArea = document.createElement('textarea')
-        textArea.value = chatHistory
-          .map((message) => {
-            const role = message.role === 'user' ? 'User' : 'Qurator'
-            const timestamp = message.timestamp
-              ? message.timestamp.toLocaleString()
-              : new Date().toLocaleString()
-            return `[${timestamp}] ${role}: ${message.content}`
-          })
-          .join('\n\n')
+        textArea.value = chatHistory.map(formatHistoryItem).join(separator)
         document.body.appendChild(textArea)
         textArea.select()
         document.execCommand('copy')
@@ -314,7 +341,7 @@ export default function ChatInput({
         onCopyHistory()
       }
     },
-    [chatHistory, onCopyHistory],
+    [chatHistory, onCopyHistory, formatHistoryItem],
   )
 
   if (useCursorStyle) {

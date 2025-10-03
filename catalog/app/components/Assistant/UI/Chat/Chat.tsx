@@ -14,7 +14,7 @@ import Settings from '../Settings'
 import { getContextLimit } from '../../Utils/TokenCounter'
 
 import DevTools from './DevTools'
-import Input from './Input'
+import Input, { ChatHistoryMessage } from './Input'
 import ThinkingIndicator from './ThinkingIndicator'
 
 const BG = {
@@ -772,16 +772,30 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
         buckets={availableBuckets}
         contextUsage={contextUsage}
         chatHistory={state.events
-          .filter((event) => event._tag === 'Message')
-          .map((event) => {
-            const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
-            return {
-              role: messageEvent.role,
-              content:
-                typeof messageEvent.content === 'string'
-                  ? messageEvent.content
-                  : JSON.stringify(messageEvent.content),
-              timestamp: messageEvent.timestamp,
+          .filter((event) => !event.discarded)
+          .map((event): ChatHistoryMessage => {
+            if (event._tag === 'Message') {
+              const messageEvent = event as Extract<typeof event, { _tag: 'Message' }>
+              return {
+                type: 'message' as const,
+                role: messageEvent.role,
+                content:
+                  typeof messageEvent.content === 'string'
+                    ? messageEvent.content
+                    : JSON.stringify(messageEvent.content),
+                timestamp: messageEvent.timestamp,
+              }
+            } else {
+              // ToolUse event
+              const toolEvent = event as Extract<typeof event, { _tag: 'ToolUse' }>
+              return {
+                type: 'tool' as const,
+                name: toolEvent.name,
+                toolUseId: toolEvent.toolUseId,
+                input: toolEvent.input,
+                result: toolEvent.result,
+                timestamp: toolEvent.timestamp,
+              }
             }
           })}
         onCopyHistory={() => {
