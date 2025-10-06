@@ -15,6 +15,7 @@ This implementation provides **automatic JWT token validation and refresh** to s
 **Purpose**: Automatic JWT validation and refresh handler
 
 **Key Features**:
+
 - ✅ Validates JWT token structure and expiration
 - ✅ Detects JWT validation errors from API responses
 - ✅ Automatically refreshes tokens when validation fails
@@ -23,6 +24,7 @@ This implementation provides **automatic JWT token validation and refresh** to s
 - ✅ Prevents excessive retry loops
 
 **How It Works**:
+
 ```javascript
 // Detects JWT errors from various sources
 isJWTValidationError(error) {
@@ -46,6 +48,7 @@ handleValidationFailure(error, options) {
 ### 2. **Enhanced DynamicAuthManager** (`services/DynamicAuthManager.js`)
 
 **New Features**:
+
 - ✅ Integrated JWTValidator for all token operations
 - ✅ Automatic token validation before returning cached tokens
 - ✅ Token refresh when validation fails
@@ -54,6 +57,7 @@ handleValidationFailure(error, options) {
 - ✅ Configuration option: `autoRefreshOnError` (default: true)
 
 **Token Validation Flow**:
+
 ```javascript
 async getCurrentToken() {
   // 1. Check if cached token exists
@@ -68,6 +72,7 @@ async getCurrentToken() {
 ### 3. **Smart MCP Client** (`MCP/Client.ts`)
 
 **New Features**:
+
 - ✅ Automatic JWT error detection in API responses
 - ✅ Retry logic with token refresh on JWT errors
 - ✅ Detects errors in both HTTP status and response payload
@@ -75,6 +80,7 @@ async getCurrentToken() {
 - ✅ Detailed logging for debugging
 
 **Error Detection**:
+
 ```typescript
 // Detects JWT errors from:
 // - HTTP 401/403 status codes
@@ -83,12 +89,13 @@ async getCurrentToken() {
 ```
 
 **Automatic Retry Flow**:
+
 ```typescript
 async callTool(toolCall, retryCount = 0) {
   try {
     // Make API call
     const response = await fetch(...)
-    
+
     if (JWT_ERROR && retryCount < MAX_RETRIES) {
       // 1. Get auth manager
       // 2. Call handleJWTValidationError()
@@ -106,6 +113,7 @@ async callTool(toolCall, retryCount = 0) {
 **Purpose**: Validates JWT configuration at startup
 
 **Features**:
+
 - ✅ Checks if JWT secret is configured
 - ✅ Validates secret length (warns if < 32 chars)
 - ✅ Compares with expected production secret
@@ -115,6 +123,7 @@ async callTool(toolCall, retryCount = 0) {
 - ✅ Categorizes issues (errors, warnings, info)
 
 **Validation Report**:
+
 ```
 ================================================================================
 🔐 JWT CONFIGURATION VALIDATION
@@ -136,6 +145,7 @@ async callTool(toolCall, retryCount = 0) {
 **Purpose**: Notify users of JWT validation errors and provide solutions
 
 **Features**:
+
 - ✅ Automatic detection of JWT validation failures
 - ✅ Visual notification with warning styling
 - ✅ One-click token refresh button
@@ -145,6 +155,7 @@ async callTool(toolCall, retryCount = 0) {
 - ✅ Shows refresh status (loading, success, error)
 
 **User Actions**:
+
 1. **Refresh Token** - Automatically regenerates token with new secret
 2. **Hard Refresh Page** - Reloads entire application
 3. **Dismiss** - Hides notification (can reappear if errors continue)
@@ -152,6 +163,7 @@ async callTool(toolCall, retryCount = 0) {
 ### 6. **Integrated Chat UI** (`UI/Chat/Chat.tsx`)
 
 **Integration**:
+
 - ✅ JWT error detection hook: `useJWTErrorDetection()`
 - ✅ Automatic notification display when errors detected
 - ✅ Checks validation failures every 5 seconds
@@ -161,6 +173,7 @@ async callTool(toolCall, retryCount = 0) {
 ## 🔄 Complete Flow: JWT Secret Change Handling
 
 ### Before (Manual Browser Refresh Required):
+
 ```
 1. Backend updated with new JWT secret ❌
 2. Frontend still uses old token signed with old secret ❌
@@ -171,6 +184,7 @@ async callTool(toolCall, retryCount = 0) {
 ```
 
 ### After (Automatic Handling):
+
 ```
 1. Backend updated with new JWT secret ✅
 2. Frontend uses old token (first request) ⚠️
@@ -191,16 +205,19 @@ async callTool(toolCall, retryCount = 0) {
 The system detects JWT validation failures from multiple sources:
 
 ### HTTP Response Errors
+
 - Status code 401 (Unauthorized)
 - Status code 403 (Forbidden)
 - Error text contains: "jwt", "token", "unauthorized", "authentication"
 
 ### Response Payload Errors
+
 - Error message contains: "jwt", "token", "signature"
 - Error message: "JWT token could not be verified"
 - Error message: "Signature verification failed"
 
 ### Token Validation Errors
+
 - Token expired (exp claim in past)
 - Token expires soon (within 60 seconds)
 - Invalid token structure
@@ -226,7 +243,7 @@ authManager.clearCache()
 // 4. Make MCP tool call (should auto-refresh if backend secret changed)
 const result = await window.__mcpClient.callTool({
   name: 'bucket_objects_list',
-  arguments: { bucket: 's3://quilt-sandbox-bucket' }
+  arguments: { bucket: 's3://quilt-sandbox-bucket' },
 })
 
 console.log('Result:', result)
@@ -274,12 +291,14 @@ console.log('Configuration validation:', validation)
 ## 📈 Success Metrics
 
 ### Before Implementation:
+
 - ❌ Manual browser refresh required after backend JWT secret change
 - ❌ Users see cryptic "JWT verification failed" errors
 - ❌ No automatic recovery
 - ❌ Downtime during secret rotation
 
 ### After Implementation:
+
 - ✅ Automatic token refresh on validation failures
 - ✅ Zero-downtime JWT secret rotation
 - ✅ User-friendly error notifications
@@ -290,6 +309,7 @@ console.log('Configuration validation:', validation)
 ## 🔧 Configuration
 
 ### Required Configuration (already set):
+
 ```json
 {
   "mcpEnhancedJwtSecret": "QuiltMCPJWTSecret2025ProductionV1",
@@ -298,10 +318,11 @@ console.log('Configuration validation:', validation)
 ```
 
 ### Optional Configuration:
+
 ```javascript
 // Disable auto-refresh (not recommended)
 window.__dynamicAuthManager.updateConfig({
-  autoRefreshOnError: false
+  autoRefreshOnError: false,
 })
 
 // Change retry settings
@@ -312,12 +333,14 @@ window.__dynamicAuthManager.jwtValidator.setAutoRefresh(true)
 ## 🐛 Debugging
 
 ### Enable Debug Logging:
+
 ```javascript
 // In browser console
 localStorage.setItem('debug', 'quilt:mcp:*')
 ```
 
 ### Check Auth Manager State:
+
 ```javascript
 const authManager = window.__dynamicAuthManager
 
@@ -338,6 +361,7 @@ console.log('Configuration:', config)
 ```
 
 ### Inspect Token:
+
 ```javascript
 import { decodeJwt } from 'components/Assistant/MCP/decode-token'
 
@@ -351,14 +375,14 @@ console.log('Token expires:', new Date(payload.exp * 1000))
 
 ## 📝 Key Files
 
-| File | Purpose |
-|------|---------|
-| `services/JWTValidator.js` | JWT validation and refresh logic |
+| File                             | Purpose                                   |
+| -------------------------------- | ----------------------------------------- |
+| `services/JWTValidator.js`       | JWT validation and refresh logic          |
 | `services/DynamicAuthManager.js` | Enhanced with validation and auto-refresh |
-| `services/JWTConfigValidator.js` | Startup configuration validation |
-| `MCP/Client.ts` | Automatic retry logic for MCP tool calls |
-| `UI/JWTRefreshNotification.tsx` | User notification component |
-| `UI/Chat/Chat.tsx` | Integrated notification display |
+| `services/JWTConfigValidator.js` | Startup configuration validation          |
+| `MCP/Client.ts`                  | Automatic retry logic for MCP tool calls  |
+| `UI/JWTRefreshNotification.tsx`  | User notification component               |
+| `UI/Chat/Chat.tsx`               | Integrated notification display           |
 
 ## 🎯 Summary
 
@@ -379,11 +403,3 @@ The automatic JWT refresh implementation provides:
 - [ ] Token refresh scheduling (before expiration)
 - [ ] Metrics collection for validation failures
 - [ ] Admin dashboard for JWT statistics
-
-
-
-
-
-
-
-

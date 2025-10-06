@@ -13,6 +13,7 @@ The enhanced JWT token generation requires two configuration values to be set in
 **Required**: A shared secret used to sign enhanced MCP JWT tokens using HS256 algorithm.
 
 **Example**:
+
 ```json
 {
   "mcpEnhancedJwtSecret": "your-super-secret-jwt-signing-key-here-must-be-at-least-32-characters"
@@ -20,12 +21,14 @@ The enhanced JWT token generation requires two configuration values to be set in
 ```
 
 **Security Requirements**:
+
 - Minimum 32 characters
 - Use a cryptographically secure random string
 - Keep secret and never commit to version control
 - Use different secrets for different environments (dev/staging/prod)
 
 **Generation**:
+
 ```bash
 # Generate a secure random secret (64 characters)
 openssl rand -hex 32
@@ -39,6 +42,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 **Optional**: A key identifier attached to enhanced MCP JWT signatures for key rotation support.
 
 **Example**:
+
 ```json
 {
   "mcpEnhancedJwtKid": "quilt-mcp-v1"
@@ -75,9 +79,9 @@ The MCP server must be configured with the same JWT secret to validate the enhan
 ```yaml
 # MCP Server Configuration
 jwt:
-  secret: "your-super-secret-jwt-signing-key-here-must-be-at-least-32-characters"
-  keyId: "quilt-mcp-v1"  # Optional, must match if provided
-  algorithm: "HS256"
+  secret: 'your-super-secret-jwt-signing-key-here-must-be-at-least-32-characters'
+  keyId: 'quilt-mcp-v1' # Optional, must match if provided
+  algorithm: 'HS256'
 ```
 
 ## Configuration Validation

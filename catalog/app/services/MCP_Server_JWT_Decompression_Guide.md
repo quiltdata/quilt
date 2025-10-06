@@ -5,6 +5,7 @@ This guide explains how the MCP server should decompress the enhanced JWT tokens
 ## Overview
 
 The frontend sends compressed JWT tokens with:
+
 - **Abbreviated permissions** (e.g., `"g"` instead of `"s3:GetObject"`)
 - **Compressed bucket data** (grouped, patterned, or base64 encoded)
 - **Shortened field names** (e.g., `"p"` instead of `"permissions"`)
@@ -19,18 +20,19 @@ The frontend sends compressed JWT tokens with:
   "iat": 1758740633,
   "exp": 1758827033,
   "jti": "1a2b3c4d5e",
-  "s": "w",                    // scope (abbreviated key)
-  "p": ["g", "p", "d", "l"],  // permissions (abbreviated)
+  "s": "w", // scope (abbreviated key)
+  "p": ["g", "p", "d", "l"], // permissions (abbreviated)
   "r": ["ReadWriteQuiltV2-sales-prod"], // roles (abbreviated key)
-  "b": {                      // buckets (compressed)
+  "b": {
+    // buckets (compressed)
     "_type": "groups",
     "_data": {
       "quilt": ["sandbox-bucket", "sales-raw"],
       "cell": ["cellpainting-gallery"]
     }
   },
-  "l": "write",                // level (abbreviated key)
-  "scope": "w",                // mirrors `s`
+  "l": "write", // level (abbreviated key)
+  "scope": "w", // mirrors `s`
   "permissions": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
   "roles": ["ReadWriteQuiltV2-sales-prod"],
   "buckets": ["quilt-sandbox-bucket", "quilt-sales-raw"],
@@ -83,14 +85,14 @@ def decompress_buckets(bucket_data):
     if isinstance(bucket_data, list):
         # No compression applied
         return bucket_data
-    
+
     if not isinstance(bucket_data, dict) or '_type' not in bucket_data:
         # Fallback for unexpected format
         return bucket_data
-    
+
     compression_type = bucket_data['_type']
     data = bucket_data['_data']
-    
+
     if compression_type == 'groups':
         return decompress_groups(data)
     elif compression_type == 'patterns':
@@ -219,13 +221,13 @@ standard_payload = process_compressed_jwt(compressed_payload)
 
 ## Field Mapping Reference
 
-| Compressed Field | Standard Field | Description |
-|------------------|----------------|-------------|
-| `s` | `scope` | Authorization scope |
-| `p` | `permissions` | AWS permission strings |
-| `r` | `roles` | User roles |
-| `b` | `buckets` | Accessible bucket names |
-| `l` | `level` | Authorization level |
+| Compressed Field                                | Standard Field     | Description               |
+| ----------------------------------------------- | ------------------ | ------------------------- |
+| `s`                                             | `scope`            | Authorization scope       |
+| `p`                                             | `permissions`      | AWS permission strings    |
+| `r`                                             | `roles`            | User roles                |
+| `b`                                             | `buckets`          | Accessible bucket names   |
+| `l`                                             | `level`            | Authorization level       |
 | `scope`/`permissions`/`roles`/`buckets`/`level` | (explicit mirrors) | Prefer these when present |
 
 ## Error Handling
@@ -282,7 +284,7 @@ test_cases = [
         "expected": ["quilt-sandbox-bucket", "quilt-sales-raw", "cell-cellpainting-gallery"]
     },
     {
-        "name": "Patterns compression", 
+        "name": "Patterns compression",
         "input": {
             "_type": "patterns",
             "_data": {

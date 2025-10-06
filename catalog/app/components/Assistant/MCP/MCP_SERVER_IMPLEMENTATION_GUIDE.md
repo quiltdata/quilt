@@ -7,12 +7,14 @@ The frontend is now sending enhanced JWT tokens with comprehensive authorization
 ## 🔍 **Current Status**
 
 ### ✅ **Frontend (Working Correctly)**
+
 - Enhanced JWT tokens are being generated with proper permissions
 - Tokens include: `permissions`, `roles`, `groups`, `scope`, `buckets`
 - Tokens are being sent in `Authorization: Bearer <token>` header
 - MCP server is receiving the tokens and responding
 
 ### ❌ **Backend (Needs Implementation)**
+
 - MCP server is not properly decoding JWT tokens
 - Server is not extracting authorization claims
 - Server is not using claims for permission decisions
@@ -32,11 +34,11 @@ from typing import Dict, List, Optional
 def decode_jwt_token(auth_header: str, secret: str) -> Optional[Dict]:
     """
     Decode and validate the JWT token from Authorization header
-    
+
     Args:
         auth_header: "Bearer <token>" format
         secret: JWT signing secret (mcpEnhancedJwtSecret)
-    
+
     Returns:
         Decoded token payload or None if invalid
     """
@@ -44,19 +46,19 @@ def decode_jwt_token(auth_header: str, secret: str) -> Optional[Dict]:
         # Extract token from "Bearer <token>" format
         if not auth_header.startswith('Bearer '):
             return None
-        
+
         token = auth_header[7:]  # Remove "Bearer " prefix
-        
+
         # Decode and verify the token
         payload = jwt.decode(
-            token, 
-            secret, 
+            token,
+            secret,
             algorithms=['HS256'],
             options={"verify_exp": True}
         )
-        
+
         return payload
-        
+
     except jwt.ExpiredSignatureError:
         print("❌ JWT token has expired")
         return None
@@ -76,10 +78,10 @@ Extract the authorization claims from the decoded token:
 def extract_auth_claims(token_payload: Dict) -> Dict:
     """
     Extract authorization claims from JWT token payload
-    
+
     Args:
         token_payload: Decoded JWT token payload
-    
+
     Returns:
         Dictionary with extracted authorization claims
     """
@@ -102,11 +104,11 @@ Implement permission checking logic:
 def validate_permission(required_permission: str, user_permissions: List[str]) -> bool:
     """
     Check if user has required permission
-    
+
     Args:
         required_permission: Permission needed (e.g., 's3:ListBucket')
         user_permissions: List of user's permissions
-    
+
     Returns:
         True if user has permission, False otherwise
     """
@@ -115,11 +117,11 @@ def validate_permission(required_permission: str, user_permissions: List[str]) -
 def validate_bucket_access(bucket_name: str, user_buckets: List[str]) -> bool:
     """
     Check if user has access to specific bucket
-    
+
     Args:
         bucket_name: Name of bucket to check
         user_buckets: List of buckets user can access
-    
+
     Returns:
         True if user has access, False otherwise
     """
@@ -128,11 +130,11 @@ def validate_bucket_access(bucket_name: str, user_buckets: List[str]) -> bool:
 def validate_role_access(required_roles: List[str], user_roles: List[str]) -> bool:
     """
     Check if user has any of the required roles
-    
+
     Args:
         required_roles: List of roles that can perform action
         user_roles: List of user's roles
-    
+
     Returns:
         True if user has any required role, False otherwise
     """
@@ -147,19 +149,19 @@ Implement authorization for each MCP tool:
 def authorize_mcp_tool(tool_name: str, tool_args: Dict, auth_claims: Dict) -> bool:
     """
     Authorize access to specific MCP tool based on user's permissions
-    
+
     Args:
         tool_name: Name of MCP tool being called
         tool_args: Arguments passed to the tool
         auth_claims: User's authorization claims
-    
+
     Returns:
         True if authorized, False otherwise
     """
     permissions = auth_claims.get('permissions', [])
     roles = auth_claims.get('roles', [])
     buckets = auth_claims.get('buckets', [])
-    
+
     # Define tool-specific authorization rules
     tool_auth_rules = {
         'mcp_quilt-mcp-server_list_available_resources': {
@@ -186,27 +188,27 @@ def authorize_mcp_tool(tool_name: str, tool_args: Dict, auth_claims: Dict) -> bo
             'description': 'Execute Athena queries'
         }
     }
-    
+
     if tool_name not in tool_auth_rules:
         print(f"⚠️ Unknown tool: {tool_name}")
         return False
-    
+
     rules = tool_auth_rules[tool_name]
-    
+
     # Check required permissions
     required_perms = rules.get('required_permissions', [])
     for perm in required_perms:
         if not validate_permission(perm, permissions):
             print(f"❌ Missing permission: {perm}")
             return False
-    
+
     # Check bucket access if required
     if rules.get('required_bucket_access', False):
         bucket_name = tool_args.get('bucket', '')
         if bucket_name and not validate_bucket_access(bucket_name, buckets):
             print(f"❌ No access to bucket: {bucket_name}")
             return False
-    
+
     print(f"✅ Authorized for tool: {tool_name}")
     return True
 ```
@@ -219,11 +221,11 @@ Integrate authorization into your MCP request handler:
 def handle_mcp_request(request_data: Dict, auth_header: str) -> Dict:
     """
     Handle MCP request with JWT token authorization
-    
+
     Args:
         request_data: MCP request data
         auth_header: Authorization header from request
-    
+
     Returns:
         MCP response with authorization check
     """
@@ -238,15 +240,15 @@ def handle_mcp_request(request_data: Dict, auth_header: str) -> Dict:
                 "message": "Invalid or expired authentication token"
             }
         }
-    
+
     # Extract authorization claims
     auth_claims = extract_auth_claims(token_payload)
-    
+
     # Check if this is a tool call
     if request_data.get("method") == "tools/call":
         tool_name = request_data.get("params", {}).get("name")
         tool_args = request_data.get("params", {}).get("arguments", {})
-        
+
         # Authorize tool access
         if not authorize_mcp_tool(tool_name, tool_args, auth_claims):
             return {
@@ -257,7 +259,7 @@ def handle_mcp_request(request_data: Dict, auth_header: str) -> Dict:
                     "message": f"Insufficient permissions for tool: {tool_name}"
                 }
             }
-    
+
     # Process the authorized request
     return process_mcp_request(request_data, auth_claims)
 ```
@@ -281,10 +283,10 @@ def test_jwt_decoding():
     """Test JWT token decoding functionality"""
     # Sample token from frontend (you can get this from the debug test)
     sample_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImtpZCI6ImZyb250ZW5kLWVuaGFuY2VkIn0..."
-    
+
     auth_header = f"Bearer {sample_token}"
     payload = decode_jwt_token(auth_header, MCP_ENHANCED_JWT_SECRET)
-    
+
     if payload:
         print("✅ JWT token decoded successfully")
         print(f"Permissions: {payload.get('permissions', [])}")
@@ -311,7 +313,7 @@ def test_tool_authorization():
         'groups': ['mcp-users', 'quilt-contributors', 'quilt-users'],
         'buckets': ['quilt-sandbox-bucket', 'quilt-demo-bucket']
     }
-    
+
     # Test various tool calls
     test_cases = [
         {
@@ -330,11 +332,11 @@ def test_tool_authorization():
             'expected': False
         }
     ]
-    
+
     for test_case in test_cases:
         result = authorize_mcp_tool(
-            test_case['tool'], 
-            test_case['args'], 
+            test_case['tool'],
+            test_case['args'],
             auth_claims
         )
         status = "✅" if result == test_case['expected'] else "❌"
@@ -405,7 +407,7 @@ Based on the frontend debug output, here's what the JWT tokens contain:
   "scope": "delete list read write",
   "permissions": [
     "athena:BatchGetQueryExecution",
-    "athena:GetQueryExecution", 
+    "athena:GetQueryExecution",
     "athena:GetQueryResults",
     "athena:ListQueryExecutions",
     "athena:ListWorkGroups",
@@ -429,19 +431,9 @@ Based on the frontend debug output, here's what the JWT tokens contain:
     "s3:PutObject",
     "s3:PutObjectAcl"
   ],
-  "roles": [
-    "ReadOnlyQuilt",
-    "ReadWriteQuiltV2-sales-prod"
-  ],
-  "groups": [
-    "mcp-users",
-    "quilt-contributors", 
-    "quilt-users"
-  ],
-  "buckets": [
-    "quilt-sandbox-bucket",
-    "quilt-demo-bucket"
-  ]
+  "roles": ["ReadOnlyQuilt", "ReadWriteQuiltV2-sales-prod"],
+  "groups": ["mcp-users", "quilt-contributors", "quilt-users"],
+  "buckets": ["quilt-sandbox-bucket", "quilt-demo-bucket"]
 }
 ```
 

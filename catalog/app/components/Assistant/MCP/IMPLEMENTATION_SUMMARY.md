@@ -7,21 +7,25 @@ This implementation adds dynamic bucket discovery and enhanced JWT token generat
 ## 🚀 Key Features Implemented
 
 ### 1. Dynamic Bucket Discovery Service
+
 - **File**: `catalog/app/services/BucketDiscoveryService.js`
 - **Purpose**: Automatically discovers user-accessible S3 buckets via GraphQL
 - **Features**: GraphQL-based discovery, role-based access resolution, intelligent caching
 
 ### 2. Enhanced JWT Token Generator
+
 - **File**: `catalog/app/services/EnhancedTokenGenerator.js`
 - **Purpose**: Generates JWT tokens with comprehensive authorization claims
 - **Features**: Dynamic permission extraction, bucket-specific access mapping, scope generation
 
 ### 3. Dynamic Authentication Manager
+
 - **File**: `catalog/app/services/DynamicAuthManager.js`
 - **Purpose**: Centralized authentication management with dynamic capabilities
 - **Features**: Unified interface, automatic token refresh, cache management
 
 ### 4. MCP Client Integration
+
 - **File**: `catalog/app/components/Assistant/MCP/Client.ts`
 - **Purpose**: Enhanced MCP client with dynamic authentication
 - **Features**: Bearer token auth, IAM role fallback, comprehensive error handling
@@ -35,21 +39,25 @@ This implementation adds dynamic bucket discovery and enhanced JWT token generat
 ## 📁 New Files Created
 
 ### Core Services
+
 - `catalog/app/services/BucketDiscoveryService.js`
 - `catalog/app/services/EnhancedTokenGenerator.js`
 - `catalog/app/services/DynamicAuthManager.js`
 - `catalog/app/services/mcpAuthorization.js`
 
 ### GraphQL Integration
+
 - `catalog/app/containers/NavBar/gql/BucketDiscovery.graphql`
 - `catalog/app/containers/NavBar/gql/BucketDiscovery.generated.ts`
 
 ### Testing Components
+
 - Multiple test components for comprehensive validation
 
 ## 🔧 Configuration Requirements
 
 ### Environment Variables
+
 ```bash
 REACT_APP_MCP_ENHANCED_JWT_SECRET="your_super_secret_jwt_signing_key_here_at_least_32_chars"
 REACT_APP_MCP_ENHANCED_JWT_KID="quilt-mcp-key-v1"  # Optional
@@ -73,11 +81,13 @@ REACT_APP_MCP_ENHANCED_JWT_KID="quilt-mcp-key-v1"  # Optional
 ## 🚀 Deployment Readiness
 
 ### Prerequisites
+
 1. JWT signing secret configured
 2. GraphQL endpoint accessible
 3. MCP server endpoint configured
 
 ### Validation Steps
+
 1. Run Dynamic Bucket Discovery Test
 2. Execute Integration Test Suite
 3. Validate MCP Server connectivity

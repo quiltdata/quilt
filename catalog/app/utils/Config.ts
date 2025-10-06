@@ -121,24 +121,24 @@ export function getConfig() {
   if (!cachedConfig) {
     const rawConfig = (window as any)[configKey]
     invariant(rawConfig, `window.${configKey} must be defined`)
-    
+
     // Debug: Log raw config to see what's available
-    console.log('🔍 Config: Raw config from window:', rawConfig)
-    console.log('🔍 Config: MCP properties in raw config:', {
-      mcpEndpoint: rawConfig.mcpEndpoint,
-      mcpEnhancedJwtSecret: rawConfig.mcpEnhancedJwtSecret,
-      mcpEnhancedJwtKid: rawConfig.mcpEnhancedJwtKid
-    })
-    
+    // console.log('🔍 Config: Raw config from window:', rawConfig)
+    // console.log('🔍 Config: MCP properties in raw config:', {
+    //   mcpEndpoint: rawConfig.mcpEndpoint,
+    //   mcpEnhancedJwtSecret: rawConfig.mcpEnhancedJwtSecret,
+    //   mcpEnhancedJwtKid: rawConfig.mcpEnhancedJwtKid,
+    // })
+
     cachedConfig = prepareConfig(rawConfig)
-    
+
     // Debug: Log processed config
-    console.log('🔍 Config: Processed config:', cachedConfig)
-    console.log('🔍 Config: MCP properties in processed config:', {
-      mcpEndpoint: cachedConfig.mcpEndpoint,
-      mcpEnhancedJwtSecret: cachedConfig.mcpEnhancedJwtSecret,
-      mcpEnhancedJwtKid: cachedConfig.mcpEnhancedJwtKid
-    })
+    // console.log('🔍 Config: Processed config:', cachedConfig)
+    // console.log('🔍 Config: MCP properties in processed config:', {
+    //   mcpEndpoint: cachedConfig.mcpEndpoint,
+    //   mcpEnhancedJwtSecret: cachedConfig.mcpEnhancedJwtSecret,
+    //   mcpEnhancedJwtKid: cachedConfig.mcpEnhancedJwtKid,
+    // })
   }
   return cachedConfig
 }

@@ -26,22 +26,23 @@ Backends should prefer the expanded fields when present and only fall back to th
 
 Permissions are abbreviated to save space:
 
-| Full Permission | Abbreviation |
-|----------------|--------------|
-| `s3:GetObject` | `g` |
-| `s3:PutObject` | `p` |
-| `s3:DeleteObject` | `d` |
-| `s3:ListBucket` | `l` |
-| `s3:ListAllMyBuckets` | `la` |
-| `s3:GetObjectVersion` | `gv` |
-| `s3:PutObjectAcl` | `pa` |
-| `s3:AbortMultipartUpload` | `amu` |
+| Full Permission           | Abbreviation |
+| ------------------------- | ------------ |
+| `s3:GetObject`            | `g`          |
+| `s3:PutObject`            | `p`          |
+| `s3:DeleteObject`         | `d`          |
+| `s3:ListBucket`           | `l`          |
+| `s3:ListAllMyBuckets`     | `la`         |
+| `s3:GetObjectVersion`     | `gv`         |
+| `s3:PutObjectAcl`         | `pa`         |
+| `s3:AbortMultipartUpload` | `amu`        |
 
 ## Bucket Compression
 
 When there are more than 15 buckets, the system applies compression to the `b` claim while always emitting the explicit `buckets` array:
 
 ### Format 1: Groups
+
 ```json
 {
   "_type": "groups",
@@ -54,9 +55,10 @@ When there are more than 15 buckets, the system applies compression to the `b` c
 ```
 
 ### Format 2: Patterns
+
 ```json
 {
-  "_type": "patterns", 
+  "_type": "patterns",
   "_data": {
     "quilt": ["sandbox-bucket", "sales-raw", "demos"],
     "cell": ["cellpainting-gallery", "cellxgene-913524946226-us-east-1"],
@@ -66,6 +68,7 @@ When there are more than 15 buckets, the system applies compression to the `b` c
 ```
 
 ### Format 3: Compressed
+
 ```json
 {
   "_type": "compressed",
@@ -86,7 +89,7 @@ The MCP server should:
 ```json
 {
   "iss": "quilt-frontend",
-  "aud": "quilt-mcp-server", 
+  "aud": "quilt-mcp-server",
   "sub": "user-id",
   "iat": 1758740633,
   "exp": 1758827033,
@@ -112,11 +115,7 @@ The MCP server should:
     "s3:ListAllMyBuckets"
   ],
   "roles": ["ReadWriteQuiltV2-sales-prod"],
-  "buckets": [
-    "quilt-sandbox-bucket",
-    "quilt-sales-raw",
-    "quilt-demos"
-  ],
+  "buckets": ["quilt-sandbox-bucket", "quilt-sales-raw", "quilt-demos"],
   "level": "write"
 }
 ```
