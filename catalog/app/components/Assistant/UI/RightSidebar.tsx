@@ -7,10 +7,8 @@
 
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import {
-  QuestionAnswer as AssistantIcon,
-  Code as DeveloperIcon,
-} from '@material-ui/icons'
+
+import QuratorIcon from './QuratorIcon'
 
 const useStyles = M.makeStyles((t) => ({
   sidebar: {
@@ -100,7 +98,7 @@ export default function RightSidebar({
             className={`${classes.iconButton} ${quratorActive ? classes.activeIcon : ''}`}
             aria-label="Open Qurator"
           >
-            <AssistantIcon />
+            <QuratorIcon />
           </M.IconButton>
         </M.Badge>
       </M.Tooltip>
