@@ -20,7 +20,7 @@ const useHeaderStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
   },
   swap: {
-    marginLeft: t.spacing(1),
+    marginLeft: t.spacing(3),
     flexShrink: 0,
   },
 }))

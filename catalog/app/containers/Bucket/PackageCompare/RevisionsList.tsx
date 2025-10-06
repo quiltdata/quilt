@@ -4,6 +4,33 @@ import * as M from '@material-ui/core'
 
 import type { Revision } from './useRevisions'
 
+const useRevisionDetailsStyles = M.makeStyles((t) => ({
+  message: {
+    display: 'block',
+  },
+  hash: {
+    ...t.typography.monospace,
+    display: 'block',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+}))
+
+interface RevisionDetailsProps {
+  revision: Revision
+}
+
+function RevisionDetails({ revision }: RevisionDetailsProps) {
+  const classes = useRevisionDetailsStyles()
+  return (
+    <>
+      <span className={classes.message}>{revision.message}</span>
+      <span className={classes.hash}>{revision.hash}</span>
+    </>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
@@ -69,21 +96,14 @@ export default function RevisionsList({
           <M.MenuItem key={r.hash} value={r.hash}>
             <M.ListItemText
               primary={dateFns.format(r.modified, 'MMM d yyyy - h:mma')}
-              secondary={
-                <>
-                  {r.message || 'No message'}
-                  <br />
-                  <span className={classes.hash}>{r.hash}</span>
-                </>
-              }
+              secondary={<RevisionDetails revision={r} />}
             />
           </M.MenuItem>
         ))}
       </M.Select>
       {revision && (
         <M.FormHelperText className={classes.helperText}>
-          <span>{revision.message}</span>
-          <span>{revision.hash}</span>
+          <RevisionDetails revision={revision} />
         </M.FormHelperText>
       )}
     </M.FormControl>
