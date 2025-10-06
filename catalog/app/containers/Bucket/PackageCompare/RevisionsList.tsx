@@ -1,17 +1,8 @@
 import * as dateFns from 'date-fns'
 import * as React from 'react'
-import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
-import * as GQL from 'utils/GraphQL'
-
-import REVISION_LIST_QUERY from './gql/RevisionList.generated'
-
-type RevisionFields = NonNullable<
-  NonNullable<
-    ResultOf<typeof REVISION_LIST_QUERY>['package']
-  >['revisions']['page'][number]
->
+import type { Revision } from './useRevisions'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -23,10 +14,14 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  helperText: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
 }))
 
 interface RevisionsListProps {
-  packageHandle: { bucket: string; name: string }
+  revisions: readonly Revision[]
   value: string
   onChange: (hash: string) => void
   temporaryRemoveNone?: boolean
@@ -34,63 +29,63 @@ interface RevisionsListProps {
 
 export default function RevisionsList({
   temporaryRemoveNone = false,
-  packageHandle,
+  revisions,
   onChange,
   value,
 }: RevisionsListProps) {
   const classes = useStyles()
-  const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
-    bucket: packageHandle.bucket || '',
-    name: packageHandle.name || '',
-    page: 1,
-    perPage: 100, // Get enough revisions for the dropdown
-  })
 
   const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
     onChange(event.target.value as string)
   }
+  const revision = React.useMemo(
+    () => revisions.find((r) => r.hash === value),
+    [value, revisions],
+  )
+  const renderValue = React.useCallback(
+    (hash) => {
+      const found = revisions.find((r) => r.hash === hash)
+      return found ? dateFns.format(found.modified, 'MMM d yyyy - h:mma') : hash
+    },
+    [revisions],
+  )
 
   return (
-    <M.Select
-      value={value}
-      onChange={handleChange}
-      displayEmpty
-      disabled={revisionListQuery.fetching}
-      fullWidth
-      className={classes.root}
-    >
-      {!temporaryRemoveNone && (
-        <M.MenuItem value="">
-          <em>None</em>
-        </M.MenuItem>
+    <M.FormControl>
+      <M.Select
+        value={value}
+        onChange={handleChange}
+        displayEmpty
+        fullWidth
+        className={classes.root}
+        renderValue={renderValue}
+      >
+        {!temporaryRemoveNone && (
+          <M.MenuItem value="">
+            <em>None</em>
+          </M.MenuItem>
+        )}
+        {revisions.map((r) => (
+          <M.MenuItem key={r.hash} value={r.hash}>
+            <M.ListItemText
+              primary={dateFns.format(r.modified, 'MMM d yyyy - h:mma')}
+              secondary={
+                <>
+                  {r.message || 'No message'}
+                  <br />
+                  <span className={classes.hash}>{r.hash}</span>
+                </>
+              }
+            />
+          </M.MenuItem>
+        ))}
+      </M.Select>
+      {revision && (
+        <M.FormHelperText className={classes.helperText}>
+          <span>{revision.message}</span>
+          <span>{revision.hash}</span>
+        </M.FormHelperText>
       )}
-      {GQL.fold(revisionListQuery, {
-        data: (d) =>
-          d.package?.revisions.page.map((r: RevisionFields) => (
-            <M.MenuItem key={r.hash} value={r.hash}>
-              <M.ListItemText
-                primary={dateFns.format(r.modified, 'MMM d yyyy - h:mma')}
-                secondary={
-                  <>
-                    {r.message || 'No message'}
-                    <br />
-                    <span className={classes.hash}>{r.hash}</span>
-                  </>
-                }
-              />
-            </M.MenuItem>
-          )) || [],
-        error: () => [
-          <M.MenuItem key="error" disabled>
-            Error loading revisions
-          </M.MenuItem>,
-        ],
-        fetching: () => [
-          <M.MenuItem key="loading" disabled>
-            Loading revisions...
-          </M.MenuItem>,
-        ],
-      })}
-    </M.Select>
+    </M.FormControl>
   )
 }

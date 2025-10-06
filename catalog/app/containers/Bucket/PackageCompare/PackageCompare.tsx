@@ -2,7 +2,6 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
-import * as Icons from '@material-ui/icons'
 
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -13,59 +12,8 @@ import * as FileView from '../FileView'
 import WithPackagesSupport from '../WithPackagesSupport'
 
 import * as Diff from './Diff'
-import RevisionsList from './RevisionsList'
-// import SystemMetaTable from './SystemMetaTable'
+import Revisions from './Revisions'
 import { useRevision } from './useRevision'
-
-const useHeaderStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-  },
-  revisions: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    gap: t.spacing(1),
-  },
-  swap: {
-    marginLeft: t.spacing(1),
-    flexShrink: 0,
-  },
-}))
-
-interface HeaderProps {
-  left: PackageHandle
-  right: PackageHandle | null
-  onLeftChange: (hash: string) => void
-  onRightChange: (hash: string) => void
-  onSwap: () => void
-}
-
-function Header({ left, right, onLeftChange, onRightChange, onSwap }: HeaderProps) {
-  const classes = useHeaderStyles()
-  const packageHandle = React.useMemo(() => left, [left])
-  return (
-    <div className={classes.root}>
-      <div className={classes.revisions}>
-        <RevisionsList
-          packageHandle={packageHandle}
-          value={left.hash}
-          onChange={onLeftChange}
-          temporaryRemoveNone
-        />
-        <RevisionsList
-          packageHandle={packageHandle}
-          value={right?.hash || ''}
-          onChange={onRightChange}
-        />
-      </div>
-      <M.IconButton className={classes.swap} onClick={onSwap} disabled={!right}>
-        <Icons.SwapVert />
-      </M.IconButton>
-    </div>
-  )
-}
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
@@ -102,22 +50,13 @@ export function RevisionsCompare({
 
   return (
     <div className={classes.root}>
-      <Header
+      <Revisions
         left={left}
         right={right}
         onLeftChange={onLeftChange}
         onRightChange={onRightChange}
         onSwap={onSwap}
       />
-
-      {/*
-        <SystemMetaTable
-          left={left}
-          right={right}
-          leftRevision={leftRevisionResult}
-          rightRevision={rightRevisionResult}
-        />
-        */}
 
       {right?.hash && (
         <div className={classes.userMeta}>
