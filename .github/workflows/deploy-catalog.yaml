@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - stack/mcp-2
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
