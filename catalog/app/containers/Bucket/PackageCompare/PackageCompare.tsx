@@ -20,6 +20,9 @@ const useStyles = M.makeStyles((t) => ({
   table: {
     marginTop: t.spacing(1),
   },
+  summary: {
+    marginTop: t.spacing(4),
+  },
   userMeta: {
     marginTop: t.spacing(4),
   },
@@ -57,6 +60,15 @@ export function RevisionsCompare({
         onRightChange={onRightChange}
         onSwap={onSwap}
       />
+
+      {right?.hash && (
+        <div className={classes.summary}>
+          <M.Typography variant="subtitle1" gutterBottom>
+            Summary
+          </M.Typography>
+          <Diff.Summary left={leftRevisionResult} right={rightRevisionResult} />
+        </div>
+      )}
 
       {right?.hash && (
         <div className={classes.userMeta}>
