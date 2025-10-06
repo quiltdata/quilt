@@ -1,7 +1,6 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { diffJson, ChangeObject } from 'diff'
+import { diffJson } from 'diff'
 
 import assertNever from 'utils/assertNever'
 import Skeleton from 'components/Skeleton'
@@ -9,51 +8,14 @@ import Skeleton from 'components/Skeleton'
 import type { Revision, RevisionResult } from '../useRevision'
 
 import Change from './Change'
-import type { Dir } from './Change'
-import GridRow from './GridRow'
+import type { Order } from './Change'
 
 interface MetadataDiffProps {
   left: RevisionResult
   right: RevisionResult
 }
 
-interface ChangeLineProps {
-  change: ChangeObject<string>
-  dir: Dir
-}
-
-function ChangeLine({ change: { added, removed, value }, dir }: ChangeLineProps) {
-  const order = React.useMemo(() => {
-    if (!added && !removed) return 'limbo'
-    switch (dir) {
-      case 'forward':
-        if (added) return 'latter'
-        return 'former'
-      case 'backward':
-        if (added) return 'former'
-        return 'latter'
-      default:
-        assertNever(dir)
-    }
-  }, [added, removed, dir])
-  return (
-    <Change order={order}>
-      <pre style={{ margin: 0 }}>{value}</pre>
-    </Change>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
-  row: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    '&:last-child': {
-      borderBottom: 'none',
-    },
-  },
-  head: {
-    background: t.palette.background.default,
-    ...t.typography.caption,
-  },
   empty: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
@@ -61,30 +23,55 @@ const useStyles = M.makeStyles((t) => ({
     textAlign: 'center',
     padding: t.spacing(2),
   },
+  change: {
+    ...t.typography.monospace,
+    borderRadius: 0,
+    paddingBottom: t.spacing(0.5),
+    paddingTop: t.spacing(0.5),
+    whiteSpace: 'pre-wrap',
+  },
 }))
 
 function MetadataDiffComponent({ left, right }: { left: Revision; right: Revision }) {
   const classes = useStyles()
 
-  const dir: Dir = React.useMemo(
-    () => (left.modified > right.modified ? 'backward' : 'forward'),
-    [left.modified, right.modified],
-  )
-
-  const changes = React.useMemo(
-    () =>
-      diffJson(left.userMeta || {}, right.userMeta || {})
-        .map((c) => ({
-          ...c,
-          value: c.value
-            .replace(/}/g, '')
-            .replace(/{/g, '')
-            .replace(/]/g, '')
-            .replace(/]/g, ''),
-        }))
-        .filter((c) => c.value.trim()),
-    [left.userMeta, right.userMeta],
-  )
+  const changes: { order: Order; value: string }[] = React.useMemo(() => {
+    const dir = left.modified > right.modified ? 'backward' : 'forward'
+    return diffJson(left.userMeta || {}, right.userMeta || {})
+      .map((c) => ({
+        ...c,
+        value: c.value
+          .replace(/}/g, '')
+          .replace(/{/g, '')
+          .replace(/]/g, '')
+          .replace(/]/g, ''),
+      }))
+      .filter((c) => c.value.trim())
+      .map((c) => {
+        if (!c.added && !c.removed) return { order: { _tag: 'limbo' }, value: c.value }
+        const hash = c.added ? right.hash : left.hash
+        switch (dir) {
+          case 'forward':
+            return {
+              order: {
+                _tag: c.added ? 'latter' : 'former',
+                hash,
+              },
+              value: c.value,
+            }
+          case 'backward':
+            return {
+              order: {
+                _tag: c.added ? 'former' : 'latter',
+                hash,
+              },
+              value: c.value,
+            }
+          default:
+            assertNever(dir)
+        }
+      })
+  }, [left, right])
 
   if (changes.length === 0) {
     return (
@@ -96,12 +83,10 @@ function MetadataDiffComponent({ left, right }: { left: Revision; right: Revisio
 
   return (
     <div>
-      <GridRow className={cx(classes.row, classes.head)} dense divided>
-        {left.hash}
-        {right.hash}
-      </GridRow>
-      {changes.map((change, index) => (
-        <ChangeLine key={index} change={change} dir={dir} />
+      {changes.map(({ order, value }, index) => (
+        <Change order={order} key={index} className={classes.change}>
+          {value}
+        </Change>
       ))}
     </div>
   )

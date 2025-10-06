@@ -173,8 +173,10 @@ interface ColumnWrapperProps {
 
 function ColumnWrapper({ packageHandle, result, other }: ColumnWrapperProps) {
   const order: Diff.Order = React.useMemo(() => {
-    if (result._tag !== 'ok' || other._tag !== 'ok') return 'limbo' as const
-    return result.revision.modified > other.revision.modified ? 'latter' : 'former'
+    if (result._tag !== 'ok' || other._tag !== 'ok') return { _tag: 'limbo' }
+    return result.revision.modified > other.revision.modified
+      ? { _tag: 'latter', hash: result.revision.hash }
+      : { _tag: 'former', hash: other.revision.hash }
   }, [result, other])
 
   switch (result._tag) {

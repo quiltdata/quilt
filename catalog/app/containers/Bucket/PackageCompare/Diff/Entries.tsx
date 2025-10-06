@@ -32,10 +32,12 @@ interface AddedProps {
 
 function Added({ className, dir, logicalKey }: AddedProps) {
   const classes = useAddedStyles()
+  const former: Order = React.useMemo(() => ({ _tag: 'former', hash: dir.from }), [dir])
+  const latter: Order = React.useMemo(() => ({ _tag: 'latter', hash: dir.to }), [dir])
   return (
     <GridRow className={cx(classes.root, className)} divided>
-      <Change order={dir === 'forward' ? 'former' : 'latter'}>{logicalKey}</Change>
-      <Change order={dir === 'forward' ? 'latter' : 'former'}>{logicalKey}</Change>
+      <Change order={dir._tag === 'forward' ? former : latter}>{logicalKey}</Change>
+      <Change order={dir._tag === 'forward' ? latter : former}>{logicalKey}</Change>
     </GridRow>
   )
 }
@@ -93,16 +95,24 @@ function Modified({ className, dir, logicalKey, left, right, modified }: Modifie
     }),
     [left, right, modified],
   )
+  const former: Order = React.useMemo(
+    () => ({ _tag: 'former', hash: dir._tag === 'forward' ? dir.from : dir.to }),
+    [dir],
+  )
+  const latter: Order = React.useMemo(
+    () => ({ _tag: 'latter', hash: dir._tag === 'forward' ? dir.to : dir.from }),
+    [dir],
+  )
   return (
     <GridRow className={className} dense divided>
       <EntrySide
         logicalKey={logicalKey}
-        order={dir === 'forward' ? 'former' : 'latter'}
+        order={dir._tag === 'forward' ? former : latter}
         changes={changes.left}
       />
       <EntrySide
         logicalKey={logicalKey}
-        order={dir === 'forward' ? 'latter' : 'former'}
+        order={dir._tag === 'forward' ? latter : former}
         changes={changes.right}
       />
     </GridRow>
@@ -128,7 +138,7 @@ function PhysicalKey({ className, url }: PhysicalKeyProps) {
 }
 
 type Changes =
-  | { _tag: 'added'; entry: Model.PackageEntry }
+  | { _tag: 'added' }
   | { _tag: 'unmodified' }
   | {
       _tag: 'modified'
@@ -218,7 +228,7 @@ function getChanges(left?: Model.PackageEntry, right?: Model.PackageEntry): Chan
     if (!entry) {
       throw new Error('Must be at least one entry')
     }
-    return { _tag: 'added', entry }
+    return { _tag: 'added' }
   }
 
   const physicalKey = left.physicalKey !== right.physicalKey
@@ -303,8 +313,12 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
   }, [left.contentsFlatMap, right.contentsFlatMap])
 
   const dir: Dir = React.useMemo(
-    () => (left.modified > right.modified ? 'backward' : 'forward'),
-    [left.modified, right.modified],
+    () => ({
+      _tag: left.modified > right.modified ? 'backward' : 'forward',
+      from: left.hash,
+      to: right.hash,
+    }),
+    [left, right],
   )
 
   if (entries.keys.length === 0) {
@@ -313,10 +327,6 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
 
   return (
     <div>
-      <GridRow className={cx(classes.row, classes.head)} dense divided>
-        {left.hash}
-        {right.hash}
-      </GridRow>
       {entries.keys.map((logicalKey) => (
         <Row
           className={classes.row}

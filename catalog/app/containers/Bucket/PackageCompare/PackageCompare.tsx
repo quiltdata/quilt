@@ -2,6 +2,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -18,10 +19,18 @@ import { useRevision } from './useRevision'
 
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
-    display: 'grid',
-    gridTemplateColumns: `1fr ${t.spacing(4)}px 1fr`,
-    gridColumnGap: t.spacing(2),
     alignItems: 'center',
+    display: 'flex',
+  },
+  revisions: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    gap: t.spacing(1),
+  },
+  swap: {
+    marginLeft: t.spacing(1),
+    flexShrink: 0,
   },
 }))
 
@@ -38,20 +47,22 @@ function Header({ left, right, onLeftChange, onRightChange, onSwap }: HeaderProp
   const packageHandle = React.useMemo(() => left, [left])
   return (
     <div className={classes.root}>
-      <RevisionsList
-        packageHandle={packageHandle}
-        value={left.hash}
-        onChange={onLeftChange}
-        temporaryRemoveNone
-      />
-      <M.IconButton onClick={onSwap} size="small" disabled={!right}>
-        <M.Icon>compare_arrows</M.Icon>
+      <div className={classes.revisions}>
+        <RevisionsList
+          packageHandle={packageHandle}
+          value={left.hash}
+          onChange={onLeftChange}
+          temporaryRemoveNone
+        />
+        <RevisionsList
+          packageHandle={packageHandle}
+          value={right?.hash || ''}
+          onChange={onRightChange}
+        />
+      </div>
+      <M.IconButton className={classes.swap} onClick={onSwap} disabled={!right}>
+        <Icons.SwapVert />
       </M.IconButton>
-      <RevisionsList
-        packageHandle={packageHandle}
-        value={right?.hash || ''}
-        onChange={onRightChange}
-      />
     </div>
   )
 }
