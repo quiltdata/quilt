@@ -10,9 +10,42 @@ import type { Revision, RevisionResult } from '../useRevision'
 import Change from './Change'
 import type { Order } from './Change'
 
-interface MetadataDiffProps {
-  left: RevisionResult
-  right: RevisionResult
+function getChanges(left: Revision, right: Revision): { order: Order; value: string }[] {
+  const dir = left.modified > right.modified ? 'backward' : 'forward'
+  return diffJson(left.userMeta || {}, right.userMeta || {})
+    .map((c) => ({
+      ...c,
+      value: c.value
+        .replace(/}/g, '')
+        .replace(/{/g, '')
+        .replace(/]/g, '')
+        .replace(/]/g, ''),
+    }))
+    .filter((c) => c.value.trim())
+    .map((c) => {
+      if (!c.added && !c.removed) return { order: { _tag: 'limbo' }, value: c.value }
+      const hash = c.added ? right.hash : left.hash
+      switch (dir) {
+        case 'forward':
+          return {
+            order: {
+              _tag: c.added ? 'latter' : 'former',
+              hash,
+            },
+            value: c.value,
+          }
+        case 'backward':
+          return {
+            order: {
+              _tag: c.added ? 'former' : 'latter',
+              hash,
+            },
+            value: c.value,
+          }
+        default:
+          assertNever(dir)
+      }
+    })
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -32,46 +65,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function MetadataDiffComponent({ left, right }: { left: Revision; right: Revision }) {
+interface MetadataDiffProps {
+  left: Revision
+  right: Revision
+}
+
+function MetadataDiff({ left, right }: MetadataDiffProps) {
   const classes = useStyles()
 
-  const changes: { order: Order; value: string }[] = React.useMemo(() => {
-    const dir = left.modified > right.modified ? 'backward' : 'forward'
-    return diffJson(left.userMeta || {}, right.userMeta || {})
-      .map((c) => ({
-        ...c,
-        value: c.value
-          .replace(/}/g, '')
-          .replace(/{/g, '')
-          .replace(/]/g, '')
-          .replace(/]/g, ''),
-      }))
-      .filter((c) => c.value.trim())
-      .map((c) => {
-        if (!c.added && !c.removed) return { order: { _tag: 'limbo' }, value: c.value }
-        const hash = c.added ? right.hash : left.hash
-        switch (dir) {
-          case 'forward':
-            return {
-              order: {
-                _tag: c.added ? 'latter' : 'former',
-                hash,
-              },
-              value: c.value,
-            }
-          case 'backward':
-            return {
-              order: {
-                _tag: c.added ? 'former' : 'latter',
-                hash,
-              },
-              value: c.value,
-            }
-          default:
-            assertNever(dir)
-        }
-      })
-  }, [left, right])
+  const changes = React.useMemo(() => getChanges(left, right), [left, right])
 
   if (changes.length === 0) {
     return (
@@ -92,7 +94,12 @@ function MetadataDiffComponent({ left, right }: { left: Revision; right: Revisio
   )
 }
 
-export default function MetadataDiff({ left: left, right: right }: MetadataDiffProps) {
+interface MetadataDiffHandlerProps {
+  left: RevisionResult
+  right: RevisionResult
+}
+
+export default function MetadataDiffHandler({ left, right }: MetadataDiffHandlerProps) {
   if (left._tag === 'idle' || right._tag === 'idle') {
     return null
   }
@@ -109,5 +116,5 @@ export default function MetadataDiff({ left: left, right: right }: MetadataDiffP
     )
   }
 
-  return <MetadataDiffComponent left={left.revision} right={right.revision} />
+  return <MetadataDiff left={left.revision} right={right.revision} />
 }
