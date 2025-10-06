@@ -2,8 +2,20 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import { readableBytes } from 'utils/string'
 
-type WhatChanged = { _tag: 'meta'; keys: string[] }
+type WhatChanged =
+  | { _tag: 'meta'; keys: string[] }
+  | {
+      _tag: 'modified'
+      logicalKey: string
+      hashChanged: boolean
+      sizeChanged: boolean
+      oldSize?: number
+      newSize?: number
+    }
+  | { _tag: 'added'; logicalKey: string }
+  | { _tag: 'removed'; logicalKey: string }
 
 import type { Revision, RevisionResult } from '../useRevision'
 
@@ -29,6 +41,35 @@ function MetaKeys({ change }: { change: Extract<WhatChanged, { _tag: 'meta' }> }
   )
 }
 
+function ModifiedEntry({
+  change,
+}: {
+  change: Extract<WhatChanged, { _tag: 'modified' }>
+}) {
+  if (change.hashChanged && change.sizeChanged) {
+    return (
+      <span>
+        Content changed, {readableBytes(change.oldSize!)} →{' '}
+        {readableBytes(change.newSize!)}
+      </span>
+    )
+  }
+
+  if (change.hashChanged) {
+    return <span>Content changed</span>
+  }
+
+  if (change.sizeChanged) {
+    return (
+      <span>
+        {readableBytes(change.oldSize!)} → {readableBytes(change.newSize!)}
+      </span>
+    )
+  }
+
+  return <span>file was modified</span>
+}
+
 function getMetaChange(
   left: Revision,
   right: Revision,
@@ -44,20 +85,67 @@ function getMetaChange(
   }
 }
 
-function getChanges(left: Revision, right: Revision): WhatChanged[] {
-  const changes = []
-  const userMeta = getMetaChange(left, right)
-  if (userMeta) {
-    changes.push(userMeta)
+function getEntryChanges(left: Revision, right: Revision): WhatChanged[] {
+  const leftData = left.contentsFlatMap || {}
+  const rightData = right.contentsFlatMap || {}
+  const logicalKeys = Object.keys({ ...leftData, ...rightData }).sort()
+  const entryChanges: WhatChanged[] = []
+
+  for (const logicalKey of logicalKeys) {
+    const leftEntry = leftData[logicalKey]
+    const rightEntry = rightData[logicalKey]
+
+    if (!leftEntry) {
+      entryChanges.push({ _tag: 'added', logicalKey })
+    } else if (!rightEntry) {
+      entryChanges.push({ _tag: 'removed', logicalKey })
+    } else {
+      const hashChanged = leftEntry.hash.value !== rightEntry.hash.value
+      const sizeChanged = leftEntry.size !== rightEntry.size
+      const physicalKeyChanged = leftEntry.physicalKey !== rightEntry.physicalKey
+      const metaChanged =
+        JSON.stringify(leftEntry.meta) !== JSON.stringify(rightEntry.meta)
+
+      if (hashChanged || sizeChanged || physicalKeyChanged || metaChanged) {
+        entryChanges.push({
+          _tag: 'modified',
+          logicalKey,
+          hashChanged,
+          sizeChanged,
+          oldSize: sizeChanged ? leftEntry.size : undefined,
+          newSize: sizeChanged ? rightEntry.size : undefined,
+        })
+      }
+    }
   }
-  return changes
+
+  return entryChanges
 }
+
+function getChanges(left: Revision, right: Revision): WhatChanged[] {
+  return [getMetaChange(left, right), ...getEntryChanges(left, right)].filter(
+    Boolean,
+  ) as WhatChanged[]
+}
+
+const useSummaryItemStyles = M.makeStyles((t) => ({
+  added: {
+    backgroundColor: M.fade(t.palette.success.light, 0.3),
+  },
+  removed: {
+    backgroundColor: M.fade(t.palette.error.light, 0.3),
+  },
+  removedStatus: {
+    color: t.palette.error.light,
+  },
+}))
 
 interface SummaryItemProps {
   change: WhatChanged
 }
 
 function SummaryItem({ change }: SummaryItemProps) {
+  const classes = useSummaryItemStyles()
   switch (change._tag) {
     case 'meta':
       return (
@@ -65,6 +153,33 @@ function SummaryItem({ change }: SummaryItemProps) {
           <M.ListItemText
             primary="Package user metadata"
             secondary={<MetaKeys change={change} />}
+          />
+        </M.ListItem>
+      )
+    case 'modified':
+      return (
+        <M.ListItem disableGutters>
+          <M.ListItemText
+            primary={change.logicalKey}
+            secondary={<ModifiedEntry change={change} />}
+          />
+        </M.ListItem>
+      )
+    case 'added':
+      return (
+        <M.ListItem disableGutters>
+          <M.ListItemText
+            primary={<span className={classes.added}>{change.logicalKey}</span>}
+            secondary="Added"
+          />
+        </M.ListItem>
+      )
+    case 'removed':
+      return (
+        <M.ListItem disableGutters>
+          <M.ListItemText
+            primary={<span className={classes.removed}>{change.logicalKey}</span>}
+            secondary="Removed"
           />
         </M.ListItem>
       )
