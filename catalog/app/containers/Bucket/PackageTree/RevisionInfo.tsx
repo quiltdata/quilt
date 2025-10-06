@@ -12,6 +12,9 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
+import * as Diff from '../PackageCompare/Diff'
+import { useRevision } from '../PackageCompare/useRevision'
+
 import type REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
 type RevisionListQuery = GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
@@ -28,6 +31,100 @@ function getPreviousHash(revisionListQuery: RevisionListQuery, hash?: string) {
     error: () => null,
     fetching: () => null,
   })
+}
+
+interface SummaryPopoverProps {
+  bucket: string
+  name: string
+  leftHash: string
+  rightHash: string
+  onClose: () => void
+}
+
+function SummaryPopover({
+  bucket,
+  name,
+  leftHash,
+  rightHash,
+  onClose,
+}: SummaryPopoverProps) {
+  const classes = useRevisionInfoStyles()
+  const { urls } = NamedRoutes.use()
+
+  const leftRevision = useRevision(bucket, name, leftHash)
+  const rightRevision = useRevision(bucket, name, rightHash)
+
+  const compareUrl = urls.bucketPackageCompare(bucket, name, leftHash, rightHash)
+
+  return (
+    <div className={classes.summaryPopover}>
+      <div className={classes.summaryHeader}>
+        <M.Typography variant="subtitle1">What's changed</M.Typography>
+      </div>
+      <div className={classes.summaryContent}>
+        <Diff.Summary left={leftRevision} right={rightRevision} />
+      </div>
+      <div className={classes.detailsLink}>
+        <M.Button
+          component={RRLink}
+          to={compareUrl}
+          onClick={onClose}
+          size="small"
+          startIcon={<Icons.OpenInNew />}
+        >
+          View detailed comparison
+        </M.Button>
+      </div>
+    </div>
+  )
+}
+
+interface SummaryButtonProps {
+  bucket: string
+  name: string
+  prevHash: string
+  hash: string
+  className?: string
+}
+
+function SummaryButton({ bucket, name, prevHash, hash, className }: SummaryButtonProps) {
+  const [anchor, setAnchor] = React.useState<HTMLButtonElement | null>(null)
+  const [opened, setOpened] = React.useState(false)
+
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
+
+  return (
+    <>
+      <M.IconButton
+        className={className}
+        size="small"
+        title="What changed"
+        onClick={open}
+        ref={setAnchor}
+      >
+        <Icons.CompareArrows />
+      </M.IconButton>
+
+      <M.Popover
+        open={opened && !!anchor}
+        anchorEl={anchor}
+        onClose={close}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        {
+          <SummaryPopover
+            bucket={bucket}
+            name={name}
+            leftHash={prevHash}
+            rightHash={hash}
+            onClose={close}
+          />
+        }
+      </M.Popover>
+    </>
+  )
 }
 
 const useRevisionInfoStyles = M.makeStyles((t) => ({
@@ -53,6 +150,22 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
   },
   shortcut: {
     margin: t.spacing(-0.5, 0, -0.5, 1),
+  },
+  summaryPopover: {
+    width: 480,
+    maxHeight: 400,
+    overflow: 'auto',
+  },
+  summaryHeader: {
+    padding: t.spacing(2, 2, 1),
+    borderBottom: `1px solid ${t.palette.divider}`,
+  },
+  summaryContent: {
+    padding: t.spacing(1, 2, 2),
+  },
+  detailsLink: {
+    padding: t.spacing(1, 2),
+    borderTop: `1px solid ${t.palette.divider}`,
   },
 }))
 
@@ -114,14 +227,13 @@ export default function RevisionInfo({
       {!!hash && (
         <>
           {prevHash && (
-            <M.IconButton
+            <SummaryButton
+              bucket={bucket}
+              name={name}
+              prevHash={prevHash}
+              hash={hash}
               className={classes.shortcut}
-              size="small"
-              title="What changed"
-              href={urls.bucketPackageCompare(bucket, name, prevHash, hash)}
-            >
-              <Icons.CompareArrows />
-            </M.IconButton>
+            />
           )}
           <M.IconButton
             size="small"

@@ -34,7 +34,7 @@ function MetaKeys({ change }: { change: Extract<WhatChanged, { _tag: 'meta' }> }
       Changed keys:{' '}
       <span className={classes.key}>
         {change.keys.map((label, index) => (
-          <M.Chip label={label} size="small" key={index} />
+          <M.Chip label={label} size="small" key={index} component="span" />
         ))}
       </span>
     </span>
