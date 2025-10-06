@@ -3,11 +3,72 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 
+type WhatChanged = { _tag: 'meta'; keys: string[] }
+
 import type { Revision, RevisionResult } from '../useRevision'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getChanges(_left: Revision, _right: Revision): any[] {
-  return []
+const useMetaKeysStyles = M.makeStyles((t) => ({
+  key: {
+    display: 'inline-flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+  },
+}))
+
+function MetaKeys({ change }: { change: Extract<WhatChanged, { _tag: 'meta' }> }) {
+  const classes = useMetaKeysStyles()
+  return (
+    <span>
+      Changed keys:{' '}
+      <span className={classes.key}>
+        {change.keys.map((label, index) => (
+          <M.Chip label={label} size="small" key={index} />
+        ))}
+      </span>
+    </span>
+  )
+}
+
+function getMetaChange(
+  left: Revision,
+  right: Revision,
+): Extract<WhatChanged, { _tag: 'meta' }> | null {
+  if (JSON.stringify(left.userMeta) === JSON.stringify(right.userMeta)) return null
+
+  const leftMeta = left.userMeta || {}
+  const rightMeta = right.userMeta || {}
+  const combinedKeys = Object.keys({ ...leftMeta, ...rightMeta })
+  return {
+    _tag: 'meta' as const,
+    keys: combinedKeys.filter((key) => leftMeta[key] !== rightMeta[key]),
+  }
+}
+
+function getChanges(left: Revision, right: Revision): WhatChanged[] {
+  const changes = []
+  const userMeta = getMetaChange(left, right)
+  if (userMeta) {
+    changes.push(userMeta)
+  }
+  return changes
+}
+
+interface SummaryItemProps {
+  change: WhatChanged
+}
+
+function SummaryItem({ change }: SummaryItemProps) {
+  switch (change._tag) {
+    case 'meta':
+      return (
+        <M.ListItem disableGutters>
+          <M.ListItemText
+            primary="Package user metadata"
+            secondary={<MetaKeys change={change} />}
+          />
+        </M.ListItem>
+      )
+  }
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -34,7 +95,13 @@ function SummaryDiff({ left, right }: SummaryDiffProps) {
     return <M.Typography className={classes.empty}>Nothing changed</M.Typography>
   }
 
-  return <div>{/* TODO: Implement summary changes display */}</div>
+  return (
+    <M.List dense>
+      {changes.map((c, index) => (
+        <SummaryItem change={c} key={index} />
+      ))}
+    </M.List>
+  )
 }
 
 interface SummaryDiffHandlerProps {

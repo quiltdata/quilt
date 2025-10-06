@@ -23,9 +23,10 @@ const useStyles = M.makeStyles((t) => ({
   summary: {
     marginTop: t.spacing(4),
   },
-  userMeta: {
+  details: {
     marginTop: t.spacing(4),
   },
+  userMeta: {},
   entries: {
     marginTop: t.spacing(4),
   },
@@ -33,7 +34,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface RevisionsCompareProps {
   left: PackageHandle
-  right: PackageHandle | null
+  right: PackageHandle
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
   onSwap: () => void
@@ -49,7 +50,7 @@ export function RevisionsCompare({
   const classes = useStyles()
 
   const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
-  const rightRevisionResult = useRevision(left.bucket, left.name, right?.hash || null)
+  const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
 
   return (
     <div className={classes.root}>
@@ -61,36 +62,34 @@ export function RevisionsCompare({
         onSwap={onSwap}
       />
 
-      {right?.hash && (
-        <div className={classes.summary}>
-          <M.Typography variant="subtitle1" gutterBottom>
-            Summary
-          </M.Typography>
-          <Diff.Summary left={leftRevisionResult} right={rightRevisionResult} />
-        </div>
-      )}
+      <div className={classes.summary}>
+        <M.Typography variant="h6" gutterBottom>
+          What's changed
+        </M.Typography>
+        <Diff.Summary left={leftRevisionResult} right={rightRevisionResult} />
+      </div>
 
-      {right?.hash && (
-        <div className={classes.userMeta}>
-          <M.Typography variant="subtitle1" gutterBottom>
-            User metadata
-          </M.Typography>
-          <M.Paper square variant="outlined">
-            <Diff.Metadata left={leftRevisionResult} right={rightRevisionResult} />
-          </M.Paper>
-        </div>
-      )}
+      <M.Typography variant="h6" gutterBottom className={classes.details}>
+        Details
+      </M.Typography>
 
-      {right?.hash && (
-        <div className={classes.entries}>
-          <M.Typography variant="subtitle1" gutterBottom>
-            Entries
-          </M.Typography>
-          <M.Paper square variant="outlined">
-            <Diff.Entries left={leftRevisionResult} right={rightRevisionResult} />
-          </M.Paper>
-        </div>
-      )}
+      <div className={classes.userMeta}>
+        <M.Typography variant="subtitle1" gutterBottom>
+          User metadata
+        </M.Typography>
+        <M.Paper square variant="outlined">
+          <Diff.Metadata left={leftRevisionResult} right={rightRevisionResult} />
+        </M.Paper>
+      </div>
+
+      <div className={classes.entries}>
+        <M.Typography variant="subtitle1" gutterBottom>
+          Entries
+        </M.Typography>
+        <M.Paper square variant="outlined">
+          <Diff.Entries left={leftRevisionResult} right={rightRevisionResult} />
+        </M.Paper>
+      </div>
     </div>
   )
 }
@@ -143,13 +142,23 @@ export default function PackageCompareWrapper() {
               {left.name}
             </StyledLink>
           </M.Typography>
-          <RevisionsCompare
-            left={left}
-            right={right}
-            onLeftChange={handleLeftChange}
-            onRightChange={handleRightChange}
-            onSwap={handleSwap}
-          />
+          {right ? (
+            <RevisionsCompare
+              left={left}
+              right={right}
+              onLeftChange={handleLeftChange}
+              onRightChange={handleRightChange}
+              onSwap={handleSwap}
+            />
+          ) : (
+            <Revisions
+              left={left}
+              right={right}
+              onLeftChange={handleLeftChange}
+              onRightChange={handleRightChange}
+              onSwap={handleSwap}
+            />
+          )}
         </FileView.Root>
       </WithPackagesSupport>
     </>
