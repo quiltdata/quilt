@@ -8,6 +8,12 @@ This changelog documents all changes made to integrate Model Context Protocol (M
 
 This branch implements comprehensive MCP integration with dynamic authentication, JWT token compression, and bucket discovery capabilities. The implementation enables secure communication between the Quilt frontend and MCP servers while maintaining performance and security standards.
 
+## 2025-10-05 - Production Authentication Hardening
+
+- Finalized the enhanced JWT authentication flow used by the Qurator MCP client, including deterministic role propagation and cache busting to ensure Authorization headers always carry the latest claims.
+- Documented the deployment expectations for matching `mcpEnhancedJwtSecret` / `mcpEnhancedJwtKid` values across the catalog frontend and MCP server and linked the runtime validation commands.
+- Captured the assistant UI adjustments that landed alongside the auth work (persistent drawer layout, right-rail activation button) so operator runbooks reflect the shipped UX.
+
 ## New Files Added
 
 ### Core Services

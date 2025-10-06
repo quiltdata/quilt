@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - 2025-10-05
+
+### Documentation
+
+* [Added] Capture the production deployment expectations for the MCP enhanced JWT authentication flow and aligned runbooks with the new assistant layout changes (#pending)
+
 ## 7.0.0 - 2025-08-25
 
 ### Python API

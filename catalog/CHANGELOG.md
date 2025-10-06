@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Added] Qurator: finalize MCP enhanced JWT authentication flow so requests always include refreshed role-scoped Authorization headers (#pending)
+- [Changed] Qurator: streamline the assistant drawer layout ahead of production right-rail launch (#pending)
 - [Changed] Qurator: make tool messages less prominent ([#4572](https://github.com/quiltdata/quilt/pull/4572))
 - [Fixed] Qurator: Limit total search results contents context to 100k characters to avoid context window overflow ([#4573](https://github.com/quiltdata/quilt/pull/4573))
 - [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))

@@ -26,6 +26,7 @@ Follow the detailed instructions in [sales-prod-deployment-instructions.md](./sa
 - Test user authentication
 - Verify JWT token generation
 - Check MCP tool execution
+- Confirm CloudWatch logs show MCP requests authenticated with enhanced JWTs (Authorization header present, bucket claims parsed)
 
 ## 📋 Documentation Created
 
@@ -62,9 +63,9 @@ Follow the detailed instructions in [sales-prod-deployment-instructions.md](./sa
 ## ⚠️ Important Notes
 
 ### Configuration
-- No additional environment variables required
-- Existing configuration will work with MCP integration
-- MCP server should run in the same cluster
+- Ensure `MCP_ENHANCED_JWT_SECRET` and optional `MCP_ENHANCED_JWT_KID` match between the catalog frontend and MCP server tasks
+- Existing configuration continues to work with the MCP integration updates
+- MCP server should run in the same cluster for low-latency communication
 
 ### Monitoring
 - Watch for JWT token size issues
@@ -93,5 +94,6 @@ For any issues during deployment:
 **Deployment Date**: September 25, 2025  
 **Container Version**: mcp-integration  
 **Status**: Ready for Production Deployment
+
 
 
