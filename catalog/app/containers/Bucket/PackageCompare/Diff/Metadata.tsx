@@ -13,7 +13,7 @@ import type { Order } from './Change'
 function getChanges(
   left: Revision,
   right: Revision,
-  showChangesOnly: boolean = false,
+  changesOnly: boolean = false,
 ): { order: Order; value: string }[] {
   const dir = left.modified > right.modified ? 'backward' : 'forward'
   return diffJson(left.userMeta || {}, right.userMeta || {})
@@ -26,13 +26,7 @@ function getChanges(
         .replace(/]/g, ''),
     }))
     .filter((c) => c.value.trim())
-    .filter((c) => {
-      // If showChangesOnly is true, filter out unchanged lines
-      if (showChangesOnly && !c.added && !c.removed) {
-        return false
-      }
-      return true
-    })
+    .filter((c) => !changesOnly || c.added || c.removed)
     .map((c) => {
       if (!c.added && !c.removed) return { order: { _tag: 'limbo' }, value: c.value }
       const hash = c.added ? right.hash : left.hash
@@ -79,15 +73,19 @@ const useStyles = M.makeStyles((t) => ({
 interface MetadataDiffProps {
   left: Revision
   right: Revision
-  showChangesOnly?: boolean
+  changesOnly?: boolean
 }
 
-function MetadataDiff({ left, right, showChangesOnly = false }: MetadataDiffProps) {
+function MetadataDiff({
+  left,
+  right,
+  changesOnly: changesOnly = false,
+}: MetadataDiffProps) {
   const classes = useStyles()
 
   const changes = React.useMemo(
-    () => getChanges(left, right, showChangesOnly),
-    [left, right, showChangesOnly],
+    () => getChanges(left, right, changesOnly),
+    [left, right, changesOnly],
   )
 
   if (changes.length === 0) {
@@ -112,13 +110,13 @@ function MetadataDiff({ left, right, showChangesOnly = false }: MetadataDiffProp
 interface MetadataDiffHandlerProps {
   left: RevisionResult
   right: RevisionResult
-  showChangesOnly?: boolean
+  changesOnly?: boolean
 }
 
 export default function MetadataDiffHandler({
   left,
   right,
-  showChangesOnly,
+  changesOnly,
 }: MetadataDiffHandlerProps) {
   if (left._tag === 'idle' || right._tag === 'idle') {
     return null
@@ -137,10 +135,6 @@ export default function MetadataDiffHandler({
   }
 
   return (
-    <MetadataDiff
-      left={left.revision}
-      right={right.revision}
-      showChangesOnly={showChangesOnly}
-    />
+    <MetadataDiff left={left.revision} right={right.revision} changesOnly={changesOnly} />
   )
 }

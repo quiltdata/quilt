@@ -57,7 +57,7 @@ interface RowProps {
   right?: Model.PackageEntry
   leftRevision?: Revision
   rightRevision?: Revision
-  showChangesOnly?: boolean
+  changesOnly?: boolean
 }
 
 function Row({
@@ -67,14 +67,13 @@ function Row({
   right,
   leftRevision,
   rightRevision,
-  showChangesOnly = false,
+  changesOnly = false,
 }: RowProps) {
   const changes = React.useMemo(() => getChanges(left, right), [left, right])
   const colors = useColors()
   const classes = useRowStyles()
 
-  // If showChangesOnly is true and this is unmodified, don't render
-  if (showChangesOnly && changes._tag === 'unmodified') {
+  if (changesOnly && changes._tag === 'unmodified') {
     return null
   }
 
@@ -140,10 +139,10 @@ const useStyles = M.makeStyles((t) => ({
 interface EntriesDiffProps {
   left: Revision
   right: Revision
-  showChangesOnly?: boolean
+  changesOnly?: boolean
 }
 
-function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps) {
+function EntriesDiff({ left, right, changesOnly = false }: EntriesDiffProps) {
   const classes = useStyles()
 
   const entries = React.useMemo(() => {
@@ -173,7 +172,7 @@ function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps)
           right={entries.right[logicalKey]}
           leftRevision={left}
           rightRevision={right}
-          showChangesOnly={showChangesOnly}
+          changesOnly={changesOnly}
         />
       ))}
     </div>
@@ -183,13 +182,13 @@ function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps)
 interface EntriesDiffWrapperProps {
   left: RevisionResult
   right: RevisionResult
-  showChangesOnly?: boolean
+  changesOnly?: boolean
 }
 
 export default function EntriesDiffHandler({
   left,
   right,
-  showChangesOnly,
+  changesOnly,
 }: EntriesDiffWrapperProps) {
   if (left._tag === 'idle' || right._tag === 'idle') {
     return null
@@ -208,10 +207,6 @@ export default function EntriesDiffHandler({
   }
 
   return (
-    <EntriesDiff
-      left={left.revision}
-      right={right.revision}
-      showChangesOnly={showChangesOnly}
-    />
+    <EntriesDiff left={left.revision} right={right.revision} changesOnly={changesOnly} />
   )
 }

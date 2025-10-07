@@ -41,12 +41,7 @@ interface RevisionsCompareProps {
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
   onSwap: () => void
-}
-
-function useShowChangesOnly() {
-  const location = RRDom.useLocation()
-  const params = parseSearch(location.search)
-  return !!params.changesOnly
+  changesOnly: boolean
 }
 
 export function RevisionsCompare({
@@ -55,26 +50,27 @@ export function RevisionsCompare({
   onLeftChange,
   onRightChange,
   onSwap,
+  changesOnly,
 }: RevisionsCompareProps) {
   const classes = useStyles()
   const { push } = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
-  const showChangesOnly = useShowChangesOnly()
 
   const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
   const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
 
-  const handleShowChangesOnlyChange = React.useCallback(
+  const handleShowChangesOnly = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const checked = event.target.checked
-      const newUrl = urls.bucketPackageCompare(
-        left.bucket,
-        left.name,
-        left.hash,
-        right?.hash,
-        { changesOnly: checked || undefined },
+      const options = event.target.checked ? undefined : { showAll: true }
+      push(
+        urls.bucketPackageCompare(
+          left.bucket,
+          left.name,
+          left.hash,
+          right?.hash,
+          options,
+        ),
       )
-      push(newUrl)
     },
     [push, urls, left.bucket, left.name, left.hash, right?.hash],
   )
@@ -99,12 +95,7 @@ export function RevisionsCompare({
       <M.Typography variant="h6" gutterBottom className={classes.details}>
         Details
         <M.FormControlLabel
-          control={
-            <M.Checkbox
-              checked={showChangesOnly}
-              onChange={handleShowChangesOnlyChange}
-            />
-          }
+          control={<M.Checkbox checked={changesOnly} onChange={handleShowChangesOnly} />}
           label="Show changes only"
         />
       </M.Typography>
@@ -117,7 +108,7 @@ export function RevisionsCompare({
           <Diff.Metadata
             left={leftRevisionResult}
             right={rightRevisionResult}
-            showChangesOnly={showChangesOnly}
+            changesOnly={changesOnly}
           />
         </M.Paper>
       </div>
@@ -130,7 +121,7 @@ export function RevisionsCompare({
           <Diff.Entries
             left={leftRevisionResult}
             right={rightRevisionResult}
-            showChangesOnly={showChangesOnly}
+            changesOnly={changesOnly}
           />
         </M.Paper>
       </div>
@@ -153,8 +144,7 @@ export default function PackageCompareWrapper() {
   const { push } = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
-  const params = parseSearch(location.search)
-  const changesOnly = !!params.changesOnly
+  const { showAll } = parseSearch(location.search)
 
   const left = React.useMemo(
     () => ({ bucket, name, hash: revisionLeft }),
@@ -170,28 +160,28 @@ export default function PackageCompareWrapper() {
     (hash: string) =>
       push(
         urls.bucketPackageCompare(bucket, name, hash, revisionRight, {
-          changesOnly: changesOnly || undefined,
+          showAll,
         }),
       ),
-    [bucket, name, push, revisionRight, urls, changesOnly],
+    [bucket, name, push, revisionRight, urls, showAll],
   )
   const handleRightChange = React.useCallback(
     (hash: string) =>
       push(
         urls.bucketPackageCompare(bucket, name, revisionLeft, hash, {
-          changesOnly: changesOnly || undefined,
+          showAll,
         }),
       ),
-    [bucket, name, push, revisionLeft, urls, changesOnly],
+    [bucket, name, push, revisionLeft, urls, showAll],
   )
   const handleSwap = React.useCallback(
     () =>
       push(
         urls.bucketPackageCompare(bucket, name, revisionRight, revisionLeft, {
-          changesOnly: changesOnly || undefined,
+          showAll,
         }),
       ),
-    [bucket, name, push, revisionLeft, revisionRight, urls, changesOnly],
+    [bucket, name, push, revisionLeft, revisionRight, urls, showAll],
   )
 
   return (
@@ -206,6 +196,7 @@ export default function PackageCompareWrapper() {
           </M.Typography>
           {right ? (
             <RevisionsCompare
+              changesOnly={!showAll || showAll === 'false'}
               left={left}
               right={right}
               onLeftChange={handleLeftChange}

@@ -168,7 +168,7 @@ export const bucketPackageRevisions = route(
 export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
 
 interface BucketPackageCompareOpts {
-  changesOnly?: boolean
+  showAll?: boolean
 }
 
 export const bucketPackageCompare = route(
@@ -178,11 +178,11 @@ export const bucketPackageCompare = route(
     name: string,
     left: string,
     right?: string,
-    { changesOnly }: BucketPackageCompareOpts = {},
+    { showAll }: BucketPackageCompareOpts = {},
   ) =>
     right
-      ? `/b/${bucket}/packages/${name}/compare/${left}/${right}/${mkSearch({ changesOnly })}`
-      : `/b/${bucket}/packages/${name}/compare/${left}/${mkSearch({ changesOnly })}`,
+      ? `/b/${bucket}/packages/${name}/compare/${left}/${right}/${mkSearch({ showAll })}`
+      : `/b/${bucket}/packages/${name}/compare/${left}/${mkSearch({ showAll })}`,
 )
 
 export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
