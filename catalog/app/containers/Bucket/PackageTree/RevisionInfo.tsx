@@ -99,7 +99,7 @@ function SummaryButton({ bucket, name, prevHash, hash, className }: SummaryButto
       <M.IconButton
         className={className}
         size="small"
-        title="What changed"
+        title="What's changed"
         onClick={open}
         ref={setAnchor}
       >
