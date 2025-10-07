@@ -1,6 +1,6 @@
+import { diffJson } from 'diff'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { diffJson } from 'diff'
 
 import assertNever from 'utils/assertNever'
 import Skeleton from 'components/Skeleton'

@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import Skeleton from 'components/Skeleton'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -53,7 +54,17 @@ function MetaKey({ className, change }: MetaKeyProps) {
     <M.Tooltip title={tooltip}>
       <span className={className}>
         <span className={cx(colors[change._tag], colors.inline)}>
-          {JSONPointer.stringify(change.pointer)}
+          {change.pointer.reduce(
+            (memo, key, index) =>
+              memo.length
+                ? [
+                    ...memo,
+                    <Icons.ArrowRight key={`separator_${index}`} fontSize="inherit" />,
+                    key,
+                  ]
+                : [key],
+            [] as React.ReactNode[],
+          )}
         </span>
       </span>
     </M.Tooltip>
