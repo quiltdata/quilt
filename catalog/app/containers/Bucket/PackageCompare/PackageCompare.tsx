@@ -117,13 +117,11 @@ export function RevisionsCompare({
         <M.Typography variant="subtitle1" gutterBottom>
           Entries
         </M.Typography>
-        <M.Paper square variant="outlined">
-          <Diff.Entries
-            left={leftRevisionResult}
-            right={rightRevisionResult}
-            changesOnly={changesOnly}
-          />
-        </M.Paper>
+        <Diff.Entries
+          left={leftRevisionResult}
+          right={rightRevisionResult}
+          changesOnly={changesOnly}
+        />
       </div>
     </div>
   )
