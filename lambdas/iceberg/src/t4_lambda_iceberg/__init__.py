@@ -24,7 +24,7 @@ QUILT_ICEBERG_WORKGROUP = os.environ["QUILT_ICEBERG_WORKGROUP"]
 query_runner = QueryRunner(
     logger=logger,
     athena=athena,
-    database=QUILT_USER_ATHENA_DATABASE,
+    database=QUILT_ICEBERG_GLUE_DB,
     workgroup=QUILT_ICEBERG_WORKGROUP,
 )
 query_maker = QueryMaker(QUILT_ICEBERG_GLUE_DB)
