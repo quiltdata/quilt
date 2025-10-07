@@ -6,6 +6,7 @@ import * as Lab from '@material-ui/lab'
 import * as Model from 'model'
 
 import type { Revision, RevisionResult } from '../useRevision'
+import { Details as RevisionDetails } from '../Revision'
 
 import Preview from './Preview'
 import useColors from './useColors'
@@ -54,10 +55,20 @@ interface RowProps {
   logicalKey: string
   left?: Model.PackageEntry
   right?: Model.PackageEntry
+  leftRevision?: Revision
+  rightRevision?: Revision
   showChangesOnly?: boolean
 }
 
-function Row({ className, logicalKey, left, right, showChangesOnly = false }: RowProps) {
+function Row({
+  className,
+  logicalKey,
+  left,
+  right,
+  leftRevision,
+  rightRevision,
+  showChangesOnly = false,
+}: RowProps) {
   const changes = React.useMemo(() => getChanges(left, right), [left, right])
   const colors = useColors()
   const classes = useRowStyles()
@@ -76,15 +87,25 @@ function Row({ className, logicalKey, left, right, showChangesOnly = false }: Ro
         {changes._tag === 'modified' ? (
           <div className={classes.split}>
             <div>
-              <M.Typography variant="subtitle2" gutterBottom>
-                Previous Version
-              </M.Typography>
+              {leftRevision && (
+                <M.Typography variant="subtitle2" gutterBottom>
+                  <RevisionDetails
+                    message={leftRevision.message}
+                    hash={leftRevision.hash}
+                  />
+                </M.Typography>
+              )}
               <Preview physicalKey={changes.left.physicalKey} />
             </div>
             <div>
-              <M.Typography variant="subtitle2" gutterBottom>
-                Current Version
-              </M.Typography>
+              {rightRevision && (
+                <M.Typography variant="subtitle2" gutterBottom>
+                  <RevisionDetails
+                    message={rightRevision.message}
+                    hash={rightRevision.hash}
+                  />
+                </M.Typography>
+              )}
               <Preview physicalKey={changes.right.physicalKey} />
             </div>
           </div>
@@ -150,6 +171,8 @@ function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps)
           logicalKey={logicalKey}
           left={entries.left[logicalKey]}
           right={entries.right[logicalKey]}
+          leftRevision={left}
+          rightRevision={right}
           showChangesOnly={showChangesOnly}
         />
       ))}

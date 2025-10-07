@@ -1,35 +1,8 @@
-import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import type { Revision } from './useRevisions'
-
-const useRevisionDetailsStyles = M.makeStyles((t) => ({
-  message: {
-    display: 'block',
-  },
-  hash: {
-    ...t.typography.monospace,
-    display: 'block',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-}))
-
-interface RevisionDetailsProps {
-  revision: Revision
-}
-
-function RevisionDetails({ revision }: RevisionDetailsProps) {
-  const classes = useRevisionDetailsStyles()
-  return (
-    <>
-      <span className={classes.message}>{revision.message}</span>
-      <span className={classes.hash}>{revision.hash}</span>
-    </>
-  )
-}
+import { Details, Date } from './Revision'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -72,7 +45,7 @@ export default function RevisionsList({
   const renderValue = React.useCallback(
     (hash) => {
       const found = revisions.find((r) => r.hash === hash)
-      return found ? dateFns.format(found.modified, 'MMM d yyyy - h:mma') : hash
+      return found ? <Date modified={found.modified} /> : hash
     },
     [revisions],
   )
@@ -95,15 +68,15 @@ export default function RevisionsList({
         {revisions.map((r) => (
           <M.MenuItem key={r.hash} value={r.hash}>
             <M.ListItemText
-              primary={dateFns.format(r.modified, 'MMM d yyyy - h:mma')}
-              secondary={<RevisionDetails revision={r} />}
+              primary={<Date modified={r.modified} />}
+              secondary={<Details message={r.message} hash={r.hash} />}
             />
           </M.MenuItem>
         ))}
       </M.Select>
       {revision && (
         <M.FormHelperText className={classes.helperText}>
-          <RevisionDetails revision={revision} />
+          <Details message={revision.message} hash={revision.hash} />
         </M.FormHelperText>
       )}
     </M.FormControl>
