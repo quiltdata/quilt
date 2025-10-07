@@ -9,7 +9,7 @@ authors = [
 requires-python = "==3.11.*"
 dependencies = [
     "boto3>=1.40.41,<2.0.0",
-    "quilt-shared",
+    "quilt-shared[boto]",
 ]
 
 [build-system]
@@ -25,4 +25,4 @@ test = [
 ]
 
 [tool.uv.sources]
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/df53c9ce125ea051e0d1ac41d58796336e202256.zip", subdirectory = "py-shared" }
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/7ba1b6e82c81f5e2d4c1b90f11afb72f76ee994d.zip", subdirectory = "py-shared" }

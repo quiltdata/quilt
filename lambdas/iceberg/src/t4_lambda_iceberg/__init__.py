@@ -6,8 +6,12 @@ import time
 import boto3
 
 import quilt_shared.const
+from quilt_shared.athena import QueryRunner
+from quilt_shared.iceberg_queries import QueryMaker
+
 
 athena = boto3.client("athena")
+s3 = boto3.client("s3")
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
@@ -17,81 +21,22 @@ QUILT_ICEBERG_BUCKET = os.environ["QUILT_ICEBERG_BUCKET"]
 QUILT_ICEBERG_WORKGROUP = os.environ["QUILT_ICEBERG_WORKGROUP"]
 
 
-def make_query_package_revision(*, bucket: str, pkg_name: str, pointer: str, delete: bool) -> str:
-    # TODO: support delete
-    return f"""
-        MERGE INTO package_revision AS t
-        USING (
-            SELECT
-                '{bucket}' AS registry,
-                pkg_name,
-                from_unixtime(CAST(timestamp AS bigint)) AS timestamp,
-                top_hash,
-                message,
-                user_meta AS metadata
-            FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
-            WHERE pkg_name = '{pkg_name}' AND timestamp = '{pointer}'
-            LIMIT 1
-        ) AS s
-        ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.timestamp = s.timestamp
-        WHEN MATCHED THEN
-            UPDATE SET top_hash = s.top_hash, message = s.message, metadata = s.metadata
-        WHEN NOT MATCHED THEN
-            INSERT (registry, pkg_name, timestamp, top_hash, message, metadata)
-            VALUES (s.registry, s.pkg_name, s.timestamp, s.top_hash, s.message, s.metadata)
-    """
+query_runner = QueryRunner(
+    logger=logger,
+    athena=athena,
+    database=QUILT_USER_ATHENA_DATABASE,
+    workgroup=QUILT_ICEBERG_WORKGROUP,
+)
+query_maker = QueryMaker(QUILT_ICEBERG_GLUE_DB)
 
 
-def make_query_package_tag(*, bucket: str, pkg_name: str, pointer: str, delete: bool) -> str:
-    # TODO: support delete
-    return f"""
-        MERGE INTO package_tag AS t
-        USING (
-            SELECT
-                '{bucket}' AS registry,
-                pkg_name,
-                timestamp AS tag_name,
-                top_hash
-            FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_packages-view"
-            WHERE pkg_name = '{pkg_name}' AND timestamp = '{pointer}'
-            LIMIT 1
-        ) AS s
-        ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.tag_name = s.tag_name
-        WHEN MATCHED THEN
-            UPDATE SET top_hash = s.top_hash
-        WHEN NOT MATCHED THEN
-            INSERT (registry, pkg_name, tag_name, top_hash)
-            VALUES (s.registry, s.pkg_name, s.tag_name, s.top_hash)
-    """
-
-
-def make_query_package_entry(*, bucket: str, top_hash: str, delete: bool) -> str:
-    # TODO: support delete
-    return f"""
-        MERGE INTO package_entry AS t
-        USING (
-            SELECT
-                '{bucket}' AS registry,
-                '{top_hash}' AS top_hash,
-                logical_key,
-                physical_keys[1] AS physical_key,
-                hash.type AS hash_type,
-                hash.value AS hash_value,
-                size,
-                meta AS metadata
-            FROM "{QUILT_USER_ATHENA_DATABASE}"."{bucket}_manifests"
-            WHERE "$path" = '{quilt_shared.const.MANIFESTS_PREFIX}{top_hash}'
-                AND logical_key IS NOT NULL
-        ) AS s
-        ON t.registry = s.registry AND t.top_hash = s.top_hash AND t.logical_key = s.logical_key
-        WHEN MATCHED THEN
-            UPDATE SET physical_key = s.physical_key, hash_type = s.hash_type, hash_value = s.hash_value,
-                size = s.size, metadata = s.metadata
-        WHEN NOT MATCHED THEN
-            INSERT (registry, top_hash, logical_key, physical_key, hash_type, hash_value, size, metadata)
-            VALUES (s.registry, s.top_hash, s.logical_key,
-                s.physical_key, s.hash_type, s.hash_value, s.size, s.metadata)
-    """
+def get_first_line(bucket, key) -> bytes | None:
+    try:
+        resp = s3.get_object(Bucket=bucket, Key=key)
+        for line in resp["Body"].iter_lines():
+            return line
+    except s3.exceptions.NoSuchKey:
+        return None
 
 
 def handler(event, context):
@@ -105,42 +50,39 @@ def handler(event, context):
     bucket = s3_event["bucket"]["name"]
     key = s3_event["object"]["key"]
 
-    if event_name.startswith("ObjectCreated:"):
-        delete = False
-    elif event_name.startswith("ObjectDeleted:"):
-        delete = True
-    else:
-        raise ValueError(f"Unexpected event name: {event_name}")
+    first_line = get_first_line(bucket, key)
 
     if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
         pkg_name, pointer_name = key.removeprefix(".quilt/named_packages/").rsplit("/", 1)
-        if pointer_name.isnumeric():
-            query = make_query_package_revision(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name, delete=delete)
+        if first_line:
+            queries = [
+                (
+                    query_maker.package_revision_add_single
+                    if pointer_name.isnumeric()
+                    else query_maker.package_tag_add_single
+                )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name, top_hash=first_line.decode())
+            ]
         else:
-            query = make_query_package_tag(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name, delete=delete)
+            queries = [
+                (
+                    query_maker.package_revision_delete_single
+                    if pointer_name.isnumeric()
+                    else query_maker.package_tag_delete_single
+                )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name)
+            ]
     elif key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
         top_hash = key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX)
-        query = make_query_package_entry(bucket=bucket, top_hash=top_hash, delete=delete)
+        if first_line:
+            queries = [
+                query_maker.package_manifest_add_single(bucket=bucket, top_hash=top_hash),
+                query_maker.package_entry_add_single(bucket=bucket, top_hash=top_hash),
+            ]
+        else:
+            queries = [
+                query_maker.package_manifest_delete_single(bucket=bucket, top_hash=top_hash),
+                query_maker.package_entry_delete_single(bucket=bucket, top_hash=top_hash),
+            ]
     else:
         raise ValueError(f"Unexpected key prefix: {key}")
 
-    logger.info("Executing query: %s", query)
-    resp = athena.start_query_execution(
-        QueryString=query,
-        QueryExecutionContext={"Database": QUILT_ICEBERG_GLUE_DB},
-        WorkGroup=QUILT_ICEBERG_WORKGROUP,
-    )
-    query_execution_id = resp["QueryExecutionId"]
-    logger.info("Started query execution: %s", query_execution_id)
-    # wait for query to complete
-    while True:
-        resp = athena.get_query_execution(QueryExecutionId=query_execution_id)
-        state = resp["QueryExecution"]["Status"]["State"]
-        if state in ("FAILED", "CANCELLED"):
-            reason = resp["QueryExecution"]["Status"].get("StateChangeReason", "<no reason provided>")
-            raise RuntimeError(f"Query execution {query_execution_id} failed: {reason}")
-        if state == "SUCCEEDED":
-            logger.info("Query execution %s succeeded", query_execution_id)
-            break
-        logger.info("Query execution %s is in state %s, waiting...", query_execution_id, state)
-        time.sleep(1)
+    query_runner.run_multiple_queries(queries)
