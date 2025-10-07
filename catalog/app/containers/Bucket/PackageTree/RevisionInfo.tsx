@@ -65,13 +65,7 @@ function SummaryPopover({
         <Diff.Summary left={leftRevision} right={rightRevision} />
       </div>
       <div className={classes.detailsLink}>
-        <M.Button
-          component={RRLink}
-          to={compareUrl}
-          onClick={onClose}
-          size="small"
-          startIcon={<Icons.OpenInNew />}
-        >
+        <M.Button component={RRLink} to={compareUrl} onClick={onClose} size="small">
           View detailed comparison
         </M.Button>
       </div>

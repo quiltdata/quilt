@@ -12,7 +12,7 @@ interface PreviewProps {
 
 const usePreviewStyles = M.makeStyles((t) => ({
   container: {
-    width: '100%',
+    margin: '0 auto',
   },
   progress: {},
   message: {
