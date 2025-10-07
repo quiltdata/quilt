@@ -58,7 +58,7 @@ class QueryRunner:
         max_current_queries: int = 20,
         sleep_sec: float = 1,
     ) -> list[QueryExecutionTypeDef]:
-        results: list[T.Union[None, QueryExecutionTypeDef]] = [None] * len(query_list)
+        results: list[QueryExecutionTypeDef | None] = [None] * len(query_list)
 
         remaining_queries = list(enumerate(query_list))
         remaining_queries.reverse()  # Just to make unit tests more sane: we use pop() later, so keep the order the same.
