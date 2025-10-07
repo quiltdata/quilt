@@ -40,6 +40,15 @@ function getChanges(left?: Model.PackageEntry, right?: Model.PackageEntry): Chan
   return { _tag: 'modified', modified: { physicalKey, hash, size, meta }, left, right }
 }
 
+const useRowStyles = M.makeStyles((t) => ({
+  split: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: t.spacing(2),
+    width: '100%',
+  },
+}))
+
 interface RowProps {
   className: string
   logicalKey: string
@@ -51,6 +60,7 @@ interface RowProps {
 function Row({ className, logicalKey, left, right, showChangesOnly = false }: RowProps) {
   const changes = React.useMemo(() => getChanges(left, right), [left, right])
   const colors = useColors()
+  const classes = useRowStyles()
 
   // If showChangesOnly is true and this is unmodified, don't render
   if (showChangesOnly && changes._tag === 'unmodified') {
@@ -64,20 +74,20 @@ function Row({ className, logicalKey, left, right, showChangesOnly = false }: Ro
       </M.AccordionSummary>
       <M.AccordionDetails>
         {changes._tag === 'modified' ? (
-          <M.Grid container spacing={2}>
-            <M.Grid item xs={6}>
+          <div className={classes.split}>
+            <div>
               <M.Typography variant="subtitle2" gutterBottom>
                 Previous Version
               </M.Typography>
               <Preview physicalKey={changes.left.physicalKey} />
-            </M.Grid>
-            <M.Grid item xs={6}>
+            </div>
+            <div>
               <M.Typography variant="subtitle2" gutterBottom>
                 Current Version
               </M.Typography>
               <Preview physicalKey={changes.right.physicalKey} />
-            </M.Grid>
-          </M.Grid>
+            </div>
+          </div>
         ) : (
           <Preview physicalKey={changes.entry.physicalKey} />
         )}
