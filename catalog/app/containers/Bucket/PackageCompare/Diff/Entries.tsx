@@ -4,8 +4,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Model from 'model'
-import assertNever from 'utils/assertNever'
-import * as s3paths from 'utils/s3paths'
 
 import type { Revision, RevisionResult } from '../useRevision'
 
@@ -59,52 +57,31 @@ function Row({ className, logicalKey, left, right, showChangesOnly = false }: Ro
     return null
   }
 
-  const getSummaryContent = () => {
-    switch (changes._tag) {
-      case 'unmodified':
-        return <span className={cx(colors.unmodified, colors.inline)}>{logicalKey}</span>
-      case 'added':
-        return <span className={cx(colors.added, colors.inline)}>{logicalKey}</span>
-      case 'modified':
-        return <span className={cx(colors.modified, colors.inline)}>{logicalKey}</span>
-      default:
-        assertNever(changes)
-    }
-  }
-
-  const getPreviewContent = () => {
-    switch (changes._tag) {
-      case 'unmodified':
-      case 'added':
-        return <Preview handle={s3paths.parseS3Url(changes.entry.physicalKey)} />
-      case 'modified':
-        return (
+  return (
+    <M.Accordion className={className}>
+      <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
+        <span className={cx(colors[changes._tag], colors.inline)}>{logicalKey}</span>
+      </M.AccordionSummary>
+      <M.AccordionDetails>
+        {changes._tag === 'modified' ? (
           <M.Grid container spacing={2}>
             <M.Grid item xs={6}>
               <M.Typography variant="subtitle2" gutterBottom>
                 Previous Version
               </M.Typography>
-              <Preview handle={s3paths.parseS3Url(changes.left.physicalKey)} />
+              <Preview physicalKey={changes.left.physicalKey} />
             </M.Grid>
             <M.Grid item xs={6}>
               <M.Typography variant="subtitle2" gutterBottom>
                 Current Version
               </M.Typography>
-              <Preview handle={s3paths.parseS3Url(changes.right.physicalKey)} />
+              <Preview physicalKey={changes.right.physicalKey} />
             </M.Grid>
           </M.Grid>
-        )
-      default:
-        assertNever(changes)
-    }
-  }
-
-  return (
-    <M.Accordion className={className}>
-      <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
-        {getSummaryContent()}
-      </M.AccordionSummary>
-      <M.AccordionDetails>{getPreviewContent()}</M.AccordionDetails>
+        ) : (
+          <Preview physicalKey={changes.entry.physicalKey} />
+        )}
+      </M.AccordionDetails>
     </M.Accordion>
   )
 }

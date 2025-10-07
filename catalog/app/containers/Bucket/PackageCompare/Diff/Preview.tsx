@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import { Load, Display, CONTEXT } from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import * as Model from 'model'
+import * as s3paths from 'utils/s3paths'
 
 interface PreviewProps {
   handle: Model.S3.S3ObjectLocation
@@ -65,7 +66,7 @@ const renderPreviewAction = ({ label, ...rest }: { label: React.ReactNode }) => 
   </M.Button>
 )
 
-export default function Preview({ handle }: PreviewProps) {
+function Preview({ handle }: PreviewProps) {
   return (
     <Load handle={handle} options={{ context: CONTEXT.LISTING }}>
       {(data: any) => (
@@ -86,4 +87,13 @@ export default function Preview({ handle }: PreviewProps) {
       )}
     </Load>
   )
+}
+
+interface PreviewPhysicalKeyProps {
+  physicalKey: string
+}
+
+export default function PreviewPhysicalKey({ physicalKey }: PreviewPhysicalKeyProps) {
+  const handle = React.useMemo(() => s3paths.parseS3Url(physicalKey), [physicalKey])
+  return <Preview handle={handle} />
 }
