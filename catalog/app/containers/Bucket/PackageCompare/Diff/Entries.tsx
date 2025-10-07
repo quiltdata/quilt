@@ -1,162 +1,17 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import * as Icons from '@material-ui/icons'
 
-import assertNever from 'utils/assertNever'
-import JsonDisplay from 'components/JsonDisplay'
 import * as Model from 'model'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
-import { readableBytes } from 'utils/string'
+import assertNever from 'utils/assertNever'
 import * as s3paths from 'utils/s3paths'
-import * as Dialogs from 'utils/Dialogs'
 
 import type { Revision, RevisionResult } from '../useRevision'
 
-import Change from './Change'
-import type { Dir, Order } from './Change'
-import GridRow from './GridRow'
 import Preview from './Preview'
-
-const useAddedStyles = M.makeStyles((t) => ({
-  root: {
-    ...t.typography.body2,
-  },
-}))
-
-interface AddedProps {
-  className: string
-  dir: Dir
-  logicalKey: string
-  onClick: () => void
-}
-
-function Added({ className, dir, logicalKey, onClick }: AddedProps) {
-  const classes = useAddedStyles()
-  const former: Order = React.useMemo(() => ({ _tag: 'former', hash: dir.from }), [dir])
-  const latter: Order = React.useMemo(() => ({ _tag: 'latter', hash: dir.to }), [dir])
-
-  return (
-    <GridRow className={cx(classes.root, className)} divided>
-      <Change order={dir._tag === 'forward' ? former : latter}>
-        <span onClick={onClick}>{logicalKey}</span>
-      </Change>
-      <Change order={dir._tag === 'forward' ? latter : former}>
-        <span onClick={onClick}>{logicalKey}</span>
-      </Change>
-    </GridRow>
-  )
-}
-
-const useUnmodifiedStyles = M.makeStyles((t) => ({
-  root: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-  },
-}))
-
-interface UnmodifiedProps {
-  className: string
-  logicalKey: string
-  onClick: () => void
-}
-
-function Unmodified({ className, logicalKey, onClick }: UnmodifiedProps) {
-  const classes = useUnmodifiedStyles()
-
-  return (
-    <GridRow className={cx(classes.root, className)}>
-      <span onClick={onClick}>{logicalKey}</span>
-      <i>Unmodified</i>
-    </GridRow>
-  )
-}
+import useColors from './useColors'
 
 type Modifications = Record<keyof Model.PackageEntry, boolean>
-
-function getEntryChanges(
-  entry: Model.PackageEntry,
-  modified: Modifications,
-): Partial<Model.PackageEntry> {
-  return {
-    physicalKey: modified.physicalKey ? entry.physicalKey : undefined,
-    hash: modified.hash ? entry.hash : undefined,
-    size: modified.size ? entry.size : undefined,
-    meta: modified.meta ? entry.meta : undefined,
-  }
-}
-
-interface ModifiedProps {
-  className: string
-  logicalKey: string
-  dir: Dir
-  left: Model.PackageEntry
-  right: Model.PackageEntry
-  modified: Modifications
-  onClick: ([logicalKey, handle]: [string, Model.S3.S3ObjectLocation]) => void
-}
-
-function Modified({
-  className,
-  dir,
-  logicalKey,
-  left,
-  right,
-  modified,
-  onClick,
-}: ModifiedProps) {
-  const changes = React.useMemo(
-    () => ({
-      left: getEntryChanges(left, modified),
-      right: getEntryChanges(right, modified),
-    }),
-    [left, right, modified],
-  )
-  const former: Order = React.useMemo(
-    () => ({ _tag: 'former', hash: dir._tag === 'forward' ? dir.from : dir.to }),
-    [dir],
-  )
-  const latter: Order = React.useMemo(
-    () => ({ _tag: 'latter', hash: dir._tag === 'forward' ? dir.to : dir.from }),
-    [dir],
-  )
-  return (
-    <GridRow className={className} dense divided>
-      <EntrySide
-        logicalKey={logicalKey}
-        order={dir._tag === 'forward' ? former : latter}
-        changes={changes.left}
-        onClick={() => onClick([logicalKey, s3paths.parseS3Url(left.physicalKey)])}
-      />
-      <EntrySide
-        logicalKey={logicalKey}
-        order={dir._tag === 'forward' ? latter : former}
-        changes={changes.right}
-        onClick={() => onClick([logicalKey, s3paths.parseS3Url(right.physicalKey)])}
-      />
-    </GridRow>
-  )
-}
-
-interface PhysicalKeyProps {
-  className?: string
-  url: string
-}
-
-function PhysicalKey({ className, url }: PhysicalKeyProps) {
-  const { urls } = NamedRoutes.use()
-  const to = React.useMemo(() => {
-    const { bucket, key, version } = s3paths.parseS3Url(url)
-    return urls.bucketFile(bucket, key, version)
-  }, [url, urls])
-  return (
-    <StyledLink className={className} to={to}>
-      {url}
-    </StyledLink>
-  )
-}
 
 type Changes =
   | { _tag: 'added'; entry: Model.PackageEntry }
@@ -167,83 +22,6 @@ type Changes =
       left: Model.PackageEntry
       right: Model.PackageEntry
     }
-
-const useEntrySideStyles = M.makeStyles((t) => ({
-  root: {
-    ...t.typography.body1,
-  },
-  hash: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-  property: {
-    whiteSpace: 'nowrap',
-    display: 'flex',
-    alignItems: 'center',
-    margin: t.spacing(1, 0, 0),
-  },
-  value: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  icon: {
-    color: t.palette.text.secondary,
-    marginRight: t.spacing(1),
-  },
-}))
-
-interface EntrySideProps {
-  className?: string
-  logicalKey: string
-  changes: Partial<Model.PackageEntry>
-  order: Order
-  onClick: () => void
-}
-
-function EntrySide({ changes, logicalKey, order, onClick }: EntrySideProps) {
-  const classes = useEntrySideStyles()
-
-  return (
-    <div className={classes.root}>
-      <M.Typography variant="subtitle2" color="textSecondary" onClick={onClick}>
-        {logicalKey}
-      </M.Typography>
-
-      {changes.physicalKey && (
-        <div className={classes.property}>
-          <Icons.LinkOutlined className={classes.icon} fontSize="small" />
-          <Change order={order} className={classes.value}>
-            <PhysicalKey url={changes.physicalKey} />
-          </Change>
-        </div>
-      )}
-
-      {changes.hash && (
-        <div className={classes.property}>
-          <Icons.LockOutlined className={classes.icon} fontSize="small" />
-          <Change order={order} className={cx(classes.hash, classes.value)}>
-            {changes.hash.value}
-          </Change>
-        </div>
-      )}
-
-      {changes.size && (
-        <div className={classes.property}>
-          <Icons.InsertDriveFileOutlined className={classes.icon} fontSize="small" />
-          <Change order={order} className={classes.value}>
-            {readableBytes(changes.size)}
-          </Change>
-        </div>
-      )}
-
-      {changes.meta && (
-        <div className={classes.property}>
-          <Icons.Code className={classes.icon} fontSize="small" />
-          <JsonDisplay value={changes.meta} />
-        </div>
-      )}
-    </div>
-  )
-}
 
 function getChanges(left?: Model.PackageEntry, right?: Model.PackageEntry): Changes {
   if (!left || !right) {
@@ -268,64 +46,81 @@ interface RowProps {
   logicalKey: string
   left?: Model.PackageEntry
   right?: Model.PackageEntry
-  dir: Dir
   showChangesOnly?: boolean
-  onClick: ([logicalKey, handle]: [string, Model.S3.S3ObjectLocation]) => void
 }
 
-function Row({
-  className,
-  dir,
-  logicalKey,
-  left,
-  right,
-  showChangesOnly = false,
-  onClick,
-}: RowProps) {
+function Row({ className, logicalKey, left, right, showChangesOnly = false }: RowProps) {
   const changes = React.useMemo(() => getChanges(left, right), [left, right])
+  const colors = useColors()
 
   // If showChangesOnly is true and this is unmodified, don't render
   if (showChangesOnly && changes._tag === 'unmodified') {
     return null
   }
 
-  switch (changes._tag) {
-    case 'unmodified':
-      return (
-        <Unmodified
-          className={className}
-          logicalKey={logicalKey}
-          onClick={() =>
-            onClick([logicalKey, s3paths.parseS3Url(changes.entry.physicalKey)])
-          }
-        />
-      )
-    case 'added':
-      return (
-        <Added
-          className={className}
-          dir={dir}
-          logicalKey={logicalKey}
-          onClick={() =>
-            onClick([logicalKey, s3paths.parseS3Url(changes.entry.physicalKey)])
-          }
-        />
-      )
-    case 'modified':
-      return (
-        <Modified
-          className={className}
-          dir={dir}
-          logicalKey={logicalKey}
-          left={changes.left}
-          right={changes.right}
-          modified={changes.modified}
-          onClick={onClick}
-        />
-      )
-    default:
-      assertNever(changes)
+  const getSummaryContent = () => {
+    switch (changes._tag) {
+      case 'unmodified':
+        return (
+          <div>
+            <M.Chip size="small" label="Unmodified" style={{ marginRight: 8 }} />
+            <span>{logicalKey}</span>
+          </div>
+        )
+      case 'added':
+        return (
+          <div>
+            <M.Chip size="small" label="Added" style={{ marginRight: 8 }} />
+            <span className={colors.added}>{logicalKey}</span>
+          </div>
+        )
+      case 'modified':
+        return (
+          <div>
+            <M.Chip size="small" label="Modified" style={{ marginRight: 8 }} />
+            <span className={colors.modified}>{logicalKey}</span>
+          </div>
+        )
+      default:
+        assertNever(changes)
+    }
   }
+
+  const getPreviewContent = () => {
+    switch (changes._tag) {
+      case 'unmodified':
+      case 'added':
+        return <Preview handle={s3paths.parseS3Url(changes.entry.physicalKey)} />
+      case 'modified':
+        return (
+          <M.Grid container spacing={2}>
+            <M.Grid item xs={6}>
+              <M.Typography variant="subtitle2" gutterBottom>
+                Previous Version
+              </M.Typography>
+              <Preview handle={s3paths.parseS3Url(changes.left.physicalKey)} />
+            </M.Grid>
+            <M.Grid item xs={6}>
+              <M.Typography variant="subtitle2" gutterBottom>
+                Current Version
+              </M.Typography>
+              <Preview handle={s3paths.parseS3Url(changes.right.physicalKey)} />
+            </M.Grid>
+          </M.Grid>
+        )
+      default:
+        assertNever(changes)
+    }
+  }
+
+  return (
+    <M.Accordion className={className}>
+      <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
+        {getSummaryContent()}
+      </M.AccordionSummary>
+      <M.AccordionDetails>{getPreviewContent()}</M.AccordionDetails>
+    </M.Accordion>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -356,7 +151,6 @@ interface EntriesDiffProps {
 
 function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps) {
   const classes = useStyles()
-  const dialogs = Dialogs.use()
 
   const entries = React.useMemo(() => {
     const leftData = left.contentsFlatMap || {}
@@ -370,54 +164,23 @@ function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps)
     }
   }, [left.contentsFlatMap, right.contentsFlatMap])
 
-  const handleClick = React.useCallback(
-    ([logicalKey, handle]: [string, Model.S3.S3ObjectLocation]) => {
-      dialogs.open(({ close }) => (
-        <>
-          <M.DialogTitle>Preview: {logicalKey}</M.DialogTitle>
-          <M.DialogContent>
-            <Preview handle={handle} />
-          </M.DialogContent>
-          <M.DialogActions>
-            <M.Button onClick={() => close()}>Close</M.Button>
-          </M.DialogActions>
-        </>
-      ))
-    },
-    [dialogs],
-  )
-
-  const dir: Dir = React.useMemo(
-    () => ({
-      _tag: left.modified > right.modified ? 'backward' : 'forward',
-      from: left.hash,
-      to: right.hash,
-    }),
-    [left, right],
-  )
-
   if (entries.keys.length === 0) {
     return <div className={classes.empty}>No entries found</div>
   }
 
   return (
-    <>
-      <div>
-        {entries.keys.map((logicalKey) => (
-          <Row
-            className={classes.row}
-            key={logicalKey}
-            logicalKey={logicalKey}
-            left={entries.left[logicalKey]}
-            right={entries.right[logicalKey]}
-            dir={dir}
-            showChangesOnly={showChangesOnly}
-            onClick={handleClick}
-          />
-        ))}
-      </div>
-      {dialogs.render()}
-    </>
+    <div>
+      {entries.keys.map((logicalKey) => (
+        <Row
+          className={classes.row}
+          key={logicalKey}
+          logicalKey={logicalKey}
+          left={entries.left[logicalKey]}
+          right={entries.right[logicalKey]}
+          showChangesOnly={showChangesOnly}
+        />
+      ))}
+    </div>
   )
 }
 
