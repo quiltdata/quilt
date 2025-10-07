@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import parseSearch from 'utils/parseSearch'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import * as FileView from '../FileView'
@@ -25,6 +26,8 @@ const useStyles = M.makeStyles((t) => ({
   },
   details: {
     marginTop: t.spacing(4),
+    display: 'flex',
+    justifyContent: 'space-between',
   },
   userMeta: {},
   entries: {
@@ -40,6 +43,12 @@ interface RevisionsCompareProps {
   onSwap: () => void
 }
 
+function useShowChangesOnly() {
+  const location = RRDom.useLocation()
+  const params = parseSearch(location.search)
+  return !!params.changesOnly
+}
+
 export function RevisionsCompare({
   left,
   right,
@@ -48,9 +57,27 @@ export function RevisionsCompare({
   onSwap,
 }: RevisionsCompareProps) {
   const classes = useStyles()
+  const { push } = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
+  const showChangesOnly = useShowChangesOnly()
 
   const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
   const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
+
+  const handleShowChangesOnlyChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const checked = event.target.checked
+      const newUrl = urls.bucketPackageCompare(
+        left.bucket,
+        left.name,
+        left.hash,
+        right?.hash,
+        { changesOnly: checked || undefined },
+      )
+      push(newUrl)
+    },
+    [push, urls, left.bucket, left.name, left.hash, right?.hash],
+  )
 
   return (
     <div className={classes.root}>
@@ -71,6 +98,15 @@ export function RevisionsCompare({
 
       <M.Typography variant="h6" gutterBottom className={classes.details}>
         Details
+        <M.FormControlLabel
+          control={
+            <M.Checkbox
+              checked={showChangesOnly}
+              onChange={handleShowChangesOnlyChange}
+            />
+          }
+          label="Show changes only"
+        />
       </M.Typography>
 
       <div className={classes.userMeta}>
@@ -78,7 +114,11 @@ export function RevisionsCompare({
           User metadata
         </M.Typography>
         <M.Paper square variant="outlined">
-          <Diff.Metadata left={leftRevisionResult} right={rightRevisionResult} />
+          <Diff.Metadata
+            left={leftRevisionResult}
+            right={rightRevisionResult}
+            showChangesOnly={showChangesOnly}
+          />
         </M.Paper>
       </div>
 
@@ -87,7 +127,11 @@ export function RevisionsCompare({
           Entries
         </M.Typography>
         <M.Paper square variant="outlined">
-          <Diff.Entries left={leftRevisionResult} right={rightRevisionResult} />
+          <Diff.Entries
+            left={leftRevisionResult}
+            right={rightRevisionResult}
+            showChangesOnly={showChangesOnly}
+          />
         </M.Paper>
       </div>
     </div>
@@ -108,6 +152,9 @@ export default function PackageCompareWrapper() {
 
   const { push } = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
+  const location = RRDom.useLocation()
+  const params = parseSearch(location.search)
+  const changesOnly = !!params.changesOnly
 
   const left = React.useMemo(
     () => ({ bucket, name, hash: revisionLeft }),
@@ -120,16 +167,31 @@ export default function PackageCompareWrapper() {
   )
 
   const handleLeftChange = React.useCallback(
-    (hash: string) => push(urls.bucketPackageCompare(bucket, name, hash, revisionRight)),
-    [bucket, name, push, revisionRight, urls],
+    (hash: string) =>
+      push(
+        urls.bucketPackageCompare(bucket, name, hash, revisionRight, {
+          changesOnly: changesOnly || undefined,
+        }),
+      ),
+    [bucket, name, push, revisionRight, urls, changesOnly],
   )
   const handleRightChange = React.useCallback(
-    (hash: string) => push(urls.bucketPackageCompare(bucket, name, revisionLeft, hash)),
-    [bucket, name, push, revisionLeft, urls],
+    (hash: string) =>
+      push(
+        urls.bucketPackageCompare(bucket, name, revisionLeft, hash, {
+          changesOnly: changesOnly || undefined,
+        }),
+      ),
+    [bucket, name, push, revisionLeft, urls, changesOnly],
   )
   const handleSwap = React.useCallback(
-    () => push(urls.bucketPackageCompare(bucket, name, revisionRight, revisionLeft)),
-    [bucket, name, push, revisionLeft, revisionRight, urls],
+    () =>
+      push(
+        urls.bucketPackageCompare(bucket, name, revisionRight, revisionLeft, {
+          changesOnly: changesOnly || undefined,
+        }),
+      ),
+    [bucket, name, push, revisionLeft, revisionRight, urls, changesOnly],
   )
 
   return (

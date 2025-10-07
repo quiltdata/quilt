@@ -246,10 +246,23 @@ interface RowProps {
   left?: Model.PackageEntry
   right?: Model.PackageEntry
   dir: Dir
+  showChangesOnly?: boolean
 }
 
-function Row({ className, dir, logicalKey, left, right }: RowProps) {
+function Row({
+  className,
+  dir,
+  logicalKey,
+  left,
+  right,
+  showChangesOnly = false,
+}: RowProps) {
   const changes = React.useMemo(() => getChanges(left, right), [left, right])
+
+  // If showChangesOnly is true and this is unmodified, don't render
+  if (showChangesOnly && changes._tag === 'unmodified') {
+    return null
+  }
 
   switch (changes._tag) {
     case 'unmodified':
@@ -295,9 +308,10 @@ const useStyles = M.makeStyles((t) => ({
 interface EntriesDiffProps {
   left: Revision
   right: Revision
+  showChangesOnly?: boolean
 }
 
-function EntriesDiff({ left, right }: EntriesDiffProps) {
+function EntriesDiff({ left, right, showChangesOnly = false }: EntriesDiffProps) {
   const classes = useStyles()
 
   const entries = React.useMemo(() => {
@@ -335,6 +349,7 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
           left={entries.left[logicalKey]}
           right={entries.right[logicalKey]}
           dir={dir}
+          showChangesOnly={showChangesOnly}
         />
       ))}
     </div>
@@ -344,9 +359,14 @@ function EntriesDiff({ left, right }: EntriesDiffProps) {
 interface EntriesDiffWrapperProps {
   left: RevisionResult
   right: RevisionResult
+  showChangesOnly?: boolean
 }
 
-export default function EntriesDiffHandler({ left, right }: EntriesDiffWrapperProps) {
+export default function EntriesDiffHandler({
+  left,
+  right,
+  showChangesOnly,
+}: EntriesDiffWrapperProps) {
   if (left._tag === 'idle' || right._tag === 'idle') {
     return null
   }
@@ -363,5 +383,11 @@ export default function EntriesDiffHandler({ left, right }: EntriesDiffWrapperPr
     )
   }
 
-  return <EntriesDiff left={left.revision} right={right.revision} />
+  return (
+    <EntriesDiff
+      left={left.revision}
+      right={right.revision}
+      showChangesOnly={showChangesOnly}
+    />
+  )
 }
