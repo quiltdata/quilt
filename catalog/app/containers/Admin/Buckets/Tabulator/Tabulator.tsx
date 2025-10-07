@@ -578,10 +578,11 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
     }: FormValuesDeleteTable): Promise<FF.SubmissionErrors | undefined> => {
       try {
         setSubmitting(true)
-        const response = await setTable({ bucketName, tableName, config: null })
-        // Generated `InputError` lacks optional properties and not inferred correctly
-        const r = response.admin
-          .bucketSetTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
+        const { bucketSetTabulatorTable: r } = await setTable({
+          bucketName,
+          tableName,
+          config: null,
+        })
         setSubmitting(false)
         if (r.__typename === 'BucketConfig') {
           notify(`Successfully deleted ${tableName} table`)
@@ -608,12 +609,10 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
     async (values: FormValuesRenameTable): Promise<FF.SubmissionErrors | undefined> => {
       try {
         setSubmitting(true)
-        const response = await renameTable({
+        const { bucketRenameTabulatorTable: r } = await renameTable({
           bucketName,
           ...values,
         })
-        const r = response.admin
-          .bucketRenameTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
         setSubmitting(false)
         if (r.__typename === 'BucketConfig') {
           notify(`Successfully updated ${values.tableName} table`)
@@ -639,9 +638,7 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
     async (values: FormValuesSetTable): Promise<FF.SubmissionErrors | undefined> => {
       try {
         setSubmitting(true)
-        const response = await setTable({ bucketName, ...values })
-        const r = response.admin
-          .bucketSetTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
+        const { bucketSetTabulatorTable: r } = await setTable({ bucketName, ...values })
         setSubmitting(false)
         if (r.__typename === 'BucketConfig') {
           notify(`Successfully updated ${values.tableName} table`)
