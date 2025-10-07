@@ -11,14 +11,11 @@ interface PreviewProps {
 
 const usePreviewStyles = M.makeStyles((t) => ({
   container: {
-    minHeight: 200,
-    padding: t.spacing(2),
+    width: '100%',
   },
-  progress: {
-    padding: t.spacing(2),
-  },
+  progress: {},
   message: {
-    padding: t.spacing(2),
+    margin: '0 auto',
     textAlign: 'center',
   },
   heading: {

@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -61,26 +62,11 @@ function Row({ className, logicalKey, left, right, showChangesOnly = false }: Ro
   const getSummaryContent = () => {
     switch (changes._tag) {
       case 'unmodified':
-        return (
-          <div>
-            <M.Chip size="small" label="Unmodified" style={{ marginRight: 8 }} />
-            <span>{logicalKey}</span>
-          </div>
-        )
+        return <span className={cx(colors.unmodified, colors.inline)}>{logicalKey}</span>
       case 'added':
-        return (
-          <div>
-            <M.Chip size="small" label="Added" style={{ marginRight: 8 }} />
-            <span className={colors.added}>{logicalKey}</span>
-          </div>
-        )
+        return <span className={cx(colors.added, colors.inline)}>{logicalKey}</span>
       case 'modified':
-        return (
-          <div>
-            <M.Chip size="small" label="Modified" style={{ marginRight: 8 }} />
-            <span className={colors.modified}>{logicalKey}</span>
-          </div>
-        )
+        return <span className={cx(colors.modified, colors.inline)}>{logicalKey}</span>
       default:
         assertNever(changes)
     }

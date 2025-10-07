@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import assertNever from 'utils/assertNever'
 import { trimCenter } from 'utils/string'
 
 import useColors from './useColors'
@@ -46,10 +47,12 @@ export default function Change({ className, children, order }: ChangeProps) {
         return 'added'
       case 'former':
         return 'removed'
+      case 'limbo':
+        return 'unmodified'
       default:
-        return ''
+        assertNever(order)
     }
-  }, [order._tag])
+  }, [order])
   return (
     <div className={cx(classes.root, colors[colorTag], className)}>
       {order._tag === 'latter' && (

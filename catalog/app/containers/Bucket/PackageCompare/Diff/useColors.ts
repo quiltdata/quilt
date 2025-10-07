@@ -11,6 +11,9 @@ const useStyles = M.makeStyles((t) => ({
   modified: {
     backgroundColor: M.fade(t.palette.warning.dark, 0.15),
   },
+  unmodified: {
+    color: t.palette.text.secondary,
+  },
   inline: {
     borderRadius: '2px',
     padding: t.spacing(0, 0.25),
