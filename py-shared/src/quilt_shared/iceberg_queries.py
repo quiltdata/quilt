@@ -1,3 +1,5 @@
+import typing as T
+
 from . import const
 
 
@@ -125,15 +127,18 @@ class QueryMaker:
             VALUES (s.bucket, s.top_hash, s.message, s.metadata)
         """
 
-    def package_manifest_add_single(self, *, bucket: str, top_hash: str, message: str, metadata: str) -> str:
+    def package_manifest_add_single(self, *, bucket: str, top_hash: str) -> str:
         return f"""
         MERGE INTO package_manifest AS t
         USING (
             SELECT
                 '{bucket}' AS bucket,
-                '{top_hash}' AS top_hash,
-                '{message}' AS message,
-                '{metadata}' AS metadata
+                regexp_extract("$path", '[^/]+$') AS top_hash,
+                message,
+                user_meta AS metadata
+            FROM "{self.user_athena_db}"."{bucket}_manifests"
+            WHERE logical_key IS NOT NULL
+                AND "$path" = 's3://{bucket}/{const.MANIFESTS_PREFIX}{top_hash}'
         ) AS s
         ON t.bucket = s.bucket AND t.top_hash = s.top_hash
         WHEN MATCHED THEN
