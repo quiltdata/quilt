@@ -3,23 +3,24 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import { readableBytes } from 'utils/string'
-import type { JsonRecord } from 'utils/types'
 import * as JSONPointer from 'utils/JSONPointer'
+import { readableBytes } from 'utils/string'
+import type { Json, JsonRecord } from 'utils/types'
+import assertNever from 'utils/assertNever'
 
 import type { Revision, RevisionResult } from '../useRevision'
 
 import useColors from './useColors'
 
 type MetaChange =
-  | { _tag: 'modified'; pointer: JSONPointer.Path; oldValue: any; newValue: any }
-  | { _tag: 'added'; pointer: JSONPointer.Path }
-  | { _tag: 'removed'; pointer: JSONPointer.Path }
+  | { _tag: 'modified'; pointer: JSONPointer.Path; oldValue: Json; newValue: Json }
+  | { _tag: 'added'; pointer: JSONPointer.Path; newValue: Json }
+  | { _tag: 'removed'; pointer: JSONPointer.Path; oldValue: Json }
 
 type WhatChanged =
   | { _tag: 'meta'; keys: MetaChange[] }
   | {
-      _tag: 'modified'
+      _tag: 'modified' // + {modified: {size: [old,new],hash: [old,new], meta: [old, new]}}
       logicalKey: string
       hashChanged: boolean
       sizeChanged: boolean // sizeChanged: -> sizes: [old, new]
@@ -36,14 +37,18 @@ interface MetaKeyProps {
 
 function MetaKey({ className, change }: MetaKeyProps) {
   const colors = useColors()
-
-  const tooltip = React.useMemo(
-    () =>
-      change._tag === 'modified'
-        ? `${JSON.stringify(change.oldValue)} → ${JSON.stringify(change.newValue)}`
-        : '',
-    [change],
-  )
+  const tooltip = React.useMemo(() => {
+    switch (change._tag) {
+      case 'modified':
+        return `${JSON.stringify(change.oldValue)} → ${JSON.stringify(change.newValue)}`
+      case 'added':
+        return JSON.stringify(change.newValue)
+      case 'removed':
+        return JSON.stringify(change.oldValue)
+      default:
+        assertNever(change)
+    }
+  }, [change])
   return (
     <M.Tooltip title={tooltip}>
       <span className={className}>
@@ -109,6 +114,7 @@ function ModifiedEntry({ change }: ModifiedEntryProps) {
   const classes = useModifiedEntryStyles()
   const colors = useColors()
   if (!change.hashChanged) {
+    // hash not changed but the `physicalKey`
     return <span>Modified</span>
   }
 
@@ -148,12 +154,12 @@ function compareKeysRecursive(
 
     // Handle missing keys
     if (leftValue === undefined) {
-      changedKeys.push({ _tag: 'added', pointer })
+      changedKeys.push({ _tag: 'added', pointer, newValue: rightValue })
       continue
     }
 
     if (rightValue === undefined) {
-      changedKeys.push({ _tag: 'removed', pointer })
+      changedKeys.push({ _tag: 'removed', pointer, oldValue: leftValue })
       continue
     }
 
