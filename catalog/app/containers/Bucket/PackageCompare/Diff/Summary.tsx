@@ -1,73 +1,172 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import { readableBytes } from 'utils/string'
+import type { JsonRecord } from 'utils/types'
+import * as JSONPointer from 'utils/JSONPointer'
+
+import type { Revision, RevisionResult } from '../useRevision'
+
+import useColors from './useColors'
+
+type MetaChange =
+  | { _tag: 'modified'; pointer: JSONPointer.Path; oldValue: any; newValue: any }
+  | { _tag: 'added'; pointer: JSONPointer.Path }
+  | { _tag: 'removed'; pointer: JSONPointer.Path }
 
 type WhatChanged =
-  | { _tag: 'meta'; keys: string[] }
+  | { _tag: 'meta'; keys: MetaChange[] }
   | {
       _tag: 'modified'
       logicalKey: string
       hashChanged: boolean
-      sizeChanged: boolean
+      sizeChanged: boolean // sizeChanged: -> sizes: [old, new]
       oldSize?: number
       newSize?: number
     }
   | { _tag: 'added'; logicalKey: string }
   | { _tag: 'removed'; logicalKey: string }
 
-import type { Revision, RevisionResult } from '../useRevision'
+interface MetaKeyProps {
+  className: string
+  change: MetaChange
+}
+
+function MetaKey({ className, change }: MetaKeyProps) {
+  const colors = useColors()
+  return (
+    <span className={className}>
+      <span className={cx(colors[change._tag], colors.inline)}>
+        {JSONPointer.stringify(change.pointer)}
+      </span>
+    </span>
+  )
+}
 
 const useMetaKeysStyles = M.makeStyles((t) => ({
-  key: {
+  keys: {
     display: 'inline-flex',
     flexWrap: 'wrap',
-    gap: t.spacing(0.5),
+    gap: t.spacing(0.75),
+  },
+  key: {
+    '&::after': {
+      content: '", "',
+    },
+    '&:last-child::after': {
+      content: '""',
+    },
   },
 }))
 
-function MetaKeys({ change }: { change: Extract<WhatChanged, { _tag: 'meta' }> }) {
+interface MetaKeysProps {
+  change: Extract<WhatChanged, { _tag: 'meta' }>
+}
+
+function MetaKeys({ change }: MetaKeysProps) {
   const classes = useMetaKeysStyles()
   return (
     <span>
       Changed keys:{' '}
-      <span className={classes.key}>
-        {change.keys.map((label, index) => (
-          <M.Chip label={label} size="small" key={index} component="span" />
+      <span className={classes.keys}>
+        {change.keys.map((metaChange) => (
+          <MetaKey
+            key={JSONPointer.stringify(metaChange.pointer)}
+            change={metaChange}
+            className={classes.key}
+          />
         ))}
       </span>
     </span>
   )
 }
 
-function ModifiedEntry({
-  change,
-}: {
+const useModifiedEntryStyles = M.makeStyles({
+  label: {
+    '&::after': {
+      content: '", "',
+    },
+  },
+})
+
+interface ModifiedEntryProps {
   change: Extract<WhatChanged, { _tag: 'modified' }>
-}) {
-  if (change.hashChanged && change.sizeChanged) {
-    return (
-      <span>
-        Content changed, {readableBytes(change.oldSize!)} →{' '}
-        {readableBytes(change.newSize!)}
-      </span>
-    )
+}
+
+function ModifiedEntry({ change }: ModifiedEntryProps) {
+  const classes = useModifiedEntryStyles()
+  const colors = useColors()
+  if (!change.hashChanged) {
+    return <span>Modified</span>
   }
 
-  if (change.hashChanged) {
-    return <span>Content changed</span>
+  return (
+    <span>
+      <span className={classes.label}>Content changed</span>
+      {change.sizeChanged && (
+        <span className={cx(colors.modified, colors.inline)}>
+          {readableBytes(change.oldSize)} → {readableBytes(change.newSize)}
+        </span>
+      )}
+    </span>
+  )
+}
+
+function isObject(value: any): value is JsonRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function compareKeysRecursive(
+  leftObj: JsonRecord,
+  rightObj: JsonRecord,
+  prefix: JSONPointer.Path = [],
+): MetaChange[] {
+  const changedKeys: MetaChange[] = []
+  const combinedKeys = Object.keys({ ...leftObj, ...rightObj })
+
+  for (const key of combinedKeys) {
+    const pointer = prefix.length ? [...prefix, key] : [key]
+    const leftValue = leftObj[key]
+    const rightValue = rightObj[key]
+
+    // If values are strictly equal, no change
+    if (leftValue === rightValue) {
+      continue
+    }
+
+    // Handle missing keys
+    if (leftValue === undefined) {
+      changedKeys.push({ _tag: 'added', pointer })
+      continue
+    }
+
+    if (rightValue === undefined) {
+      changedKeys.push({ _tag: 'removed', pointer })
+      continue
+    }
+
+    // If both are objects, recurse deeper
+    if (isObject(leftValue) && isObject(rightValue)) {
+      const nestedChanges = compareKeysRecursive(leftValue, rightValue, pointer)
+      changedKeys.push(...nestedChanges)
+    } else {
+      // Either primitive values changed, or one is object and other is not
+      changedKeys.push({
+        _tag: 'modified',
+        pointer,
+        oldValue: leftValue,
+        newValue: rightValue,
+      })
+    }
   }
 
-  if (change.sizeChanged) {
-    return (
-      <span>
-        {readableBytes(change.oldSize!)} → {readableBytes(change.newSize!)}
-      </span>
-    )
-  }
+  return changedKeys
+}
 
-  return <span>file was modified</span>
+function compareKeys(leftObj: JsonRecord, rightObj: JsonRecord): MetaChange[] {
+  return compareKeysRecursive(leftObj, rightObj)
 }
 
 function getMetaChange(
@@ -76,12 +175,9 @@ function getMetaChange(
 ): Extract<WhatChanged, { _tag: 'meta' }> | null {
   if (JSON.stringify(left.userMeta) === JSON.stringify(right.userMeta)) return null
 
-  const leftMeta = left.userMeta || {}
-  const rightMeta = right.userMeta || {}
-  const combinedKeys = Object.keys({ ...leftMeta, ...rightMeta })
   return {
     _tag: 'meta' as const,
-    keys: combinedKeys.filter((key) => leftMeta[key] !== rightMeta[key]),
+    keys: compareKeys(left.userMeta || {}, right.userMeta || {}),
   }
 }
 
@@ -128,24 +224,12 @@ function getChanges(left: Revision, right: Revision): WhatChanged[] {
   ) as WhatChanged[]
 }
 
-const useSummaryItemStyles = M.makeStyles((t) => ({
-  added: {
-    backgroundColor: M.fade(t.palette.success.light, 0.3),
-  },
-  removed: {
-    backgroundColor: M.fade(t.palette.error.light, 0.3),
-  },
-  removedStatus: {
-    color: t.palette.error.light,
-  },
-}))
-
 interface SummaryItemProps {
   change: WhatChanged
 }
 
 function SummaryItem({ change }: SummaryItemProps) {
-  const classes = useSummaryItemStyles()
+  const colors = useColors()
   switch (change._tag) {
     case 'meta':
       return (
@@ -169,7 +253,7 @@ function SummaryItem({ change }: SummaryItemProps) {
       return (
         <M.ListItem disableGutters>
           <M.ListItemText
-            primary={<span className={classes.added}>{change.logicalKey}</span>}
+            primary={<span className={colors.added}>{change.logicalKey}</span>}
             secondary="Added"
           />
         </M.ListItem>
@@ -178,7 +262,7 @@ function SummaryItem({ change }: SummaryItemProps) {
       return (
         <M.ListItem disableGutters>
           <M.ListItemText
-            primary={<span className={classes.removed}>{change.logicalKey}</span>}
+            primary={<span className={colors.removed}>{change.logicalKey}</span>}
             secondary="Removed"
           />
         </M.ListItem>

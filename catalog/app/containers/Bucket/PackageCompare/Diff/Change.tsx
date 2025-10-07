@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 
 import { trimCenter } from 'utils/string'
 
+import useColors from './useColors'
+
 export type Order =
   | { _tag: 'former'; hash: string }
   | { _tag: 'latter'; hash: string }
@@ -18,12 +20,6 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: '2px',
     padding: t.spacing(0, 11, 0, 0.25),
     position: 'relative',
-  },
-  latter: {
-    backgroundColor: M.fade(t.palette.success.light, 0.3),
-  },
-  former: {
-    backgroundColor: M.fade(t.palette.error.light, 0.3),
   },
   limbo: {},
   legend: {
@@ -43,8 +39,19 @@ interface ChangeProps {
 
 export default function Change({ className, children, order }: ChangeProps) {
   const classes = useStyles()
+  const colors = useColors()
+  const colorTag = React.useMemo(() => {
+    switch (order._tag) {
+      case 'latter':
+        return 'added'
+      case 'former':
+        return 'removed'
+      default:
+        return ''
+    }
+  }, [order._tag])
   return (
-    <div className={cx(classes.root, classes[order._tag], className)}>
+    <div className={cx(classes.root, colors[colorTag], className)}>
       {order._tag === 'latter' && (
         <span className={classes.legend}>{trimCenter(order.hash, 12)}</span>
       )}
