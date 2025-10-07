@@ -36,12 +36,22 @@ interface MetaKeyProps {
 
 function MetaKey({ className, change }: MetaKeyProps) {
   const colors = useColors()
+
+  const tooltip = React.useMemo(
+    () =>
+      change._tag === 'modified'
+        ? `${JSON.stringify(change.oldValue)} → ${JSON.stringify(change.newValue)}`
+        : '',
+    [change],
+  )
   return (
-    <span className={className}>
-      <span className={cx(colors[change._tag], colors.inline)}>
-        {JSONPointer.stringify(change.pointer)}
+    <M.Tooltip title={tooltip}>
+      <span className={className}>
+        <span className={cx(colors[change._tag], colors.inline)}>
+          {JSONPointer.stringify(change.pointer)}
+        </span>
       </span>
-    </span>
+    </M.Tooltip>
   )
 }
 
