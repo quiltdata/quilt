@@ -15,28 +15,22 @@ type Change =
   | { _tag: 'removed'; hash: string; value: string }
   | { _tag: 'unmodified'; value: string }
 
+// We believe showing braces frighten wet scientists
+function removeBraces(input: string) {
+  return input.replace(/}/g, '').replace(/{/g, '').replace(/]/g, '').replace(/]/g, '')
+}
+
 function getChanges(
   [base, other]: [Revision, Revision],
   changesOnly: boolean = false,
 ): Change[] {
   return diffJson(base.userMeta || {}, other.userMeta || {})
-    .map((c) => ({
-      ...c,
-      value: c.value
-        .replace(/}/g, '')
-        .replace(/{/g, '')
-        .replace(/]/g, '')
-        .replace(/]/g, ''),
-    }))
+    .map((c) => ({ ...c, value: removeBraces(c.value) }))
     .filter((c) => c.value.trim())
     .filter((c) => !changesOnly || c.added || c.removed)
     .map((c) => {
-      if (c.added) {
-        return { _tag: 'added', hash: other.hash, value: c.value }
-      }
-      if (c.removed) {
-        return { _tag: 'removed', hash: base.hash, value: c.value }
-      }
+      if (c.added) return { _tag: 'added', hash: other.hash, value: c.value }
+      if (c.removed) return { _tag: 'removed', hash: base.hash, value: c.value }
       return { _tag: 'unmodified', value: c.value }
     })
 }
