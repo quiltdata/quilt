@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import * as Icons from '@material-ui/icons'
 
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
@@ -12,14 +11,13 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import Summary from '../PackageCompare/Diff/Summary'
-import useRevisions from '../PackageCompare/useRevisionsPair'
+import RevisionSummary from './RevisionSummary'
 
 import type REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
 type RevisionListQuery = GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
 
-function getPreviousHash(revisionListQuery: RevisionListQuery, hash?: string) {
+function getPreviousHash(revisionListQuery: RevisionListQuery, hash: string) {
   return GQL.fold(revisionListQuery, {
     data: (d) => {
       if (!d.package) return null
@@ -31,104 +29,6 @@ function getPreviousHash(revisionListQuery: RevisionListQuery, hash?: string) {
     error: () => null,
     fetching: () => null,
   })
-}
-
-const useDiffSummaryStyles = M.makeStyles((t) => ({
-  popover: {
-    width: 480,
-    maxHeight: 400,
-    overflow: 'auto',
-  },
-  header: {
-    padding: t.spacing(2, 2, 1),
-    borderBottom: `1px solid ${t.palette.divider}`,
-  },
-  content: {
-    padding: t.spacing(1, 2, 2),
-  },
-  showMore: {
-    padding: t.spacing(1, 2),
-    borderTop: `1px solid ${t.palette.divider}`,
-  },
-}))
-
-interface DiffSummaryProps {
-  bucket: string
-  name: string
-  base: string
-  other: string
-  onClose: () => void
-}
-
-function DiffSummary({ bucket, name, base, other, onClose }: DiffSummaryProps) {
-  const classes = useDiffSummaryStyles()
-  const { urls } = NamedRoutes.use()
-
-  const revisionsResult = useRevisions([
-    { bucket, name, hash: base },
-    { bucket, name, hash: other },
-  ])
-
-  return (
-    <div className={classes.popover}>
-      <div className={classes.header}>
-        <M.Typography variant="subtitle1">What's changed</M.Typography>
-      </div>
-      <div className={classes.content}>
-        <Summary revisionsResult={revisionsResult} />
-      </div>
-      <div className={classes.showMore}>
-        <M.Button
-          component={RRLink}
-          to={urls.bucketPackageCompare(bucket, name, base, other)}
-          onClick={onClose}
-          size="small"
-        >
-          View detailed comparison
-        </M.Button>
-      </div>
-    </div>
-  )
-}
-
-interface SummaryButtonProps {
-  bucket: string
-  name: string
-  prevHash: string
-  hash: string
-  className?: string
-}
-
-function SummaryButton({ bucket, name, prevHash, hash, className }: SummaryButtonProps) {
-  const [anchor, setAnchor] = React.useState<HTMLButtonElement | null>(null)
-  const [opened, setOpened] = React.useState(false)
-
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => setOpened(false), [])
-
-  return (
-    <>
-      <M.IconButton
-        className={className}
-        size="small"
-        title="What's changed"
-        onClick={open}
-        ref={setAnchor}
-      >
-        <Icons.CompareArrows />
-      </M.IconButton>
-
-      <M.Popover open={opened && !!anchor} anchorEl={anchor} onClose={close}>
-        <DiffSummary
-          bucket={bucket}
-          name={name}
-          base={prevHash}
-          other={hash}
-          onClose={close}
-        />
-      </M.Popover>
-    </>
-  )
 }
 
 const useRevisionInfoStyles = M.makeStyles((t) => ({
@@ -150,7 +50,7 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   list: {
-    width: 560,
+    width: 420,
   },
   shortcut: {
     margin: t.spacing(-0.5, 0, -0.5, 1),
@@ -195,10 +95,11 @@ export default function RevisionInfo({
       push('Canonical URI copied to clipboard')
     }
 
-  const prevHash = React.useMemo(
-    () => getPreviousHash(revisionListQuery, hash),
-    [hash, revisionListQuery],
-  )
+  const comparePair: [string, string] | null = React.useMemo(() => {
+    if (!hash) return null
+    const prevHash = getPreviousHash(revisionListQuery, hash)
+    return prevHash ? [prevHash, hash] : null
+  }, [hash, revisionListQuery])
 
   return (
     <>
@@ -212,27 +113,25 @@ export default function RevisionInfo({
         {R.take(10, hashOrTag)} <M.Icon>expand_more</M.Icon>
       </span>
 
+      {comparePair && (
+        <RevisionSummary
+          bucket={bucket}
+          name={name}
+          hashes={comparePair}
+          className={classes.shortcut}
+        />
+      )}
+
       {!!hash && (
-        <>
-          {prevHash && (
-            <SummaryButton
-              bucket={bucket}
-              name={name}
-              prevHash={prevHash}
-              hash={hash}
-              className={classes.shortcut}
-            />
-          )}
-          <M.IconButton
-            size="small"
-            title="Copy package revision's canonical catalog URI to the clipboard"
-            href={getHttpsUri(hash)}
-            onClick={copyHttpsUri(hash)}
-            className={classes.shortcut}
-          >
-            <M.Icon>link</M.Icon>
-          </M.IconButton>
-        </>
+        <M.IconButton
+          size="small"
+          title="Copy package revision's canonical catalog URI to the clipboard"
+          href={getHttpsUri(hash)}
+          onClick={copyHttpsUri(hash)}
+          className={classes.shortcut}
+        >
+          <M.Icon>link</M.Icon>
+        </M.IconButton>
       )}
 
       <M.Popover
@@ -268,12 +167,6 @@ export default function RevisionInfo({
                       }
                     />
                     <M.ListItemSecondaryAction>
-                      <M.IconButton
-                        title="Compare with this version"
-                        href={urls.bucketPackageCompare(bucket, name, hash, r.hash)}
-                      >
-                        <Icons.CompareArrows />
-                      </M.IconButton>
                       <M.IconButton
                         title="Copy package revision's canonical catalog URI to the clipboard"
                         href={getHttpsUri(r.hash)}
