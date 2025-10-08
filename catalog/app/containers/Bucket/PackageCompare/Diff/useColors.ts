@@ -1,7 +1,6 @@
-import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useStyles = M.makeStyles((t) => ({
+export default M.makeStyles((t) => ({
   added: {
     backgroundColor: M.fade(t.palette.success.light, 0.3),
   },
@@ -19,8 +18,3 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 0.25),
   },
 }))
-
-export default function useColors() {
-  const classes = useStyles()
-  return React.useMemo(() => ({ ...classes, '': '' }), [classes])
-}
