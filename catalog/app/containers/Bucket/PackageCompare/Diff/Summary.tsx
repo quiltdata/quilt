@@ -21,10 +21,10 @@ type MetaChange =
 type WhatChanged =
   | { _tag: 'meta'; keys: MetaChange[] }
   | {
-      _tag: 'modified' // + {modified: {size: [old,new],hash: [old,new], meta: [old, new]}}
+      _tag: 'modified'
       logicalKey: string
       hashChanged: boolean
-      sizeChanged: boolean // sizeChanged: -> sizes: [old, new]
+      sizeChanged: boolean
       oldSize?: number
       newSize?: number
     }
@@ -124,10 +124,7 @@ interface ModifiedEntryProps {
 function ModifiedEntry({ change }: ModifiedEntryProps) {
   const classes = useModifiedEntryStyles()
   const colors = useColors()
-  if (!change.hashChanged) {
-    // hash not changed but the `physicalKey`
-    return <span>Modified</span>
-  }
+  if (!change.hashChanged) return <span>Modified</span>
 
   return (
     <span>

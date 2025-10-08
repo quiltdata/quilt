@@ -19,13 +19,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ChangeProps {
+interface RevisionedProps {
   children: React.ReactNode
   className?: string
   hash: string
 }
 
-export default function Change({ className, children, hash }: ChangeProps) {
+export default function Revisioned({ className, children, hash }: RevisionedProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>

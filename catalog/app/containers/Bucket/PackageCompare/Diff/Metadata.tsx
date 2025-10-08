@@ -17,7 +17,7 @@ type Change =
 
 // We believe showing braces frighten wet scientists
 function removeBraces(input: string) {
-  return input.replace(/}/g, '').replace(/{/g, '').replace(/]/g, '').replace(/]/g, '')
+  return input.replace(/}/g, '').replace(/{/g, '').replace(/]/g, '').replace(/\[/g, '')
 }
 
 function getChanges(

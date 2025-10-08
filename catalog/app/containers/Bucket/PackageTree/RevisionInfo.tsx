@@ -24,7 +24,7 @@ function getPreviousHash(revisionListQuery: RevisionListQuery, hash: string) {
       const revisions = d.package.revisions.page
       if (revisions.length < 2) return null
       const base = revisions.findIndex((r) => r.hash === hash)
-      return revisions[base + 1]?.hash
+      return base >= 0 ? revisions[base + 1]?.hash : null
     },
     error: () => null,
     fetching: () => null,

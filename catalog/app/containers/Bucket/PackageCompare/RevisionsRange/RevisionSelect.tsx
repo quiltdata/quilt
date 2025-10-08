@@ -32,11 +32,11 @@ function Details({ message, hash }: DetailsProps) {
   )
 }
 
-interface DateProps {
+interface FormattedDateProps {
   modified: Date
 }
 
-function Date({ modified }: DateProps) {
+function FormattedDate({ modified }: FormattedDateProps) {
   return <>{dateFns.format(modified, 'MMM d yyyy - h:mma')}</>
 }
 
@@ -75,7 +75,7 @@ export default function RevisionSelect({
   const renderValue = React.useCallback(
     (hash) => {
       const found = revisions.find((r) => r.hash === hash)
-      return found ? <Date modified={found.modified} /> : hash
+      return found ? <FormattedDate modified={found.modified} /> : hash
     },
     [revisions],
   )
@@ -98,7 +98,7 @@ export default function RevisionSelect({
         {revisions.map((r) => (
           <M.MenuItem key={r.hash} value={r.hash}>
             <M.ListItemText
-              primary={<Date modified={r.modified} />}
+              primary={<FormattedDate modified={r.modified} />}
               secondary={<Details message={r.message} hash={r.hash} />}
             />
           </M.MenuItem>

@@ -46,10 +46,10 @@ export function useRouter() {
       push(urls.bucketPackageCompare(bucket, name, baseHash, hash, { showAll })),
     [bucket, name, push, baseHash, urls, showAll],
   )
-  const swap = React.useCallback(
-    () => push(urls.bucketPackageCompare(bucket, name, otherHash, baseHash, { showAll })),
-    [bucket, name, push, baseHash, otherHash, urls, showAll],
-  )
+  const swap = React.useCallback(() => {
+    invariant(!!otherHash, '`otherHash` must be defined')
+    push(urls.bucketPackageCompare(bucket, name, otherHash, baseHash, { showAll }))
+  }, [bucket, name, push, baseHash, otherHash, urls, showAll])
 
   const changesOnly = !showAll || showAll === 'false'
   const toggleChangesOnly = React.useCallback(
