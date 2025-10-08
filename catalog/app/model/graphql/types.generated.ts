@@ -46,7 +46,9 @@ export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
+  /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  /** @deprecated Field no longer supported */
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
   readonly packager: PackagerAdminMutations
@@ -425,6 +427,8 @@ export interface Mutation {
   readonly bucketAdd: BucketAddResult
   readonly bucketUpdate: BucketUpdateResult
   readonly bucketRemove: BucketRemoveResult
+  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly policyCreateManaged: PolicyResult
   readonly policyCreateUnmanaged: PolicyResult
   readonly policyUpdateManaged: PolicyResult
@@ -473,6 +477,18 @@ export interface MutationbucketUpdateArgs {
 
 export interface MutationbucketRemoveArgs {
   name: Scalars['String']
+}
+
+export interface MutationbucketSetTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  config: Maybe<Scalars['String']>
+}
+
+export interface MutationbucketRenameTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  newTableName: Scalars['String']
 }
 
 export interface MutationpolicyCreateManagedArgs {
