@@ -1,14 +1,7 @@
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
-import {
-  TurnedInNotOutlined as IconTurnedInNotOutlined,
-  TurnedInOutlined as IconTurnedInOutlined,
-  DeleteOutlined as IconDeleteOutlined,
-  CheckOutlined as IconCheckOutlined,
-  AssignmentOutlined as IconAssignmentOutlined,
-  SubjectOutlined as IconSubjectOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import { viewModeToSelectOption } from 'containers/Bucket/viewModes'
 import type { ViewModes } from 'containers/Bucket/viewModes'
@@ -90,7 +83,7 @@ export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
     <>
       <M.List dense className={classes.subList}>
         <MenuItem
-          icon={isBookmarked ? <IconTurnedInOutlined /> : <IconTurnedInNotOutlined />}
+          icon={isBookmarked ? <Icons.TurnedInOutlined /> : <Icons.TurnedInNotOutlined />}
           onClick={toggleBookmark}
         >
           {isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
@@ -102,7 +95,7 @@ export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
           {editTypes.map((t) => (
             <MenuItem
               key={t.brace}
-              icon={t.title ? <IconAssignmentOutlined /> : <IconSubjectOutlined />}
+              icon={t.title ? <Icons.AssignmentOutlined /> : <Icons.SubjectOutlined />}
               onClick={() => editFile(t)}
             >
               {t.title || 'Edit text content'}
@@ -119,7 +112,7 @@ export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
         >
           {viewModesOptions.map(({ toString, valueOf }) =>
             valueOf() === viewModes?.mode ? (
-              <MenuItem key={toString()} icon={<IconCheckOutlined />} disabled>
+              <MenuItem key={toString()} icon={<Icons.CheckOutlined />} disabled>
                 {toString()}
               </MenuItem>
             ) : (
@@ -137,7 +130,7 @@ export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
       <M.List dense className={classes.subList}>
         <MenuItem
           className={classes.danger}
-          icon={<IconDeleteOutlined color="error" />}
+          icon={<Icons.DeleteOutlined color="error" />}
           onClick={confirmDelete}
         >
           Delete
