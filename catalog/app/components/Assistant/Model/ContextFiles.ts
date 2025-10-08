@@ -69,13 +69,11 @@ function useLoadPackageContextFile(bucket: string) {
   )
 }
 
+// `path` is expected to be a "directory"/"prefix" path, i.e. it should end with `/` or be empty
 function buildPathChain(path: string): string[] {
-  // FIXME: check edge cases, like leading/trailing slashes, multiple slashes, etc.
   return path
     ? [
-        ...CONTEXT_FILE_NAMES.map(
-          (basename) => `${S3Paths.ensureNoSlash(path)}/${basename}`,
-        ),
+        ...CONTEXT_FILE_NAMES.map((basename) => `${path}${basename}`),
         ...buildPathChain(S3Paths.up(path)),
       ]
     : []
@@ -150,7 +148,7 @@ export function usePackageDirContextFiles(bucket: string, path: string) {
   )
 }
 
-export function format({ content, truncated, ...attrs }: ContextFile): string {
+function format({ content, truncated, ...attrs }: ContextFile): string {
   return XML.tag(
     'context-file',
     attrs,
