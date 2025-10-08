@@ -2,7 +2,7 @@ import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type { Revision } from './useRevisions'
+import type { RevisionsListItem } from './useRevisionsList'
 
 const useDetailsStyles = M.makeStyles((t) => ({
   message: {
@@ -51,17 +51,17 @@ const useStyles = M.makeStyles({
 })
 
 interface RevisionSelectProps {
-  revisions: readonly Revision[]
   value: string
+  revisions: readonly RevisionsListItem[]
   onChange: (hash: string) => void
-  temporaryRemoveNone?: boolean
+  other?: boolean
 }
 
 export default function RevisionSelect({
-  temporaryRemoveNone = false,
+  value,
   revisions,
   onChange,
-  value,
+  other = false,
 }: RevisionSelectProps) {
   const classes = useStyles()
 
@@ -90,7 +90,7 @@ export default function RevisionSelect({
         className={classes.root}
         renderValue={renderValue}
       >
-        {!temporaryRemoveNone && (
+        {other && (
           <M.MenuItem value="">
             <em>None</em>
           </M.MenuItem>

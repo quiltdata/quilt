@@ -11,8 +11,8 @@ import WithPackagesSupport from '../WithPackagesSupport'
 
 import * as Diff from './Diff'
 import RevisionsRange from './RevisionsRange'
-import { useRevision } from './useRevision'
-import useRouter from './router'
+import useRevisions from './useRevisionsPair'
+import { useRouter, isPair } from './router'
 
 interface PackageNameProps {
   bucket: string
@@ -66,8 +66,9 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionsCompareProps {
-  base: PackageHandle
-  other: PackageHandle
+  bucket: string
+  name: string
+  pair: [PackageHandle, PackageHandle]
   changesOnly: boolean
   onChangesOnly: (changesOnly: boolean) => void
   onBaseChange: (hash: string) => void
@@ -76,8 +77,9 @@ interface RevisionsCompareProps {
 }
 
 export function RevisionsCompare({
-  base,
-  other,
+  bucket,
+  name,
+  pair,
   changesOnly,
   onChangesOnly,
   onBaseChange,
@@ -86,14 +88,14 @@ export function RevisionsCompare({
 }: RevisionsCompareProps) {
   const classes = useStyles()
 
-  const baseRevisionResult = useRevision(base.bucket, base.name, base.hash)
-  const otherRevisionResult = useRevision(other.bucket, other.name, other.hash)
+  const revisionsResult = useRevisions(pair)
 
   return (
     <div className={classes.root}>
       <RevisionsRange
-        base={base}
-        other={other}
+        bucket={bucket}
+        name={name}
+        pair={pair}
         onBaseChange={onBaseChange}
         onOtherChange={onOtherChange}
         onSwap={onSwap}
@@ -103,7 +105,7 @@ export function RevisionsCompare({
         <M.Typography variant="h6" gutterBottom>
           What's changed
         </M.Typography>
-        <Diff.Summary base={baseRevisionResult} other={otherRevisionResult} />
+        <Diff.Summary revisionsResult={revisionsResult} />
       </div>
 
       <M.Typography variant="h6" gutterBottom className={classes.details}>
@@ -116,11 +118,7 @@ export function RevisionsCompare({
           User metadata
         </M.Typography>
         <M.Paper square variant="outlined">
-          <Diff.Metadata
-            base={baseRevisionResult}
-            other={otherRevisionResult}
-            changesOnly={changesOnly}
-          />
+          <Diff.Metadata revisionsResult={revisionsResult} changesOnly={changesOnly} />
         </M.Paper>
       </div>
 
@@ -128,11 +126,7 @@ export function RevisionsCompare({
         <M.Typography variant="subtitle1" gutterBottom>
           Entries
         </M.Typography>
-        <Diff.Entries
-          base={baseRevisionResult}
-          other={otherRevisionResult}
-          changesOnly={changesOnly}
-        />
+        <Diff.Entries revisionsResult={revisionsResult} changesOnly={changesOnly} />
       </div>
     </div>
   )
@@ -143,8 +137,7 @@ export default function PackageCompareWrapper() {
     bucket,
     name,
 
-    base,
-    other,
+    pair,
 
     changeBase,
     changeOther,
@@ -160,11 +153,12 @@ export default function PackageCompareWrapper() {
       <WithPackagesSupport bucket={bucket}>
         <FileView.Root>
           <PackageName bucket={bucket} name={name} />
-          {other ? (
+          {isPair(pair) ? (
             <RevisionsCompare
+              bucket={bucket}
+              name={name}
               changesOnly={changesOnly}
-              base={base}
-              other={other}
+              pair={pair}
               onBaseChange={changeBase}
               onOtherChange={changeOther}
               onChangesOnly={toggleChangesOnly}
@@ -172,8 +166,9 @@ export default function PackageCompareWrapper() {
             />
           ) : (
             <RevisionsRange
-              base={base}
-              other={other}
+              bucket={bucket}
+              name={name}
+              pair={pair}
               onBaseChange={changeBase}
               onOtherChange={changeOther}
               onSwap={swap}

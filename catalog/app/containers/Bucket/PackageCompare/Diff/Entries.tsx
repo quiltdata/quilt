@@ -7,7 +7,7 @@ import * as Lab from '@material-ui/lab'
 import * as Model from 'model'
 import { trimCenter } from 'utils/string'
 
-import type { Revision, RevisionResult } from '../useRevision'
+import type { RevisionsResult, Revision } from '../useRevisionsPair'
 
 import Preview from './Preview'
 import useColors from './useColors'
@@ -71,8 +71,7 @@ interface RowProps {
   logicalKey: string
   base?: Model.PackageEntry
   other?: Model.PackageEntry
-  baseRevision?: Revision
-  otherRevision?: Revision
+  revisions: [Revision, Revision]
   changesOnly?: boolean
 }
 
@@ -81,8 +80,7 @@ function Row({
   logicalKey,
   base,
   other,
-  baseRevision,
-  otherRevision,
+  revisions,
   changesOnly = false,
 }: RowProps) {
   const changes = React.useMemo(() => getChanges(base, other), [base, other])
@@ -100,19 +98,15 @@ function Row({
       return (
         <div className={classes.split}>
           <M.Paper elevation={0} className={classes.previewPaper}>
-            {baseRevision && (
-              <span className={classes.hashLegend}>
-                {trimCenter(baseRevision.hash, 12)}
-              </span>
-            )}
+            <span className={classes.hashLegend}>
+              {trimCenter(revisions[0].hash, 12)}
+            </span>
             <Preview physicalKey={changes.base.physicalKey} />
           </M.Paper>
           <M.Paper elevation={0} className={classes.previewPaper}>
-            {otherRevision && (
-              <span className={classes.hashLegend}>
-                {trimCenter(otherRevision.hash, 12)}
-              </span>
-            )}
+            <span className={classes.hashLegend}>
+              {trimCenter(revisions[1].hash, 12)}
+            </span>
             <Preview physicalKey={changes.other.physicalKey} />
           </M.Paper>
         </div>
@@ -164,13 +158,13 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface EntriesDiffProps {
-  base: Revision
-  other: Revision
+  revisions: [Revision, Revision]
   changesOnly?: boolean
 }
 
-function EntriesDiff({ base, other, changesOnly = false }: EntriesDiffProps) {
+function EntriesDiff({ revisions, changesOnly = false }: EntriesDiffProps) {
   const classes = useStyles()
+  const [base, other] = revisions
 
   const entries = React.useMemo(() => {
     const baseData = base.contentsFlatMap || {}
@@ -197,8 +191,7 @@ function EntriesDiff({ base, other, changesOnly = false }: EntriesDiffProps) {
           logicalKey={logicalKey}
           base={entries.base[logicalKey]}
           other={entries.other[logicalKey]}
-          baseRevision={base}
-          otherRevision={other}
+          revisions={revisions}
           changesOnly={changesOnly}
         />
       ))}
@@ -207,21 +200,19 @@ function EntriesDiff({ base, other, changesOnly = false }: EntriesDiffProps) {
 }
 
 interface EntriesDiffWrapperProps {
-  base: RevisionResult
-  other: RevisionResult
+  revisionsResult: RevisionsResult
   changesOnly?: boolean
 }
 
 export default function EntriesDiffHandler({
-  base,
-  other,
+  revisionsResult,
   changesOnly,
 }: EntriesDiffWrapperProps) {
-  if (base._tag === 'loading' || other._tag === 'loading') {
+  if (revisionsResult._tag === 'loading') {
     return <Lab.Skeleton width="100%" height={200} />
   }
 
-  if (base._tag === 'error' || other._tag === 'error') {
+  if (revisionsResult._tag === 'error') {
     return (
       <M.Typography variant="body2" color="error">
         Error loading revisions
@@ -229,7 +220,5 @@ export default function EntriesDiffHandler({
     )
   }
 
-  return (
-    <EntriesDiff base={base.revision} other={other.revision} changesOnly={changesOnly} />
-  )
+  return <EntriesDiff revisions={revisionsResult.revisions} changesOnly={changesOnly} />
 }

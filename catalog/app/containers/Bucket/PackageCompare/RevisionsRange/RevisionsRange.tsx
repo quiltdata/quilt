@@ -6,8 +6,8 @@ import * as Lab from '@material-ui/lab'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import RevisionSelect from './RevisionSelect'
-import useRevisions from './useRevisions'
-import type { Revision } from './useRevisions'
+import useRevisionsList from './useRevisionsList'
+import type { RevisionsListItem } from './useRevisionsList'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -45,14 +45,13 @@ function Skeleton() {
   )
 }
 
-interface RevisionsProps extends RevisionsHandlerProps {
-  revisions: readonly Revision[]
+interface RevisionsProps extends Omit<RevisionsHandlerProps, 'bucket' | 'name'> {
+  revisions: readonly RevisionsListItem[]
 }
 
 function Revisions({
   revisions,
-  base,
-  other,
+  pair: [base, other],
   onBaseChange,
   onOtherChange,
   onSwap,
@@ -61,16 +60,12 @@ function Revisions({
   return (
     <div className={classes.root}>
       <div className={classes.range}>
-        <RevisionSelect
-          revisions={revisions}
-          value={base.hash}
-          onChange={onBaseChange}
-          temporaryRemoveNone
-        />
+        <RevisionSelect revisions={revisions} value={base.hash} onChange={onBaseChange} />
         <RevisionSelect
           revisions={revisions}
           value={other?.hash || ''}
           onChange={onOtherChange}
+          other
         />
       </div>
       <M.IconButton className={classes.swap} onClick={onSwap} disabled={!other}>
@@ -81,21 +76,26 @@ function Revisions({
 }
 
 interface RevisionsHandlerProps {
-  base: PackageHandle
-  other: PackageHandle | null
+  bucket: string
+  name: string
+  pair: [PackageHandle] | [PackageHandle, PackageHandle]
   onBaseChange: (hash: string) => void
   onOtherChange: (hash: string) => void
   onSwap: () => void
 }
 
-export default function RevisionsHandler({ base, ...props }: RevisionsHandlerProps) {
-  const data = useRevisions(base.bucket, base.name)
+export default function RevisionsHandler({
+  bucket,
+  name,
+  ...props
+}: RevisionsHandlerProps) {
+  const data = useRevisionsList(bucket, name)
   switch (data._tag) {
     case 'loading':
       return <Skeleton />
     case 'error':
       return <Lab.Alert severity="error">{data.error.message}</Lab.Alert>
     case 'ok':
-      return <Revisions base={base} revisions={data.revisions} {...props} />
+      return <Revisions revisions={data.revisions} {...props} />
   }
 }

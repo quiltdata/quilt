@@ -1,6 +1,8 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
 
+import type { PackageHandle } from 'utils/packageHandle'
+
 import { RevisionsCompare } from './PackageCompare'
 
 jest.mock('@material-ui/core', () => ({
@@ -94,17 +96,16 @@ jest.mock('utils/StyledLink', () =>
 )
 
 describe('containers/Bucket/PackageCompare/PackageCompare', () => {
+  const bucket = 'test-bucket'
+  const name = 'test-package'
+  const pair: [PackageHandle, PackageHandle] = [
+    { bucket, name, hash: 'hash1' },
+    { bucket, name, hash: 'hash2' },
+  ]
   const mockPackageHandles = {
-    base: {
-      bucket: 'test-bucket',
-      name: 'test-package',
-      hash: 'hash1',
-    },
-    other: {
-      bucket: 'test-bucket',
-      name: 'test-package',
-      hash: 'hash2',
-    },
+    bucket,
+    name,
+    pair,
     changesOnly: true,
     onBaseChange: () => {},
     onOtherChange: () => {},

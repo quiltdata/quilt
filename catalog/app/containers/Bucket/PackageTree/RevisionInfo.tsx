@@ -12,8 +12,8 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import * as Diff from '../PackageCompare/Diff'
-import { useRevision } from '../PackageCompare/useRevision'
+import Summary from '../PackageCompare/Diff/Summary'
+import useRevisions from '../PackageCompare/useRevisionsPair'
 
 import type REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
@@ -64,8 +64,10 @@ function DiffSummary({ bucket, name, base, other, onClose }: DiffSummaryProps) {
   const classes = useDiffSummaryStyles()
   const { urls } = NamedRoutes.use()
 
-  const leftRevision = useRevision(bucket, name, base)
-  const rightRevision = useRevision(bucket, name, other)
+  const revisionsResult = useRevisions([
+    { bucket, name, hash: base },
+    { bucket, name, hash: other },
+  ])
 
   return (
     <div className={classes.popover}>
@@ -73,7 +75,7 @@ function DiffSummary({ bucket, name, base, other, onClose }: DiffSummaryProps) {
         <M.Typography variant="subtitle1">What's changed</M.Typography>
       </div>
       <div className={classes.content}>
-        <Diff.Summary base={leftRevision} other={rightRevision} />
+        <Summary revisionsResult={revisionsResult} />
       </div>
       <div className={classes.showMore}>
         <M.Button

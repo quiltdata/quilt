@@ -9,7 +9,7 @@ import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 import assertNever from 'utils/assertNever'
 
-import type { Revision, RevisionResult } from '../useRevision'
+import type { Revision, RevisionsResult } from '../useRevisionsPair'
 
 import useColors from './useColors'
 
@@ -196,10 +196,10 @@ function compareKeys(baseObj: JsonRecord, otherObj: JsonRecord): MetaChange[] {
   return compareKeysRecursive(baseObj, otherObj)
 }
 
-function getMetaChange(
-  base: Revision,
-  other: Revision,
-): Extract<WhatChanged, { _tag: 'meta' }> | null {
+function getMetaChange([base, other]: [Revision, Revision]): Extract<
+  WhatChanged,
+  { _tag: 'meta' }
+> | null {
   if (JSON.stringify(base.userMeta) === JSON.stringify(other.userMeta)) return null
 
   return {
@@ -208,7 +208,7 @@ function getMetaChange(
   }
 }
 
-function getEntryChanges(base: Revision, other: Revision): WhatChanged[] {
+function getEntryChanges([base, other]: [Revision, Revision]): WhatChanged[] {
   const baseData = base.contentsFlatMap || {}
   const otherData = other.contentsFlatMap || {}
   const logicalKeys = Object.keys({ ...baseData, ...otherData }).sort()
@@ -245,8 +245,8 @@ function getEntryChanges(base: Revision, other: Revision): WhatChanged[] {
   return entryChanges
 }
 
-function getChanges(base: Revision, other: Revision): WhatChanged[] {
-  return [getMetaChange(base, other), ...getEntryChanges(base, other)].filter(
+function getChanges(revisions: [Revision, Revision]): WhatChanged[] {
+  return [getMetaChange(revisions), ...getEntryChanges(revisions)].filter(
     Boolean,
   ) as WhatChanged[]
 }
@@ -308,14 +308,13 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SummaryDiffProps {
-  base: Revision
-  other: Revision
+  revisions: [Revision, Revision]
 }
 
-function SummaryDiff({ base, other }: SummaryDiffProps) {
+function SummaryDiff({ revisions }: SummaryDiffProps) {
   const classes = useStyles()
 
-  const changes = React.useMemo(() => getChanges(base, other), [base, other])
+  const changes = React.useMemo(() => getChanges(revisions), [revisions])
 
   if (changes.length === 0) {
     return <M.Typography className={classes.empty}>Nothing changed</M.Typography>
@@ -331,16 +330,15 @@ function SummaryDiff({ base, other }: SummaryDiffProps) {
 }
 
 interface SummaryDiffHandlerProps {
-  base: RevisionResult
-  other: RevisionResult
+  revisionsResult: RevisionsResult
 }
 
-export default function SummaryDiffHandler({ base, other }: SummaryDiffHandlerProps) {
-  if (base._tag === 'loading' || other._tag === 'loading') {
+export default function SummaryDiffHandler({ revisionsResult }: SummaryDiffHandlerProps) {
+  if (revisionsResult._tag === 'loading') {
     return <Skeleton width="100%" height={200} />
   }
 
-  if (base._tag === 'error' || other._tag === 'error') {
+  if (revisionsResult._tag === 'error') {
     return (
       <M.Typography variant="body2" color="error">
         Error loading revisions
@@ -348,5 +346,5 @@ export default function SummaryDiffHandler({ base, other }: SummaryDiffHandlerPr
     )
   }
 
-  return <SummaryDiff base={base.revision} other={other.revision} />
+  return <SummaryDiff revisions={revisionsResult.revisions} />
 }

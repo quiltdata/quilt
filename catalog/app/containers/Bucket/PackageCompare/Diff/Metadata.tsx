@@ -5,14 +5,13 @@ import * as M from '@material-ui/core'
 import assertNever from 'utils/assertNever'
 import Skeleton from 'components/Skeleton'
 
-import type { Revision, RevisionResult } from '../useRevision'
+import type { Revision, RevisionsResult } from '../useRevisionsPair'
 
 import Change from './Change'
 import type { Order } from './Change'
 
 function getChanges(
-  base: Revision,
-  other: Revision,
+  [base, other]: [Revision, Revision],
   changesOnly: boolean = false,
 ): { order: Order; value: string }[] {
   const dir = base.modified > other.modified ? 'backward' : 'forward'
@@ -71,21 +70,19 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface MetadataDiffProps {
-  base: Revision
-  other: Revision
+  revisions: [Revision, Revision]
   changesOnly?: boolean
 }
 
 function MetadataDiff({
-  base,
-  other,
+  revisions,
   changesOnly: changesOnly = false,
 }: MetadataDiffProps) {
   const classes = useStyles()
 
   const changes = React.useMemo(
-    () => getChanges(base, other, changesOnly),
-    [base, other, changesOnly],
+    () => getChanges(revisions, changesOnly),
+    [revisions, changesOnly],
   )
 
   if (changes.length === 0) {
@@ -108,21 +105,19 @@ function MetadataDiff({
 }
 
 interface MetadataDiffHandlerProps {
-  base: RevisionResult
-  other: RevisionResult
+  revisionsResult: RevisionsResult
   changesOnly?: boolean
 }
 
 export default function MetadataDiffHandler({
-  base,
-  other,
+  revisionsResult,
   changesOnly,
 }: MetadataDiffHandlerProps) {
-  if (base._tag === 'loading' || other._tag === 'loading') {
+  if (revisionsResult._tag === 'loading') {
     return <Skeleton width="100%" height={200} />
   }
 
-  if (base._tag === 'error' || other._tag === 'error') {
+  if (revisionsResult._tag === 'error') {
     return (
       <M.Typography variant="body2" color="error">
         Error loading revisions
@@ -130,7 +125,5 @@ export default function MetadataDiffHandler({
     )
   }
 
-  return (
-    <MetadataDiff base={base.revision} other={other.revision} changesOnly={changesOnly} />
-  )
+  return <MetadataDiff revisions={revisionsResult.revisions} changesOnly={changesOnly} />
 }

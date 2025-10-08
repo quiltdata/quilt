@@ -5,17 +5,17 @@ import * as GQL from 'utils/GraphQL'
 
 import REVISIONS_LIST_QUERY from './gql/RevisionsList.generated'
 
-export type Revision = Pick<
+export type RevisionsListItem = Pick<
   Model.GQLTypes.PackageRevision,
   'hash' | 'message' | 'modified'
 >
 
-export type RevisionsResult =
+type Result =
   | { _tag: 'loading' }
   | { _tag: 'error'; error: Error }
-  | { _tag: 'ok'; revisions: ReadonlyArray<Revision> }
+  | { _tag: 'ok'; revisions: ReadonlyArray<RevisionsListItem> }
 
-export default function useRevisions(bucket: string, name: string): RevisionsResult {
+export default function useRevisionsList(bucket: string, name: string): Result {
   const query = GQL.useQuery(REVISIONS_LIST_QUERY, {
     bucket,
     name,

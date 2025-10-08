@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
+import type { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
 
 interface PackageCompareParams {
@@ -12,7 +13,12 @@ interface PackageCompareParams {
   otherHash: string
 }
 
-export default function useRouter() {
+type Single = [PackageHandle]
+type Pair = [PackageHandle, PackageHandle]
+
+export const isPair = (x: Single | Pair): x is Pair => x.length > 1
+
+export function useRouter() {
   const { bucket, name, baseHash, otherHash } = RRDom.useParams<PackageCompareParams>()
 
   invariant(!!bucket, '`bucket` must be defined')
@@ -24,14 +30,11 @@ export default function useRouter() {
   const location = RRDom.useLocation()
   const { showAll } = parseSearch(location.search)
 
-  const base = React.useMemo(
-    () => ({ bucket, name, hash: baseHash }),
-    [bucket, name, baseHash],
-  )
-  const other = React.useMemo(
-    () => (otherHash ? { bucket, name, hash: otherHash } : null),
-    [bucket, name, otherHash],
-  )
+  const pair: Single | Pair = React.useMemo(() => {
+    const base = { bucket, name, hash: baseHash }
+    if (!otherHash) return [base]
+    return [base, { bucket, name, hash: otherHash }]
+  }, [bucket, name, baseHash, otherHash])
 
   const changeBase = React.useCallback(
     (hash: string) =>
@@ -52,21 +55,20 @@ export default function useRouter() {
   const toggleChangesOnly = React.useCallback(
     (checked: boolean) => {
       const route = checked
-        ? urls.bucketPackageCompare(bucket, name, base.hash, other?.hash)
-        : urls.bucketPackageCompare(bucket, name, base.hash, other?.hash, {
+        ? urls.bucketPackageCompare(bucket, name, baseHash, otherHash)
+        : urls.bucketPackageCompare(bucket, name, baseHash, otherHash, {
             showAll: true,
           })
       push(route)
     },
-    [bucket, name, base, other, push, urls],
+    [bucket, name, baseHash, otherHash, push, urls],
   )
 
   return {
     bucket,
     name,
 
-    base,
-    other,
+    pair,
 
     changeBase,
     changeOther,
