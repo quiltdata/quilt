@@ -1,12 +1,9 @@
-import invariant from 'invariant'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import parseSearch from 'utils/parseSearch'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import * as FileView from '../FileView'
@@ -15,6 +12,39 @@ import WithPackagesSupport from '../WithPackagesSupport'
 import * as Diff from './Diff'
 import RevisionsRange from './RevisionsRange'
 import { useRevision } from './useRevision'
+import useRouter from './router'
+
+interface PackageNameProps {
+  bucket: string
+  name: string
+}
+
+function PackageName({ bucket, name }: PackageNameProps) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Typography variant="body1" gutterBottom>
+      <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>
+    </M.Typography>
+  )
+}
+
+interface ChangesOnlyCheckboxProps {
+  value: boolean
+  onChange: (checked: boolean) => void
+}
+
+function ChangesOnlyCheckbox({ onChange, value }: ChangesOnlyCheckboxProps) {
+  const handleChange = React.useCallback(
+    (_event: React.ChangeEvent<HTMLInputElement>, checked) => onChange(checked),
+    [onChange],
+  )
+  return (
+    <M.FormControlLabel
+      control={<M.Checkbox checked={value} onChange={handleChange} />}
+      label="Show changes only"
+    />
+  )
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
@@ -38,42 +68,26 @@ const useStyles = M.makeStyles((t) => ({
 interface RevisionsCompareProps {
   left: PackageHandle
   right: PackageHandle
+  changesOnly: boolean
+  onChangesOnly: (changesOnly: boolean) => void
   onLeftChange: (hash: string) => void
   onRightChange: (hash: string) => void
   onSwap: () => void
-  changesOnly: boolean
 }
 
 export function RevisionsCompare({
   left,
   right,
+  changesOnly,
+  onChangesOnly,
   onLeftChange,
   onRightChange,
   onSwap,
-  changesOnly,
 }: RevisionsCompareProps) {
   const classes = useStyles()
-  const { push } = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
 
   const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
   const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
-
-  const handleShowChangesOnly = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const options = event.target.checked ? undefined : { showAll: true }
-      push(
-        urls.bucketPackageCompare(
-          left.bucket,
-          left.name,
-          left.hash,
-          right?.hash,
-          options,
-        ),
-      )
-    },
-    [push, urls, left.bucket, left.name, left.hash, right?.hash],
-  )
 
   return (
     <div className={classes.root}>
@@ -94,10 +108,7 @@ export function RevisionsCompare({
 
       <M.Typography variant="h6" gutterBottom className={classes.details}>
         Details
-        <M.FormControlLabel
-          control={<M.Checkbox checked={changesOnly} onChange={handleShowChangesOnly} />}
-          label="Show changes only"
-        />
+        <ChangesOnlyCheckbox value={changesOnly} onChange={onChangesOnly} />
       </M.Typography>
 
       <div className={classes.userMeta}>
@@ -128,86 +139,44 @@ export function RevisionsCompare({
 }
 
 export default function PackageCompareWrapper() {
-  const { bucket, name, revisionLeft, revisionRight } = RRDom.useParams<{
-    bucket: string
-    name: string
-    revisionLeft: string
-    revisionRight: string
-  }>()
+  const {
+    bucket,
+    name,
 
-  invariant(!!bucket, '`bucket` must be defined')
-  invariant(!!name, '`name` must be defined')
-  invariant(!!revisionLeft, '`revisionLeft` must be defined')
+    base,
+    other,
 
-  const { push } = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
-  const location = RRDom.useLocation()
-  const { showAll } = parseSearch(location.search)
+    changeBase,
+    changeOther,
+    swap,
 
-  const left = React.useMemo(
-    () => ({ bucket, name, hash: revisionLeft }),
-    [bucket, name, revisionLeft],
-  )
-
-  const right = React.useMemo(
-    () => (revisionRight ? { bucket, name, hash: revisionRight } : null),
-    [bucket, name, revisionRight],
-  )
-
-  const handleLeftChange = React.useCallback(
-    (hash: string) =>
-      push(
-        urls.bucketPackageCompare(bucket, name, hash, revisionRight, {
-          showAll,
-        }),
-      ),
-    [bucket, name, push, revisionRight, urls, showAll],
-  )
-  const handleRightChange = React.useCallback(
-    (hash: string) =>
-      push(
-        urls.bucketPackageCompare(bucket, name, revisionLeft, hash, {
-          showAll,
-        }),
-      ),
-    [bucket, name, push, revisionLeft, urls, showAll],
-  )
-  const handleSwap = React.useCallback(
-    () =>
-      push(
-        urls.bucketPackageCompare(bucket, name, revisionRight, revisionLeft, {
-          showAll,
-        }),
-      ),
-    [bucket, name, push, revisionLeft, revisionRight, urls, showAll],
-  )
+    changesOnly,
+    toggleChangesOnly,
+  } = useRouter()
 
   return (
     <>
       <MetaTitle>{[`${name} comparison`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <FileView.Root>
-          <M.Typography variant="body1" gutterBottom>
-            <StyledLink to={urls.bucketPackageDetail(left.bucket, left.name)}>
-              {left.name}
-            </StyledLink>
-          </M.Typography>
-          {right ? (
+          <PackageName bucket={bucket} name={name} />
+          {other ? (
             <RevisionsCompare
-              changesOnly={!showAll || showAll === 'false'}
-              left={left}
-              right={right}
-              onLeftChange={handleLeftChange}
-              onRightChange={handleRightChange}
-              onSwap={handleSwap}
+              changesOnly={changesOnly}
+              left={base}
+              right={other}
+              onLeftChange={changeBase}
+              onRightChange={changeOther}
+              onChangesOnly={toggleChangesOnly}
+              onSwap={swap}
             />
           ) : (
             <RevisionsRange
-              left={left}
-              right={right}
-              onLeftChange={handleLeftChange}
-              onRightChange={handleRightChange}
-              onSwap={handleSwap}
+              left={base}
+              right={other}
+              onLeftChange={changeBase}
+              onRightChange={changeOther}
+              onSwap={swap}
             />
           )}
         </FileView.Root>

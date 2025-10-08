@@ -108,6 +108,7 @@ describe('containers/Bucket/PackageCompare/PackageCompare', () => {
     changesOnly: true,
     onLeftChange: () => {},
     onRightChange: () => {},
+    onChangesOnly: () => {},
     onSwap: () => {},
   }
 
