@@ -27,7 +27,7 @@ query_runner = QueryRunner(
     database=QUILT_ICEBERG_GLUE_DB,
     workgroup=QUILT_ICEBERG_WORKGROUP,
 )
-query_maker = QueryMaker(QUILT_ICEBERG_GLUE_DB)
+query_maker = QueryMaker(user_athena_db=QUILT_USER_ATHENA_DATABASE)
 
 
 def get_first_line(bucket, key) -> bytes | None:
