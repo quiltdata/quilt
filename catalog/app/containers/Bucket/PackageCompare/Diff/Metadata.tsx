@@ -1,20 +1,24 @@
+import cx from 'classnames'
 import { diffJson } from 'diff'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import assertNever from 'utils/assertNever'
 import Skeleton from 'components/Skeleton'
 
 import type { Revision, RevisionsResult } from '../useRevisionsPair'
 
-import Change from './Change'
-import type { Order } from './Change'
+import useColors from './useColors'
+import Revisioned from './Revisioned'
+
+type Change =
+  | { _tag: 'added'; hash: string; value: string }
+  | { _tag: 'removed'; hash: string; value: string }
+  | { _tag: 'unmodified'; value: string }
 
 function getChanges(
   [base, other]: [Revision, Revision],
   changesOnly: boolean = false,
-): { order: Order; value: string }[] {
-  const dir = base.modified > other.modified ? 'backward' : 'forward'
+): Change[] {
   return diffJson(base.userMeta || {}, other.userMeta || {})
     .map((c) => ({
       ...c,
@@ -27,28 +31,13 @@ function getChanges(
     .filter((c) => c.value.trim())
     .filter((c) => !changesOnly || c.added || c.removed)
     .map((c) => {
-      if (!c.added && !c.removed) return { order: { _tag: 'limbo' }, value: c.value }
-      const hash = c.added ? other.hash : base.hash
-      switch (dir) {
-        case 'forward':
-          return {
-            order: {
-              _tag: c.added ? 'latter' : 'former',
-              hash,
-            },
-            value: c.value,
-          }
-        case 'backward':
-          return {
-            order: {
-              _tag: c.added ? 'former' : 'latter',
-              hash,
-            },
-            value: c.value,
-          }
-        default:
-          assertNever(dir)
+      if (c.added) {
+        return { _tag: 'added', hash: other.hash, value: c.value }
       }
+      if (c.removed) {
+        return { _tag: 'removed', hash: base.hash, value: c.value }
+      }
+      return { _tag: 'unmodified', value: c.value }
     })
 }
 
@@ -78,10 +67,14 @@ function MetadataDiff({
   revisions,
   changesOnly: changesOnly = false,
 }: MetadataDiffProps) {
+  const colors = useColors()
   const classes = useStyles()
 
   const changes = React.useMemo(
-    () => getChanges(revisions, changesOnly),
+    () =>
+      revisions[0].modified < revisions[1].modified
+        ? getChanges(revisions, changesOnly)
+        : getChanges([...revisions].reverse() as [Revision, Revision], changesOnly),
     [revisions, changesOnly],
   )
 
@@ -95,11 +88,21 @@ function MetadataDiff({
 
   return (
     <div>
-      {changes.map(({ order, value }, index) => (
-        <Change order={order} key={index} className={classes.change}>
-          {value}
-        </Change>
-      ))}
+      {changes.map((change, index) =>
+        change._tag === 'unmodified' ? (
+          <div key={index} className={classes.change}>
+            {change.value}
+          </div>
+        ) : (
+          <Revisioned
+            className={cx(classes.change, colors[change._tag])}
+            hash={change.hash}
+            key={index}
+          >
+            {change.value}
+          </Revisioned>
+        ),
+      )}
     </div>
   )
 }
