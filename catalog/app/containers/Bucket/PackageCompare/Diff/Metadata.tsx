@@ -118,10 +118,6 @@ export default function MetadataDiffHandler({
   right,
   changesOnly,
 }: MetadataDiffHandlerProps) {
-  if (left._tag === 'idle' || right._tag === 'idle') {
-    return null
-  }
-
   if (left._tag === 'loading' || right._tag === 'loading') {
     return <Skeleton width="100%" height={200} />
   }

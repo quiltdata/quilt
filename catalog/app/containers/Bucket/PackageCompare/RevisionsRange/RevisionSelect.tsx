@@ -1,38 +1,68 @@
+import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import type { Revision } from './useRevisions'
-import { Details, Date } from './Revision'
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    overflow: 'hidden',
+const useDetailsStyles = M.makeStyles((t) => ({
+  message: {
+    display: 'block',
   },
   hash: {
-    fontFamily: t.typography.monospace.fontFamily,
+    ...t.typography.monospace,
+    display: 'block',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+  },
+}))
+
+interface DetailsProps {
+  message: string | null
+  hash: string
+}
+
+function Details({ message, hash }: DetailsProps) {
+  const classes = useDetailsStyles()
+  return (
+    <>
+      <span className={classes.message}>{message || 'No message'}</span>
+      <span className={classes.hash}>{hash}</span>
+    </>
+  )
+}
+
+interface DateProps {
+  modified: Date
+}
+
+function Date({ modified }: DateProps) {
+  return <>{dateFns.format(modified, 'MMM d yyyy - h:mma')}</>
+}
+
+const useStyles = M.makeStyles({
+  root: {
+    overflow: 'hidden',
   },
   helperText: {
     display: 'flex',
     justifyContent: 'space-between',
   },
-}))
+})
 
-interface RevisionsListProps {
+interface RevisionSelectProps {
   revisions: readonly Revision[]
   value: string
   onChange: (hash: string) => void
   temporaryRemoveNone?: boolean
 }
 
-export default function RevisionsList({
+export default function RevisionSelect({
   temporaryRemoveNone = false,
   revisions,
   onChange,
   value,
-}: RevisionsListProps) {
+}: RevisionSelectProps) {
   const classes = useStyles()
 
   const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {

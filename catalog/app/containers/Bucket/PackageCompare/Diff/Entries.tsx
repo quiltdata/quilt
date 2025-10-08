@@ -217,10 +217,6 @@ export default function EntriesDiffHandler({
   right,
   changesOnly,
 }: EntriesDiffWrapperProps) {
-  if (left._tag === 'idle' || right._tag === 'idle') {
-    return null
-  }
-
   if (left._tag === 'loading' || right._tag === 'loading') {
     return <Lab.Skeleton width="100%" height={200} />
   }

@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../../../model/graphql/types.generated'
+import * as Types from '../../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageCompare_gql_RevisionListQueryVariables =
+export type containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQueryVariables =
   Types.Exact<{
     bucket: Types.Scalars['String']
     name: Types.Scalars['String']
   }>
 
-export type containers_Bucket_PackageCompare_gql_RevisionListQuery = {
+export type containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQuery = {
   readonly __typename: 'Query'
 } & {
   readonly package: Types.Maybe<
@@ -25,13 +25,16 @@ export type containers_Bucket_PackageCompare_gql_RevisionListQuery = {
   >
 }
 
-export const containers_Bucket_PackageCompare_gql_RevisionListDocument = {
+export const containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Bucket_PackageCompare_gql_RevisionList' },
+      name: {
+        kind: 'Name',
+        value: 'containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsList',
+      },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -114,8 +117,8 @@ export const containers_Bucket_PackageCompare_gql_RevisionListDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Bucket_PackageCompare_gql_RevisionListQuery,
-  containers_Bucket_PackageCompare_gql_RevisionListQueryVariables
+  containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQuery,
+  containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQueryVariables
 >
 
-export { containers_Bucket_PackageCompare_gql_RevisionListDocument as default }
+export { containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListDocument as default }

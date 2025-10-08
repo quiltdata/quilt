@@ -336,10 +336,6 @@ interface SummaryDiffHandlerProps {
 }
 
 export default function SummaryDiffHandler({ left, right }: SummaryDiffHandlerProps) {
-  if (left._tag === 'idle' || right._tag === 'idle') {
-    return null
-  }
-
   if (left._tag === 'loading' || right._tag === 'loading') {
     return <Skeleton width="100%" height={200} />
   }

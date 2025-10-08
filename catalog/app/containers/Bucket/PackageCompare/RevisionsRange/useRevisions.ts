@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 
-import REVISION_LIST_QUERY from './gql/RevisionList.generated'
+import REVISIONS_LIST_QUERY from './gql/RevisionsList.generated'
 
 export type Revision = Pick<
   Model.GQLTypes.PackageRevision,
@@ -16,7 +16,7 @@ export type RevisionsResult =
   | { _tag: 'ok'; revisions: ReadonlyArray<Revision> }
 
 export default function useRevisions(bucket: string, name: string): RevisionsResult {
-  const query = GQL.useQuery(REVISION_LIST_QUERY, {
+  const query = GQL.useQuery(REVISIONS_LIST_QUERY, {
     bucket,
     name,
     page: 1,

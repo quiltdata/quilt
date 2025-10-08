@@ -13,7 +13,7 @@ import * as FileView from '../FileView'
 import WithPackagesSupport from '../WithPackagesSupport'
 
 import * as Diff from './Diff'
-import Revisions from './Revisions'
+import RevisionsRange from './RevisionsRange'
 import { useRevision } from './useRevision'
 
 const useStyles = M.makeStyles((t) => ({
@@ -77,7 +77,7 @@ export function RevisionsCompare({
 
   return (
     <div className={classes.root}>
-      <Revisions
+      <RevisionsRange
         left={left}
         right={right}
         onLeftChange={onLeftChange}
@@ -202,7 +202,7 @@ export default function PackageCompareWrapper() {
               onSwap={handleSwap}
             />
           ) : (
-            <Revisions
+            <RevisionsRange
               left={left}
               right={right}
               onLeftChange={handleLeftChange}
