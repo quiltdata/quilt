@@ -119,7 +119,7 @@ class QueryMaker:
             FROM "{self.user_athena_db}"."{bucket}_manifests"
             WHERE logical_key IS NULL
                 -- filter out bogus manifests i.e. parquet files
-                AND regexp_like("$path", '/[a-z0-9]{64}$')
+                AND regexp_like("$path", '/[a-z0-9]{{64}}$')
         ) AS s
         ON t.bucket = s.bucket AND t.top_hash = s.top_hash
         WHEN MATCHED THEN
@@ -178,7 +178,7 @@ class QueryMaker:
             FROM "{self.user_athena_db}"."{bucket}_manifests"
             WHERE logical_key IS NOT NULL
                 -- filter out bogus manifests i.e. parquet files
-                AND regexp_like("$path", '/[a-z0-9]{64}$')
+                AND regexp_like("$path", '/[a-z0-9]{{64}}$')
         ) AS s
         ON t.bucket = s.bucket AND t.top_hash = s.top_hash AND t.logical_key = s.logical_key
         WHEN MATCHED THEN
