@@ -71,10 +71,7 @@ function MetadataDiff({
   const classes = useStyles()
 
   const changes = React.useMemo(
-    () =>
-      revisions[0].modified < revisions[1].modified
-        ? getChanges(revisions, changesOnly)
-        : getChanges([...revisions].reverse() as [Revision, Revision], changesOnly),
+    () => getChanges(revisions, changesOnly),
     [revisions, changesOnly],
   )
 
