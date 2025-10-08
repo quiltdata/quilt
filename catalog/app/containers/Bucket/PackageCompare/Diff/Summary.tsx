@@ -146,45 +146,45 @@ function isObject(value: any): value is JsonRecord {
 }
 
 function compareKeysRecursive(
-  leftObj: JsonRecord,
-  rightObj: JsonRecord,
+  baseObj: JsonRecord,
+  otherObj: JsonRecord,
   prefix: JSONPointer.Path = [],
 ): MetaChange[] {
   const changedKeys: MetaChange[] = []
-  const combinedKeys = Object.keys({ ...leftObj, ...rightObj })
+  const combinedKeys = Object.keys({ ...baseObj, ...otherObj })
 
   for (const key of combinedKeys) {
     const pointer = prefix.length ? [...prefix, key] : [key]
-    const leftValue = leftObj[key]
-    const rightValue = rightObj[key]
+    const baseValue = baseObj[key]
+    const otherValue = otherObj[key]
 
     // If values are strictly equal, no change
-    if (leftValue === rightValue) {
+    if (baseValue === otherValue) {
       continue
     }
 
     // Handle missing keys
-    if (leftValue === undefined) {
-      changedKeys.push({ _tag: 'added', pointer, newValue: rightValue })
+    if (baseValue === undefined) {
+      changedKeys.push({ _tag: 'added', pointer, newValue: otherValue })
       continue
     }
 
-    if (rightValue === undefined) {
-      changedKeys.push({ _tag: 'removed', pointer, oldValue: leftValue })
+    if (otherValue === undefined) {
+      changedKeys.push({ _tag: 'removed', pointer, oldValue: baseValue })
       continue
     }
 
     // If both are objects, recurse deeper
-    if (isObject(leftValue) && isObject(rightValue)) {
-      const nestedChanges = compareKeysRecursive(leftValue, rightValue, pointer)
+    if (isObject(baseValue) && isObject(otherValue)) {
+      const nestedChanges = compareKeysRecursive(baseValue, otherValue, pointer)
       changedKeys.push(...nestedChanges)
     } else {
       // Either primitive values changed, or one is object and other is not
       changedKeys.push({
         _tag: 'modified',
         pointer,
-        oldValue: leftValue,
-        newValue: rightValue,
+        oldValue: baseValue,
+        newValue: otherValue,
       })
     }
   }
@@ -192,42 +192,42 @@ function compareKeysRecursive(
   return changedKeys
 }
 
-function compareKeys(leftObj: JsonRecord, rightObj: JsonRecord): MetaChange[] {
-  return compareKeysRecursive(leftObj, rightObj)
+function compareKeys(baseObj: JsonRecord, otherObj: JsonRecord): MetaChange[] {
+  return compareKeysRecursive(baseObj, otherObj)
 }
 
 function getMetaChange(
-  left: Revision,
-  right: Revision,
+  base: Revision,
+  other: Revision,
 ): Extract<WhatChanged, { _tag: 'meta' }> | null {
-  if (JSON.stringify(left.userMeta) === JSON.stringify(right.userMeta)) return null
+  if (JSON.stringify(base.userMeta) === JSON.stringify(other.userMeta)) return null
 
   return {
     _tag: 'meta' as const,
-    keys: compareKeys(left.userMeta || {}, right.userMeta || {}),
+    keys: compareKeys(base.userMeta || {}, other.userMeta || {}),
   }
 }
 
-function getEntryChanges(left: Revision, right: Revision): WhatChanged[] {
-  const leftData = left.contentsFlatMap || {}
-  const rightData = right.contentsFlatMap || {}
-  const logicalKeys = Object.keys({ ...leftData, ...rightData }).sort()
+function getEntryChanges(base: Revision, other: Revision): WhatChanged[] {
+  const baseData = base.contentsFlatMap || {}
+  const otherData = other.contentsFlatMap || {}
+  const logicalKeys = Object.keys({ ...baseData, ...otherData }).sort()
   const entryChanges: WhatChanged[] = []
 
   for (const logicalKey of logicalKeys) {
-    const leftEntry = leftData[logicalKey]
-    const rightEntry = rightData[logicalKey]
+    const baseEntry = baseData[logicalKey]
+    const otherEntry = otherData[logicalKey]
 
-    if (!leftEntry) {
+    if (!baseEntry) {
       entryChanges.push({ _tag: 'added', logicalKey })
-    } else if (!rightEntry) {
+    } else if (!otherEntry) {
       entryChanges.push({ _tag: 'removed', logicalKey })
     } else {
-      const hashChanged = leftEntry.hash.value !== rightEntry.hash.value
-      const sizeChanged = leftEntry.size !== rightEntry.size
-      const physicalKeyChanged = leftEntry.physicalKey !== rightEntry.physicalKey
+      const hashChanged = baseEntry.hash.value !== otherEntry.hash.value
+      const sizeChanged = baseEntry.size !== otherEntry.size
+      const physicalKeyChanged = baseEntry.physicalKey !== otherEntry.physicalKey
       const metaChanged =
-        JSON.stringify(leftEntry.meta) !== JSON.stringify(rightEntry.meta)
+        JSON.stringify(baseEntry.meta) !== JSON.stringify(otherEntry.meta)
 
       if (hashChanged || sizeChanged || physicalKeyChanged || metaChanged) {
         entryChanges.push({
@@ -235,8 +235,8 @@ function getEntryChanges(left: Revision, right: Revision): WhatChanged[] {
           logicalKey,
           hashChanged,
           sizeChanged,
-          oldSize: sizeChanged ? leftEntry.size : undefined,
-          newSize: sizeChanged ? rightEntry.size : undefined,
+          oldSize: sizeChanged ? baseEntry.size : undefined,
+          newSize: sizeChanged ? otherEntry.size : undefined,
         })
       }
     }
@@ -245,8 +245,8 @@ function getEntryChanges(left: Revision, right: Revision): WhatChanged[] {
   return entryChanges
 }
 
-function getChanges(left: Revision, right: Revision): WhatChanged[] {
-  return [getMetaChange(left, right), ...getEntryChanges(left, right)].filter(
+function getChanges(base: Revision, other: Revision): WhatChanged[] {
+  return [getMetaChange(base, other), ...getEntryChanges(base, other)].filter(
     Boolean,
   ) as WhatChanged[]
 }
@@ -308,14 +308,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SummaryDiffProps {
-  left: Revision
-  right: Revision
+  base: Revision
+  other: Revision
 }
 
-function SummaryDiff({ left, right }: SummaryDiffProps) {
+function SummaryDiff({ base, other }: SummaryDiffProps) {
   const classes = useStyles()
 
-  const changes = React.useMemo(() => getChanges(left, right), [left, right])
+  const changes = React.useMemo(() => getChanges(base, other), [base, other])
 
   if (changes.length === 0) {
     return <M.Typography className={classes.empty}>Nothing changed</M.Typography>
@@ -331,16 +331,16 @@ function SummaryDiff({ left, right }: SummaryDiffProps) {
 }
 
 interface SummaryDiffHandlerProps {
-  left: RevisionResult
-  right: RevisionResult
+  base: RevisionResult
+  other: RevisionResult
 }
 
-export default function SummaryDiffHandler({ left, right }: SummaryDiffHandlerProps) {
-  if (left._tag === 'loading' || right._tag === 'loading') {
+export default function SummaryDiffHandler({ base, other }: SummaryDiffHandlerProps) {
+  if (base._tag === 'loading' || other._tag === 'loading') {
     return <Skeleton width="100%" height={200} />
   }
 
-  if (left._tag === 'error' || right._tag === 'error') {
+  if (base._tag === 'error' || other._tag === 'error') {
     return (
       <M.Typography variant="body2" color="error">
         Error loading revisions
@@ -348,5 +348,5 @@ export default function SummaryDiffHandler({ left, right }: SummaryDiffHandlerPr
     )
   }
 
-  return <SummaryDiff left={left.revision} right={right.revision} />
+  return <SummaryDiff base={base.revision} other={other.revision} />
 }

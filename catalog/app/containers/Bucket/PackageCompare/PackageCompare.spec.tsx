@@ -95,19 +95,19 @@ jest.mock('utils/StyledLink', () =>
 
 describe('containers/Bucket/PackageCompare/PackageCompare', () => {
   const mockPackageHandles = {
-    left: {
+    base: {
       bucket: 'test-bucket',
       name: 'test-package',
       hash: 'hash1',
     },
-    right: {
+    other: {
       bucket: 'test-bucket',
       name: 'test-package',
       hash: 'hash2',
     },
     changesOnly: true,
-    onLeftChange: () => {},
-    onRightChange: () => {},
+    onBaseChange: () => {},
+    onOtherChange: () => {},
     onChangesOnly: () => {},
     onSwap: () => {},
   }

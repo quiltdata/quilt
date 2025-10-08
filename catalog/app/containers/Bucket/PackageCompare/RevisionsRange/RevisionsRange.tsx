@@ -51,10 +51,10 @@ interface RevisionsProps extends RevisionsHandlerProps {
 
 function Revisions({
   revisions,
-  left,
-  right,
-  onLeftChange,
-  onRightChange,
+  base,
+  other,
+  onBaseChange,
+  onOtherChange,
   onSwap,
 }: RevisionsProps) {
   const classes = useStyles()
@@ -63,17 +63,17 @@ function Revisions({
       <div className={classes.range}>
         <RevisionSelect
           revisions={revisions}
-          value={left.hash}
-          onChange={onLeftChange}
+          value={base.hash}
+          onChange={onBaseChange}
           temporaryRemoveNone
         />
         <RevisionSelect
           revisions={revisions}
-          value={right?.hash || ''}
-          onChange={onRightChange}
+          value={other?.hash || ''}
+          onChange={onOtherChange}
         />
       </div>
-      <M.IconButton className={classes.swap} onClick={onSwap} disabled={!right}>
+      <M.IconButton className={classes.swap} onClick={onSwap} disabled={!other}>
         <Icons.SwapVert />
       </M.IconButton>
     </div>
@@ -81,21 +81,21 @@ function Revisions({
 }
 
 interface RevisionsHandlerProps {
-  left: PackageHandle
-  right: PackageHandle | null
-  onLeftChange: (hash: string) => void
-  onRightChange: (hash: string) => void
+  base: PackageHandle
+  other: PackageHandle | null
+  onBaseChange: (hash: string) => void
+  onOtherChange: (hash: string) => void
   onSwap: () => void
 }
 
-export default function RevisionsHandler({ left, ...props }: RevisionsHandlerProps) {
-  const data = useRevisions(left.bucket, left.name)
+export default function RevisionsHandler({ base, ...props }: RevisionsHandlerProps) {
+  const data = useRevisions(base.bucket, base.name)
   switch (data._tag) {
     case 'loading':
       return <Skeleton />
     case 'error':
       return <Lab.Alert severity="error">{data.error.message}</Lab.Alert>
     case 'ok':
-      return <Revisions left={left} revisions={data.revisions} {...props} />
+      return <Revisions base={base} revisions={data.revisions} {...props} />
   }
 }

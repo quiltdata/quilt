@@ -66,36 +66,36 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionsCompareProps {
-  left: PackageHandle
-  right: PackageHandle
+  base: PackageHandle
+  other: PackageHandle
   changesOnly: boolean
   onChangesOnly: (changesOnly: boolean) => void
-  onLeftChange: (hash: string) => void
-  onRightChange: (hash: string) => void
+  onBaseChange: (hash: string) => void
+  onOtherChange: (hash: string) => void
   onSwap: () => void
 }
 
 export function RevisionsCompare({
-  left,
-  right,
+  base,
+  other,
   changesOnly,
   onChangesOnly,
-  onLeftChange,
-  onRightChange,
+  onBaseChange,
+  onOtherChange,
   onSwap,
 }: RevisionsCompareProps) {
   const classes = useStyles()
 
-  const leftRevisionResult = useRevision(left.bucket, left.name, left.hash)
-  const rightRevisionResult = useRevision(right.bucket, right.name, right.hash)
+  const baseRevisionResult = useRevision(base.bucket, base.name, base.hash)
+  const otherRevisionResult = useRevision(other.bucket, other.name, other.hash)
 
   return (
     <div className={classes.root}>
       <RevisionsRange
-        left={left}
-        right={right}
-        onLeftChange={onLeftChange}
-        onRightChange={onRightChange}
+        base={base}
+        other={other}
+        onBaseChange={onBaseChange}
+        onOtherChange={onOtherChange}
         onSwap={onSwap}
       />
 
@@ -103,7 +103,7 @@ export function RevisionsCompare({
         <M.Typography variant="h6" gutterBottom>
           What's changed
         </M.Typography>
-        <Diff.Summary left={leftRevisionResult} right={rightRevisionResult} />
+        <Diff.Summary base={baseRevisionResult} other={otherRevisionResult} />
       </div>
 
       <M.Typography variant="h6" gutterBottom className={classes.details}>
@@ -117,8 +117,8 @@ export function RevisionsCompare({
         </M.Typography>
         <M.Paper square variant="outlined">
           <Diff.Metadata
-            left={leftRevisionResult}
-            right={rightRevisionResult}
+            base={baseRevisionResult}
+            other={otherRevisionResult}
             changesOnly={changesOnly}
           />
         </M.Paper>
@@ -129,8 +129,8 @@ export function RevisionsCompare({
           Entries
         </M.Typography>
         <Diff.Entries
-          left={leftRevisionResult}
-          right={rightRevisionResult}
+          base={baseRevisionResult}
+          other={otherRevisionResult}
           changesOnly={changesOnly}
         />
       </div>
@@ -163,19 +163,19 @@ export default function PackageCompareWrapper() {
           {other ? (
             <RevisionsCompare
               changesOnly={changesOnly}
-              left={base}
-              right={other}
-              onLeftChange={changeBase}
-              onRightChange={changeOther}
+              base={base}
+              other={other}
+              onBaseChange={changeBase}
+              onOtherChange={changeOther}
               onChangesOnly={toggleChangesOnly}
               onSwap={swap}
             />
           ) : (
             <RevisionsRange
-              left={base}
-              right={other}
-              onLeftChange={changeBase}
-              onRightChange={changeOther}
+              base={base}
+              other={other}
+              onBaseChange={changeBase}
+              onOtherChange={changeOther}
               onSwap={swap}
             />
           )}

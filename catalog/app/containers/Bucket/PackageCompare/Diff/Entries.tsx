@@ -20,26 +20,26 @@ type Changes =
   | {
       _tag: 'modified'
       modified: Modifications
-      left: Model.PackageEntry
-      right: Model.PackageEntry
+      base: Model.PackageEntry
+      other: Model.PackageEntry
     }
 
-function getChanges(left?: Model.PackageEntry, right?: Model.PackageEntry): Changes {
-  if (!left || !right) {
-    const entry = left || right
+function getChanges(base?: Model.PackageEntry, other?: Model.PackageEntry): Changes {
+  if (!base || !other) {
+    const entry = base || other
     if (!entry) {
       throw new Error('Must be at least one entry')
     }
     return { _tag: 'added', entry }
   }
 
-  const physicalKey = left.physicalKey !== right.physicalKey
-  const hash = left.hash.value !== right.hash.value
-  const size = left.size !== right.size
-  const meta = JSON.stringify(left.meta) !== JSON.stringify(right.meta)
-  if (!physicalKey && !hash && !size && !meta) return { _tag: 'unmodified', entry: left }
+  const physicalKey = base.physicalKey !== other.physicalKey
+  const hash = base.hash.value !== other.hash.value
+  const size = base.size !== other.size
+  const meta = JSON.stringify(base.meta) !== JSON.stringify(other.meta)
+  if (!physicalKey && !hash && !size && !meta) return { _tag: 'unmodified', entry: base }
 
-  return { _tag: 'modified', modified: { physicalKey, hash, size, meta }, left, right }
+  return { _tag: 'modified', modified: { physicalKey, hash, size, meta }, base, other }
 }
 
 const useRowStyles = M.makeStyles((t) => ({
@@ -69,23 +69,23 @@ const useRowStyles = M.makeStyles((t) => ({
 interface RowProps {
   className: string
   logicalKey: string
-  left?: Model.PackageEntry
-  right?: Model.PackageEntry
-  leftRevision?: Revision
-  rightRevision?: Revision
+  base?: Model.PackageEntry
+  other?: Model.PackageEntry
+  baseRevision?: Revision
+  otherRevision?: Revision
   changesOnly?: boolean
 }
 
 function Row({
   className,
   logicalKey,
-  left,
-  right,
-  leftRevision,
-  rightRevision,
+  base,
+  other,
+  baseRevision,
+  otherRevision,
   changesOnly = false,
 }: RowProps) {
-  const changes = React.useMemo(() => getChanges(left, right), [left, right])
+  const changes = React.useMemo(() => getChanges(base, other), [base, other])
   const colors = useColors()
   const classes = useRowStyles()
   const [expanded, setExpanded] = React.useState(false)
@@ -100,20 +100,20 @@ function Row({
       return (
         <div className={classes.split}>
           <M.Paper elevation={0} className={classes.previewPaper}>
-            {leftRevision && (
+            {baseRevision && (
               <span className={classes.hashLegend}>
-                {trimCenter(leftRevision.hash, 12)}
+                {trimCenter(baseRevision.hash, 12)}
               </span>
             )}
-            <Preview physicalKey={changes.left.physicalKey} />
+            <Preview physicalKey={changes.base.physicalKey} />
           </M.Paper>
           <M.Paper elevation={0} className={classes.previewPaper}>
-            {rightRevision && (
+            {otherRevision && (
               <span className={classes.hashLegend}>
-                {trimCenter(rightRevision.hash, 12)}
+                {trimCenter(otherRevision.hash, 12)}
               </span>
             )}
-            <Preview physicalKey={changes.right.physicalKey} />
+            <Preview physicalKey={changes.other.physicalKey} />
           </M.Paper>
         </div>
       )
@@ -164,25 +164,25 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface EntriesDiffProps {
-  left: Revision
-  right: Revision
+  base: Revision
+  other: Revision
   changesOnly?: boolean
 }
 
-function EntriesDiff({ left, right, changesOnly = false }: EntriesDiffProps) {
+function EntriesDiff({ base, other, changesOnly = false }: EntriesDiffProps) {
   const classes = useStyles()
 
   const entries = React.useMemo(() => {
-    const leftData = left.contentsFlatMap || {}
-    const rightData = right.contentsFlatMap || {}
+    const baseData = base.contentsFlatMap || {}
+    const otherData = other.contentsFlatMap || {}
 
-    const logicalKeys = Object.keys({ ...leftData, ...rightData }).sort()
+    const logicalKeys = Object.keys({ ...baseData, ...otherData }).sort()
     return {
-      left: leftData,
-      right: rightData,
+      base: baseData,
+      other: otherData,
       keys: logicalKeys,
     }
-  }, [left.contentsFlatMap, right.contentsFlatMap])
+  }, [base.contentsFlatMap, other.contentsFlatMap])
 
   if (entries.keys.length === 0) {
     return <div className={classes.empty}>No entries found</div>
@@ -195,10 +195,10 @@ function EntriesDiff({ left, right, changesOnly = false }: EntriesDiffProps) {
           className={classes.row}
           key={logicalKey}
           logicalKey={logicalKey}
-          left={entries.left[logicalKey]}
-          right={entries.right[logicalKey]}
-          leftRevision={left}
-          rightRevision={right}
+          base={entries.base[logicalKey]}
+          other={entries.other[logicalKey]}
+          baseRevision={base}
+          otherRevision={other}
           changesOnly={changesOnly}
         />
       ))}
@@ -207,21 +207,21 @@ function EntriesDiff({ left, right, changesOnly = false }: EntriesDiffProps) {
 }
 
 interface EntriesDiffWrapperProps {
-  left: RevisionResult
-  right: RevisionResult
+  base: RevisionResult
+  other: RevisionResult
   changesOnly?: boolean
 }
 
 export default function EntriesDiffHandler({
-  left,
-  right,
+  base,
+  other,
   changesOnly,
 }: EntriesDiffWrapperProps) {
-  if (left._tag === 'loading' || right._tag === 'loading') {
+  if (base._tag === 'loading' || other._tag === 'loading') {
     return <Lab.Skeleton width="100%" height={200} />
   }
 
-  if (left._tag === 'error' || right._tag === 'error') {
+  if (base._tag === 'error' || other._tag === 'error') {
     return (
       <M.Typography variant="body2" color="error">
         Error loading revisions
@@ -230,6 +230,6 @@ export default function EntriesDiffHandler({
   }
 
   return (
-    <EntriesDiff left={left.revision} right={right.revision} changesOnly={changesOnly} />
+    <EntriesDiff base={base.revision} other={other.revision} changesOnly={changesOnly} />
   )
 }

@@ -11,12 +11,12 @@ import Change from './Change'
 import type { Order } from './Change'
 
 function getChanges(
-  left: Revision,
-  right: Revision,
+  base: Revision,
+  other: Revision,
   changesOnly: boolean = false,
 ): { order: Order; value: string }[] {
-  const dir = left.modified > right.modified ? 'backward' : 'forward'
-  return diffJson(left.userMeta || {}, right.userMeta || {})
+  const dir = base.modified > other.modified ? 'backward' : 'forward'
+  return diffJson(base.userMeta || {}, other.userMeta || {})
     .map((c) => ({
       ...c,
       value: c.value
@@ -29,7 +29,7 @@ function getChanges(
     .filter((c) => !changesOnly || c.added || c.removed)
     .map((c) => {
       if (!c.added && !c.removed) return { order: { _tag: 'limbo' }, value: c.value }
-      const hash = c.added ? right.hash : left.hash
+      const hash = c.added ? other.hash : base.hash
       switch (dir) {
         case 'forward':
           return {
@@ -71,21 +71,21 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface MetadataDiffProps {
-  left: Revision
-  right: Revision
+  base: Revision
+  other: Revision
   changesOnly?: boolean
 }
 
 function MetadataDiff({
-  left,
-  right,
+  base,
+  other,
   changesOnly: changesOnly = false,
 }: MetadataDiffProps) {
   const classes = useStyles()
 
   const changes = React.useMemo(
-    () => getChanges(left, right, changesOnly),
-    [left, right, changesOnly],
+    () => getChanges(base, other, changesOnly),
+    [base, other, changesOnly],
   )
 
   if (changes.length === 0) {
@@ -108,21 +108,21 @@ function MetadataDiff({
 }
 
 interface MetadataDiffHandlerProps {
-  left: RevisionResult
-  right: RevisionResult
+  base: RevisionResult
+  other: RevisionResult
   changesOnly?: boolean
 }
 
 export default function MetadataDiffHandler({
-  left,
-  right,
+  base,
+  other,
   changesOnly,
 }: MetadataDiffHandlerProps) {
-  if (left._tag === 'loading' || right._tag === 'loading') {
+  if (base._tag === 'loading' || other._tag === 'loading') {
     return <Skeleton width="100%" height={200} />
   }
 
-  if (left._tag === 'error' || right._tag === 'error') {
+  if (base._tag === 'error' || other._tag === 'error') {
     return (
       <M.Typography variant="body2" color="error">
         Error loading revisions
@@ -131,6 +131,6 @@ export default function MetadataDiffHandler({
   }
 
   return (
-    <MetadataDiff left={left.revision} right={right.revision} changesOnly={changesOnly} />
+    <MetadataDiff base={base.revision} other={other.revision} changesOnly={changesOnly} />
   )
 }

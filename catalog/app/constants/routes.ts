@@ -172,17 +172,17 @@ interface BucketPackageCompareOpts {
 }
 
 export const bucketPackageCompare = route(
-  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/compare/:revisionLeft/:revisionRight?/`,
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/compare/:baseHash/:otherHash?/`,
   (
     bucket: string,
     name: string,
-    left: string,
-    right?: string,
+    base: string,
+    other?: string,
     { showAll }: BucketPackageCompareOpts = {},
   ) =>
-    right
-      ? `/b/${bucket}/packages/${name}/compare/${left}/${right}/${mkSearch({ showAll })}`
-      : `/b/${bucket}/packages/${name}/compare/${left}/${mkSearch({ showAll })}`,
+    other
+      ? `/b/${bucket}/packages/${name}/compare/${base}/${other}/${mkSearch({ showAll })}`
+      : `/b/${bucket}/packages/${name}/compare/${base}/${mkSearch({ showAll })}`,
 )
 
 export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>

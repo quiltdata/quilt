@@ -33,39 +33,55 @@ function getPreviousHash(revisionListQuery: RevisionListQuery, hash?: string) {
   })
 }
 
-interface SummaryPopoverProps {
+const useDiffSummaryStyles = M.makeStyles((t) => ({
+  popover: {
+    width: 480,
+    maxHeight: 400,
+    overflow: 'auto',
+  },
+  header: {
+    padding: t.spacing(2, 2, 1),
+    borderBottom: `1px solid ${t.palette.divider}`,
+  },
+  content: {
+    padding: t.spacing(1, 2, 2),
+  },
+  showMore: {
+    padding: t.spacing(1, 2),
+    borderTop: `1px solid ${t.palette.divider}`,
+  },
+}))
+
+interface DiffSummaryProps {
   bucket: string
   name: string
-  leftHash: string
-  rightHash: string
+  base: string
+  other: string
   onClose: () => void
 }
 
-function SummaryPopover({
-  bucket,
-  name,
-  leftHash,
-  rightHash,
-  onClose,
-}: SummaryPopoverProps) {
-  const classes = useRevisionInfoStyles()
+function DiffSummary({ bucket, name, base, other, onClose }: DiffSummaryProps) {
+  const classes = useDiffSummaryStyles()
   const { urls } = NamedRoutes.use()
 
-  const leftRevision = useRevision(bucket, name, leftHash)
-  const rightRevision = useRevision(bucket, name, rightHash)
-
-  const compareUrl = urls.bucketPackageCompare(bucket, name, leftHash, rightHash)
+  const leftRevision = useRevision(bucket, name, base)
+  const rightRevision = useRevision(bucket, name, other)
 
   return (
-    <div className={classes.summaryPopover}>
-      <div className={classes.summaryHeader}>
+    <div className={classes.popover}>
+      <div className={classes.header}>
         <M.Typography variant="subtitle1">What's changed</M.Typography>
       </div>
-      <div className={classes.summaryContent}>
-        <Diff.Summary left={leftRevision} right={rightRevision} />
+      <div className={classes.content}>
+        <Diff.Summary base={leftRevision} other={rightRevision} />
       </div>
-      <div className={classes.detailsLink}>
-        <M.Button component={RRLink} to={compareUrl} onClick={onClose} size="small">
+      <div className={classes.showMore}>
+        <M.Button
+          component={RRLink}
+          to={urls.bucketPackageCompare(bucket, name, base, other)}
+          onClick={onClose}
+          size="small"
+        >
           View detailed comparison
         </M.Button>
       </div>
@@ -100,22 +116,14 @@ function SummaryButton({ bucket, name, prevHash, hash, className }: SummaryButto
         <Icons.CompareArrows />
       </M.IconButton>
 
-      <M.Popover
-        open={opened && !!anchor}
-        anchorEl={anchor}
-        onClose={close}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      >
-        {
-          <SummaryPopover
-            bucket={bucket}
-            name={name}
-            leftHash={prevHash}
-            rightHash={hash}
-            onClose={close}
-          />
-        }
+      <M.Popover open={opened && !!anchor} anchorEl={anchor} onClose={close}>
+        <DiffSummary
+          bucket={bucket}
+          name={name}
+          base={prevHash}
+          other={hash}
+          onClose={close}
+        />
       </M.Popover>
     </>
   )
@@ -144,22 +152,6 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
   },
   shortcut: {
     margin: t.spacing(-0.5, 0, -0.5, 1),
-  },
-  summaryPopover: {
-    width: 480,
-    maxHeight: 400,
-    overflow: 'auto',
-  },
-  summaryHeader: {
-    padding: t.spacing(2, 2, 1),
-    borderBottom: `1px solid ${t.palette.divider}`,
-  },
-  summaryContent: {
-    padding: t.spacing(1, 2, 2),
-  },
-  detailsLink: {
-    padding: t.spacing(1, 2),
-    borderTop: `1px solid ${t.palette.divider}`,
   },
 }))
 
