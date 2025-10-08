@@ -1,12 +1,13 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
 import * as Model from 'model'
+import { trimCenter } from 'utils/string'
 
 import type { Revision, RevisionResult } from '../useRevision'
-import { Details as RevisionDetails } from '../Revision'
 
 import Preview from './Preview'
 import useColors from './useColors'
@@ -48,6 +49,21 @@ const useRowStyles = M.makeStyles((t) => ({
     gap: t.spacing(2),
     width: '100%',
   },
+  previewPaper: {
+    padding: t.spacing(3),
+    position: 'relative',
+    margin: t.spacing(2, 0),
+  },
+  single: {
+    width: '100%',
+  },
+  hashLegend: {
+    position: 'absolute',
+    ...t.typography.caption,
+    color: t.palette.text.hint,
+    top: t.spacing(0.5),
+    right: t.spacing(0.5),
+  },
 }))
 
 interface RowProps {
@@ -72,47 +88,58 @@ function Row({
   const changes = React.useMemo(() => getChanges(left, right), [left, right])
   const colors = useColors()
   const classes = useRowStyles()
+  const [expanded, setExpanded] = React.useState(false)
+  const toggle = React.useCallback(() => setExpanded((x) => !x), [])
 
   if (changesOnly && changes._tag === 'unmodified') {
     return null
   }
 
+  const getPreviewContent = () => {
+    if (changes._tag === 'modified') {
+      return (
+        <div className={classes.split}>
+          <M.Paper elevation={0} className={classes.previewPaper}>
+            {leftRevision && (
+              <span className={classes.hashLegend}>
+                {trimCenter(leftRevision.hash, 12)}
+              </span>
+            )}
+            <Preview physicalKey={changes.left.physicalKey} />
+          </M.Paper>
+          <M.Paper elevation={0} className={classes.previewPaper}>
+            {rightRevision && (
+              <span className={classes.hashLegend}>
+                {trimCenter(rightRevision.hash, 12)}
+              </span>
+            )}
+            <Preview physicalKey={changes.right.physicalKey} />
+          </M.Paper>
+        </div>
+      )
+    }
+
+    return (
+      <M.Paper className={cx(classes.previewPaper, classes.single)} elevation={0}>
+        <Preview physicalKey={changes.entry.physicalKey} />
+      </M.Paper>
+    )
+  }
+
   return (
-    <M.Accordion className={className}>
-      <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
-        <span className={cx(colors[changes._tag], colors.inline)}>{logicalKey}</span>
-      </M.AccordionSummary>
-      <M.AccordionDetails>
-        {changes._tag === 'modified' ? (
-          <div className={classes.split}>
-            <div>
-              {leftRevision && (
-                <M.Typography variant="subtitle2" gutterBottom>
-                  <RevisionDetails
-                    message={leftRevision.message}
-                    hash={leftRevision.hash}
-                  />
-                </M.Typography>
-              )}
-              <Preview physicalKey={changes.left.physicalKey} />
-            </div>
-            <div>
-              {rightRevision && (
-                <M.Typography variant="subtitle2" gutterBottom>
-                  <RevisionDetails
-                    message={rightRevision.message}
-                    hash={rightRevision.hash}
-                  />
-                </M.Typography>
-              )}
-              <Preview physicalKey={changes.right.physicalKey} />
-            </div>
-          </div>
-        ) : (
-          <Preview physicalKey={changes.entry.physicalKey} />
-        )}
-      </M.AccordionDetails>
-    </M.Accordion>
+    <>
+      <M.ListItem button onClick={toggle} className={className}>
+        <M.ListItemIcon>
+          {expanded ? <Icons.ExpandLess /> : <Icons.ExpandMore />}
+        </M.ListItemIcon>
+        <M.ListItemText
+          primary={
+            <span className={cx(colors[changes._tag], colors.inline)}>{logicalKey}</span>
+          }
+        />
+      </M.ListItem>
+      {expanded && <M.ListItem>{getPreviewContent()}</M.ListItem>}
+    </>
   )
 }
 
@@ -162,7 +189,7 @@ function EntriesDiff({ left, right, changesOnly = false }: EntriesDiffProps) {
   }
 
   return (
-    <div>
+    <M.List dense>
       {entries.keys.map((logicalKey) => (
         <Row
           className={classes.row}
@@ -175,7 +202,7 @@ function EntriesDiff({ left, right, changesOnly = false }: EntriesDiffProps) {
           changesOnly={changesOnly}
         />
       ))}
-    </div>
+    </M.List>
   )
 }
 
