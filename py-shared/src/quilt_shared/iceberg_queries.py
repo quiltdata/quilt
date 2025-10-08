@@ -4,7 +4,7 @@ from . import const
 
 
 class QueryMaker:
-    def __init__(self, user_athena_db: str):
+    def __init__(self, *, user_athena_db: str):
         self.user_athena_db = user_athena_db
 
     def package_revision_add_bucket(self, *, bucket: str) -> str:
