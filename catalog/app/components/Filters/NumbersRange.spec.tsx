@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { act, create } from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import NumbersRange from './NumbersRange'
 
@@ -16,14 +16,24 @@ jest.mock(
     ...jest.requireActual('@material-ui/core'),
     TextField: jest.fn(
       ({
-        value,
-        inputProps: { min, max } = {},
         helperText,
+        inputProps: { min, max } = {},
+        onChange,
+        value,
       }: {
-        value: string
-        inputProps?: { min?: string; max?: string }
         helperText?: string
-      }) => <input value={value} min={min} max={max} data-error={helperText} />,
+        inputProps?: { min?: string; max?: string }
+        onChange: () => void
+        value: string
+      }) => (
+        <input
+          data-error={helperText}
+          max={max}
+          min={min}
+          onChange={onChange}
+          value={value}
+        />
+      ),
     ),
   })),
 )
@@ -34,7 +44,7 @@ jest.mock('utils/Logging', () => ({
 }))
 
 const onChange = jest.fn()
-const findGteInput = (tree: any) => tree.root.findAllByType('input')[0]
+const findGteInput = (container: HTMLElement) => container.querySelector('input')!
 
 describe('components/Filters/NumbersRange', () => {
   beforeEach(() => {
@@ -42,70 +52,68 @@ describe('components/Filters/NumbersRange', () => {
   })
 
   it('renders with a valid number', () => {
-    const renderer = create(
+    const { container } = render(
       <NumbersRange value={{ gte: 42, lte: null }} extents={{}} onChange={onChange} />,
     )
-    const input = findGteInput(renderer)
-    expect(input.props.value).toBe('42')
-    expect(input.props['data-error']).toBeFalsy()
+    const input = findGteInput(container)
+    expect(input.value).toBe('42')
+    expect(input.getAttribute('data-error')).toBeFalsy()
   })
 
   it('updates value when value changes', () => {
-    const renderer = create(
+    const { container, rerender } = render(
       <NumbersRange value={{ gte: 13, lte: null }} extents={{}} onChange={onChange} />,
     )
-    expect(findGteInput(renderer).props.value).toBe('13')
+    expect(findGteInput(container).value).toBe('13')
 
-    act(() => {
-      renderer.update(
-        <NumbersRange value={{ gte: 15, lte: null }} extents={{}} onChange={onChange} />,
-      )
-    })
-    expect(findGteInput(renderer).props.value).toBe('15')
+    rerender(
+      <NumbersRange value={{ gte: 15, lte: null }} extents={{}} onChange={onChange} />,
+    )
+    expect(findGteInput(container).value).toBe('15')
   })
 
   it('sets min/max from extents', () => {
-    const renderer = create(
+    const { container } = render(
       <NumbersRange
         value={{ gte: 10, lte: null }}
         extents={{ min: 1, max: 100 }}
         onChange={onChange}
       />,
     )
-    const input = findGteInput(renderer)
-    expect(input.props.min).toBe('1')
-    expect(input.props.max).toBe('100')
+    const input = findGteInput(container)
+    expect(input.min).toBe('1')
+    expect(input.max).toBe('100')
   })
 
   it('handles null/undefined extents gracefully', () => {
-    const renderer = create(
+    const { container } = render(
       <NumbersRange value={{ gte: 10, lte: null }} extents={{}} onChange={onChange} />,
     )
-    const input = findGteInput(renderer)
-    expect(input.props.min).toBeUndefined()
-    expect(input.props.max).toBeUndefined()
+    const input = findGteInput(container)
+    expect(input.min).toBe('')
+    expect(input.max).toBe('')
   })
 
   it('shows empty value when number is null', () => {
-    const renderer = create(
+    const { container } = render(
       <NumbersRange value={{ gte: null, lte: null }} extents={{}} onChange={onChange} />,
     )
-    const input = findGteInput(renderer)
-    expect(input.props.value).toBe('')
-    expect(input.props['data-error']).toBe('Enter number, please')
+    const input = findGteInput(container)
+    expect(input.value).toBe('')
+    expect(input.getAttribute('data-error')).toBe('Enter number, please')
   })
 
   it('handles zero correctly', () => {
-    const renderer = create(
+    const { container } = render(
       <NumbersRange value={{ gte: 0, lte: null }} extents={{}} onChange={onChange} />,
     )
-    const input = findGteInput(renderer)
-    expect(input.props.value).toBe('0')
-    expect(input.props['data-error']).toBeFalsy()
+    const input = findGteInput(container)
+    expect(input.value).toBe('0')
+    expect(input.getAttribute('data-error')).toBeFalsy()
   })
 
   it('treats NaN as invalid', () => {
-    const renderer = create(
+    const { container } = render(
       <NumbersRange
         // @ts-expect-error
         value={{ gte: 'abc', lte: 'def' }}
@@ -113,8 +121,8 @@ describe('components/Filters/NumbersRange', () => {
         onChange={onChange}
       />,
     )
-    const input = findGteInput(renderer)
-    expect(input.props.value).toBe('')
-    expect(input.props['data-error']).toBe('Not a number')
+    const input = findGteInput(container)
+    expect(input.value).toBe('')
+    expect(input.getAttribute('data-error')).toBe('Not a number')
   })
 })
