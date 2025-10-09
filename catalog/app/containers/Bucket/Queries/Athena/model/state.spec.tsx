@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 import { act, renderHook } from '@testing-library/react-hooks'
 
 import * as Model from './'
@@ -65,7 +65,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
       return <>{JSON.stringify(state, null, 2)}</>
     }
     const tree = () =>
-      renderer.create(
+      render(
         <Model.Provider preferences={{}}>
           <Component />
         </Model.Provider>,
