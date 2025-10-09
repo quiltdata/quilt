@@ -198,9 +198,7 @@ SELECT regexp_extract_all('1a 2b 14m', '\d+');
 
 ### Considerations and limitations
 
-There are [many considerations and
-<!-- markdownlint-disable-next-line line-length -->
-limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
+There are [many considerations and limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
 when writing Amazon Athena queries.
 
 ### References
