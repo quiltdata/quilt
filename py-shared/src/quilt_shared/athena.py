@@ -10,6 +10,7 @@ if T.TYPE_CHECKING:
     import logging
 
 
+# XXX: this is mostly copy-pasted from access_counts lambda, should be deduplicated
 class QueryRunner:
     def __init__(self, *, logger: logging.Logger, athena: AthenaClient, database: str, workgroup: str):
         # XXX: shouldn't we use its own logger?
