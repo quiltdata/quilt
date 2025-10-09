@@ -16,10 +16,10 @@ export type containers_Bucket_PackageCompare_gql_RevisionQuery = {
         readonly revision: Types.Maybe<
           { readonly __typename: 'PackageRevision' } & Pick<
             Types.PackageRevision,
-            | 'contentsFlatMap'
             | 'hash'
-            | 'message'
             | 'modified'
+            | 'contentsFlatMap'
+            | 'message'
             | 'totalBytes'
             | 'userMeta'
           >
@@ -100,10 +100,10 @@ export const containers_Bucket_PackageCompare_gql_RevisionDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'contentsFlatMap' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'contentsFlatMap' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'totalBytes' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'userMeta' } },
                     ],
