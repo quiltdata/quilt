@@ -7,20 +7,15 @@ import * as Lab from '@material-ui/lab'
 import Skeleton from 'components/Skeleton'
 import * as JSONPointer from 'utils/JSONPointer'
 import { readableBytes } from 'utils/string'
-import type { Json, JsonRecord } from 'utils/types'
 import assertNever from 'utils/assertNever'
 
 import type { Revision, RevisionsResult } from '../useRevisionsPair'
 
 import useColors from './useColors'
-
-type MetaChange =
-  | { _tag: 'modified'; pointer: JSONPointer.Path; oldValue: Json; newValue: Json }
-  | { _tag: 'added'; pointer: JSONPointer.Path; newValue: Json }
-  | { _tag: 'removed'; pointer: JSONPointer.Path; oldValue: Json }
+import { compareJsons, type Change } from './compareJsons'
 
 type WhatChanged =
-  | { _tag: 'meta'; keys: MetaChange[] }
+  | { _tag: 'meta'; keys: Change[] }
   | {
       _tag: 'modified'
       logicalKey: string
@@ -34,7 +29,7 @@ type WhatChanged =
 
 interface MetaKeyProps {
   className: string
-  change: MetaChange
+  change: Change
 }
 
 function MetaKey({ className, change }: MetaKeyProps) {
@@ -139,61 +134,6 @@ function ModifiedEntry({ change }: ModifiedEntryProps) {
   )
 }
 
-function isObject(value: any): value is JsonRecord {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
-
-function compareKeysRecursive(
-  baseObj: JsonRecord,
-  otherObj: JsonRecord,
-  prefix: JSONPointer.Path = [],
-): MetaChange[] {
-  const changedKeys: MetaChange[] = []
-  const combinedKeys = Object.keys({ ...baseObj, ...otherObj })
-
-  for (const key of combinedKeys) {
-    const pointer = prefix.length ? [...prefix, key] : [key]
-    const baseValue = baseObj[key]
-    const otherValue = otherObj[key]
-
-    // If values are strictly equal, no change
-    if (baseValue === otherValue) {
-      continue
-    }
-
-    // Handle missing keys
-    if (baseValue === undefined) {
-      changedKeys.push({ _tag: 'added', pointer, newValue: otherValue })
-      continue
-    }
-
-    if (otherValue === undefined) {
-      changedKeys.push({ _tag: 'removed', pointer, oldValue: baseValue })
-      continue
-    }
-
-    // If both are objects, recurse deeper
-    if (isObject(baseValue) && isObject(otherValue)) {
-      const nestedChanges = compareKeysRecursive(baseValue, otherValue, pointer)
-      changedKeys.push(...nestedChanges)
-    } else {
-      // Either primitive values changed, or one is object and other is not
-      changedKeys.push({
-        _tag: 'modified',
-        pointer,
-        oldValue: baseValue,
-        newValue: otherValue,
-      })
-    }
-  }
-
-  return changedKeys
-}
-
-function compareKeys(baseObj: JsonRecord, otherObj: JsonRecord): MetaChange[] {
-  return compareKeysRecursive(baseObj, otherObj)
-}
-
 function getMetaChange([base, other]: [Revision, Revision]): Extract<
   WhatChanged,
   { _tag: 'meta' }
@@ -202,7 +142,7 @@ function getMetaChange([base, other]: [Revision, Revision]): Extract<
 
   return {
     _tag: 'meta' as const,
-    keys: compareKeys(base.userMeta || {}, other.userMeta || {}),
+    keys: compareJsons(base.userMeta || {}, other.userMeta || {}),
   }
 }
 
