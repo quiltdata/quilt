@@ -2,7 +2,7 @@
 // import mediaQuery from 'css-mediaquery'
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-import { Add as IconAdd } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Buttons from './'
 
@@ -25,7 +25,7 @@ describe('components/Buttons/Iconized', () => {
   })
   it('render with SvgIcon component', () => {
     const tree = renderer
-      .create(<Buttons.Iconized icon={IconAdd} label="Add Item" />)
+      .create(<Buttons.Iconized icon={Icons.Add} label="Add Item" />)
       .toJSON()
     expect(tree).toMatchSnapshot()
   })

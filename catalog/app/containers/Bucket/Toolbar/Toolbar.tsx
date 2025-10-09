@@ -1,12 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-
-import {
-  AddOutlined as IconAddOutlined,
-  GetAppOutlined as IconGetAppOutlined,
-  PlaylistAddCheckOutlined as IconPlaylistAddCheckOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Buttons from 'components/Buttons'
 import { useSelection } from 'containers/Bucket/Selection/Provider'
@@ -17,11 +12,11 @@ type ButtonProps = Omit<Buttons.WithPopoverProps, 'icon' | 'label'> &
 export { default as Assist } from './Assist'
 
 export function Add({ label = 'Add files', ...props }: ButtonProps) {
-  return <Buttons.WithPopover icon={IconAddOutlined} label={label} {...props} />
+  return <Buttons.WithPopover icon={Icons.AddOutlined} label={label} {...props} />
 }
 
 export function Get({ label = 'Get files', ...props }: ButtonProps) {
-  return <Buttons.WithPopover icon={IconGetAppOutlined} label={label} {...props} />
+  return <Buttons.WithPopover icon={Icons.GetAppOutlined} label={label} {...props} />
 }
 
 const useBadgeClasses = M.makeStyles({
@@ -36,7 +31,7 @@ export function Organize({ label = 'Organize', ...props }: ButtonProps) {
   return (
     <M.Badge badgeContent={slt.totalCount} classes={classes} color="primary" max={999}>
       <Buttons.WithPopover
-        icon={IconPlaylistAddCheckOutlined}
+        icon={Icons.PlaylistAddCheckOutlined}
         label={label}
         disabled={slt.inited && !slt.totalCount}
         {...props}
