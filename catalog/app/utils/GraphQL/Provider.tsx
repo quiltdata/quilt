@@ -119,7 +119,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           PackageDir: () => null,
           PackageFile: () => null,
           PackageList: () => null,
-          PackageRevision: () => null,
+          PackageRevision: (r) =>
+            r.hash ? `${r.hash}:${r.modified?.valueOf() || ''}` : null, // XXX: is r.modified a string here?
           PackageRevisionList: () => null,
           PackageWorkflow: () => null,
           PackagerAdminMutations: () => null,
