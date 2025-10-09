@@ -74,8 +74,15 @@ export default function RevisionSelect({
   )
   const renderValue = React.useCallback(
     (hash) => {
-      const found = revisions.find((r) => r.hash === hash)
-      return found ? <FormattedDate modified={found.modified} /> : hash
+      if (hash) {
+        const found = revisions.find((r) => r.hash === hash)
+        return found ? <FormattedDate modified={found.modified} /> : hash
+      }
+      return (
+        <M.Typography color="textSecondary" component="i">
+          No revision selected
+        </M.Typography>
+      )
     },
     [revisions],
   )
@@ -89,6 +96,7 @@ export default function RevisionSelect({
         fullWidth
         className={classes.root}
         renderValue={renderValue}
+        placeholder="Select a revision to compare"
       >
         {other && (
           <M.MenuItem value="">
@@ -104,11 +112,13 @@ export default function RevisionSelect({
           </M.MenuItem>
         ))}
       </M.Select>
-      {revision && (
-        <M.FormHelperText className={classes.helperText}>
+      <M.FormHelperText className={classes.helperText}>
+        {revision ? (
           <Details message={revision.message} hash={revision.hash} />
-        </M.FormHelperText>
-      )}
+        ) : (
+          <span>Select a revision to compare</span>
+        )}
+      </M.FormHelperText>
     </M.FormControl>
   )
 }
