@@ -1,9 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import {
-  ArrowDownwardOutlined as IconArrowDownwardOutlined,
-  ArchiveOutlined as IconArchiveOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
@@ -30,7 +27,7 @@ export function DownloadFile({ fileHandle }: DownloadFileProps) {
       className={classes.root}
       download
       href={url}
-      startIcon={<IconArrowDownwardOutlined />}
+      startIcon={<Icons.ArrowDownwardOutlined />}
     >
       Download file
     </M.Button>
@@ -60,7 +57,7 @@ export function DownloadDir({
     <ZipDownloadForm className={className} files={files} suffix={suffix}>
       <M.Button
         className={classes.root}
-        startIcon={<IconArchiveOutlined />}
+        startIcon={<Icons.ArchiveOutlined />}
         type="submit"
         {...props}
       >

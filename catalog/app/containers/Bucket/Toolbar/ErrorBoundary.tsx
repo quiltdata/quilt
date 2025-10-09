@@ -1,10 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
-import {
-  ErrorOutline as IconErrorOutline,
-  Refresh as IconRefresh,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import { createBoundary } from 'utils/ErrorBoundary'
 
@@ -41,12 +38,12 @@ function ToolbarErrorBoundaryPlaceholder({
 
   return (
     <div className={classes.root}>
-      <IconErrorOutline fontSize="small" />
+      <Icons.ErrorOutline fontSize="small" />
       <div className={classes.message}>
         <M.Typography variant="body2">Toolbar error occurred</M.Typography>
       </div>
       <M.IconButton size="small" onClick={reset} color="inherit">
-        <IconRefresh fontSize="small" />
+        <Icons.Refresh fontSize="small" />
       </M.IconButton>
     </div>
   )
