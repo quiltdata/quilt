@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, act, waitFor } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
 
 import QuiltSummarize from './QuiltSummarize'
@@ -76,13 +76,7 @@ describe('QuiltSummarize', () => {
         initialValue={quiltSummarize}
       />,
     )
-    // Wait until React.useEffect is resolved
-    await act(async () => {
-      await waitFor(() => {
-        const textField = container.querySelector('#text-field')
-        expect(textField).not.toBeNull()
-      })
-    })
+    expect(container.querySelector('#text-field')).not.toBeNull()
     expect(container.firstChild).toMatchSnapshot()
   })
 
@@ -96,13 +90,7 @@ describe('QuiltSummarize', () => {
         initialValue={quiltSummarize}
       />,
     )
-    // Wait until React.useEffect is resolved
-    await act(async () => {
-      await waitFor(() => {
-        const textFields = container.querySelectorAll('#text-field')
-        expect(textFields.length).toBeGreaterThan(1)
-      })
-    })
+    expect(container.querySelectorAll('#text-field').length).toBeGreaterThan(1)
     expect(container.firstChild).toMatchSnapshot()
   })
 })
