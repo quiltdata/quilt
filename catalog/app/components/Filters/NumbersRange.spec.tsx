@@ -57,7 +57,7 @@ describe('components/Filters/NumbersRange', () => {
     )
     const input = findGteInput(container)
     expect(input.value).toBe('42')
-    expect(input.getAttribute('data-error')).toBe('false')
+    expect(input.getAttribute('data-error')).toBeFalsy()
   })
 
   it('updates value when value changes', () => {
@@ -109,7 +109,7 @@ describe('components/Filters/NumbersRange', () => {
     )
     const input = findGteInput(container)
     expect(input.value).toBe('0')
-    expect(input.getAttribute('data-error')).toBe('false')
+    expect(input.getAttribute('data-error')).toBeFalsy()
   })
 
   it('treats NaN as invalid', () => {
