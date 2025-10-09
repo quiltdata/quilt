@@ -19,6 +19,7 @@ where verb is one of
 ## Changes
 
 - [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582))
+- [Changed] Request required fields for `PackageRevision` to proper cache ([#4583](https://github.com/quiltdata/quilt/pull/4583))
 - [Changed] Qurator: make tool messages less prominent ([#4572](https://github.com/quiltdata/quilt/pull/4572))
 - [Fixed] Qurator: Limit total search results contents context to 100k characters to avoid context window overflow ([#4573](https://github.com/quiltdata/quilt/pull/4573))
 - [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))
