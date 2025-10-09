@@ -183,7 +183,7 @@ describe('components/Filters/DatesRange', () => {
 
     const inputChanged = findGteInput(container)
     expect(inputChanged.value).toBe('2025-01-13')
-    expect(inputChanged.getAttribute('data-error')).toBe('false')
+    expect(inputChanged.getAttribute('data-error')).toBeFalsy()
   })
 
   it('does not trigger an extra render when updating with the same Date instance', () => {
@@ -208,7 +208,7 @@ describe('components/Filters/DatesRange', () => {
     // And the value stays the same, no error text
     const input = findGteInput(container)
     expect(input.value).toBe('2025-01-13')
-    expect(input.getAttribute('data-error')).toBe('false')
+    expect(input.getAttribute('data-error')).toBeFalsy()
 
     // One render for the prop change (2 TextFields) + one more due to state update from effect
     TextField.mockClear()
