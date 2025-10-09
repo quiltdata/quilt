@@ -6,6 +6,8 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
 
+import { MCPContextProvider } from '../MCP/MCPContextProvider'
+
 import * as Bedrock from './Bedrock'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
@@ -136,7 +138,9 @@ function DisabledAPIProvider({ children }: React.PropsWithChildren<{}>) {
 export function AssistantProvider({ children }: React.PropsWithChildren<{}>) {
   return useIsEnabled() ? (
     <Context.ContextAggregatorProvider>
-      <AssistantAPIProvider>{children}</AssistantAPIProvider>
+      <MCPContextProvider>
+        <AssistantAPIProvider>{children}</AssistantAPIProvider>
+      </MCPContextProvider>
     </Context.ContextAggregatorProvider>
   ) : (
     <DisabledAPIProvider>{children}</DisabledAPIProvider>

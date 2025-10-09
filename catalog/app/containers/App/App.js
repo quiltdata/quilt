@@ -63,6 +63,11 @@ const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder)
 const UriResolver = protect(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
 )
+const MCPDemo = protect(RT.mkLazy(() => import('containers/MCPDemo'), Placeholder))
+const OAuthCallback = RT.mkLazy(
+  () => import('components/Assistant/MCP/OAuthCallback'),
+  Placeholder,
+)
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
@@ -100,6 +105,13 @@ export default function App() {
 
         <Route path={paths.activate} exact>
           <Activate />
+        </Route>
+
+        <Route path="/mcp-demo" exact>
+          <MCPDemo />
+        </Route>
+        <Route path="/oauth/callback" exact>
+          <OAuthCallback />
         </Route>
         <Route path={paths.signIn} exact>
           <AuthSignIn />

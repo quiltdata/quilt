@@ -1,0 +1,566 @@
+{
+    "taskDefinition": {
+        "taskDefinitionArn": "arn:aws:ecs:us-east-1:850787717197:task-definition/sales-prod-registry:23",
+        "containerDefinitions": [
+            {
+                "name": "registry",
+                "image": "730278974607.dkr.ecr.us-east-1.amazonaws.com/quiltdata/registry:557a45f1be92a64ddcbac1644e45a77e3944b108",
+                "cpu": 0,
+                "links": [],
+                "portMappings": [],
+                "essential": true,
+                "entryPoint": [],
+                "command": [],
+                "environment": [
+                    {
+                        "name": "QUILT_INDEXING_BUCKET_CONFIGS_PARAMETER",
+                        "value": "/quilt/sales-prod/Indexing/PerBucketConfigs"
+                    },
+                    {
+                        "name": "GOOGLE_CLIENT_SECRET",
+                        "value": "****"
+                    },
+                    {
+                        "name": "MIXPANEL_PROJECT_TOKEN",
+                        "value": "e3385877c980efdce0a7eaec5a8a8277"
+                    },
+                    {
+                        "name": "SQLALCHEMY_DATABASE_URI",
+                        "value": "postgresql://root:suZEb679qJ4givMO@sales-prod.clwhtq6eelve.us-east-1.rds.amazonaws.com:5432/quilt"
+                    },
+                    {
+                        "name": "QUILT_USER_ATHENA_DATABASE",
+                        "value": "userathenadatabase-zxsd4ingilkj"
+                    },
+                    {
+                        "name": "QUILT_ADMIN_EMAIL",
+                        "value": "simon@quiltdata.io"
+                    },
+                    {
+                        "name": "QUILT_SECURE_SEARCH",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_SNS_KMS_ID",
+                        "value": "d35ffcfc-0c40-4826-b6fc-ea51b8ad5c8e"
+                    },
+                    {
+                        "name": "QUILT_STATUS_REPORTS_BUCKET",
+                        "value": "sales-prod-statusreportsbucket-tfbzum70dfu7"
+                    },
+                    {
+                        "name": "QUILT_TABULATOR_SPILL_BUCKET",
+                        "value": "sales-prod-tabulatorbucket-rg63cxsyej8r"
+                    },
+                    {
+                        "name": "QUILT_INDEXING_CONTENT_EXTENSIONS",
+                        "value": "[\".csv\", \".fcs\", \".html\", \".ipynb\", \".json\", \".md\", \".parquet\", \".pdf\", \".pptx\", \".rmd\", \".rst\", \".tab\", \".tsv\", \".txt\", \".xls\", \".xlsx\"]"
+                    },
+                    {
+                        "name": "ONELOGIN_CLIENT_SECRET",
+                        "value": "****"
+                    },
+                    {
+                        "name": "QUILT_SERVICE_BUCKET",
+                        "value": "sales-prod-servicebucket-o7icx5nu3mpw"
+                    },
+                    {
+                        "name": "OKTA_CLIENT_ID",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_BUCKET_WRITE_POLICY_ARN",
+                        "value": "arn:aws:iam::850787717197:policy/sales-prod-BucketWritePolicy-rqbmtYBnM4A4"
+                    },
+                    {
+                        "name": "DEPLOYMENT_ID",
+                        "value": "demo.quiltdata.com"
+                    },
+                    {
+                        "name": "ALLOW_ANONYMOUS_ACCESS",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_ASSUME_ROLE_POLICY_ARN",
+                        "value": "arn:aws:iam::850787717197:policy/quilt/sales-prod/us-east-1/sales-prod-RegistryAssumeRolePolicy-k7xGDr1gteWQ"
+                    },
+                    {
+                        "name": "QUILT_TABULATOR_OPEN_QUERY_ROLE",
+                        "value": "arn:aws:iam::850787717197:role/quilt/sales-prod/us-east-1/sales-prod-TabulatorOpenQueryRole-XHGsJ1qyD7UU"
+                    },
+                    {
+                        "name": "QUILT_READ_ROLE_ARN",
+                        "value": "arn:aws:iam::850787717197:role/ReadQuiltV2-sales-prod"
+                    },
+                    {
+                        "name": "AWS_STACK_ID",
+                        "value": "arn:aws:cloudformation:us-east-1:850787717197:stack/sales-prod/5e87f280-17b2-11ef-b381-0e45b15e00cd"
+                    },
+                    {
+                        "name": "QUILT_PKG_EVENTS_QUEUE_URL",
+                        "value": "https://sqs.us-east-1.amazonaws.com/850787717197/sales-prod-PkgEventsQueue-aPMmda0dZaAg"
+                    },
+                    {
+                        "name": "QUILT_SERVICE_AUTH_KEY",
+                        "value": "dc5175eb-df3e-4fea-b05e-68d9e32c7a3d"
+                    },
+                    {
+                        "name": "GOOGLE_DOMAIN_WHITELIST",
+                        "value": ""
+                    },
+                    {
+                        "name": "GOOGLE_CLIENT_ID",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_AUDIT_TRAIL_DELIVERY_STREAM",
+                        "value": ""
+                    },
+                    {
+                        "name": "ONELOGIN_CLIENT_ID",
+                        "value": ""
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "value": "ca342f6f-c182-494c-828e-022b7f8434a3"
+                    },
+                    {
+                        "name": "QUILT_IAM_PATH",
+                        "value": "/quilt/sales-prod/us-east-1/"
+                    },
+                    {
+                        "name": "QUILT_ANALYTICS_BUCKET",
+                        "value": "sales-prod-analyticsbucket-komyakmcvebb"
+                    },
+                    {
+                        "name": "AZURE_CLIENT_ID",
+                        "value": ""
+                    },
+                    {
+                        "name": "ANALYTICS_DATABASE",
+                        "value": "sales_prod_analyticsbucket_komyakmcvebb"
+                    },
+                    {
+                        "name": "QUILT_DUCKDB_SELECT_LAMBDA_ARN",
+                        "value": "sales-prod-DuckDBSelectLambda-sTHtAAm9lCLa"
+                    },
+                    {
+                        "name": "ANALYTICS_TRAIL",
+                        "value": "sales-prod-trail"
+                    },
+                    {
+                        "name": "QUILT_WRITE_ROLE_ARN",
+                        "value": "arn:aws:iam::850787717197:role/ReadWriteQuiltV2-sales-prod"
+                    },
+                    {
+                        "name": "QUILT_WEB_HOST",
+                        "value": "demo.quiltdata.com"
+                    },
+                    {
+                        "name": "DISABLE_PASSWORD_SIGNUP",
+                        "value": "1"
+                    },
+                    {
+                        "name": "QUILT_SEARCH_MAX_DOCS_PER_SHARD",
+                        "value": "10000"
+                    },
+                    {
+                        "name": "AZURE_CLIENT_SECRET",
+                        "value": "****"
+                    },
+                    {
+                        "name": "GIT_HASH",
+                        "value": "v557a45f1be92a64ddcbac1644e45a77e3944b108"
+                    },
+                    {
+                        "name": "QUILT_PKG_CREATE_LAMBDA_ARN",
+                        "value": "sales-prod-PkgCreate-qDWRWaGDVODG"
+                    },
+                    {
+                        "name": "OKTA_BASE_URL",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_LOG_LEVEL",
+                        "value": "INFO"
+                    },
+                    {
+                        "name": "OKTA_CLIENT_SECRET",
+                        "value": "****"
+                    },
+                    {
+                        "name": "ES_ENDPOINT",
+                        "value": "https://vpc-sales-prod-aqnknctxut2bxcm3dgwouwb5hi.us-east-1.es.amazonaws.com"
+                    },
+                    {
+                        "name": "AWS_MP_METERING",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_INDEXER_LAMBDA_ARN",
+                        "value": "arn:aws:lambda:us-east-1:850787717197:function:sales-prod-SearchHandler-wQkRmDzpWEAi"
+                    },
+                    {
+                        "name": "QUILT_USER_ATHENA_BYTES_SCANNED_CUTOFF",
+                        "value": "0"
+                    },
+                    {
+                        "name": "QUILT_S3_EVENTBRIDGE_QUEUE_URL",
+                        "value": "https://sqs.us-east-1.amazonaws.com/850787717197/sales-prod-S3SNSToEventBridgeQueue-a028lOVvq3aK"
+                    },
+                    {
+                        "name": "AWS_DEFAULT_REGION",
+                        "value": "us-east-1"
+                    },
+                    {
+                        "name": "QUILT_INDEXING_CONTENT_BYTES",
+                        "value": "{\"default\": 256000, \"min\": 0, \"max\": 1048576}"
+                    },
+                    {
+                        "name": "QUILT_STACK_NAME",
+                        "value": "sales-prod"
+                    },
+                    {
+                        "name": "QUILT_TABULATOR_KMS_KEY_ID",
+                        "value": "arn:aws:kms:us-east-1:850787717197:key/47673d8d-fb7a-4fbb-ad5b-9e6fc672f40e"
+                    },
+                    {
+                        "name": "ANALYTICS_CATALOG_ID",
+                        "value": "850787717197"
+                    },
+                    {
+                        "name": "QUILT_IAM_POLICY_NAME_PREFIX",
+                        "value": "Quilt-"
+                    },
+                    {
+                        "name": "QUILT_QPE_OMICS_RULE_ARN",
+                        "value": "arn:aws:events:us-east-1:850787717197:rule/sales-prod-PackagerOmicsRule-bG8R1HcQ3y3R"
+                    },
+                    {
+                        "name": "EMAIL_SERVER",
+                        "value": "https://email.quiltdata.com"
+                    },
+                    {
+                        "name": "QUILT_MANAGED_USER_ROLE_ARN",
+                        "value": "arn:aws:iam::850787717197:role/quilt/sales-prod/us-east-1/sales-prod-ManagedUserRole-HSiuzbPyARyd"
+                    },
+                    {
+                        "name": "CATALOG_URL",
+                        "value": "https://demo.quiltdata.com"
+                    },
+                    {
+                        "name": "AZURE_BASE_URL",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_TABULATOR_REGISTRY_HOST",
+                        "value": "registry.sales-prod:8080"
+                    },
+                    {
+                        "name": "AWS_MP_PRODUCT_CODE",
+                        "value": "f5d6l3y7x2yy2fcm0uxr9gglh"
+                    },
+                    {
+                        "name": "QUILT_INDEXER_QUEUE_URL",
+                        "value": "https://sqs.us-east-1.amazonaws.com/850787717197/sales-prod-IndexerQueue-KpHMPH8uYRT2"
+                    },
+                    {
+                        "name": "QUILT_TABULATOR_ENABLED",
+                        "value": "1"
+                    },
+                    {
+                        "name": "DISABLE_PASSWORD_AUTH",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_ADMIN_SSO_ONLY",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_QPE_RO_CRATE_RULE_ARN",
+                        "value": "arn:aws:events:us-east-1:850787717197:rule/quilt-sales-prod/sales-prod-PackagerROCrateRule-ZxQHDJDJp0iu"
+                    },
+                    {
+                        "name": "QUILT_BUCKET_READ_POLICY_ARN",
+                        "value": "arn:aws:iam::850787717197:policy/sales-prod-BucketReadPolicy-wjKxbGreg6Z7"
+                    },
+                    {
+                        "name": "QUILT_ADMIN_PASSWORD",
+                        "value": "75UY5Z*P>qkRn}SY"
+                    },
+                    {
+                        "name": "SSO_PROVIDERS",
+                        "value": "   "
+                    },
+                    {
+                        "name": "QUILT_SERVER_CONFIG",
+                        "value": "prod_config.py"
+                    },
+                    {
+                        "name": "QUILT_PKG_PROMOTE_LAMBDA_ARN",
+                        "value": "sales-prod-PkgPromote-aFkITLB1Ew4Y"
+                    },
+                    {
+                        "name": "QUILT_USER_ATHENA_RESULTS_BUCKET",
+                        "value": "sales-prod-userathenaresultsbucket-5d72zwsirtlw"
+                    },
+                    {
+                        "name": "QUILT_USER_ROLE_BASE_POLICY_ARN",
+                        "value": "arn:aws:iam::850787717197:policy/quilt/sales-prod/us-east-1/sales-prod-ManagedUserRoleBasePolicy-XXnDlERR1AN2"
+                    },
+                    {
+                        "name": "AWS_MP_PUBLIC_KEY_VERSION",
+                        "value": "1"
+                    },
+                    {
+                        "name": "ONELOGIN_BASE_URL",
+                        "value": ""
+                    },
+                    {
+                        "name": "QUILT_QPE_ROLE_ARN",
+                        "value": "arn:aws:iam::850787717197:role/sales-prod-PackagerRole-oVsit3o42SJM"
+                    }
+                ],
+                "environmentFiles": [],
+                "mountPoints": [
+                    {
+                        "sourceVolume": "registry-tmp",
+                        "containerPath": "/tmp/"
+                    }
+                ],
+                "volumesFrom": [],
+                "linuxParameters": {
+                    "devices": [],
+                    "initProcessEnabled": false,
+                    "tmpfs": []
+                },
+                "secrets": [],
+                "dependsOn": [
+                    {
+                        "containerName": "registry-tmp-volume-chmod",
+                        "condition": "SUCCESS"
+                    }
+                ],
+                "readonlyRootFilesystem": true,
+                "dnsServers": [],
+                "dnsSearchDomains": [],
+                "extraHosts": [],
+                "dockerSecurityOptions": [],
+                "dockerLabels": {},
+                "ulimits": [],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "sales-prod",
+                        "awslogs-region": "us-east-1",
+                        "awslogs-stream-prefix": "registry"
+                    },
+                    "secretOptions": []
+                },
+                "systemControls": [
+                    {
+                        "namespace": "net.ipv4.tcp_keepalive_time",
+                        "value": "150"
+                    },
+                    {
+                        "namespace": "net.ipv4.tcp_keepalive_intvl",
+                        "value": "25"
+                    },
+                    {
+                        "namespace": "net.ipv4.tcp_keepalive_probes",
+                        "value": "3"
+                    }
+                ],
+                "credentialSpecs": []
+            },
+            {
+                "name": "nginx",
+                "image": "730278974607.dkr.ecr.us-east-1.amazonaws.com/quiltdata/nginx:ac7f8faffa5164d569ceea83de971831ccc36a59",
+                "cpu": 0,
+                "links": [],
+                "portMappings": [
+                    {
+                        "containerPort": 80,
+                        "hostPort": 80,
+                        "protocol": "tcp"
+                    }
+                ],
+                "essential": true,
+                "entryPoint": [],
+                "command": [],
+                "environment": [
+                    {
+                        "name": "REGISTRY_TABULATOR_PORT",
+                        "value": "8080"
+                    },
+                    {
+                        "name": "UWSGI_HOST",
+                        "value": "localhost"
+                    },
+                    {
+                        "name": "UWSGI_PORT",
+                        "value": "9000"
+                    }
+                ],
+                "environmentFiles": [],
+                "mountPoints": [
+                    {
+                        "sourceVolume": "nginx-tmp",
+                        "containerPath": "/tmp/"
+                    },
+                    {
+                        "sourceVolume": "nginx-var-lib-nginx-tmp",
+                        "containerPath": "/var/lib/nginx/tmp/"
+                    },
+                    {
+                        "sourceVolume": "nginx-run",
+                        "containerPath": "/run/"
+                    }
+                ],
+                "volumesFrom": [],
+                "linuxParameters": {
+                    "devices": [],
+                    "initProcessEnabled": false,
+                    "tmpfs": []
+                },
+                "secrets": [],
+                "readonlyRootFilesystem": true,
+                "dnsServers": [],
+                "dnsSearchDomains": [],
+                "extraHosts": [],
+                "dockerSecurityOptions": [],
+                "dockerLabels": {},
+                "ulimits": [],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "sales-prod",
+                        "awslogs-region": "us-east-1",
+                        "awslogs-stream-prefix": "registry"
+                    },
+                    "secretOptions": []
+                },
+                "systemControls": [],
+                "credentialSpecs": []
+            },
+            {
+                "name": "registry-tmp-volume-chmod",
+                "image": "public.ecr.aws/docker/library/busybox",
+                "cpu": 0,
+                "links": [],
+                "portMappings": [],
+                "essential": false,
+                "entryPoint": [
+                    "sh",
+                    "-c"
+                ],
+                "command": [
+                    "chmod 1777 /tmp"
+                ],
+                "environment": [],
+                "environmentFiles": [],
+                "mountPoints": [
+                    {
+                        "sourceVolume": "registry-tmp",
+                        "containerPath": "/tmp/"
+                    }
+                ],
+                "volumesFrom": [],
+                "secrets": [],
+                "readonlyRootFilesystem": true,
+                "dnsServers": [],
+                "dnsSearchDomains": [],
+                "extraHosts": [],
+                "dockerSecurityOptions": [],
+                "dockerLabels": {},
+                "ulimits": [],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "sales-prod",
+                        "awslogs-region": "us-east-1",
+                        "awslogs-stream-prefix": "registry"
+                    },
+                    "secretOptions": []
+                },
+                "systemControls": [],
+                "credentialSpecs": []
+            }
+        ],
+        "family": "sales-prod-registry",
+        "taskRoleArn": "arn:aws:iam::850787717197:role/sales-prod-AmazonECSTaskExecutionRole-psyJbxNf8dSA",
+        "executionRoleArn": "arn:aws:iam::850787717197:role/sales-prod-AmazonECSTaskExecutionRole-psyJbxNf8dSA",
+        "networkMode": "awsvpc",
+        "revision": 23,
+        "volumes": [
+            {
+                "name": "nginx-tmp",
+                "host": {}
+            },
+            {
+                "name": "nginx-var-lib-nginx-tmp",
+                "host": {}
+            },
+            {
+                "name": "nginx-run",
+                "host": {}
+            },
+            {
+                "name": "registry-tmp",
+                "host": {}
+            }
+        ],
+        "status": "ACTIVE",
+        "requiresAttributes": [
+            {
+                "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.24"
+            },
+            {
+                "name": "ecs.capability.execution-role-awslogs"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.ecr-auth"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.17"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.task-iam-role"
+            },
+            {
+                "name": "ecs.capability.container-ordering"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.22"
+            },
+            {
+                "name": "ecs.capability.execution-role-ecr-pull"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+            },
+            {
+                "name": "ecs.capability.task-eni"
+            }
+        ],
+        "placementConstraints": [],
+        "compatibilities": [
+            "EC2",
+            "FARGATE"
+        ],
+        "requiresCompatibilities": [
+            "FARGATE"
+        ],
+        "cpu": "1024",
+        "memory": "2048",
+        "registeredAt": "2025-08-28T11:12:27.102000-05:00",
+        "registeredBy": "arn:aws:sts::850787717197:assumed-role/Github-Deployment/GitHubActions"
+    },
+    "tags": []
+}
