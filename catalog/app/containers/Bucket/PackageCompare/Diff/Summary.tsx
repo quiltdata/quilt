@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
+import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -206,8 +207,17 @@ function getMetaChange([base, other]: [Revision, Revision]): Extract<
 }
 
 function getEntryChanges([base, other]: [Revision, Revision]): WhatChanged[] {
-  const baseData = base.contentsFlatMap || {}
-  const otherData = other.contentsFlatMap || {}
+  if (!base.contentsFlatMap && !other.contentsFlatMap) {
+    throw new Error(`Package manifests are too large`)
+  }
+  if (!base.contentsFlatMap) {
+    throw new Error(`Package manifest ${base.hash} is too large`)
+  }
+  if (!other.contentsFlatMap) {
+    throw new Error(`Package manifest ${other.hash} is too large`)
+  }
+  const baseData = base.contentsFlatMap
+  const otherData = other.contentsFlatMap
   const logicalKeys = Object.keys({ ...baseData, ...otherData }).sort()
   const entryChanges: WhatChanged[] = []
 
@@ -242,10 +252,14 @@ function getEntryChanges([base, other]: [Revision, Revision]): WhatChanged[] {
   return entryChanges
 }
 
-function getChanges(revisions: [Revision, Revision]): WhatChanged[] {
-  return [getMetaChange(revisions), ...getEntryChanges(revisions)].filter(
-    Boolean,
-  ) as WhatChanged[]
+function getChanges(revisions: [Revision, Revision]): WhatChanged[] | Error {
+  try {
+    return [getMetaChange(revisions), ...getEntryChanges(revisions)].filter(
+      Boolean,
+    ) as WhatChanged[]
+  } catch (e) {
+    return e instanceof Error ? e : new Error(`Unexpected error: ${e}`)
+  }
 }
 
 interface SummaryItemProps {
@@ -313,6 +327,10 @@ function SummaryDiff({ revisions }: SummaryDiffProps) {
 
   const changes = React.useMemo(() => getChanges(revisions), [revisions])
 
+  if (changes instanceof Error) {
+    return <Lab.Alert severity="error">{changes.message}</Lab.Alert>
+  }
+
   if (changes.length === 0) {
     return <M.Typography className={classes.empty}>Nothing changed</M.Typography>
   }
@@ -337,9 +355,10 @@ export default function SummaryDiffHandler({ revisionsResult }: SummaryDiffHandl
 
   if (revisionsResult._tag === 'error') {
     return (
-      <M.Typography variant="body2" color="error">
-        Error loading revisions
-      </M.Typography>
+      <Lab.Alert severity="error">
+        <Lab.AlertTitle>Error loading revisions</Lab.AlertTitle>
+        {revisionsResult.error.message}
+      </Lab.Alert>
     )
   }
 

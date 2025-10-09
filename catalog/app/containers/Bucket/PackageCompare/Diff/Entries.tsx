@@ -74,6 +74,16 @@ function getChange(
 }
 
 function getChanges([base, other]: [Revision, Revision], changesOnly: boolean) {
+  if (!base.contentsFlatMap && !other.contentsFlatMap) {
+    throw new Error(`Package manifests are too large`)
+  }
+  if (!base.contentsFlatMap) {
+    throw new Error(`Package manifest ${base.hash} is too large`)
+  }
+  if (!other.contentsFlatMap) {
+    throw new Error(`Package manifest ${other.hash} is too large`)
+  }
+
   return Object.keys({ ...base.contentsFlatMap, ...other.contentsFlatMap })
     .sort()
     .map((logicalKey) => ({
@@ -130,10 +140,17 @@ interface EntriesDiffProps {
 function EntriesDiff({ revisions, changesOnly }: EntriesDiffProps) {
   const classes = useStyles()
 
-  const changes = React.useMemo(
-    () => getChanges(revisions, changesOnly),
-    [revisions, changesOnly],
-  )
+  const changes = React.useMemo(() => {
+    try {
+      return getChanges(revisions, changesOnly)
+    } catch (e) {
+      return e instanceof Error ? e : new Error(`Unexpected error: ${e}`)
+    }
+  }, [revisions, changesOnly])
+
+  if (changes instanceof Error) {
+    return <Lab.Alert severity="error">{changes.message}</Lab.Alert>
+  }
 
   if (changes.length === 0) {
     return <div className={classes.empty}>No entries found</div>
@@ -182,9 +199,10 @@ export default function EntriesDiffHandler({
 
   if (revisionsResult._tag === 'error') {
     return (
-      <M.Typography variant="body2" color="error">
-        Error loading revisions
-      </M.Typography>
+      <Lab.Alert severity="error">
+        <Lab.AlertTitle>Error loading revisions</Lab.AlertTitle>
+        {revisionsResult.error.message}
+      </Lab.Alert>
     )
   }
 
