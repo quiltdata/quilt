@@ -10,7 +10,10 @@ export type PackagePushSuccessSelectionFragment = {
     'bucket' | 'name' | 'modified'
   > & {
       readonly revision: Types.Maybe<
-        { readonly __typename: 'PackageRevision' } & Pick<Types.PackageRevision, 'hash'>
+        { readonly __typename: 'PackageRevision' } & Pick<
+          Types.PackageRevision,
+          'hash' | 'modified'
+        >
       >
       readonly revisions: { readonly __typename: 'PackageRevisionList' } & Pick<
         Types.PackageRevisionList,
@@ -89,6 +92,7 @@ export const PackagePushSuccessSelectionFragmentDoc = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                     ],
                   },
                 },

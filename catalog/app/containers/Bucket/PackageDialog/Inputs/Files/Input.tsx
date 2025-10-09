@@ -4,11 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as M from '@material-ui/core'
-import {
-  ErrorOutline as IconErrorOutline,
-  Undo as IconUndo,
-  CreateNewFolder as IconCreateNewFolder,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
@@ -167,7 +163,7 @@ function Header({
         )}
 
         {stats.warn && (
-          <IconErrorOutline className={classes.warningIcon} fontSize="inherit" />
+          <Icons.ErrorOutline className={classes.warningIcon} fontSize="inherit" />
         )}
 
         {stats.hashing && (
@@ -186,7 +182,7 @@ function Header({
               onClick={onReset}
               disabled={disabled}
               size="small"
-              endIcon={<IconUndo fontSize="small" />}
+              endIcon={<Icons.Undo fontSize="small" />}
             >
               {resetTitle}
             </M.Button>
@@ -200,7 +196,7 @@ function Header({
           size="small"
           title="Add empty folder"
         >
-          <IconCreateNewFolder fontSize="small" />
+          <Icons.CreateNewFolder fontSize="small" />
         </M.IconButton>
       </div>
 

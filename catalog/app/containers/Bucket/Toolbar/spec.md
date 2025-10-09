@@ -54,10 +54,16 @@ Bucket/Dir/Toolbar/Share/
 
 ```typescript
 // Add to Bucket/Toolbar/Toolbar.tsx
-import { ShareOutlined as IconShareOutlined } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 export function Share({ label = 'Share', ...props }: ButtonProps) {
-  return <Buttons.WithPopover icon={IconShareOutlined} label={label} {...props} />
+  return (
+    <Buttons.WithPopover
+      icon={Icons.ShareOutlined}
+      label={label}
+      {...props}
+    />
+  )
 }
 ```
 
@@ -111,7 +117,7 @@ export function Provider({ children, handle }: ProviderProps) {
 // Share/Options.tsx
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { ShareOutlined as IconShareOutlined } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Context from './Context'
 
@@ -123,7 +129,7 @@ export default function Options() {
   return (
     <M.List dense>
       <M.ListItem button onClick={doSome}>
-        <M.ListItemIcon><IconShareOutlined /></M.ListItemIcon>
+        <M.ListItemIcon><Icons.ShareOutlined /></M.ListItemIcon>
         <M.ListItemText
           primary="Share"
           primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}

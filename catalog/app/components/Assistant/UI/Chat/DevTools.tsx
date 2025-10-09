@@ -1,11 +1,7 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import {
-  Clear as ClearIcon,
-  Delete as DeleteIcon,
-  GetApp as GetAppIcon,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 
@@ -52,7 +48,7 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
                 size="small"
               >
                 <M.Tooltip arrow title="Clear model ID override">
-                  <ClearIcon />
+                  <Icons.Clear />
                 </M.Tooltip>
               </M.IconButton>
             </M.InputAdornment>
@@ -123,7 +119,7 @@ function RecordingControls({ enabled, log, enable, clear }: RecordingControlsPro
             onClick={handleDownload}
             size="small"
             variant="outlined"
-            startIcon={<GetAppIcon />}
+            startIcon={<Icons.GetApp />}
           >
             Download Log
           </M.Button>
@@ -131,7 +127,7 @@ function RecordingControls({ enabled, log, enable, clear }: RecordingControlsPro
             onClick={clear}
             size="small"
             variant="outlined"
-            startIcon={<DeleteIcon />}
+            startIcon={<Icons.Delete />}
           >
             Clear Log
           </M.Button>
