@@ -38,7 +38,6 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
-import { isS3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
@@ -49,17 +48,6 @@ const CANCEL = 'cancel'
 const README_PATH = 'README.md'
 
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
-
-// TODO: use tree as the main data model / source of truth?
-export interface LocalEntry {
-  path: string
-  file: FI.LocalFile
-}
-
-export interface S3Entry {
-  path: string
-  file: Model.S3File
-}
 
 export interface PackageCreationSuccess {
   name: string
@@ -72,8 +60,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
+    R.filter(([, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},
@@ -270,16 +257,9 @@ function PackageCreationForm({
   }
 
   const onSubmit = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
-    const addedS3Entries: S3Entry[] = []
-    const addedLocalEntries: LocalEntry[] = []
-    Object.entries(files.added).forEach(([path, file]) => {
-      if (file === FI.EMPTY_DIR_MARKER) return
-      if (isS3File(file)) {
-        addedS3Entries.push({ path, file })
-      } else {
-        addedLocalEntries.push({ path, file })
-      }
-    })
+    const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
+      files.added,
+    )
 
     const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]

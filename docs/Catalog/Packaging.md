@@ -35,7 +35,7 @@ same bucket with the name `omics-quilt/3395667`.
 ### Workflow Run RO-Crate
 
 When enabled, this will create a package from the enclosing folder when an
-`ro-crate-manifest.json` file is written to a bucket that is already part of the
+`ro-crate-metadata.json` file is written to a bucket that is already part of the
 stack.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
@@ -72,7 +72,7 @@ get for free at [the ORCID website](https://orcid.org/).
 
 The package will be created in the same bucket as the `outdir`, with the package
 name inferred from the S3 key. For example, if the key is
-`my/s3/folder/ro-crate-manifest.json`, the package name will be `my_s3/folder`.
+`my/s3/folder/ro-crate-metadata.json`, the package name will be `my_s3/folder`.
 
 ## Architecture
 
