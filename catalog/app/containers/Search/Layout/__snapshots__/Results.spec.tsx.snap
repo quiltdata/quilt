@@ -3,13 +3,15 @@
 exports[`containers/Search/Layout/Results does not show ToggleResultsView for S3Object result type 1`] = `
 <div>
   <div>
-    Column Title: 
-    5 results
-  </div>
-  <div>
+    <div>
+      Column Title: 
+      5 results
+    </div>
     <div>
       <div>
-        Sort Selector
+        <div>
+          Sort Selector
+        </div>
       </div>
     </div>
   </div>
@@ -19,26 +21,28 @@ exports[`containers/Search/Layout/Results does not show ToggleResultsView for S3
 exports[`containers/Search/Layout/Results renders error state 1`] = `
 <div>
   <div>
-    Column Title: 
-  </div>
-  <div>
     <div>
-      <ul
-        data-selected="l"
-      >
-        <li
-          data-value="t"
-        >
-          table icon
-        </li>
-        <li
-          data-value="l"
-        >
-          list icon
-        </li>
-      </ul>
+      Column Title: 
+    </div>
+    <div>
       <div>
-        Sort Selector
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
       </div>
     </div>
   </div>
@@ -48,30 +52,32 @@ exports[`containers/Search/Layout/Results renders error state 1`] = `
 exports[`containers/Search/Layout/Results renders with FiltersButton when onFilters prop is provided 1`] = `
 <div>
   <div>
-    Column Title: 
-    3 results
-  </div>
-  <div>
     <div>
-      <ul
-        data-selected="l"
-      >
-        <li
-          data-value="t"
-        >
-          table icon
-        </li>
-        <li
-          data-value="l"
-        >
-          list icon
-        </li>
-      </ul>
-      <button>
-        Filters
-      </button>
+      Column Title: 
+      3 results
+    </div>
+    <div>
       <div>
-        Sort Selector
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <button>
+          Filters
+        </button>
+        <div>
+          Sort Selector
+        </div>
       </div>
     </div>
   </div>
@@ -81,27 +87,29 @@ exports[`containers/Search/Layout/Results renders with FiltersButton when onFilt
 exports[`containers/Search/Layout/Results renders with data and shows number of results 1`] = `
 <div>
   <div>
-    Column Title: 
-    5 results
-  </div>
-  <div>
     <div>
-      <ul
-        data-selected="l"
-      >
-        <li
-          data-value="t"
-        >
-          table icon
-        </li>
-        <li
-          data-value="l"
-        >
-          list icon
-        </li>
-      </ul>
+      Column Title: 
+      5 results
+    </div>
+    <div>
       <div>
-        Sort Selector
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
       </div>
     </div>
   </div>
@@ -111,29 +119,31 @@ exports[`containers/Search/Layout/Results renders with data and shows number of 
 exports[`containers/Search/Layout/Results renders with loading state 1`] = `
 <div>
   <div>
-    Column Title: 
     <div>
-      Loading…
-    </div>
-  </div>
-  <div>
-    <div>
-      <ul
-        data-selected="l"
-      >
-        <li
-          data-value="t"
-        >
-          table icon
-        </li>
-        <li
-          data-value="l"
-        >
-          list icon
-        </li>
-      </ul>
+      Column Title: 
       <div>
-        Sort Selector
+        Loading…
+      </div>
+    </div>
+    <div>
+      <div>
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
       </div>
     </div>
   </div>
@@ -143,33 +153,35 @@ exports[`containers/Search/Layout/Results renders with loading state 1`] = `
 exports[`containers/Search/Layout/Results shows Create Package button in bucket 1`] = `
 <div>
   <div>
-    Column Title: 
-    5 results
-  </div>
-  <div>
-    <button>
-      <span>
-        Create new package
-      </span>
-    </button>
-    Don't forget to render dialog
     <div>
-      <ul
-        data-selected="l"
-      >
-        <li
-          data-value="t"
-        >
-          table icon
-        </li>
-        <li
-          data-value="l"
-        >
-          list icon
-        </li>
-      </ul>
+      Column Title: 
+      5 results
+    </div>
+    <div>
+      <button>
+        <span>
+          Create new package
+        </span>
+      </button>
+      Don't forget to render dialog
       <div>
-        Sort Selector
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
       </div>
     </div>
   </div>
