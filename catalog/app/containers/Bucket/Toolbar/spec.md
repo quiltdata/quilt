@@ -57,7 +57,13 @@ Bucket/Dir/Toolbar/Share/
 import * as Icons from '@material-ui/icons'
 
 export function Share({ label = 'Share', ...props }: ButtonProps) {
-  return <Buttons.WithPopover icon={Icons.ShareOutlined} label={label} {...props} />
+  return (
+    <Buttons.WithPopover
+      icon={Icons.ShareOutlined}
+      label={label}
+      {...props}
+    />
+  )
 }
 ```
 
