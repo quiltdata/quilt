@@ -11,8 +11,6 @@ import useRevisions from '../PackageCompare/useRevisionsPair'
 const useDiffSummaryStyles = M.makeStyles((t) => ({
   popover: {
     width: t.spacing(60),
-    maxHeight: '80vh',
-    overflow: 'auto',
   },
   header: {
     padding: t.spacing(2, 2, 1),
@@ -20,6 +18,8 @@ const useDiffSummaryStyles = M.makeStyles((t) => ({
   },
   content: {
     padding: t.spacing(1, 2, 2),
+    maxHeight: '60vh',
+    overflow: 'auto',
   },
   showMore: {
     padding: t.spacing(1, 2),
