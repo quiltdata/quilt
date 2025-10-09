@@ -97,7 +97,6 @@ describe('components/ListingActions', () => {
     })
 
     it('should render Bucket directory', () => {
-      jest.mock('react-redux')
       const { container } = render(
         <TestBucket>
           <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
