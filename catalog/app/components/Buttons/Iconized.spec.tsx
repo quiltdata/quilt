@@ -1,8 +1,6 @@
-// TODO: test matching media queries
-// import mediaQuery from 'css-mediaquery'
 import * as React from 'react'
 import { render } from '@testing-library/react'
-import { Add as IconAdd } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Buttons from './'
 
@@ -22,7 +20,7 @@ describe('components/Buttons/Iconized', () => {
     expect(container.firstChild).toMatchSnapshot()
   })
   it('render with SvgIcon component', () => {
-    const { container } = render(<Buttons.Iconized icon={IconAdd} label="Add Item" />)
+    const { container } = render(<Buttons.Iconized icon={Icons.Add} label="Add Item" />)
     expect(container.firstChild).toMatchSnapshot()
   })
 })

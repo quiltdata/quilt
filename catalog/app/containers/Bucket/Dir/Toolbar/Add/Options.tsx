@@ -1,9 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import {
-  CreateOutlined as IconCreateOutlined,
-  PublishOutlined as IconPublishOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Context from './Context'
 
@@ -32,12 +29,12 @@ export default function AddOptions() {
   return (
     <M.List dense>
       <MenuItem
-        icon={<IconCreateOutlined />}
+        icon={<Icons.CreateOutlined />}
         primary="Create text file"
         onClick={createFile}
       />
       <MenuItem
-        icon={<IconPublishOutlined />}
+        icon={<Icons.PublishOutlined />}
         primary="Upload files"
         onClick={openUploadDialog}
       />
