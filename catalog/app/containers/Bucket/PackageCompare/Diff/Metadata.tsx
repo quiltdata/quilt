@@ -28,8 +28,8 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.monospace,
     borderRadius: 0,
     paddingBottom: t.spacing(0.75),
-    paddingTop: t.spacing(0.75),
     paddingLeft: t.spacing(2),
+    paddingTop: t.spacing(0.75),
     whiteSpace: 'pre-wrap',
   },
 }))
