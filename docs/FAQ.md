@@ -107,9 +107,9 @@ with your R scripts to create a unified workflow:
 
 <!--pytest.mark.skip-->
 ```bash
-quilt3 install my-package # download Quilt data package 
+quilt3 install my-package # download Quilt data package
 [Run R commands or scripts] # modify the data in Quilt data package using R
-quilt3 push --dir path/to/remote-registry my-package 
+quilt3 push --dir path/to/remote-registry my-package
 # upload Quilt data package to the remote registry
 ```
 
@@ -175,7 +175,7 @@ The S3 permissions needed by `quilt3` are similar to
 
 ## How complex can my Athena queries be?
 
-Amazon Athena supports a subset of Data Defintion Language (DDL) and Data
+Amazon Athena supports a subset of Data Definition Language (DDL) and Data
 Manipulation Language (DML) statements, functions, operators, and data types,
 based on [Presto](https://prestodb.io/) and [Trino](https://trino.io/).
 
@@ -198,9 +198,7 @@ SELECT regexp_extract_all('1a 2b 14m', '\d+');
 
 ### Considerations and limitations
 
-There are [many considerations and
-<!-- markdownlint-disable-next-line line-length -->
-limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
+There are [many considerations and limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
 when writing Amazon Athena queries.
 
 ### References
