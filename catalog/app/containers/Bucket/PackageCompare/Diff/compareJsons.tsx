@@ -12,14 +12,20 @@ function isObject(value: any): value is JsonRecord {
 
 export function compareValues(
   pointer: JSONPointer.Path,
-  baseValue: Json,
-  otherValue: Json,
+  baseValue: Json | undefined,
+  otherValue: Json | undefined,
 ): Change[] {
   if (baseValue === otherValue) return []
 
-  if (baseValue === undefined) return [{ _tag: 'added', pointer, newValue: otherValue }]
+  if (baseValue === undefined) {
+    if (otherValue === undefined) return []
+    return [{ _tag: 'added', pointer, newValue: otherValue }]
+  }
 
-  if (otherValue === undefined) return [{ _tag: 'removed', pointer, oldValue: baseValue }]
+  if (otherValue === undefined) {
+    if (baseValue === undefined) return []
+    return [{ _tag: 'removed', pointer, oldValue: baseValue }]
+  }
 
   if (isObject(baseValue) && isObject(otherValue)) {
     return compareObjectsRecursive(baseValue, otherValue, pointer)
@@ -66,6 +72,10 @@ export function compareArraysRecursive(
   return changedKeys
 }
 
-export function compareJsons(baseObj: JsonRecord, otherObj: JsonRecord): Change[] {
+export function compareJsonRecords(baseObj: JsonRecord, otherObj: JsonRecord): Change[] {
   return compareObjectsRecursive(baseObj, otherObj)
+}
+
+export function compareJsons(baseObj?: Json, otherObj?: Json): Change[] {
+  return compareValues([], baseObj, otherObj)
 }
