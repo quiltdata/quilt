@@ -90,6 +90,7 @@ export default function RevisionSelect({
   return (
     <M.FormControl>
       <M.Select
+        autoWidth
         value={value}
         onChange={handleChange}
         displayEmpty
@@ -104,7 +105,7 @@ export default function RevisionSelect({
           </M.MenuItem>
         )}
         {revisions.map((r) => (
-          <M.MenuItem key={r.hash} value={r.hash}>
+          <M.MenuItem key={`${r.hash}:${r.modified.valueOf()}`} value={r.hash}>
             <M.ListItemText
               primary={<FormattedDate modified={r.modified} />}
               secondary={<Details message={r.message} hash={r.hash} />}
