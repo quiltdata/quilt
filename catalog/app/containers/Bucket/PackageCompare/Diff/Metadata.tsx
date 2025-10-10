@@ -45,7 +45,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   change: {
     ...t.typography.monospace,
-    borderRadius: 0,
     paddingBottom: t.spacing(0.5),
     paddingTop: t.spacing(0.5),
     whiteSpace: 'pre-wrap',

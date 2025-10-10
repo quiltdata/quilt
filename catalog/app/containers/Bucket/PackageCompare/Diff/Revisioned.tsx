@@ -6,7 +6,6 @@ import * as Hash from 'components/Hash'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    borderRadius: '2px',
     padding: t.spacing(0, 11, 0, 0.25),
     position: 'relative',
   },
