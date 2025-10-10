@@ -196,10 +196,10 @@ function EntriesDiff({ revisions, changesOnly }: EntriesDiffProps) {
         >
           {change._tag === 'modified' ? (
             <div className={classes.split}>
-              <PreviewBox tag="added" hash={revisions[0].hash}>
+              <PreviewBox tag="removed" hash={revisions[0].hash}>
                 <Preview physicalKey={change.base.physicalKey} />
               </PreviewBox>
-              <PreviewBox tag="removed" hash={revisions[1].hash}>
+              <PreviewBox tag="added" hash={revisions[1].hash}>
                 <Preview physicalKey={change.other.physicalKey} />
               </PreviewBox>
             </div>
