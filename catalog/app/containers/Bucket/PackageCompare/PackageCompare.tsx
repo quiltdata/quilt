@@ -162,7 +162,7 @@ export default function PackageCompareWrapper() {
 
   return (
     <>
-      <MetaTitle>{[`${name} comparison`, bucket]}</MetaTitle>
+      <MetaTitle>{[`Comparing changes in ${name} revisions`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <FileView.Root>
           <PackageName bucket={bucket} name={name} />
