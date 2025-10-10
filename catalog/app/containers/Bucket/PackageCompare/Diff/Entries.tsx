@@ -96,6 +96,46 @@ function getChanges([base, other]: [Revision, Revision], changesOnly: boolean) {
     .filter(({ change }) => !changesOnly || change._tag !== 'unmodified')
 }
 
+const usePreviewBoxStyles = M.makeStyles((t) => ({
+  root: {
+    background: t.palette.background.paper,
+    borderRadius: t.shape.borderRadius,
+    color: 'inherit',
+    margin: t.spacing(2, 0),
+    padding: t.spacing(3),
+    position: 'relative',
+  },
+  border: {
+    borderStyle: 'solid',
+    borderWidth: '2px',
+  },
+}))
+
+interface PreviewBoxProps {
+  children: React.ReactNode
+  className?: string
+  hash?: string
+  tag: Change['_tag']
+}
+
+function PreviewBox({ hash, className, children, tag }: PreviewBoxProps) {
+  const colors = useColors()
+  const classes = usePreviewBoxStyles()
+  const cl = cx(
+    classes.root,
+    tag !== 'unmodified' && colors[tag],
+    tag !== 'unmodified' && classes.border,
+    className,
+  )
+  return hash ? (
+    <Revisioned className={cl} hash={hash}>
+      {children}
+    </Revisioned>
+  ) : (
+    <div className={cl}>{children}</div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   row: {
     borderBottom: `1px solid ${t.palette.divider}`,
@@ -114,20 +154,13 @@ const useStyles = M.makeStyles((t) => ({
     textAlign: 'center',
     padding: t.spacing(2),
   },
+  single: {
+    width: '100%',
+  },
   split: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: t.spacing(2),
-    width: '100%',
-  },
-  preview: {
-    background: t.palette.background.paper,
-    borderRadius: t.shape.borderRadius,
-    margin: t.spacing(2, 0),
-    padding: t.spacing(3),
-    position: 'relative',
-  },
-  single: {
     width: '100%',
   },
 }))
@@ -166,17 +199,17 @@ function EntriesDiff({ revisions, changesOnly }: EntriesDiffProps) {
         >
           {change._tag === 'modified' ? (
             <div className={classes.split}>
-              <Revisioned className={classes.preview} hash={revisions[0].hash}>
+              <PreviewBox tag="added" hash={revisions[0].hash}>
                 <Preview physicalKey={change.base.physicalKey} />
-              </Revisioned>
-              <Revisioned className={classes.preview} hash={revisions[1].hash}>
+              </PreviewBox>
+              <PreviewBox tag="removed" hash={revisions[1].hash}>
                 <Preview physicalKey={change.other.physicalKey} />
-              </Revisioned>
+              </PreviewBox>
             </div>
           ) : (
-            <div className={cx(classes.preview, classes.single)}>
+            <PreviewBox className={classes.single} tag={change._tag}>
               <Preview physicalKey={change.entry.physicalKey} />
-            </div>
+            </PreviewBox>
           )}
         </Entry>
       ))}
