@@ -22,8 +22,10 @@ interface PackageNameProps {
 function PackageName({ bucket, name }: PackageNameProps) {
   const { urls } = NamedRoutes.use()
   return (
-    <M.Typography variant="body1" gutterBottom>
-      <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>
+    <M.Typography variant="h6">
+      Comparing changes in{' '}
+      <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>{' '}
+      revisions
     </M.Typography>
   )
 }
@@ -47,7 +49,9 @@ function ChangesOnlyCheckbox({ onChange, value }: ChangesOnlyCheckboxProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
+  root: {
+    marginTop: t.spacing(2),
+  },
   table: {
     marginTop: t.spacing(1),
   },
