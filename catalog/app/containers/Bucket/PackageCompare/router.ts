@@ -53,14 +53,12 @@ export function useRouter() {
 
   const changesOnly = !showAll || showAll === 'false'
   const toggleChangesOnly = React.useCallback(
-    (checked: boolean) => {
-      const route = checked
-        ? urls.bucketPackageCompare(bucket, name, baseHash, otherHash)
-        : urls.bucketPackageCompare(bucket, name, baseHash, otherHash, {
-            showAll: true,
-          })
-      push(route)
-    },
+    (checked: boolean) =>
+      push(
+        urls.bucketPackageCompare(bucket, name, baseHash, otherHash, {
+          showAll: !checked || null,
+        }),
+      ),
     [bucket, name, baseHash, otherHash, push, urls],
   )
 
