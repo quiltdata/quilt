@@ -3,7 +3,8 @@ query ($bucket: String!, $name: String!) {
     bucket
     name
     revisions {
-      page(number: 1, perPage: 5) {
+      # Get enough revisions for the dropdown
+      page(number: 1, perPage: 100) {
         hash
         message
         modified
