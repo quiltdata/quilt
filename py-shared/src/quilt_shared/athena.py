@@ -10,6 +10,30 @@ if T.TYPE_CHECKING:
     import logging
 
 
+class AthenaQueryBaseException(Exception):
+    query_execution: QueryExecutionTypeDef
+    state: str
+
+    def __init__(self, query_execution: QueryExecutionTypeDef):
+        self.query_execution = query_execution
+
+    @property
+    def query_execution_id(self) -> str:
+        assert "QueryExecutionId" in self.query_execution
+        return self.query_execution["QueryExecutionId"]
+
+    def __str__(self) -> str:
+        return f"Athena query {self.query_execution_id} failed with state {self.state}"
+
+
+class AthenaQueryFailedException(AthenaQueryBaseException):
+    state = "FAILED"
+
+
+class AthenaQueryCancelledException(AthenaQueryBaseException):
+    state = "CANCELLED"
+
+
 # XXX: this is mostly copy-pasted from access_counts lambda, should be deduplicated
 class QueryRunner:
     def __init__(self, *, logger: logging.Logger, athena: AthenaClient, database: str, workgroup: str):
@@ -44,10 +68,10 @@ class QueryRunner:
             return query_execution
         elif state == "FAILED":
             if raise_on_failed:
-                raise Exception("Query failed! QueryExecutionId=%r" % execution_id)
+                raise AthenaQueryFailedException(query_execution)
             return query_execution
         elif state == "CANCELLED":
-            raise Exception("Query cancelled! QueryExecutionId=%r" % execution_id)
+            raise AthenaQueryCancelledException(query_execution)
         else:
             assert False, "Unexpected state: %s" % state
 
@@ -59,6 +83,30 @@ class QueryRunner:
         max_current_queries: int = 20,
         sleep_sec: float = 1,
     ) -> list[QueryExecutionTypeDef]:
+        """
+        Execute multiple Athena queries in parallel with controlled concurrency.
+
+        Args:
+            query_list: List of SQL query strings to execute.
+            raise_on_failed: If True, raises an Exception when a query fails. If False, returns the failed
+                query execution info.
+            max_current_queries: Maximum number of concurrent queries to run at once.
+                Note: default quota for DDL queries is 20 per account, for DML is 200 per account.
+            sleep_sec: Time in seconds to sleep between status checks.
+
+        Returns:
+            list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.
+                Each element contains the full query execution information from Athena.
+
+        Raises:
+            Exception: If a query fails and raise_on_failed is True.
+            Exception: If a query is cancelled.
+
+        Note:
+            The method polls Athena for query status and manages concurrent execution within specified
+            limits. Failed queries will either raise an exception or return execution details based on
+            raise_on_failed.
+        """
         results: list[QueryExecutionTypeDef | None] = [None] * len(query_list)
 
         remaining_queries = list(enumerate(query_list))
