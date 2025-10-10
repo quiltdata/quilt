@@ -138,12 +138,8 @@ function getMetaChange([base, other]: [Revision, Revision]): Extract<
   WhatChanged,
   { _tag: 'meta' }
 > | null {
-  if (JSON.stringify(base.userMeta) === JSON.stringify(other.userMeta)) return null
-
-  return {
-    _tag: 'meta' as const,
-    keys: compareJsons(base.userMeta || {}, other.userMeta || {}),
-  }
+  const keys = compareJsons(base.userMeta || {}, other.userMeta || {})
+  return keys.length ? { _tag: 'meta', keys } : null
 }
 
 function getEntryChanges([base, other]: [Revision, Revision]): WhatChanged[] {
