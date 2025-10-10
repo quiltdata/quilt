@@ -7,15 +7,15 @@ import { trimCenter } from 'utils/string'
 const useStyles = M.makeStyles((t) => ({
   root: {
     borderRadius: '2px',
-    padding: t.spacing(0, 11, 0, 0.25),
+    paddingRight: t.spacing(11),
     position: 'relative',
   },
   hash: {
-    position: 'absolute',
     ...t.typography.caption,
     color: t.palette.text.hint,
-    top: 0,
+    position: 'absolute',
     right: t.spacing(0.5),
+    top: 0,
   },
 }))
 

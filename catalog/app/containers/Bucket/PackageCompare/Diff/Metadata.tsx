@@ -1,39 +1,20 @@
 import cx from 'classnames'
-import { diffJson } from 'diff'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import assertNever from 'utils/assertNever'
 
 import type { Revision, RevisionsResult } from '../useRevisionsPair'
 
-import useColors from './useColors'
 import Revisioned from './Revisioned'
+import diffJsons from './diffJsons'
+import useColors from './useColors'
 
 type Change =
   | { _tag: 'added'; hash: string; value: string }
   | { _tag: 'removed'; hash: string; value: string }
   | { _tag: 'unmodified'; value: string }
-
-// We believe showing braces frighten wet scientists
-function removeBraces(input: string) {
-  return input.replace(/}/g, '').replace(/{/g, '').replace(/]/g, '').replace(/\[/g, '')
-}
-
-function getChanges(
-  [base, other]: [Revision, Revision],
-  changesOnly: boolean = false,
-): Change[] {
-  return diffJson(base.userMeta || {}, other.userMeta || {})
-    .map((c) => ({ ...c, value: removeBraces(c.value) }))
-    .filter((c) => c.value.trim())
-    .filter((c) => !changesOnly || c.added || c.removed)
-    .map((c) => {
-      if (c.added) return { _tag: 'added', hash: other.hash, value: c.value }
-      if (c.removed) return { _tag: 'removed', hash: base.hash, value: c.value }
-      return { _tag: 'unmodified', value: c.value }
-    })
-}
 
 const useStyles = M.makeStyles((t) => ({
   empty: {
@@ -46,8 +27,9 @@ const useStyles = M.makeStyles((t) => ({
   change: {
     ...t.typography.monospace,
     borderRadius: 0,
-    paddingBottom: t.spacing(0.5),
-    paddingTop: t.spacing(0.5),
+    paddingBottom: t.spacing(0.75),
+    paddingLeft: t.spacing(2),
+    paddingTop: t.spacing(0.75),
     whiteSpace: 'pre-wrap',
   },
 }))
@@ -58,15 +40,27 @@ interface MetadataDiffProps {
 }
 
 function MetadataDiff({
-  revisions,
+  revisions: [base, other],
   changesOnly: changesOnly = false,
 }: MetadataDiffProps) {
   const colors = useColors()
   const classes = useStyles()
 
-  const changes = React.useMemo(
-    () => getChanges(revisions, changesOnly),
-    [revisions, changesOnly],
+  const changes: Change[] = React.useMemo(
+    () =>
+      diffJsons(base.userMeta, other.userMeta, changesOnly).map((c) => {
+        switch (c._tag) {
+          case 'added':
+            return { ...c, hash: other.hash }
+          case 'removed':
+            return { ...c, hash: base.hash }
+          case 'unmodified':
+            return c
+          default:
+            assertNever(c)
+        }
+      }),
+    [base, other, changesOnly],
   )
 
   if (changes.length === 0) {
