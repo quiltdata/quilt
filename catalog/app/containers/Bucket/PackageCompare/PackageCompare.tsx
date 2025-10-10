@@ -31,17 +31,19 @@ function PackageName({ bucket, name }: PackageNameProps) {
 }
 
 interface ChangesOnlyCheckboxProps {
+  className: string
   value: boolean
   onChange: (checked: boolean) => void
 }
 
-function ChangesOnlyCheckbox({ onChange, value }: ChangesOnlyCheckboxProps) {
+function ChangesOnlyCheckbox({ className, onChange, value }: ChangesOnlyCheckboxProps) {
   const handleChange = React.useCallback(
     (_event: React.ChangeEvent<HTMLInputElement>, checked) => onChange(checked),
     [onChange],
   )
   return (
     <M.FormControlLabel
+      className={className}
       control={<M.Checkbox checked={value} onChange={handleChange} />}
       label="Show changes only"
     />
@@ -51,6 +53,9 @@ function ChangesOnlyCheckbox({ onChange, value }: ChangesOnlyCheckboxProps) {
 const useStyles = M.makeStyles((t) => ({
   root: {
     marginTop: t.spacing(2),
+  },
+  checkbox: {
+    marginRight: 0,
   },
   table: {
     marginTop: t.spacing(1),
@@ -114,7 +119,11 @@ export function RevisionsCompare({
 
       <M.Typography variant="h6" gutterBottom className={classes.details}>
         Details
-        <ChangesOnlyCheckbox value={changesOnly} onChange={onChangesOnly} />
+        <ChangesOnlyCheckbox
+          className={classes.checkbox}
+          value={changesOnly}
+          onChange={onChangesOnly}
+        />
       </M.Typography>
 
       <div className={classes.userMeta}>
