@@ -250,9 +250,6 @@ const useStyles = M.makeStyles((t) => ({
   empty: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: t.spacing(2),
   },
 }))
 
@@ -270,7 +267,7 @@ function SummaryDiff({ revisions }: SummaryDiffProps) {
   }
 
   if (changes.length === 0) {
-    return <M.Typography className={classes.empty}>Nothing changed</M.Typography>
+    return <p className={classes.empty}>Nothing changed</p>
   }
 
   return (

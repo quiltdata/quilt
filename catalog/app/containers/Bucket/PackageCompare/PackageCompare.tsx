@@ -130,9 +130,7 @@ export function RevisionsCompare({
         <M.Typography variant="subtitle1" gutterBottom>
           User metadata
         </M.Typography>
-        <M.Paper square variant="outlined">
-          <Diff.Metadata revisionsResult={revisionsResult} changesOnly={changesOnly} />
-        </M.Paper>
+        <Diff.Metadata revisionsResult={revisionsResult} changesOnly={changesOnly} />
       </div>
 
       <div className={classes.entries}>

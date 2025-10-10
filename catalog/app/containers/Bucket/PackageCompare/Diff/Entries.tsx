@@ -150,9 +150,6 @@ const useStyles = M.makeStyles((t) => ({
   empty: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: t.spacing(2),
   },
   single: {
     width: '100%',
@@ -186,7 +183,7 @@ function EntriesDiff({ revisions, changesOnly }: EntriesDiffProps) {
   }
 
   if (changes.length === 0) {
-    return <div className={classes.empty}>No entries found</div>
+    return <p className={classes.empty}>No entries changed</p>
   }
 
   return (
