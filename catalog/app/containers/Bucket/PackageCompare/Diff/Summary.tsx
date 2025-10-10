@@ -169,7 +169,7 @@ function getEntryChanges([base, other]: [Revision, Revision]): WhatChanged[] {
       const hashChanged = baseEntry.hash.value !== otherEntry.hash.value
       const sizeChanged = baseEntry.size !== otherEntry.size
       const physicalKeyChanged = baseEntry.physicalKey !== otherEntry.physicalKey
-      const metaChanged = compareJsons(baseEntry.meta, otherEntry.meta)
+      const metaChanged = !!compareJsons(baseEntry.meta, otherEntry.meta).length
 
       if (hashChanged || sizeChanged || physicalKeyChanged || metaChanged) {
         entryChanges.push({
