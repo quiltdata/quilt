@@ -16,12 +16,7 @@ type Result =
   | { _tag: 'ok'; revisions: ReadonlyArray<RevisionsListItem> }
 
 export default function useRevisionsList(bucket: string, name: string): Result {
-  const query = GQL.useQuery(REVISIONS_LIST_QUERY, {
-    bucket,
-    name,
-    page: 1,
-    perPage: 100, // Get enough revisions for the dropdown
-  })
+  const query = GQL.useQuery(REVISIONS_LIST_QUERY, { bucket, name })
   return React.useMemo(
     () =>
       GQL.fold(query, {

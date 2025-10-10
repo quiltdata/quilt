@@ -94,7 +94,7 @@ export const containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListDo
                           {
                             kind: 'Argument',
                             name: { kind: 'Name', value: 'perPage' },
-                            value: { kind: 'IntValue', value: '5' },
+                            value: { kind: 'IntValue', value: '100' },
                           },
                         ],
                         selectionSet: {
