@@ -37,6 +37,8 @@ const aggregateContext = (contexts: Partial<ContextShape>[]) =>
     ROOT_CONTEXT,
   )
 
+export const merge = (...contexts: Partial<ContextShape>[]) => aggregateContext(contexts)
+
 export const useAggregatedContext = ContextAggregator.makeCombinator(aggregateContext)
 
 export const usePushContext = (context: Partial<ContextShape>) =>
