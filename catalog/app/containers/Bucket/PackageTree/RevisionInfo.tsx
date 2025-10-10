@@ -11,7 +11,25 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
+import RevisionSummary from './RevisionSummary'
+
 import type REVISION_LIST_QUERY from './gql/RevisionList.generated'
+
+type RevisionListQuery = GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
+
+function getPreviousHash(revisionListQuery: RevisionListQuery, hash: string) {
+  return GQL.fold(revisionListQuery, {
+    data: (d) => {
+      if (!d.package) return null
+      const revisions = d.package.revisions.page
+      if (revisions.length < 2) return null
+      const base = revisions.findIndex((r) => r.hash === hash)
+      return base >= 0 ? revisions[base + 1]?.hash : null
+    },
+    error: () => null,
+    fetching: () => null,
+  })
+}
 
 const useRevisionInfoStyles = M.makeStyles((t) => ({
   revision: {
@@ -34,6 +52,9 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
   list: {
     width: 420,
   },
+  shortcut: {
+    margin: t.spacing(-0.5, 0, -0.5, 1),
+  },
 }))
 
 interface RevisionInfoProps {
@@ -42,7 +63,7 @@ interface RevisionInfoProps {
   path: string
   hashOrTag: string
   hash?: string
-  revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
+  revisionListQuery: RevisionListQuery
 }
 
 export default function RevisionInfo({
@@ -74,6 +95,12 @@ export default function RevisionInfo({
       push('Canonical URI copied to clipboard')
     }
 
+  const comparePair: [string, string] | null = React.useMemo(() => {
+    if (!hash) return null
+    const prevHash = getPreviousHash(revisionListQuery, hash)
+    return prevHash ? [prevHash, hash] : null
+  }, [hash, revisionListQuery])
+
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -86,13 +113,22 @@ export default function RevisionInfo({
         {R.take(10, hashOrTag)} <M.Icon>expand_more</M.Icon>
       </span>
 
+      {comparePair && (
+        <RevisionSummary
+          bucket={bucket}
+          name={name}
+          hashes={comparePair}
+          className={classes.shortcut}
+        />
+      )}
+
       {!!hash && (
         <M.IconButton
           size="small"
           title="Copy package revision's canonical catalog URI to the clipboard"
           href={getHttpsUri(hash)}
           onClick={copyHttpsUri(hash)}
-          style={{ marginTop: -4, marginBottom: -4 }}
+          className={classes.shortcut}
         >
           <M.Icon>link</M.Icon>
         </M.IconButton>

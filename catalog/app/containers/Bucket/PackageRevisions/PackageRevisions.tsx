@@ -379,7 +379,12 @@ function Revision({
       hash={
         <>
           <M.Box className={classes.hash} component="span" order={{ xs: 1, sm: 0 }}>
-            {hash}
+            <RRDom.Link
+              to={urls.bucketPackageCompare(bucket, name, hash)}
+              title="Compare revision"
+            >
+              {hash}
+            </RRDom.Link>
           </M.Box>
           <M.IconButton onClick={() => copyToClipboard(hash)} edge={xs ? 'start' : false}>
             <M.Icon>file_copy</M.Icon>

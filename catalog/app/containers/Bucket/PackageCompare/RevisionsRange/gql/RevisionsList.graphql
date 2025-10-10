@@ -1,0 +1,14 @@
+query ($bucket: String!, $name: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    revisions {
+      # Get enough revisions for the dropdown
+      page(number: 1, perPage: 100) {
+        hash
+        message
+        modified
+      }
+    }
+  }
+}
