@@ -2,11 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { trimCenter } from 'utils/string'
+import * as Hash from 'components/Hash'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    borderRadius: '2px',
     padding: t.spacing(0, 11, 0, 0.25),
     position: 'relative',
   },
@@ -29,7 +28,7 @@ export default function Revisioned({ className, children, hash }: RevisionedProp
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <span className={classes.hash}>{trimCenter(hash, 12)}</span>
+      <Hash.Trimmed className={classes.hash}>{hash}</Hash.Trimmed>
       {children}
     </div>
   )

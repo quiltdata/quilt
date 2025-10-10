@@ -22,24 +22,28 @@ interface PackageNameProps {
 function PackageName({ bucket, name }: PackageNameProps) {
   const { urls } = NamedRoutes.use()
   return (
-    <M.Typography variant="body1" gutterBottom>
-      <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>
+    <M.Typography variant="h6">
+      Comparing changes in{' '}
+      <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>{' '}
+      revisions
     </M.Typography>
   )
 }
 
 interface ChangesOnlyCheckboxProps {
+  className: string
   value: boolean
   onChange: (checked: boolean) => void
 }
 
-function ChangesOnlyCheckbox({ onChange, value }: ChangesOnlyCheckboxProps) {
+function ChangesOnlyCheckbox({ className, onChange, value }: ChangesOnlyCheckboxProps) {
   const handleChange = React.useCallback(
     (_event: React.ChangeEvent<HTMLInputElement>, checked) => onChange(checked),
     [onChange],
   )
   return (
     <M.FormControlLabel
+      className={className}
       control={<M.Checkbox checked={value} onChange={handleChange} />}
       label="Show changes only"
     />
@@ -47,7 +51,12 @@ function ChangesOnlyCheckbox({ onChange, value }: ChangesOnlyCheckboxProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
+  root: {
+    marginTop: t.spacing(2),
+  },
+  checkbox: {
+    marginRight: 0,
+  },
   table: {
     marginTop: t.spacing(1),
   },
@@ -110,16 +119,18 @@ export function RevisionsCompare({
 
       <M.Typography variant="h6" gutterBottom className={classes.details}>
         Details
-        <ChangesOnlyCheckbox value={changesOnly} onChange={onChangesOnly} />
+        <ChangesOnlyCheckbox
+          className={classes.checkbox}
+          value={changesOnly}
+          onChange={onChangesOnly}
+        />
       </M.Typography>
 
       <div className={classes.userMeta}>
         <M.Typography variant="subtitle1" gutterBottom>
           User metadata
         </M.Typography>
-        <M.Paper square variant="outlined">
-          <Diff.Metadata revisionsResult={revisionsResult} changesOnly={changesOnly} />
-        </M.Paper>
+        <Diff.Metadata revisionsResult={revisionsResult} changesOnly={changesOnly} />
       </div>
 
       <div className={classes.entries}>
@@ -149,7 +160,7 @@ export default function PackageCompareWrapper() {
 
   return (
     <>
-      <MetaTitle>{[`${name} comparison`, bucket]}</MetaTitle>
+      <MetaTitle>{[`Comparing changes in ${name} revisions`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <FileView.Root>
           <PackageName bucket={bucket} name={name} />
