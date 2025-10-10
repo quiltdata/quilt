@@ -24,7 +24,7 @@ const convertIdToHandle = (
   parentHandle: Model.S3.S3ObjectLocation,
 ): Model.S3.S3ObjectLocation => ({
   bucket: parentHandle.bucket,
-  key: join(parentHandle.key, id.toString()),
+  key: join(decodeURIComponent(parentHandle.key), id.toString()),
 })
 
 export const toHandlesMap = (selection: ListingSelection): SelectionHandles =>
@@ -65,7 +65,7 @@ export function merge(
   path: string,
   filter?: string,
 ): (state: ListingSelection) => ListingSelection {
-  const prefixUrl = `s3://${bucket}/${path}`
+  const prefixUrl = `s3://${bucket}/${encodeURIComponent(path)}`
   const lens = R.lensProp<Record<string, SelectionItem[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, items)) : R.set(lens, items)
 }
