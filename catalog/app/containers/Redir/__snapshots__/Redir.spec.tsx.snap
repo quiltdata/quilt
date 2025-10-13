@@ -7,25 +7,25 @@ exports[`containers/Redir/Redir must have uri 1`] = `
 </span>
 `;
 
-exports[`containers/Redir/Redir redirects to package page 1`] = `"Redirect to /b/bucket/packages/pkg/name/tree/hash/?resolvedFrom=quilt%2Bs3%3A%2F%2Fbucket%23package%3Dpkg%2Fname%40hash"`;
+exports[`containers/Redir/Redir redirects to package page 1`] = `Redirect to /b/bucket/packages/pkg/name/tree/hash/?resolvedFrom=quilt%2Bs3%3A%2F%2Fbucket%23package%3Dpkg%2Fname%40hash`;
 
 exports[`containers/Redir/Redir shows error 1`] = `
 <div
   role="main"
 >
   <div
-    className="makeStyles-root-2 makeStyles-root-1"
+    class="makeStyles-root-8 makeStyles-root-7"
   >
     <h4
-      className="MuiTypography-root MuiTypography-h4"
+      class="MuiTypography-root MuiTypography-h4"
     >
       Failed to redirect
     </h4>
     <div
-      className="makeStyles-actions-3"
+      class="makeStyles-actions-9"
     >
       <div
-        className="makeStyles-primary-4"
+        class="makeStyles-primary-10"
       >
         <a
           href="quilt+s3://"
@@ -34,16 +34,16 @@ exports[`containers/Redir/Redir shows error 1`] = `
         </a>
       </div>
       <p
-        className="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
+        class="MuiTypography-root makeStyles-secondary-11 MuiTypography-body1"
       >
         Click the button to open QuiltSync
       </p>
     </div>
     <div
-      className="makeStyles-main-6"
+      class="makeStyles-main-12"
     >
       <p
-        className="MuiTypography-root MuiTypography-body1 MuiTypography-colorError"
+        class="MuiTypography-root MuiTypography-body1 MuiTypography-colorError"
       >
         Error parsing URI: 
         unsupported protocol "null". "quilt+s3:" is currently the only supported protocol.
@@ -58,18 +58,18 @@ exports[`containers/Redir/Redir shows waiting screen 1`] = `
   role="main"
 >
   <div
-    className="makeStyles-root-2 makeStyles-root-1"
+    class="makeStyles-root-2 makeStyles-root-1"
   >
     <h4
-      className="MuiTypography-root MuiTypography-h4"
+      class="MuiTypography-root MuiTypography-h4"
     >
       Redirecting…
     </h4>
     <div
-      className="makeStyles-actions-3"
+      class="makeStyles-actions-3"
     >
       <div
-        className="makeStyles-primary-4"
+        class="makeStyles-primary-4"
       >
         <a
           href="quilt+s3://bucket#package=pkg/name@hash"
@@ -78,7 +78,7 @@ exports[`containers/Redir/Redir shows waiting screen 1`] = `
         </a>
       </div>
       <p
-        className="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
+        class="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
       >
         Click the button if you’re not redirected automatically.
       </p>

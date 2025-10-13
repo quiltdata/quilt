@@ -3,7 +3,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
@@ -1109,7 +1109,7 @@ function ColumnHeadHide({ className, column }: ColumnHeadHideProps) {
   }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter])
   return (
     <M.IconButton className={className} size="small" color="inherit" onClick={handleHide}>
-      <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
+      <Icons.VisibilityOffOutlined color="inherit" fontSize="inherit" />
     </M.IconButton>
   )
 }

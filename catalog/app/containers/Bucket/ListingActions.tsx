@@ -2,13 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import { matchPath, match as Match } from 'react-router-dom'
 import * as M from '@material-ui/core'
-
-import {
-  ArrowDownwardOutlined as IconArrowDownwardOutlined,
-  DeleteOutlined as IconDeleteOutlined,
-  TurnedInOutlined as IconTurnedInOutlined,
-  TurnedInNotOutlined as IconTurnedInNotOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as Model from 'model'
@@ -49,7 +43,7 @@ function Bookmark({ className, location }: BucketButtonProps) {
       onClick={toggleBookmark}
       title="Bookmark"
     >
-      {isBookmarked ? <IconTurnedInOutlined /> : <IconTurnedInNotOutlined />}
+      {isBookmarked ? <Icons.TurnedInOutlined /> : <Icons.TurnedInNotOutlined />}
     </M.IconButton>
   )
 }
@@ -80,7 +74,7 @@ function Delete({
         title="Delete"
         onClick={handleDelete}
       >
-        <IconDeleteOutlined color="error" />
+        <Icons.DeleteOutlined color="error" />
       </M.IconButton>
     </>
   )
@@ -95,7 +89,7 @@ function BucketDirectory({ className, location: { bucket, key } }: BucketButtonP
         title="Download"
         type="submit"
       >
-        <IconArrowDownwardOutlined />
+        <Icons.ArrowDownwardOutlined />
       </M.IconButton>
     </FileView.ZipDownloadForm>
   )
@@ -111,7 +105,7 @@ function BucketFile({ className, location }: BucketButtonProps) {
       title="Download"
       download
     >
-      <IconArrowDownwardOutlined />
+      <Icons.ArrowDownwardOutlined />
     </M.IconButton>
   )
 }
@@ -139,7 +133,7 @@ function PackageDirectory({
       className={className}
     >
       <M.IconButton className={classes.root} title="Download" type="submit">
-        <IconArrowDownwardOutlined />
+        <Icons.ArrowDownwardOutlined />
       </M.IconButton>
     </FileView.ZipDownloadForm>
   )
