@@ -42,21 +42,19 @@ function MetadataDiff({
   const colors = useColors()
   const classes = useStyles()
 
-  const changes: Change[] = React.useMemo(
+  const diffs = React.useMemo(
     () =>
-      diffJsons(base.userMeta, other.userMeta, changesOnly).map((c) => {
-        switch (c._tag) {
-          case 'added':
-            return { ...c, hash: other.hash }
-          case 'removed':
-            return { ...c, hash: base.hash }
-          case 'unmodified':
-            return c
-          default:
-            assertNever(c)
-        }
+      diffJsons(base.userMeta, other.userMeta).map((c) => {
+        if (c._tag === 'unmodified') return c
+        if (c._tag === 'added') return { ...c, hash: other.hash }
+        if (c._tag === 'removed') return { ...c, hash: base.hash }
+        assertNever(c)
       }),
-    [base, other, changesOnly],
+    [base, other],
+  )
+  const changes: Change[] = React.useMemo(
+    () => diffs.filter((c) => !changesOnly || c._tag === 'added' || c._tag === 'removed'),
+    [diffs, changesOnly],
   )
 
   if (changes.length === 0) {
