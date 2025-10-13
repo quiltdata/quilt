@@ -46,10 +46,19 @@ def test_start_query(query_runner, stubbed_athena_client):
 
 
 @pytest.mark.parametrize(
-    "state",
-    ["RUNNING", "QUEUED"],
+    "state, raise_on_failed, expected_exception, expected_result",
+    [
+        ("RUNNING", True, None, None),
+        ("QUEUED", True, None, None),
+        ("SUCCEEDED", True, None, {"Status": {"State": "SUCCEEDED"}}),
+        ("FAILED", True, AthenaQueryFailedException, None),
+        ("FAILED", False, None, {"Status": {"State": "FAILED"}}),
+        ("CANCELLED", True, AthenaQueryCancelledException, None),
+    ],
 )
-def test_query_not_finished(query_runner, stubbed_athena_client, state):
+def test_query_finished_states(
+    query_runner, stubbed_athena_client, state, raise_on_failed, expected_exception, expected_result
+):
     execution_id = "test_execution_id"
 
     # Stub response for the given state
@@ -64,76 +73,12 @@ def test_query_not_finished(query_runner, stubbed_athena_client, state):
         {"QueryExecutionId": execution_id},
     )
 
-    result = query_runner.query_finished(execution_id)
-    assert result is None
-
-
-def test_query_finished_succeeded(query_runner, stubbed_athena_client):
-    execution_id = "test_execution_id"
-    stubbed_athena_client.add_response(
-        "get_query_execution",
-        {
-            "QueryExecution": {
-                "Status": {"State": "SUCCEEDED"},
-                "QueryExecutionId": execution_id,
-            }
-        },
-        {"QueryExecutionId": execution_id},
-    )
-
-    result = query_runner.query_finished(execution_id)
-    assert result["Status"]["State"] == "SUCCEEDED"
-
-
-def test_query_finished_failed(query_runner, stubbed_athena_client):
-    execution_id = "test_execution_id"
-    stubbed_athena_client.add_response(
-        "get_query_execution",
-        {
-            "QueryExecution": {
-                "Status": {"State": "FAILED"},
-                "QueryExecutionId": execution_id,
-            }
-        },
-        {"QueryExecutionId": execution_id},
-    )
-
-    with pytest.raises(AthenaQueryFailedException):
-        query_runner.query_finished(execution_id)
-
-
-def test_query_finished_failed_no_raise(query_runner, stubbed_athena_client):
-    execution_id = "test_execution_id"
-    stubbed_athena_client.add_response(
-        "get_query_execution",
-        {
-            "QueryExecution": {
-                "Status": {"State": "FAILED"},
-                "QueryExecutionId": execution_id,
-            }
-        },
-        {"QueryExecutionId": execution_id},
-    )
-
-    result = query_runner.query_finished(execution_id, raise_on_failed=False)
-    assert result["Status"]["State"] == "FAILED"
-
-
-def test_query_finished_cancelled(query_runner, stubbed_athena_client):
-    execution_id = "test_execution_id"
-    stubbed_athena_client.add_response(
-        "get_query_execution",
-        {
-            "QueryExecution": {
-                "Status": {"State": "CANCELLED"},
-                "QueryExecutionId": execution_id,
-            }
-        },
-        {"QueryExecutionId": execution_id},
-    )
-
-    with pytest.raises(AthenaQueryCancelledException):
-        query_runner.query_finished(execution_id)
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            query_runner.query_finished(execution_id, raise_on_failed=raise_on_failed)
+    else:
+        result = query_runner.query_finished(execution_id, raise_on_failed=raise_on_failed)
+        assert result == expected_result
 
 
 def test_run_multiple_queries(query_runner, stubbed_athena_client):
