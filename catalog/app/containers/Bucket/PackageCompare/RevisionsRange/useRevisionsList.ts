@@ -1,13 +1,14 @@
 import * as React from 'react'
 
-import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 
 import REVISIONS_LIST_QUERY from './gql/RevisionsList.generated'
 
-export type RevisionsListItem = Pick<
-  Model.GQLTypes.PackageRevision,
-  'hash' | 'message' | 'modified'
+type QueryData = GQL.DataForDoc<typeof REVISIONS_LIST_QUERY>
+type PackageData = NonNullable<QueryData['package']>
+export type RevisionsListItem = Omit<
+  NonNullable<PackageData['revisions']['page'][number]>,
+  '__typename'
 >
 
 type Result =
