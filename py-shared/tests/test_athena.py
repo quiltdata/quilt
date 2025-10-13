@@ -9,7 +9,7 @@ from quilt_shared.athena import AthenaQueryCancelledException, AthenaQueryFailed
 
 @pytest.fixture
 def athena_client():
-    return boto3.client("athena")
+    return boto3.client("athena", region_name="us-east-1")
 
 
 @pytest.fixture
@@ -76,6 +76,8 @@ def test_query_finished_states(query_runner, stubbed_athena_client, state, raise
             query_runner.query_finished(execution_id, raise_on_failed=raise_on_failed)
     else:
         result = query_runner.query_finished(execution_id, raise_on_failed=raise_on_failed)
+        if result is not None:
+            assert result.pop("QueryExecutionId") == execution_id
         assert result == expected_outcome
 
 
