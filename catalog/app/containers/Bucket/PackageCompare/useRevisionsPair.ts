@@ -1,15 +1,13 @@
 import * as React from 'react'
 
-import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import REVISION_QUERY from './gql/Revision.generated'
 
-export type Revision = Pick<
-  Model.GQLTypes.PackageRevision,
-  'hash' | 'modified' | 'message' | 'userMeta' | 'totalBytes' | 'contentsFlatMap'
->
+type QueryData = GQL.DataForDoc<typeof REVISION_QUERY>
+type PackageData = NonNullable<QueryData['package']>
+export type Revision = Omit<NonNullable<PackageData['revision']>, '__typename'>
 
 type RevisionResult =
   | { _tag: 'loading' }

@@ -11,13 +11,11 @@ type Change =
 export default function diffJsons(
   base: JsonRecord | null,
   other: JsonRecord | null,
-  changesOnly: boolean = false,
 ): Change[] {
   return (
     // We believe showing braces frighten wet scientists
     diffLines(yaml.stringify(base || {}), yaml.stringify(other || {}))
       .filter((c) => c.value.trim())
-      .filter((c) => !changesOnly || c.added || c.removed)
       .map((c) => {
         if (c.added) return { _tag: 'added', value: c.value }
         if (c.removed) return { _tag: 'removed', value: c.value }

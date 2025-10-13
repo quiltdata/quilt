@@ -84,34 +84,6 @@ describe('containers/Bucket/PackageCompare/Diff/diffJsons', () => {
     expect(result).toEqual([])
   })
 
-  describe('changesOnly parameter', () => {
-    it('should show all changes when changesOnly is false (default)', () => {
-      const base = { name: 'John', age: 30 }
-      const other = { name: 'Jane', age: 30 }
-      const result = diffJsons(base, other, false)
-
-      expect(result).toContainEqual({ _tag: 'removed', value: 'name: John\n' })
-      expect(result).toContainEqual({ _tag: 'added', value: 'name: Jane\n' })
-      expect(result).toContainEqual({ _tag: 'unmodified', value: 'age: 30\n' })
-    })
-
-    it('should show only changes when changesOnly is true', () => {
-      const base = { name: 'John', age: 30 }
-      const other = { name: 'Jane', age: 30 }
-      const result = diffJsons(base, other, true)
-
-      expect(result).toContainEqual({ _tag: 'removed', value: 'name: John\n' })
-      expect(result).toContainEqual({ _tag: 'added', value: 'name: Jane\n' })
-      expect(result).not.toContainEqual(expect.objectContaining({ _tag: 'unmodified' }))
-    })
-
-    it('should return empty array when changesOnly is true and no changes exist', () => {
-      const obj = { name: 'John', age: 30 }
-      const result = diffJsons(obj, obj, true)
-      expect(result).toEqual([])
-    })
-  })
-
   it('should handle complex nested structures', () => {
     const base = {
       user: { name: 'John', settings: { theme: 'dark' } },
