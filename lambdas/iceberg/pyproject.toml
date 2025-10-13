@@ -23,5 +23,8 @@ test = [
     "pytest-mock>=3.15.1",
 ]
 
+[tool.uv]
+default-groups = ["test"]
+
 [tool.uv.sources]
 quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/1db847b09ee33a6eee327a61b2501ba07ff7532b.zip", subdirectory = "py-shared" }
