@@ -29,6 +29,7 @@ const PackageRevisions = RT.mkLazy(
   () => import('./PackageRevisions'),
   SuspensePlaceholder,
 )
+const PackageCompare = RT.mkLazy(() => import('./PackageCompare'), SuspensePlaceholder)
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
@@ -103,6 +104,9 @@ export default function Bucket() {
             </Route>
             <Route path={paths.bucketPackageRevisions} exact>
               <PackageRevisions />
+            </Route>
+            <Route path={paths.bucketPackageCompare} exact>
+              <PackageCompare />
             </Route>
             <Route path={paths.bucketWorkflowList} exact>
               <Workflows />
