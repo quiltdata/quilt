@@ -9,7 +9,7 @@ from quilt_shared.athena import AthenaQueryCancelledException, AthenaQueryFailed
 
 @pytest.fixture
 def athena_client():
-    return boto3.client("athena", region_name="us-east-1")
+    return boto3.client("athena")
 
 
 @pytest.fixture
@@ -45,6 +45,29 @@ def test_start_query(query_runner, stubbed_athena_client):
     assert execution_id == "test_execution_id"
 
 
+@pytest.mark.parametrize(
+    "state",
+    ["RUNNING", "QUEUED"],
+)
+def test_query_not_finished(query_runner, stubbed_athena_client, state):
+    execution_id = "test_execution_id"
+
+    # Stub response for the given state
+    stubbed_athena_client.add_response(
+        "get_query_execution",
+        {
+            "QueryExecution": {
+                "Status": {"State": state},
+                "QueryExecutionId": execution_id,
+            }
+        },
+        {"QueryExecutionId": execution_id},
+    )
+
+    result = query_runner.query_finished(execution_id)
+    assert result is None
+
+
 def test_query_finished_succeeded(query_runner, stubbed_athena_client):
     execution_id = "test_execution_id"
     stubbed_athena_client.add_response(
@@ -77,6 +100,23 @@ def test_query_finished_failed(query_runner, stubbed_athena_client):
 
     with pytest.raises(AthenaQueryFailedException):
         query_runner.query_finished(execution_id)
+
+
+def test_query_finished_failed_no_raise(query_runner, stubbed_athena_client):
+    execution_id = "test_execution_id"
+    stubbed_athena_client.add_response(
+        "get_query_execution",
+        {
+            "QueryExecution": {
+                "Status": {"State": "FAILED"},
+                "QueryExecutionId": execution_id,
+            }
+        },
+        {"QueryExecutionId": execution_id},
+    )
+
+    result = query_runner.query_finished(execution_id, raise_on_failed=False)
+    assert result["Status"]["State"] == "FAILED"
 
 
 def test_query_finished_cancelled(query_runner, stubbed_athena_client):
@@ -125,7 +165,7 @@ def test_run_multiple_queries(query_runner, stubbed_athena_client):
             {"QueryExecutionId": execution_id},
         )
 
-    results = query_runner.run_multiple_queries(queries)
+    results = query_runner.run_multiple_queries(queries, sleep_sec=0.1)
     assert len(results) == len(queries)
     for result in results:
         assert result["Status"]["State"] == "SUCCEEDED"
