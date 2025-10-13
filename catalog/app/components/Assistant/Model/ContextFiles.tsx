@@ -1,8 +1,11 @@
 import type { S3 } from 'aws-sdk'
+import * as Eff from 'effect'
+import invariant from 'invariant'
 import * as React from 'react'
 
 import type { S3ObjectLocation } from 'model/S3'
 import * as AWS from 'utils/AWS'
+import { runtime } from 'utils/Effect'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as XML from 'utils/XML'
 import * as S3Paths from 'utils/s3paths'
@@ -14,6 +17,8 @@ const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
 const MAX_NON_ROOT_FILES = 10 // Maximum non-root context files to keep
 const MAX_NON_ROOT_FILES_TO_TRY = 50 // Maximum non-root context files to try to find
 const CONTEXT_FILE_NAMES = ['AGENTS.md', 'README.md']
+const CACHE_CAPACITY = 50
+const CACHE_TTL = Eff.Duration.minutes(10)
 
 interface ContextFileContent {
   content: string
@@ -26,9 +31,9 @@ interface ContextFile extends ContextFileContent {
   path: string
 }
 
-function useLoadFile() {
+function useMakeLoader() {
   const s3: S3 = AWS.S3.use()
-  return React.useCallback(
+  const loadFile = React.useCallback(
     (loc: S3ObjectLocation): Promise<ContextFileContent | null> =>
       s3
         .getObject({ Bucket: loc.bucket, Key: loc.key, VersionId: loc.version })
@@ -42,6 +47,38 @@ function useLoadFile() {
         .catch(() => null),
     [s3],
   )
+
+  const cache = React.useMemo(
+    () =>
+      runtime.runSync(
+        Eff.Cache.make({
+          capacity: CACHE_CAPACITY,
+          timeToLive: CACHE_TTL,
+          lookup: (loc: S3ObjectLocation) => Eff.Effect.promise(() => loadFile(loc)),
+        }),
+      ),
+    [loadFile],
+  )
+
+  return React.useCallback(
+    (loc: S3ObjectLocation) => Eff.Effect.runPromise(cache.get(loc)),
+    [cache],
+  )
+}
+
+type Loader = ReturnType<typeof useMakeLoader>
+
+const LoaderContext = React.createContext<Loader | null>(null)
+
+export function LoaderProvider({ children }: { children: React.ReactNode }) {
+  const loader = useMakeLoader()
+  return <LoaderContext.Provider value={loader}>{children}</LoaderContext.Provider>
+}
+
+function useLoadFile() {
+  const loader = React.useContext(LoaderContext)
+  invariant(loader, 'LoaderContext not provided')
+  return loader
 }
 
 function useLoadBucketContextFile(bucket: string) {
