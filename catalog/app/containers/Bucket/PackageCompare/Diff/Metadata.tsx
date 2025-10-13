@@ -20,13 +20,9 @@ const useStyles = M.makeStyles((t) => ({
   empty: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: t.spacing(2),
   },
   change: {
     ...t.typography.monospace,
-    borderRadius: 0,
     paddingBottom: t.spacing(0.75),
     paddingLeft: t.spacing(2),
     paddingTop: t.spacing(0.75),
@@ -64,15 +60,11 @@ function MetadataDiff({
   )
 
   if (changes.length === 0) {
-    return (
-      <M.Typography variant="body2" color="textSecondary" className={classes.empty}>
-        Metadata is identical
-      </M.Typography>
-    )
+    return <p className={classes.empty}>Metadata unchanged</p>
   }
 
   return (
-    <div>
+    <M.Paper square variant="outlined">
       {changes.map((change, index) =>
         change._tag === 'unmodified' ? (
           <div key={index} className={classes.change}>
@@ -88,7 +80,7 @@ function MetadataDiff({
           </Revisioned>
         ),
       )}
-    </div>
+    </M.Paper>
   )
 }
 

@@ -1,10 +1,10 @@
-import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Hash from 'components/Hash'
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -36,9 +36,6 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
     ...linkStyle,
     alignItems: 'center',
     display: 'inline-flex',
-  },
-  mono: {
-    fontFamily: t.typography.monospace.fontFamily,
   },
   line: {
     whiteSpace: 'nowrap',
@@ -162,7 +159,7 @@ export default function RevisionInfo({
                             {r.message || <i>No message</i>}
                           </span>
                           <br />
-                          <span className={cx(classes.line, classes.mono)}>{r.hash}</span>
+                          <Hash.Full className={classes.line}>{r.hash}</Hash.Full>
                         </span>
                       }
                     />

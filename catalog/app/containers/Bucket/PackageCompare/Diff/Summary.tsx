@@ -105,13 +105,11 @@ function MetaKeys({ change }: MetaKeysProps) {
   )
 }
 
-const useModifiedEntryStyles = M.makeStyles({
-  label: {
-    '&::after': {
-      content: '", "',
-    },
+const useModifiedEntryStyles = M.makeStyles((t) => ({
+  size: {
+    marginLeft: t.spacing(1),
   },
-})
+}))
 
 interface ModifiedEntryProps {
   change: Extract<WhatChanged, { _tag: 'modified' }>
@@ -124,9 +122,9 @@ function ModifiedEntry({ change }: ModifiedEntryProps) {
 
   return (
     <span>
-      <span className={classes.label}>Content changed</span>
+      Content changed
       {change.sizeChanged && (
-        <span className={cx(colors.modified, colors.inline)}>
+        <span className={cx(classes.size, colors.modified, colors.inline)}>
           {readableBytes(change.oldSize)} → {readableBytes(change.newSize)}
         </span>
       )}
@@ -247,9 +245,6 @@ const useStyles = M.makeStyles((t) => ({
   empty: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: t.spacing(2),
   },
 }))
 
@@ -267,7 +262,7 @@ function SummaryDiff({ revisions }: SummaryDiffProps) {
   }
 
   if (changes.length === 0) {
-    return <M.Typography className={classes.empty}>Nothing changed</M.Typography>
+    return <p className={classes.empty}>Nothing changed</p>
   }
 
   return (

@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
@@ -21,7 +22,7 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
   },
   swap: {
-    marginLeft: t.spacing(3),
+    marginLeft: t.spacing(2),
     flexShrink: 0,
   },
 }))
@@ -84,11 +85,7 @@ interface RevisionsHandlerProps {
   onSwap: () => void
 }
 
-export default function RevisionsHandler({
-  bucket,
-  name,
-  ...props
-}: RevisionsHandlerProps) {
+function RevisionsHandler({ bucket, name, ...props }: RevisionsHandlerProps) {
   const data = useRevisionsList(bucket, name)
   switch (data._tag) {
     case 'loading':
@@ -98,4 +95,29 @@ export default function RevisionsHandler({
     case 'ok':
       return <Revisions revisions={data.revisions} {...props} />
   }
+}
+
+const useRevisionsWrapperStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+  legend: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginBottom: t.spacing(1),
+  },
+}))
+
+interface RevisionsWrapperProps extends RevisionsHandlerProps {
+  className?: string
+}
+
+export default function RevisionsWrapper({ className, ...props }: RevisionsWrapperProps) {
+  const classes = useRevisionsWrapperStyles()
+  return (
+    <M.Paper className={cx(classes.root, className)}>
+      <p className={classes.legend}>Choose two revisions to see what’s changed</p>
+      <RevisionsHandler {...props} />
+    </M.Paper>
+  )
 }
