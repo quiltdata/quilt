@@ -2,7 +2,6 @@
 name = "t4_lambda_iceberg"
 version = "0.1.0"
 description = "Add your description here"
-readme = "README.md"
 authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
