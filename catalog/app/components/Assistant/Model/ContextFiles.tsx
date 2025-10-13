@@ -61,7 +61,7 @@ function useMakeLoader() {
   )
 
   return React.useCallback(
-    (loc: S3ObjectLocation) => Eff.Effect.runPromise(cache.get(loc)),
+    (loc: S3ObjectLocation) => Eff.Effect.runPromise(cache.get(Eff.Data.struct(loc))),
     [cache],
   )
 }
