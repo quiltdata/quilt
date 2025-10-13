@@ -1,10 +1,7 @@
 import hljs from 'highlight.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import {
-  HelpOutline as IconHelpOutline,
-  FileCopy as IconFileCopy,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Notifications from 'containers/Notifications'
 import copyToClipboard from 'utils/clipboard'
@@ -96,14 +93,14 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
         {label}
         <a href={help} target="_blank" rel="noopener noreferrer" className={classes.help}>
           <M.IconButton size="small">
-            <IconHelpOutline fontSize="inherit" />
+            <Icons.HelpOutline fontSize="inherit" />
           </M.IconButton>
         </a>
       </M.Typography>
       <div className={classes.container}>
         <div className={classes.copy}>
           <M.IconButton onClick={handleCopy} title="Copy to clipboard" size="small">
-            <IconFileCopy fontSize="inherit" />
+            <Icons.FileCopy fontSize="inherit" />
           </M.IconButton>
         </div>
         {lines.map((line, index) => (

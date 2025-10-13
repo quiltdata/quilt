@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
@@ -14,15 +15,15 @@ import Input from './Input'
 
 const BG = {
   intense: M.colors.indigo[900],
-  bright: M.colors.indigo[500],
-  faint: M.colors.common.white,
+  normal: M.colors.common.white,
+  faint: M.colors.grey[600],
 }
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
   align_right: {},
   color_intense: {},
-  color_bright: {},
+  color_normal: {},
   color_faint: {},
   messageContainer: {
     display: 'flex',
@@ -46,13 +47,17 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
       background: BG.intense,
       color: M.fade(t.palette.common.white, 0.8),
     },
-    '$color_bright &': {
-      background: BG.bright,
-      color: t.palette.common.white,
+    '$color_normal &': {
+      background: BG.normal,
+      color: t.palette.text.primary,
     },
     '$color_faint &': {
       background: BG.faint,
-      color: t.palette.text.primary,
+      color: t.palette.getContrastText(BG.faint),
+      opacity: 0.5,
+      '&:hover': {
+        opacity: 1,
+      },
     },
     '$align_right &': {
       borderBottomRightRadius: 0,
@@ -83,7 +88,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
 }))
 
 interface MessageContainerProps {
-  color?: 'intense' | 'bright' | 'faint'
+  color?: 'intense' | 'normal' | 'faint'
   align?: 'left' | 'right'
   children: React.ReactNode
   actions?: React.ReactNode
@@ -91,7 +96,7 @@ interface MessageContainerProps {
 }
 
 function MessageContainer({
-  color = 'faint',
+  color = 'normal',
   align = 'left',
   children,
   actions,
@@ -131,6 +136,32 @@ const useMessageActionStyles = M.makeStyles({
   },
 })
 
+const useToolMessageStyles = M.makeStyles((t) => ({
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': {
+      opacity: 0.8,
+    },
+  },
+  icon: {
+    fontSize: '1rem',
+    color: 'inherit',
+  },
+  toolName: {
+    marginLeft: t.spacing(1),
+    marginRight: t.spacing(1),
+  },
+  spinner: {
+    color: 'inherit',
+  },
+  details: {
+    marginTop: t.spacing(1),
+  },
+}))
+
 interface MessageActionProps {
   children: React.ReactNode
   className?: string
@@ -154,6 +185,42 @@ interface ConversationStateProps {
   state: Model.Conversation.State['_tag']
 }
 
+interface ToolMessageProps {
+  name: string
+  status?: 'success' | 'error' | 'running'
+  details: Record<string, any>
+  timestamp: Date
+  actions?: React.ReactNode
+}
+
+function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageProps) {
+  const classes = useToolMessageStyles()
+  const [expanded, setExpanded] = React.useState(false)
+
+  const toggleExpanded = React.useCallback(() => {
+    setExpanded((prev) => !prev)
+  }, [])
+
+  return (
+    <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
+      <div className={classes.header} onClick={toggleExpanded}>
+        <Icons.Build className={classes.icon} />
+        <span className={classes.toolName}>{name}</span>
+        {status === 'success' && <Icons.CheckCircleOutline className={classes.icon} />}
+        {status === 'error' && <Icons.ErrorOutline className={classes.icon} />}
+        {status === 'running' && (
+          <M.CircularProgress size={14} thickness={4} className={classes.spinner} />
+        )}
+      </div>
+      <M.Collapse in={expanded}>
+        <div className={classes.details}>
+          <JsonDisplay defaultExpanded={2} name="details" value={details} />
+        </div>
+      </M.Collapse>
+    </MessageContainer>
+  )
+}
+
 type MessageEventProps = ConversationDispatchProps &
   ConversationStateProps &
   ReturnType<typeof Model.Conversation.Event.Message>
@@ -174,7 +241,7 @@ function MessageEvent({
 
   return (
     <MessageContainer
-      color={role === 'user' ? 'intense' : 'faint'}
+      color={role === 'user' ? 'intense' : 'normal'}
       align={role === 'user' ? 'right' : 'left'}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
       timestamp={timestamp}
@@ -212,18 +279,13 @@ function ToolUseEvent({
     [toolUseId, input, result],
   )
   return (
-    <MessageContainer
-      color="bright"
+    <ToolMessage
+      name={name}
+      status={result.status}
+      details={details}
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
-    >
-      <span>
-        Tool Use: <b>{name}</b> ({result.status})
-      </span>
-      <M.Box py={0.5}>
-        <JsonDisplay name="details" value={details} />
-      </M.Box>
-    </MessageContainer>
+    />
   )
 }
 
@@ -246,18 +308,13 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
   const names = Eff.Record.collect(calls, (_k, v) => v.name)
 
   return (
-    <MessageContainer
-      color="bright"
+    <ToolMessage
+      name={names.join(', ')}
+      status="running"
+      details={details}
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
-    >
-      <span>
-        Tool Use: <b>{names.join(', ')}</b>
-      </span>
-      <M.Box py={0.5}>
-        <JsonDisplay name="details" value={details} />
-      </M.Box>
-    </MessageContainer>
+    />
   )
 }
 

@@ -964,8 +964,8 @@ type PackagerAdminMutations {
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
-  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
-  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult! @deprecated
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult! @deprecated
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
 }
@@ -994,6 +994,9 @@ type Mutation {
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
     @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
+
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
 
   policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
   policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin

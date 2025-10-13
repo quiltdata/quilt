@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
@@ -70,140 +70,115 @@ function TestBucket({ children }: React.PropsWithChildren<{}>) {
 describe('components/ListingActions', () => {
   describe('RowActions', () => {
     it('should render nothing if archived', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions archived to="" prefs={defaultPrefs} onReload={noop} />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions archived to="" prefs={defaultPrefs} onReload={noop} />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render nothing if no route', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions to="" prefs={defaultPrefs} onReload={noop} />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions to="" prefs={defaultPrefs} onReload={noop} />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render nothing if wrong route', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions
-              to="/b/bucketA/BRANCH/fileB"
-              prefs={defaultPrefs}
-              onReload={noop}
-            />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions to="/b/bucketA/BRANCH/fileB" prefs={defaultPrefs} onReload={noop} />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Bucket directory', () => {
-      jest.mock('react-redux')
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Bucket file', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} onReload={noop} />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} onReload={noop} />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package directory', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions
-              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
-              prefs={defaultPrefs}
-              onReload={noop}
-            />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
+            prefs={defaultPrefs}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package file', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions
-              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
-              physicalKey="s3://bucketA/pathB/fileB"
-              prefs={defaultPrefs}
-              onReload={noop}
-            />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+            physicalKey="s3://bucketA/pathB/fileB"
+            prefs={defaultPrefs}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Bucket file without download button', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions
-              to="/b/bucketA/tree/fileB"
-              prefs={{ ...defaultPrefs, downloadObject: false }}
-              onReload={noop}
-            />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/tree/fileB"
+            prefs={{ ...defaultPrefs, downloadObject: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package directory without download button', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions
-              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
-              prefs={{ ...defaultPrefs, downloadPackage: false }}
-              onReload={noop}
-            />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
+            prefs={{ ...defaultPrefs, downloadPackage: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package file without download button', () => {
-      const tree = renderer
-        .create(
-          <TestBucket>
-            <RowActions
-              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
-              physicalKey="s3://bucketA/pathB/fileB"
-              prefs={{ ...defaultPrefs, downloadPackage: false }}
-              onReload={noop}
-            />
-          </TestBucket>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+            physicalKey="s3://bucketA/pathB/fileB"
+            prefs={{ ...defaultPrefs, downloadPackage: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })
