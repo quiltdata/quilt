@@ -16,7 +16,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Lint
         run: uv run poe lint
 
@@ -27,7 +27,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Check formatting (quilt3)
         run: uv run poe fmt --check
 
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Run Ruff linter on entire codebase
         run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
 
@@ -44,7 +44,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v5
-  #     - uses: astral-sh/setup-uv@v6
+  #     - uses: astral-sh/setup-uv@v7
   #     - name: Check formatting (rest of codebase)
   #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
 
@@ -57,7 +57,7 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Check generated docs are up-to-date
         run: uv run poe gendocs-check
 
@@ -70,7 +70,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Test codeblocks
         run: uv run poe testdocs
 
@@ -87,7 +87,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - uses: codecov/codecov-action@v5
@@ -123,7 +123,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: verify git tag vs. version
         run: uv run poe verify-release-tag "${{ github.ref_name }}"
       - name: build
@@ -162,7 +162,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Export requirements.txt from uv.lock
         if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
         run: |
