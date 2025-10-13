@@ -46,19 +46,17 @@ def test_start_query(query_runner, stubbed_athena_client):
 
 
 @pytest.mark.parametrize(
-    "state, raise_on_failed, expected_exception, expected_result",
+    "state, raise_on_failed, expected_outcome",
     [
-        ("RUNNING", True, None, None),
-        ("QUEUED", True, None, None),
-        ("SUCCEEDED", True, None, {"Status": {"State": "SUCCEEDED"}}),
-        ("FAILED", True, AthenaQueryFailedException, None),
-        ("FAILED", False, None, {"Status": {"State": "FAILED"}}),
-        ("CANCELLED", True, AthenaQueryCancelledException, None),
+        ("RUNNING", True, None),
+        ("QUEUED", True, None),
+        ("SUCCEEDED", True, {"Status": {"State": "SUCCEEDED"}}),
+        ("FAILED", True, AthenaQueryFailedException),
+        ("FAILED", False, {"Status": {"State": "FAILED"}}),
+        ("CANCELLED", True, AthenaQueryCancelledException),
     ],
 )
-def test_query_finished_states(
-    query_runner, stubbed_athena_client, state, raise_on_failed, expected_exception, expected_result
-):
+def test_query_finished_states(query_runner, stubbed_athena_client, state, raise_on_failed, expected_outcome):
     execution_id = "test_execution_id"
 
     # Stub response for the given state
@@ -73,12 +71,12 @@ def test_query_finished_states(
         {"QueryExecutionId": execution_id},
     )
 
-    if expected_exception:
-        with pytest.raises(expected_exception):
+    if isinstance(expected_outcome, type) and issubclass(expected_outcome, Exception):
+        with pytest.raises(expected_outcome):
             query_runner.query_finished(execution_id, raise_on_failed=raise_on_failed)
     else:
         result = query_runner.query_finished(execution_id, raise_on_failed=raise_on_failed)
-        assert result == expected_result
+        assert result == expected_outcome
 
 
 def test_run_multiple_queries(query_runner, stubbed_athena_client):
