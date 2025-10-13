@@ -12,7 +12,7 @@ import assertNever from 'utils/assertNever'
 import type { Revision, RevisionsResult } from '../useRevisionsPair'
 
 import useColors from './useColors'
-import { compareJsons, type Change } from './compareJsons'
+import { compareJsons, compareJsonRecords, type Change } from './compareJsons'
 
 type WhatChanged =
   | { _tag: 'meta'; keys: Change[] }
@@ -136,7 +136,7 @@ function getMetaChange([base, other]: [Revision, Revision]): Extract<
   WhatChanged,
   { _tag: 'meta' }
 > | null {
-  const keys = compareJsons(base.userMeta || {}, other.userMeta || {})
+  const keys = compareJsonRecords(base.userMeta || {}, other.userMeta || {})
   return keys.length ? { _tag: 'meta', keys } : null
 }
 
@@ -167,8 +167,7 @@ function getEntryChanges([base, other]: [Revision, Revision]): WhatChanged[] {
       const hashChanged = baseEntry.hash.value !== otherEntry.hash.value
       const sizeChanged = baseEntry.size !== otherEntry.size
       const physicalKeyChanged = baseEntry.physicalKey !== otherEntry.physicalKey
-      const metaChanged =
-        JSON.stringify(baseEntry.meta) !== JSON.stringify(otherEntry.meta)
+      const metaChanged = !!compareJsons(baseEntry.meta, otherEntry.meta).length
 
       if (hashChanged || sizeChanged || physicalKeyChanged || metaChanged) {
         entryChanges.push({

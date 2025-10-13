@@ -6,15 +6,15 @@ import * as Hash from 'components/Hash'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(0, 11, 0, 0.25),
+    paddingRight: t.spacing(11),
     position: 'relative',
   },
   hash: {
-    position: 'absolute',
     ...t.typography.caption,
     color: t.palette.text.hint,
-    top: 0,
+    position: 'absolute',
     right: t.spacing(0.5),
+    top: 0,
   },
 }))
 
