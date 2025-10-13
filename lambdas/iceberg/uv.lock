@@ -253,8 +253,8 @@ wheels = [
 [[package]]
 name = "quilt-shared"
 version = "0.1.0"
-source = { url = "https://github.com/quiltdata/quilt/archive/1db847b09ee33a6eee327a61b2501ba07ff7532b.zip", subdirectory = "py-shared" }
-sdist = { hash = "sha256:484c0d7aa95d9d71ff776de3d2332437eebf1e8fbd81e2aa581ea51f4e3270fd" }
+source = { url = "https://github.com/quiltdata/quilt/archive/e490dced1243871997de163302b8b0df9a567816.zip", subdirectory = "py-shared" }
+sdist = { hash = "sha256:52fc3b11d46349aa9b11365e2c414169ee1f415f651ec8536cd2df8d40f3010f" }
 
 [package.optional-dependencies]
 boto = [
@@ -266,7 +266,6 @@ boto = [
 [package.metadata]
 requires-dist = [
     { name = "aws-requests-auth", marker = "extra == 'es'", specifier = "~=0.4.2" },
-    { name = "black", marker = "extra == 'dev'", specifier = "~=24.1" },
     { name = "boto3", marker = "extra == 'boto'", specifier = "~=1.34" },
     { name = "boto3-stubs", extras = ["athena", "s3", "sts"], marker = "extra == 'boto'", specifier = "~=1.34" },
     { name = "elasticsearch", marker = "extra == 'es'", specifier = "~=6.8" },
@@ -276,7 +275,7 @@ requires-dist = [
     { name = "types-aiobotocore", extras = ["s3"], marker = "extra == 'boto'", specifier = "~=2.11" },
     { name = "typing-extensions", marker = "extra == 'pydantic'", specifier = "~=4.9" },
 ]
-provides-extras = ["pydantic", "boto", "quilt", "dev", "es"]
+provides-extras = ["pydantic", "boto", "quilt", "es"]
 
 [[package]]
 name = "s3transfer"
@@ -319,7 +318,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.40.41,<2.0.0" },
-    { name = "quilt-shared", extras = ["boto"], url = "https://github.com/quiltdata/quilt/archive/1db847b09ee33a6eee327a61b2501ba07ff7532b.zip", subdirectory = "py-shared" },
+    { name = "quilt-shared", extras = ["boto"], url = "https://github.com/quiltdata/quilt/archive/e490dced1243871997de163302b8b0df9a567816.zip", subdirectory = "py-shared" },
 ]
 
 [package.metadata.requires-dev]
