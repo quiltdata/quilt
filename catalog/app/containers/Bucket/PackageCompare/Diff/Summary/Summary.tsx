@@ -8,8 +8,8 @@ import type { Revision, RevisionsResult } from '../../useRevisionsPair'
 
 import { compareJsonRecords, type Change } from '../compareJsons'
 
-import SummaryEntry from './Entry'
-import SummaryItem from './Item'
+import EntryChanged from './EntryChanged'
+import SummaryItem from './SummaryItem'
 import UserMetadata from './UserMetadata'
 import comparePackageEntries, { type EntryChange } from './comparePackageEntries'
 
@@ -85,7 +85,7 @@ function SummaryDiff({ revisions }: SummaryDiffProps) {
         </SummaryItem>
       )}
       {entriesChanges.map((change) => (
-        <SummaryEntry key={change.logicalKey} change={change} />
+        <EntryChanged key={change.logicalKey} change={change} />
       ))}
     </>
   )

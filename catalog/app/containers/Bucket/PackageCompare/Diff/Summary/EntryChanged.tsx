@@ -4,8 +4,8 @@ import assertNever from 'utils/assertNever'
 import { readableBytes } from 'utils/string'
 
 import FromTo from './FromTo'
-import SummaryItem from './Item'
-import PhysicalKeyChanged from './PhysicalKey'
+import SummaryItem from './SummaryItem'
+import PhysicalKeyChanged from './PhysicalKeyChanged'
 import UserMetadata from './UserMetadata'
 import type { EntryChange, WhatsChangedInEntry } from './comparePackageEntries'
 
