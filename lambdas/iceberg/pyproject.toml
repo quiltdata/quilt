@@ -17,7 +17,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 test = [
-    "coverage~=7.10",
     "pytest~=8.4",
     "pytest-cov~=7.0",
     "pytest-env~=1.1",

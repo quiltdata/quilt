@@ -309,7 +309,6 @@ dependencies = [
 
 [package.dev-dependencies]
 test = [
-    { name = "coverage" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-env" },
@@ -324,7 +323,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 test = [
-    { name = "coverage", specifier = "~=7.10" },
     { name = "pytest", specifier = "~=8.4" },
     { name = "pytest-cov", specifier = "~=7.0" },
     { name = "pytest-env", specifier = "~=1.1" },
