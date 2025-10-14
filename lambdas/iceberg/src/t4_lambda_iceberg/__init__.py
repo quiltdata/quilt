@@ -68,16 +68,17 @@ def generate_queries(bucket, key, first_line):
             ]
     elif key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
         top_hash = key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX)
-        if first_line:
-            return [
+        return (
+            [
                 query_maker.package_manifest_add_single(bucket=bucket, top_hash=top_hash),
                 query_maker.package_entry_add_single(bucket=bucket, top_hash=top_hash),
             ]
-        else:
-            return [
+            if first_line
+            else [
                 query_maker.package_manifest_delete_single(bucket=bucket, top_hash=top_hash),
                 query_maker.package_entry_delete_single(bucket=bucket, top_hash=top_hash),
             ]
+        )
     else:
         raise ValueError(f"Unexpected key prefix: {key}")
 
