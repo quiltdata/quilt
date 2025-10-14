@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582))
+- [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582), [#4596](https://github.com/quiltdata/quilt/pull/4596))
 - [Changed] Migrate unit-tests from `react-test-renderer` to `@testing-library/react` ([#4540](https://github.com/quiltdata/quilt/pull/4540))
 - [Changed] Request required fields for `PackageRevision` to proper cache ([#4583](https://github.com/quiltdata/quilt/pull/4583))
 - [Changed] Qurator: make tool messages less prominent ([#4572](https://github.com/quiltdata/quilt/pull/4572))
