@@ -63,7 +63,7 @@ export default function PhysicalKeyChanged({
   physicalKey,
 }: PhysicalKeyChangedProps) {
   const classes = useStyles()
-  const { bucket, key, version } = physicalKey
+  const { bucket, key } = physicalKey
   if (Array.isArray(bucket) || Array.isArray(key)) {
     return (
       <>
@@ -71,11 +71,6 @@ export default function PhysicalKeyChanged({
         <span className={classes.url}>
           {Array.isArray(bucket) ? <BucketChanged changes={bucket} /> : `s3://${bucket}`}/
           {Array.isArray(key) ? <KeyChanged changes={key} /> : key}
-          {version && (
-            <>
-              ?version={Array.isArray(version) ? <FromTo changes={version} /> : version}
-            </>
-          )}
         </span>
       </>
     )
