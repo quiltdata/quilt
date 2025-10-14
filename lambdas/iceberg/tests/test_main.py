@@ -90,6 +90,31 @@ def test_generate_queries_manifests(mocker, first_line):
     assert spy2.call_count == 1
     assert len(queries) == 2
 
+
 def test_generate_queries_unexpected_key():
     with pytest.raises(ValueError):
         t4_lambda_iceberg.generate_queries("b", "unexpected/key", b"hash")
+
+
+def test_handler(mocker):
+    # Prepare a fake SQS event
+    event = {"Records": [{"body": "irrelevant"}]}
+    context = mocker.Mock()
+
+    # Patch dependencies to return mocks
+    mock_bucket = mocker.Mock(name="bucket")
+    mock_key = mocker.Mock(name="key")
+    mock_first_line = mocker.Mock(name="first_line")
+    mock_queries = mocker.Mock(name="queries")
+
+    mock_process = mocker.patch("t4_lambda_iceberg.process_s3_event", return_value=(mock_bucket, mock_key))
+    mock_get_first_line = mocker.patch("t4_lambda_iceberg.get_first_line", return_value=mock_first_line)
+    mock_generate_queries = mocker.patch("t4_lambda_iceberg.generate_queries", return_value=mock_queries)
+    mock_run = mocker.patch.object(t4_lambda_iceberg.query_runner, "run_multiple_queries")
+
+    t4_lambda_iceberg.handler(event, context)
+
+    mock_process.assert_called_once_with(event)
+    mock_get_first_line.assert_called_once_with(mock_bucket, mock_key)
+    mock_generate_queries.assert_called_once_with(mock_bucket, mock_key, mock_first_line)
+    mock_run.assert_called_once_with(mock_queries)
