@@ -38,22 +38,21 @@ def get_first_line(bucket, key) -> bytes | None:
         return None
 
 
-def handler(event, context):
-    logger.debug("Invoked with event: %s", event)
-    assert len(event["Records"]) == 1, "Expected exactly on SQS message"
-    (event,) = event["Records"]
-    event = json.loads(event["body"])
-
-    s3_event = event["detail"]["s3"]
+def process_s3_event(event):
+    assert len(event["Records"]) == 1, "Expected exactly one SQS message"
+    (record,) = event["Records"]
+    event_body = json.loads(record["body"])
+    s3_event = event_body["detail"]["s3"]
     bucket = s3_event["bucket"]["name"]
     key = s3_event["object"]["key"]
+    return bucket, key
 
-    first_line = get_first_line(bucket, key)
 
+def generate_queries(bucket, key, first_line):
     if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
         pkg_name, pointer_name = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
         if first_line:
-            queries = [
+            return [
                 (
                     query_maker.package_revision_add_single
                     if pointer_name.isnumeric()
@@ -61,7 +60,7 @@ def handler(event, context):
                 )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name, top_hash=first_line.decode())
             ]
         else:
-            queries = [
+            return [
                 (
                     query_maker.package_revision_delete_single
                     if pointer_name.isnumeric()
@@ -71,16 +70,23 @@ def handler(event, context):
     elif key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
         top_hash = key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX)
         if first_line:
-            queries = [
+            return [
                 query_maker.package_manifest_add_single(bucket=bucket, top_hash=top_hash),
                 query_maker.package_entry_add_single(bucket=bucket, top_hash=top_hash),
             ]
         else:
-            queries = [
+            return [
                 query_maker.package_manifest_delete_single(bucket=bucket, top_hash=top_hash),
                 query_maker.package_entry_delete_single(bucket=bucket, top_hash=top_hash),
             ]
     else:
         raise ValueError(f"Unexpected key prefix: {key}")
+
+
+def handler(event, context):
+    logger.debug("Invoked with event: %s", event)
+    bucket, key = process_s3_event(event)
+    first_line = get_first_line(bucket, key)
+    queries = generate_queries(bucket, key, first_line)
 
     query_runner.run_multiple_queries(queries)
