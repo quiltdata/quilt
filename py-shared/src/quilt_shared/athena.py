@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import typing as T
 import time
-
+import typing as T
 
 if T.TYPE_CHECKING:
+    import logging
+
     from mypy_boto3_athena import AthenaClient
     from mypy_boto3_athena.type_defs import QueryExecutionTypeDef
-    import logging
 
 
 class AthenaQueryBaseException(Exception):
