@@ -75,7 +75,6 @@ a local machine or foreign region)—I/O is much faster.
 1. Use a larger instance with more vCPUs.
 
 1. Increase
-<!-- markdownlint-disable-next-line line-length -->
 [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
 
@@ -157,7 +156,6 @@ top_hash=p.top_hash)`.
 
 ## How do I push to Quilt from a headless environment like a Docker container?
 
-<!-- markdownlint-disable-next-line line-length -->
 Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 and `quilt3` will use the same for its API calls.
 
@@ -170,8 +168,8 @@ export AWS_PROFILE=your_profile
 ```
 
 The S3 permissions needed by `quilt3` are similar to
-<!-- markdownlint-disable-next-line line-length -->
-[this bucket policy](https://docs.quilt.bio/advanced/crossaccount#bucket-policies)                                                                                                  but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
+[this bucket policy](https://docs.quilt.bio/advanced/crossaccount#bucket-policies)
+but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
 
@@ -203,9 +201,7 @@ when writing Amazon Athena queries.
 
 ### References
 
-<!-- markdownlint-disable-next-line line-length -->
 * [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
-<!-- markdownlint-disable-next-line line-length -->
 * [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
 
 ## Are there any limitations on characters in Quilt filenames?
