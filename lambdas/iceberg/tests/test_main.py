@@ -68,31 +68,27 @@ def test_generate_queries_named_packages(mocker, pointer, first_line, expected_f
 
 
 @pytest.mark.parametrize(
-    "first_line, add_func, del_func",
+    "first_line",
     [
-        (b"hash", "package_manifest_add_single", "package_manifest_delete_single"),
-        (None, "package_manifest_delete_single", "package_manifest_delete_single"),
+        b"hash",
+        None,
     ],
 )
-def test_generate_queries_manifests(mocker, first_line, add_func, del_func):
+def test_generate_queries_manifests(mocker, first_line):
     bucket = "b"
     top_hash = "thash"
     key = f"{quilt_shared.const.MANIFESTS_PREFIX}{top_hash}"
     if first_line:
         spy1 = mocker.spy(t4_lambda_iceberg.query_maker, "package_manifest_add_single")
         spy2 = mocker.spy(t4_lambda_iceberg.query_maker, "package_entry_add_single")
-        queries = t4_lambda_iceberg.generate_queries(bucket, key, first_line)
-        assert spy1.call_count == 1
-        assert spy2.call_count == 1
-        assert len(queries) == 2
     else:
         spy1 = mocker.spy(t4_lambda_iceberg.query_maker, "package_manifest_delete_single")
         spy2 = mocker.spy(t4_lambda_iceberg.query_maker, "package_entry_delete_single")
-        queries = t4_lambda_iceberg.generate_queries(bucket, key, first_line)
-        assert spy1.call_count == 1
-        assert spy2.call_count == 1
-        assert len(queries) == 2
 
+    queries = t4_lambda_iceberg.generate_queries(bucket, key, first_line)
+    assert spy1.call_count == 1
+    assert spy2.call_count == 1
+    assert len(queries) == 2
 
 def test_generate_queries_unexpected_key():
     with pytest.raises(ValueError):
