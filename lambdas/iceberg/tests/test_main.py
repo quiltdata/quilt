@@ -4,26 +4,42 @@ import pytest
 import t4_lambda_iceberg
 
 import quilt_shared.const
+from botocore.stub import Stubber
 
 
 @pytest.fixture
-def s3_mock(mocker):
-    return mocker.patch("t4_lambda_iceberg.s3")
+def s3_stub():
+    stubber = Stubber(t4_lambda_iceberg.s3)
+    stubber.activate()
+    yield stubber
+    stubber.deactivate()
 
 
-def test_get_first_line_found(s3_mock, mocker):
+def test_get_first_line_found(s3_stub, mocker):
     bucket = "bucket"
     key = "key"
     body_mock = mocker.Mock()
     body_mock.iter_lines.return_value = [b"firstline", b"secondline"]
-    s3_mock.get_object.return_value = {"Body": body_mock}
+    # Patch the response to use our mock body
+    s3_stub.add_response(
+        "get_object",
+        {"Body": body_mock},
+        {"Bucket": bucket, "Key": key},
+    )
     assert t4_lambda_iceberg.get_first_line(bucket, key) == b"firstline"
-    s3_mock.get_object.assert_called_once_with(Bucket=bucket, Key=key)
 
 
-def test_get_first_line_not_found(s3_mock):
-    s3_mock.get_object.side_effect = s3_mock.exceptions.NoSuchKey
-    assert t4_lambda_iceberg.get_first_line("bucket", "key") is None
+def test_get_first_line_not_found(s3_stub):
+    bucket = "bucket"
+    key = "key"
+    s3_stub.add_client_error(
+        "get_object",
+        service_error_code="NoSuchKey",
+        service_message="Not found",
+        http_status_code=404,
+        expected_params={"Bucket": bucket, "Key": key},
+    )
+    assert t4_lambda_iceberg.get_first_line(bucket, key) is None
 
 
 def test_process_s3_event():
@@ -33,18 +49,18 @@ def test_process_s3_event():
 
 
 @pytest.mark.parametrize(
-    "prefix, pointer, first_line, expected_func",
+    "pointer, first_line, expected_func",
     [
-        (quilt_shared.const.NAMED_PACKAGES_PREFIX, "123", b"hash", "package_revision_add_single"),
-        (quilt_shared.const.NAMED_PACKAGES_PREFIX, "tag", b"hash", "package_tag_add_single"),
-        (quilt_shared.const.NAMED_PACKAGES_PREFIX, "123", None, "package_revision_delete_single"),
-        (quilt_shared.const.NAMED_PACKAGES_PREFIX, "tag", None, "package_tag_delete_single"),
+        ("123", b"hash", "package_revision_add_single"),
+        ("tag", b"hash", "package_tag_add_single"),
+        ("123", None, "package_revision_delete_single"),
+        ("tag", None, "package_tag_delete_single"),
     ],
 )
-def test_generate_queries_named_packages(mocker, prefix, pointer, first_line, expected_func):
+def test_generate_queries_named_packages(mocker, pointer, first_line, expected_func):
     bucket = "b"
     pkg_name = "pkg"
-    key = f"{prefix}{pkg_name}/{pointer}"
+    key = f"{quilt_shared.const.NAMED_PACKAGES_PREFIX}{pkg_name}/{pointer}"
     spy = mocker.spy(t4_lambda_iceberg.query_maker, expected_func)
     queries = t4_lambda_iceberg.generate_queries(bucket, key, first_line)
     assert len(queries) == 1
