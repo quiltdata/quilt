@@ -6,12 +6,45 @@ import Skeleton from 'components/Skeleton'
 
 import type { Revision, RevisionsResult } from '../../useRevisionsPair'
 
-import { compareJsonRecords } from '../compareJsons'
+import { compareJsonRecords, type Change } from '../compareJsons'
 
 import SummaryEntry from './Entry'
 import SummaryItem from './Item'
 import UserMetadata from './UserMetadata'
-import comparePackageEntries from './comparePackageEntries'
+import comparePackageEntries, { type EntryChange } from './comparePackageEntries'
+
+function getChanges([base, other]: [Revision, Revision]): {
+  metaChanges: Change[]
+  entriesChanges: EntryChange[]
+} | null {
+  const metaChanges = compareJsonRecords(base.userMeta || {}, other.userMeta || {})
+
+  const baseData = base.contentsFlatMap
+  const otherData = other.contentsFlatMap
+
+  if (!baseData && !otherData) {
+    throw new Error(`Package manifests are too large`)
+  }
+  if (!baseData) {
+    throw new Error(`Package manifest ${base.hash} is too large`)
+  }
+  if (!otherData) {
+    throw new Error(`Package manifest ${other.hash} is too large`)
+  }
+
+  const entriesChanges = comparePackageEntries(baseData, otherData)
+
+  if (metaChanges instanceof Error) {
+    throw metaChanges
+  }
+  if (entriesChanges instanceof Error) {
+    throw entriesChanges
+  }
+
+  return metaChanges.length || entriesChanges.length
+    ? { metaChanges, entriesChanges }
+    : null
+}
 
 const useStyles = M.makeStyles((t) => ({
   empty: {
@@ -24,41 +57,26 @@ interface SummaryDiffProps {
   revisions: [Revision, Revision]
 }
 
-function SummaryDiff({ revisions: [base, other] }: SummaryDiffProps) {
+function SummaryDiff({ revisions }: SummaryDiffProps) {
   const classes = useStyles()
 
-  const metaChanges = React.useMemo(
-    () => compareJsonRecords(base.userMeta || {}, other.userMeta || {}),
-    [base, other],
-  )
-  const entryChanges = React.useMemo(() => {
-    const baseData = base.contentsFlatMap
-    const otherData = other.contentsFlatMap
-
-    if (!baseData && !otherData) {
-      return new Error(`Package manifests are too large`)
+  const changes = React.useMemo(() => {
+    try {
+      return getChanges(revisions)
+    } catch (e) {
+      return e instanceof Error ? e : new Error(`Unexpected error: ${e}`)
     }
-    if (!baseData) {
-      return new Error(`Package manifest ${base.hash} is too large`)
-    }
-    if (!otherData) {
-      return new Error(`Package manifest ${other.hash} is too large`)
-    }
+  }, [revisions])
 
-    return comparePackageEntries(baseData, otherData)
-  }, [base, other])
-
-  if (metaChanges instanceof Error) {
-    return <Lab.Alert severity="error">{metaChanges.message}</Lab.Alert>
-  }
-  if (entryChanges instanceof Error) {
-    return <Lab.Alert severity="error">{entryChanges.message}</Lab.Alert>
+  if (changes instanceof Error) {
+    return <Lab.Alert severity="error">{changes.message}</Lab.Alert>
   }
 
-  if (metaChanges.length === 0 && entryChanges.length === 0) {
+  if (!changes) {
     return <p className={classes.empty}>Nothing changed</p>
   }
 
+  const { metaChanges, entriesChanges } = changes
   return (
     <>
       {metaChanges.length && (
@@ -66,7 +84,7 @@ function SummaryDiff({ revisions: [base, other] }: SummaryDiffProps) {
           <UserMetadata changes={metaChanges} />
         </SummaryItem>
       )}
-      {entryChanges.map((change) => (
+      {entriesChanges.map((change) => (
         <SummaryEntry key={change.logicalKey} change={change} />
       ))}
     </>
