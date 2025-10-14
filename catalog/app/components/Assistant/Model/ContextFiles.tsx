@@ -14,11 +14,12 @@ import * as Request from 'utils/useRequest'
 type ContextFileScope = 'bucket' | 'package'
 
 const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
-const MAX_NON_ROOT_FILES = 10 // Maximum non-root context files to keep
+const MAX_CONTEXT_FILES = 10 // Maximum non-root context files to keep
 const MAX_NON_ROOT_FILES_TO_TRY = 50 // Maximum non-root context files to try to find
+const MAX_CONCURRENT_REQUESTS = 10 // Maximum concurrent file loading requests
 const CONTEXT_FILE_NAMES = ['AGENTS.md', 'README.md']
-const CACHE_CAPACITY = 50
-const CACHE_TTL = Eff.Duration.minutes(10)
+const CACHE_CAPACITY = 100
+const CACHE_TTL = Eff.Duration.minutes(30)
 
 interface ContextFileContent {
   content: string
@@ -127,24 +128,26 @@ function useContextFiles(
   marker: string,
   load: (path: string) => Promise<ContextFile | null>,
   paths: string[],
-  limit?: number,
 ) {
   const loadFiles = React.useCallback(
     () =>
-      Promise.all(paths.map(load))
-        .then((results) => results.filter((file): file is ContextFile => !!file))
-        .then((files) => (limit ? files.slice(0, limit) : files)),
-    [load, paths, limit],
+      Eff.Effect.runPromise(
+        Eff.Stream.fromIterable(paths).pipe(
+          Eff.Stream.mapEffect((path) => Eff.Effect.promise(() => load(path)), {
+            concurrency: MAX_CONCURRENT_REQUESTS,
+          }),
+          Eff.Stream.filterMap(Eff.Option.fromNullable),
+          Eff.Stream.take(MAX_CONTEXT_FILES),
+          Eff.Stream.map(format),
+          Eff.Stream.runCollect,
+          Eff.Effect.map(Eff.Chunk.toArray),
+        ),
+      ),
+    [load, paths],
   )
   const r = Request.use(loadFiles)
   const ready = r !== Request.Loading && r !== Request.Idle
-  const messages = React.useMemo(
-    () =>
-      r === Request.Loading || r === Request.Idle || r instanceof Error
-        ? []
-        : r.map(format),
-    [r],
-  )
+  const messages = ready && !(r instanceof Error) ? r : undefined
   return {
     markers: { [marker]: ready },
     messages,
@@ -164,7 +167,6 @@ export function useBucketDirContextFiles(bucket: string, path: string) {
     'bucketDirContextFilesReady',
     useLoadBucketContextFile(bucket),
     useBuildPathChain(path),
-    MAX_NON_ROOT_FILES,
   )
 }
 
@@ -181,7 +183,6 @@ export function usePackageDirContextFiles(bucket: string, path: string) {
     'packageDirContextFilesReady',
     useLoadPackageContextFile(bucket),
     useBuildPathChain(path),
-    MAX_NON_ROOT_FILES,
   )
 }
 
