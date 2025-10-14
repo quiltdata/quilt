@@ -13,9 +13,14 @@ interface ContentChangedProps {
   size: [number, number]
 }
 
-function ContentChanged({ size }: ContentChangedProps) {
+function SizeChanged({ size }: ContentChangedProps) {
   const changes = React.useMemo(
-    () => size.map((s) => readableBytes(s)) as [React.ReactNode, React.ReactNode],
+    () =>
+      size.map((s) => (
+        <span key={s} title={`${s}B`}>
+          {readableBytes(s)}
+        </span>
+      )) as [React.ReactNode, React.ReactNode],
     [size],
   )
   return (
@@ -38,7 +43,7 @@ function ModifiedEntry({
   return (
     <SummaryItem title={logicalKey}>
       {!!meta.length && <UserMetadata changes={meta} />}
-      {!!hash && (size ? <ContentChanged size={size} /> : 'Content changed')}
+      {!!hash && (size ? <SizeChanged size={size} /> : 'Content changed')}
       {!!physicalKey && (
         <PhysicalKeyChanged physicalKey={physicalKey} ignoreVersionChange={!!hash} />
       )}
