@@ -52,7 +52,6 @@ ignore = [
     "E402",  # Module level import not at top of file
     "F401",  # Imported but unused
     "F841",  # Local variable assigned but never used
-    "I001",  # Import block is un-sorted or un-formatted
     "S113",  # Probable use of requests call without timeout
     "S310",  # Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
     "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
@@ -72,8 +71,11 @@ ignore = [
     "W291",  # Trailing whitespace
 ]
 
+[lint.per-file-ignores]
+"docs/**" = ["I001"]
+
 [lint.isort]
-known-first-party = ["quilt3", "quilt_shared", "t4_lambda_"]
+known-first-party = ["quilt3", "quilt_shared", "t4_lambda_*"]
 combine-as-imports = true
 
 [format]
