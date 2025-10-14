@@ -8,11 +8,19 @@ import type { ChangePhysicalKey } from './comparePackageEntries'
 
 import FromTo from './FromTo'
 
-interface KeyChangedProps {
+interface UrlPartChangedProps {
   changes: [string, string]
 }
 
-function KeyChanged({ changes: [base, other] }: KeyChangedProps) {
+function BucketChanged({ changes }: UrlPartChangedProps) {
+  const bucketsWithS3 = React.useMemo(
+    () => changes.map((b) => `s3://${b}`) as [string, string],
+    [changes],
+  )
+  return <FromTo changes={bucketsWithS3} />
+}
+
+function KeyChanged({ changes: [base, other] }: UrlPartChangedProps) {
   const colors = useColors()
   const diff = React.useMemo(() => diffWords(base, other), [base, other])
   return (
@@ -29,7 +37,7 @@ function KeyChanged({ changes: [base, other] }: KeyChangedProps) {
           return (
             <span key={index}>
               {diff[index - 1]?.removed ? <> → </> : <></>}
-              <span className={cx(colors.removed, colors.inline)}>{part.value}</span>
+              <span className={cx(colors.added, colors.inline)}>{part.value}</span>
             </span>
           )
         }
@@ -56,13 +64,12 @@ export default function PhysicalKeyChanged({
 }: PhysicalKeyChangedProps) {
   const classes = useStyles()
   const { bucket, key, version } = physicalKey
-  if (Array.isArray(bucket) && Array.isArray(key.length)) {
+  if (Array.isArray(bucket) || Array.isArray(key)) {
     return (
       <>
         {'S3 object moved: '}
         <span className={classes.url}>
-          s3://
-          {Array.isArray(bucket) ? <FromTo changes={bucket} /> : bucket}
+          {Array.isArray(bucket) ? <BucketChanged changes={bucket} /> : `s3://${bucket}`}/
           {Array.isArray(key) ? <KeyChanged changes={key} /> : key}
           {version && (
             <>
