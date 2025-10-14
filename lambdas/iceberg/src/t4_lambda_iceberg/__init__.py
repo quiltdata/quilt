@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import time
 
 import boto3
 
@@ -45,7 +44,6 @@ def handler(event, context):
     (event,) = event["Records"]
     event = json.loads(event["body"])
 
-    event_name = event["detail"]["eventName"]
     s3_event = event["detail"]["s3"]
     bucket = s3_event["bucket"]["name"]
     key = s3_event["object"]["key"]
@@ -53,7 +51,7 @@ def handler(event, context):
     first_line = get_first_line(bucket, key)
 
     if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
-        pkg_name, pointer_name = key.removeprefix(".quilt/named_packages/").rsplit("/", 1)
+        pkg_name, pointer_name = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
         if first_line:
             queries = [
                 (
