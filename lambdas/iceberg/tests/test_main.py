@@ -1,2 +1,1 @@
-def test():
-    pass
+import t4_lambda_iceberg
