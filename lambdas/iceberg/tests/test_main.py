@@ -1,10 +1,10 @@
 import json
 
 import pytest
-import t4_lambda_iceberg
+from botocore.stub import Stubber
 
 import quilt_shared.const
-from botocore.stub import Stubber
+import t4_lambda_iceberg
 
 
 @pytest.fixture

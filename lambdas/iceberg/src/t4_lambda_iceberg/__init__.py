@@ -8,7 +8,6 @@ import quilt_shared.const
 from quilt_shared.athena import QueryRunner
 from quilt_shared.iceberg_queries import QueryMaker
 
-
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
 logger = logging.getLogger("quilt-lambda-iceberg")
