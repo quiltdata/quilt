@@ -11,9 +11,7 @@ import time
 
 import requests
 
-from . import Package
-from . import __version__ as quilt3_version
-from . import api, session, util
+from . import Package, __version__ as quilt3_version, api, session, util
 from .backends import get_package_registry
 from .session import open_url
 from .util import (
@@ -109,7 +107,6 @@ cloud services aside of S3.
 def _launch_local_catalog(*, host: str, port: int):
     try:
         import uvicorn
-
         from quilt3_local.main import app
     except ModuleNotFoundError as e:
         if e.name in (
