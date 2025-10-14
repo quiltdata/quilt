@@ -79,7 +79,7 @@ function SummaryDiff({ revisions }: SummaryDiffProps) {
   const { metaChanges, entriesChanges } = changes
   return (
     <>
-      {metaChanges.length && (
+      {!!metaChanges.length && (
         <SummaryItem title="Package user metadata">
           <UserMetadata changes={metaChanges} />
         </SummaryItem>
