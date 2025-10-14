@@ -30,7 +30,7 @@ function comparePhysicalKey(base: string, other: string): ChangePhysicalKey {
     bucket: bucketModified ? [baseUrl.bucket, otherUrl.bucket] : baseUrl.bucket,
     key: keyModified ? [baseUrl.key, otherUrl.key] : baseUrl.key,
     version:
-      keyModified && baseUrl.version && otherUrl.version
+      versionModified && baseUrl.version && otherUrl.version
         ? [baseUrl.version, otherUrl.version]
         : baseUrl.version,
   }
