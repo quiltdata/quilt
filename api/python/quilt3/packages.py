@@ -402,7 +402,7 @@ class ManifestJSONDecoder(json.JSONDecoder):
     """
 
     def __init__(self, *args, **kwargs):
-        @functools.lru_cache(maxsize=None)
+        @functools.cache
         def memoize_key(s):
             return s
 

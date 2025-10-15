@@ -57,7 +57,7 @@ class WorkflowValidationError(WorkflowErrorBase):
     pass
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _get_conf_validator():
     schema = json.loads(resources.read_text(__name__, 'config-1.schema.json'))
     return jsonschema.Draft7Validator(schema).validate
