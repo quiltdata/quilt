@@ -41,7 +41,7 @@ PER_BUCKET_CONFIGS = os.getenv('PER_BUCKET_CONFIGS')
 PER_BUCKET_CONFIGS = json.loads(PER_BUCKET_CONFIGS) if PER_BUCKET_CONFIGS else {}
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def get_content_index_extensions(*, bucket_name: str):
     try:
         extensions = PER_BUCKET_CONFIGS[bucket_name]['content_extensions']
@@ -50,7 +50,7 @@ def get_content_index_extensions(*, bucket_name: str):
     return frozenset(CONTENT_INDEX_EXTS if extensions is None else extensions)
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def get_content_index_bytes(*, bucket_name: str):
     try:
         content_index_bytes = PER_BUCKET_CONFIGS[bucket_name]['content_bytes']
