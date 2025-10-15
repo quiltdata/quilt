@@ -402,7 +402,7 @@ class ManifestJSONDecoder(json.JSONDecoder):
     """
 
     def __init__(self, *args, **kwargs):
-        @functools.lru_cache(maxsize=None)
+        @functools.cache
         def memoize_key(s):
             return s
 
@@ -452,7 +452,7 @@ class Package:
         # traverse the tree of package directories and entries to get the list of
         # display objects. candidates is a deque of shape
         # ((logical_key, Package | PackageEntry), [list of parent key])
-        candidates = deque(([x, []] for x in self._children.items()))
+        candidates = deque([x, []] for x in self._children.items())
         results_dict = {}
         results_total = 0
         more_objects_than_lines = False

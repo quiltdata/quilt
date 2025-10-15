@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).parent / 'data'
 
 
 # pylint: disable=no-member,invalid-sequence-index
-class TestIndex():
+class TestIndex:
     """Class to test various inputs to the main indexing function"""
     FILE_URL = 'https://quilt-example.s3.amazonaws.com/file.ext'
     # pylint: disable=too-many-function-args
