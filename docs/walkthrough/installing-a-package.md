@@ -76,8 +76,8 @@ Data files that you download are written to a folder in your local registry by d
 ```python
 import quilt3  # install package into a specific folder
 quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
+    "examples/hurdat",
+    "s3://quilt-example",
     dest="./"
 )
 ```
@@ -97,8 +97,8 @@ Finally, you can install a specific version of a package by specifying the corre
 ```python
 import quilt3  # install specific version of package
 quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
+    "examples/hurdat",
+    "s3://quilt-example",
     top_hash="058e62c"
 )
 ```
