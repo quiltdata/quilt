@@ -1726,7 +1726,7 @@ class Package:
             elif entry != other_entry:
                 modified.append(lk)
 
-        added = list(sorted(other_entries))
+        added = sorted(other_entries)
 
         return added, modified, deleted
 
