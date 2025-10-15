@@ -15,10 +15,26 @@ export interface ListingSelection {
 
 export const EMPTY_MAP: ListingSelection = {}
 
+const prefixToHandle = (prefixUrl: string): Model.S3.S3ObjectLocation =>
+  s3paths.parseS3Url(prefixUrl)
+
+const handleToPrefix = (handle: Model.S3.S3ObjectLocation): string =>
+  s3paths.handleToS3Url(handle)
+
+const joinKeyToHandle = (handle: Model.S3.S3ObjectLocation, suffix: string) => {
+  const key = join(s3paths.decode(handle.key), suffix)
+  return { bucket: handle.bucket, key }
+}
+
+const joinKeyToPrefix = (prefixUrl: string, key: string) => {
+  const handle = prefixToHandle(prefixUrl)
+  return joinKeyToHandle(handle, key)
+}
+
 const toHandle =
   (prefixUrl: string) =>
   ({ logicalKey }: SelectionItem) =>
-    s3paths.parseS3Url(join(prefixUrl, logicalKey))
+    joinKeyToPrefix(prefixUrl, logicalKey)
 
 interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
@@ -52,7 +68,7 @@ export function merge(
   path: string,
   filter?: string,
 ): (state: ListingSelection) => ListingSelection {
-  const prefixUrl = s3paths.handleToS3Url({ bucket, key: path })
+  const prefixUrl = handleToPrefix({ bucket, key: path })
   const lens = R.lensProp<Record<string, SelectionItem[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, items)) : R.set(lens, items)
 }
@@ -63,4 +79,4 @@ export const getDirectorySelection = (
   selection: ListingSelection,
   bucket: string,
   path: string,
-) => selection[s3paths.handleToS3Url({ bucket, key: path })] || EmptyKeys
+) => selection[handleToPrefix({ bucket, key: path })] || EmptyKeys
