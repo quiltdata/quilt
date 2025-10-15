@@ -70,21 +70,21 @@ const loadObject = (s3: S3) => async (loc: S3ObjectLocation) => {
   return { truncated, content } as FileContent
 }
 
-function makeCachedLoader(lookup: Loader): Loader {
-  const cache = runtime.runSync(
-    Eff.Cache.make({
-      capacity: CACHE_CAPACITY,
-      timeToLive: CACHE_TTL,
-      lookup,
-    }),
+const makeCachedLoader = (lookup: Loader) =>
+  Eff.Cache.make({ capacity: CACHE_CAPACITY, timeToLive: CACHE_TTL, lookup }).pipe(
+    Eff.Effect.map(
+      (cache): Loader =>
+        (l) =>
+          cache.get(Eff.Data.struct(l)),
+    ),
   )
-
-  return (loc: S3ObjectLocation) => cache.get(Eff.Data.struct(loc))
-}
 
 export function LoaderProvider({ children }: { children: React.ReactNode }) {
   const s3 = AWS.S3.use()
-  const loader = React.useMemo(() => makeCachedLoader(liftPromise(loadObject(s3))), [s3])
+  const loader = React.useMemo(
+    () => runtime.runSync(makeCachedLoader(liftPromise(loadObject(s3)))),
+    [s3],
+  )
   return <LoaderContext.Provider value={loader}>{children}</LoaderContext.Provider>
 }
 
@@ -140,8 +140,9 @@ function usePathChain(path: string): string[] {
 function useContextFiles(marker: string, load: ContextFileLoader, paths: string[]) {
   const loadFiles = React.useCallback(
     () =>
-      Eff.Effect.runPromise(
+      runtime.runPromise(
         Eff.Stream.fromIterable(paths).pipe(
+          // Ignore file loading errors
           Eff.Stream.mapEffect(Eff.flow(load, Eff.Effect.option), {
             concurrency: MAX_CONCURRENT_REQUESTS,
           }),
