@@ -50,22 +50,23 @@ def process_s3_event(event):
 def generate_queries(bucket, key, first_line):
     if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
         pkg_name, pointer_name = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
-        if first_line:
-            return [
+        return (
+            [
                 (
                     query_maker.package_revision_add_single
                     if pointer_name.isnumeric()
                     else query_maker.package_tag_add_single
                 )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name, top_hash=first_line.decode())
             ]
-        else:
-            return [
+            if first_line
+            else [
                 (
                     query_maker.package_revision_delete_single
                     if pointer_name.isnumeric()
                     else query_maker.package_tag_delete_single
                 )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name)
             ]
+        )
     elif key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
         top_hash = key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX)
         return (
