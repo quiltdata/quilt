@@ -1,10 +1,8 @@
-import cx from 'classnames'
-import { diffWords } from 'diff'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import useColors from '../useColors'
 import type { ChangePhysicalKey } from './comparePackageEntries'
+import comparePaths from './comparePaths'
 
 import FromTo from './FromTo'
 
@@ -21,28 +19,13 @@ function BucketChanged({ changes }: UrlPartChangedProps) {
 }
 
 function KeyChanged({ changes: [base, other] }: UrlPartChangedProps) {
-  const colors = useColors()
-  const diff = React.useMemo(() => diffWords(base, other), [base, other])
+  const comparison = React.useMemo(() => comparePaths(base, other), [base, other])
+  if (!comparison) return <span>{base}</span>
   return (
     <>
-      {diff.map((part, index) => {
-        if (part.removed) {
-          return (
-            <span key={index} className={cx(colors.removed, colors.inline)}>
-              {part.value}
-            </span>
-          )
-        }
-        if (part.added) {
-          return (
-            <span key={index}>
-              {diff[index - 1]?.removed ? <> → </> : <></>}
-              <span className={cx(colors.added, colors.inline)}>{part.value}</span>
-            </span>
-          )
-        }
-        return <span key={index}>{part.value}</span>
-      })}
+      {comparison.head && <span>{comparison.head}</span>}
+      <FromTo changes={comparison.changes} />
+      {comparison.tail && <span>{comparison.tail}</span>}
     </>
   )
 }
