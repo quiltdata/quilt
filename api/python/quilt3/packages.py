@@ -41,9 +41,11 @@ from .data_transfer import (
 from .exceptions import PackageException
 from .formats import CompressionRegistry, FormatRegistry
 from .telemetry import ApiTelemetry
-from .util import CACHE_PATH, DISABLE_TQDM, PACKAGE_UPDATE_POLICY
-from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 from .util import (
+    CACHE_PATH,
+    DISABLE_TQDM,
+    PACKAGE_UPDATE_POLICY,
+    TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR,
     PhysicalKey,
     QuiltConflictException,
     QuiltException,
@@ -1724,7 +1726,7 @@ class Package:
             elif entry != other_entry:
                 modified.append(lk)
 
-        added = list(sorted(other_entries))
+        added = sorted(other_entries)
 
         return added, modified, deleted
 

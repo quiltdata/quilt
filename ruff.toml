@@ -43,16 +43,10 @@ ignore = [
     "B018",  # Found useless expression
     "B023",  # Function definition does not bind loop variable
     "B028",  # No explicit stacklevel keyword argument found
-    "C400",  # Unnecessary generator (rewrite as a list comprehension)
-    "C401",  # Unnecessary generator (rewrite as a set comprehension)
-    "C405",  # Unnecessary list literal (rewrite as a set literal)
     "C408",  # Unnecessary dict() call (rewrite as a literal)
-    "C413",  # Unnecessary list() call around sorted()
-    "C414",  # Unnecessary list() call within set()
     "E402",  # Module level import not at top of file
     "F401",  # Imported but unused
     "F841",  # Local variable assigned but never used
-    "I001",  # Import block is un-sorted or un-formatted
     "S113",  # Probable use of requests call without timeout
     "S310",  # Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
     "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
@@ -69,11 +63,13 @@ ignore = [
     "UP035", # typing.Tuple is deprecated, use tuple instead
     "UP039", # Unnecessary parentheses after class definition
     "UP045", # Use `X | None` for type annotations
-    "W291",  # Trailing whitespace
 ]
 
+[lint.per-file-ignores]
+"docs/**" = ["I001"]
+
 [lint.isort]
-known-first-party = ["quilt3", "quilt_shared", "t4_lambda_"]
+known-first-party = ["quilt3", "quilt_shared", "t4_lambda_*"]
 combine-as-imports = true
 
 [format]

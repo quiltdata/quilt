@@ -395,7 +395,7 @@ class BaseFormatHandler(ABC):
             raise TypeError("No `name` attribute has been defined for {!r}".format(type(self).__name__))
 
         # add user extensions if given
-        self.handled_extensions = set(ext.lstrip('.').lower() for ext in self.handled_extensions)
+        self.handled_extensions = {ext.lstrip('.').lower() for ext in self.handled_extensions}
         self.handled_extensions.update(ext.lstrip('.').lower() for ext in handled_extensions)
 
         # add user types if given

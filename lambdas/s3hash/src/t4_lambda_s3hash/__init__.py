@@ -20,10 +20,11 @@ import pydantic.v1
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
-from quilt_shared.pkgpush import Checksum as ChecksumBase
-from quilt_shared.pkgpush import ChecksumResult, CopyResult
-from quilt_shared.pkgpush import MPURef as MPURefBase
 from quilt_shared.pkgpush import (
+    Checksum as ChecksumBase,
+    ChecksumResult,
+    CopyResult,
+    MPURef as MPURefBase,
     S3ObjectDestination,
     S3ObjectSource,
     make_scratch_key,
