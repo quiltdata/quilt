@@ -1,0 +1,87 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Selection/Dashboard should render empty state when no selection 1`] = `
+<div>
+  <div>
+    <div>
+      <button
+        role="button"
+      >
+        Remove from bookmarks
+      </button>
+      <button
+        role="button"
+      >
+        Clear selection
+      </button>
+    </div>
+    <hr />
+    <p>
+      Nothing selected
+    </p>
+  </div>
+</div>
+`;
+
+exports[`containers/Bucket/Selection/Dashboard should render with single file selection 1`] = `
+<div>
+  <div
+    class="makeStyles-root-1"
+  >
+    <div
+      class="makeStyles-buttons-2"
+    >
+      <button
+        role="button"
+      >
+        Clear selection
+      </button>
+    </div>
+    <hr />
+    <ul>
+      <li
+        class="makeStyles-listSection-7"
+      >
+        <ul
+          class="makeStyles-auxList-8"
+        >
+          <li
+            role="title"
+          >
+            s3://test-bucket/files
+          </li>
+          <ul>
+            <li>
+              <figure>
+                <figure>
+                  insert_drive_file
+                </figure>
+              </figure>
+              <span
+                class="makeStyles-name-11"
+              >
+                document.txt
+              </span>
+              <a
+                class="makeStyles-link-12 makeStyles-root-15"
+                href="/bucket/test-bucket/file/files/document.txt"
+              >
+                s3://test-bucket/files/document.txt
+              </a>
+              <div>
+                <button
+                  role="button"
+                >
+                  <figure>
+                    clear
+                  </figure>
+                </button>
+              </div>
+            </li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>
+`;

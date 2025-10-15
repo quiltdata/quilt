@@ -68,7 +68,7 @@ export function merge(
   path: string,
   filter?: string,
 ): (state: ListingSelection) => ListingSelection {
-  const prefixUrl = handleToPrefix({ bucket, key: path })
+  const prefixUrl = handleToPrefix({ bucket, key: s3paths.ensureNoSlash(path) })
   const lens = R.lensProp<Record<string, SelectionItem[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, items)) : R.set(lens, items)
 }
@@ -79,4 +79,4 @@ export const getDirectorySelection = (
   selection: ListingSelection,
   bucket: string,
   path: string,
-) => selection[handleToPrefix({ bucket, key: path })] || EmptyKeys
+) => selection[handleToPrefix({ bucket, key: s3paths.ensureNoSlash(path) })] || EmptyKeys
