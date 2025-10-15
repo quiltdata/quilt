@@ -979,6 +979,7 @@ class PackageTest(QuiltTestCase):
 
         # Build a new package into the local registry.
         new_pkg = new_pkg.set('foo', test_file_name)
+        new_pkg.build("Quilt/Test")
 
         p1 = Package.browse('Quilt/Test')
         p2 = Package.browse('Quilt/Test')
@@ -1026,6 +1027,7 @@ class PackageTest(QuiltTestCase):
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
+        Package().build("Quilt/Test")
         assert 'Quilt/Test' in quilt3.list_packages()
 
         quilt3.delete_package('Quilt/Test')
