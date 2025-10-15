@@ -380,7 +380,7 @@ def handler(event, context):
     try:
         timestamp_str = s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()
         start_ts = datetime.fromtimestamp(float(timestamp_str), timezone.utc)
-    except s3.exceptions.NoSuchKey as ex:
+    except s3.exceptions.NoSuchKey:
         start_ts = end_ts - timedelta(days=365)
         # We start from scratch, so make sure we don't have any old data.
         delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
