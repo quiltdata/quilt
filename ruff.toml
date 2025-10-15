@@ -63,7 +63,6 @@ ignore = [
     "UP035", # typing.Tuple is deprecated, use tuple instead
     "UP039", # Unnecessary parentheses after class definition
     "UP045", # Use `X | None` for type annotations
-    "W291",  # Trailing whitespace
 ]
 
 [lint.per-file-ignores]
