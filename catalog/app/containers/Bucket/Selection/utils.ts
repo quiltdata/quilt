@@ -15,29 +15,26 @@ export interface ListingSelection {
 
 export const EMPTY_MAP: ListingSelection = {}
 
+const toHandle =
+  (prefixUrl: string) =>
+  ({ logicalKey }: SelectionItem) =>
+    s3paths.parseS3Url(join(prefixUrl, logicalKey))
+
 interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
 }
 
 export const toHandlesMap = (selection: ListingSelection): SelectionHandles =>
-  Object.entries(selection).reduce(
-    (memo, [prefixUrl, items]) => ({
-      ...memo,
-      [prefixUrl]: items.map((item) =>
-        s3paths.parseS3Url(join(prefixUrl, item.logicalKey)),
-      ),
-    }),
-    {} as SelectionHandles,
-  )
+  Object.entries(selection).reduce((memo, [prefixUrl, items]) => {
+    const selectionToHandle = toHandle(prefixUrl)
+    return { ...memo, [prefixUrl]: items.map(selectionToHandle) }
+  }, {} as SelectionHandles)
 
 export const toHandlesList = (selection: ListingSelection): Model.S3.S3ObjectLocation[] =>
-  Object.entries(selection).reduce(
-    (memo, [prefixUrl, items]) => [
-      ...memo,
-      ...items.map((item) => s3paths.parseS3Url(join(prefixUrl, item.logicalKey))),
-    ],
-    [] as Model.S3.S3ObjectLocation[],
-  )
+  Object.entries(selection).reduce((memo, [prefixUrl, items]) => {
+    const selectionToHandle = toHandle(prefixUrl)
+    return [...memo, ...items.map(selectionToHandle)]
+  }, [] as Model.S3.S3ObjectLocation[])
 
 const mergeWithFiltered =
   (prefix: string, filteredItems: SelectionItem[]) => (allItems: SelectionItem[]) => {
