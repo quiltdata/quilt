@@ -67,7 +67,7 @@ class TestIndex():
         fcs_files = list(parent.glob("*.fcs"))
         extended = False
         if (
-                set(os.path.split(f)[1] for f in fcs_files)
+                {os.path.split(f)[1] for f in fcs_files}
                 != {
                     'accuri-ao1.fcs',
                     'bad.fcs',
