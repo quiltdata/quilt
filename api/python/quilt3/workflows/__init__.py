@@ -24,7 +24,7 @@ class ConfigDataVersion(typing.NamedTuple):
         """
         Parse valid version string.
         """
-        return cls._make(((*map(int, version_str.split('.')), 0, 0)[:3]))
+        return cls._make((*map(int, version_str.split('.')), 0, 0)[:3])
 
     def __str__(self):
         return '%s.%s.%s' % self
