@@ -194,9 +194,9 @@ class FormatRegistry:
     @classmethod
     def object_is_serializable(cls, obj):
         try:
-            format_handlers = cls.search(type(obj))
+            cls.search(type(obj))
             return True
-        except QuiltException as e:
+        except QuiltException:
             return False
 
     @classmethod
