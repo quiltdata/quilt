@@ -13,9 +13,9 @@ import * as Request from 'utils/useRequest'
 
 type ContextFileScope = 'bucket' | 'package'
 
-const MAX_CONTEXT_FILE_SIZE = 10_000 // 10KB default
+const MAX_CONTEXT_FILE_SIZE = 10_000
 const MAX_CONTEXT_FILES = 10 // Maximum non-root context files to keep
-const MAX_NON_ROOT_FILES_TO_TRY = 50 // Maximum non-root context files to try to find
+const MAX_NON_ROOT_FILES_TO_TRY = 50 // Maximum non-root context files to look up
 const MAX_CONCURRENT_REQUESTS = 10 // Maximum concurrent file loading requests
 const CONTEXT_FILE_NAMES = ['AGENTS.md', 'README.md']
 const CACHE_CAPACITY = 100
@@ -121,21 +121,16 @@ function usePackageContextFileLoader(bucket: string): ContextFileLoader {
 }
 
 // `path` is expected to be a "directory"/"prefix" path, i.e. it should end with `/` or be empty
-function buildPathChain(path: string): string[] {
-  return path
+const buildPathChain = (path: string): string[] =>
+  path
     ? [
         ...CONTEXT_FILE_NAMES.map((basename) => `${path}${basename}`),
         ...buildPathChain(S3Paths.up(path)),
       ]
     : []
-}
 
-function usePathChain(path: string): string[] {
-  return React.useMemo(
-    () => buildPathChain(path).slice(0, MAX_NON_ROOT_FILES_TO_TRY),
-    [path],
-  )
-}
+const usePathChain = (path: string) =>
+  React.useMemo(() => buildPathChain(path).slice(0, MAX_NON_ROOT_FILES_TO_TRY), [path])
 
 function useContextFiles(marker: string, load: ContextFileLoader, paths: string[]) {
   const loadFiles = React.useCallback(
@@ -164,38 +159,33 @@ function useContextFiles(marker: string, load: ContextFileLoader, paths: string[
   }
 }
 
-export function useBucketRootContextFiles(bucket: string) {
-  return useContextFiles(
+export const useBucketRootContextFiles = (bucket: string) =>
+  useContextFiles(
     'bucketRootContextFilesReady',
     useBucketContextFileLoader(bucket),
     CONTEXT_FILE_NAMES,
   )
-}
 
-export function useBucketDirContextFiles(bucket: string, path: string) {
-  return useContextFiles(
+export const useBucketDirContextFiles = (bucket: string, path: string) =>
+  useContextFiles(
     'bucketDirContextFilesReady',
     useBucketContextFileLoader(bucket),
     usePathChain(path),
   )
-}
 
-export function usePackageRootContextFiles(bucket: string) {
-  return useContextFiles(
+export const usePackageRootContextFiles = (bucket: string) =>
+  useContextFiles(
     'packageRootContextFilesReady',
     usePackageContextFileLoader(bucket),
     CONTEXT_FILE_NAMES,
   )
-}
 
-export function usePackageDirContextFiles(bucket: string, path: string) {
-  return useContextFiles(
+export const usePackageDirContextFiles = (bucket: string, path: string) =>
+  useContextFiles(
     'packageDirContextFilesReady',
     usePackageContextFileLoader(bucket),
     usePathChain(path),
   )
-}
 
-function format({ content, ...attrs }: ContextFile): string {
-  return XML.tag('context-file', attrs, content).toString()
-}
+const format = ({ content, ...attrs }: ContextFile) =>
+  XML.tag('context-file', attrs, content).toString()
