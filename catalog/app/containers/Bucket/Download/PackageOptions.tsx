@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { GetApp as IconGetApp, FileCopy as IconFileCopy } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
@@ -76,11 +76,11 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
   return (
     <div className={className}>
       <M.ButtonGroup variant="outlined" fullWidth className={classes.link}>
-        <M.Button startIcon={<IconGetApp />} href={uriString} className={classes.open}>
+        <M.Button startIcon={<Icons.GetApp />} href={uriString} className={classes.open}>
           Open in QuiltSync
         </M.Button>
         <M.Button className={classes.copy} onClick={handleCopy}>
-          <IconFileCopy fontSize="inherit" />
+          <Icons.FileCopy fontSize="inherit" />
         </M.Button>
       </M.ButtonGroup>
       <M.Typography variant="caption" component="p">

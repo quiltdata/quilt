@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, fireEvent, screen } from '@testing-library/react'
-import { Add as IconAdd } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import WithPopover from './WithPopover'
 
@@ -30,7 +30,7 @@ describe('components/Buttons/WithPopover', () => {
 
   it('should render button with icon when icon prop is provided', () => {
     render(
-      <WithPopover icon={IconAdd} label="Add Item">
+      <WithPopover icon={Icons.Add} label="Add Item">
         <div>Popup Content</div>
       </WithPopover>,
     )

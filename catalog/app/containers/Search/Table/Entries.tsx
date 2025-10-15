@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import { DescriptionOutlined as IconDescriptionOutlined } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import { CONTEXT, Display, Load } from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
@@ -204,7 +204,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
           onClick={handlePreview}
           size="small"
         >
-          <IconDescriptionOutlined fontSize="inherit" color="inherit" />
+          <Icons.DescriptionOutlined fontSize="inherit" color="inherit" />
         </M.IconButton>
       </M.TableCell>
     </M.TableRow>

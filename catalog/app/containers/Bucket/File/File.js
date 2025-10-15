@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as FileEditor from 'components/FileEditor'
+import * as Hash from 'components/Hash'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
@@ -87,11 +88,7 @@ function VersionInfo({ bucket, path, version }) {
       <AssistantContext.VersionsContext data={data} />
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
-        ) : (
-          'latest'
-        )}{' '}
+        {version ? <Hash.Trimmed>{version}</Hash.Trimmed> : 'latest'}{' '}
         <M.Icon>expand_more</M.Icon>
       </span>
       <M.Popover
@@ -404,9 +401,7 @@ function File() {
           {objExists ? ( // eslint-disable-line no-nested-ternary
             <VersionInfo bucket={bucket} path={path} version={version} />
           ) : version ? (
-            <M.Box component="span" fontFamily="monospace.fontFamily">
-              {version.substring(0, 12)}
-            </M.Box>
+            <Hash.Trimmed>{version}</Hash.Trimmed>
           ) : (
             'latest'
           )}
