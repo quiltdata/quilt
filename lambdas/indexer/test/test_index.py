@@ -406,7 +406,7 @@ def test_skip_rows_env(env_var, check, expected):
                 assert check not in exts
 
 
-class MockContext():
+class MockContext:
     def get_remaining_time_in_millis(self):
         return 30000
 

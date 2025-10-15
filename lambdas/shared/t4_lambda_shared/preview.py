@@ -29,7 +29,7 @@ TRUNCATED = (
 )
 
 
-class NoopDecompressObj():
+class NoopDecompressObj:
     @property
     def eof(self):
         return False
