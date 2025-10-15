@@ -56,7 +56,6 @@ ignore = [
     "UP031", # Use format specifiers instead of percent format
     "UP032", # Use f-string instead of format call
     "UP035", # typing.Tuple is deprecated, use tuple instead
-    "UP039", # Unnecessary parentheses after class definition
     "UP045", # Use `X | None` for type annotations
 ]
 
