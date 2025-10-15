@@ -38,22 +38,39 @@ type Loader = (loc: S3ObjectLocation) => EffWithEx<FileContent>
 
 const LoaderContext = React.createContext<Loader | null>(null)
 
-function makeLoader(s3: S3): Loader {
-  const lookup = (loc: S3ObjectLocation) =>
-    Eff.Effect.tryPromise(() =>
-      s3
-        .getObject({ Bucket: loc.bucket, Key: loc.key, VersionId: loc.version })
-        .promise()
-        .then((r): FileContent => {
-          const content = (r.Body?.toString('utf-8') || '').trim()
-          if (!content) throw new Error('Empty file')
-          return {
-            truncated: content.length > MAX_CONTEXT_FILE_SIZE,
-            content: content.slice(0, MAX_CONTEXT_FILE_SIZE),
-          }
-        }),
-    )
+const liftPromise =
+  <A, B>(f: (a: A) => Promise<B>) =>
+  (a: A) =>
+    Eff.Effect.tryPromise(() => f(a))
 
+const loadObject = (s3: S3) => async (loc: S3ObjectLocation) => {
+  // First HEAD the file to check its existence and get its size
+  const head = await s3
+    .headObject({ Bucket: loc.bucket, Key: loc.key, VersionId: loc.version })
+    .promise()
+
+  const fileSize = head.ContentLength || 0
+  if (fileSize === 0) throw new Error('Empty file')
+
+  const truncated = fileSize > MAX_CONTEXT_FILE_SIZE
+
+  // Fetch only the range we need if file is large
+  const result = await s3
+    .getObject({
+      Bucket: loc.bucket,
+      Key: loc.key,
+      VersionId: loc.version,
+      Range: truncated ? `bytes=0-${MAX_CONTEXT_FILE_SIZE - 1}` : undefined,
+    })
+    .promise()
+
+  const content = (result.Body?.toString('utf-8') || '').trim()
+  if (!content) throw new Error('Empty file')
+
+  return { truncated, content } as FileContent
+}
+
+function makeCachedLoader(lookup: Loader): Loader {
   const cache = runtime.runSync(
     Eff.Cache.make({
       capacity: CACHE_CAPACITY,
@@ -67,7 +84,7 @@ function makeLoader(s3: S3): Loader {
 
 export function LoaderProvider({ children }: { children: React.ReactNode }) {
   const s3 = AWS.S3.use()
-  const loader = React.useMemo(() => makeLoader(s3), [s3])
+  const loader = React.useMemo(() => makeCachedLoader(liftPromise(loadObject(s3))), [s3])
   return <LoaderContext.Provider value={loader}>{children}</LoaderContext.Provider>
 }
 
@@ -178,13 +195,6 @@ export function usePackageDirContextFiles(bucket: string, path: string) {
   )
 }
 
-function format({ content, truncated, ...attrs }: ContextFile): string {
-  return XML.tag(
-    'context-file',
-    attrs,
-    content,
-    truncated
-      ? `[Content truncated at ${MAX_CONTEXT_FILE_SIZE.toLocaleString()} bytes]`
-      : null,
-  ).toString()
+function format({ content, ...attrs }: ContextFile): string {
+  return XML.tag('context-file', attrs, content).toString()
 }
