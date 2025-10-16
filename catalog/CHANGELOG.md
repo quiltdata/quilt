@@ -20,7 +20,8 @@ where verb is one of
 
 - [Added] Qurator: auto-load context files (AGENTS.md and README.md) ([#4561](https://github.com/quiltdata/quilt/pull/4561))
 - [Added] Qurator: add package metadata to the context ([#4561](https://github.com/quiltdata/quilt/pull/4561))
-- [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582), [#4597](https://github.com/quiltdata/quilt/pull/4597))
+- [Fixed] Package URLs in search results now correctly use "latest" instead of hashes ([#4600](https://github.com/quiltdata/quilt/pull/4600))
+- [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582), [#4596](https://github.com/quiltdata/quilt/pull/4596), [#4597](https://github.com/quiltdata/quilt/pull/4597))
 - [Changed] Migrate unit-tests from `react-test-renderer` to `@testing-library/react` ([#4540](https://github.com/quiltdata/quilt/pull/4540))
 - [Changed] Request required fields for `PackageRevision` to proper cache ([#4583](https://github.com/quiltdata/quilt/pull/4583))
 - [Changed] Qurator: make tool messages less prominent ([#4572](https://github.com/quiltdata/quilt/pull/4572))
