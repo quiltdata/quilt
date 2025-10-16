@@ -12,11 +12,10 @@ function compareHash(base: Model.Checksum, other: Model.Checksum): ChangeHash {
   return null
 }
 
-export type ChangePhysicalKey = {
-  bucket: [string, string] | string
-  key: [string, string] | string
-  version?: [string, string] | string
-} | null
+export type ChangePhysicalKey =
+  | { _tag: 'moved'; changed: [Model.S3.S3ObjectLocation, Model.S3.S3ObjectLocation] }
+  | { _tag: 'version' }
+  | { _tag: 'unmodified' }
 
 function comparePhysicalKey(base: string, other: string): ChangePhysicalKey {
   const baseUrl = s3paths.parseS3Url(base)
@@ -25,15 +24,9 @@ function comparePhysicalKey(base: string, other: string): ChangePhysicalKey {
   const bucketModified = baseUrl.bucket !== otherUrl.bucket
   const keyModified = baseUrl.key !== otherUrl.key
   const versionModified = baseUrl.version !== otherUrl.version
-  if (!bucketModified && !keyModified && !versionModified) return null
-  return {
-    bucket: bucketModified ? [baseUrl.bucket, otherUrl.bucket] : baseUrl.bucket,
-    key: keyModified ? [baseUrl.key, otherUrl.key] : baseUrl.key,
-    version:
-      versionModified && baseUrl.version && otherUrl.version
-        ? [baseUrl.version, otherUrl.version]
-        : baseUrl.version,
-  }
+  if (!bucketModified && !keyModified && !versionModified) return { _tag: 'unmodified' }
+  if (!bucketModified && !keyModified) return { _tag: 'version' }
+  return { _tag: 'moved', changed: [baseUrl, otherUrl] }
 }
 
 type ChangeSize = [number, number] | null
