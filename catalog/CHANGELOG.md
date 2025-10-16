@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Creating a package from a directory containing unencoded special symbols ([#4577](https://github.com/quiltdata/quilt/pull/4577))
 - [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582), [#4597](https://github.com/quiltdata/quilt/pull/4597))
 - [Changed] Migrate unit-tests from `react-test-renderer` to `@testing-library/react` ([#4540](https://github.com/quiltdata/quilt/pull/4540))
 - [Changed] Request required fields for `PackageRevision` to proper cache ([#4583](https://github.com/quiltdata/quilt/pull/4583))
