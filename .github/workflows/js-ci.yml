@@ -14,7 +14,7 @@ jobs:
         working-directory: catalog
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: 'catalog/package.json'
           cache: 'npm'
@@ -38,7 +38,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: 'catalog/package.json'
       - run: npx --package=markdownlint-cli markdownlint .
