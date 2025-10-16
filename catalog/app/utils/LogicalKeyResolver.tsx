@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as React from 'react'
 
 import type * as Model from 'model'
@@ -20,3 +21,12 @@ export function useLogicalKeyResolver() {
 export const use = useLogicalKeyResolver
 
 export const { Provider } = Ctx
+
+export function useStrict() {
+  const ctx = useLogicalKeyResolver()
+  invariant(
+    ctx,
+    'LogicalKeyResolver.useStrict must be used within a LogicalKeyResolver.Provider',
+  )
+  return ctx
+}
