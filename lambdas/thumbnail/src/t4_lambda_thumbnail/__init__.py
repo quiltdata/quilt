@@ -405,6 +405,7 @@ def lambda_handler(request):
         info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
     else:
         import urllib.parse
+
         # Patch recent aicspylibczi to make it compatible with old aicsimageio we use
         from aicspylibczi import CziFile
         CziFile.dims_shape = CziFile.get_dims_shape
