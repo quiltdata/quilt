@@ -243,7 +243,7 @@ interface ObjectProps {
   showBucket?: boolean
 }
 
-export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
+function HitObject({ hit, showBucket = false, ...props }: ObjectProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -277,6 +277,8 @@ export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
     </Card>
   )
 }
+
+export { HitObject as Object }
 
 interface PreviewDisplayProps {
   handle: S3ObjectLocation
