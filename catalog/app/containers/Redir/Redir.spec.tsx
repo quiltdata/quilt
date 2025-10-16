@@ -1,15 +1,15 @@
 import * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
 
 import { bucketPackageTree } from 'constants/routes'
-import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Redir from './Redir'
 
-const ErrorBoundary = createBoundary(() => (error: Error) => (
+const fallbackRender = ({ error }: { error: Error }) => (
   <span>Error: {error.message}</span>
-))
+)
 
 jest.mock(
   'constants/config',
@@ -48,7 +48,7 @@ describe('containers/Redir/Redir', () => {
 
   it('must have uri', () => {
     const { container } = render(
-      <ErrorBoundary>
+      <ErrorBoundary fallbackRender={fallbackRender}>
         <Redir />
       </ErrorBoundary>,
     )

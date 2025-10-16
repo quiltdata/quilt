@@ -1,16 +1,15 @@
 import * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
-
-import { createBoundary } from 'utils/ErrorBoundary'
 
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 
-const ErrorBoundary = createBoundary(() => (error: Error) => (
+const fallbackRender = ({ error }: { error: Error }) => (
   <span>Error: {error.message}</span>
-))
+)
 
 const EmptyContainer = () => (
-  <ErrorBoundary>
+  <ErrorBoundary fallbackRender={fallbackRender}>
     <Container>{''}</Container>
   </ErrorBoundary>
 )

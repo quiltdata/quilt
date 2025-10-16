@@ -1,10 +1,10 @@
 import * as echarts from 'echarts'
 import * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as R from 'ramda'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
-import { createBoundary } from 'utils/ErrorBoundary'
 import useMemoEq from 'utils/useMemoEq'
 
 export type DisposeHook = () => void
@@ -67,28 +67,13 @@ function ChartInner({
   return <M.Box ref={containerRef} {...props} />
 }
 
-// XXX: consider using react-error-boundary package
-// TODO: log error
-// TODO: nice customizable display
-const ChartErrorBoundary = createBoundary(
-  (props: $TSFixMe /* , { reset }: $TSFixMe */) =>
-    (/* error: $TSFixMe, info: $TSFixMe */) => (
-      // console.log('ChartErrorBoundary', { error, info }),
-      <M.Typography variant="h6" {...props}>
-        Unexpected Error
-      </M.Typography>
-    ),
-  'ChartErrorBoundary',
-)
-
 export type ChartProps = ChartInnerProps & M.BoxProps
 
 export function Chart({ option, ...props }: ChartProps) {
-  // TODO: pass props to error boundary, make it customizable
   return (
-    <ChartErrorBoundary>
+    <ErrorBoundary fallback={<M.Typography variant="h6">Unexpected Error</M.Typography>}>
       <ChartInner option={option} {...props} />
-    </ChartErrorBoundary>
+    </ErrorBoundary>
   )
 }
 

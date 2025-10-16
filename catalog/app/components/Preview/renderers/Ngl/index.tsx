@@ -1,7 +1,7 @@
 import * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
-import { createBoundary } from 'utils/ErrorBoundary'
 import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
@@ -11,8 +11,6 @@ function NglError() {
   // TODO: <a href={docs}>Learn more</a>
   return <M.Typography>Oops. Unable to parse file.</M.Typography>
 }
-
-const ErrorBoundary = createBoundary(() => () => <NglError />)
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
@@ -51,7 +49,7 @@ export default function NglWrapper(
   props: React.HTMLAttributes<HTMLDivElement>,
 ) {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary fallback={<NglError />}>
       <NglRenderer files={data.files} {...props} />
     </ErrorBoundary>
   )
