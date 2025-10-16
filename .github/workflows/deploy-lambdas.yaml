@@ -15,6 +15,7 @@ jobs:
         path:
           - access_counts
           - es_ingest
+          - iceberg
           - pkgevents
           - pkgpush
           - preview

@@ -141,6 +141,7 @@ jobs:
         path:
           - access_counts
           - es_ingest
+          - iceberg
           - indexer
           - manifest_indexer
           - pkgevents
