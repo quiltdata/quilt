@@ -38,10 +38,8 @@ ignore = [
     "S607",  # subprocess partial path
     # Currently found in existing codebase, to be cleaned up later:
     "B007",  # Loop control variable not used within loop body
-    "B010",  # Do not call `setattr` with a constant attribute value. It is not any safer than normal property access.
     "B011",  # Do not assert False
     "B018",  # Found useless expression
-    "B023",  # Function definition does not bind loop variable
     "B028",  # No explicit stacklevel keyword argument found
     "C408",  # Unnecessary dict() call (rewrite as a literal)
     "E402",  # Module level import not at top of file
