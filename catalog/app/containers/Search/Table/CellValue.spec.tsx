@@ -18,13 +18,13 @@ const hitBase = {
   matchLocations: {
     name: false,
   },
-  // ...mock rest of the data if necessary
+  // ...mock the rest of the data if necessary
 } as Omit<Hit, 'pointer'>
 
 const column = {
   tag: ColumnTag.SystemMeta as const,
   filter: 'name' as const,
-  // ...mock rest of the data if necessary
+  // ...mock the rest of the data if necessary
 } as ColumnSystemMeta
 
 describe('containers/Search/Table/CellValue', () => {

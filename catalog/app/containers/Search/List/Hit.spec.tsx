@@ -18,7 +18,7 @@ const hitBase = {
   name: 'pkg/name',
   hash: '1234567890abcdef',
   modified: new Date(),
-  // ...mock rest of the data if necessary
+  // ...mock the rest of the data if necessary
 } as Omit<SearchHitPackage, 'pointer'>
 
 describe('containers/Search/List/Hit/Package', () => {
