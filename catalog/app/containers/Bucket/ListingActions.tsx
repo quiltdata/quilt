@@ -2,15 +2,23 @@ import cx from 'classnames'
 import * as React from 'react'
 import { matchPath, match as Match } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
+import DeleteDialog, { type DeleteResult } from './Toolbar/DeleteDialog'
 import * as FileView from './FileView'
+
+// TODO: make it UI component only, and move logic to `ListingActionsContext`,
+//       similar to `Toolbar/` buttons.
+//       Use the opportunity to re-use these actions,
+//       and maybe put it somewhere like `Model`.
 
 const useButtonStyles = M.makeStyles({
   root: {
@@ -18,59 +26,87 @@ const useButtonStyles = M.makeStyles({
   },
 })
 
-interface ButtonProps extends M.IconButtonProps {
-  download?: boolean
-  href?: string
-  icon: string
-}
-
-function Button({ icon, className, ...props }: ButtonProps) {
-  const classes = useButtonStyles()
-  return (
-    <M.IconButton className={cx(classes.root, className)} {...props}>
-      <M.Icon>{icon}</M.Icon>
-    </M.IconButton>
-  )
-}
-
 interface BucketButtonProps {
   className: string
   location: Model.S3.S3ObjectLocation
 }
 
 function Bookmark({ className, location }: BucketButtonProps) {
+  const classes = useButtonStyles()
   const bookmarks = Bookmarks.use()
   if (!bookmarks) return null
   const isBookmarked = location ? bookmarks.isBookmarked('main', location) : false
   const toggleBookmark = () => location && bookmarks.toggle('main', location)
   return (
-    <Button
-      icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
-      className={className}
-      title="Bookmark"
+    <M.IconButton
+      className={cx(classes.root, className)}
       onClick={toggleBookmark}
-    />
+      title="Bookmark"
+    >
+      {isBookmarked ? <Icons.TurnedInOutlined /> : <Icons.TurnedInNotOutlined />}
+    </M.IconButton>
+  )
+}
+
+function Delete({
+  className,
+  location,
+  onDelete,
+}: BucketButtonProps & { onDelete: () => void }) {
+  const classes = useButtonStyles()
+  const dialogs = Dialogs.use()
+
+  const handleDelete = React.useCallback(async () => {
+    const result = await dialogs.open<DeleteResult>(({ close }) => (
+      <DeleteDialog handles={[location]} close={close} />
+    ))
+
+    if (result.deleted) {
+      onDelete()
+    }
+  }, [dialogs, location, onDelete])
+
+  return (
+    <>
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+      <M.IconButton
+        className={cx(classes.root, className)}
+        title="Delete"
+        onClick={handleDelete}
+      >
+        <Icons.DeleteOutlined color="error" />
+      </M.IconButton>
+    </>
   )
 }
 
 function BucketDirectory({ className, location: { bucket, key } }: BucketButtonProps) {
+  const classes = useButtonStyles()
   return (
     <FileView.ZipDownloadForm suffix={`dir/${bucket}/${key}`} className={className}>
-      <Button icon="arrow_downward" title="Download" type="submit" />
+      <M.IconButton
+        className={cx(classes.root, className)}
+        title="Download"
+        type="submit"
+      >
+        <Icons.ArrowDownwardOutlined />
+      </M.IconButton>
     </FileView.ZipDownloadForm>
   )
 }
 
 function BucketFile({ className, location }: BucketButtonProps) {
+  const classes = useButtonStyles()
   const url = AWS.Signer.useDownloadUrl(location)
   return (
-    <Button
+    <M.IconButton
+      className={cx(classes.root, className)}
       href={url}
-      className={className}
       title="Download"
       download
-      icon="arrow_downward"
-    />
+    >
+      <Icons.ArrowDownwardOutlined />
+    </M.IconButton>
   )
 }
 
@@ -90,12 +126,15 @@ function PackageDirectory({
   revision,
   path,
 }: PackageDirectoryProps) {
+  const classes = useButtonStyles()
   return (
     <FileView.ZipDownloadForm
       suffix={`package/${bucket}/${name}/${revision}/${path}`}
       className={className}
     >
-      <Button icon="arrow_downward" title="Download" type="submit" />
+      <M.IconButton className={classes.root} title="Download" type="submit">
+        <Icons.ArrowDownwardOutlined />
+      </M.IconButton>
     </FileView.ZipDownloadForm>
   )
 }
@@ -115,9 +154,6 @@ const useRowActionsStyles = M.makeStyles((t) => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'row-reverse',
-  },
-  button: {
-    padding: '5px',
   },
   container: {
     background: `linear-gradient(
@@ -217,14 +253,22 @@ function useMatchedParams(to: string) {
   }, [paths, to])
 }
 
-interface RowActionsProps {
+interface ListingRowActionsProps {
   to: string
   archived?: boolean
   physicalKey?: string
   prefs: BucketPreferences.ActionPreferences
+  onReload: () => void
+  // TODO: selected
 }
 
-export function RowActions({ archived, physicalKey, to, prefs }: RowActionsProps) {
+export default function ListingRowActions({
+  archived,
+  physicalKey,
+  to,
+  prefs,
+  onReload,
+}: ListingRowActionsProps) {
   const classes = useRowActionsStyles()
   const { location, handle, revision, path } = useMatchedParams(to)
 
@@ -236,6 +280,7 @@ export function RowActions({ archived, physicalKey, to, prefs }: RowActionsProps
       <div className={classes.root}>
         <div className={classes.wrapper}>
           <div className={classes.container}>
+            <Delete className={classes.item} location={location} onDelete={onReload} />
             <Bookmark className={classes.item} location={location} />
             {prefs.downloadObject && (
               <DownloadButton className={classes.item} location={location} />

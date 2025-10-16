@@ -6,12 +6,11 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
+import * as Hash from 'components/Hash'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
-import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -26,18 +25,17 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-import AssistButton from '../AssistButton'
-import * as Download from '../Download'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
-import { useViewModes, viewModeToSelectOption } from '../viewModes'
+import { useViewModes } from '../viewModes'
 
 import Analytics from './Analytics'
 import * as AssistantContext from './AssistantContext'
+import * as FileToolbar from './Toolbar'
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
@@ -90,11 +88,7 @@ function VersionInfo({ bucket, path, version }) {
       <AssistantContext.VersionsContext data={data} />
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
-        ) : (
-          'latest'
-        )}{' '}
+        {version ? <Hash.Trimmed>{version}</Hash.Trimmed> : 'latest'}{' '}
         <M.Icon>expand_more</M.Icon>
       </span>
       <M.Popover
@@ -304,13 +298,13 @@ function File() {
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
   const { prefs } = BucketPreferences.use()
 
   const path = s3paths.decode(encodedPath)
 
   const [resetKey, setResetKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setResetKey(R.inc), [])
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
@@ -333,26 +327,13 @@ function File() {
     }),
   })
 
-  const { downloadable, fileVersionId } = versionExistsData.case({
-    _: () => ({
-      downloadable: false,
-    }),
+  const { notAvailable, fileVersionId } = versionExistsData.case({
+    _: () => ({}),
+    Err: () => ({ notAvailable: true }),
     Ok: requests.ObjectExistence.case({
-      _: () => ({
-        downloadable: false,
-      }),
+      _: () => ({ notAvailable: true }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable:
-          !cfg.noDownload &&
-          !deleted &&
-          !archived &&
-          BucketPreferences.Result.match(
-            {
-              Ok: ({ ui }) => ui.actions.downloadObject,
-              _: R.F,
-            },
-            prefs,
-          ),
+        notAvailable: deleted || archived,
         fileVersionId: versionId,
       }),
     }),
@@ -360,24 +341,18 @@ function File() {
 
   const viewModes = useViewModes(mode)
 
-  const onViewModeChange = React.useCallback(
-    (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
-    },
-    [history, urls, bucket, encodedPath, version],
-  )
-
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version: fileVersionId }),
+    () => FileToolbar.CreateHandle(bucket, path, fileVersionId),
     [bucket, path, fileVersionId],
   )
+  const toolbarFeatures = FileToolbar.useFeatures(notAvailable)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave
   const handleEditorSave = React.useCallback(async () => {
     await onSave()
-    setResetKey(R.inc)
-  }, [onSave])
+    handleReload()
+  }, [handleReload, onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -398,11 +373,6 @@ function File() {
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
-  const bookmarks = Bookmarks.use()
-  const isBookmarked = React.useMemo(
-    () => bookmarks?.isBookmarked('main', handle),
-    [bookmarks, handle],
-  )
 
   const getSegmentRoute = React.useCallback(
     (segPath) => urls.bucketDir(bucket, segPath),
@@ -418,6 +388,7 @@ function File() {
       <AssistantContext.CurrentVersionContext
         {...{ version, objExistsData, versionExistsData }}
       />
+      <AssistantContext.FileContextFiles bucket={bucket} path={path} />
 
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
@@ -431,71 +402,25 @@ function File() {
           {objExists ? ( // eslint-disable-line no-nested-ternary
             <VersionInfo bucket={bucket} path={path} version={version} />
           ) : version ? (
-            <M.Box component="span" fontFamily="monospace.fontFamily">
-              {version.substring(0, 12)}
-            </M.Box>
+            <Hash.Trimmed>{version}</Hash.Trimmed>
           ) : (
             'latest'
           )}
         </div>
 
-        <div className={classes.actions}>
+        <FileToolbar.Toolbar
+          className={classes.actions}
+          editorState={editorState}
+          features={toolbarFeatures}
+          handle={handle}
+          onReload={handleReload}
+          viewModes={viewModes}
+        >
           <FileProperties className={classes.fileProperties} data={versionExistsData} />
-          {!!viewModes.modes.length && (
-            <FileView.ViewModeSelector
-              className={classes.button}
-              options={viewModes.modes.map(viewModeToSelectOption)}
-              value={viewModeToSelectOption(viewModes.mode)}
-              onChange={onViewModeChange}
-            />
+          {editorState.editing && (
+            <FileEditor.Controls {...editorState} onSave={handleEditorSave} />
           )}
-          {BucketPreferences.Result.match(
-            {
-              Ok: ({ ui: { actions } }) =>
-                actions.writeFile &&
-                FileEditor.isSupportedFileType(handle.key) && (
-                  <FileEditor.Controls
-                    {...editorState}
-                    className={classes.button}
-                    onSave={handleEditorSave}
-                  />
-                ),
-              _: () => null,
-            },
-            prefs,
-          )}
-          {bookmarks && (
-            <Buttons.Iconized
-              className={classes.button}
-              icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
-              label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
-              onClick={() => bookmarks.toggle('main', handle)}
-            />
-          )}
-          {downloadable &&
-            BucketPreferences.Result.match(
-              {
-                Ok: ({ ui: { blocks } }) => (
-                  <Download.Button className={classes.button} label="Get file">
-                    <Download.BucketOptions handle={handle} hideCode={!blocks.code} />
-                  </Download.Button>
-                ),
-                Pending: () => (
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                ),
-                Init: () => null,
-              },
-              prefs,
-            )}
-          {BucketPreferences.Result.match(
-            {
-              // XXX: only show this when the object exists?
-              Ok: ({ ui }) => ui.blocks.qurator && <AssistButton edge="end" />,
-              _: () => null,
-            },
-            prefs,
-          )}
-        </div>
+        </FileToolbar.Toolbar>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
@@ -511,7 +436,7 @@ function File() {
           throw e
         },
         Ok: requests.ObjectExistence.case({
-          Exists: () => (
+          Exists: ({ deleted }) => (
             <>
               {BucketPreferences.Result.match(
                 {
@@ -520,7 +445,7 @@ function File() {
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
-                      {blocks.meta && (
+                      {!deleted && blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />
                           <FileView.ObjectTags handle={handle} />
@@ -541,6 +466,7 @@ function File() {
                     {...editorState}
                     className={classes.editor}
                     handle={handle}
+                    empty={deleted}
                   />
                 </FileEditorSection>
               ) : (

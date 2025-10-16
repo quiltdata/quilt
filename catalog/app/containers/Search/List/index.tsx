@@ -210,13 +210,13 @@ function ResultsPage({
 
 interface ListResultsProps {
   className?: string
-  emptyFallback?: JSX.Element
+  emptySlot: JSX.Element
   onRefine: (action: NoResults.Refine) => void
 }
 
 export default function ListResults({
   className,
-  emptyFallback,
+  emptySlot,
   onRefine,
 }: ListResultsProps) {
   const model = SearchUIModel.use()
@@ -234,9 +234,7 @@ export default function ListResults({
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return (
-            emptyFallback || <NoResults.Empty className={className} onRefine={onRefine} />
-          )
+          return emptySlot
         case 'InvalidInput':
           const [err] = r.data.errors
           if (err.name === 'QuerySyntaxError') {

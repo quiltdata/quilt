@@ -9,37 +9,44 @@ on:
 env:
   UV_LOCKED: 1
 jobs:
-  # Lint the entire Python codebase (except catalog/ and api/python/)
-  lint-root:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-      - name: Run Ruff linter on entire codebase
-        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
-
-  lint:
+  lint-quilt3:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Lint
         run: uv run poe lint
 
-  # Formatting check disabled until codebase is reformatted
-  # format:
+  format-quilt3:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - name: Check formatting (quilt3)
+        run: uv run poe fmt --check
+
+  lint-rest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - name: Run Ruff linter on entire codebase
+        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+
+  # Enable once the rest of the codebase is formatted
+  # format-rest:
   #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: api/python
   #   steps:
   #     - uses: actions/checkout@v5
-  #     - uses: astral-sh/setup-uv@v6
-  #     - name: Check formatting
-  #       run: uv run poe fmt --check
+  #     - uses: astral-sh/setup-uv@v7
+  #     - name: Check formatting (rest of codebase)
+  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
@@ -50,7 +57,7 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Check generated docs are up-to-date
         run: uv run poe gendocs-check
 
@@ -63,7 +70,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Test codeblocks
         run: uv run poe testdocs
 
@@ -80,7 +87,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - uses: codecov/codecov-action@v5
@@ -116,7 +123,7 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: verify git tag vs. version
         run: uv run poe verify-release-tag "${{ github.ref_name }}"
       - name: build
@@ -134,6 +141,7 @@ jobs:
         path:
           - access_counts
           - es_ingest
+          - iceberg
           - indexer
           - manifest_indexer
           - pkgevents
@@ -152,10 +160,10 @@ jobs:
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Export requirements.txt from uv.lock
         if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
         run: |
@@ -192,3 +200,20 @@ jobs:
           flags: lambda
           name: ${{ github.job }}
           env_vars: LAMBDA
+
+  test-py-shared:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: py-shared
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - name: test
+        run: uv run --only-group test pytest --cov=. --cov-report=xml
+      - uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          flags: py-shared
+          name: ${{ github.job }}

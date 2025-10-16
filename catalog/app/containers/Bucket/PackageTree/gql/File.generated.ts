@@ -17,7 +17,7 @@ export type containers_Bucket_PackageTree_gql_FileQuery = {
         readonly revision: Types.Maybe<
           { readonly __typename: 'PackageRevision' } & Pick<
             Types.PackageRevision,
-            'hash'
+            'hash' | 'modified'
           > & {
               readonly file: Types.Maybe<
                 { readonly __typename: 'PackageFile' } & Pick<
@@ -112,6 +112,7 @@ export const containers_Bucket_PackageTree_gql_FileDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'file' },

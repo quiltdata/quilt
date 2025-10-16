@@ -5,6 +5,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as Hash from 'components/Hash'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
@@ -21,10 +22,11 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import Analytics from 'containers/Bucket/File/Analytics'
-import * as Download from 'containers/Bucket/Download'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
+import * as Toolbar from 'containers/Bucket/Toolbar'
+import GetOptions from 'containers/Bucket/File/Toolbar/Get/Options'
 import renderPreview from 'containers/Bucket/renderPreview'
 import * as requests from 'containers/Bucket/requests'
 
@@ -112,11 +114,7 @@ function VersionInfo({ bucket, path, version }) {
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
-        ) : (
-          'latest'
-        )}{' '}
+        {version ? <Hash.Trimmed>{version}</Hash.Trimmed> : 'latest'}{' '}
         <M.Icon>expand_more</M.Icon>
       </span>
       <M.Popover
@@ -309,7 +307,7 @@ export default function File() {
     })
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
+    () => Toolbar.FileHandleCreate(bucket, path, version),
     [bucket, path, version],
   )
 
@@ -353,9 +351,7 @@ export default function File() {
           {objExists ? ( // eslint-disable-line no-nested-ternary
             <VersionInfo bucket={bucket} path={path} version={version} />
           ) : version ? (
-            <M.Box component="span" fontFamily="monospace.fontFamily">
-              {version.substring(0, 12)}
-            </M.Box>
+            <Hash.Trimmed>{version}</Hash.Trimmed>
           ) : (
             'latest'
           )}
@@ -363,9 +359,9 @@ export default function File() {
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
           {downloadable && (
-            <Download.Button className={classes.button} label="Get file">
-              <Download.BucketOptions handle={handle} hideCode={!ecfg.hideCode} />
-            </Download.Button>
+            <Toolbar.Get className={classes.button} label="Get file">
+              <GetOptions handle={handle} hideCode={ecfg.hideCode} />
+            </Toolbar.Get>
           )}
         </div>
       </div>

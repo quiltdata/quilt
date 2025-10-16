@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Helmet } from 'react-helmet'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import MetaTitle, { getTitle } from './MetaTitle'
 
@@ -15,21 +15,21 @@ describe('utils/HtmlMeta', () => {
     })
 
     it('should render base title', () => {
-      renderer.create(<MetaTitle />)
+      render(<MetaTitle />)
       expect(Helmet.peek().title?.toString()).toBe(
         `<title data-react-helmet="true">Quilt is a versioned data hub for AWS</title>`,
       )
     })
 
     it('should render base title plus prefix title when prefix is string', () => {
-      renderer.create(<MetaTitle>Specific title</MetaTitle>)
+      render(<MetaTitle>Specific title</MetaTitle>)
       expect(Helmet.peek().title?.toString()).toBe(
         `<title data-react-helmet="true">Specific title • Quilt is a versioned data hub for AWS</title>`,
       )
     })
 
     it('should render plus divided prefix titles when prefix is array of strings', () => {
-      renderer.create(<MetaTitle>{['Specific title #1', 'Specific title #2']}</MetaTitle>)
+      render(<MetaTitle>{['Specific title #1', 'Specific title #2']}</MetaTitle>)
       expect(Helmet.peek().title?.toString()).toBe(
         `<title data-react-helmet="true">Specific title #1 • Specific title #2 • Quilt is a versioned data hub for AWS</title>`,
       )

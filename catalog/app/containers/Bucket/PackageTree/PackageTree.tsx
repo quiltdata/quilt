@@ -31,7 +31,6 @@ import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
-import AssistButton from '../AssistButton'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
@@ -42,12 +41,14 @@ import Section from '../Section'
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
+import AssistButton from '../Toolbar/Assist'
 import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 
+import * as AssistantContext from './AssistantContext'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -470,6 +471,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             )}
                             items={items}
                             key={hash}
+                            onReload={dirQuery.run}
                           />
                         )}
                         <Summary
@@ -806,9 +808,7 @@ function FileDisplay({
                               />
                             </Download.Button>
                           )}
-                        {blocks.qurator && !deleted && !archived && (
-                          <AssistButton edge="end" />
-                        )}
+                        {blocks.qurator && !deleted && !archived && <AssistButton />}
                       </>
                     ),
                     Pending: () => (
@@ -891,6 +891,10 @@ function ResolverProvider({
   )
 }
 
+type RevisionData = NonNullable<
+  GQL.DataForDoc<typeof REVISION_QUERY>['package']
+>['revision']
+
 const useStyles = M.makeStyles({
   alertMsg: {
     overflow: 'hidden',
@@ -903,7 +907,7 @@ interface PackageTreeProps {
   bucket: string
   name: string
   hashOrTag: string
-  hash?: string
+  revision?: RevisionData
   path: string
   mode?: string
   resolvedFrom?: string
@@ -914,12 +918,13 @@ function PackageTree({
   bucket,
   name,
   hashOrTag,
-  hash,
+  revision,
   path,
   mode,
   resolvedFrom,
   revisionListQuery,
 }: PackageTreeProps) {
+  const hash = revision?.hash
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
 
@@ -1001,6 +1006,12 @@ function PackageTree({
       </M.Typography>
       {hash ? (
         <ResolverProvider {...{ bucket, name, hash }}>
+          <AssistantContext.PackageContext
+            bucket={bucket}
+            name={name}
+            path={path}
+            revision={revision ?? null}
+          />
           {isDir ? (
             <DirDisplay
               {...{
@@ -1081,7 +1092,7 @@ function PackageTreeQueries({
               bucket,
               name,
               hashOrTag,
-              hash: d.package.revision?.hash,
+              revision: d.package.revision,
               path,
               mode,
               resolvedFrom,

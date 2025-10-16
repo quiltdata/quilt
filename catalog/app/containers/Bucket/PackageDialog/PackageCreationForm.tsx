@@ -29,7 +29,6 @@ import * as workflows from 'utils/workflows'
 
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
-import * as Upload from '../Upload'
 import * as requests from '../requests'
 
 import DialogError from './DialogError'
@@ -39,7 +38,6 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
-import { isS3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
@@ -50,17 +48,6 @@ const CANCEL = 'cancel'
 const README_PATH = 'README.md'
 
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
-
-// TODO: use tree as the main data model / source of truth?
-export interface LocalEntry {
-  path: string
-  file: FI.LocalFile
-}
-
-export interface S3Entry {
-  path: string
-  file: Model.S3File
-}
 
 export interface PackageCreationSuccess {
   name: string
@@ -73,8 +60,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
+    R.filter(([, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},
@@ -229,8 +215,6 @@ function PackageCreationForm({
     null,
   )
 
-  const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
-
   const existingEntries = initial?.entries ?? EMPTY_MANIFEST_ENTRIES
 
   const initialFiles: FI.FilesState = React.useMemo(
@@ -258,8 +242,6 @@ function PackageCreationForm({
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
-  const uploadPackage = Upload.useUploadPackage()
-
   interface SubmitArgs {
     name: string
     msg: string
@@ -274,36 +256,10 @@ function PackageCreationForm({
     localFolder: string
   }
 
-  const onSubmitElectron = React.useCallback(
-    async ({ name, msg, localFolder, meta, workflow }: SubmitElectronArgs) => {
-      const payload = {
-        entry: localFolder || '',
-        message: msg,
-        meta,
-        workflow,
-      }
-      const uploadResult = await uploadPackage(
-        payload,
-        { name, bucket: successor.slug },
-        schema,
-      )
-      setSuccess({ name, hash: uploadResult?.hash })
-      return null
-    },
-    [successor.slug, schema, setSuccess, uploadPackage],
-  )
-
-  const onSubmitWeb = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
-    const addedS3Entries: S3Entry[] = []
-    const addedLocalEntries: LocalEntry[] = []
-    Object.entries(files.added).forEach(([path, file]) => {
-      if (file === FI.EMPTY_DIR_MARKER) return
-      if (isS3File(file)) {
-        addedS3Entries.push({ path, file })
-      } else {
-        addedLocalEntries.push({ path, file })
-      }
-    })
+  const onSubmit = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
+    const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
+      files.added,
+    )
 
     const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
@@ -420,10 +376,7 @@ function PackageCreationForm({
   const onSubmitWrapped = async (args: SubmitWebArgs | SubmitElectronArgs) => {
     setSubmitting(true)
     try {
-      if (cfg.desktop) {
-        return await onSubmitElectron(args as SubmitElectronArgs)
-      }
-      return await onSubmitWeb(args as SubmitWebArgs)
+      return await onSubmit(args as SubmitWebArgs)
     } finally {
       addToPackage?.clear()
       setSubmitting(false)
@@ -604,9 +557,7 @@ function PackageCreationForm({
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
                     initialValue={initialFiles}
-                    bucket={selectedBucket}
-                    buckets={sourceBuckets.list}
-                    selectBucket={selectBucket}
+                    sourceBuckets={sourceBuckets}
                     delayHashing={delayHashing}
                     disableStateDisplay={disableStateDisplay}
                     ui={{ reset: ui.resetFiles }}
@@ -652,15 +603,16 @@ function PackageCreationForm({
   )
 }
 
-function prependSourceBucket(
+const prependSourceBucket = (
   buckets: BucketPreferences.SourceBuckets,
   bucket: string,
-): BucketPreferences.SourceBuckets {
-  return {
-    getDefault: () => bucket,
-    list: R.prepend(bucket, buckets.list),
-  }
-}
+): BucketPreferences.SourceBuckets =>
+  buckets.list.find((b) => b === bucket)
+    ? buckets
+    : {
+        getDefault: () => bucket,
+        list: R.prepend(bucket, buckets.list),
+      }
 
 const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
@@ -758,10 +710,7 @@ export function usePackageCreationDialog({
                       AsyncResult.Ok({
                         manifest,
                         workflowsConfig,
-                        sourceBuckets:
-                          s3Path === undefined
-                            ? sourceBuckets
-                            : prependSourceBucket(sourceBuckets, bucket),
+                        sourceBuckets: prependSourceBucket(sourceBuckets, bucket),
                       }),
                     Pending: AsyncResult.Pending,
                     Init: AsyncResult.Init,
@@ -775,7 +724,7 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, prefs],
+    [bucket, workflowsData, manifestResult, prefs],
   )
 
   const [waitingListing, setWaitingListing] = React.useState(false)

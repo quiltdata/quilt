@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render, act } from '@testing-library/react'
 
 import { bucketPackageTree } from 'constants/routes'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -43,36 +43,36 @@ jest.mock(
 
 describe('containers/Redir/Redir', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+    jest.spyOn(console, 'error').mockImplementation(jest.fn())
   })
 
   it('must have uri', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <ErrorBoundary>
         <Redir />
       </ErrorBoundary>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('shows waiting screen', () => {
     useParams.mockImplementationOnce(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
-    const tree = renderer.create(
+    const { container } = render(
       <NamedRoutes.Provider routes={{ bucketPackageTree }}>
         <Redir />
       </NamedRoutes.Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('shows error', () => {
     useParams.mockImplementationOnce(() => ({
       uri: 'invalid',
     }))
-    const tree = renderer.create(<Redir />)
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Redir />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('redirects to package page', async () => {
@@ -81,12 +81,13 @@ describe('containers/Redir/Redir', () => {
     useParams.mockImplementation(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
-    const tree = renderer.create(
+    const { container } = render(
       <NamedRoutes.Provider routes={{ bucketPackageTree }}>
         <Redir />
       </NamedRoutes.Provider>,
     )
-    await renderer.act(() => jest.runAllTimersAsync())
-    expect(tree).toMatchSnapshot()
+    await act(() => jest.runAllTimersAsync())
+    expect(container.firstChild).toMatchSnapshot()
+    jest.useRealTimers()
   })
 })

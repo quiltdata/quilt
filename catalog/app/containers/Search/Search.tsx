@@ -63,9 +63,15 @@ function SearchLayout() {
       <MetaTitle>{searchString || 'Search'}</MetaTitle>
       <Main inputRef={setInputEl}>
         {tableView ? (
-          <TableResults onRefine={handleRefine} />
+          <TableResults
+            emptySlot={<NoResults.Empty onRefine={handleRefine} />}
+            onRefine={handleRefine}
+          />
         ) : (
-          <ListResults onRefine={handleRefine} />
+          <ListResults
+            emptySlot={<NoResults.Empty onRefine={handleRefine} />}
+            onRefine={handleRefine}
+          />
         )}
       </Main>
     </Container>

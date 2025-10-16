@@ -74,14 +74,6 @@ function SelectionWidget({ className }: SelectionWidgetProps) {
   )
 }
 
-export const isS3File = (f: any): f is Model.S3File =>
-  !!f &&
-  typeof f === 'object' &&
-  typeof f.bucket === 'string' &&
-  typeof f.key === 'string' &&
-  (typeof f.version === 'string' || typeof f.version === 'undefined') &&
-  typeof f.size === 'number'
-
 function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>
 }
@@ -258,6 +250,8 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     [selectBucket],
   )
 
+  const [key, setKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setKey((c) => c + 1), [])
   const data = useData(
     bucketListing,
     {
@@ -266,6 +260,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       prefix,
       prev,
       drain: true,
+      key,
     },
     {
       noAutoFetch: !open,
@@ -358,6 +353,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 res.path,
               )}
               onSelectionChange={(ids) => slt.merge(ids, bucket, path, prefix)}
+              onReload={handleReload}
             />
           ) : (
             // TODO: skeleton
@@ -414,6 +410,7 @@ interface DirContentsProps {
   loadMore: () => void
   selection: Selection.SelectionItem[]
   onSelectionChange: (ids: Selection.SelectionItem[]) => void
+  onReload: () => void
 }
 
 function DirContents({
@@ -424,6 +421,7 @@ function DirContents({
   loadMore,
   selection,
   onSelectionChange,
+  onReload,
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
@@ -460,6 +458,7 @@ function DirContents({
       prefixFilter={prefix}
       selection={selection}
       onSelectionChange={onSelectionChange}
+      onReload={onReload}
       CellComponent={CellComponent}
       RootComponent="div"
       className={classes.root}

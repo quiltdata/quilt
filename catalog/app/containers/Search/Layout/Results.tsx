@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
@@ -178,10 +179,10 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
       size="small"
     >
       <Lab.ToggleButton value={SearchUIModel.View.Table} classes={classes}>
-        <M.Icon>grid_on</M.Icon>
+        <Icons.GridOn />
       </Lab.ToggleButton>
       <Lab.ToggleButton value={SearchUIModel.View.List} classes={classes}>
-        <M.Icon>list</M.Icon>
+        <Icons.List />
       </Lab.ToggleButton>
     </Lab.ToggleButtonGroup>
   )
@@ -231,6 +232,7 @@ interface ResultsProps {
 
 export default function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
+  const r = model.firstPageQuery
   const classes = useResultsStyles()
   const { paths } = NamedRoutes.use()
   return (
@@ -242,7 +244,11 @@ export default function Results({ onFilters }: ResultsProps) {
       <div className={classes.controls}>
         <RRDom.Switch>
           <RRDom.Route path={paths.bucketRoot}>
-            <CreatePackage className={classes.create} />
+            {r._tag === 'data' &&
+              (r.data.__typename === 'ObjectsSearchResultSet' ||
+                r.data.__typename === 'PackagesSearchResultSet') && (
+                <CreatePackage className={classes.create} />
+              )}
           </RRDom.Route>
         </RRDom.Switch>
 

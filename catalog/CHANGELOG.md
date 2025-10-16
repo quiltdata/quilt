@@ -18,6 +18,21 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Creating a package from a directory containing unencoded special symbols ([#4577](https://github.com/quiltdata/quilt/pull/4577))
+- [Added] Qurator: auto-load context files (AGENTS.md and README.md) ([#4561](https://github.com/quiltdata/quilt/pull/4561))
+- [Added] Qurator: add package metadata to the context ([#4561](https://github.com/quiltdata/quilt/pull/4561))
+- [Fixed] Package URLs in search results now correctly use "latest" instead of hashes ([#4600](https://github.com/quiltdata/quilt/pull/4600))
+- [Added] Package revisions comparison ([#4582](https://github.com/quiltdata/quilt/pull/4582), [#4596](https://github.com/quiltdata/quilt/pull/4596), [#4597](https://github.com/quiltdata/quilt/pull/4597))
+- [Changed] Migrate unit-tests from `react-test-renderer` to `@testing-library/react` ([#4540](https://github.com/quiltdata/quilt/pull/4540))
+- [Changed] Request required fields for `PackageRevision` to proper cache ([#4583](https://github.com/quiltdata/quilt/pull/4583))
+- [Changed] Qurator: make tool messages less prominent ([#4572](https://github.com/quiltdata/quilt/pull/4572))
+- [Fixed] Qurator: Limit total search results contents context to 100k characters to avoid context window overflow ([#4573](https://github.com/quiltdata/quilt/pull/4573))
+- [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))
+- [Changed] Improve handling of no results on packages tab ([#4539](https://github.com/quiltdata/quilt/pull/4539))
+- [Changed] Removed unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
+- [Added] File upload and deletion functionality to manage files directly in buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
+- [Changed] Refactor toolbar layout in Bucket tab for improved consistency and maintainability ([#4455](https://github.com/quiltdata/quilt/pull/4455))
+- [Changed] Make 'add bucket' buttons on the main page route to 'add bucket' admin page instead of bucket list ([#4538](https://github.com/quiltdata/quilt/pull/4538))
 - [Changed] Always provide source buckets for S3FilePicker and use current bucket as default when no sourceBuckets configured ([#4525](https://github.com/quiltdata/quilt/pull/4525))
 - [Changed] Enable package creation from current bucket without workflows configuration ([#4522](https://github.com/quiltdata/quilt/pull/4522))
 - [Fixed] Athena: preserve query body during execution loading ([#4528](https://github.com/quiltdata/quilt/pull/4528))
