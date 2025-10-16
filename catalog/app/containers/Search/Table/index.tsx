@@ -64,43 +64,35 @@ export default function TablePage({
     case 'in-progress':
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
-      const { error } = results
-      switch (error._tag) {
+      const { error, _tag: tag } = results.error
+      switch (tag) {
         case 'general':
         case 'page':
           return (
-            <NoResults.Error className={className} onRefine={onRefine}>
-              {error.error.message}
-            </NoResults.Error>
+            <NoResults.UnexpectedError className={className} onRefine={onRefine}>
+              {error.message}
+            </NoResults.UnexpectedError>
           )
         case 'data':
-          const err = error.error
-          switch (err.__typename) {
-            case 'InputError':
-              const kind = err.name === 'QuerySyntaxError' ? 'syntax' : undefined
+          switch (error.name) {
+            case 'QuerySyntaxError':
               return (
-                <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
-                  Invalid input at <code>{err.path}</code>: {err.name}
-                  <pre style={{ whiteSpace: 'pre-wrap' }}>{err.message}</pre>
-                </NoResults.Error>
+                <NoResults.SyntaxError className={className} onRefine={onRefine}>
+                  <>
+                    {/* @ts-expect-error */}
+                    Invalid input at <code>{error.path}</code>: {error.name}
+                    <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
+                  </>
+                </NoResults.SyntaxError>
               )
-            case 'OperationError':
-              if (err.name === 'Timeout') {
-                return (
-                  <NoResults.Error
-                    className={className}
-                    kind="timeout"
-                    onRefine={onRefine}
-                  />
-                )
-              }
-              return (
-                <NoResults.Error className={className} onRefine={onRefine}>
-                  Operation error: {err.message}
-                </NoResults.Error>
-              )
+            case 'Timeout':
+              return <NoResults.TimeoutError className={className} onRefine={onRefine} />
             default:
-              assertNever(err)
+              return (
+                <NoResults.UnexpectedError className={className} onRefine={onRefine}>
+                  {error.message}
+                </NoResults.UnexpectedError>
+              )
           }
         default:
           assertNever(error)

@@ -152,7 +152,8 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
         </StyledLink>
       )
     case 'comment':
-      return hit.comment ? (
+      return hit.comment &&
+        hit.comment !== 'None' /* FIXME: remove it when backend fixed */ ? (
         <OverflowTextTooltip title={hit.comment}>
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
         </OverflowTextTooltip>

@@ -1,16 +1,17 @@
 import * as React from 'react'
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 import * as RR from 'react-router-dom'
+import * as M from '@material-ui/core'
 
+import { useBucketStrict } from 'containers/Bucket/Routes'
+import ListResults from 'containers/Search/List'
+import Main from 'containers/Search/Layout/Main'
+import * as NoResults from 'containers/Search/NoResults'
+import TableResults from 'containers/Search/Table'
 import * as SearchUIModel from 'containers/Search/model'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
-
-import { useBucketStrict } from 'containers/Bucket/Routes'
-import Main from 'containers/Search/Layout/Main'
-import { Refine } from 'containers/Search/NoResults'
-import ListResults from 'containers/Search/List'
-import TableResults from 'containers/Search/Table'
 
 import NoPackages from './NoPackages'
 import type { RouteMap } from './Routes'
@@ -53,29 +54,29 @@ function PackageList({ bucket }: PackageListProps) {
   const goToGlobalSearchUrl = useGoToGlobalSearchUrl()
   const [inputEl, setInputEl] = React.useState<HTMLInputElement | null>(null)
   const handleRefine = React.useCallback(
-    (action: Refine) => {
+    (action: NoResults.Refine) => {
       switch (action) {
-        case Refine.Buckets:
+        case NoResults.Refine.Buckets:
           goToGlobalSearchUrl()
           break
-        case Refine.ResultType:
+        case NoResults.Refine.ResultType:
           const otherResultType =
             resultType === SearchUIModel.ResultType.QuiltPackage
               ? SearchUIModel.ResultType.S3Object
               : SearchUIModel.ResultType.QuiltPackage
           setResultType(otherResultType)
           break
-        case Refine.Filters:
+        case NoResults.Refine.Filters:
           clearFilters()
           break
-        case Refine.Search:
+        case NoResults.Refine.Search:
           inputEl?.select()
           break
-        case Refine.New:
+        case NoResults.Refine.New:
           reset()
           inputEl?.focus()
           break
-        case Refine.Network:
+        case NoResults.Refine.Network:
           // TODO: retry GQL request
           window.location.reload()
           break
@@ -101,8 +102,31 @@ function PackageList({ bucket }: PackageListProps) {
   )
 }
 
+const usePackageListErrorBoundaryStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(3, 0),
+  },
+}))
+
+function PackageListErrorBoundary({ error, resetErrorBoundary }: FallbackProps) {
+  const classes = usePackageListErrorBoundaryStyles()
+  const handleRefine: NoResults.UnexpectedErrorProps['onRefine'] = React.useCallback(
+    (action) =>
+      action === NoResults.Refine.Network
+        ? window.location.reload() // TODO: retry GQL request
+        : resetErrorBoundary(),
+    [resetErrorBoundary],
+  )
+  return (
+    <NoResults.UnexpectedError className={classes.root} onRefine={handleRefine}>
+      {error.message}
+    </NoResults.UnexpectedError>
+  )
+}
+
 export default function PackageListWrapper() {
   const bucket = useBucketStrict()
+  const { push } = RR.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const defaults = React.useMemo(
     () => ({
@@ -112,9 +136,15 @@ export default function PackageListWrapper() {
     }),
     [bucket],
   )
+  const onReset = React.useCallback(
+    () => push(urls.bucketPackageList(bucket)),
+    [bucket, push, urls],
+  )
   return (
-    <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
-      <PackageList bucket={bucket} />
-    </SearchUIModel.Provider>
+    <ErrorBoundary FallbackComponent={PackageListErrorBoundary} onReset={onReset}>
+      <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
+        <PackageList bucket={bucket} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }

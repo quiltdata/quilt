@@ -1,8 +1,11 @@
 import * as React from 'react'
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
+import * as RRDom from 'react-router-dom'
 
 import Layout, { Container } from 'components/Layout'
 import assertNever from 'utils/assertNever'
 import MetaTitle from 'utils/MetaTitle'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
@@ -75,11 +78,33 @@ function SearchLayout() {
   )
 }
 
-export default function Search() {
+function SearchErrorBoundary({ error, resetErrorBoundary }: FallbackProps) {
+  const handleRefine: NoResults.UnexpectedErrorProps['onRefine'] = React.useCallback(
+    (action) =>
+      action === NoResults.Refine.Network
+        ? window.location.reload() // TODO: retry GQL request
+        : resetErrorBoundary(),
+    [resetErrorBoundary],
+  )
   return (
-    <SearchUIModel.Provider>
-      <AssistantContext />
-      <Layout pre={<SearchLayout />} />
-    </SearchUIModel.Provider>
+    <Layout>
+      <NoResults.UnexpectedError onRefine={handleRefine}>
+        {error.message}
+      </NoResults.UnexpectedError>
+    </Layout>
+  )
+}
+
+export default function Search() {
+  const { push } = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
+  const onReset = React.useCallback(() => push(urls.search({})), [push, urls])
+  return (
+    <ErrorBoundary FallbackComponent={SearchErrorBoundary} onReset={onReset}>
+      <SearchUIModel.Provider>
+        <AssistantContext />
+        <Layout pre={<SearchLayout />} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }
