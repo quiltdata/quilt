@@ -2,11 +2,13 @@ import json
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
+import tempfile
 
 import numpy as np
 import pytest
 import responses
-from aicsimageio import AICSImage
+from bioio import BioImage
+import bioio_imageio
 from PIL import Image
 
 import t4_lambda_thumbnail
@@ -188,7 +190,10 @@ def test_generate_thumbnail(
         assert actual_array.shape == expected_array.shape
         assert np.allclose(expected_array, actual_array, atol=15, rtol=0.1)
     else:
-        actual = AICSImage(body)
-        expected = AICSImage(data_dir / expected_thumb)
-        assert actual.size() == expected.size()
-        assert np.array_equal(actual.reader.data, expected.reader.data)
+        with tempfile.NamedTemporaryFile(suffix=".png") as f:
+            f.write(body)
+            f.flush()
+            actual = BioImage(f.name, reader=bioio_imageio.reader.Reader)
+            expected = BioImage(data_dir / expected_thumb, reader=bioio_imageio.reader.Reader)
+            assert actual.dims.items() == expected.dims.items()
+            assert np.array_equal(actual.reader.data, expected.reader.data)
