@@ -155,13 +155,11 @@ class DataTransferTest(QuiltTestCase):
 
     def test_list_local_url(self):
         dir_path = DATA_DIR / 'dir'
-        contents = set(list(data_transfer.list_url(PhysicalKey.from_path(dir_path))))
-        assert contents == set(
-            [
-                ('foo.txt', 4),
-                ('x/blah.txt', 6),
-            ]
-        )
+        contents = set(data_transfer.list_url(PhysicalKey.from_path(dir_path)))
+        assert contents == {
+            ("foo.txt", 4),
+            ("x/blah.txt", 6),
+        }
 
     def test_etag(self):
         assert data_transfer._calculate_etag(DATA_DIR / 'small_file.csv') == '"0bec5bf6f93c547bc9c6774acaf85e1a"'

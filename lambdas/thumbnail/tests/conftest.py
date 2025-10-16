@@ -31,8 +31,4 @@ def pytest_configure(config):
     if not config.option.loffice:
         markers_to_exclude.append('loffice')
 
-    setattr(
-        config.option,
-        'markexpr',
-        ' and '.join([f'not {m}' for m in markers_to_exclude])
-    )
+    config.option.markexpr = ' and '.join([f'not {m}' for m in markers_to_exclude])
