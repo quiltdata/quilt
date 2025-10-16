@@ -7,37 +7,36 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Dashboard from './Dashboard'
 import { Provider, useSelection } from './Provider'
+import type { merge } from './utils'
 
 jest.mock('constants/config', () => ({}))
 
-function SelectionSetup({ initialSelection }: { initialSelection?: any[] }) {
+interface SelectionSetupProps {
+  mergeWith: Parameters<typeof merge>
+}
+
+function SelectionSetup({ mergeWith }: SelectionSetupProps) {
   const selection = useSelection()
   const [hasSetup, setHasSetup] = React.useState(false)
 
   React.useEffect(() => {
-    if (initialSelection && !hasSetup) {
-      initialSelection.forEach(({ items, bucket, path, filter }) => {
-        selection.merge(items, bucket, path, filter)
-      })
+    if (!hasSetup) {
+      selection.merge(...mergeWith)
       setHasSetup(true)
     }
-  }, [initialSelection, selection, hasSetup])
+  }, [mergeWith, selection, hasSetup])
 
   return null
 }
 
-interface TestWrapperProps {
-  children: React.ReactNode
-  initialSelection?: any[]
-}
+type TestWrapperProps = React.PropsWithChildren<Partial<SelectionSetupProps>>
 
-// Test component that allows setting up initial selection state
-function TestWrapper({ children, initialSelection }: TestWrapperProps) {
+function TestWrapper({ children, mergeWith }: TestWrapperProps) {
   return (
     <MemoryRouter>
       <NamedRoutes.Provider routes={{ bucketDir, bucketFile, bucketPackageTree }}>
         <Provider>
-          <SelectionSetup initialSelection={initialSelection} />
+          {mergeWith && <SelectionSetup mergeWith={mergeWith} />}
           {children}
         </Provider>
       </NamedRoutes.Provider>
@@ -46,6 +45,8 @@ function TestWrapper({ children, initialSelection }: TestWrapperProps) {
 }
 
 describe('containers/Bucket/Selection/Dashboard', () => {
+  const bucket = 'foo'
+
   it('should render empty state when no selection', () => {
     const { getByText } = render(
       <TestWrapper>
@@ -57,40 +58,33 @@ describe('containers/Bucket/Selection/Dashboard', () => {
   })
 
   it('should render with single file selection', () => {
-    const initialSelection = [
-      {
-        items: [{ logicalKey: 'document.txt' }],
-        bucket: 'foo',
-        path: 'a/b/c',
-      },
-    ]
+    const path = 'a/b/c'
+    const items = [{ logicalKey: 'document.txt' }]
 
     const { getByText } = render(
-      <TestWrapper initialSelection={initialSelection}>
+      <TestWrapper mergeWith={[items, bucket, path]}>
         <Dashboard onClose={jest.fn()} />
       </TestWrapper>,
     )
 
+    expect(getByText('s3://foo/a/b/c')).toBeTruthy()
     expect(getByText('s3://foo/a/b/c/document.txt').getAttribute('href')).toBe(
       '/b/foo/tree/a/b/c/document.txt',
     )
   })
 
   it('should render with special symbols', () => {
-    const initialSelection = [
-      {
-        items: [{ logicalKey: 'a # b.txt' }],
-        bucket: 'foo',
-        path: 'a/ # b # /c',
-      },
-    ]
+    const path = 'a/ # b # /c'
+    const items = [{ logicalKey: 'a # b.txt' }]
 
-    const { getByText } = render(
-      <TestWrapper initialSelection={initialSelection}>
+    const { getByText, queryByText } = render(
+      <TestWrapper mergeWith={[items, bucket, path]}>
         <Dashboard onClose={jest.fn()} />
       </TestWrapper>,
     )
 
+    expect(queryByText('s3://foo/a/ %23 b %23 /c')).toBeFalsy()
+    expect(getByText('s3://foo/a/ # b # /c')).toBeTruthy()
     expect(getByText('s3://foo/a/ # b # /c/a # b.txt').getAttribute('href')).toBe(
       '/b/foo/tree/a/ %23 b %23 /c/a %23 b.txt',
     )
