@@ -12,7 +12,7 @@ import * as AWS from 'utils/AWS'
 
 export * from './Meta'
 
-// TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
+// TODO: move here everything that's reused btw Bucket/File and Bucket/PackageTree
 
 export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
