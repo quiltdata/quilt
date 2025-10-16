@@ -1,7 +1,7 @@
 [project]
 name = "t4_lambda_thumbnail"
 version = "0.0.1"
-requires-python = "~=3.13.8"
+requires-python = "~=3.13.0"
 
 dependencies = [
   "aicsimageio~=3.3",

@@ -1,7 +1,7 @@
 """
 Generate thumbnails for n-dimensional images in S3.
 
-Uses `bioio.AICSImage` to read common imaging formats + some supported
+Uses `aicsimageio.AICSImage` to read common imaging formats + some supported
 n-dimensional imaging formats. Stong assumptions as to the shape of the
 n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
@@ -230,17 +230,7 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     determine if we need to format or not.
     """
     # These readers are specific for n dimensional images
-    if isinstance(
-        img.reader,
-        (
-            # readers.CziReader,  # TODO: bioio-czi has no wheels on MacOS
-            readers.CziReader,
-            readers.OmeTiffReader,
-            readers.TiffReader,
-            # bioio_ome_tiff.reader.Reader,
-            # bioio_tifffile.reader.Reader,
-        ),
-    ):
+    if isinstance(img.reader, (readers.CziReader, readers.OmeTiffReader, readers.TiffReader)):
         return _format_n_dim_ndarray(img)
 
     return img.reader.data
@@ -448,5 +438,4 @@ def lambda_handler(request):
         'Content-Type': Image.MIME[thumbnail_format],
         QUILT_INFO_HEADER: json.dumps(info)
     }
-    print(headers)
     return 200, data, headers

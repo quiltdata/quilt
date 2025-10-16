@@ -194,5 +194,5 @@ def test_generate_thumbnail(
             f.flush()
             actual = AICSImage(f.name)
             expected = AICSImage(data_dir / expected_thumb)
-            assert actual.dims == expected.dims
+            assert actual.size() == expected.size()
             assert np.array_equal(actual.reader.data, expected.reader.data)
