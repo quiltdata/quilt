@@ -57,7 +57,7 @@ function compareEntries(
   const physicalKey = comparePhysicalKey(base.physicalKey, other.physicalKey)
   const size = compareSize(base.size, other.size)
 
-  if (!hash && !meta.length && !physicalKey && !size) return null
+  if (!hash && !meta.length && physicalKey._tag === 'unmodified' && !size) return null
 
   return { hash, physicalKey, size, meta }
 }
