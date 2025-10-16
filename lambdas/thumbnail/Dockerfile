@@ -1,13 +1,11 @@
 ARG FUNCTION_DIR="/function"
 
-FROM debian:trixie-20250929@sha256:fd8f5a1df07b5195613e4b9a0b6a947d3772a151b81975db27d47f093f60c6e6 as base-image
+FROM debian:trixie-20250929@sha256:fd8f5a1df07b5195613e4b9a0b6a947d3772a151b81975db27d47f093f60c6e6 AS base
 
-FROM base-image as build-image
+FROM base AS build
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
-# Create function directory
-RUN mkdir -p ${FUNCTION_DIR}
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -16,17 +14,31 @@ RUN apt-get update && \
         python3-dev \
         python3-pip
 
-COPY requirements.txt /requirements/thumbnail.txt
-# HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
-RUN pip install -U pip setuptools 'numpy<2'
-RUN pip install --target /deps -r /requirements/thumbnail.txt
-RUN curl --output /deps/unoconv \
-    https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-COPY . /src/thumbnail/
-RUN pip install --target /lambda --no-deps /src/thumbnail/
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=${FUNCTION_DIR}
 
-FROM base-image
+RUN --mount=type=cache,target=/root/.cache \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync \
+    --locked \
+    --no-dev \
+    --group=prod \
+    --no-install-project
+
+COPY . /src
+WORKDIR /src
+RUN --mount=type=cache,target=/root/.cache \
+    uv sync \
+    --locked \
+    --no-dev \
+    --no-editable
+
+FROM base
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends\
@@ -48,9 +60,7 @@ ARG FUNCTION_DIR
 # Set working directory to function root directory
 WORKDIR ${FUNCTION_DIR}
 
-# Copy in the build image dependencies
-COPY --from=build-image /deps ${FUNCTION_DIR}
-COPY --from=build-image /lambda ${FUNCTION_DIR}
+COPY --from=build --chown=app:app ${FUNCTION_DIR} ${FUNCTION_DIR}
 
 ENTRYPOINT ["/usr/bin/python3", "-m", "awslambdaric"]
 CMD ["t4_lambda_thumbnail.lambda_handler"]

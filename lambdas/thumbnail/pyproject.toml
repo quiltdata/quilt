@@ -11,7 +11,7 @@ dependencies = [
   "pillow~=11.3",
   "python-pptx>=0.6.21,<0.7",
   "requests>=2.26.0,<3",
-  "t4_lambda_shared[lambda] @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared",
+  "t4_lambda_shared @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared",
 ]
 
 [build-system]
@@ -23,6 +23,9 @@ test = [
     "pytest~=8.4",
     "pytest-cov~=7.0",
     "responses~=0.25",
+]
+prod = [
+    "awslambdaric~=3.1",
 ]
 
 [tool.uv]
