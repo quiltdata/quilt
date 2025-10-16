@@ -1,8 +1,8 @@
 import json
+import tempfile
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
-import tempfile
 
 import numpy as np
 import pytest
