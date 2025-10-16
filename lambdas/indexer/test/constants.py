@@ -30,20 +30,20 @@ def generate_X(unit):
     c_list = []
     width  = 3 * unit
     height = 2 * unit
-    
+
     for x in range(height):
-        im = x * 2. / height - 1 
+        im = x * 2. / height - 1
         for y in range(width):
             re = y * 3. / width - 2
             c_list.append(np.array([re, im]))
-    
+
     return np.stack(c_list)
 def generate_visualization(model, unit):
     width  = 3 * unit
     height = 2 * unit
     X      = generate_X(unit)
     y      = model.predict_classes(X, batch_size = 64)
-    
+
     return y.reshape((2 * unit, 3 * unit))
 class FakeModel():
     def predict_classes(self, X, **kwargs):
@@ -58,7 +58,7 @@ samples[:, 0] = samples[:, 0] * 3 - 2
 samples[:, 1] = samples[:, 1] * 2 - 1
 sample_img = np.array([iterate_sequence(seq_fn, max_iter, complex(*sample)) for sample in samples])
 outside = samples[sample_img == 1]
-inside  = samples[sample_img == 0][np.random.choice(samples.shape[0] - outside.shape[0], outside.shape[0])] 
+inside  = samples[sample_img == 0][np.random.choice(samples.shape[0] - outside.shape[0], outside.shape[0])]
 X       = np.concatenate([inside, outside])
 y       = np.concatenate([np.zeros(inside.shape[0]), np.zeros(outside.shape[0]) + 1]).astype(np.int32)
 y       = to_categorical(y)

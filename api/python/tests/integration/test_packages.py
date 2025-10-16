@@ -976,11 +976,10 @@ class PackageTest(QuiltTestCase):
         test_file_name = 'bar'
         with open(test_file_name, "w", encoding='utf-8') as fd:
             fd.write('test_file_content_string')
-            test_file = Path(fd.name)
 
         # Build a new package into the local registry.
         new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test")
+        new_pkg.build("Quilt/Test")
 
         p1 = Package.browse('Quilt/Test')
         p2 = Package.browse('Quilt/Test')
@@ -1028,7 +1027,7 @@ class PackageTest(QuiltTestCase):
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
-        top_hash = Package().build("Quilt/Test")
+        Package().build("Quilt/Test")
         assert 'Quilt/Test' in quilt3.list_packages()
 
         quilt3.delete_package('Quilt/Test')
@@ -1772,7 +1771,7 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].hash['type'] = '💩'
 
         def _test_verify_fails(*args, **kwargs):
-            with pytest.raises(QuiltException, match="Unsupported hash type: '💩'") as excinfo:
+            with pytest.raises(QuiltException, match="Unsupported hash type: '💩'"):
                 pkg.verify(*args, **kwargs)
 
         Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
@@ -1937,8 +1936,7 @@ class PackageTest(QuiltTestCase):
                     pkg.push(
                         'foo/bar',
                         registry='s3://test-bucket',
-                        # pylint: disable=cell-var-from-loop
-                        dest=lambda *args, **kwargs: val,
+                        dest=lambda *args, **kwargs: val,  # noqa: B023 (function-uses-loop-variable)
                         force=True,
                     )
                 assert 'str is expected' in str(excinfo.value)
@@ -1952,8 +1950,7 @@ class PackageTest(QuiltTestCase):
                     pkg.push(
                         'foo/bar',
                         registry='s3://test-bucket',
-                        # pylint: disable=cell-var-from-loop
-                        dest=lambda *args, **kwargs: val,
+                        dest=lambda *args, **kwargs: val,  # noqa: B023 (function-uses-loop-variable)
                         force=True,
                     )
 
