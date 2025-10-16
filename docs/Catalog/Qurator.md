@@ -80,3 +80,20 @@ To enable Qurator Omni:
   summaries.
 - **Streamlined Collaboration**: Leveraging AI chat to provide background and
   context when working across disciplines.
+- **MCP Integration**: Advanced Model Context Protocol integration enables
+  dynamic tool execution and secure data access through compressed JWT tokens.
+
+## Advanced Features
+
+### Model Context Protocol (MCP) Integration
+
+Qurator includes advanced MCP integration that enables:
+
+- **Dynamic Tool Execution**: Execute complex data operations through natural language
+- **Secure Authentication**: JWT-based authentication with compressed tokens for efficiency
+- **Dynamic Bucket Discovery**: Automatically discover and access user-authorized S3 buckets
+- **Real-time Permissions**: Role-based access control with live permission updates
+
+For detailed technical information about the MCP integration, see:
+- [MCP Integration Guide](../advanced-features/mcp-integration.md)
+- [MCP Technical Reference](../advanced-features/mcp-technical-reference.md)

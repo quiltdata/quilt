@@ -16,11 +16,18 @@
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
+  * [MCP Integration](advanced-features/mcp-integration.md) - Model Context Protocol integration
+  * [MCP Technical Reference](advanced-features/mcp-technical-reference.md) - Implementation details
+  * [MCP Architecture](advanced-features/mcp-architecture-diagram.md) - System diagrams
 * [Search](Catalog/Search.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
+  * [MCP Integration](advanced-features/mcp-integration.md) - Model Context Protocol
+  * [MCP Technical Reference](advanced-features/mcp-technical-reference.md) - Implementation details
+  * [MCP Architecture](advanced-features/mcp-architecture-diagram.md) - System diagrams
+  * [MCP Changelog](advanced-features/mcp-changelog.md) - Complete change history
   * [Removing Stacks](Catalog/RemovingStacks.md)
 
 ## Quilt Platform Administrator
