@@ -21,8 +21,6 @@ module.exports = (options) => ({
   mode: options.mode,
   entry: options.entry || {
     app: path.join(process.cwd(), 'app/app'), // Start with app/app.js
-    embed: path.join(process.cwd(), 'app/embed'),
-    'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
   },
   output: {
     // Compile into js/build.js
@@ -121,18 +119,6 @@ module.exports = (options) => ({
     new HtmlWebpackPlugin({
       chunks: ['app'],
       template: 'app/index.html',
-      inject: true,
-    }),
-    new HtmlWebpackPlugin({
-      chunks: ['embed'],
-      template: 'app/embed/index.html',
-      filename: 'embed.html',
-      inject: true,
-    }),
-    new HtmlWebpackPlugin({
-      chunks: ['embed-debug-harness'],
-      template: 'app/embed/debug-harness.html',
-      filename: 'embed-debug-harness.html',
       inject: true,
     }),
 
