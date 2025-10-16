@@ -7,8 +7,7 @@ import tempfile
 import numpy as np
 import pytest
 import responses
-from bioio import BioImage
-import bioio_imageio
+from aicsimageio import AICSImage
 from PIL import Image
 
 import t4_lambda_thumbnail
@@ -193,7 +192,7 @@ def test_generate_thumbnail(
         with tempfile.NamedTemporaryFile(suffix=".png") as f:
             f.write(body)
             f.flush()
-            actual = BioImage(f.name, reader=bioio_imageio.reader.Reader)
-            expected = BioImage(data_dir / expected_thumb, reader=bioio_imageio.reader.Reader)
-            assert actual.dims.items() == expected.dims.items()
+            actual = AICSImage(f.name)
+            expected = AICSImage(data_dir / expected_thumb)
+            assert actual.dims == expected.dims
             assert np.array_equal(actual.reader.data, expected.reader.data)

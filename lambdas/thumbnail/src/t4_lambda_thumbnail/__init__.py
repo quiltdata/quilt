@@ -1,7 +1,7 @@
 """
 Generate thumbnails for n-dimensional images in S3.
 
-Uses `bioio.BioImage` to read common imaging formats + some supported
+Uses `bioio.AICSImage` to read common imaging formats + some supported
 n-dimensional imaging formats. Stong assumptions as to the shape of the
 n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
@@ -17,14 +17,12 @@ from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
 
-import bioio_ome_tiff
-import bioio_tifffile
 import imageio
 import numpy as np
 import pdf2image
 import pptx
 import requests
-from bioio import BioImage
+from aicsimageio import AICSImage, readers
 from pdf2image import convert_from_bytes
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
@@ -152,7 +150,7 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
+def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
     # Even though the reader was n-dim, check if the actual data is simply greyscale and return
     if len(img.reader.data.shape) == 2:
         return img.reader.data
@@ -164,21 +162,21 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
         return img.reader.data
 
     # Check which dimensions are available
-    # BioImage makes strong assumptions about dimension ordering
+    # AICSImage makes strong assumptions about dimension ordering
 
     # Reduce the array down to 2D + Channels when possible
     # Always choose first Scene
-    if "S" in img.reader.dims.order:
-        img = BioImage(img.data[0, :, :, :, :, :])
+    if "S" in img.reader.dims:
+        img = AICSImage(img.data[0, :, :, :, :, :])
     # Always choose middle time slice
-    if "T" in img.reader.dims.order:
-        img = BioImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
+    if "T" in img.reader.dims:
+        img = AICSImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
 
     # Keep Channel data, but max project when possible
-    if "C" in img.reader.dims.order:
+    if "C" in img.reader.dims:
         projections = []
         for i in range(img.data.shape[2]):
-            if "Z" in img.reader.dims.order:
+            if "Z" in img.reader.dims:
                 # Add padding to the top and left of the projection
                 padded = np.pad(
                     norm_img(img.data[0, 0, i, :, :, :].max(axis=0)),
@@ -220,13 +218,13 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
     # we will simply use a max projection on files that contain a Z dimension
-    if "Z" in img.reader.dims.order:
+    if "Z" in img.reader.dims:
         return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
 
     return norm_img(img.data[0, 0, 0, 0, :, :])
 
 
-def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
+def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     """
     Simple wrapper around the format n-dim array function to
     determine if we need to format or not.
@@ -236,8 +234,11 @@ def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
         img.reader,
         (
             # readers.CziReader,  # TODO: bioio-czi has no wheels on MacOS
-            bioio_ome_tiff.reader.Reader,
-            bioio_tifffile.reader.Reader,
+            readers.CziReader,
+            readers.OmeTiffReader,
+            readers.TiffReader,
+            # bioio_ome_tiff.reader.Reader,
+            # bioio_tifffile.reader.Reader,
         ),
     ):
         return _format_n_dim_ndarray(img)
@@ -420,7 +421,7 @@ def lambda_handler(request):
             f.flush()
             # Read image data
             try:
-                img = BioImage(f.name)
+                img = AICSImage(f.name)
             except Exception as e:
                 return make_json_response(500, {'error': f'Could not read image: {str(e)}'})
             orig_size = list(img.reader.data.shape)
