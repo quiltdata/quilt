@@ -175,6 +175,26 @@ export const bucketPackageRevisions = route(
 
 export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
 
+interface BucketPackageCompareOpts {
+  showAll?: boolean
+}
+
+export const bucketPackageCompare = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/compare/:baseHash/:otherHash?/`,
+  (
+    bucket: string,
+    name: string,
+    base: string,
+    other?: string,
+    { showAll }: BucketPackageCompareOpts = {},
+  ) =>
+    other
+      ? `/b/${bucket}/packages/${name}/compare/${base}/${other}/${mkSearch({ showAll })}`
+      : `/b/${bucket}/packages/${name}/compare/${base}/${mkSearch({ showAll })}`,
+)
+
+export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
+
 export const bucketQueries = route(
   '/b/:bucket/queries',
   (bucket: string) => `/b/${bucket}/queries`,

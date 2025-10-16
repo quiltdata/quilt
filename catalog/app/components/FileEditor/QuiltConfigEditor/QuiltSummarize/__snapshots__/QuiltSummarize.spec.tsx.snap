@@ -2,23 +2,23 @@
 
 exports[`QuiltSummarize Render columns 1`] = `
 <div
-  className="root root"
+  class="root root"
 >
   <div>
     <div
-      className="root row"
+      class="root row"
     >
       <div
-        className="inner"
+        class="inner"
       >
         <div
-          className="root column"
+          class="root column"
         >
           <div
-            className="inner"
+            class="inner"
           >
             <div
-              className="path"
+              class="path"
             >
               <div
                 id="icon-button"
@@ -46,11 +46,10 @@ exports[`QuiltSummarize Render columns 1`] = `
             </div>
           </div>
           <div
-            className="root vertical divider"
+            class="root vertical divider"
           >
             <div
-              className="inner"
-              onClick={[Function]}
+              class="inner"
             >
               <div
                 id="icon"
@@ -61,13 +60,13 @@ exports[`QuiltSummarize Render columns 1`] = `
           </div>
         </div>
         <div
-          className="root column"
+          class="root column"
         >
           <div
-            className="inner"
+            class="inner"
           >
             <div
-              className="path"
+              class="path"
             >
               <div
                 id="icon-button"
@@ -95,11 +94,10 @@ exports[`QuiltSummarize Render columns 1`] = `
             </div>
           </div>
           <div
-            className="root expanded vertical divider"
+            class="root expanded vertical divider"
           >
             <div
-              className="inner"
-              onClick={[Function]}
+              class="inner"
             >
               <div
                 id="icon"
@@ -111,11 +109,10 @@ exports[`QuiltSummarize Render columns 1`] = `
         </div>
       </div>
       <div
-        className="root expanded horizontal divider"
+        class="root expanded horizontal divider"
       >
         <div
-          className="inner"
-          onClick={[Function]}
+          class="inner"
         >
           <div
             id="icon"
@@ -127,12 +124,12 @@ exports[`QuiltSummarize Render columns 1`] = `
     </div>
   </div>
   <p
-    className="caption"
+    class="caption"
   >
     Configuration for quilt_summarize.json. See
      
     <a
-      className="root"
+      class="root"
       href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
       target="_blank"
     >
@@ -144,23 +141,23 @@ exports[`QuiltSummarize Render columns 1`] = `
 
 exports[`QuiltSummarize Render empty placeholders 1`] = `
 <div
-  className="root root"
+  class="root root"
 >
   <div>
     <div
-      className="root row"
+      class="root row"
     >
       <div
-        className="inner"
+        class="inner"
       >
         <div
-          className="root column"
+          class="root column"
         >
           <div
-            className="inner"
+            class="inner"
           >
             <div
-              className="path"
+              class="path"
             >
               <div
                 id="icon-button"
@@ -173,9 +170,7 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
               </div>
               <div
                 id="text-field"
-              >
-                
-              </div>
+              />
             </div>
             <div
               id="icon-button"
@@ -188,11 +183,10 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
             </div>
           </div>
           <div
-            className="root expanded vertical divider"
+            class="root expanded vertical divider"
           >
             <div
-              className="inner"
-              onClick={[Function]}
+              class="inner"
             >
               <div
                 id="icon"
@@ -204,11 +198,10 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
         </div>
       </div>
       <div
-        className="root expanded horizontal divider"
+        class="root expanded horizontal divider"
       >
         <div
-          className="inner"
-          onClick={[Function]}
+          class="inner"
         >
           <div
             id="icon"
@@ -220,12 +213,12 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
     </div>
   </div>
   <p
-    className="caption"
+    class="caption"
   >
     Configuration for quilt_summarize.json. See
      
     <a
-      className="root"
+      class="root"
       href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
       target="_blank"
     >
@@ -237,23 +230,23 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
 
 exports[`QuiltSummarize Render row 1`] = `
 <div
-  className="root root"
+  class="root root"
 >
   <div>
     <div
-      className="root row"
+      class="root row"
     >
       <div
-        className="inner"
+        class="inner"
       >
         <div
-          className="root column"
+          class="root column"
         >
           <div
-            className="inner"
+            class="inner"
           >
             <div
-              className="path"
+              class="path"
             >
               <div
                 id="icon-button"
@@ -281,11 +274,10 @@ exports[`QuiltSummarize Render row 1`] = `
             </div>
           </div>
           <div
-            className="root expanded vertical divider"
+            class="root expanded vertical divider"
           >
             <div
-              className="inner"
-              onClick={[Function]}
+              class="inner"
             >
               <div
                 id="icon"
@@ -297,11 +289,10 @@ exports[`QuiltSummarize Render row 1`] = `
         </div>
       </div>
       <div
-        className="root expanded horizontal divider"
+        class="root expanded horizontal divider"
       >
         <div
-          className="inner"
-          onClick={[Function]}
+          class="inner"
         >
           <div
             id="icon"
@@ -313,12 +304,12 @@ exports[`QuiltSummarize Render row 1`] = `
     </div>
   </div>
   <p
-    className="caption"
+    class="caption"
   >
     Configuration for quilt_summarize.json. See
      
     <a
-      className="root"
+      class="root"
       href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
       target="_blank"
     >

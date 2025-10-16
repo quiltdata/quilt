@@ -8,7 +8,7 @@ exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders Markdo
 
 exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders no preview if unsupported file type 1`] = `
 <p
-  className="MuiTypography-root MuiTypography-body1"
+  class="MuiTypography-root MuiTypography-body1"
 >
   There is no content for quick preview
 </p>
@@ -16,7 +16,7 @@ exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders no pre
 
 exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders no value 1`] = `
 <p
-  className="MuiTypography-root MuiTypography-body1"
+  class="MuiTypography-root MuiTypography-body1"
 >
   There is no content for quick preview
 </p>

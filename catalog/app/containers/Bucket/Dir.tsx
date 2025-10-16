@@ -243,6 +243,7 @@ export default function Dir() {
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <AssistantContext.ListingContext data={data} />
+      <AssistantContext.DirContextFiles bucket={bucket} path={path} />
 
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 

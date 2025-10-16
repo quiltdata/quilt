@@ -4,7 +4,6 @@ import invariant from 'invariant'
 import { useParams } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
-// import * as Model from 'model'
 import * as Nav from 'utils/Navigation'
 
 export interface RouteMap {
@@ -16,6 +15,7 @@ export interface RouteMap {
   bucketPackageDetail: routes.BucketPackageDetailArgs
   bucketPackageList: routes.BucketPackageListArgs
   bucketPackageRevisions: routes.BucketPackageRevisionsArgs
+  bucketPackageCompare: routes.BucketPackageCompareArgs
   bucketPackageTree: routes.BucketPackageTreeArgs
   bucketQueries: routes.BucketQueriesArgs
   bucketWorkflowDetail: routes.BucketWorkflowDetailArgs

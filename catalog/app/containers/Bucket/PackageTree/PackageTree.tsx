@@ -50,6 +50,7 @@ import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 
+import * as AssistantContext from './AssistantContext'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -889,6 +890,10 @@ function ResolverProvider({
   )
 }
 
+type RevisionData = NonNullable<
+  GQL.DataForDoc<typeof REVISION_QUERY>['package']
+>['revision']
+
 const useStyles = M.makeStyles({
   alertMsg: {
     overflow: 'hidden',
@@ -903,6 +908,7 @@ interface PackageRevisionProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
+  revision?: RevisionData
 }
 
 function PackageRevision({
@@ -911,6 +917,7 @@ function PackageRevision({
   path,
   crumbs,
   mode,
+  revision,
 }: PackageRevisionProps) {
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
@@ -938,6 +945,12 @@ function PackageRevision({
         key={successor?.slug || 'none'}
       />
       <ResolverProvider packageHandle={packageHandle}>
+        <AssistantContext.PackageContext
+          bucket={packageHandle.bucket}
+          name={packageHandle.name}
+          path={path}
+          revision={revision ?? null}
+        />
         {isDir ? (
           <DirDisplay
             packageHandle={packageHandle}
@@ -960,7 +973,7 @@ interface PackageTreeProps {
   bucket: string
   name: string
   hashOrTag: string
-  hash?: string
+  revision?: RevisionData
   path: string
   mode?: string
   resolvedFrom?: string
@@ -971,12 +984,13 @@ function PackageTree({
   bucket,
   name,
   hashOrTag,
-  hash,
+  revision,
   path,
   mode,
   resolvedFrom,
   revisionListQuery,
 }: PackageTreeProps) {
+  const hash = revision?.hash
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
 
@@ -1130,7 +1144,7 @@ function PackageTreeQueries({
               bucket,
               name,
               hashOrTag,
-              hash: d.package.revision?.hash,
+              revision: d.package.revision,
               path,
               mode,
               resolvedFrom,
