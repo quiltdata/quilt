@@ -2,75 +2,65 @@
 
 # Querying packages with Iceberg tables
 
-> This feature requires Quilt Platform version 1.64.0 or higher
+> NOTE: This feature requires Quilt Platform version 1.64.0 or higher
 
-Quilt automatically caches package information in Apache Iceberg tables to provide a high-efficiency, externally-queryable source of information suitable for data warehouses.
+Quilt automatically maintains Apache Iceberg tables that provide high-efficiency,
+externally-queryable access to package information. You can query package revisions,
+tags, file entries, and metadata using standard SQL tools (Athena, Spark, Trino)
+without accessing the Quilt Catalog.
 
 Four tables are available:
 
 - `package_revision` - package revisions with timestamps
-- `package_tag` - named package tags (e.g., "latest")
+- `package_tag` - named package tags (e.g., "latest", "v1.0")
 - `package_manifest` - package-level metadata and commit messages
 - `package_entry` - individual file entries within packages
 
-## When to use Iceberg tables
+## Example: Get entries and metadata for the latest version of a package
 
-Use Iceberg tables for:
-- Large-scale analysis across many packages
-- Tracking package evolution over time
-- Complex joins combining revisions, tags, manifests, and entries
-
-For simple queries on a single package, the standard Athena views
-(e.g., `YOUR-BUCKET_packages-view`) may be more convenient.
-
-## Example: Find all versions of a package
+The Iceberg tables are in the database specified by the `UserAthenaDatabaseName`
+output in your CloudFormation stack (the same database as the standard package views).
 
 ```sql
 SELECT
-  pkg_name,
-  timestamp,
-  top_hash
-FROM "your-iceberg-database"."package_revision"
-WHERE bucket = 'my-bucket'
-  AND pkg_name = 'analytics/results'
-ORDER BY timestamp DESC
+  e.logical_key,
+  e.physical_key,
+  e.size,
+  m.metadata
+FROM package_tag t
+JOIN package_manifest m
+  ON t.bucket = m.bucket AND t.top_hash = m.top_hash
+JOIN package_entry e
+  ON t.bucket = e.bucket AND t.top_hash = e.top_hash
+WHERE t.bucket = 'my-bucket'
+  AND t.pkg_name = 'analytics/results'
+  AND t.tag_name = 'latest'
 ```
 
-## Example: Query package metadata
+## Example: Find all packages matching specific metadata
 
 ```sql
 SELECT
+  r.bucket,
   r.pkg_name,
   r.timestamp,
-  m.message,
   m.metadata
-FROM "your-iceberg-database"."package_manifest" m
-JOIN "your-iceberg-database"."package_revision" r
+FROM package_manifest m
+JOIN package_revision r
   ON m.bucket = r.bucket AND m.top_hash = r.top_hash
-WHERE m.message LIKE '%experiment%'
+WHERE json_extract_scalar(m.metadata, '$.experiment_id') = 'EXP-123'
+  AND json_extract_scalar(m.metadata, '$.status') = 'complete'
 ORDER BY r.timestamp DESC
 ```
 
-## Example: Find large files across packages
+## Accessing from external tools
 
-```sql
-SELECT
-  r.pkg_name,
-  e.logical_key,
-  e.size,
-  e.physical_key
-FROM "your-iceberg-database"."package_entry" e
-JOIN "your-iceberg-database"."package_revision" r
-  ON e.bucket = r.bucket AND e.top_hash = r.top_hash
-WHERE e.logical_key LIKE '%.csv'
-  AND e.size > 1073741824
-ORDER BY e.size DESC
-```
+Iceberg tables can be queried from any SQL engine that supports Iceberg format:
 
-## Accessing from the Catalog
-
-Use the Queries tab in the Quilt Catalog to run Athena queries against Iceberg tables.
-Ask your administrator for the Glue database name containing the Iceberg tables.
+- **AWS Athena**: Use the Queries tab in the Quilt Catalog
+- **Apache Spark**: Configure Iceberg catalog to point to the Glue database
+- **Trino/Presto**: Connect to the Glue catalog
+- **AWS Glue**: Use the Glue database directly in ETL jobs
 
 ## See also
 
