@@ -15,39 +15,42 @@ export interface ListingSelection {
 
 export const EMPTY_MAP: ListingSelection = {}
 
+const prefixToHandle = (prefixUrl: string): Model.S3.S3ObjectLocation =>
+  s3paths.parseS3Url(prefixUrl)
+
+const handleToPrefix = (handle: Model.S3.S3ObjectLocation): string =>
+  s3paths.handleToS3Url(handle)
+
+const joinKeyToHandle = (handle: Model.S3.S3ObjectLocation, suffix: string) => {
+  const key = join(s3paths.decode(handle.key), suffix)
+  return { bucket: handle.bucket, key }
+}
+
+const joinKeyToPrefix = (prefixUrl: string, key: string) => {
+  const handle = prefixToHandle(prefixUrl)
+  return joinKeyToHandle(handle, key)
+}
+
+const toHandle =
+  (prefixUrl: string) =>
+  ({ logicalKey }: SelectionItem) =>
+    joinKeyToPrefix(prefixUrl, logicalKey)
+
 interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
 }
 
-const convertIdToHandle = (
-  id: string | number,
-  parentHandle: Model.S3.S3ObjectLocation,
-): Model.S3.S3ObjectLocation => ({
-  bucket: parentHandle.bucket,
-  key: join(parentHandle.key, id.toString()),
-})
-
 export const toHandlesMap = (selection: ListingSelection): SelectionHandles =>
-  Object.entries(selection).reduce(
-    (memo, [prefixUrl, items]) => ({
-      ...memo,
-      [prefixUrl]: items.map((item) =>
-        convertIdToHandle(item.logicalKey, s3paths.parseS3Url(prefixUrl)),
-      ),
-    }),
-    {} as SelectionHandles,
-  )
+  Object.entries(selection).reduce((memo, [prefixUrl, items]) => {
+    const selectionToHandle = toHandle(prefixUrl)
+    return { ...memo, [prefixUrl]: items.map(selectionToHandle) }
+  }, {} as SelectionHandles)
 
 export const toHandlesList = (selection: ListingSelection): Model.S3.S3ObjectLocation[] =>
-  Object.entries(selection).reduce(
-    (memo, [prefixUrl, items]) => [
-      ...memo,
-      ...items.map((item) =>
-        convertIdToHandle(item.logicalKey, s3paths.parseS3Url(prefixUrl)),
-      ),
-    ],
-    [] as Model.S3.S3ObjectLocation[],
-  )
+  Object.entries(selection).reduce((memo, [prefixUrl, items]) => {
+    const selectionToHandle = toHandle(prefixUrl)
+    return [...memo, ...items.map(selectionToHandle)]
+  }, [] as Model.S3.S3ObjectLocation[])
 
 const mergeWithFiltered =
   (prefix: string, filteredItems: SelectionItem[]) => (allItems: SelectionItem[]) => {
@@ -65,7 +68,7 @@ export function merge(
   path: string,
   filter?: string,
 ): (state: ListingSelection) => ListingSelection {
-  const prefixUrl = `s3://${bucket}/${path}`
+  const prefixUrl = handleToPrefix({ bucket, key: s3paths.ensureNoSlash(path) })
   const lens = R.lensProp<Record<string, SelectionItem[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, items)) : R.set(lens, items)
 }
@@ -76,4 +79,4 @@ export const getDirectorySelection = (
   selection: ListingSelection,
   bucket: string,
   path: string,
-) => selection[`s3://${bucket}/${path}`] || EmptyKeys
+) => selection[handleToPrefix({ bucket, key: s3paths.ensureNoSlash(path) })] || EmptyKeys

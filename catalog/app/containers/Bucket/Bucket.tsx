@@ -12,6 +12,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
+import * as AssistantContext from './AssistantContext'
 import * as BucketNav from './BucketNav'
 import CatchNotFound from './CatchNotFound'
 import type { RouteMap } from './Routes'
@@ -78,6 +79,7 @@ export default function Bucket() {
     <BucketPreferences.Provider bucket={bucket}>
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket}>
+        <AssistantContext.BucketContext bucket={bucket} />
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Switch>
             <Route path={paths.bucketFile} exact strict>

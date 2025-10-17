@@ -15,7 +15,7 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     if not config.option.extended:
-        setattr(config.option, 'markexpr', 'not extended')
+        config.option.markexpr = 'not extended'
     os.environ['DOC_LIMIT_BYTES'] = '10000'
     os.environ['CONTENT_INDEX_EXTS'] = '.csv, .md, .parquet, .rmd, .tsv, .txt, .ipynb, .json'
     os.environ['SKIP_ROWS_EXTS'] = ''

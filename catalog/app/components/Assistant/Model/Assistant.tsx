@@ -8,6 +8,7 @@ import * as Actor from 'utils/Actor'
 
 import * as Bedrock from './Bedrock'
 import * as Context from './Context'
+import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import useIsEnabled from './enabled'
@@ -136,7 +137,9 @@ function DisabledAPIProvider({ children }: React.PropsWithChildren<{}>) {
 export function AssistantProvider({ children }: React.PropsWithChildren<{}>) {
   return useIsEnabled() ? (
     <Context.ContextAggregatorProvider>
-      <AssistantAPIProvider>{children}</AssistantAPIProvider>
+      <ContextFiles.LoaderProvider>
+        <AssistantAPIProvider>{children}</AssistantAPIProvider>
+      </ContextFiles.LoaderProvider>
     </Context.ContextAggregatorProvider>
   ) : (
     <DisabledAPIProvider>{children}</DisabledAPIProvider>

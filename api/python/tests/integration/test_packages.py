@@ -1936,8 +1936,7 @@ class PackageTest(QuiltTestCase):
                     pkg.push(
                         'foo/bar',
                         registry='s3://test-bucket',
-                        # pylint: disable=cell-var-from-loop
-                        dest=lambda *args, **kwargs: val,
+                        dest=lambda *args, **kwargs: val,  # noqa: B023 (function-uses-loop-variable)
                         force=True,
                     )
                 assert 'str is expected' in str(excinfo.value)
@@ -1951,8 +1950,7 @@ class PackageTest(QuiltTestCase):
                     pkg.push(
                         'foo/bar',
                         registry='s3://test-bucket',
-                        # pylint: disable=cell-var-from-loop
-                        dest=lambda *args, **kwargs: val,
+                        dest=lambda *args, **kwargs: val,  # noqa: B023 (function-uses-loop-variable)
                         force=True,
                     )
 
