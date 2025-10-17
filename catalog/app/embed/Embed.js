@@ -5,6 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { ErrorBoundary } from 'react-error-boundary'
 import { Route, Router, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -31,7 +32,6 @@ import * as style from 'constants/style'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as BucketCache from 'utils/BucketCache'
-import { createBoundary } from 'utils/ErrorBoundary'
 import * as GraphQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
@@ -61,7 +61,7 @@ const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
 const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
 const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 
-const FinalBoundary = createBoundary(() => (error) => (
+const FinalBoundaryFallback = ({ error }) => (
   <h1
     style={{
       display: 'flex',
@@ -75,7 +75,7 @@ const FinalBoundary = createBoundary(() => (error) => (
   >
     {error.headline || 'Something went wrong'}
   </h1>
-))
+)
 
 function StyledError({ children }) {
   return (
@@ -92,9 +92,9 @@ function StyledError({ children }) {
   )
 }
 
-const ErrorBoundary = createBoundary(() => (error) => (
+const EmbedErrorFallback = ({ error }) => (
   <StyledError>{error.headline || 'Something went wrong'}</StyledError>
-))
+)
 
 const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
 
@@ -208,7 +208,7 @@ function Init() {
     return <StyledError>Configuration error</StyledError>
   }
   return (
-    <ErrorBoundary key={key}>
+    <ErrorBoundary FallbackComponent={EmbedErrorFallback}>
       <App {...{ key, init }} />
     </ErrorBoundary>
   )
@@ -370,11 +370,11 @@ function App({ init }) {
 
 export default function Embed() {
   return RT.nest(
-    FinalBoundary,
+    [ErrorBoundary, { FallbackComponent: FinalBoundaryFallback }],
     [M.MuiThemeProvider, { theme: style.appTheme }],
     WithGlobalStyles,
     Layout.Root,
-    ErrorBoundary,
+    [ErrorBoundary, { FallbackComponent: EmbedErrorFallback }],
     [NamedRoutes.Provider, { routes }],
     Init,
   )

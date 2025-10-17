@@ -78,7 +78,7 @@ export default function App() {
   const l = useLocation()
 
   return (
-    <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
+    <CatchNotFound resetKeys={[l.pathname, l.search, l.hash]}>
       <Switch>
         <Route path={paths.home} exact>
           <Home />

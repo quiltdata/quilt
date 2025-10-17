@@ -1,9 +1,8 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import * as M from '@material-ui/core'
-import * as Sentry from '@sentry/react'
 import * as Icons from '@material-ui/icons'
-
-import { createBoundary } from 'utils/ErrorBoundary'
+import * as Sentry from '@sentry/react'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -19,41 +18,26 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ToolbarErrorBoundaryPlaceholderProps {
-  error: Error
-  info: $TSFixMe
-  reset: () => void
-}
-
-function ToolbarErrorBoundaryPlaceholder({
-  error,
-  info,
-  reset,
-}: ToolbarErrorBoundaryPlaceholderProps) {
+function ToolbarErrorBoundaryPlaceholder({ resetErrorBoundary }: FallbackProps) {
   const classes = useStyles()
-
-  React.useEffect(() => {
-    Sentry.captureException(error, info)
-  }, [error, info])
-
   return (
     <div className={classes.root}>
       <Icons.ErrorOutline fontSize="small" />
       <div className={classes.message}>
         <M.Typography variant="body2">Toolbar error occurred</M.Typography>
       </div>
-      <M.IconButton size="small" onClick={reset} color="inherit">
+      <M.IconButton size="small" onClick={resetErrorBoundary} color="inherit">
         <Icons.Refresh fontSize="small" />
       </M.IconButton>
     </div>
   )
 }
 
-const ToolbarErrorBoundary = createBoundary(
-  (_: unknown, { reset }: { reset: () => void }) =>
-    (error: Error, info: $TSFixMe) => (
-      <ToolbarErrorBoundaryPlaceholder error={error} info={info} reset={reset} />
-    ),
-)
-
-export default ToolbarErrorBoundary
+export default function ToolbarErrorBoundary({ children }: React.PropsWithChildren<{}>) {
+  const onError = React.useCallback((error: Error) => Sentry.captureException(error), [])
+  return (
+    <ErrorBoundary
+      {...{ FallbackComponent: ToolbarErrorBoundaryPlaceholder, onError, children }}
+    />
+  )
+}

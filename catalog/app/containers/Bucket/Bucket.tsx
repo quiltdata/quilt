@@ -80,7 +80,7 @@ export default function Bucket() {
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket}>
         <AssistantContext.BucketContext bucket={bucket} />
-        <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
+        <CatchNotFound resetKeys={[location.pathname, location.search, location.hash]}>
           <Switch>
             <Route path={paths.bucketFile} exact strict>
               <File />

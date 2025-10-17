@@ -1,11 +1,11 @@
 import * as React from 'react'
 import * as RR from 'react-router-dom'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
@@ -16,16 +16,13 @@ const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
 const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
 
-const ErrorBoundary = createBoundary(
-  () => () => (
-    <M.Box my={4}>
-      <M.Typography variant="h4" align="center" gutterBottom>
-        Unexpected Error
-      </M.Typography>
-      <M.Typography align="center">See the console for details</M.Typography>
-    </M.Box>
-  ),
-  'AdminErrorBoundary',
+const AdminErrorFallback = () => (
+  <M.Box my={4}>
+    <M.Typography variant="h4" align="center" gutterBottom>
+      Unexpected Error
+    </M.Typography>
+    <M.Typography align="center">See the console for details</M.Typography>
+  </M.Box>
 )
 
 const useTabStyles = M.makeStyles((t) => ({
@@ -96,7 +93,10 @@ export default function Admin() {
 
   return (
     <AdminLayout section={getSection(location.pathname)}>
-      <ErrorBoundary key={JSON.stringify(location)}>
+      <ErrorBoundary
+        FallbackComponent={AdminErrorFallback}
+        resetKeys={[location.pathname, location.search, location.hash]}
+      >
         <RR.Switch>
           <RR.Route path={paths.adminUsers} exact strict>
             <UsersAndRoles />

@@ -1,9 +1,9 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 
 import Error from 'components/Error'
 import Layout from 'components/Layout'
-import { createBoundary } from 'utils/ErrorBoundary'
 import { BaseError } from 'utils/error'
 
 export default function NotFoundPage() {
@@ -20,11 +20,19 @@ export const ThrowNotFound = () => {
   throw new NotFoundError()
 }
 
-export const createNotFound = (Component) =>
-  createBoundary(
-    (props) =>
-      R.when(R.is(NotFoundError), (error) => <Component {...props} error={error} />),
-    'CatchNotFound',
+export const createNotFound =
+  (Component) =>
+  ({ children, resetKeys }) => (
+    <ErrorBoundary
+      fallbackRender={({ error, resetErrorBoundary }) =>
+        R.is(NotFoundError, error) ? (
+          <Component {...{ error, resetErrorBoundary }} />
+        ) : null
+      }
+      resetKeys={resetKeys}
+    >
+      {children}
+    </ErrorBoundary>
   )
 
 export const CatchNotFound = createNotFound(NotFoundPage)
