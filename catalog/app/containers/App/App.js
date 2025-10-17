@@ -63,6 +63,7 @@ const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder)
 const UriResolver = protect(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
 )
+const Agent = protect(RT.mkLazy(() => import('components/Agent/AgentPage'), Placeholder))
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
@@ -141,6 +142,10 @@ export default function App() {
             <OpenProfile />
           </Route>
         )}
+
+        <Route path={paths.agent} exact>
+          <Agent />
+        </Route>
 
         <Route path={paths.admin}>
           <Admin />
