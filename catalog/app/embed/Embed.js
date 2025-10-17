@@ -6,7 +6,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { ErrorBoundary } from 'react-error-boundary'
-import { Route, Router, Switch, useLocation, useParams } from 'react-router-dom'
+import { Route, Router, Switch, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -25,7 +25,6 @@ import 'sanitize.css'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
-import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/embed-routes'
 import * as style from 'constants/style'
@@ -96,22 +95,17 @@ const EmbedErrorFallback = ({ error }) => (
   <StyledError>{error.headline || 'Something went wrong'}</StyledError>
 )
 
-const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
-
 function Root() {
-  const l = useLocation()
   const { paths } = NamedRoutes.use()
   return (
-    <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Switch>
-        <Route path={paths.bucketRoot}>
-          <Bucket />
-        </Route>
-        <Route>
-          <ThrowNotFound />
-        </Route>
-      </Switch>
-    </CatchNotFound>
+    <Switch>
+      <Route path={paths.bucketRoot}>
+        <Bucket />
+      </Route>
+      <Route>
+        <StyledError>Page not found</StyledError>
+      </Route>
+    </Switch>
   )
 }
 
@@ -132,7 +126,7 @@ function Bucket() {
           <Search />
         </Route>
         <Route>
-          <ThrowNotFound />
+          <StyledError>Page not found</StyledError>
         </Route>
       </Switch>
     </BucketLayout>

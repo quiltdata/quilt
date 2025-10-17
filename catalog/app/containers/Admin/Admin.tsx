@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-import { ThrowNotFound } from 'containers/NotFoundPage'
+import NotFound from 'containers/Bucket/CatchNotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
@@ -111,7 +111,7 @@ export default function Admin() {
             <Buckets />
           </RR.Route>
           <RR.Route>
-            <ThrowNotFound />
+            <NotFound />
           </RR.Route>
         </RR.Switch>
       </ErrorBoundary>

@@ -4,9 +4,8 @@ import * as M from '@material-ui/core'
 
 import Error from 'components/Error'
 import * as authSelectors from 'containers/Auth/selectors'
-import { createNotFound } from 'containers/NotFoundPage'
 
-const CatchNotFound = createNotFound(() => {
+export default function NotFound() {
   const username = redux.useSelector(authSelectors.username)
   const helpText = username
     ? 'Try to navigate using one of these tabs above'
@@ -16,6 +15,4 @@ const CatchNotFound = createNotFound(() => {
       <Error headline="Nothing here" detail={helpText} />
     </M.Box>
   )
-})
-
-export default CatchNotFound
+}
