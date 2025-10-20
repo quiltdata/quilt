@@ -263,7 +263,9 @@ export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
             handles.length ? (
               <li className={classes.listSection} key={prefixUrl}>
                 <ul className={classes.auxList}>
-                  <M.ListSubheader disableGutters>{prefixUrl}</M.ListSubheader>
+                  <M.ListSubheader disableGutters>
+                    {s3paths.decode(prefixUrl)}
+                  </M.ListSubheader>
                   <M.List dense disablePadding>
                     {handles.map((handle, index) => (
                       <ListItem

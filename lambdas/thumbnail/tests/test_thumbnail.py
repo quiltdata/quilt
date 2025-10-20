@@ -4,12 +4,14 @@ from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
+import aicsimageio
 import numpy as np
 import pytest
 import responses
 from aicsimageio import AICSImage
 from PIL import Image
 
+import quilt3
 import t4_lambda_thumbnail
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER
 from t4_lambda_shared.utils import read_body
@@ -196,3 +198,135 @@ def test_generate_thumbnail(
             expected = AICSImage(data_dir / expected_thumb)
             assert actual.size() == expected.size()
             assert np.array_equal(actual.reader.data, expected.reader.data)
+
+
+TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
+TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
+OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
+THUMBS_PKG = "images/thumbs", "ac219780715b7c9c13bd03b982a28fbc5a50e9b01ba000a169951d5a444f5926"
+SIZE = (1024, 768)
+
+
+@pytest.mark.parametrize(
+    "pkg_ref, lk",
+    [
+        # Traceback (most recent call last):
+        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
+        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 332, in handle_image
+        #     # Makes some assumptions for n-dim data
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 234, in format_aicsimage_to_prepped
+        #     return _format_n_dim_ndarray(img)
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 173, in _format_n_dim_ndarray
+        #     img = AICSImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/aics_image.py", line 151, in data
+        #     self._data = transforms.reshape_data(
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/transforms.py", line 67, in reshape_data
+        #     return transpose_to_dims(data, given_dims=new_dims, return_dims=return_dims)  # don't pass kwargs or 2 copies
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/transforms.py", line 100, in transpose_to_dims
+        #     data = data.transpose(transposer)
+        # ValueError: axes don't match array
+        pytest.param(
+            TIFF_PKG,
+            "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif",
+            marks=pytest.mark.xfail(raises=ValueError),
+        ),
+        # Traceback (most recent call last):
+        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
+        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 332, in handle_image
+        #     # Makes some assumptions for n-dim data
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 234, in format_aicsimage_to_prepped
+        #     return _format_n_dim_ndarray(img)
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 169, in _format_n_dim_ndarray
+        #     if "S" in img.reader.dims:
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/readers/ome_tiff_reader.py", line 65, in dims
+        #     dimension_order = self._metadata.image().Pixels.DimensionOrder
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/vendor/omexml.py", line 510, in image
+        #     return self.Image(self.root_node.findall(qn(self.ns['ome'], "Image"))[index])
+        # IndexError: list index out of range
+        pytest.param(
+            TIFF_PKG,
+            "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos001_000.ome.tif",
+            marks=pytest.mark.xfail(raises=IndexError),
+        ),
+        (TIFF_PKG, "s_1_t_10_c_3_z_1.tiff"),
+        (TIFF_PKG, "s_1_t_1_c_10_z_1.ome.tiff"),
+        (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
+        (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
+        # Traceback (most recent call last):
+        #   File "venv/lib/python3.9/site-packages/PIL/Image.py", line 3277, in fromarray
+        #     mode, rawmode = _fromarray_typemap[typekey]
+        # KeyError: ((1, 1, 3), '<u2')
+        # The above exception was the direct cause of the following exception:
+        # Traceback (most recent call last):
+        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
+        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 334, in handle_image
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 359, in generate_thumbnail
+        #     # Send to Image object for thumbnail generation and saving to bytes
+        #   File "venv/lib/python3.9/site-packages/PIL/Image.py", line 3281, in fromarray
+        #     raise TypeError(msg) from e
+        # TypeError: Cannot handle this data type: (1, 1, 3), <u2
+        pytest.param(
+            TIFF_PKG,
+            "s_1_t_1_c_1_z_1_RGB.tiff",
+            marks=pytest.mark.xfail(raises=TypeError),
+        ),
+        (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),
+        (TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),
+        (OME_TIFF_PKG, "3d-cell-viewer.ome.tiff"),
+        (OME_TIFF_PKG, "actk.ome.tiff"),
+        # (OME_TIFF_PKG, "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif"),  # duplicate
+        # (OME_TIFF_PKG, "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos001_000.ome.tif"),  # duplicate
+        (OME_TIFF_PKG, "pipeline-4.ome.tiff"),
+        (OME_TIFF_PKG, "pre-variance-cfe.ome.tiff"),
+        # (OME_TIFF_PKG, "s_1_t_1_c_10_z_1.ome.tiff"),  # duplicate
+        # (OME_TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),  # duplicate
+        # Traceback (most recent call last):
+        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
+        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 328, in handle_image
+        #     img = AICSImage(src)
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/aics_image.py", line 116, in __init__
+        #     reader_class = self.determine_reader(data)
+        #   File "venv/lib/python3.9/site-packages/aicsimageio/aics_image.py", line 138, in determine_reader
+        #     raise UnsupportedFileFormatError(type(data))
+        # aicsimageio.exceptions.UnsupportedFileFormatError: AICSImage module does not support this image file type: '<class 'bytes'>'
+        pytest.param(
+            OME_TIFF_PKG,
+            "s_1_t_1_c_2_z_1.lif",
+            marks=pytest.mark.xfail(raises=aicsimageio.exceptions.UnsupportedFileFormatError),
+        ),
+        # (OME_TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),  # duplicate
+        # (OME_TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),  # duplicate
+        (OME_TIFF_PKG, "variable_scene_shape_first_scene_pyramid.ome.tiff"),
+        (OME_TIFF_PKG, "variance-cfe.ome.tiff"),
+    ],
+)
+# @pytest.mark.extra_scientific
+def test_handle_image(pytestconfig, pkg_ref, lk):
+    pkg_name, top_hash = pkg_ref
+    src_pkg = quilt3.Package.browse(
+        pkg_name,
+        registry=TEST_DATA_REGISTRY,
+        top_hash=top_hash,
+    )
+    src_entry = src_pkg[lk]
+    if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
+        pytest.skip("Skipping large file test; use --large-files to enable")
+
+    src_bytes = src_entry.get_bytes()
+    print(f"Testing {pkg_name}/{lk}...")
+    _info, data = t4_lambda_thumbnail.handle_image(src=src_bytes, size=SIZE, thumbnail_format="PNG")
+
+    actual = AICSImage(data)
+    thumbs_pkg = quilt3.Package.browse(
+        THUMBS_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=THUMBS_PKG[1],
+    )
+    expected_bytes = thumbs_pkg[f"{pkg_name}/{lk}.png"].get_bytes()
+    expected = AICSImage(expected_bytes)
+    assert actual.size() == expected.size()
+    assert np.array_equal(actual.reader.data, expected.reader.data)

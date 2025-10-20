@@ -13,6 +13,13 @@ def pytest_addoption(parser):
         default=False,
         help="Indicates LibreOffice installed"
     )
+    parser.addoption(
+        "--large-files",
+        action="store_true",
+        dest="large_files",
+        default=False,
+        help="Enable tests that use large files",
+    )
 
 
 def pytest_configure(config):
@@ -31,8 +38,4 @@ def pytest_configure(config):
     if not config.option.loffice:
         markers_to_exclude.append('loffice')
 
-    setattr(
-        config.option,
-        'markexpr',
-        ' and '.join([f'not {m}' for m in markers_to_exclude])
-    )
+    config.option.markexpr = ' and '.join([f'not {m}' for m in markers_to_exclude])

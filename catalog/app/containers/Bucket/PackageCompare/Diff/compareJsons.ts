@@ -1,4 +1,4 @@
-import * as JSONPointer from 'utils/JSONPointer'
+import type * as JSONPointer from 'utils/JSONPointer'
 import type { Json, JsonArray, JsonRecord } from 'utils/types'
 
 export type Change =
