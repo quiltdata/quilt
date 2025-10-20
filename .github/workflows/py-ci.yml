@@ -189,8 +189,9 @@ jobs:
 
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
+        working-directory: lambdas/${{ matrix.path }}
         run: |
-          python -m pytest --cov=lambdas/${{ matrix.path }} lambdas/${{ matrix.path }}
+          python -m pytest --cov=.
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
