@@ -4,8 +4,8 @@ import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
-import { NotFound } from 'components/NotFound'
 import Placeholder from 'components/Placeholder'
+import { NotFoundInTabs } from 'containers/NotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
@@ -111,7 +111,7 @@ export default function Admin() {
             <Buckets />
           </RR.Route>
           <RR.Route>
-            <NotFound />
+            <NotFoundInTabs />
           </RR.Route>
         </RR.Switch>
       </ErrorBoundary>

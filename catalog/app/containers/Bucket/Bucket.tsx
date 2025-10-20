@@ -3,9 +3,9 @@ import { Route, Switch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout, { Container } from 'components/Layout'
-import { NotFound } from 'components/NotFound'
 import Placeholder from 'components/Placeholder'
 import { useBucketStrict } from 'containers/Bucket/Routes'
+import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -115,7 +115,7 @@ export default function Bucket() {
             <Queries />
           </Route>
           <Route>
-            <NotFound />
+            <NotFoundInTabs />
           </Route>
         </Switch>
       </BucketLayout>
