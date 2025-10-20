@@ -249,7 +249,7 @@ function Embedder() {
   )
 }
 
-const DebugErrorFallback = () => (
+const FallbackComponent = () => (
   <h1
     style={{
       alignItems: 'center',
@@ -264,13 +264,9 @@ const DebugErrorFallback = () => (
   </h1>
 )
 
-const DebugErrorBoundary = ({ children }) => (
-  <ErrorBoundary FallbackComponent={DebugErrorFallback}>{children}</ErrorBoundary>
-)
-
 function App() {
   return RT.nest(
-    DebugErrorBoundary,
+    [ErrorBoundary, { FallbackComponent }],
     [M.MuiThemeProvider, { theme: style.appTheme }],
     WithGlobalStyles,
     Layout.Root,
