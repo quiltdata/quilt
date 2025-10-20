@@ -323,6 +323,42 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
     return info, data
 
 
+def handle_image(*, src: bytes, url: str, size: tuple[int, int], thumbnail_format: str):
+    import urllib.parse
+
+    # Patch recent aicspylibczi to make it compatible with old aicsimageio we use
+    from aicspylibczi import CziFile
+    CziFile.dims_shape = CziFile.get_dims_shape
+
+    with tempfile.NamedTemporaryFile(suffix=urllib.parse.urlparse(url).path.rsplit("/", 1)[1]) as f:
+        f.write(src)
+        f.flush()
+
+        # Read image data
+        img = AICSImage(f.name)
+        orig_size = list(img.reader.data.shape)
+        # Generate a formatted ndarray using the image data
+        # Makes some assumptions for n-dim data
+        img = format_aicsimage_to_prepped(img)
+
+        img = generate_thumbnail(img, size)
+
+        thumbnail_size = img.size
+        # Store the bytes
+        thumbnail_bytes = BytesIO()
+        img.save(thumbnail_bytes, thumbnail_format)
+        # Get bytes data
+        data = thumbnail_bytes.getvalue()
+        # Create metadata object
+        info = {
+            'original_size': orig_size,
+            'thumbnail_format': thumbnail_format,
+            'thumbnail_size': thumbnail_size,
+        }
+
+        return info, data
+
+
 def _convert_I16_to_L(arr):
     # separated out for testing
     return Image.fromarray((arr // 256).astype('uint8'))
@@ -404,40 +440,12 @@ def lambda_handler(request):
     elif input_ == "pptx":
         info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
     else:
-        import urllib.parse
-
-        # Patch recent aicspylibczi to make it compatible with old aicsimageio we use
-        from aicspylibczi import CziFile
-        CziFile.dims_shape = CziFile.get_dims_shape
-
-        with tempfile.NamedTemporaryFile(suffix=urllib.parse.urlparse(url).path.rsplit("/", 1)[1]) as f:
-
-            f.write(src_bytes)
-            f.flush()
-            # Read image data
-            try:
-                img = AICSImage(f.name)
-            except Exception as e:
-                return make_json_response(500, {'error': f'Could not read image: {str(e)}'})
-            orig_size = list(img.reader.data.shape)
-            # Generate a formatted ndarray using the image data
-            # Makes some assumptions for n-dim data
-            img = format_aicsimage_to_prepped(img)
-
-            img = generate_thumbnail(img, size)
-
-            thumbnail_size = img.size
-            # Store the bytes
-            thumbnail_bytes = BytesIO()
-            img.save(thumbnail_bytes, thumbnail_format)
-            # Get bytes data
-            data = thumbnail_bytes.getvalue()
-            # Create metadata object
-            info = {
-                'original_size': orig_size,
-                'thumbnail_format': thumbnail_format,
-                'thumbnail_size': thumbnail_size,
-            }
+        info, data = handle_image(
+            src=src_bytes,
+            size=size,
+            thumbnail_format=thumbnail_format,
+            url=url,
+        )
 
     headers = {
         'Content-Type': Image.MIME[thumbnail_format],
