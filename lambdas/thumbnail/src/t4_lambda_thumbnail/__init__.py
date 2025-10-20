@@ -326,7 +326,6 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
 def handle_image(*, src: bytes, size: tuple[int, int], thumbnail_format: str):
     # Read image data
     img = AICSImage(src)
-    print(img.reader.dims)
     orig_size = list(img.reader.data.shape)
     # Generate a formatted ndarray using the image data
     # Makes some assumptions for n-dim data
