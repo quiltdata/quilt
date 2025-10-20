@@ -1,5 +1,6 @@
 import * as echarts from 'echarts'
 import * as React from 'react'
+import * as Sentry from '@sentry/react'
 import { ErrorBoundary } from 'react-error-boundary'
 import * as R from 'ramda'
 import useResizeObserver from 'use-resize-observer'
@@ -69,9 +70,14 @@ function ChartInner({
 
 export type ChartProps = ChartInnerProps & M.BoxProps
 
+const onError = (e: Error) => Sentry.captureException(e)
+
 export function Chart({ option, ...props }: ChartProps) {
   return (
-    <ErrorBoundary fallback={<M.Typography variant="h6">Unexpected Error</M.Typography>}>
+    <ErrorBoundary
+      fallback={<M.Typography variant="h6">Unexpected Error</M.Typography>}
+      onError={onError}
+    >
       <ChartInner option={option} {...props} />
     </ErrorBoundary>
   )

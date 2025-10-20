@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
 
 import { bucketPackageTree } from 'constants/routes'
@@ -7,7 +7,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Redir from './Redir'
 
-const fallbackRender = ({ error }: { error: Error }) => (
+const FallbackComponent = ({ error }: FallbackProps) => (
   <span>Error: {error.message}</span>
 )
 
@@ -48,7 +48,7 @@ describe('containers/Redir/Redir', () => {
 
   it('must have uri', () => {
     const { container } = render(
-      <ErrorBoundary fallbackRender={fallbackRender}>
+      <ErrorBoundary FallbackComponent={FallbackComponent}>
         <Redir />
       </ErrorBoundary>,
     )

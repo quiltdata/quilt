@@ -265,7 +265,7 @@ const DebugErrorFallback = () => (
 )
 
 const DebugErrorBoundary = ({ children }) => (
-  <ErrorBoundary fallbackRender={DebugErrorFallback}>{children}</ErrorBoundary>
+  <ErrorBoundary FallbackComponent={DebugErrorFallback}>{children}</ErrorBoundary>
 )
 
 function App() {

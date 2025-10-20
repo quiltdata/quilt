@@ -14,9 +14,10 @@ function FallbackComponent() {
   )
 }
 
+const onError = (error: Error) => Sentry.captureException(error)
+
 export default function AppErrorBoundary({ children }: React.PropsWithChildren<{}>) {
   const location = useLocation()
-  const onError = React.useCallback((error: Error) => Sentry.captureException(error), [])
   return (
     <ErrorBoundary
       {...{ FallbackComponent, onError, children, resetKeys: [location.pathname] }}

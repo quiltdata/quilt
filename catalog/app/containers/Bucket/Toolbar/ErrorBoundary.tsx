@@ -33,8 +33,9 @@ function ToolbarErrorBoundaryPlaceholder({ resetErrorBoundary }: FallbackProps) 
   )
 }
 
+const onError = (error: Error) => Sentry.captureException(error)
+
 export default function ToolbarErrorBoundary({ children }: React.PropsWithChildren<{}>) {
-  const onError = React.useCallback((error: Error) => Sentry.captureException(error), [])
   return (
     <ErrorBoundary
       {...{ FallbackComponent: ToolbarErrorBoundaryPlaceholder, onError, children }}

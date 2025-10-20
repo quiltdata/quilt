@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
@@ -129,14 +129,14 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   )
 }
 
-const fallbackRender = ({ error }: { error: Error }) => (
+const FallbackComponent = ({ error }: FallbackProps) => (
   <M.MuiThemeProvider theme={style.navTheme}>
     <FinalBoundaryLayout error={error} />
   </M.MuiThemeProvider>
 )
 
 const FinalBoundary = ({ children }: React.PropsWithChildren<{}>) => (
-  <ErrorBoundary {...{ children, fallbackRender }} />
+  <ErrorBoundary {...{ children, FallbackComponent }} />
 )
 
 export default FinalBoundary
