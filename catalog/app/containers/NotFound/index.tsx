@@ -10,7 +10,7 @@ interface NotFoundProps {
   detail?: React.ReactNode
 }
 
-export function NotFound({ detail = 'Do you need to log in?' }: NotFoundProps) {
+function NotFound({ detail = 'Do you need to log in?' }: NotFoundProps) {
   return (
     <M.Box mt={4}>
       <Error headline="Nothing here" detail={detail} />

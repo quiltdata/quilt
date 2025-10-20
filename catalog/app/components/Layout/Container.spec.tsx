@@ -9,7 +9,7 @@ const FallbackComponent = ({ error }: FallbackProps) => (
 )
 
 const EmptyContainer = () => (
-  <ErrorBoundary FallbackComponent={FallbackComponent}>
+  <ErrorBoundary {...{ FallbackComponent }}>
     <Container>{''}</Container>
   </ErrorBoundary>
 )
