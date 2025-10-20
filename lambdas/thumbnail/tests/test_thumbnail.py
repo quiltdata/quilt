@@ -318,15 +318,23 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
 
     src_bytes = src_entry.get_bytes()
     print(f"Testing {pkg_name}/{lk}...")
-    _info, data = t4_lambda_thumbnail.handle_image(src=src_bytes, size=SIZE, thumbnail_format="PNG")
+    _info, data = t4_lambda_thumbnail.handle_image(src=src_bytes, size=SIZE, thumbnail_format="PNG", url="x/" + lk)
 
-    actual = AICSImage(data)
     thumbs_pkg = quilt3.Package.browse(
         THUMBS_PKG[0],
         registry=TEST_DATA_REGISTRY,
         top_hash=THUMBS_PKG[1],
     )
-    expected_bytes = thumbs_pkg[f"{pkg_name}/{lk}.png"].get_bytes()
-    expected = AICSImage(expected_bytes)
-    assert actual.size() == expected.size()
-    assert np.array_equal(actual.reader.data, expected.reader.data)
+    with tempfile.NamedTemporaryFile(suffix=".png") as actual_f, tempfile.NamedTemporaryFile(
+        suffix=".png"
+    ) as expected_f:
+        actual_f.write(data)
+        actual_f.flush()
+        actual = AICSImage(actual_f.name)
+        expected_bytes = thumbs_pkg[f"{pkg_name}/{lk}.png"].get_bytes()
+        expected_f.write(expected_bytes)
+        expected_f.flush()
+        expected = AICSImage(expected_f.name)
+
+        assert actual.size() == expected.size()
+        assert np.array_equal(actual.reader.data, expected.reader.data)
