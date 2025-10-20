@@ -183,7 +183,7 @@ jobs:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt -e lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
