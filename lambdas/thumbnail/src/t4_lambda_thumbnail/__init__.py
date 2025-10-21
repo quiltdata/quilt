@@ -129,6 +129,11 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     Normalize an image. This clips the upper and lower 0.01 intensities and
     then rescales the intensities to fit on a int32 range.
     """
+    if len(img.shape) == 3:
+        # leave color images alone
+        # XXX: is this correct?
+        # XXX: do we need to cast to uint8?
+        return img
     # Set to float64 for futher correction math
     img = img.astype(np.float64)
 
@@ -174,17 +179,18 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
         # print('!!!', img.data[:, :, :, :, :, 0].shape)
     # Always choose middle time slice
     if "T" in img.reader.dims.order:
-        img = BioImage(img.data[img.data.shape[0] // 2, :, :, :, :])
+        img = BioImage(img.data[img.data.shape[0] // 2 : img.data.shape[0] // 2 + 1, :, :, :, :])
 
     # Keep Channel data, but max project when possible
     if "C" in img.reader.dims.order and img.data.shape[1] > 1:
         projections = []
+        s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
         for i in range(img.data.shape[1]):
             if "Z" in img.reader.dims.order:
                 # Add padding to the top and left of the projection
                 padded = np.pad(
                     norm_img(img.data[0, i, :, :, :].max(axis=0)),
-                    ((5, 0), (5, 0)),
+                    ((5, 0), (5, 0)) + s_pad,
                     mode="constant"
                 )
                 projections.append(padded)
@@ -192,7 +198,7 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
                 # Add padding to the top and the left of the projection
                 padded = np.pad(
                     norm_img(img.data[0, i, 0, :, :]),
-                    ((5, 0), (5, 0)),
+                    ((5, 0), (5, 0)) + s_pad,
                     mode="constant"
                 )
                 projections.append(padded)
@@ -217,7 +223,7 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
         merged = [np.concatenate(row, axis=1) for row in rows]
 
         # Add padding on the entire bottom and entire right side of the thumbnail
-        return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
+        return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
 
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
