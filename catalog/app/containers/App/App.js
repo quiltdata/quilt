@@ -7,14 +7,12 @@ import AbsRedirect from 'components/Redirect'
 import cfg from 'constants/config'
 import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
-import { CatchNotFound, ThrowNotFound } from 'containers/NotFoundPage'
+import { NotFoundPage } from 'containers/NotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 
 const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
-
-const ProtectedThrowNotFound = protect(ThrowNotFound)
 
 function RedirectTo({ path }) {
   const { search } = useLocation()
@@ -75,97 +73,94 @@ const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
   const { paths, urls } = NamedRoutes.use()
-  const l = useLocation()
 
   return (
-    <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Switch>
-        <Route path={paths.home} exact>
-          <Home />
-        </Route>
+    <Switch>
+      <Route path={paths.home} exact>
+        <Home />
+      </Route>
 
-        <Route path={paths.install} exact>
-          <Install />
-        </Route>
+      <Route path={paths.install} exact>
+        <Install />
+      </Route>
 
-        {!!cfg.legacyPackagesRedirect && (
-          <Route path={paths.legacyPackages}>
-            <LegacyPackages />
-          </Route>
-        )}
+      {!!cfg.legacyPackagesRedirect && (
+        <Route path={paths.legacyPackages}>
+          <LegacyPackages />
+        </Route>
+      )}
 
-        <Route path={paths.search} exact>
-          <Search />
-        </Route>
+      <Route path={paths.search} exact>
+        <Search />
+      </Route>
 
-        <Route path={paths.activate} exact>
-          <Activate />
-        </Route>
-        <Route path={paths.signIn} exact>
-          <AuthSignIn />
-        </Route>
-        <Route path="/login" exact>
-          <RedirectTo path={urls.signIn()} />
-        </Route>
-        <Route path={paths.signOut} exact>
-          <AuthSignOut />
-        </Route>
+      <Route path={paths.activate} exact>
+        <Activate />
+      </Route>
+      <Route path={paths.signIn} exact>
+        <AuthSignIn />
+      </Route>
+      <Route path="/login" exact>
+        <RedirectTo path={urls.signIn()} />
+      </Route>
+      <Route path={paths.signOut} exact>
+        <AuthSignOut />
+      </Route>
 
-        {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-          <Route path={paths.signUp} exact>
-            <AuthSignUp />
-          </Route>
-        )}
-        {!!cfg.passwordAuth && (
-          <Route path={paths.passReset} exact>
-            <AuthPassReset />
-          </Route>
-        )}
-        {!!cfg.passwordAuth && (
-          <Route path={paths.passChange} exact>
-            <AuthPassChange />
-          </Route>
-        )}
-
-        <Route path={paths.code} exact>
-          <AuthCode />
+      {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+        <Route path={paths.signUp} exact>
+          <AuthSignUp />
         </Route>
-
-        <Route path={paths.activationError} exact>
-          <AuthActivationError />
+      )}
+      {!!cfg.passwordAuth && (
+        <Route path={paths.passReset} exact>
+          <AuthPassReset />
         </Route>
-
-        {cfg.mode === 'OPEN' && (
-          // XXX: show profile in all modes?
-          <Route path={paths.profile} exact>
-            <OpenProfile />
-          </Route>
-        )}
-
-        <Route path={paths.admin}>
-          <Admin />
+      )}
+      {!!cfg.passwordAuth && (
+        <Route path={paths.passChange} exact>
+          <AuthPassChange />
         </Route>
+      )}
 
-        <Route path={paths.uriResolver}>
-          <UriResolver />
-        </Route>
+      <Route path={paths.code} exact>
+        <AuthCode />
+      </Route>
 
-        <Route path={paths.bucketSearch} exact>
-          <BucketSearchRedirect />
-        </Route>
+      <Route path={paths.activationError} exact>
+        <AuthActivationError />
+      </Route>
 
-        <Route path={paths.bucketRoot}>
-          <Bucket />
+      {cfg.mode === 'OPEN' && (
+        // XXX: show profile in all modes?
+        <Route path={paths.profile} exact>
+          <OpenProfile />
         </Route>
+      )}
 
-        <Route path={paths.redir}>
-          <Redir />
-        </Route>
+      <Route path={paths.admin}>
+        <Admin />
+      </Route>
 
-        <Route>
-          <ProtectedThrowNotFound />
-        </Route>
-      </Switch>
-    </CatchNotFound>
+      <Route path={paths.uriResolver}>
+        <UriResolver />
+      </Route>
+
+      <Route path={paths.bucketSearch} exact>
+        <BucketSearchRedirect />
+      </Route>
+
+      <Route path={paths.bucketRoot}>
+        <Bucket />
+      </Route>
+
+      <Route path={paths.redir}>
+        <Redir />
+      </Route>
+
+      <Route>
+        <NotFoundPage />
+      </Route>
+    </Switch>
   )
 }
