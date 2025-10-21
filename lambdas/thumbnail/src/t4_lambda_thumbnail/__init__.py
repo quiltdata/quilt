@@ -1,7 +1,7 @@
 """
 Generate thumbnails for n-dimensional images in S3.
 
-Uses `aicsimageio.AICSImage` to read common imaging formats + some supported
+Uses `bioio.BioImage` to read common imaging formats + some supported
 n-dimensional imaging formats. Stong assumptions as to the shape of the
 n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
@@ -22,7 +22,9 @@ import numpy as np
 import pdf2image
 import pptx
 import requests
-from aicsimageio import AICSImage, readers
+from bioio import BioImage
+import bioio_tifffile
+import bioio_ome_tiff
 from pdf2image import convert_from_bytes
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
@@ -150,7 +152,7 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
+def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
     # Even though the reader was n-dim, check if the actual data is simply greyscale and return
     if len(img.reader.data.shape) == 2:
         return img.reader.data
@@ -162,24 +164,26 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         return img.reader.data
 
     # Check which dimensions are available
-    # AICSImage makes strong assumptions about dimension ordering
+    # BioImage makes strong assumptions about dimension ordering
 
     # Reduce the array down to 2D + Channels when possible
     # Always choose first Scene
-    if "S" in img.reader.dims:
-        img = AICSImage(img.data[0, :, :, :, :, :])
+    # if "S" in img.reader.dims.order:
+    #     return img.reader.data
+    #     img = BioImage(img.data[:, :, :, :, :, 0])
+        # print('!!!', img.data[:, :, :, :, :, 0].shape)
     # Always choose middle time slice
-    if "T" in img.reader.dims:
-        img = AICSImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
+    if "T" in img.reader.dims.order:
+        img = BioImage(img.data[img.data.shape[0] // 2, :, :, :, :])
 
     # Keep Channel data, but max project when possible
-    if "C" in img.reader.dims:
+    if "C" in img.reader.dims.order and img.data.shape[1] > 1:
         projections = []
-        for i in range(img.data.shape[2]):
-            if "Z" in img.reader.dims:
+        for i in range(img.data.shape[1]):
+            if "Z" in img.reader.dims.order:
                 # Add padding to the top and left of the projection
                 padded = np.pad(
-                    norm_img(img.data[0, 0, i, :, :, :].max(axis=0)),
+                    norm_img(img.data[0, i, :, :, :].max(axis=0)),
                     ((5, 0), (5, 0)),
                     mode="constant"
                 )
@@ -187,7 +191,7 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
             else:
                 # Add padding to the top and the left of the projection
                 padded = np.pad(
-                    norm_img(img.data[0, 0, i, 0, :, :]),
+                    norm_img(img.data[0, i, 0, :, :]),
                     ((5, 0), (5, 0)),
                     mode="constant"
                 )
@@ -218,19 +222,26 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
     # we will simply use a max projection on files that contain a Z dimension
-    if "Z" in img.reader.dims:
-        return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
+    if "Z" in img.reader.dims.order:
+        return norm_img(img.data[0, 0, :, :, :].max(axis=0))
 
-    return norm_img(img.data[0, 0, 0, 0, :, :])
+    return norm_img(img.data[0, 0, 0, :, :])
 
 
-def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
+def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
     """
     Simple wrapper around the format n-dim array function to
     determine if we need to format or not.
     """
     # These readers are specific for n dimensional images
-    if isinstance(img.reader, (readers.CziReader, readers.OmeTiffReader, readers.TiffReader)):
+    if isinstance(
+        img.reader,
+        (
+            # readers.CziReader,
+            bioio_ome_tiff.reader.Reader,
+            bioio_tifffile.reader.Reader,
+        ),
+    ):
         return _format_n_dim_ndarray(img)
 
     return img.reader.data
@@ -325,17 +336,15 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
 
 def handle_image(*, src: bytes, url: str, size: tuple[int, int], thumbnail_format: str):
     import urllib.parse
-
-    # Patch recent aicspylibczi to make it compatible with old aicsimageio we use
-    from aicspylibczi import CziFile
-    CziFile.dims_shape = CziFile.get_dims_shape
+    print(url)
 
     with tempfile.NamedTemporaryFile(suffix=urllib.parse.urlparse(url).path.rsplit("/", 1)[1]) as f:
         f.write(src)
         f.flush()
 
         # Read image data
-        img = AICSImage(f.name)
+        img = BioImage(f.name)
+        print(img.reader.dims.items())
         orig_size = list(img.reader.data.shape)
         # Generate a formatted ndarray using the image data
         # Makes some assumptions for n-dim data

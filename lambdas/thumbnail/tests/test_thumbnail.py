@@ -4,11 +4,12 @@ from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
-import aicsimageio
+import bioio
+import bioio_base
 import numpy as np
 import pytest
 import responses
-from aicsimageio import AICSImage
+from bioio import BioImage
 from PIL import Image
 
 import quilt3
@@ -87,9 +88,9 @@ def test_403():
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
         ("sat_greyscale.tiff", {"size": "w640h480"}, "sat_greyscale-480.png", [512, 512], [480, 480], None, 200),
-        ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [6, 36, 76, 68], [224, 167], None, 200),
+        ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
-        ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [6, 40, 152, 126], [256, 205], None, 200),
+        ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [1, 6, 40, 152, 126], [256, 205], None, 200),
         # Test for statusCode error
         pytest.param(
             "empty.png",
@@ -194,9 +195,9 @@ def test_generate_thumbnail(
         with tempfile.NamedTemporaryFile(suffix=".png") as f:
             f.write(body)
             f.flush()
-            actual = AICSImage(f.name)
-            expected = AICSImage(data_dir / expected_thumb)
-            assert actual.size() == expected.size()
+            actual = BioImage(f.name)
+            expected = BioImage(data_dir / expected_thumb)
+            assert actual.dims.items() == expected.dims.items()
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
@@ -218,12 +219,12 @@ SIZE = (1024, 768)
         #   File "src/t4_lambda_thumbnail/__init__.py", line 234, in format_aicsimage_to_prepped
         #     return _format_n_dim_ndarray(img)
         #   File "src/t4_lambda_thumbnail/__init__.py", line 173, in _format_n_dim_ndarray
-        #     img = AICSImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/aics_image.py", line 151, in data
+        #     img = BioImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
+        #   File "venv/lib/python3.9/site-packages/bioio/aics_image.py", line 151, in data
         #     self._data = transforms.reshape_data(
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/transforms.py", line 67, in reshape_data
+        #   File "venv/lib/python3.9/site-packages/bioio/transforms.py", line 67, in reshape_data
         #     return transpose_to_dims(data, given_dims=new_dims, return_dims=return_dims)  # don't pass kwargs or 2 copies
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/transforms.py", line 100, in transpose_to_dims
+        #   File "venv/lib/python3.9/site-packages/bioio/transforms.py", line 100, in transpose_to_dims
         #     data = data.transpose(transposer)
         # ValueError: axes don't match array
         pytest.param(
@@ -240,9 +241,9 @@ SIZE = (1024, 768)
         #     return _format_n_dim_ndarray(img)
         #   File "src/t4_lambda_thumbnail/__init__.py", line 169, in _format_n_dim_ndarray
         #     if "S" in img.reader.dims:
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/readers/ome_tiff_reader.py", line 65, in dims
+        #   File "venv/lib/python3.9/site-packages/bioio/readers/ome_tiff_reader.py", line 65, in dims
         #     dimension_order = self._metadata.image().Pixels.DimensionOrder
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/vendor/omexml.py", line 510, in image
+        #   File "venv/lib/python3.9/site-packages/bioio/vendor/omexml.py", line 510, in image
         #     return self.Image(self.root_node.findall(qn(self.ns['ome'], "Image"))[index])
         # IndexError: list index out of range
         pytest.param(
@@ -255,17 +256,20 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
         # Traceback (most recent call last):
-        #   File "venv/lib/python3.9/site-packages/PIL/Image.py", line 3277, in fromarray
+        #   File ".venv/lib/python3.13/site-packages/PIL/Image.py", line 3308, in fromarray
         #     mode, rawmode = _fromarray_typemap[typekey]
+        #                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^
         # KeyError: ((1, 1, 3), '<u2')
         # The above exception was the direct cause of the following exception:
         # Traceback (most recent call last):
-        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
-        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 334, in handle_image
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 359, in generate_thumbnail
-        #     # Send to Image object for thumbnail generation and saving to bytes
-        #   File "venv/lib/python3.9/site-packages/PIL/Image.py", line 3281, in fromarray
+        #   File "<ipython-input-5-03f7162314ed>", line 5, in <module>
+        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG', url=f'x/{lk}')
+        #                   ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 351, in handle_image
+        #     img = generate_thumbnail(img, size)
+        #   File "src/t4_lambda_thumbnail/__init__.py", line 376, in generate_thumbnail
+        #     img = Image.fromarray(arr)
+        #   File ".venv/lib/python3.13/site-packages/PIL/Image.py", line 3312, in fromarray
         #     raise TypeError(msg) from e
         # TypeError: Cannot handle this data type: (1, 1, 3), <u2
         pytest.param(
@@ -287,16 +291,16 @@ SIZE = (1024, 768)
         #   File "<ipython-input-41-93392373085b>", line 5, in <module>
         #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
         #   File "src/t4_lambda_thumbnail/__init__.py", line 328, in handle_image
-        #     img = AICSImage(src)
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/aics_image.py", line 116, in __init__
+        #     img = BioImage(src)
+        #   File "venv/lib/python3.9/site-packages/bioio/aics_image.py", line 116, in __init__
         #     reader_class = self.determine_reader(data)
-        #   File "venv/lib/python3.9/site-packages/aicsimageio/aics_image.py", line 138, in determine_reader
+        #   File "venv/lib/python3.9/site-packages/bioio/aics_image.py", line 138, in determine_reader
         #     raise UnsupportedFileFormatError(type(data))
-        # aicsimageio.exceptions.UnsupportedFileFormatError: AICSImage module does not support this image file type: '<class 'bytes'>'
+        # bioio.exceptions.UnsupportedFileFormatError: BioImage module does not support this image file type: '<class 'bytes'>'
         pytest.param(
             OME_TIFF_PKG,
             "s_1_t_1_c_2_z_1.lif",
-            marks=pytest.mark.xfail(raises=aicsimageio.exceptions.UnsupportedFileFormatError),
+            marks=pytest.mark.xfail(raises=bioio_base.exceptions.UnsupportedFileFormatError),
         ),
         # (OME_TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),  # duplicate
         # (OME_TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),  # duplicate
@@ -322,19 +326,20 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
 
     thumbs_pkg = quilt3.Package.browse(
         THUMBS_PKG[0],
-        registry=TEST_DATA_REGISTRY,
-        top_hash=THUMBS_PKG[1],
+        # registry=TEST_DATA_REGISTRY,
+        # top_hash=THUMBS_PKG[1],
     )
     with tempfile.NamedTemporaryFile(suffix=".png") as actual_f, tempfile.NamedTemporaryFile(
         suffix=".png"
     ) as expected_f:
         actual_f.write(data)
         actual_f.flush()
-        actual = AICSImage(actual_f.name)
+        actual = BioImage(actual_f.name)
         expected_bytes = thumbs_pkg[f"{pkg_name}/{lk}.png"].get_bytes()
         expected_f.write(expected_bytes)
         expected_f.flush()
-        expected = AICSImage(expected_f.name)
+        expected = BioImage(expected_f.name)
 
-        assert actual.size() == expected.size()
+        print(f"  actual size: {actual.dims.items()}, expected size: {expected.dims.items()}")
+        assert actual.dims.items() == expected.dims.items()
         assert np.array_equal(actual.reader.data, expected.reader.data)
