@@ -211,46 +211,8 @@ SIZE = (1024, 768)
 @pytest.mark.parametrize(
     "pkg_ref, lk",
     [
-        # Traceback (most recent call last):
-        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
-        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 332, in handle_image
-        #     # Makes some assumptions for n-dim data
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 234, in format_aicsimage_to_prepped
-        #     return _format_n_dim_ndarray(img)
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 173, in _format_n_dim_ndarray
-        #     img = BioImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
-        #   File "venv/lib/python3.9/site-packages/bioio/aics_image.py", line 151, in data
-        #     self._data = transforms.reshape_data(
-        #   File "venv/lib/python3.9/site-packages/bioio/transforms.py", line 67, in reshape_data
-        #     return transpose_to_dims(data, given_dims=new_dims, return_dims=return_dims)  # don't pass kwargs or 2 copies
-        #   File "venv/lib/python3.9/site-packages/bioio/transforms.py", line 100, in transpose_to_dims
-        #     data = data.transpose(transposer)
-        # ValueError: axes don't match array
-        pytest.param(
-            TIFF_PKG,
-            "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif",
-            marks=pytest.mark.xfail(raises=ValueError),
-        ),
-        # Traceback (most recent call last):
-        #   File "<ipython-input-41-93392373085b>", line 5, in <module>
-        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG')
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 332, in handle_image
-        #     # Makes some assumptions for n-dim data
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 234, in format_aicsimage_to_prepped
-        #     return _format_n_dim_ndarray(img)
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 169, in _format_n_dim_ndarray
-        #     if "S" in img.reader.dims:
-        #   File "venv/lib/python3.9/site-packages/bioio/readers/ome_tiff_reader.py", line 65, in dims
-        #     dimension_order = self._metadata.image().Pixels.DimensionOrder
-        #   File "venv/lib/python3.9/site-packages/bioio/vendor/omexml.py", line 510, in image
-        #     return self.Image(self.root_node.findall(qn(self.ns['ome'], "Image"))[index])
-        # IndexError: list index out of range
-        pytest.param(
-            TIFF_PKG,
-            "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos001_000.ome.tif",
-            marks=pytest.mark.xfail(raises=IndexError),
-        ),
+        (TIFF_PKG, "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif"),
+        (TIFF_PKG, "image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos001_000.ome.tif"),
         (TIFF_PKG, "s_1_t_10_c_3_z_1.tiff"),
         (TIFF_PKG, "s_1_t_1_c_10_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
@@ -311,6 +273,12 @@ SIZE = (1024, 768)
 # @pytest.mark.extra_scientific
 def test_handle_image(pytestconfig, pkg_ref, lk):
     pkg_name, top_hash = pkg_ref
+    quilt3.Package.install(
+        pkg_name,
+        registry=TEST_DATA_REGISTRY,
+        top_hash=top_hash,
+        path=lk,
+    )
     src_pkg = quilt3.Package.browse(
         pkg_name,
         registry=TEST_DATA_REGISTRY,
@@ -320,25 +288,28 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
     if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
 
-    src_bytes = src_entry.get_bytes()
-    print(f"Testing {pkg_name}/{lk}...")
-    _info, data = t4_lambda_thumbnail.handle_image(src=src_bytes, size=SIZE, thumbnail_format="PNG", url="x/" + lk)
+    print(f"Testing {lk}...")
+    _info, data = t4_lambda_thumbnail.handle_image(url=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
 
+    thumb_lk = f"{pkg_name}/{lk}.png"
+    quilt3.Package.install(
+        THUMBS_PKG[0],
+        # registry=TEST_DATA_REGISTRY,
+        registry="s3://quilt-dev-null",
+        # top_hash=THUMBS_PKG[1],
+        path=thumb_lk,
+    )
     thumbs_pkg = quilt3.Package.browse(
         THUMBS_PKG[0],
         # registry=TEST_DATA_REGISTRY,
+        registry="s3://quilt-dev-null",
         # top_hash=THUMBS_PKG[1],
     )
-    with tempfile.NamedTemporaryFile(suffix=".png") as actual_f, tempfile.NamedTemporaryFile(
-        suffix=".png"
-    ) as expected_f:
+    with tempfile.NamedTemporaryFile(suffix=".png") as actual_f:
         actual_f.write(data)
         actual_f.flush()
         actual = BioImage(actual_f.name)
-        expected_bytes = thumbs_pkg[f"{pkg_name}/{lk}.png"].get_bytes()
-        expected_f.write(expected_bytes)
-        expected_f.flush()
-        expected = BioImage(expected_f.name)
+        expected = BioImage(thumbs_pkg[thumb_lk].get_cached_path())
 
         print(f"  actual size: {actual.dims.items()}, expected size: {expected.dims.items()}")
         assert actual.dims.items() == expected.dims.items()

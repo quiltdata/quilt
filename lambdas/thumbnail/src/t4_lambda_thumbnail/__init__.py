@@ -340,38 +340,31 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
     return info, data
 
 
-def handle_image(*, src: bytes, url: str, size: tuple[int, int], thumbnail_format: str):
-    import urllib.parse
-    print(url)
+def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
+    # Read image data
+    img = BioImage(url)
+    print(img.reader.dims.items())
+    orig_size = list(img.reader.data.shape)
+    # Generate a formatted ndarray using the image data
+    # Makes some assumptions for n-dim data
+    img = format_aicsimage_to_prepped(img)
 
-    with tempfile.NamedTemporaryFile(suffix=urllib.parse.urlparse(url).path.rsplit("/", 1)[1]) as f:
-        f.write(src)
-        f.flush()
+    img = generate_thumbnail(img, size)
 
-        # Read image data
-        img = BioImage(f.name)
-        print(img.reader.dims.items())
-        orig_size = list(img.reader.data.shape)
-        # Generate a formatted ndarray using the image data
-        # Makes some assumptions for n-dim data
-        img = format_aicsimage_to_prepped(img)
+    thumbnail_size = img.size
+    # Store the bytes
+    thumbnail_bytes = BytesIO()
+    img.save(thumbnail_bytes, thumbnail_format)
+    # Get bytes data
+    data = thumbnail_bytes.getvalue()
+    # Create metadata object
+    info = {
+        'original_size': orig_size,
+        'thumbnail_format': thumbnail_format,
+        'thumbnail_size': thumbnail_size,
+    }
 
-        img = generate_thumbnail(img, size)
-
-        thumbnail_size = img.size
-        # Store the bytes
-        thumbnail_bytes = BytesIO()
-        img.save(thumbnail_bytes, thumbnail_format)
-        # Get bytes data
-        data = thumbnail_bytes.getvalue()
-        # Create metadata object
-        info = {
-            'original_size': orig_size,
-            'thumbnail_format': thumbnail_format,
-            'thumbnail_size': thumbnail_size,
-        }
-
-        return info, data
+    return info, data
 
 
 def _convert_I16_to_L(arr):
@@ -456,10 +449,9 @@ def lambda_handler(request):
         info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
     else:
         info, data = handle_image(
-            src=src_bytes,
+            url=url,
             size=size,
             thumbnail_format=thumbnail_format,
-            url=url,
         )
 
     headers = {
