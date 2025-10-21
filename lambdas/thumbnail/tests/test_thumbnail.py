@@ -152,13 +152,16 @@ def test_generate_thumbnail(
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
-    url = f"https://example.com/{input_file}"
-    responses.add(
-        responses.GET,
-        url=url,
-        body=input_file.read_bytes(),
-        status=200
-    )
+    if params.get("input") in ("pdf", "pptx"):
+        url = f"https://example.com/{input_file}"
+        responses.add(
+            responses.GET,
+            url=url,
+            body=input_file.read_bytes(),
+            status=200
+        )
+    else:
+        url = str(input_file)
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
@@ -270,7 +273,6 @@ SIZE = (1024, 768)
         (OME_TIFF_PKG, "variance-cfe.ome.tiff"),
     ],
 )
-# @pytest.mark.extra_scientific
 def test_handle_image(pytestconfig, pkg_ref, lk):
     pkg_name, top_hash = pkg_ref
     quilt3.Package.install(
@@ -314,3 +316,15 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         print(f"  actual size: {actual.dims.items()}, expected size: {expected.dims.items()}")
         assert actual.dims.items() == expected.dims.items()
         assert np.array_equal(actual.reader.data, expected.reader.data)
+
+
+def test_http():
+    """
+    Smoke test for image with HTTP URL.
+    """
+    url = (
+        "https://quilt-test-public-data.s3.us-east-1.amazonaws.com/"
+        "images/thumbs/images/bioio-tifffile/s_1_t_1_c_10_z_1.ome.tiff.png"
+    )
+    resp = t4_lambda_thumbnail.lambda_handler(_make_event({"url": url, "size": "w256h256"}), None)
+    assert resp["statusCode"] == 200

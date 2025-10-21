@@ -16,6 +16,7 @@ dependencies = [
   "bioio-tifffile~=1.3",
   "bioio-ome-tiff~=1.4",
   "bioio-imageio~=1.3",
+  "fsspec[http]>=2025.9.0",
 ]
 
 [build-system]

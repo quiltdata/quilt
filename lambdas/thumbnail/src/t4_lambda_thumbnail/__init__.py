@@ -425,29 +425,39 @@ def lambda_handler(request):
     page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 
-    # Handle request
-    resp = requests.get(url)
-    if not resp.ok:
-        # Errored, return error code
-        ret_val = {
-            'error': resp.reason,
-            'text': resp.text,
-        }
-        return make_json_response(resp.status_code, ret_val)
+    if input_ in ("pdf", "pptx"):
+        # For PDF and PPTX inputs, we always use JPEG format for thumbnails
+        thumbnail_format = "JPEG"
+        # Handle request
+        resp = requests.get(url)
+        if not resp.ok:
+            # Errored, return error code
+            ret_val = {
+                'error': resp.reason,
+                'text': resp.text,
+            }
+            return make_json_response(resp.status_code, ret_val)
 
-    src_bytes = resp.content
-    try:
-        thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-            imageio.get_reader(src_bytes),
-            "PNG"
-        )
-    except ValueError:
-        thumbnail_format = "JPEG" if input_ in ("pdf", "pptx") else "PNG"
-    if input_ == "pdf":
-        info, data = handle_pdf(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
-    elif input_ == "pptx":
-        info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+        src_bytes = resp.content
+
+        if input_ == "pdf":
+            info, data = handle_pdf(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+        elif input_ == "pptx":
+            info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+        else:
+            assert False, f"Unhandled input type {input_}"
     else:
+        # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
+        #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
+        #      So for now, always use PNG.
+        # try:
+        #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
+        #         imageio.get_reader(url),
+        #         "PNG"
+        #     )
+        # except ValueError:
+        #     thumbnail_format = "PNG"
+        thumbnail_format = "PNG"
         info, data = handle_image(
             url=url,
             size=size,
