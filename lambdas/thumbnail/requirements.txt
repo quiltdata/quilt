@@ -63,7 +63,7 @@ t4-lambda-shared[lambda] @ https://github.com/quiltdata/quilt/archive/d496dffbfb
     # via t4_lambda_thumbnail (pyproject.toml)
 tifffile==0.15.1
     # via aicsimageio
-urllib3==2.5.0
+urllib3==1.26.20
     # via requests
 xlsxwriter==3.2.0
     # via python-pptx

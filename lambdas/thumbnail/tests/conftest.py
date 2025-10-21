@@ -13,6 +13,13 @@ def pytest_addoption(parser):
         default=False,
         help="Indicates LibreOffice installed"
     )
+    parser.addoption(
+        "--large-files",
+        action="store_true",
+        dest="large_files",
+        default=False,
+        help="Enable tests that use large files",
+    )
 
 
 def pytest_configure(config):
