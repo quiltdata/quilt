@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Migrate error boundaries from custom implementation to react-error-boundary package ([#4610](https://github.com/quiltdata/quilt/pull/4610))
 - [Fixed] Creating a package from a directory containing unencoded special symbols ([#4577](https://github.com/quiltdata/quilt/pull/4577))
 - [Added] Qurator: auto-load context files (AGENTS.md and README.md) ([#4561](https://github.com/quiltdata/quilt/pull/4561))
 - [Added] Qurator: add package metadata to the context ([#4561](https://github.com/quiltdata/quilt/pull/4561))
