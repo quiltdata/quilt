@@ -14,9 +14,9 @@ from PIL import Image
 
 import quilt3
 import t4_lambda_thumbnail
-from t4_lambda_thumbnail import HAS_CZI
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER
 from t4_lambda_shared.utils import read_body
+from t4_lambda_thumbnail import HAS_CZI
 
 HEADER_403 = {
     'x-amz-request-id': 'guid123',
