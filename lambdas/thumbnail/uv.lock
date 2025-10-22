@@ -3,6 +3,18 @@ revision = 3
 requires-python = "==3.13.*"
 
 [[package]]
+name = "aicspylibczi"
+version = "3.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/14/8b158b16168e3158220d942cf3024011e0de111eb58ef18a68ce20e093c4/aicspylibczi-3.3.1.tar.gz", hash = "sha256:e3d18daf92c4de6e91d37a33a43b83611d3268cadf8a610c2f3eae7f54408ba3", size = 7928980, upload-time = "2025-04-14T15:59:12.695Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/19/ec14b688e0e3bbd5152f24fc8ea064b12d8c0252d4ce498b948a5c50e8f7/aicspylibczi-3.3.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0aa611540f0b3ce463aa4f8194217fdc5ba12d807cdd408fd10637695fd50dfe", size = 1112132, upload-time = "2025-04-14T15:59:02.224Z" },
+]
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -121,6 +133,28 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f6/fd/5fc014f5ca15579bbeaf3bebb15b49efc9e743a4877d078bcc4ba500479b/bioio_base-3.0.0.tar.gz", hash = "sha256:47ba5aa50b9c068116b0b505f8c5816c346fc7ad1c65116052c6a734e662d680", size = 95694, upload-time = "2025-06-27T21:30:46.166Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d6/63/68e0e98001f5572c8734c7c99950a803aeeba72249f180ef1d5796bb0141/bioio_base-3.0.0-py3-none-any.whl", hash = "sha256:278f44aa79bbd50217521d8a4347716d5b07123f892ba7b7d1a6709c86021724", size = 99966, upload-time = "2025-06-27T21:30:44.875Z" },
+]
+
+[[package]]
+name = "bioio-czi"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aicspylibczi" },
+    { name = "aiohttp" },
+    { name = "bioio-base" },
+    { name = "dask", extra = ["array"] },
+    { name = "fsspec" },
+    { name = "lxml" },
+    { name = "ome-types" },
+    { name = "pylibczirw" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "xarray" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/06/d6ce55ea1f8d8f98d9180ec5a47e452f578beaccc42da3e931641e8fff1f/bioio_czi-2.4.0.tar.gz", hash = "sha256:9632a97471bd0af40ce25be8b6686f7bd51b6427762732d2b8f9fdfe45cdaae8", size = 2202986, upload-time = "2025-07-09T17:16:44.663Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/95/2d/9465420b092b649461b130b9a4a6c6c652da7aad3bffd6c1342fcd72678e/bioio_czi-2.4.0-py3-none-any.whl", hash = "sha256:850d83c245b432878a5f5f969f511a0a30b2b9fb10504dd99222e7f52b20c340", size = 2212236, upload-time = "2025-07-09T17:16:43.157Z" },
 ]
 
 [[package]]
@@ -262,6 +296,28 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/52/39/069100b84d7418bc358d81669d5748efb14b9cceacd2f9c75f550424132f/cloudpickle-3.1.1.tar.gz", hash = "sha256:b216fa8ae4019d5482a8ac3c95d8f6346115d8835911fd4aefd1a445e4242c64", size = 22113, upload-time = "2025-01-14T17:02:05.085Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/e8/64c37fadfc2816a7701fa8a6ed8d87327c7d54eacfbfb6edab14a2f2be75/cloudpickle-3.1.1-py3-none-any.whl", hash = "sha256:c8c5a44295039331ee9dad40ba100a9c7297b6f988e50e87ccdf3765a668350e", size = 20992, upload-time = "2025-01-14T17:02:02.417Z" },
+]
+
+[[package]]
+name = "cmake"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/e3/0a11eddf5812ab39f96c2b77895a390acfd469cb64052c6a9c2d8d21b88c/cmake-4.1.0.tar.gz", hash = "sha256:bacdd21aebdf9a42e5631cfb365beb8221783fcd27c4e04f7db8b79c43fb12df", size = 34981, upload-time = "2025-08-11T17:54:05.138Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/8b/a873f9dbd7983d3a8981cee68246ef690b18aa41ec25281cce54c01e9a5b/cmake-4.1.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:4e3a30a4f72a8a6d8d593dc289e791f1d84352c1f629543ac8e22c62dbadb20a", size = 30369809, upload-time = "2025-08-11T17:53:03.866Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/12/43e4b2ef7a9a54aa8429715e671cea53e7823e894e98c6d26e3f3a3ebd4e/cmake-4.1.0-py3-none-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:0e2fea746d746f52aa52b8498777ff665a0627d9b136bec4ae0465c38b75e799", size = 30761286, upload-time = "2025-08-11T17:53:11.876Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/40/41f8990484b221c8230efa801de522c9d7690279e4308ac8260313eaf363/cmake-4.1.0-py3-none-manylinux2014_ppc64le.manylinux_2_17_ppc64le.whl", hash = "sha256:5a28a87601fa5e775017bf4f5836e8e75091d08f3e5aac411256754ba54fe5c4", size = 32602648, upload-time = "2025-08-11T17:53:15.013Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/eb/824d1735821aff0857e57d4455eaf94a4ccc77f7711b9ec3e02eaf34f9f0/cmake-4.1.0-py3-none-manylinux2014_s390x.manylinux_2_17_s390x.whl", hash = "sha256:2a8790473afbb895b8e684e479f26773e4fc5c86845e3438e8488d38de9db807", size = 28568562, upload-time = "2025-08-11T17:53:17.983Z" },
+    { url = "https://files.pythonhosted.org/packages/34/da/0217073d5b3fb8655b3de8af4e9e797a25ae28a2932b1138452a0dc89e9f/cmake-4.1.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:dab375932f5962e078da8cf76ca228c21bf4bea9ddeb1308e2b35797fa30f784", size = 29681029, upload-time = "2025-08-11T17:53:21.073Z" },
+    { url = "https://files.pythonhosted.org/packages/73/f6/daf3bad6f1a0d069befaebc3dd58ac7ae191fd772e80db0b7f1a94e51d45/cmake-4.1.0-py3-none-manylinux_2_31_armv7l.whl", hash = "sha256:f2eaa6f0a25e31fe09fb0b7f40fbf208eea5f1313093ff441ecfff7dc1b80adf", size = 26509365, upload-time = "2025-08-11T17:53:23.562Z" },
+    { url = "https://files.pythonhosted.org/packages/41/91/6ce3d9d5ab5f039cc207678e2ac1c5b8575b141beba6e51e2ea9535c4edd/cmake-4.1.0-py3-none-manylinux_2_35_riscv64.whl", hash = "sha256:3ee38de00cad0501c7dd2b94591522381e3ef9c8468094f037a17ed9e478ef13", size = 28849869, upload-time = "2025-08-11T17:53:29.624Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/2d/da9ce3ec46a3af8f35c659914ba444de8724ed5d3e3daf2fa2bf6f64879b/cmake-4.1.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:2d9f14b7d58e447865c111b3b90945b150724876866f5801c80970151718f710", size = 41734467, upload-time = "2025-08-11T17:53:32.917Z" },
+    { url = "https://files.pythonhosted.org/packages/91/30/0408c49409dd6e122ed63917d7c34f5bc658c2fffd10e5059965e8770c25/cmake-4.1.0-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:574448a03acdf34c55a7c66485e7a8260709e8386e9145708e18e2abe5fc337b", size = 35021362, upload-time = "2025-08-11T17:53:35.791Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/b3/66764abbd3032c051619c4fc8b6a839c2666da27feeb53ec784b8690417a/cmake-4.1.0-py3-none-musllinux_1_2_i686.whl", hash = "sha256:b8c2538fb557b9edd74d48c189fcde42a55ad7e2c39e04254f8c5d248ca1af4c", size = 45779676, upload-time = "2025-08-11T17:53:38.932Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/ee/8b00d179e1a0f7ac22faaae1bec84577415b3664156e9b233f4ef3beeead/cmake-4.1.0-py3-none-musllinux_1_2_ppc64le.whl", hash = "sha256:7c7999c5a1d5a3a66adacc61056765557ed253dc7b8e9deab5cae546f4f9361c", size = 45844041, upload-time = "2025-08-11T17:53:42.347Z" },
+    { url = "https://files.pythonhosted.org/packages/24/0d/8e3de2d6faa7aacc8bfa3426ac873eaa8afd10c7cf96673651f1010d930c/cmake-4.1.0-py3-none-musllinux_1_2_riscv64.whl", hash = "sha256:e77ac2554a7b8a94745add465413e3266b714766e9a5d22ac8e5b36a900a1136", size = 39910078, upload-time = "2025-08-11T17:53:45.925Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/28/7bfbe0412ed6636b12025f6fa08aa8110deacaf080ed7071429783028c6c/cmake-4.1.0-py3-none-musllinux_1_2_s390x.whl", hash = "sha256:d54e68d5439193265fd7211671420601f6a672b8ca220f19e6c72238b41a84c2", size = 43995109, upload-time = "2025-08-11T17:53:48.933Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/0e/aaac412ad02ca799e2113cbca12aa960d9f80beada67769e49ac8c67dace/cmake-4.1.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:c6bd346fe4d9c205310ef9a6e09ced7e610915fa982d7b649f9b12caa6fa0605", size = 43338603, upload-time = "2025-08-11T17:53:52.634Z" },
 ]
 
 [[package]]
@@ -1041,6 +1097,22 @@ wheels = [
 ]
 
 [[package]]
+name = "pylibczirw"
+version = "5.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cmake" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "validators" },
+    { name = "xmltodict" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/ca/616509bfa168826072a84a0fe2e0c9e8639d05e929bcfe2a877a89e484ca/pylibczirw-5.0.0.tar.gz", hash = "sha256:d1c35d8e68cc8c319c4f4e41a01ad2c663ef8b431f01d0571b01d1e31df99040", size = 5026681, upload-time = "2025-04-11T08:44:58.934Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/f9/7e028e2371191a85f85c3076e85c8d60a825a5e64943d5d26187c12fe7f0/pylibczirw-5.0.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b8eadc6cbcf14702f4e02401e73c0696d1438cb87cd46aca36bc8d5f2882b93e", size = 4168101, upload-time = "2025-04-11T08:44:48.629Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1336,6 +1408,7 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "bioio" },
+    { name = "bioio-czi", marker = "sys_platform == 'linux'" },
     { name = "bioio-imageio" },
     { name = "bioio-ome-tiff" },
     { name = "bioio-tifffile" },
@@ -1363,6 +1436,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "bioio", specifier = "~=3.0" },
+    { name = "bioio-czi", marker = "sys_platform == 'linux'", specifier = "~=2.4" },
     { name = "bioio-imageio", specifier = "~=1.3" },
     { name = "bioio-ome-tiff", specifier = "~=1.4" },
     { name = "bioio-tifffile", specifier = "~=1.3" },
@@ -1521,6 +1595,15 @@ wheels = [
 ]
 
 [[package]]
+name = "validators"
+version = "0.35.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/66/a435d9ae49850b2f071f7ebd8119dd4e84872b01630d6736761e6e7fd847/validators-0.35.0.tar.gz", hash = "sha256:992d6c48a4e77c81f1b4daba10d16c3a9bb0dbb79b3a19ea847ff0928e70497a", size = 73399, upload-time = "2025-05-01T05:42:06.7Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/6e/3e955517e22cbdd565f2f8b2e73d52528b14b8bcfdb04f62466b071de847/validators-0.35.0-py3-none-any.whl", hash = "sha256:e8c947097eae7892cb3d26868d637f79f47b4a0554bc6b80065dfe5aac3705dd", size = 44712, upload-time = "2025-05-01T05:42:04.203Z" },
+]
+
+[[package]]
 name = "xarray"
 version = "2025.10.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1553,6 +1636,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/84/f8/33b43a53503d0892e7555d16c593cf001d5aaa5b0ad7d53c68098235805b/xmlschema-4.2.0.tar.gz", hash = "sha256:b1f88c53493b2e75471977cbf218d939b872d0c7046bb63d48cc219fa7e241b9", size = 643756, upload-time = "2025-10-14T09:19:32.253Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/1a/81ac398d35be848f3655893b6260f227b29ca6acf5c2674dc5ed9af63027/xmlschema-4.2.0-py3-none-any.whl", hash = "sha256:82d24a50eea5e7f2d603312813848cd66fddf8fa2b6730839c6aa3d66312e3b6", size = 467246, upload-time = "2025-10-14T09:19:28.359Z" },
+]
+
+[[package]]
+name = "xmltodict"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/aa/917ceeed4dbb80d2f04dbd0c784b7ee7bba8ae5a54837ef0e5e062cd3cfb/xmltodict-1.0.2.tar.gz", hash = "sha256:54306780b7c2175a3967cad1db92f218207e5bc1aba697d887807c0fb68b7649", size = 25725, upload-time = "2025-09-17T21:59:26.459Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/20/69a0e6058bc5ea74892d089d64dfc3a62ba78917ec5e2cfa70f7c92ba3a5/xmltodict-1.0.2-py3-none-any.whl", hash = "sha256:62d0fddb0dcbc9f642745d8bbf4d81fd17d6dfaec5a15b5c1876300aad92af0d", size = 13893, upload-time = "2025-09-17T21:59:24.859Z" },
 ]
 
 [[package]]

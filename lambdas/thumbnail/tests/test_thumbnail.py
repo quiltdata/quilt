@@ -14,6 +14,7 @@ from PIL import Image
 
 import quilt3
 import t4_lambda_thumbnail
+from t4_lambda_thumbnail import HAS_CZI
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER
 from t4_lambda_shared.utils import read_body
 
@@ -66,7 +67,8 @@ def test_403():
         headers=HEADER_403,
     )
     params = {
-        "size": "w32h32"
+        "size": "w32h32",
+        "input": "pdf",
     }
     event = _make_event({"url": url, **params})
     # Get the response
@@ -207,8 +209,12 @@ def test_generate_thumbnail(
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
-THUMBS_PKG = "images/thumbs", "ac219780715b7c9c13bd03b982a28fbc5a50e9b01ba000a169951d5a444f5926"
+CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
+THUMBS_PKG = "images/thumbs", "f551ee98499be442fbe67419a53f0ab51cb5c0a71cc1ee0e63638266a930e8c3"
 SIZE = (1024, 768)
+
+
+skipif_no_czi = pytest.mark.skipif(not HAS_CZI, reason="pylibczirw not installed")
 
 
 @pytest.mark.parametrize(
@@ -221,7 +227,7 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
         # Traceback (most recent call last):
-        #   File ".venv/lib/python3.13/site-packages/PIL/Image.py", line 3308, in fromarray
+        #   File ".site-packages/PIL/Image.py", line 3308, in fromarray
         #     mode, rawmode = _fromarray_typemap[typekey]
         #                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^
         # KeyError: ((1, 1, 3), '<u2')
@@ -234,7 +240,7 @@ SIZE = (1024, 768)
         #     img = generate_thumbnail(img, size)
         #   File "src/t4_lambda_thumbnail/__init__.py", line 376, in generate_thumbnail
         #     img = Image.fromarray(arr)
-        #   File ".venv/lib/python3.13/site-packages/PIL/Image.py", line 3312, in fromarray
+        #   File ".site-packages/PIL/Image.py", line 3312, in fromarray
         #     raise TypeError(msg) from e
         # TypeError: Cannot handle this data type: (1, 1, 3), <u2
         pytest.param(
@@ -271,6 +277,134 @@ SIZE = (1024, 768)
         # (OME_TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),  # duplicate
         (OME_TIFF_PKG, "variable_scene_shape_first_scene_pyramid.ome.tiff"),
         (OME_TIFF_PKG, "variance-cfe.ome.tiff"),
+        #   File "site-packages/bioio_base/reader.py", line 613, in dims
+        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
+        #                                  ^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
+        #     self._xarray_dask_data = self._read_delayed()
+        #                              ~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
+        #     return self._implementation._read_delayed()
+        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 277, in _read_delayed
+        #     coords = self._get_coords(self.metadata, self._current_scene_index, dim_bounds)
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 183, in _get_coords
+        #     for dim_name, scale in self.physical_pixel_sizes._asdict().items():
+        #                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 429, in physical_pixel_sizes
+        #     return get_physical_pixel_sizes(self.metadata)
+        #   File "site-packages/bioio_czi/pixel_sizes.py", line 15, in get_physical_pixel_sizes
+        #     Y=_single_physical_pixel_size(metadata, "Y"),
+        #       ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_czi/pixel_sizes.py", line 31, in _single_physical_pixel_size
+        #     raise UnsupportedMetadataError(
+        #     ...<2 lines>...
+        #     )
+        # bioio_czi.metadata.UnsupportedMetadataError: Expected 1 distance scale for dimension 'Y' but found 0.
+        pytest.param(CZI_PKG, "c1_bgr24.czi", marks=[skipif_no_czi, pytest.mark.xfail]),
+        #   File "site-packages/bioio_base/reader.py", line 613, in dims
+        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
+        #                                  ^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
+        #     self._xarray_dask_data = self._read_delayed()
+        #                              ~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
+        #     return self._implementation._read_delayed()
+        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
+        #     return xr.DataArray(
+        #            ~~~~~~~~~~~~^
+        #         data=da.block(lazy_arrays.tolist()),
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     ...<2 lines>...
+        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     )
+        #     ^
+        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
+        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
+        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
+        #     raise ValueError(
+        #     ...<2 lines>...
+        #     )
+        # ValueError: different number of dimensions on data and dims: 3 vs 4
+        pytest.param(
+            CZI_PKG,
+            "c1_bgr48.czi",
+            marks=[skipif_no_czi, pytest.mark.xfail(raises=ValueError)],
+        ),
+        #   File "site-packages/bioio_base/reader.py", line 613, in dims
+        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
+        #                                  ^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
+        #     self._xarray_dask_data = self._read_delayed()
+        #                              ~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
+        #     return self._implementation._read_delayed()
+        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
+        #     return xr.DataArray(
+        #            ~~~~~~~~~~~~^
+        #         data=da.block(lazy_arrays.tolist()),
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     ...<2 lines>...
+        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     )
+        #     ^
+        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
+        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
+        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
+        #     raise ValueError(
+        #     ...<2 lines>...
+        #     )
+        # ValueError: different number of dimensions on data and dims: 3 vs 4
+        pytest.param(
+            CZI_PKG,
+            "c1_bgr96float.czi",
+            marks=[skipif_no_czi, pytest.mark.xfail(raises=ValueError)],
+        ),
+        pytest.param(CZI_PKG, "c1_gray16.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c1_gray32float.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c1_gray8.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c1_gray8_s2_non_overlapping_bounding_boxes.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c2_gray8_gray16.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c2_gray8_t3_z5_s2.czi", marks=skipif_no_czi),
+        #   File "site-packages/bioio_base/reader.py", line 613, in dims
+        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
+        #                                  ^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
+        #     self._xarray_dask_data = self._read_delayed()
+        #                              ~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
+        #     return self._implementation._read_delayed()
+        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
+        #     return xr.DataArray(
+        #            ~~~~~~~~~~~~^
+        #         data=da.block(lazy_arrays.tolist()),
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     ...<2 lines>...
+        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     )
+        #     ^
+        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
+        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
+        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
+        #     raise ValueError(
+        #     ...<2 lines>...
+        #     )
+        # ValueError: different number of dimensions on data and dims: 4 vs 5
+        pytest.param(
+            CZI_PKG,
+            "rgb-image.czi",
+            marks=[skipif_no_czi, pytest.mark.xfail(raises=ValueError)],
+        ),
     ],
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):
@@ -296,16 +430,14 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
     thumb_lk = f"{pkg_name}/{lk}.png"
     quilt3.Package.install(
         THUMBS_PKG[0],
-        # registry=TEST_DATA_REGISTRY,
-        registry="s3://quilt-dev-null",
-        # top_hash=THUMBS_PKG[1],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=THUMBS_PKG[1],
         path=thumb_lk,
     )
     thumbs_pkg = quilt3.Package.browse(
         THUMBS_PKG[0],
-        # registry=TEST_DATA_REGISTRY,
-        registry="s3://quilt-dev-null",
-        # top_hash=THUMBS_PKG[1],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=THUMBS_PKG[1],
     )
     with tempfile.NamedTemporaryFile(suffix=".png") as actual_f:
         actual_f.write(data)
@@ -315,7 +447,7 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
 
         print(f"  actual size: {actual.dims.items()}, expected size: {expected.dims.items()}")
         assert actual.dims.items() == expected.dims.items()
-        assert np.array_equal(actual.reader.data, expected.reader.data)
+        np.testing.assert_equal(actual.reader.data, expected.reader.data)
 
 
 def test_http():

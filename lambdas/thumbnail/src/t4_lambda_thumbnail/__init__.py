@@ -17,14 +17,20 @@ from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
 
+try:
+    import bioio_czi
+except ImportError:
+    HAS_CZI = False
+else:
+    HAS_CZI = True
+import bioio_ome_tiff
+import bioio_tifffile
 import imageio
 import numpy as np
 import pdf2image
 import pptx
 import requests
 from bioio import BioImage
-import bioio_tifffile
-import bioio_ome_tiff
 from pdf2image import convert_from_bytes
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
@@ -243,7 +249,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
     if isinstance(
         img.reader,
         (
-            # readers.CziReader,
+            *((bioio_czi.reader.Reader,) if HAS_CZI else ()),
             bioio_ome_tiff.reader.Reader,
             bioio_tifffile.reader.Reader,
         ),
