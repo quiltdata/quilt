@@ -59,7 +59,6 @@ function useCopy() {
                   break
                 default:
                   error = new Error(err.message)
-                  break
               }
             }
             throw { _tag: 'error', error, fields }
