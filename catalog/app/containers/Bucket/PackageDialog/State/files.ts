@@ -97,12 +97,8 @@ function mapErrorsToLogicalKeys(
         const pointer = JSONPointer.parse(error.instancePath)
         const index: number = Number(pointer[0] as string)
         const logicalKey = entries[index].logical_key
-        if (!memo)
-          return {
-            [logicalKey]: error,
-          }
         return {
-          ...memo,
+          ...(memo || {}),
           [logicalKey]: error,
         }
       },
