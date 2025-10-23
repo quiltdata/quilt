@@ -153,7 +153,7 @@ export function useCreateHandler(
           throw {
             _tag: 'error',
             error: new Error(
-              'Files must be finished hashing and conform entries JSON Schema',
+              'Files must complete hashing and comply with the entries JSON schema',
             ),
           }
         }
