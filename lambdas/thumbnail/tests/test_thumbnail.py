@@ -6,6 +6,7 @@ from pathlib import Path
 
 import bioio
 import bioio_base
+import bioio_czi
 import numpy as np
 import pytest
 import responses
@@ -16,7 +17,6 @@ import quilt3
 import t4_lambda_thumbnail
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER
 from t4_lambda_shared.utils import read_body
-from t4_lambda_thumbnail import HAS_CZI
 
 HEADER_403 = {
     'x-amz-request-id': 'guid123',
@@ -214,9 +214,6 @@ THUMBS_PKG = "images/thumbs", "f551ee98499be442fbe67419a53f0ab51cb5c0a71cc1ee0e6
 SIZE = (1024, 768)
 
 
-skipif_no_czi = pytest.mark.skipif(not HAS_CZI, reason="pylibczirw not installed")
-
-
 @pytest.mark.parametrize(
     "pkg_ref, lk",
     [
@@ -301,38 +298,10 @@ skipif_no_czi = pytest.mark.skipif(not HAS_CZI, reason="pylibczirw not installed
         #     ...<2 lines>...
         #     )
         # bioio_czi.metadata.UnsupportedMetadataError: Expected 1 distance scale for dimension 'Y' but found 0.
-        pytest.param(CZI_PKG, "c1_bgr24.czi", marks=[skipif_no_czi, pytest.mark.xfail]),
-        #   File "site-packages/bioio_base/reader.py", line 613, in dims
-        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
-        #                                  ^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
-        #     self._xarray_dask_data = self._read_delayed()
-        #                              ~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
-        #     return self._implementation._read_delayed()
-        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
-        #     return xr.DataArray(
-        #            ~~~~~~~~~~~~^
-        #         data=da.block(lazy_arrays.tolist()),
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     ...<2 lines>...
-        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     )
-        #     ^
-        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
-        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
-        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
-        #     raise ValueError(
-        #     ...<2 lines>...
-        #     )
-        # ValueError: different number of dimensions on data and dims: 3 vs 4
         pytest.param(
             CZI_PKG,
-            "c1_bgr48.czi",
-            marks=[skipif_no_czi, pytest.mark.xfail(raises=ValueError)],
+            "c1_bgr24.czi",
+            marks=pytest.mark.xfail(raises=bioio_czi.metadata.UnsupportedMetadataError),
         ),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
@@ -361,18 +330,42 @@ skipif_no_czi = pytest.mark.skipif(not HAS_CZI, reason="pylibczirw not installed
         #     ...<2 lines>...
         #     )
         # ValueError: different number of dimensions on data and dims: 3 vs 4
-        pytest.param(
-            CZI_PKG,
-            "c1_bgr96float.czi",
-            marks=[skipif_no_czi, pytest.mark.xfail(raises=ValueError)],
-        ),
-        pytest.param(CZI_PKG, "c1_gray16.czi", marks=skipif_no_czi),
-        pytest.param(CZI_PKG, "c1_gray32float.czi", marks=skipif_no_czi),
-        pytest.param(CZI_PKG, "c1_gray8.czi", marks=skipif_no_czi),
-        pytest.param(CZI_PKG, "c1_gray8_s2_non_overlapping_bounding_boxes.czi", marks=skipif_no_czi),
-        pytest.param(CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi", marks=skipif_no_czi),
-        pytest.param(CZI_PKG, "c2_gray8_gray16.czi", marks=skipif_no_czi),
-        pytest.param(CZI_PKG, "c2_gray8_t3_z5_s2.czi", marks=skipif_no_czi),
+        pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        #   File "site-packages/bioio_base/reader.py", line 613, in dims
+        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
+        #                                  ^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
+        #     self._xarray_dask_data = self._read_delayed()
+        #                              ~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
+        #     return self._implementation._read_delayed()
+        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
+        #     return xr.DataArray(
+        #            ~~~~~~~~~~~~^
+        #         data=da.block(lazy_arrays.tolist()),
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     ...<2 lines>...
+        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #     )
+        #     ^
+        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
+        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
+        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
+        #     raise ValueError(
+        #     ...<2 lines>...
+        #     )
+        # ValueError: different number of dimensions on data and dims: 3 vs 4
+        pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        (CZI_PKG, "c1_gray16.czi"),
+        (CZI_PKG, "c1_gray32float.czi"),
+        (CZI_PKG, "c1_gray8.czi"),
+        (CZI_PKG, "c1_gray8_s2_non_overlapping_bounding_boxes.czi"),
+        (CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi"),
+        (CZI_PKG, "c2_gray8_gray16.czi"),
+        (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
         #                                  ^^^^^^^^^^^^^^^^^^^^^
@@ -400,11 +393,7 @@ skipif_no_czi = pytest.mark.skipif(not HAS_CZI, reason="pylibczirw not installed
         #     ...<2 lines>...
         #     )
         # ValueError: different number of dimensions on data and dims: 4 vs 5
-        pytest.param(
-            CZI_PKG,
-            "rgb-image.czi",
-            marks=[skipif_no_czi, pytest.mark.xfail(raises=ValueError)],
-        ),
+        pytest.param(CZI_PKG, "rgb-image.czi", marks=pytest.mark.xfail(raises=ValueError)),
     ],
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):

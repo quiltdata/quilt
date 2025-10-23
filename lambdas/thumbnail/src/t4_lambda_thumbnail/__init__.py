@@ -17,12 +17,8 @@ from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
 
-try:
-    import bioio_czi
-except ImportError:
-    HAS_CZI = False
-else:
-    HAS_CZI = True
+
+import bioio_czi
 import bioio_ome_tiff
 import bioio_tifffile
 import imageio
@@ -249,7 +245,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
     if isinstance(
         img.reader,
         (
-            *((bioio_czi.reader.Reader,) if HAS_CZI else ()),
+            bioio_czi.reader.Reader,
             bioio_ome_tiff.reader.Reader,
             bioio_tifffile.reader.Reader,
         ),
