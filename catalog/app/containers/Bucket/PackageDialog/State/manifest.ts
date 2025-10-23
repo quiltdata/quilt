@@ -24,16 +24,19 @@ export function isPackageHandle(h: PackageSrc): h is Required<PackageSrc> {
 }
 
 export function useManifestRequest(open: boolean, src?: PackageSrc): ManifestStatus {
-  const pause = !src || !open
+  const notOpened = !open
+  const noSrc = !src
+
   const data = useManifest({
     bucket: src?.bucket || '',
     name: src?.name || '',
     hashOrTag: src?.hash,
-    pause,
+    pause: notOpened || noSrc,
   })
+
   return React.useMemo(() => {
-    if (!open) return Idle
-    if (!src) return Ready()
+    if (notOpened) return Idle
+    if (noSrc) return Ready()
     return data.case({ Ok: Ready, Pending: () => Loading, Init: () => Idle, Err })
-  }, [src, open, data])
+  }, [noSrc, notOpened, data])
 }
