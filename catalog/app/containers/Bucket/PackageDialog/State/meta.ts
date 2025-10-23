@@ -36,17 +36,21 @@ export function useMeta(
 ): MetaState {
   const [meta, setMeta] = React.useState<Types.JsonRecord>()
   const value = React.useMemo(() => meta || getMetaFallback(manifest), [manifest, meta])
+
   const validate = React.useMemo(() => {
     if (schema._tag === 'error') return () => [schema.error]
     if (schema._tag !== 'ready') return () => [new Error('Schema is not ready')]
     return mkMetaValidator(schema.schema)
   }, [schema])
+
   const status: MetaStatus = React.useMemo(() => {
     if (form._tag !== 'error') return Ok
     if (form.fields?.userMeta) return Err(form.fields.userMeta)
+
     const errors = validate(meta || {})
     return errors ? Err(errors) : Ok
   }, [form, meta, validate])
+
   return React.useMemo(() => ({ value, status, onChange: setMeta }), [status, value])
 }
 

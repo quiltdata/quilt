@@ -150,23 +150,28 @@ export function useFiles(
   })
   const [files, setFiles] = React.useState<Partial<FI.FilesState>>(initial.added)
   const value = React.useMemo(() => mergeFiles(manifest, files), [manifest, files])
+
   React.useEffect(() => {
     if (typeof open === 'object') {
       setFiles({ added: open })
     }
   }, [open])
+
   React.useEffect(() => {
     if (typeof open === 'object') {
       setInitial(mergeFiles(manifest, { added: open }))
     }
   }, [open, manifest])
+
   const validate = React.useMemo(() => {
     if (schema._tag === 'error') return () => [schema.error]
     if (schema._tag !== 'ready') return () => [new Error('Schema is not ready')]
     return mkMetaValidator(schema.schema)
   }, [schema])
+
   const status: FilesStatus = React.useMemo(() => {
     if (form._tag !== 'error') return { _tag: 'ok' }
+
     if (form.fields?.files) return { _tag: 'error', error: form.fields.files }
 
     const hashingError = FI.validateHashingComplete(value)
@@ -190,10 +195,14 @@ export function useFiles(
     const entries = filesStateToEntries(value)
     const errors = validate(entries as unknown as Types.JsonArray)
     const mappedErrors = mapErrorsToLogicalKeys(entries, errors)
+
     if (mappedErrors instanceof Error) return { _tag: 'error', error: mappedErrors }
+
     if (mappedErrors) return { _tag: 'error', errors: mappedErrors }
+
     return { _tag: 'ok' }
   }, [form, validate, value])
+
   return React.useMemo(
     () => ({ status, value, onChange: setFiles, initial }),
     [status, value, initial],
