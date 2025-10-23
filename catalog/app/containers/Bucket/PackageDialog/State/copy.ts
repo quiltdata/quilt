@@ -47,14 +47,19 @@ function useCopy() {
               switch (err.path) {
                 case 'params.name':
                   fields.name = new Error(err.message)
+                  break
                 case 'params.message':
                   fields.message = new Error(err.message)
+                  break
                 case 'params.userMeta':
                   fields.meta = new Error(err.message)
+                  break
                 case 'params.workflow':
                   fields.workflow = new Error(err.message)
+                  break
                 default:
                   error = new Error(err.message)
+                  break
               }
             }
             throw { _tag: 'error', error, fields }
