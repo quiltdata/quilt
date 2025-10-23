@@ -129,10 +129,7 @@ function PackageCreationForm({
   close,
   currentBucketCanBeSuccessor,
   delayHashing,
-  state,
-  ui = {},
-}: PackageCreationFormProps) {
-  const {
+  state: {
     create,
     dst,
     entriesSchema,
@@ -150,7 +147,9 @@ function PackageCreationForm({
     src,
     workflow,
     workflowsConfig,
-  } = state
+  },
+  ui = {},
+}: PackageCreationFormProps) {
   const classes = useStyles()
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
