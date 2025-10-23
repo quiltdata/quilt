@@ -44,16 +44,17 @@ function useCopy() {
             const fields: Record<string, Error> = {}
             let error = new Error('Something went wrong')
             for (let err of r.errors) {
-              if (err.path === 'params.name') {
-                fields.name = new Error(err.message)
-              } else if (err.path === 'params.message') {
-                fields.message = new Error(err.message)
-              } else if (err.path === 'params.userMeta') {
-                fields.meta = new Error(err.message)
-              } else if (err.path === 'params.workflow') {
-                fields.workflow = new Error(err.message)
-              } else {
-                error = new Error(err.message)
+              switch (err.path) {
+                case 'params.name':
+                  fields.name = new Error(err.message)
+                case 'params.message':
+                  fields.message = new Error(err.message)
+                case 'params.userMeta':
+                  fields.meta = new Error(err.message)
+                case 'params.workflow':
+                  fields.workflow = new Error(err.message)
+                default:
+                  error = new Error(err.message)
               }
             }
             throw { _tag: 'error', error, fields }
