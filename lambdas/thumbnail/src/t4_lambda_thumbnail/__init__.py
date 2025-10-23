@@ -344,7 +344,18 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
 
 def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
     # Read image data
-    img = BioImage(url)
+    img = BioImage(
+        url,
+        # Benchmarks are for images/bioio-tifffile/image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif
+        # With default cache ('bytes') img.data takes ~20s, with this cache it takes ~4s.
+        # Reading to a temporary local file seems a bit faster, but space is limited in Lambda.
+        # The maximum memory use for this cache is blocksize * maxblocks.
+        fs_kwargs={
+            "cache_type": "background",
+            "cache_options": {"maxblocks": 32},
+            "block_size": 8 * 2**20,
+        },
+    )
     print(img.reader.dims.items())
     orig_size = list(img.reader.data.shape)
     # Generate a formatted ndarray using the image data
