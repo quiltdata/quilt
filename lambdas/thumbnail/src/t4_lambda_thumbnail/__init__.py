@@ -20,6 +20,7 @@ from typing import List, Tuple
 import bioio_czi
 import bioio_ome_tiff
 import bioio_tifffile
+import dask.array as da
 import imageio
 import numpy as np
 import pdf2image
@@ -125,7 +126,7 @@ def choose_min_grid(x: int) -> Tuple[int, int]:
     return min_grid_shape
 
 
-def norm_img(img: np.ndarray) -> np.ndarray:
+def norm_img(img: da.Array) -> da.Array:
     """
     Normalize an image. This clips the upper and lower 0.01 intensities and
     then rescales the intensities to fit on a int32 range.
@@ -139,15 +140,15 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     img = img.astype(np.float64)
 
     # Clip upper bound
-    img = np.clip(
+    img = da.clip(
         img,
-        a_min=np.percentile(img, 0.01),
-        a_max=np.percentile(img, 99.99),
+        da.percentile(img, 0.01),
+        da.percentile(img, 99.99),
     )
 
     # Normalize greyscale values to floats between zero and one
-    img = img - np.min(img)
-    img = img / np.max(img)
+    img = img - da.min(img)
+    img = img / da.max(img)
 
     # Cast the floats to integers
     imax = np.iinfo(np.uint16).max + 1  # eg imax = 256 for uint8
@@ -158,16 +159,16 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
+def _format_n_dim_ndarray(img: BioImage) -> da.Array:
     # Even though the reader was n-dim, check if the actual data is simply greyscale and return
-    if len(img.reader.data.shape) == 2:
-        return img.reader.data
+    if len(img.reader.dask_data.shape) == 2:
+        return img.reader.dask_data
 
     # Even though the reader was n-dim,
     # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
-    if (len(img.reader.data.shape) == 3 and (
-            img.reader.data.shape[2] == 3 or img.reader.data.shape[2] == 4)):
-        return img.reader.data
+    if (len(img.reader.dask_data.shape) == 3 and (
+            img.reader.dask_data.shape[2] == 3 or img.reader.dask_data.shape[2] == 4)):
+        return img.reader.dask_data
 
     # Check which dimensions are available
     # BioImage makes strong assumptions about dimension ordering
@@ -175,30 +176,30 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
     # Reduce the array down to 2D + Channels when possible
     # Always choose first Scene
     # if "S" in img.reader.dims.order:
-    #     return img.reader.data
-    #     img = BioImage(img.data[:, :, :, :, :, 0])
-        # print('!!!', img.data[:, :, :, :, :, 0].shape)
+    #     return img.reader.dask_data
+    #     img = BioImage(img.dask_data[:, :, :, :, :, 0])
+        # print('!!!', img.dask_data[:, :, :, :, :, 0].shape)
     # Always choose middle time slice
     if "T" in img.reader.dims.order:
-        img = BioImage(img.data[img.data.shape[0] // 2 : img.data.shape[0] // 2 + 1, :, :, :, :])
+        img = BioImage(img.dask_data[img.dask_data.shape[0] // 2 : img.dask_data.shape[0] // 2 + 1, :, :, :, :])
 
     # Keep Channel data, but max project when possible
-    if "C" in img.reader.dims.order and img.data.shape[1] > 1:
+    if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
         projections = []
         s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
-        for i in range(img.data.shape[1]):
+        for i in range(img.dask_data.shape[1]):
             if "Z" in img.reader.dims.order:
                 # Add padding to the top and left of the projection
-                padded = np.pad(
-                    norm_img(img.data[0, i, :, :, :].max(axis=0)),
+                padded = da.pad(
+                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
                     ((5, 0), (5, 0)) + s_pad,
                     mode="constant"
                 )
                 projections.append(padded)
             else:
                 # Add padding to the top and the left of the projection
-                padded = np.pad(
-                    norm_img(img.data[0, i, 0, :, :]),
+                padded = da.pad(
+                    norm_img(img.dask_data[0, i, 0, :, :]),
                     ((5, 0), (5, 0)) + s_pad,
                     mode="constant"
                 )
@@ -221,21 +222,21 @@ def _format_n_dim_ndarray(img: BioImage) -> np.ndarray:
             rows.append(row)
 
         # Concatenate each row then concatenate all rows together into a single 2D image
-        merged = [np.concatenate(row, axis=1) for row in rows]
+        merged = [da.concatenate(row, axis=1) for row in rows]
 
         # Add padding on the entire bottom and entire right side of the thumbnail
-        return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
+        return da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
 
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
     # we will simply use a max projection on files that contain a Z dimension
     if "Z" in img.reader.dims.order:
-        return norm_img(img.data[0, 0, :, :, :].max(axis=0))
+        return norm_img(img.dask_data[0, 0, :, :, :].max(axis=0))
 
-    return norm_img(img.data[0, 0, 0, :, :])
+    return norm_img(img.dask_data[0, 0, 0, :, :])
 
 
-def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
+def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
     """
     Simple wrapper around the format n-dim array function to
     determine if we need to format or not.
@@ -251,7 +252,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> np.ndarray:
     ):
         return _format_n_dim_ndarray(img)
 
-    return img.reader.data
+    return img.reader.dask_data
 
 
 def pptx_to_pdf(*, src: bytes, page: int) -> bytes:
@@ -356,12 +357,12 @@ def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
         },
     )
     print(img.reader.dims.items())
-    orig_size = list(img.reader.data.shape)
+    orig_size = list(img.reader.dask_data.shape)
     # Generate a formatted ndarray using the image data
     # Makes some assumptions for n-dim data
     img = format_aicsimage_to_prepped(img)
 
-    img = generate_thumbnail(img, size)
+    img = generate_thumbnail(img.compute(), size)
 
     thumbnail_size = img.size
     # Store the bytes
