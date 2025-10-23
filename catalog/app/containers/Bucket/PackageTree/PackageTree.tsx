@@ -164,14 +164,14 @@ function useCreateDialog(packageHandle: PackageHandle) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
-  const open = !!RRDom.useRouteMatch({ path: paths.bucketPackageAdd, exact: true })
+  const open = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
 
   const { push } = history
   const onClose = React.useCallback(() => {
     if (!open) return
 
     const { bucket, name } = packageHandle
-    // `bucketPackageDetail` only, because `bucketPackageAdd` is on top of "latest", not specific revision
+    // `bucketPackageDetail` only, because `bucketPackageAddFiles` is on top of "latest", not specific revision
     push(urls.bucketPackageDetail(bucket, name))
   }, [open, packageHandle, push, urls])
 
@@ -615,7 +615,7 @@ interface RouteMap {
   bucketFile: Routes.BucketFileArgs
   bucketPackageTree: Routes.BucketPackageTreeArgs
   bucketPackageDetail: Routes.BucketPackageDetailArgs
-  bucketPackageAdd: Routes.BucketPackageAddFilesArgs
+  bucketPackageAddFiles: Routes.BucketPackageAddFilesArgs
   bucketPackageList: Routes.BucketPackageListArgs
 }
 

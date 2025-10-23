@@ -27,7 +27,7 @@ function useRedirect() {
         try {
           const packageHandle = PackageUri.parse(add)
           if (packageHandle.path) {
-            return urls.bucketPackageAdd(packageHandle.bucket, packageHandle.name, {
+            return urls.bucketPackageAddFiles(packageHandle.bucket, packageHandle.name, {
               [packageHandle.path!]: s3paths.handleToS3Url(fileHandle),
             })
           }
