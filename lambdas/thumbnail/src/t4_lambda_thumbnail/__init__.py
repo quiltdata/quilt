@@ -1,7 +1,7 @@
 """
 Generate thumbnails for n-dimensional images in S3.
 
-Uses `aicsimageio.AICSImage` to read common imaging formats + some supported
+Uses `bioio.BioImage` to read common imaging formats + some supported
 n-dimensional imaging formats. Stong assumptions as to the shape of the
 n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
@@ -17,12 +17,16 @@ from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
 
+import bioio_czi
+import bioio_ome_tiff
+import bioio_tifffile
+import dask.array as da
 import imageio
 import numpy as np
 import pdf2image
 import pptx
 import requests
-from aicsimageio import AICSImage, readers
+from bioio import BioImage
 from pdf2image import convert_from_bytes
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
@@ -122,24 +126,29 @@ def choose_min_grid(x: int) -> Tuple[int, int]:
     return min_grid_shape
 
 
-def norm_img(img: np.ndarray) -> np.ndarray:
+def norm_img(img: da.Array) -> da.Array:
     """
     Normalize an image. This clips the upper and lower 0.01 intensities and
     then rescales the intensities to fit on a int32 range.
     """
+    if len(img.shape) == 3:
+        # leave color images alone
+        # XXX: is this correct?
+        # XXX: do we need to cast to uint8?
+        return img
     # Set to float64 for futher correction math
     img = img.astype(np.float64)
 
     # Clip upper bound
-    img = np.clip(
+    img = da.clip(
         img,
-        a_min=np.percentile(img, 0.01),
-        a_max=np.percentile(img, 99.99),
+        da.percentile(img, 0.01),
+        da.percentile(img, 99.99),
     )
 
     # Normalize greyscale values to floats between zero and one
-    img = img - np.min(img)
-    img = img / np.max(img)
+    img = img - da.min(img)
+    img = img / da.max(img)
 
     # Cast the floats to integers
     imax = np.iinfo(np.uint16).max + 1  # eg imax = 256 for uint8
@@ -150,45 +159,48 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
+def _format_n_dim_ndarray(img: BioImage) -> da.Array:
     # Even though the reader was n-dim, check if the actual data is simply greyscale and return
-    if len(img.reader.data.shape) == 2:
-        return img.reader.data
+    if len(img.reader.dask_data.shape) == 2:
+        return img.reader.dask_data
 
     # Even though the reader was n-dim,
     # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
-    if (len(img.reader.data.shape) == 3 and (
-            img.reader.data.shape[2] == 3 or img.reader.data.shape[2] == 4)):
-        return img.reader.data
+    if (len(img.reader.dask_data.shape) == 3 and (
+            img.reader.dask_data.shape[2] == 3 or img.reader.dask_data.shape[2] == 4)):
+        return img.reader.dask_data
 
     # Check which dimensions are available
-    # AICSImage makes strong assumptions about dimension ordering
+    # BioImage makes strong assumptions about dimension ordering
 
     # Reduce the array down to 2D + Channels when possible
     # Always choose first Scene
-    if "S" in img.reader.dims:
-        img = AICSImage(img.data[0, :, :, :, :, :])
+    # if "S" in img.reader.dims.order:
+    #     return img.reader.dask_data
+    #     img = BioImage(img.dask_data[:, :, :, :, :, 0])
+        # print('!!!', img.dask_data[:, :, :, :, :, 0].shape)
     # Always choose middle time slice
-    if "T" in img.reader.dims:
-        img = AICSImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
+    if "T" in img.reader.dims.order:
+        img = BioImage(img.dask_data[img.dask_data.shape[0] // 2 : img.dask_data.shape[0] // 2 + 1, :, :, :, :])
 
     # Keep Channel data, but max project when possible
-    if "C" in img.reader.dims:
+    if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
         projections = []
-        for i in range(img.data.shape[2]):
-            if "Z" in img.reader.dims:
+        s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
+        for i in range(img.dask_data.shape[1]):
+            if "Z" in img.reader.dims.order:
                 # Add padding to the top and left of the projection
-                padded = np.pad(
-                    norm_img(img.data[0, 0, i, :, :, :].max(axis=0)),
-                    ((5, 0), (5, 0)),
+                padded = da.pad(
+                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
+                    ((5, 0), (5, 0)) + s_pad,
                     mode="constant"
                 )
                 projections.append(padded)
             else:
                 # Add padding to the top and the left of the projection
-                padded = np.pad(
-                    norm_img(img.data[0, 0, i, 0, :, :]),
-                    ((5, 0), (5, 0)),
+                padded = da.pad(
+                    norm_img(img.dask_data[0, i, 0, :, :]),
+                    ((5, 0), (5, 0)) + s_pad,
                     mode="constant"
                 )
                 projections.append(padded)
@@ -210,30 +222,37 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
             rows.append(row)
 
         # Concatenate each row then concatenate all rows together into a single 2D image
-        merged = [np.concatenate(row, axis=1) for row in rows]
+        merged = [da.concatenate(row, axis=1) for row in rows]
 
         # Add padding on the entire bottom and entire right side of the thumbnail
-        return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
+        return da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
 
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
     # we will simply use a max projection on files that contain a Z dimension
-    if "Z" in img.reader.dims:
-        return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
+    if "Z" in img.reader.dims.order:
+        return norm_img(img.dask_data[0, 0, :, :, :].max(axis=0))
 
-    return norm_img(img.data[0, 0, 0, 0, :, :])
+    return norm_img(img.dask_data[0, 0, 0, :, :])
 
 
-def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
+def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
     """
     Simple wrapper around the format n-dim array function to
     determine if we need to format or not.
     """
     # These readers are specific for n dimensional images
-    if isinstance(img.reader, (readers.CziReader, readers.OmeTiffReader, readers.TiffReader)):
+    if isinstance(
+        img.reader,
+        (
+            bioio_czi.reader.Reader,
+            bioio_ome_tiff.reader.Reader,
+            bioio_tifffile.reader.Reader,
+        ),
+    ):
         return _format_n_dim_ndarray(img)
 
-    return img.reader.data
+    return img.reader.dask_data
 
 
 def pptx_to_pdf(*, src: bytes, page: int) -> bytes:
@@ -323,15 +342,27 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
     return info, data
 
 
-def handle_image(*, src: bytes, size: tuple[int, int], thumbnail_format: str):
+def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
     # Read image data
-    img = AICSImage(src)
-    orig_size = list(img.reader.data.shape)
+    img = BioImage(
+        url,
+        # Benchmarks are for images/bioio-tifffile/image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif
+        # With default cache ('bytes') img.data takes ~20s, with this cache it takes ~4s.
+        # Reading to a temporary local file seems a bit faster, but space is limited in Lambda.
+        # The maximum memory use for this cache is blocksize * maxblocks.
+        fs_kwargs={
+            "cache_type": "background",
+            "cache_options": {"maxblocks": 32},
+            "block_size": 8 * 2**20,
+        },
+    )
+    print(img.reader.dims.items())
+    orig_size = list(img.reader.dask_data.shape)
     # Generate a formatted ndarray using the image data
     # Makes some assumptions for n-dim data
     img = format_aicsimage_to_prepped(img)
 
-    img = generate_thumbnail(img, size)
+    img = generate_thumbnail(img.compute(), size)
 
     thumbnail_size = img.size
     # Store the bytes
@@ -374,12 +405,12 @@ def generate_thumbnail(arr, size):
             # PIL does not support all resamplers with all modes.
             # These are all of the resamplers available, Ordered highest to lowest quality.
             fallback_resampler_order = [
-                Image.LANCZOS,
-                Image.BICUBIC,
-                Image.HAMMING,
-                Image.BILINEAR,
-                Image.BOX,
-                Image.NEAREST
+                Image.Resampling.LANCZOS,
+                Image.Resampling.BICUBIC,
+                Image.Resampling.HAMMING,
+                Image.Resampling.BILINEAR,
+                Image.Resampling.BOX,
+                Image.Resampling.NEAREST,
             ]
             for resampler in fallback_resampler_order:
                 try:
@@ -407,30 +438,44 @@ def lambda_handler(request):
     page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 
-    # Handle request
-    resp = requests.get(url)
-    if not resp.ok:
-        # Errored, return error code
-        ret_val = {
-            'error': resp.reason,
-            'text': resp.text,
-        }
-        return make_json_response(resp.status_code, ret_val)
+    if input_ in ("pdf", "pptx"):
+        # For PDF and PPTX inputs, we always use JPEG format for thumbnails
+        thumbnail_format = "JPEG"
+        # Handle request
+        resp = requests.get(url)
+        if not resp.ok:
+            # Errored, return error code
+            ret_val = {
+                'error': resp.reason,
+                'text': resp.text,
+            }
+            return make_json_response(resp.status_code, ret_val)
 
-    src_bytes = resp.content
-    try:
-        thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-            imageio.get_reader(src_bytes),
-            "PNG"
-        )
-    except ValueError:
-        thumbnail_format = "JPEG" if input_ in ("pdf", "pptx") else "PNG"
-    if input_ == "pdf":
-        info, data = handle_pdf(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
-    elif input_ == "pptx":
-        info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+        src_bytes = resp.content
+
+        if input_ == "pdf":
+            info, data = handle_pdf(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+        elif input_ == "pptx":
+            info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+        else:
+            assert False, f"Unhandled input type {input_}"
     else:
-       info, data = handle_image(src=src_bytes, size=size, thumbnail_format=thumbnail_format)
+        # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
+        #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
+        #      So for now, always use PNG.
+        # try:
+        #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
+        #         imageio.get_reader(url),
+        #         "PNG"
+        #     )
+        # except ValueError:
+        #     thumbnail_format = "PNG"
+        thumbnail_format = "PNG"
+        info, data = handle_image(
+            url=url,
+            size=size,
+            thumbnail_format=thumbnail_format,
+        )
 
     headers = {
         'Content-Type': Image.MIME[thumbnail_format],
