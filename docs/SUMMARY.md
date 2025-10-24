@@ -20,6 +20,7 @@
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
+  * [Iceberg Tables](advanced-features/iceberg-tables.md)
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
   * [Removing Stacks](Catalog/RemovingStacks.md)
 
