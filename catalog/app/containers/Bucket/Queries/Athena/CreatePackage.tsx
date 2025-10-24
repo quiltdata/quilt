@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
-import useCreateDialog from 'containers/Bucket/PackageDialog/Create'
+import { FromS3Files, useCreateDialog } from 'containers/Bucket/PackageDialog/Create'
 
 import type * as requests from './model/requests'
 import {
@@ -39,7 +39,7 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
   const handleConfirm = React.useCallback(
     (ok: boolean) => {
       if (!ok) return
-      createDialog.open({ files: { _tag: 's3-files', value: entries.valid } })
+      createDialog.open({ files: FromS3Files(entries.valid) })
     },
     [entries, createDialog],
   )
@@ -55,7 +55,7 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
     if (parsed.invalid.length) {
       confirm.open()
     } else {
-      createDialog.open({ files: { _tag: 's3-files', value: parsed.valid } })
+      createDialog.open({ files: FromS3Files(parsed.valid) })
     }
   }, [confirm, createDialog, queryResults])
 

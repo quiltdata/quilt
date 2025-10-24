@@ -23,9 +23,19 @@ import SubmitSpinner from './SubmitSpinner'
 type LogicalKey = string
 type PhysicalKey = string
 type Files =
-  | { _tag: 'urls'; value: Record<LogicalKey, PhysicalKey> }
-  | { _tag: 's3-files'; value: Record<LogicalKey, Model.S3File> }
-  | { _tag: 'handles'; value: Model.S3.S3ObjectLocation[] }
+  | ReturnType<typeof FromPhysicalKeys>
+  | ReturnType<typeof FromS3Files>
+  | ReturnType<typeof FromHandles>
+
+export function FromPhysicalKeys(value: Record<LogicalKey, PhysicalKey>) {
+  return { _tag: 'urls' as const, value }
+}
+export function FromS3Files(value: Record<LogicalKey, Model.S3File>) {
+  return { _tag: 's3-files' as const, value }
+}
+export function FromHandles(value: Model.S3.S3ObjectLocation[]) {
+  return { _tag: 'handles' as const, value }
+}
 
 interface DialogWrapperProps {
   exited: boolean
@@ -347,7 +357,7 @@ interface UseCreateDialogOptions {
  * Opens the primary form for creating new packages and editing existing ones.
  * Includes file panel for managing package contents.
  */
-export default function useCreateDialog({
+export function useCreateDialog({
   disableStateDisplay = false,
   delayHashing = false,
   currentBucketCanBeSuccessor = false,

@@ -24,7 +24,7 @@ function CreatePackageInBucket({
     dst,
   })
   const onClick = React.useCallback(() => {
-    createDialog.open({ files: { _tag: 'handles', value: handles } })
+    createDialog.open({ files: PD.FromHandles(handles) })
     hide()
   }, [createDialog, handles, hide])
   return (

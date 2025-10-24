@@ -164,7 +164,7 @@ function parseFilesQueryString(qs: string) {
   if (!qs) return undefined
   const map = parseSearch(qs, true) as Record<string, string>
   const value = Object.fromEntries(Object.entries(map).filter(([, p]) => !!p))
-  return { _tag: 'urls' as const, value }
+  return PD.FromPhysicalKeys(value)
 }
 
 function useCreateDialog(packageHandle: PackageHandle) {

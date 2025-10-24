@@ -7,7 +7,7 @@ import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 import * as Toolbar from 'containers/Bucket/Toolbar'
-import { useCreateDialog } from 'containers/Bucket/PackageDialog'
+import { FromHandles, useCreateDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
 import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
@@ -75,12 +75,11 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor) => {
+    (successor) =>
       packageDirectoryDialog.open({
-        files: { _tag: 'handles', value: Selection.toHandlesList(slt.selection) },
+        files: FromHandles(Selection.toHandlesList(slt.selection)),
         successor,
-      })
-    },
+      }),
     [packageDirectoryDialog, slt.selection],
   )
 
