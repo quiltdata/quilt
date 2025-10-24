@@ -7,7 +7,7 @@ import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 import * as Toolbar from 'containers/Bucket/Toolbar'
-import { useCreateDialog } from 'containers/Bucket/PackageDialog'
+import { FromHandles, useCreateDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
 import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
@@ -66,9 +66,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   const classes = useStyles()
   const slt = Selection.use()
 
-  const { path, bucket } = handle
-
-  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const dst = React.useMemo(() => ({ bucket: handle.bucket }), [handle.bucket])
   const packageDirectoryDialog = useCreateDialog({
     currentBucketCanBeSuccessor: true,
     delayHashing: true,
@@ -77,17 +75,15 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor) => {
+    (successor) =>
       packageDirectoryDialog.open({
-        handles: Selection.toHandlesList(slt.selection),
-        path,
+        files: FromHandles(Selection.toHandlesList(slt.selection)),
         successor,
-      })
-    },
-    [packageDirectoryDialog, path, slt.selection],
+      }),
+    [packageDirectoryDialog, slt.selection],
   )
 
-  const successors = CreatePackage.useSuccessors(bucket)
+  const successors = CreatePackage.useSuccessors(handle.bucket)
 
   if (!features) {
     return (

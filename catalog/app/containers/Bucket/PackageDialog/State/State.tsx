@@ -90,15 +90,11 @@ interface Options {
 export function useState(
   initialDst: PackageDst,
   initialSrc?: PackageSrc,
-  initialOpen: boolean | FilesState['value']['added'] = false,
   { disableRestore }: Options = { disableRestore: false },
 ): State {
-  const [open, setOpen] = React.useState(initialOpen)
-  React.useEffect(() => {
-    setOpen(initialOpen)
-  }, [initialOpen])
+  const [open, setOpen] = React.useState<boolean | FilesState['value']['added']>(false)
 
-  const { formStatus, setFormStatus } = useFormStatus(open)
+  const { formStatus, setFormStatus } = useFormStatus(!!open)
 
   const [src, setSrc] = React.useState(initialSrc)
   const [dst, setDst] = React.useState(initialDst)

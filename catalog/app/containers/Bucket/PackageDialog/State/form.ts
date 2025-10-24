@@ -2,8 +2,6 @@ import * as React from 'react'
 
 import type { PackageHandle } from 'utils/packageHandle'
 
-import type { FilesState } from '../Inputs/Files/State'
-
 export type FormStatus =
   | { _tag: 'idle' }
   | { _tag: 'ready' }
@@ -44,7 +42,7 @@ export interface FormState {
   setFormStatus: React.Dispatch<React.SetStateAction<FormStatus>>
 }
 
-function setter(open: boolean | FilesState['added']) {
+function setter(open: boolean) {
   if (!window.crypto?.subtle?.digest) {
     return Err(
       new Error('Quilt requires the Web Cryptography API. Please try another browser.'),
@@ -53,7 +51,7 @@ function setter(open: boolean | FilesState['added']) {
   return open ? Ready : Idle
 }
 
-export function useFormStatus(open: boolean | FilesState['added']): FormState {
+export function useFormStatus(open: boolean): FormState {
   const [formStatus, setFormStatus] = React.useState<FormStatus>(() => setter(open))
 
   React.useEffect(() => setFormStatus(setter(open)), [open])

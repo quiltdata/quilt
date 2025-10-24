@@ -20,6 +20,23 @@ import * as PDModel from './State'
 import { FormSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 
+type LogicalKey = string
+type PhysicalKey = string
+type Files =
+  | ReturnType<typeof FromPhysicalKeys>
+  | ReturnType<typeof FromS3Files>
+  | ReturnType<typeof FromHandles>
+
+export function FromPhysicalKeys(value: Record<LogicalKey, PhysicalKey>) {
+  return { _tag: 'urls' as const, value }
+}
+export function FromS3Files(value: Record<LogicalKey, Model.S3File>) {
+  return { _tag: 's3-files' as const, value }
+}
+export function FromHandles(value: Model.S3.S3ObjectLocation[]) {
+  return { _tag: 'handles' as const, value }
+}
+
 interface DialogWrapperProps {
   exited: boolean
 }
@@ -325,24 +342,12 @@ function RenderDialog({
   }
 }
 
-function useResolveFiles() {
-  const getFiles = requests.useFilesListing()
-  return React.useCallback(
-    async (
-      handles?: Model.S3.S3ObjectLocation[],
-      files?: Record<string, Model.S3File>,
-    ) => (handles ? { ...(await getFiles(handles)), ...files } : files),
-    [getFiles],
-  )
-}
-
 interface UseCreateDialogOptions {
   currentBucketCanBeSuccessor?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
   dst: PDModel.PackageDst
   src?: PDModel.PackageSrc
-  open?: boolean | PDModel.FilesState['value']['added']
   onClose?: () => void
 }
 
@@ -352,49 +357,45 @@ interface UseCreateDialogOptions {
  * Opens the primary form for creating new packages and editing existing ones.
  * Includes file panel for managing package contents.
  */
-export default function useCreateDialog({
+export function useCreateDialog({
   disableStateDisplay = false,
   delayHashing = false,
   currentBucketCanBeSuccessor = false,
   dst: initialDst,
   src: initialSrc,
-  open: initialOpen,
   onClose,
 }: UseCreateDialogOptions) {
-  const state = PDModel.useState(initialDst, initialSrc, initialOpen)
+  const state = PDModel.useState(initialDst, initialSrc)
   const { formStatus, setDst, reset, workflowsConfig, open: isOpen, setOpen } = state
 
-  const [exited, setExited] = React.useState(!initialOpen)
+  const [exited, setExited] = React.useState(false)
 
   const [waitingListing, setWaitingListing] = React.useState(false)
-  const resolveFiles = useResolveFiles()
+  const resolveHandles = requests.useFilesListing()
 
   const open = React.useCallback(
-    async (initial?: {
-      successor?: workflows.Successor
-      path?: string
-      handles?: Model.S3.S3ObjectLocation[]
-      files?: Record<string, Model.S3File>
-    }) => {
-      if (initial?.successor) {
-        setDst((d) => (initial.successor ? { ...d, bucket: initial.successor.slug } : d))
+    async ({
+      successor,
+      files,
+    }: { successor?: workflows.Successor; files?: Files } = {}) => {
+      if (successor) {
+        setDst((d) => ({ ...d, bucket: successor.slug }))
       }
 
       setOpen(true)
       setExited(false)
 
-      if (initial?.handles?.length || initial?.files) {
-        setWaitingListing(true)
-
-        const filesMap = await resolveFiles(initial.handles, initial.files)
-        if (filesMap && Object.keys(filesMap).length) {
-          setOpen(filesMap)
+      if (files) {
+        if (files._tag === 's3-files') {
+          setOpen(files.value)
+        } else {
+          setWaitingListing(true)
+          setOpen(await resolveHandles(files.value))
+          setWaitingListing(false)
         }
-
-        setWaitingListing(false)
       }
     },
-    [resolveFiles, setOpen, setDst],
+    [resolveHandles, setOpen, setDst],
   )
 
   const close = React.useCallback(() => {
@@ -443,5 +444,5 @@ export default function useCreateDialog({
     </DialogWrapper>
   )
 
-  return { open, close, render, onClose }
+  return { open, close, render, isOpen }
 }
