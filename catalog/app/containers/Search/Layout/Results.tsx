@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import * as PD from 'containers/Bucket/PackageDialog'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
@@ -25,47 +25,56 @@ const useCreatePackageStyles = M.makeStyles({
   },
 })
 
+interface CreatePackageButtonProps {
+  className: string
+  onClick: () => void
+}
+
+function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
+  const classes = useCreatePackageStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  return xs ? (
+    <M.Button
+      className={className}
+      color="primary"
+      onClick={onClick}
+      size="medium"
+      variant="contained"
+    >
+      <M.Icon>add</M.Icon>
+    </M.Button>
+  ) : (
+    <M.Button
+      className={className}
+      color="primary"
+      onClick={onClick}
+      size={sm ? 'medium' : 'small'}
+      startIcon={<M.Icon>add</M.Icon>}
+      variant="contained"
+    >
+      <span className={classes.label}>Create new package</span>
+    </M.Button>
+  )
+}
+
 interface CreatePackageProps {
   className: string
 }
 
 function CreatePackage({ className }: CreatePackageProps) {
-  const classes = useCreatePackageStyles()
   const bucket = useBucketStrict()
-  const createDialog = usePackageCreationDialog({
-    bucket,
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const { open, render } = PD.useCreateDialog({
+    dst,
     delayHashing: true,
     disableStateDisplay: true,
   })
-  const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <>
-      {xs ? (
-        <M.Button
-          className={className}
-          color="primary"
-          onClick={handleClick}
-          size="medium"
-          variant="contained"
-        >
-          <M.Icon>add</M.Icon>
-        </M.Button>
-      ) : (
-        <M.Button
-          className={className}
-          color="primary"
-          onClick={handleClick}
-          size={sm ? 'medium' : 'small'}
-          startIcon={<M.Icon>add</M.Icon>}
-          variant="contained"
-        >
-          <span className={classes.label}>Create new package</span>
-        </M.Button>
-      )}
-      {createDialog.render({
+      <CreatePackageButton className={className} onClick={open} />
+      {render({
         successTitle: 'Package created',
         successRenderMessage: ({ packageLink }) => (
           <>Package {packageLink} successfully created</>

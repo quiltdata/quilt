@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
 
@@ -52,7 +53,22 @@ export const MetaInputSkeleton = React.forwardRef(function MetaInputSkeleton(
 })
 
 export function WorkflowsInputSkeleton({ animate }: AnimateProp) {
-  return <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
+  return (
+    <M.FormControl fullWidth size="small">
+      <M.InputLabel shrink>
+        <Lab.Skeleton width={120} animation={animate ? 'wave' : false} />
+      </M.InputLabel>
+      <Lab.Skeleton
+        width="100%"
+        variant="rect"
+        style={{ marginTop: '16px', height: '32px' }}
+        animation={animate ? 'wave' : false}
+      />
+      <M.FormHelperText>
+        <Lab.Skeleton width={240} animation={animate ? 'wave' : false} />
+      </M.FormHelperText>
+    </M.FormControl>
+  )
 }
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
@@ -70,12 +86,12 @@ export function FormSkeleton({ animate }: AnimateProp) {
   return (
     <Layout.Container>
       <Layout.LeftColumn>
+        <WorkflowsInputSkeleton animate={animate} />
+
         <TextFieldSkeleton animate={animate} />
         <TextFieldSkeleton animate={animate} />
 
         <MetaInputSkeleton className={classes.meta} animate={animate} />
-
-        <WorkflowsInputSkeleton animate={animate} />
       </Layout.LeftColumn>
 
       <Layout.RightColumn>
