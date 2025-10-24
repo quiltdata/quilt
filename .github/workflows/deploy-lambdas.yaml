@@ -2,77 +2,77 @@ name: Deploy lambdas to S3 and ECR
 
 on:
   push:
-    branches:
-      - master
+    # branches:
+    #   - master
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
 
 jobs:
-  deploy-lambda-s3:
-    strategy:
-      matrix:
-        path:
-          - access_counts
-          - es_ingest
-          - iceberg
-          - pkgevents
-          - pkgpush
-          - preview
-          - s3hash
-          - status_reports
-          - manifest_indexer
-          - tabular_preview
-          - transcode
-    runs-on: ubuntu-latest
-    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
-      - name: Export requirements.txt from uv.lock
-        if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
-        run: |
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
-      - name: Build zip
-        run: |
-          BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
+  # deploy-lambda-s3:
+  #   strategy:
+  #     matrix:
+  #       path:
+  #         - access_counts
+  #         - es_ingest
+  #         - iceberg
+  #         - pkgevents
+  #         - pkgpush
+  #         - preview
+  #         - s3hash
+  #         - status_reports
+  #         - manifest_indexer
+  #         - tabular_preview
+  #         - transcode
+  #   runs-on: ubuntu-latest
+  #   # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: astral-sh/setup-uv@v7
+  #     - name: Export requirements.txt from uv.lock
+  #       if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
+  #       run: |
+  #         uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
+  #     - name: Build zip
+  #       run: |
+  #         BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
 
-          touch ./out.zip
+  #         touch ./out.zip
 
-          docker run --rm \
-            --entrypoint /build_zip.sh \
-            -v "$PWD/lambdas/${{ matrix.path }}":/lambda/function:z \
-            -v "$PWD/out.zip":/out.zip:z \
-            -v "$PWD/lambdas/scripts/build_zip.sh":/build_zip.sh:z \
-            "$BUILDER_IMAGE"
-      - name: Configure AWS credentials from Prod account
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
-          aws-region: us-east-1
-      - name: Upload zips to Prod S3
-        run: |
-          s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
-          ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
-      - name: Configure AWS credentials from GovCloud account
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
-          aws-region: us-gov-east-1
-      - name: Upload zips to GovCloud S3
-        run: |
-          s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
-          ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
+  #         docker run --rm \
+  #           --entrypoint /build_zip.sh \
+  #           -v "$PWD/lambdas/${{ matrix.path }}":/lambda/function:z \
+  #           -v "$PWD/out.zip":/out.zip:z \
+  #           -v "$PWD/lambdas/scripts/build_zip.sh":/build_zip.sh:z \
+  #           "$BUILDER_IMAGE"
+  #     - name: Configure AWS credentials from Prod account
+  #       uses: aws-actions/configure-aws-credentials@v5
+  #       with:
+  #         role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
+  #         aws-region: us-east-1
+  #     - name: Upload zips to Prod S3
+  #       run: |
+  #         s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
+  #         ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
+  #     - name: Configure AWS credentials from GovCloud account
+  #       uses: aws-actions/configure-aws-credentials@v5
+  #       with:
+  #         role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
+  #         aws-region: us-gov-east-1
+  #     - name: Upload zips to GovCloud S3
+  #       run: |
+  #         s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
+  #         ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
 
   deploy-lambda-ecr:
     strategy:
       matrix:
         path:
           - indexer
-          - thumbnail
+          # - thumbnail
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -90,10 +90,10 @@ jobs:
           aws-region: us-east-1
       - name: Push Docker image to Prod ECR
         run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
-      - name: Configure AWS credentials from GovCloud account
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
-          aws-region: us-gov-east-1
-      - name: Push Docker image to GovCloud ECR
-        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+      # - name: Configure AWS credentials from GovCloud account
+      #   uses: aws-actions/configure-aws-credentials@v5
+      #   with:
+      #     role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
+      #     aws-region: us-gov-east-1
+      # - name: Push Docker image to GovCloud ECR
+      #   run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
