@@ -147,7 +147,7 @@ interface BucketPackageAddFilesOpts {
 export const bucketPackageAddFiles = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/add`,
   (bucket: string, name: string, files: BucketPackageAddFilesOpts = {}) =>
-    `/b/${bucket}/packages/${name}/add/${mkSearch(files)}`,
+    `/b/${bucket}/packages/${name}/add${mkSearch(files)}`,
 )
 
 export type BucketPackageAddFilesArgs = Parameters<typeof bucketPackageAddFiles.url>
