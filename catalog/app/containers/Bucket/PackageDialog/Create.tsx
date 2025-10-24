@@ -385,16 +385,15 @@ export function useCreateDialog({
       setOpen(true)
       setExited(false)
 
-      if (!files) return
-
-      if (files._tag === 's3-files') {
-        setOpen(files.value)
-        return
+      if (files) {
+        if (files._tag === 's3-files') {
+          setOpen(files.value)
+        } else {
+          setWaitingListing(true)
+          setOpen(await resolveHandles(files.value))
+          setWaitingListing(false)
+        }
       }
-
-      setWaitingListing(true)
-      setOpen(await resolveHandles(files.value))
-      setWaitingListing(false)
     },
     [resolveHandles, setOpen, setDst],
   )
