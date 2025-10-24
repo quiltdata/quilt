@@ -72,7 +72,7 @@ dev = [
     "pytest-cov",
     "pytest-env",
     "pytest-subtests",
-    "pytest==6.*",
+    "pytest~=8.4",
     "responses",
     "ruff>=0.12.11",
     "quilt3[pyarrow,anndata]",
