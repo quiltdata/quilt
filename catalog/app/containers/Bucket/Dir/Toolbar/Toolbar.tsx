@@ -66,9 +66,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   const classes = useStyles()
   const slt = Selection.use()
 
-  const { bucket } = handle
-
-  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const dst = React.useMemo(() => ({ bucket: handle.bucket }), [handle.bucket])
   const packageDirectoryDialog = useCreateDialog({
     currentBucketCanBeSuccessor: true,
     delayHashing: true,
@@ -86,7 +84,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
     [packageDirectoryDialog, slt.selection],
   )
 
-  const successors = CreatePackage.useSuccessors(bucket)
+  const successors = CreatePackage.useSuccessors(handle.bucket)
 
   if (!features) {
     return (

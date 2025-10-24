@@ -188,13 +188,15 @@ function useCreateDialog(packageHandle: PackageHandle) {
   const shouldOpen = React.useMemo(() => match && !isOpen, [match, isOpen])
 
   React.useEffect(() => {
-    if (!shouldClose) return
-    close()
+    if (shouldClose) {
+      close()
+    }
   }, [shouldClose, close])
   React.useEffect(() => {
-    if (!shouldOpen) return
-    const value = parseSearch(location.search, true) as Record<string, string>
-    open({ files: { _tag: 'urls', value } })
+    if (shouldOpen) {
+      const value = parseSearch(location.search, true) as Record<string, string>
+      open({ files: { _tag: 'urls', value } })
+    }
   }, [shouldOpen, open, location.search])
 
   return createDialog
@@ -214,16 +216,9 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
-  onSuccessor: (s: workflows.Successor) => void
 }
 
-function DirDisplay({
-  packageHandle,
-  hashOrTag,
-  path,
-  crumbs,
-  onSuccessor,
-}: DirDisplayProps) {
+function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
@@ -315,8 +310,18 @@ function DirDisplay({
     [bucket, name, hash, path],
   )
 
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
+  const closeCopyDialog = React.useCallback(() => setSuccessor(null), [])
+
   return (
     <>
+      <PD.Copy
+        onClose={closeCopyDialog}
+        src={packageHandle}
+        successor={successor}
+        key={successor?.slug || 'none'}
+      />
+
       <RevisionDeleteDialog
         error={deletionState.error}
         open={deletionState.opened}
@@ -429,7 +434,7 @@ function DirDisplay({
                             className={classes.button}
                             bucket={bucket}
                             icon="exit_to_app"
-                            onChange={onSuccessor}
+                            onChange={setSuccessor}
                           >
                             Push to bucket
                           </Successors.Button>
@@ -941,36 +946,10 @@ function PackageRevision({
   mode,
   revision,
 }: PackageRevisionProps) {
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
-  const { bucket } = packageHandle
-  const copyDst = React.useMemo(
-    () => ({ bucket: successor?.slug || bucket, name: packageHandle.name }),
-    [bucket, successor, packageHandle.name],
-  )
-  const state = PD.useState(copyDst, packageHandle, { disableRestore: true })
-  const { setOpen } = state
-  const closeCopyDialog = React.useCallback(() => {
-    setOpen(false)
-    setSuccessor(null)
-  }, [setOpen])
-  const openCopyDialog = React.useCallback(
-    (s: workflows.Successor) => {
-      setOpen(true)
-      setSuccessor(s)
-    },
-    [setOpen],
-  )
-
   const isDir = path === '' || path.endsWith('/')
 
   return (
     <>
-      <PD.Copy
-        successor={successor}
-        state={state}
-        onClose={closeCopyDialog}
-        key={successor?.slug || 'none'}
-      />
       <ResolverProvider packageHandle={packageHandle}>
         <AssistantContext.PackageContext
           bucket={packageHandle.bucket}
@@ -982,7 +961,7 @@ function PackageRevision({
           <DirDisplay
             packageHandle={packageHandle}
             {...{ hashOrTag, path }}
-            {...{ crumbs, onSuccessor: openCopyDialog }}
+            {...{ crumbs }}
           />
         ) : (
           <FileDisplayQuery
