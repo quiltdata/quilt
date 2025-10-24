@@ -362,7 +362,6 @@ export default function useCreateDialog({
 
   const [waitingListing, setWaitingListing] = React.useState(false)
   const resolveHandles = requests.useFilesListing()
-  const resolveEntries = requests.useResolvePhysicalKeys()
 
   const open = React.useCallback(
     async ({
@@ -384,19 +383,10 @@ export default function useCreateDialog({
       }
 
       setWaitingListing(true)
-      switch (files._tag) {
-        case 'urls':
-          setOpen(await resolveEntries(files.value))
-          break
-        case 'handles':
-          setOpen(await resolveHandles(files.value))
-          break
-        default:
-          assertNever(files)
-      }
+      setOpen(await resolveHandles(files.value))
       setWaitingListing(false)
     },
-    [resolveEntries, resolveHandles, setOpen, setDst],
+    [resolveHandles, setOpen, setDst],
   )
 
   const close = React.useCallback(() => {

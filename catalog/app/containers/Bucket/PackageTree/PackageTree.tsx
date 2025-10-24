@@ -160,6 +160,13 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   )
 }
 
+function parseFilesQueryString(qs: string) {
+  if (!qs) return undefined
+  const map = parseSearch(qs, true) as Record<string, string>
+  const value = Object.fromEntries(Object.entries(map).filter(([, p]) => !!p))
+  return { _tag: 'urls' as const, value }
+}
+
 function useCreateDialog(packageHandle: PackageHandle) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
@@ -194,8 +201,7 @@ function useCreateDialog(packageHandle: PackageHandle) {
   }, [shouldClose, close])
   React.useEffect(() => {
     if (shouldOpen) {
-      const value = parseSearch(location.search, true) as Record<string, string>
-      open({ files: { _tag: 'urls', value } })
+      open({ files: parseFilesQueryString(location.search) })
     }
   }, [shouldOpen, open, location.search])
 
