@@ -66,7 +66,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   const classes = useStyles()
   const slt = Selection.use()
 
-  const { path, bucket } = handle
+  const { bucket } = handle
 
   const dst = React.useMemo(() => ({ bucket }), [bucket])
   const packageDirectoryDialog = useCreateDialog({
@@ -79,12 +79,11 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   const openPackageCreationDialog = React.useCallback(
     (successor) => {
       packageDirectoryDialog.open({
-        handles: Selection.toHandlesList(slt.selection),
-        path,
+        files: { _tag: 'handles', value: Selection.toHandlesList(slt.selection) },
         successor,
       })
     },
-    [packageDirectoryDialog, path, slt.selection],
+    [packageDirectoryDialog, slt.selection],
   )
 
   const successors = CreatePackage.useSuccessors(bucket)

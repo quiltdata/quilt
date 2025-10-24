@@ -176,6 +176,29 @@ function useHeadFile() {
   )
 }
 
+type LogicalKey = string
+type PhysicalKey = string
+type PhysicalKeyPair = [LogicalKey, PhysicalKey]
+
+async function resolveEntries(
+  headFile: (h: Model.S3.S3ObjectLocation) => Promise<Model.S3File>,
+  entryPairs: PhysicalKeyPair[],
+): Promise<Record<LogicalKey, Model.S3File>> {
+  const fetchS3File = (p: PhysicalKey) => limit(headFile, s3paths.parseS3Url(p))
+  const fetchS3FilePair = async ([l, p]: PhysicalKeyPair) => [l, await fetchS3File(p)]
+  const pairs = await Promise.all(entryPairs.map(fetchS3FilePair))
+  return Object.fromEntries(pairs)
+}
+
+export function useResolvePhysicalKeys() {
+  const headFile = useHeadFile()
+  return React.useCallback(
+    (entries: Record<LogicalKey, PhysicalKey>) =>
+      resolveEntries(headFile, Object.entries(entries)),
+    [headFile],
+  )
+}
+
 const limit = pLimit(5)
 
 export function useFilesListing() {

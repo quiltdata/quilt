@@ -164,18 +164,40 @@ function useCreateDialog(packageHandle: PackageHandle) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
-  const open = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
+  const match = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
 
   const { push } = history
   const onClose = React.useCallback(() => {
-    if (!open) return
+    if (!match) return
 
     const { bucket, name } = packageHandle
     // `bucketPackageDetail` only, because `bucketPackageAddFiles` is on top of "latest", not specific revision
     push(urls.bucketPackageDetail(bucket, name))
-  }, [open, packageHandle, push, urls])
+  }, [match, packageHandle, push, urls])
 
-  return PD.useCreateDialog({ src: packageHandle, dst: packageHandle, open, onClose })
+  const location = RRDom.useLocation()
+  const createDialog = PD.useCreateDialog({
+    src: packageHandle,
+    dst: packageHandle,
+    onClose,
+  })
+
+  const { open, close, isOpen } = createDialog
+
+  const shouldClose = React.useMemo(() => !match && isOpen, [match, isOpen])
+  const shouldOpen = React.useMemo(() => match && !isOpen, [match, isOpen])
+
+  React.useEffect(() => {
+    if (!shouldClose) return
+    close()
+  }, [shouldClose, close])
+  React.useEffect(() => {
+    if (!shouldOpen) return
+    const value = parseSearch(location.search, true) as Record<string, string>
+    open({ files: { _tag: 'urls', value } })
+  }, [shouldOpen, open, location.search])
+
+  return createDialog
 }
 
 const useDirDisplayStyles = M.makeStyles((t) => ({
@@ -920,16 +942,23 @@ function PackageRevision({
   revision,
 }: PackageRevisionProps) {
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
-
-  const closeCopyDialog = React.useCallback(() => setSuccessor(null), [])
-  const openCopyDialog = React.useCallback(
-    (s: workflows.Successor) => setSuccessor(s),
-    [],
-  )
   const { bucket } = packageHandle
   const copyDst = React.useMemo(
     () => ({ bucket: successor?.slug || bucket, name: packageHandle.name }),
     [bucket, successor, packageHandle.name],
+  )
+  const state = PD.useState(copyDst, packageHandle, { disableRestore: true })
+  const { setOpen } = state
+  const closeCopyDialog = React.useCallback(() => {
+    setOpen(false)
+    setSuccessor(null)
+  }, [setOpen])
+  const openCopyDialog = React.useCallback(
+    (s: workflows.Successor) => {
+      setOpen(true)
+      setSuccessor(s)
+    },
+    [setOpen],
   )
 
   const isDir = path === '' || path.endsWith('/')
@@ -938,9 +967,7 @@ function PackageRevision({
     <>
       <PD.Copy
         successor={successor}
-        src={packageHandle}
-        dst={copyDst}
-        open={!!successor}
+        state={state}
         onClose={closeCopyDialog}
         key={successor?.slug || 'none'}
       />

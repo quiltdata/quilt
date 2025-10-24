@@ -39,7 +39,7 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
   const handleConfirm = React.useCallback(
     (ok: boolean) => {
       if (!ok) return
-      createDialog.open({ files: entries.valid })
+      createDialog.open({ files: { _tag: 's3-files', value: entries.valid } })
     },
     [entries, createDialog],
   )
@@ -55,7 +55,7 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
     if (parsed.invalid.length) {
       confirm.open()
     } else {
-      createDialog.open({ files: parsed.valid })
+      createDialog.open({ files: { _tag: 's3-files', value: parsed.valid } })
     }
   }, [confirm, createDialog, queryResults])
 
