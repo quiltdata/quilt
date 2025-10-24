@@ -25,7 +25,6 @@ from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from t4_lambda_es_indexer.document_queue import EVENT_PREFIX, RetryError
 
 from quilt_shared.const import MANIFESTS_PREFIX, NAMED_PACKAGES_PREFIX
 from quilt_shared.es import (
@@ -33,9 +32,9 @@ from quilt_shared.es import (
     get_manifest_doc_id,
     get_ptr_doc_id,
 )
-from t4_lambda_shared.utils import separated_env_to_iter
-
 from t4_lambda_es_indexer import document_queue, index
+from t4_lambda_es_indexer.document_queue import EVENT_PREFIX, RetryError
+from t4_lambda_shared.utils import separated_env_to_iter
 
 BASE_DIR = Path(__file__).parent / 'data'
 
