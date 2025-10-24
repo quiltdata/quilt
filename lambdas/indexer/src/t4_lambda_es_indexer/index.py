@@ -59,7 +59,7 @@ import boto3
 import botocore
 import nbformat
 from dateutil.tz import tzutc
-from document_queue import (
+from .document_queue import (
     EVENT_PREFIX,
     MAX_RETRY,
     DocumentQueue,

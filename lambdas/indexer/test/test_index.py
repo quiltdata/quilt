@@ -25,7 +25,7 @@ from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import EVENT_PREFIX, RetryError
+from t4_lambda_es_indexer.document_queue import EVENT_PREFIX, RetryError
 
 from quilt_shared.const import MANIFESTS_PREFIX, NAMED_PACKAGES_PREFIX
 from quilt_shared.es import (
@@ -35,7 +35,7 @@ from quilt_shared.es import (
 )
 from t4_lambda_shared.utils import separated_env_to_iter
 
-from .. import document_queue, index
+from t4_lambda_es_indexer import document_queue, index
 
 BASE_DIR = Path(__file__).parent / 'data'
 
@@ -399,7 +399,7 @@ def test_skip_rows_env(env_var, check, expected):
     # since index.SKIP_ROWS_EXTS will never change after import
     with patch.dict(os.environ, {'SKIP_ROWS_EXTS': env_var}):
         exts = separated_env_to_iter('SKIP_ROWS_EXTS')
-        with patch('index.SKIP_ROWS_EXTS', exts):
+        with patch('t4_lambda_es_indexer.index.SKIP_ROWS_EXTS', exts):
             if expected:
                 assert check in exts
             else:
@@ -1430,7 +1430,7 @@ class TestIndex(TestCase):
         assert contents == ""
 
     @pytest.mark.extended
-    @patch('document_queue.ELASTIC_LIMIT_BYTES', 64_000)
+    @patch('t4_lambda_es_indexer.document_queue.ELASTIC_LIMIT_BYTES', 64_000)
     def test_get_contents_extended(self):
         files = (BASE_DIR / 'extended').glob('**/*-c000')
         for f in files:
