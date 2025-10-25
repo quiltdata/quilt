@@ -59,13 +59,6 @@ import boto3
 import botocore
 import nbformat
 from dateutil.tz import tzutc
-from document_queue import (
-    EVENT_PREFIX,
-    MAX_RETRY,
-    DocumentQueue,
-    get_content_index_bytes,
-    get_content_index_extensions,
-)
 from jsonschema import ValidationError, draft7_format_checker, validate
 from pdfminer.high_level import extract_text as extract_pdf_text
 from tenacity import (
@@ -96,6 +89,14 @@ from t4_lambda_shared.utils import (
     get_available_memory,
     get_quilt_logger,
     separated_env_to_iter,
+)
+
+from .document_queue import (
+    EVENT_PREFIX,
+    MAX_RETRY,
+    DocumentQueue,
+    get_content_index_bytes,
+    get_content_index_extensions,
 )
 
 # translate events to S3 native names
