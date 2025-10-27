@@ -25,6 +25,8 @@ export class ESTimeout extends BucketError {}
 
 export class ESThrottle extends BucketError {}
 
+export class FailedResolvingFiles extends BucketError {}
+
 export class FileNotFound extends BucketError {}
 
 export class VersionNotFound extends BucketError {}

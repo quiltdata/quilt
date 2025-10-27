@@ -170,6 +170,8 @@ function useHeadFile() {
   )
 }
 
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message || e.name : `${e}`)
+
 type LogicalKey = string
 type PhysicalKey = string
 
@@ -177,8 +179,14 @@ function useResolveFile() {
   const headFile = useHeadFile()
   return React.useCallback(
     async (handle: Model.S3.S3ObjectLocation, logicalKey?: LogicalKey) => {
-      const result = await headFile(handle)
-      return { [logicalKey || basename(result.key)]: result }
+      try {
+        const result = await headFile(handle)
+        return { [logicalKey || basename(result.key)]: result }
+      } catch (e) {
+        throw new Error(
+          `Failed resolving file ${s3paths.handleToS3Url(handle)}: ${errorMessage(e)}`,
+        )
+      }
     },
     [headFile],
   )
@@ -188,19 +196,25 @@ function useResolveDirectory() {
   const requestbucketListing = useBucketListing()
   return React.useCallback(
     async (handle: Model.S3.S3ObjectLocation, prefix?: LogicalKey) => {
-      const result = await requestbucketListing({
-        bucket: handle.bucket,
-        path: handle.key,
-        delimiter: false,
-        drain: true,
-      })
-      const pairs = result.files.map((file) => [
-        prefix
-          ? join(prefix, relative(result.path, file.key))
-          : relative(join(result.path, '..'), file.key),
-        file,
-      ])
-      return Object.fromEntries(pairs as [LogicalKey, Model.S3File][])
+      try {
+        const result = await requestbucketListing({
+          bucket: handle.bucket,
+          path: handle.key,
+          delimiter: false,
+          drain: true,
+        })
+        const pairs = result.files.map((file) => [
+          prefix
+            ? join(prefix, relative(result.path, file.key))
+            : relative(join(result.path, '..'), file.key),
+          file,
+        ])
+        return Object.fromEntries(pairs as [LogicalKey, Model.S3File][])
+      } catch (e) {
+        throw new Error(
+          `Failed resolving directory ${s3paths.handleToS3Url(handle)}: ${errorMessage(e)}`,
+        )
+      }
     },
     [requestbucketListing],
   )
@@ -212,10 +226,14 @@ function useResolveHandlesMap() {
   return React.useCallback(
     (handlesMap: Record<LogicalKey, PhysicalKey>) =>
       Object.entries(handlesMap).map(([logicalKey, physicalKey]) => {
-        const handle = s3paths.parseS3Url(physicalKey)
-        return s3paths.isDir(handle.key)
-          ? limit(resolveDirectory, handle, logicalKey)
-          : limit(resolveFile, handle, logicalKey)
+        try {
+          const handle = s3paths.parseS3Url(physicalKey)
+          return s3paths.isDir(handle.key)
+            ? limit(resolveDirectory, handle, logicalKey)
+            : limit(resolveFile, handle, logicalKey)
+        } catch (e) {
+          throw new Error(`Failed resolving ${physicalKey}: ${errorMessage(e)}`)
+        }
       }),
     [resolveFile, resolveDirectory],
   )
