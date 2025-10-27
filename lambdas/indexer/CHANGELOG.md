@@ -17,8 +17,8 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Switched to uv ([#4616](https://github.com/quiltdata/quilt/pull/4616))
-- [Changed] Upgraded to Python 3.12 ([#4616](https://github.com/quiltdata/quilt/pull/4616))
+- [Changed] Switch to uv ([#4616](https://github.com/quiltdata/quilt/pull/4616))
+- [Changed] Upgrade to Python 3.12 ([#4616](https://github.com/quiltdata/quilt/pull/4616))
 - [Changed] Manifest handling moved to `manifest_indexer` lambda ([#4422](https://github.com/quiltdata/quilt/pull/4422))
 - [Changed] Adjust for new package index organization: separate docs for manifests and pointers ([#4422](https://github.com/quiltdata/quilt/pull/4422))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
