@@ -20,13 +20,6 @@ describe('containers/Bucket/PackageDialog/State/form', () => {
     expect(result.current.formStatus).toEqual(Form.Ready)
   })
 
-  it('should return Ready when initialOpen is file object', () => {
-    const filesState = { foo: { bucket: 'bar', key: 'foo', size: 0 } }
-
-    const { result } = renderHook(() => Form.use(filesState))
-    expect(result.current.formStatus).toEqual(Form.Ready)
-  })
-
   it('should return error when window.crypto.subtle is not available', () => {
     Object.defineProperty(window, 'crypto', { value: undefined, writable: true })
 

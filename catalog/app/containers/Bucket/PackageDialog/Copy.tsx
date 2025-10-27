@@ -263,9 +263,7 @@ function RenderDialog({ close, dialogStatus, formState, successor }: RenderDialo
 interface PackageCopyDialogProps {
   successor: workflows.Successor | null
   onClose: () => void
-  dst: { bucket: string; name?: string }
   src: PDModel.PackageSrc
-  open: boolean
 }
 
 /**
@@ -278,14 +276,16 @@ interface PackageCopyDialogProps {
 export default function PackageCopyDialog({
   successor,
   onClose,
-  dst,
   src,
-  open: initialOpen,
 }: PackageCopyDialogProps) {
-  const state = PDModel.useState(dst, src, initialOpen, {
-    disableRestore: true,
-  })
-  const { formStatus, workflowsConfig, manifest, open } = state
+  const dst = React.useMemo(
+    () => ({ bucket: successor?.slug || src.bucket, name: src.name }),
+    [src, successor],
+  )
+  const state = PDModel.useState(dst, src, { disableRestore: true })
+  const { formStatus, workflowsConfig, manifest, open, setOpen } = state
+
+  React.useEffect(() => setOpen(!!successor), [setOpen, successor])
 
   const close = React.useCallback(() => {
     if (formStatus._tag === 'submitting') return
