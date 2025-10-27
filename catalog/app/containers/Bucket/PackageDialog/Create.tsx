@@ -366,7 +366,15 @@ export function useCreateDialog({
   onClose,
 }: UseCreateDialogOptions) {
   const state = PDModel.useState(initialDst, initialSrc)
-  const { formStatus, setDst, reset, workflowsConfig, open: isOpen, setOpen } = state
+  const {
+    formStatus,
+    setDst,
+    reset,
+    workflowsConfig,
+    manifest,
+    open: isOpen,
+    setOpen,
+  } = state
 
   const [exited, setExited] = React.useState(false)
 
@@ -414,11 +422,14 @@ export function useCreateDialog({
   const dialogStatus: PDModel.DialogStatus = React.useMemo(() => {
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (waitingListing) return { _tag: 'loading', waitListing: true }
-    if (workflowsConfig._tag === 'loading') return { _tag: 'loading', waitListing: false }
-    if (workflowsConfig._tag === 'error')
+    if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
+      return { _tag: 'loading', waitListing: false }
+    }
+    if (workflowsConfig._tag === 'error') {
       return { _tag: 'error', error: workflowsConfig.error }
+    }
     return { _tag: 'ready' }
-  }, [waitingListing, workflowsConfig, formStatus])
+  }, [waitingListing, workflowsConfig, formStatus, manifest])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <DialogWrapper
