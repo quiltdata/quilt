@@ -11,6 +11,7 @@ on:
 jobs:
   deploy-lambda-s3:
     strategy:
+      fail-fast: false
       matrix:
         path:
           - access_counts
@@ -69,6 +70,7 @@ jobs:
 
   deploy-lambda-ecr:
     strategy:
+      fail-fast: false
       matrix:
         path:
           - indexer
