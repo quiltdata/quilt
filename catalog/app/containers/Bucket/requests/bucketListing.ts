@@ -195,7 +195,9 @@ function useResolveDirectory() {
         drain: true,
       })
       const pairs = result.files.map((file) => [
-        relative(prefix || join(result.path, '..'), file.key),
+        prefix
+          ? join(prefix, relative(result.path, file.key))
+          : relative(join(result.path, '..'), file.key),
         file,
       ])
       return Object.fromEntries(pairs as [LogicalKey, Model.S3File][])
