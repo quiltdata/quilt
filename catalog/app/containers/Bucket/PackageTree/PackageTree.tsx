@@ -189,10 +189,10 @@ function useCreateDialog(packageHandle: PackageHandle) {
     onClose,
   })
 
-  const { open, close, isOpen } = createDialog
+  const { open, close } = createDialog
 
-  const shouldClose = React.useMemo(() => !match && isOpen, [match, isOpen])
-  const shouldOpen = React.useMemo(() => match && !isOpen, [match, isOpen])
+  const shouldClose = !match
+  const shouldOpen = !!match
 
   React.useEffect(() => {
     if (shouldClose) {
