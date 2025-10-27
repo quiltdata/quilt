@@ -38,5 +38,5 @@ six==1.16.0
     # via python-dateutil
 t4-lambda-shared @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared
     # via pkgevents (setup.py)
-urllib3==2.2.3
+urllib3==2.5.0
     # via botocore
