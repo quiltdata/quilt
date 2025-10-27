@@ -9,6 +9,7 @@ import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
 
 import * as Successors from '../Successors'
+import * as ERRORS from '../errors'
 import * as requests from '../requests'
 
 import DialogError from './DialogError'
@@ -366,11 +367,20 @@ export function useCreateDialog({
   onClose,
 }: UseCreateDialogOptions) {
   const state = PDModel.useState(initialDst, initialSrc)
-  const { formStatus, setDst, reset, workflowsConfig, open: isOpen, setOpen } = state
+  const {
+    formStatus,
+    manifest,
+    open: isOpen,
+    reset,
+    setDst,
+    setOpen,
+    workflowsConfig,
+  } = state
 
   const [exited, setExited] = React.useState(false)
 
   const [waitingListing, setWaitingListing] = React.useState(false)
+  const [resolveError, setResolveError] = React.useState<Error | null>(null)
   const resolveHandles = requests.useFilesListing()
 
   const open = React.useCallback(
@@ -390,7 +400,13 @@ export function useCreateDialog({
           setOpen(files.value)
         } else {
           setWaitingListing(true)
-          setOpen(await resolveHandles(files.value))
+          try {
+            setOpen(await resolveHandles(files.value))
+          } catch (e) {
+            const errorMessage =
+              e instanceof Error ? e.message || e.name : 'Unexpected error'
+            setResolveError(new ERRORS.FailedResolvingFiles(errorMessage))
+          }
           setWaitingListing(false)
         }
       }
@@ -401,6 +417,7 @@ export function useCreateDialog({
   const close = React.useCallback(() => {
     setOpen(false)
     reset()
+    setResolveError(null)
 
     if (onClose) onClose()
   }, [reset, setOpen, onClose])
@@ -412,13 +429,17 @@ export function useCreateDialog({
   Intercom.usePauseVisibilityWhen(isOpen)
 
   const dialogStatus: PDModel.DialogStatus = React.useMemo(() => {
+    if (resolveError) return { _tag: 'error', error: resolveError }
     if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
     if (waitingListing) return { _tag: 'loading', waitListing: true }
-    if (workflowsConfig._tag === 'loading') return { _tag: 'loading', waitListing: false }
-    if (workflowsConfig._tag === 'error')
+    if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
+      return { _tag: 'loading', waitListing: false }
+    }
+    if (workflowsConfig._tag === 'error') {
       return { _tag: 'error', error: workflowsConfig.error }
+    }
     return { _tag: 'ready' }
-  }, [waitingListing, workflowsConfig, formStatus])
+  }, [waitingListing, workflowsConfig, formStatus, manifest, resolveError])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <DialogWrapper

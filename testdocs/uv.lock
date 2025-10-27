@@ -447,7 +447,7 @@ provides-extras = ["pyarrow", "anndata", "catalog"]
 [package.metadata.requires-dev]
 dev = [
     { name = "poethepoet", specifier = ">=0.37.0" },
-    { name = "pytest", specifier = "==6.*" },
+    { name = "pytest", specifier = "~=8.4" },
     { name = "pytest-cov" },
     { name = "pytest-env" },
     { name = "pytest-subtests" },

@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "platformdirs>=2",
@@ -71,7 +72,7 @@ dev = [
     "pytest-cov",
     "pytest-env",
     "pytest-subtests",
-    "pytest==6.*",
+    "pytest~=8.4",
     "responses",
     "ruff>=0.12.11",
     "quilt3[pyarrow,anndata]",
