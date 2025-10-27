@@ -227,7 +227,7 @@ function useResolveHandlesMap() {
     (handlesMap: Record<LogicalKey, PhysicalKey>) =>
       Object.entries(handlesMap).map(([logicalKey, physicalKey]) => {
         try {
-          const handle = s3paths.parseS3Url(physicalKey)
+          const handle = s3paths.parseS3Url(decodeURI(physicalKey))
           return s3paths.isDir(handle.key)
             ? limit(resolveDirectory, handle, logicalKey)
             : limit(resolveFile, handle, logicalKey)

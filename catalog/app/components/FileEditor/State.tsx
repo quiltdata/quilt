@@ -28,7 +28,7 @@ function useRedirect() {
           const packageHandle = PackageUri.parse(add)
           if (packageHandle.path) {
             return urls.bucketPackageAddFiles(packageHandle.bucket, packageHandle.name, {
-              [packageHandle.path!]: s3paths.handleToS3Url(fileHandle),
+              [packageHandle.path!]: encodeURI(s3paths.handleToS3Url(fileHandle)),
             })
           }
           throw new Error('"add" parameter must contain `PackageUri` with "path"')
