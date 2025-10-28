@@ -350,11 +350,12 @@ def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
         # With default cache ('bytes') img.data takes ~20s, with this cache it takes ~4s.
         # Reading to a temporary local file seems a bit faster, but space is limited in Lambda.
         # The maximum memory use for this cache is blocksize * maxblocks.
-        fs_kwargs={
-            "cache_type": "background",
-            "cache_options": {"maxblocks": 32},
-            "block_size": 8 * 2**20,
-        },
+        # fs_kwargs={
+        #     "cache_type": "background",
+        #     "cache_options": {"maxblocks": 32},
+        #     "block_size": 8 * 2**20,
+        # },
+        fs_kwargs={"cache_type": "all"},
     )
     print(img.reader.dims.items())
     orig_size = list(img.reader.dask_data.shape)
