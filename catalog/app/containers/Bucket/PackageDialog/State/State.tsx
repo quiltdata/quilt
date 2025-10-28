@@ -118,11 +118,13 @@ export function useState(
   const copy = useCopyHandler(params, setFormStatus)
 
   const { resetDirty } = name
+  const { onChange: onFilesChange } = files
   const reset = React.useCallback(() => {
     setSrc(initialSrc)
     setDst(initialDst)
+    onFilesChange({})
     resetDirty()
-  }, [initialSrc, initialDst, resetDirty])
+  }, [initialSrc, initialDst, resetDirty, onFilesChange])
   React.useEffect(() => reset(), [reset])
 
   return {

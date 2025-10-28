@@ -148,7 +148,7 @@ export function useFiles(
     existing: EMPTY_FILES,
     deleted: EMPTY_FILES,
   })
-  const [files, setFiles] = React.useState<Partial<FI.FilesState>>(initial.added)
+  const [files, setFiles] = React.useState<Partial<FI.FilesState>>({})
   const value = React.useMemo(() => mergeFiles(manifest, files), [manifest, files])
 
   React.useEffect(() => {
