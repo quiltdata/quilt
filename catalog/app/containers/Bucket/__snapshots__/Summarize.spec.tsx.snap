@@ -14,7 +14,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
     Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
-      href="file: b/n/some/path/quilt_summarize.json {"add":"some/path/quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+      href="file: b/n/some/path/quilt_summarize.json {"add":"quilt+s3://b#package=n&path=some%2Fpath%2Fquilt_summarize.json","edit":true}"
     >
       <div
         id="button"
@@ -27,7 +27,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
     Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
-      href="file: b/n/some/path/README.md {"add":"some/path/README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+      href="file: b/n/some/path/README.md {"add":"quilt+s3://b#package=n&path=some%2Fpath%2FREADME.md","edit":true}"
     >
       <div
         id="button"
@@ -47,7 +47,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_su
     Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
-      href="file: b/n/quilt_summarize.json {"add":"quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+      href="file: b/n/quilt_summarize.json {"add":"quilt+s3://b#package=n&path=quilt_summarize.json","edit":true}"
     >
       <div
         id="button"
@@ -67,7 +67,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render readme l
     Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
-      href="file: b/n/README.md {"add":"README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+      href="file: b/n/README.md {"add":"quilt+s3://b#package=n&path=README.md","edit":true}"
     >
       <div
         id="button"

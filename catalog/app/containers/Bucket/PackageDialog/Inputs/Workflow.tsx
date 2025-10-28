@@ -5,6 +5,11 @@ import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
 import * as workflows from 'utils/workflows'
 
+import type { FormStatus } from '../State/form'
+import type { SchemaStatus } from '../State/schema'
+import type { WorkflowState, WorkflowsConfigStatus } from '../State/workflow'
+import { WorkflowsInputSkeleton } from '../Skeleton'
+
 const useStyles = M.makeStyles((t) => ({
   crop: {
     textOverflow: 'ellipsis',
@@ -17,6 +22,10 @@ const useStyles = M.makeStyles((t) => ({
     flex: 'none',
     marginRight: t.spacing(3),
   },
+  text: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
 }))
 
 interface SelectWorkflowProps {
@@ -24,10 +33,10 @@ interface SelectWorkflowProps {
   error?: React.ReactNode
   items: workflows.Workflow[]
   onChange: (v: workflows.Workflow) => void
-  value: workflows.Workflow
+  value?: workflows.Workflow
 }
 
-export default function SelectWorkflow({
+function SelectWorkflow({
   disabled,
   error,
   items,
@@ -56,6 +65,7 @@ export default function SelectWorkflow({
             dense
           >
             <M.ListItemText
+              className={classes.text}
               classes={{
                 primary: classes.crop,
                 secondary: classes.crop,
@@ -74,5 +84,42 @@ export default function SelectWorkflow({
         , or edit <WorkflowsConfigLink>your workflows config file</WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
+  )
+}
+
+interface InputWorkflowProps {
+  formStatus: FormStatus
+  schema: SchemaStatus
+  state: WorkflowState
+  config: WorkflowsConfigStatus
+}
+
+/**
+ * Workflow selection dropdown for data quality validation.
+ *
+ * Allows users to select a workflow that defines validation rules
+ * and metadata schemas for the package.
+ */
+export default function InputWorkflow({
+  formStatus,
+  schema,
+  state: { status, value, onChange },
+  config,
+}: InputWorkflowProps) {
+  const error = React.useMemo(() => {
+    if (config._tag === 'error') return config.error.message
+    if (status._tag === 'error') return status.error.message
+    return undefined
+  }, [status, config])
+  if (config._tag === 'idle') return null
+  if (config._tag === 'loading') return <WorkflowsInputSkeleton />
+  return (
+    <SelectWorkflow
+      disabled={schema._tag === 'loading' || formStatus._tag === 'submitting'}
+      error={error}
+      items={config.config.workflows}
+      onChange={onChange}
+      value={value}
+    />
   )
 }

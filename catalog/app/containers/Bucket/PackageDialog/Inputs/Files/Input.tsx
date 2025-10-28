@@ -1,8 +1,8 @@
+import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
@@ -10,33 +10,32 @@ import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import assertNever from 'utils/assertNever'
-import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
-import * as Selection from '../Selection'
+import * as Selection from '../../../Selection'
 
 import EditFileMeta from './EditFileMeta'
+import * as S3FilePicker from './S3FilePicker'
 import {
+  computeHash,
   FilesEntryState,
   FilesEntry,
   FilesEntryDir,
   FilesEntryType,
   FilesAction,
-  FileWithHash,
   FilesState,
   handleFilesAction,
   isS3File,
   EMPTY_DIR_MARKER,
-} from './FilesState'
-import * as PD from './PackageDialog'
-import * as S3FilePicker from './S3FilePicker'
-import { calcStats, Stats, StatsWarning } from './filesStats'
+} from './State'
+import { MAX_UPLOAD_SIZE, MAX_S3_SIZE, MAX_FILE_COUNT } from './constants'
+import { calcStats, Stats, StatsWarning } from './stats'
 
-export { EMPTY_DIR_MARKER, FilesAction, groupAddedFiles } from './FilesState'
-export type { LocalFile, FilesState } from './FilesState'
+export { FilesAction } from './State'
+export type { LocalFile, FilesState } from './State'
 
 interface Progress {
   total: number
@@ -100,7 +99,6 @@ const useHeaderStyles = M.makeStyles((t) => ({
 }))
 
 interface HeaderProps {
-  delayHashing: boolean
   dirty: boolean
   disabled: boolean
   error: boolean
@@ -112,7 +110,6 @@ interface HeaderProps {
 }
 
 function Header({
-  delayHashing,
   dirty,
   disabled,
   error,
@@ -169,7 +166,7 @@ function Header({
           <Icons.ErrorOutline className={classes.warningIcon} fontSize="inherit" />
         )}
 
-        {!delayHashing && stats.hashing && (
+        {stats.hashing && (
           <M.CircularProgress
             className={classes.hashing}
             size={16}
@@ -276,8 +273,6 @@ const COLORS = {
   invalid: M.colors.red[400],
 }
 
-const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
-
 const isDragReady = (state: FilesEntryState) => {
   switch (state) {
     case 'added':
@@ -304,29 +299,6 @@ const isFileDropReady = (entry: FilesEntry) =>
     Dir: (d) => isDropReady(d.state),
     File: (f) => isDropReady(f.state),
   })(entry)
-
-export function computeHash(f: File) {
-  if (hasHash(f)) return f
-  const hashP = computeFileChecksum(f)
-  const fh = f as FileWithHash
-  fh.hash = { ready: false } as any
-  fh.hash.promise = hashP
-    .catch((e) => {
-      // eslint-disable-next-line no-console
-      console.log(`Error hashing file "${fh.name}":`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-      fh.hash.error = e
-      fh.hash.ready = true
-      return undefined
-    })
-    .then((checksum) => {
-      fh.hash.value = checksum
-      fh.hash.ready = true
-      return checksum
-    })
-  return fh
-}
 
 interface DispatchFilesAction {
   (action: FilesAction): void
@@ -391,23 +363,21 @@ interface IntermediateEntry {
   meta?: Model.EntryMeta
 }
 
-function matchErrorToEntry(path: string, errors: PD.EntriesValidationErrors | null) {
-  return errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)
-}
-
 const computeEntries = ({
   value: { added, deleted, existing },
   errors,
 }: {
   value: FilesState
-  errors: PD.EntriesValidationErrors | null
+  errors?: {
+    [logicalKey: string]: ErrorObject
+  }
 }) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
     ([path, { size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
-      if (matchErrorToEntry(path, errors)) {
+      if (errors?.[path]) {
         return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
@@ -433,7 +403,7 @@ const computeEntries = ({
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
-    if (matchErrorToEntry(path, errors)) {
+    if (errors?.[path]) {
       return acc.concat({
         state: 'invalid' as const,
         type: 'local' as const,
@@ -459,16 +429,6 @@ const computeEntries = ({
     const file = FilesEntry.File({ name, ...rest })
     return insertIntoTree(prefixPath, file, children)
   }, [] as FilesEntry[])
-}
-
-export const HASHING = 'hashing'
-export const HASHING_ERROR = 'hashingError'
-
-export const validateHashingComplete = (state: FilesState) => {
-  const files = Object.values(state.added).filter((f) => !isS3File(f)) as FileWithHash[]
-  if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
-  if (files.some((f) => !f.hash.ready)) return HASHING
-  return undefined
 }
 
 export const EMPTY_SELECTION = 'emptySelection'
@@ -920,7 +880,7 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 
 interface DropzoneMessageProps {
   label?: React.ReactNode
-  error: React.ReactNode
+  error?: Error
   warn: StatsWarning | null
 }
 
@@ -928,7 +888,7 @@ function DropzoneMessage({ label: defaultLabel, error, warn }: DropzoneMessagePr
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
-    if (error) return <span>{error}</span>
+    if (error) return <span>{error.message}</span>
     if (!warn) {
       return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
     }
@@ -937,17 +897,17 @@ function DropzoneMessage({ label: defaultLabel, error, warn }: DropzoneMessagePr
         {warn.upload && (
           <p>
             Total size of local files exceeds recommended maximum of{' '}
-            {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+            {readableBytes(MAX_UPLOAD_SIZE)}.
           </p>
         )}
         {warn.s3 && (
           <p>
             Total size of files from S3 exceeds recommended maximum of{' '}
-            {readableBytes(PD.MAX_S3_SIZE)}.
+            {readableBytes(MAX_S3_SIZE)}.
           </p>
         )}
         {warn.count && (
-          <p>Total number of files exceeds recommended maximum of {PD.MAX_FILE_COUNT}.</p>
+          <p>Total number of files exceeds recommended maximum of {MAX_FILE_COUNT}.</p>
         )}
       </div>
     )
@@ -1199,13 +1159,8 @@ function FileUpload({
           icon: 'clear',
           handler: handle(FilesAction.Revert(path)),
         }
-      case 'modified':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
       case 'hashing':
+      case 'modified':
         return {
           hint: 'Revert',
           icon: 'undo',
@@ -1288,7 +1243,6 @@ function FileUpload({
 type DirUploadProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
   prefix?: string
   dispatch: DispatchFilesAction
-  delayHashing: boolean
   disableStateDisplay?: boolean
   noMeta: boolean
 }
@@ -1299,7 +1253,6 @@ function DirUpload({
   childEntries,
   prefix,
   dispatch,
-  delayHashing,
   disableStateDisplay,
   noMeta,
 }: DirUploadProps) {
@@ -1372,13 +1325,8 @@ function DirUpload({
           icon: 'clear',
           handler: handle(FilesAction.RevertDir(path)),
         }
-      case 'modified':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
       case 'hashing':
+      case 'modified':
         return {
           hint: 'Revert',
           icon: 'undo',
@@ -1434,7 +1382,6 @@ function DirUpload({
                 key={ps.name}
                 prefix={path}
                 dispatch={dispatch}
-                delayHashing={delayHashing}
                 disableStateDisplay={disableStateDisplay}
                 noMeta={noMeta}
               />
@@ -1592,13 +1539,11 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 }))
 
 interface FilesInputProps {
-  input: {
-    value: FilesState
-    onChange: (value: FilesState) => void
-  }
+  value: FilesState
+  onChange: (value: FilesState) => void
   className?: string
-  errors?: Record<string, React.ReactNode>
-  meta: RF.FieldMetaState<FilesState> & { initial: FilesState }
+  error?: Error
+  initial: FilesState
   onFilesAction?: (
     action: FilesAction,
     oldValue: FilesState,
@@ -1612,15 +1557,18 @@ interface FilesInputProps {
   ui?: {
     reset?: React.ReactNode
   }
-  validationErrors: PD.EntriesValidationErrors | null
+  errors?: {
+    [logicalKey: string]: ErrorObject
+  }
   noMeta?: boolean
+  disabled?: boolean
 }
 
 export function FilesInput({
-  input: { value, onChange },
+  value,
+  onChange,
   className,
-  errors = {},
-  meta,
+  initial,
   onFilesAction,
   title,
   totalProgress,
@@ -1628,7 +1576,9 @@ export function FilesInput({
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
-  validationErrors,
+  error,
+  errors,
+  disabled,
   noMeta = false, // FIXME: handle S3 meta upload, `s3.upload` supports that
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
@@ -1651,18 +1601,14 @@ export function FilesInput({
   )
 
   React.useEffect(
-    () => scheduleUpdate(waitFor(meta.initial.added)),
-    [meta.initial.added, scheduleUpdate],
+    () => scheduleUpdate(waitFor(initial.added)),
+    [initial.added, scheduleUpdate],
   )
-
-  const disabled = meta.submitting || meta.submitSucceeded || meta.validating
-  const error =
-    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const refProps = {
     value,
     disabled,
-    initial: meta.initial,
+    initial,
     onChange,
     onFilesAction,
     scheduleUpdate,
@@ -1702,21 +1648,17 @@ export function FilesInput({
     onDrop,
   })
 
-  const valueWithErrors = React.useMemo(
-    () => ({ errors: validationErrors, value }),
-    [validationErrors, value],
-  )
+  const valueWithErrors = React.useMemo(() => ({ errors, value }), [errors, value])
   const computedEntries = useMemoEq(valueWithErrors, computeEntries)
 
-  const stats = React.useMemo(() => calcStats(value), [value])
+  const stats = React.useMemo(() => calcStats(value, delayHashing), [value, delayHashing])
 
   return (
     <Root className={className}>
       <Header
-        delayHashing={delayHashing}
-        dirty={!!meta.dirty}
+        dirty={initial.added !== value.added}
         disabled={!!disabled}
-        error={error}
+        error={!!error}
         onAddFolder={onAddFolder}
         onReset={onReset}
         resetTitle={ui.reset || 'Clear files'}
@@ -1743,7 +1685,6 @@ export function FilesInput({
                       {...ps}
                       key={`dir:${ps.name}`}
                       dispatch={dispatch}
-                      delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       noMeta={noMeta}
                     />
@@ -1762,7 +1703,7 @@ export function FilesInput({
             </FilesContainer>
           )}
 
-          <DropzoneMessage error={error && (errors[error] || error)} warn={stats.warn} />
+          <DropzoneMessage error={error} warn={stats.warn} />
         </Contents>
         {disabled && <Lock progress={totalProgress} />}
       </ContentsContainer>

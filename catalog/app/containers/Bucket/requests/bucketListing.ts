@@ -152,12 +152,6 @@ export function useBucketListing() {
   )
 }
 
-function isBucketListingResult(
-  r: BucketListingResult | Model.S3File,
-): r is BucketListingResult {
-  return !!(r as BucketListingResult).files
-}
-
 // TODO: add entry with size from <Listing /> but try to re-use existing types
 function useHeadFile() {
   const s3: S3 = AWS.S3.use()
@@ -167,51 +161,116 @@ function useHeadFile() {
       key,
       version,
     }: Model.S3.S3ObjectLocation): Promise<Model.S3File> => {
-      const { ContentLength: size } = await s3
+      const { ContentLength: size, VersionId } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId: version })
         .promise()
-      return { bucket, key, size: size || 0, version }
+      return { bucket, key, size: size || 0, version: VersionId }
     },
     [s3],
   )
 }
 
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message || e.name : `${e}`)
+
+type LogicalKey = string
+type PhysicalKey = string
+
+function useResolveFile() {
+  const headFile = useHeadFile()
+  return React.useCallback(
+    async (handle: Model.S3.S3ObjectLocation, logicalKey?: LogicalKey) => {
+      try {
+        const result = await headFile(handle)
+        return { [logicalKey || basename(result.key)]: result }
+      } catch (e) {
+        throw new Error(
+          `Failed resolving file ${s3paths.handleToS3Url(handle)}: ${errorMessage(e)}`,
+        )
+      }
+    },
+    [headFile],
+  )
+}
+
+function useResolveDirectory() {
+  const requestbucketListing = useBucketListing()
+  return React.useCallback(
+    async (handle: Model.S3.S3ObjectLocation, prefix?: LogicalKey) => {
+      try {
+        const result = await requestbucketListing({
+          bucket: handle.bucket,
+          path: handle.key,
+          delimiter: false,
+          drain: true,
+        })
+        const pairs = result.files.map((file) => [
+          prefix
+            ? join(prefix, relative(result.path, file.key))
+            : relative(join(result.path, '..'), file.key),
+          file,
+        ])
+        return Object.fromEntries(pairs as [LogicalKey, Model.S3File][])
+      } catch (e) {
+        throw new Error(
+          `Failed resolving directory ${s3paths.handleToS3Url(handle)}: ${errorMessage(e)}`,
+        )
+      }
+    },
+    [requestbucketListing],
+  )
+}
+
+function useResolveHandlesMap() {
+  const resolveFile = useResolveFile()
+  const resolveDirectory = useResolveDirectory()
+  return React.useCallback(
+    (handlesMap: Record<LogicalKey, PhysicalKey>) =>
+      Object.entries(handlesMap).map(([logicalKey, physicalKey]) => {
+        try {
+          const handle = s3paths.parseS3Url(decodeURI(physicalKey))
+          return s3paths.isDir(handle.key)
+            ? limit(resolveDirectory, handle, logicalKey)
+            : limit(resolveFile, handle, logicalKey)
+        } catch (e) {
+          throw new Error(`Failed resolving ${physicalKey}: ${errorMessage(e)}`)
+        }
+      }),
+    [resolveFile, resolveDirectory],
+  )
+}
+
+function useResolveHandles() {
+  const resolveFile = useResolveFile()
+  const resolveDirectory = useResolveDirectory()
+  return React.useCallback(
+    (handles: Model.S3.S3ObjectLocation[]) =>
+      handles.map((handle) =>
+        s3paths.isDir(handle.key)
+          ? limit(resolveDirectory, handle)
+          : limit(resolveFile, handle),
+      ),
+    [resolveFile, resolveDirectory],
+  )
+}
+
+const mergeRecords = <L, R>(
+  left?: Record<PropertyKey, L>,
+  right?: Record<PropertyKey, R>,
+) => ({ ...left, ...right })
+
 const limit = pLimit(5)
 
 export function useFilesListing() {
-  const requestbucketListing = useBucketListing()
-  const headFile = useHeadFile()
+  const resolveHandles = useResolveHandles()
+  const resolveHandlesMap = useResolveHandlesMap()
   return React.useCallback(
-    async (handles: Model.S3.S3ObjectLocation[]) => {
-      const requests = handles.map((handle) =>
-        s3paths.isDir(handle.key)
-          ? limit(requestbucketListing, {
-              bucket: handle.bucket,
-              path: handle.key,
-              delimiter: false,
-              drain: true,
-            })
-          : limit(headFile, handle),
-      )
-      const responses = await Promise.all(requests)
-      return responses.reduce(
-        (memo, response) =>
-          isBucketListingResult(response)
-            ? response.files.reduce(
-                (acc, file) => ({
-                  ...acc,
-                  [relative(join(response.path, '..'), file.key)]: file,
-                }),
-                memo,
-              )
-            : {
-                ...memo,
-                // TODO: handle the same key from another bucket
-                [basename(response.key)]: response,
-              },
-        {} as Record<string, Model.S3File>,
-      )
+    async (handles: Model.S3.S3ObjectLocation[] | Record<LogicalKey, PhysicalKey>) => {
+      const requests = Array.isArray(handles)
+        ? resolveHandles(handles)
+        : resolveHandlesMap(handles)
+      const records = await Promise.all(requests)
+      return records.reduce(mergeRecords, {})
     },
-    [requestbucketListing, headFile],
+    [resolveHandles, resolveHandlesMap],
   )
 }
