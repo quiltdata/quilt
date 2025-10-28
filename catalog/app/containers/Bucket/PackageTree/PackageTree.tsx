@@ -174,13 +174,13 @@ function useCreateDialog(packageHandle: PackageHandle) {
   const match = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
 
   const { push } = history
+  const { bucket, name } = packageHandle
   const onClose = React.useCallback(() => {
     if (!match) return
 
-    const { bucket, name } = packageHandle
     // `bucketPackageDetail` only, because `bucketPackageAddFiles` is on top of "latest", not specific revision
     push(urls.bucketPackageDetail(bucket, name))
-  }, [match, packageHandle, push, urls])
+  }, [match, bucket, name, push, urls])
 
   const location = RRDom.useLocation()
   const createDialog = PD.useCreateDialog({
