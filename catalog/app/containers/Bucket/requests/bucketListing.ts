@@ -161,10 +161,10 @@ function useHeadFile() {
       key,
       version,
     }: Model.S3.S3ObjectLocation): Promise<Model.S3File> => {
-      const { ContentLength: size } = await s3
+      const { ContentLength: size, VersionId } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId: version })
         .promise()
-      return { bucket, key, size: size || 0, version }
+      return { bucket, key, size: size || 0, version: VersionId }
     },
     [s3],
   )
