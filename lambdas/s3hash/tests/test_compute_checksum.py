@@ -1,3 +1,4 @@
+"""Test CRC64NVME checksum computation."""
 import base64
 import io
 
@@ -8,6 +9,26 @@ from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
 from quilt_shared.const import MAX_PART_SIZE
+
+
+def test_combine_crc64nvme():
+    """Test CRC64NVME combination with known checksums.
+
+    Known CRC64NVME checksums:
+    - "test1": 0x7585d198a2d5b287
+    - "test2": 0xf436c0c0f28b290c
+    - "test1test2": 0x215f4b83b86262f3
+    """
+    crc_test1 = (0x7585d198a2d5b287).to_bytes(8, byteorder='big')
+    crc_test2 = (0xf436c0c0f28b290c).to_bytes(8, byteorder='big')
+    crc_combined_expected = (0x215f4b83b86262f3).to_bytes(8, byteorder='big')
+
+    size_test1 = len(b"test1")  # 5 bytes
+    size_test2 = len(b"test2")  # 5 bytes
+
+    result = s3hash.combine_crc64nvme([crc_test1, crc_test2], [size_test1, size_test2])
+
+    assert result == crc_combined_expected
 
 
 class RawStream(io.BytesIO):
@@ -56,7 +77,7 @@ MPU_DST = s3hash.S3ObjectDestination(
 
 EXPECTED_MPU_PARAMS = {
     **MPU_DST.boto_args,
-    "ChecksumAlgorithm": "SHA256",
+    "ChecksumAlgorithm": "CRC64NVME",
 }
 
 
@@ -65,41 +86,30 @@ def mock_scratch_key(mocker: MockerFixture):
     return mocker.patch("t4_lambda_s3hash.make_scratch_key", return_value=SCRATCH_KEY)
 
 
-async def test_compliant(s3_stub: Stubber):
-    checksum = "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="
-    checksum_hash = "WZ1xAz1wCsiSoOSPphsSXS9ZlBu0XaGQlETUPG7gurI="
+async def test_precomputed_crc64nvme(s3_stub: Stubber):
+    """Test Tier 1: Retrieve precomputed CRC64NVME from S3 object attributes"""
+    checksum = "AQIDBAUGBwg="  # base64-encoded CRC64NVME value
 
     s3_stub.add_response(
         "get_object_attributes",
         {
-            "Checksum": {"ChecksumSHA256": checksum},
-            "ObjectSize": 1048576,  # below the threshold
+            "Checksum": {"ChecksumCRC64NVME": checksum},
+            "ObjectSize": 1048576,
         },
         EXPECTED_GETATTR_PARAMS,
     )
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(base64.b64decode(checksum_hash)))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.crc64nvme(base64.b64decode(checksum)))
 
 
-SHA256_EMPTY = bytes.fromhex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-
-
-@pytest.mark.parametrize(
-    "chunked, expected",
-    [
-        (True, s3hash.Checksum.sha256_chunked(SHA256_EMPTY)),
-        (False, s3hash.Checksum.sha256(SHA256_EMPTY)),
-    ],
-)
-async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
-    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
-
+async def test_empty(s3_stub: Stubber):
+    """Test empty file returns empty CRC64NVME checksum"""
     s3_stub.add_response(
         "get_object_attributes",
         {
-            "Checksum": {"ChecksumSHA256": "doesnt matter"},
+            "Checksum": {"ChecksumCRC64NVME": "doesnt matter"},
             "ObjectSize": 0,
             "ETag": "any",
         },
@@ -108,19 +118,11 @@ async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber,
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=expected)
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty_crc64nvme())
 
 
-@pytest.mark.parametrize(
-    "chunked, expected",
-    [
-        (True, s3hash.Checksum.sha256_chunked(SHA256_EMPTY)),
-        (False, s3hash.Checksum.sha256(SHA256_EMPTY)),
-    ],
-)
-async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
-    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
-
+async def test_empty_no_access(s3_stub: Stubber):
+    """Test empty file without GetObjectAttributes access"""
     s3_stub.add_client_error(
         "get_object_attributes",
         service_error_code="AccessDenied",
@@ -138,37 +140,10 @@ async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=expected)
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty_crc64nvme())
 
 
-async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
-    s3_stub.add_client_error(
-        "get_object_attributes",
-        "AccessDenied",
-        expected_params=EXPECTED_GETATTR_PARAMS,
-    )
-
-    s3_stub.add_response(
-        "head_object",
-        {
-            "ETag": '"test-etag"',
-            "ContentLength": MAX_PART_SIZE + 1,
-        },
-        LOC.boto_args,
-    )
-
-    s3_stub.add_response(
-        "get_object",
-        {"Body": make_body(b"test-body")},
-        LOC.boto_args,
-    )
-
-    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", False)
-
-    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
-
-    checksum_hex = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256(checksum_hex))
+# Legacy SHA256 mode removed - CRC64NVME is always used now
 
 
 def stub_bucket_region(s3_stub: Stubber):
@@ -213,6 +188,7 @@ async def test_mpu_fail(s3_stub: Stubber):
 
 
 async def test_mpu_single(s3_stub: Stubber):
+    """Test Tier 2: Single-part MPU computation uses checksum directly"""
     ETAG = "test-etag"
     PART_ETAG = "part-etag"
     SIZE = 1048576
@@ -231,13 +207,12 @@ async def test_mpu_single(s3_stub: Stubber):
         EXPECTED_MPU_PARAMS,
     )
 
-    CHECKSUM = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    CHECKSUM_HASH = bytes.fromhex("7eb12f7f901586f5c53fc5d8aaccd4a18177aa122c0bd166133372f42bc23880")
+    CHECKSUM_CRC64 = (0x7585d198a2d5b287).to_bytes(8, byteorder='big')
     s3_stub.add_response(
         "upload_part_copy",
         {
             "CopyPartResult": {
-                "ChecksumSHA256": base64.b64encode(CHECKSUM).decode(),
+                "ChecksumCRC64NVME": base64.b64encode(CHECKSUM_CRC64).decode(),
                 "ETag": PART_ETAG,
             },
         },
@@ -258,10 +233,12 @@ async def test_mpu_single(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_HASH))
+    # Single part: checksum should be used directly without combination
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.crc64nvme(CHECKSUM_CRC64))
 
 
 async def test_mpu_multi(s3_stub: Stubber):
+    """Test Tier 2: Multi-part MPU combines CRC64NVME checksums"""
     ETAG = "test-etag"
     SIZE = s3hash.MIN_PART_SIZE + 1
     s3_stub.add_response(
@@ -279,14 +256,16 @@ async def test_mpu_multi(s3_stub: Stubber):
         EXPECTED_MPU_PARAMS,
     )
 
-    CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    CHECKSUM_TOP = s3hash.Checksum.hash_parts([CHECKSUM_1, CHECKSUM_2])
+    # Use known checksums: "test1" + "test2" = "test1test2"
+    CHECKSUM_1 = (0x7585d198a2d5b287).to_bytes(8, byteorder='big')
+    CHECKSUM_2 = (0xf436c0c0f28b290c).to_bytes(8, byteorder='big')
+    CHECKSUM_COMBINED = (0x215f4b83b86262f3).to_bytes(8, byteorder='big')
+
     s3_stub.add_response(
         "upload_part_copy",
         {
             "CopyPartResult": {
-                "ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(),
+                "ChecksumCRC64NVME": base64.b64encode(CHECKSUM_1).decode(),
                 "ETag": ETAG + "-1",
             },
         },
@@ -303,7 +282,7 @@ async def test_mpu_multi(s3_stub: Stubber):
         "upload_part_copy",
         {
             "CopyPartResult": {
-                "ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(),
+                "ChecksumCRC64NVME": base64.b64encode(CHECKSUM_2).decode(),
                 "ETag": ETAG + "-2",
             },
         },
@@ -325,7 +304,8 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_TOP))
+    # Multi-part: checksums should be combined using CRC64NVME composition
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.crc64nvme(CHECKSUM_COMBINED))
 
 
 @pytest.mark.parametrize(
@@ -336,6 +316,7 @@ async def test_mpu_multi(s3_stub: Stubber):
     ],
 )
 async def test_mpu_multi_complete(s3_stub: Stubber, response, result_version_id):
+    """Test copy() function completes MPU with CRC64NVME"""
     ETAG = "test-etag"
     SIZE = s3hash.MIN_PART_SIZE + 1
     s3_stub.add_response(
@@ -354,19 +335,19 @@ async def test_mpu_multi_complete(s3_stub: Stubber, response, result_version_id)
         {"UploadId": MPU_ID},
         {
             **DEST.boto_args,
-            "ChecksumAlgorithm": "SHA256",
+            "ChecksumAlgorithm": "CRC64NVME",
         },
     )
 
-    CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_1 = (0x7585d198a2d5b287).to_bytes(8, byteorder='big')
     ETAG_1 = ETAG + "-a"
-    CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_2 = (0xf436c0c0f28b290c).to_bytes(8, byteorder='big')
     ETAG_2 = ETAG + "-b"
     s3_stub.add_response(
         "upload_part_copy",
         {
             "CopyPartResult": {
-                "ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(),
+                "ChecksumCRC64NVME": base64.b64encode(CHECKSUM_1).decode(),
                 "ETag": ETAG_1,
             },
         },
@@ -383,7 +364,7 @@ async def test_mpu_multi_complete(s3_stub: Stubber, response, result_version_id)
         "upload_part_copy",
         {
             "CopyPartResult": {
-                "ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(),
+                "ChecksumCRC64NVME": base64.b64encode(CHECKSUM_2).decode(),
                 "ETag": ETAG_2,
             },
         },
@@ -405,8 +386,8 @@ async def test_mpu_multi_complete(s3_stub: Stubber, response, result_version_id)
             "UploadId": MPU_ID,
             "MultipartUpload": {
                 "Parts": [
-                    {"ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(), "ETag": ETAG_1, "PartNumber": 1},
-                    {"ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(), "ETag": ETAG_2, "PartNumber": 2},
+                    {"ChecksumCRC64NVME": base64.b64encode(CHECKSUM_1).decode(), "ETag": ETAG_1, "PartNumber": 1},
+                    {"ChecksumCRC64NVME": base64.b64encode(CHECKSUM_2).decode(), "ETag": ETAG_2, "PartNumber": 2},
                 ],
             },
         },

@@ -167,9 +167,27 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
     return None
 
 
+def get_aws_crc64nvme_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optional[Checksum]:
+    """Retrieve precomputed CRC64NVME checksum from S3 object attributes (Tier 1)."""
+    checksum_value = attrs.get("Checksum", {}).get("ChecksumCRC64NVME")
+    if checksum_value is None or attrs["ObjectSize"] == 0:
+        return None
+
+    # CRC64NVME is always whole-file checksum, no chunked variant needed
+    checksum_bytes = base64.b64decode(checksum_value)
+    return Checksum.crc64nvme(checksum_bytes)
+
+
 class PartDef(pydantic.v1.BaseModel):
     part_number: int
     range: T.Optional[T.Tuple[int, int]]
+
+    @property
+    def size(self) -> int:
+        """Get the size of this part in bytes."""
+        if self.range is None:
+            raise ValueError("Cannot get size of single-part upload without range")
+        return self.range[1] - self.range[0] + 1
 
     @property
     def boto_args(self):
@@ -227,10 +245,10 @@ async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef
     )
     copy_result = res["CopyPartResult"]
     assert "ETag" in copy_result
-    assert "ChecksumSHA256" in copy_result
+    assert "ChecksumCRC64NVME" in copy_result
     return PartUploadResult(
         etag=copy_result["ETag"],
-        sha256=copy_result["ChecksumSHA256"],
+        crc64nvme=copy_result["ChecksumCRC64NVME"],
     )
 
 
@@ -262,19 +280,19 @@ async def compute_part_checksums(
         etag,
         parts,
     )
-    checksums = [base64.b64decode(part_upload_result.sha256) for part_upload_result in part_upload_results]
+    checksums = [base64.b64decode(part_upload_result.crc64nvme) for part_upload_result in part_upload_results]
     return checksums
 
 
 class PartUploadResult(pydantic.v1.BaseModel):
     etag: str
-    sha256: str  # base64-encoded
+    crc64nvme: str  # base64-encoded
 
     @property
     def boto_args(self):
         return {
             "ETag": self.etag,
-            "ChecksumSHA256": self.sha256,
+            "ChecksumCRC64NVME": self.crc64nvme,
         }
 
 
@@ -315,7 +333,7 @@ async def create_mpu(target: S3ObjectDestination):
     try:
         upload_data = await S3.get().create_multipart_upload(
             **target.boto_args,
-            ChecksumAlgorithm="SHA256",
+            ChecksumAlgorithm="CRC64NVME",
         )
         mpu = MPURef(bucket=target.bucket, key=target.key, id=upload_data["UploadId"])
     except botocore.exceptions.ClientError as ex:
@@ -372,10 +390,53 @@ async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
     return Checksum.sha256(hashobj.digest())
 
 
+def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> bytes:
+    """Combine per-part CRC64NVME checksums into whole-file checksum.
+
+    CRC64 is composable: CRC(A || B) can be computed from CRC(A), CRC(B), and len(B).
+
+    Uses the CRC64-NVME polynomial: 0xad93d23594c93659
+    """
+    if len(part_crcs) != len(part_sizes):
+        raise ValueError("part_crcs and part_sizes must have the same length")
+
+    if len(part_crcs) == 0:
+        return b"\x00" * 8
+
+    # CRC64-NVME polynomial
+    POLY = 0xad93d23594c93659
+
+    def _crc64_extend(crc: int, data_len: int) -> int:
+        """Extend CRC for data_len zero bytes (used for combining CRCs)."""
+        # For each zero byte, multiply CRC by x^8 mod polynomial
+        for _ in range(data_len):
+            for _ in range(8):
+                if crc & (1 << 63):
+                    crc = ((crc << 1) ^ POLY) & 0xFFFFFFFFFFFFFFFF
+                else:
+                    crc = (crc << 1) & 0xFFFFFFFFFFFFFFFF
+        return crc
+
+    # Convert first CRC from bytes to int (big-endian)
+    combined = int.from_bytes(part_crcs[0], byteorder='big')
+
+    # Combine remaining CRCs
+    for i in range(1, len(part_crcs)):
+        # Extend combined CRC for the length of the next part
+        combined = _crc64_extend(combined, part_sizes[i])
+        # XOR with the next part's CRC
+        part_crc = int.from_bytes(part_crcs[i], byteorder='big')
+        combined ^= part_crc
+
+    # Convert back to bytes (big-endian)
+    return combined.to_bytes(8, byteorder='big')
+
+
 async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str, str]) -> ChecksumResult:
+    # Tier 1: Try to get precomputed CRC64NVME from S3
     obj_attrs = await get_obj_attributes(location)
     if obj_attrs:
-        checksum = get_compliant_checksum(obj_attrs)
+        checksum = get_aws_crc64nvme_checksum(obj_attrs)
         if checksum is not None:
             return ChecksumResult(checksum=checksum)
 
@@ -385,12 +446,9 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
         etag, total_size = resp["ETag"], resp["ContentLength"]
 
     if total_size == 0:
-        return ChecksumResult(checksum=Checksum.empty())
+        return ChecksumResult(checksum=Checksum.empty_crc64nvme())
 
-    if not CHUNKED_CHECKSUMS:
-        checksum = await compute_checksum_legacy(location)
-        return ChecksumResult(checksum=checksum)
-
+    # Tier 2: Compute CRC64NVME via scratch bucket MPU
     part_defs = get_parts_for_size(total_size)
 
     mpu_dst = await get_mpu_dst_for_location(location, scratch_buckets)
@@ -403,7 +461,16 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
             part_defs,
         )
 
-    checksum = Checksum.for_parts(part_checksums)
+    # Combine per-part CRC64NVME checksums into whole-file checksum
+    if len(part_checksums) == 1:
+        # Single-part upload: use the checksum directly
+        combined_crc = part_checksums[0]
+    else:
+        # Multi-part upload: combine the part checksums
+        part_sizes = [part_def.size for part_def in part_defs]
+        combined_crc = combine_crc64nvme(part_checksums, part_sizes)
+
+    checksum = Checksum.crc64nvme(combined_crc)
     return ChecksumResult(checksum=checksum)
 
 
