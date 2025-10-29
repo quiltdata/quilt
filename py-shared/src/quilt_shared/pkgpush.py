@@ -79,6 +79,7 @@ class S3CopyLambdaParams(pydantic.v1.BaseModel):
 class ChecksumType(str, enum.Enum):
     SHA256 = "SHA256"  # legacy
     SHA256_CHUNKED = "sha2-256-chunked"
+    CRC64NVME = "CRC64NVME"  # AWS native, default for objects uploaded after Dec 2024
 
 
 class Checksum(pydantic.v1.BaseModel):
@@ -104,10 +105,15 @@ class Checksum(pydantic.v1.BaseModel):
         return cls(value=base64.b64encode(value).decode(), type=ChecksumType.SHA256_CHUNKED)
 
     @classmethod
+    def crc64nvme(cls, value: bytes):
+        return cls(value=base64.b64encode(value).decode(), type=ChecksumType.CRC64NVME)
+
+    @classmethod
     def for_parts(cls, checksums: T.Sequence[bytes]):
         return cls.sha256_chunked(cls.hash_parts(checksums))
 
     _EMPTY_HASH = hashlib.sha256().digest()
+    _EMPTY_CRC64NVME = b"\x00" * 8  # CRC64 of empty object is 0
 
     @classmethod
     @functools.cache
@@ -118,6 +124,11 @@ class Checksum(pydantic.v1.BaseModel):
     @functools.cache
     def empty_sha256_chunked(cls):
         return cls.sha256_chunked(cls._EMPTY_HASH)
+
+    @classmethod
+    @functools.cache
+    def empty_crc64nvme(cls):
+        return cls.crc64nvme(cls._EMPTY_CRC64NVME)
 
 
 # XXX: maybe it doesn't make sense outside of s3hash lambda
