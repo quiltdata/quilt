@@ -395,7 +395,8 @@ def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> byte
 
     CRC64 is composable: CRC(A || B) can be computed from CRC(A), CRC(B), and len(B).
 
-    Uses the CRC64-NVME polynomial: 0xad93d23594c93659
+    Uses the CRC64-NVME reflected polynomial: 0x9a6c9329ac4bc9b5
+    (bit-reversal of normal polynomial 0xad93d23594c93659)
     """
     if len(part_crcs) != len(part_sizes):
         raise ValueError("part_crcs and part_sizes must have the same length")
@@ -403,18 +404,21 @@ def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> byte
     if len(part_crcs) == 0:
         return b"\x00" * 8
 
-    # CRC64-NVME polynomial
-    POLY = 0xad93d23594c93659
+    # CRC64-NVME uses reflected (bit-reversed) form
+    # Reflected polynomial of 0xad93d23594c93659
+    POLY = 0x9a6c9329ac4bc9b5
 
     def _crc64_extend(crc: int, data_len: int) -> int:
-        """Extend CRC for data_len zero bytes (used for combining CRCs)."""
-        # For each zero byte, multiply CRC by x^8 mod polynomial
+        """Extend CRC for data_len zero bytes (used for combining CRCs).
+
+        Uses reflected/reversed CRC algorithm (LSB first, right shift).
+        """
         for _ in range(data_len):
             for _ in range(8):
-                if crc & (1 << 63):
-                    crc = ((crc << 1) ^ POLY) & 0xFFFFFFFFFFFFFFFF
+                if crc & 1:  # Check LSB instead of MSB
+                    crc = (crc >> 1) ^ POLY  # Right shift instead of left
                 else:
-                    crc = (crc << 1) & 0xFFFFFFFFFFFFFFFF
+                    crc = crc >> 1
         return crc
 
     # Convert first CRC from bytes to int (big-endian)
