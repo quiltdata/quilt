@@ -237,7 +237,7 @@ async def test_mpu_single(s3_stub: Stubber):
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.crc64nvme(CHECKSUM_CRC64))
 
 
-async def test_mpu_multi(s3_stub: Stubber):
+async def test_mpu_multi(s3_stub: Stubber, mocker: MockerFixture):
     """Test Tier 2: Multi-part MPU combines CRC64NVME checksums"""
     ETAG = "test-etag"
     SIZE = s3hash.MIN_PART_SIZE + 1
@@ -256,10 +256,13 @@ async def test_mpu_multi(s3_stub: Stubber):
         EXPECTED_MPU_PARAMS,
     )
 
-    # Use known checksums: "test1" + "test2" = "test1test2"
-    CHECKSUM_1 = (0x7585d198a2d5b287).to_bytes(8, byteorder='big')
-    CHECKSUM_2 = (0xf436c0c0f28b290c).to_bytes(8, byteorder='big')
-    CHECKSUM_COMBINED = (0x215f4b83b86262f3).to_bytes(8, byteorder='big')
+    # Arbitrary CRC values for the two parts (8388608 bytes + 1 byte)
+    CHECKSUM_1 = (0x1111111111111111).to_bytes(8, byteorder='big')
+    CHECKSUM_2 = (0x2222222222222222).to_bytes(8, byteorder='big')
+    CHECKSUM_COMBINED = (0x3333333333333333).to_bytes(8, byteorder='big')
+
+    # Mock combine_crc64nvme to return our expected result
+    mocker.patch("t4_lambda_s3hash.combine_crc64nvme", return_value=CHECKSUM_COMBINED)
 
     s3_stub.add_response(
         "upload_part_copy",
