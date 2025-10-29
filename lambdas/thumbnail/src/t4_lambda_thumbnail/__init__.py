@@ -2,10 +2,11 @@
 Generate thumbnails for n-dimensional images in S3.
 
 Uses `bioio.BioImage` to read common imaging formats + some supported
-n-dimensional imaging formats. Stong assumptions as to the shape of the
-n-dimensional data are made, specifically that dimension order is STCZYX, or,
-Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
+n-dimensional imaging formats. Strong assumptions as to the shape of the
+n-dimensional data are made, specifically that dimension order is TCZYX(S), or,
+Timepoint-Channel-SpacialZ-SpacialY-SpacialX-(Samples).
 """
+
 import functools
 import io
 import json
@@ -174,11 +175,6 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
     # BioImage makes strong assumptions about dimension ordering
 
     # Reduce the array down to 2D + Channels when possible
-    # Always choose first Scene
-    # if "S" in img.reader.dims.order:
-    #     return img.reader.dask_data
-    #     img = BioImage(img.dask_data[:, :, :, :, :, 0])
-        # print('!!!', img.dask_data[:, :, :, :, :, 0].shape)
     # Always choose middle time slice
     if "T" in img.reader.dims.order:
         img = BioImage(img.dask_data[img.dask_data.shape[0] // 2 : img.dask_data.shape[0] // 2 + 1, :, :, :, :])
