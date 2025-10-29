@@ -344,41 +344,51 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
 
 def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
     # Read image data
-    img = BioImage(
-        url,
-        # Benchmarks are for images/bioio-tifffile/image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif
-        # With default cache ('bytes') img.data takes ~20s, with this cache it takes ~4s.
-        # Reading to a temporary local file seems a bit faster, but space is limited in Lambda.
-        # The maximum memory use for this cache is blocksize * maxblocks.
-        # fs_kwargs={
-        #     "cache_type": "background",
-        #     "cache_options": {"maxblocks": 32},
-        #     "block_size": 8 * 2**20,
-        # },
-        fs_kwargs={"cache_type": "all"},
-    )
-    print(img.reader.dims.items())
-    orig_size = list(img.reader.dask_data.shape)
-    # Generate a formatted ndarray using the image data
-    # Makes some assumptions for n-dim data
-    img = format_aicsimage_to_prepped(img)
+    import tempfile
+    import urllib.parse
+    import urllib.request
+    filename = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
+    if not url.lower().startswith(('http://', 'https://')):
+        url = f"file://{url}"
+    with tempfile.NamedTemporaryFile(suffix=filename) as tmp_file:
+        with urllib.request.urlopen(url) as resp:
+            tmp_file.write(resp.read())
+            tmp_file.flush()
+        img = BioImage(
+            tmp_file.name,
+            # Benchmarks are for images/bioio-tifffile/image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif
+            # With default cache ('bytes') img.data takes ~20s, with this cache it takes ~4s.
+            # Reading to a temporary local file seems a bit faster, but space is limited in Lambda.
+            # The maximum memory use for this cache is blocksize * maxblocks.
+            # fs_kwargs={
+            #     "cache_type": "background",
+            #     "cache_options": {"maxblocks": 32},
+            #     "block_size": 8 * 2**20,
+            # },
+            # fs_kwargs={"cache_type": "all"},
+        )
+        print(img.reader.dims.items())
+        orig_size = list(img.reader.dask_data.shape)
+        # Generate a formatted ndarray using the image data
+        # Makes some assumptions for n-dim data
+        img = format_aicsimage_to_prepped(img)
 
-    img = generate_thumbnail(img.compute(), size)
+        img = generate_thumbnail(img.compute(), size)
 
-    thumbnail_size = img.size
-    # Store the bytes
-    thumbnail_bytes = BytesIO()
-    img.save(thumbnail_bytes, thumbnail_format)
-    # Get bytes data
-    data = thumbnail_bytes.getvalue()
-    # Create metadata object
-    info = {
-        'original_size': orig_size,
-        'thumbnail_format': thumbnail_format,
-        'thumbnail_size': thumbnail_size,
-    }
+        thumbnail_size = img.size
+        # Store the bytes
+        thumbnail_bytes = BytesIO()
+        img.save(thumbnail_bytes, thumbnail_format)
+        # Get bytes data
+        data = thumbnail_bytes.getvalue()
+        # Create metadata object
+        info = {
+            'original_size': orig_size,
+            'thumbnail_format': thumbnail_format,
+            'thumbnail_size': thumbnail_size,
+        }
 
-    return info, data
+        return info, data
 
 
 def _convert_I16_to_L(arr):
