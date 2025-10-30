@@ -58,7 +58,7 @@ ARG FUNCTION_DIR
 # Set working directory to function root directory
 WORKDIR ${FUNCTION_DIR}
 
-COPY --from=build --chown=app:app ${FUNCTION_DIR} ${FUNCTION_DIR}
+COPY --from=build ${FUNCTION_DIR} ${FUNCTION_DIR}
 
 ENTRYPOINT ["./bin/python3", "-m", "awslambdaric"]
 CMD ["t4_lambda_thumbnail.lambda_handler"]
