@@ -7,6 +7,7 @@ n-dimensional data are made, specifically that dimension order is TCZYX(S), or,
 Timepoint-Channel-SpacialZ-SpacialY-SpacialX-(Samples).
 """
 
+import contextlib
 import functools
 import io
 import json
@@ -14,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
@@ -251,27 +253,28 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
     return img.reader.dask_data
 
 
-def pptx_to_pdf(*, src: bytes, page: int) -> bytes:
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        return subprocess.run(
-            (
-                sys.executable,
-                "unoconv",
-                "--doctype=presentation",
-                "--format=pdf",
-                "--stdout",
-                "--stdin",
-                f"--export=PageRange={page}-{page}",
-            ),
-            check=True,
-            env={
-                **os.environ,
-                # This is needed because LibreOffice writes some stuff to $HOME/.config.
-                "HOME": tmp_dir,
-            },
-            input=src,
-            capture_output=True,
-        ).stdout
+@contextlib.contextmanager
+def pptx_to_pdf(*, path: str, page: int):
+    with tempfile.TemporaryDirectory() as out_dir:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            subprocess.run(
+                (
+                    "libreoffice",
+                    "--convert-to",
+                    'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"{page}-{page}"}}'.format(page=page),
+                    "--outdir",
+                    out_dir,
+                    path,
+                ),
+                check=True,
+                env={
+                    **os.environ,
+                    # This is needed because LibreOffice writes some stuff to $HOME/.config.
+                    "HOME": tmp_dir,
+                },
+            )
+        yield os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ".pdf")
+
 
 
 def handle_exceptions(*exception_types):
@@ -291,10 +294,10 @@ class PDFThumbError(Exception):
     pass
 
 
-def pdf_thumb(src: bytes, page: int, size: int):
+def pdf_thumb(*, path: str, page: int, size: int):
     try:
-        pages = convert_from_bytes(
-            src,
+        pages = pdf2image.convert_from_path(
+            path,
             # respect width but not necessarily height to preserve aspect ratio
             size=(size, None),
             fmt="JPEG",
@@ -312,15 +315,15 @@ def pdf_thumb(src: bytes, page: int, size: int):
         raise PDFThumbError(str(e))
 
 
-def handle_pdf(*, src: bytes, page: int, size: int, count_pages: bool):
+def handle_pdf(*, path: str, page: int, size: int, count_pages: bool):
     fmt = "JPEG"
-    thumb = pdf_thumb(src, page, size)
+    thumb = pdf_thumb(path=path, page=page, size=size)
     info = {
         "thumbnail_format": fmt,
         "thumbnail_size": thumb.size,
     }
     if count_pages:
-        info["page_count"] = pdf2image.pdfinfo_from_bytes(src)["Pages"]
+        info["page_count"] = pdf2image.pdfinfo_from_path(path)["Pages"]
 
     thumbnail_bytes = BytesIO()
     thumb.save(thumbnail_bytes, fmt)
@@ -329,62 +332,39 @@ def handle_pdf(*, src: bytes, page: int, size: int, count_pages: bool):
     return info, data
 
 
-def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
-    pdf_bytes = pptx_to_pdf(src=src, page=page)
-    info, data = handle_pdf(src=pdf_bytes, page=1, size=size, count_pages=False)
+def handle_pptx(*, path: str, page: int, size: int, count_pages: bool):
+    with pptx_to_pdf(path=path, page=page) as pdf_path:
+        info, data = handle_pdf(path=pdf_path, page=1, size=size, count_pages=False)
     if count_pages:
-        info["page_count"] = len(pptx.Presentation(io.BytesIO(src)).slides)
+        info["page_count"] = len(pptx.Presentation(path).slides)
 
     return info, data
 
 
-def handle_image(*, url: str, size: tuple[int, int], thumbnail_format: str):
+def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     # Read image data
-    import tempfile
-    import urllib.parse
-    import urllib.request
-    filename = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
-    if not url.lower().startswith(('http://', 'https://')):
-        url = f"file://{url}"
-    with tempfile.NamedTemporaryFile(suffix=filename) as tmp_file:
-        with urllib.request.urlopen(url) as resp:
-            tmp_file.write(resp.read())
-            tmp_file.flush()
-        img = BioImage(
-            tmp_file.name,
-            # Benchmarks are for images/bioio-tifffile/image_stack_tpzc_50tp_2p_5z_3c_512k_1_MMStack_2-Pos000_000.ome.tif
-            # With default cache ('bytes') img.data takes ~20s, with this cache it takes ~4s.
-            # Reading to a temporary local file seems a bit faster, but space is limited in Lambda.
-            # The maximum memory use for this cache is blocksize * maxblocks.
-            # fs_kwargs={
-            #     "cache_type": "background",
-            #     "cache_options": {"maxblocks": 32},
-            #     "block_size": 8 * 2**20,
-            # },
-            # fs_kwargs={"cache_type": "all"},
-        )
-        print(img.reader.dims.items())
-        orig_size = list(img.reader.dask_data.shape)
-        # Generate a formatted ndarray using the image data
-        # Makes some assumptions for n-dim data
-        img = format_aicsimage_to_prepped(img)
+    img = BioImage(path)
+    orig_size = list(img.reader.dask_data.shape)
+    # Generate a formatted ndarray using the image data
+    # Makes some assumptions for n-dim data
+    img = format_aicsimage_to_prepped(img)
 
-        img = generate_thumbnail(img.compute(), size)
+    img = generate_thumbnail(img.compute(), size)
 
-        thumbnail_size = img.size
-        # Store the bytes
-        thumbnail_bytes = BytesIO()
-        img.save(thumbnail_bytes, thumbnail_format)
-        # Get bytes data
-        data = thumbnail_bytes.getvalue()
-        # Create metadata object
-        info = {
-            'original_size': orig_size,
-            'thumbnail_format': thumbnail_format,
-            'thumbnail_size': thumbnail_size,
-        }
+    thumbnail_size = img.size
+    # Store the bytes
+    thumbnail_bytes = BytesIO()
+    img.save(thumbnail_bytes, thumbnail_format)
+    # Get bytes data
+    data = thumbnail_bytes.getvalue()
+    # Create metadata object
+    info = {
+        'original_size': orig_size,
+        'thumbnail_format': thumbnail_format,
+        'thumbnail_size': thumbnail_size,
+    }
 
-        return info, data
+    return info, data
 
 
 def _convert_I16_to_L(arr):
@@ -445,44 +425,51 @@ def lambda_handler(request):
     page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 
-    if input_ in ("pdf", "pptx"):
-        # For PDF and PPTX inputs, we always use JPEG format for thumbnails
+    # Handle request
+    resp = requests.get(url)
+    if not resp.ok:
+        # Errored, return error code
+        ret_val = {
+            "error": resp.reason,
+            "text": resp.text,
+        }
+        return make_json_response(resp.status_code, ret_val)
+
+    # FIXME: If the process is killed because it's out of memory, named temporary files
+    #        are not deleted neither by Python nor by OS.
+    #        It *seems* that Lambda should restart the environment in this case, but
+    #        it doesn't (AWS bug?). So we may end up cleaning tmp files manually in
+    #        the beginning of the invocation.
+    # XXX: BioImage can read from s3/http(s) URLs directly, but in practice it's at least 2x slower
+    #      than downloading the file first and reading from local FS even with cache_type='all' which
+    #      downloads the file in one shot.
+    filename_suffix = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
+    with tempfile.NamedTemporaryFile(suffix=filename_suffix) as src_file:
+        src_file.write(resp.content)
+        src_file.flush()
+
         thumbnail_format = "JPEG"
-        # Handle request
-        resp = requests.get(url)
-        if not resp.ok:
-            # Errored, return error code
-            ret_val = {
-                'error': resp.reason,
-                'text': resp.text,
-            }
-            return make_json_response(resp.status_code, ret_val)
-
-        src_bytes = resp.content
-
         if input_ == "pdf":
-            info, data = handle_pdf(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+            info, data = handle_pdf(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
         elif input_ == "pptx":
-            info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+            info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
         else:
-            assert False, f"Unhandled input type {input_}"
-    else:
-        # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
-        #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
-        #      So for now, always use PNG.
-        # try:
-        #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-        #         imageio.get_reader(url),
-        #         "PNG"
-        #     )
-        # except ValueError:
-        #     thumbnail_format = "PNG"
-        thumbnail_format = "PNG"
-        info, data = handle_image(
-            url=url,
-            size=size,
-            thumbnail_format=thumbnail_format,
-        )
+            # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
+            #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
+            #      So for now, always use PNG.
+            # try:
+            #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
+            #         imageio.get_reader(url),
+            #         "PNG"
+            #     )
+            # except ValueError:
+            #     thumbnail_format = "PNG"
+            thumbnail_format = "PNG"
+            info, data = handle_image(
+                path=src_file.name,
+                size=size,
+                thumbnail_format=thumbnail_format,
+            )
 
     headers = {
         'Content-Type': Image.MIME[thumbnail_format],

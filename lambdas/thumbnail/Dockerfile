@@ -46,7 +46,6 @@ RUN apt-get update && \
         ca-certificates \
         libreoffice-impress-nogui \
         python3 \
-        python3-uno \
         poppler-utils \
         fonts-crosextra-caladea \
         fonts-crosextra-carlito \

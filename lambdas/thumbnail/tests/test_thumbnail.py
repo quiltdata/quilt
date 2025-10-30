@@ -154,16 +154,13 @@ def test_generate_thumbnail(
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
-    if params.get("input") in ("pdf", "pptx"):
-        url = f"https://example.com/{input_file}"
-        responses.add(
-            responses.GET,
-            url=url,
-            body=input_file.read_bytes(),
-            status=200
-        )
-    else:
-        url = str(input_file)
+    url = f"https://example.com/{input_file}"
+    responses.add(
+        responses.GET,
+        url=url,
+        body=input_file.read_bytes(),
+        status=200
+    )
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
@@ -414,7 +411,7 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         pytest.skip("Skipping large file test; use --large-files to enable")
 
     print(f"Testing {lk}...")
-    _info, data = t4_lambda_thumbnail.handle_image(url=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
+    _info, data = t4_lambda_thumbnail.handle_image(path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
 
     thumb_lk = f"{pkg_name}/{lk}.png"
     quilt3.Package.install(
