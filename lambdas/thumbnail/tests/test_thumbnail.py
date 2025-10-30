@@ -409,7 +409,7 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
     if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
 
-    print(f"Testing {lk}...")
+    print(f"Testing {pkg_name}/{lk}...")
     _info, data = t4_lambda_thumbnail.handle_image(path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
 
     thumb_lk = f"{pkg_name}/{lk}.png"
@@ -430,7 +430,6 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         actual = BioImage(actual_f.name)
         expected = BioImage(thumbs_pkg[thumb_lk].get_cached_path())
 
-        print(f"  actual size: {actual.dims.items()}, expected size: {expected.dims.items()}")
         assert actual.dims.items() == expected.dims.items()
         np.testing.assert_equal(actual.reader.data, expected.reader.data)
 
