@@ -262,16 +262,18 @@ def copy_pkg_entry_data(
     src: PhysicalKey,
     dst: PhysicalKey,
     idx: int,
-) -> T.Tuple[int, PhysicalKey]:
+) -> T.Tuple[int, T.Tuple[PhysicalKey, T.Optional[str]]]:
     version_id = invoke_copy_lambda(credentials, src, dst)
-    return idx, PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+    versioned_key = PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+    # Return tuple of (versioned_key, checksum) - checksum is None since we don't compute it during copy
+    return idx, (versioned_key, None)
 
 
 def copy_file_list(
     file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
     message=None,
     callback=None,
-) -> T.List[PhysicalKey]:
+) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]:
     # TODO: Copy single part files directly, because using lambda for that just adds overhead,
     #       this can be done is a separate thread pool providing higher concurrency.
     # TODO: Use checksums to deduplicate?

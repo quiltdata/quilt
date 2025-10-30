@@ -21,7 +21,8 @@ def hash_data(data):
     return hashlib.sha256(data).hexdigest()
 
 
-calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
+# NOTE: calculate_sha256 mock removed - function no longer exists in quilt3 and pkgpush doesn't use it
+# calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
 CREDENTIALS = AWSCredentials(
@@ -41,7 +42,7 @@ class PackagePromoteTestBase(unittest.TestCase):
     parent_pkg_name = 'parent/pkg-name'
     parent_commit_message = 'parent commit message'
     dst_bucket = 'dest-bucket'
-    dst_registry = f's3://{dst_bucket}'
+    dst_registry = f's3://{dst_bucket}/'  # Include trailing slash to match quilt3 7.x normalization
     dst_pkg_name = 'dest/pkg-name'
     dst_pkg_loc_params = {
         'bucket': dst_bucket,
@@ -194,17 +195,13 @@ class PackagePromoteTestBase(unittest.TestCase):
     @mock.patch('time.time', mock.MagicMock(return_value=mock_timestamp))
     def make_request(self, params, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
-        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock, \
-             calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
+        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
             response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
             **self.credentials.boto_args,
         )
         reset_session_id_mock.assert_called_once_with()
-
-        if calculate_sha256_mock.called:
-            calculate_sha256_mock.assert_called_once_with([], [])
 
         return response
 
@@ -324,8 +321,9 @@ class PackagePromoteTest(PackagePromoteTestBase):
 
                 with self.mock_successors({self.dst_registry: config_params}), \
                      mock.patch("t4_lambda_pkgpush.copy_file_list") as copy_file_list_mock:
+                    # Return tuples of (versioned_key, checksum) to match quilt3 7.x API
                     copy_file_list_mock.return_value = [
-                        e.physical_key
+                        (e.physical_key, None)
                         for lk, e in expected_pkg.walk()
                     ]
                     response = self.make_request(params)
