@@ -1790,6 +1790,29 @@ class PackageTest(QuiltTestCase):
         _test_verify_fails('test')
         _test_verify_fails('test', extra_files_ok=True)
 
+    def test_crc64nvme_hash_type(self):
+        """Test that CRC64NVME hash type is supported and validation is skipped."""
+        self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+
+        pkg.set('foo', b'Hello, World!')
+        pkg.build('quilt/test')
+
+        # Set CRC64NVME hash (arbitrary base64 value)
+        pkg['foo'].hash = dict(
+            type='CRC64NVME',
+            value='AAAA/w8ODRQTGhkgHy4tNDM6OQ==',
+        )
+
+        # Verify should succeed (validation is skipped for CRC64NVME)
+        Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
+        assert pkg.verify('test')
+
+        # Change file content with same size - verify should still succeed
+        # because CRC64NVME validation is skipped (only size is checked)
+        Path('test/foo').write_text('Bonjour monde')  # Same 13 bytes as 'Hello, World!'
+        assert pkg.verify('test')
+
     @patch('quilt3.packages.calculate_checksum')
     def test_calculate_missing_hashes_fail(self, mocked_calculate_checksum):
         data = b'Hello, World!'
