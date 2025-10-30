@@ -521,11 +521,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/47/71/70db47e4f6ce3e5c37a607355f80da8860a33226be640226ac52cb05ef2e/fsspec-2025.9.0-py3-none-any.whl", hash = "sha256:530dc2a2af60a414a832059574df4a6e10cce927f6f4a78209390fe38955cfb7", size = 199289, upload-time = "2025-09-02T19:10:47.708Z" },
 ]
 
-[package.optional-dependencies]
-http = [
-    { name = "aiohttp" },
-]
-
 [[package]]
 name = "idna"
 version = "3.11"
@@ -1429,7 +1424,6 @@ dependencies = [
     { name = "bioio-imageio" },
     { name = "bioio-ome-tiff" },
     { name = "bioio-tifffile" },
-    { name = "fsspec", extra = ["http"] },
     { name = "imageio" },
     { name = "numpy" },
     { name = "pdf2image" },
@@ -1457,7 +1451,6 @@ requires-dist = [
     { name = "bioio-imageio", specifier = "~=1.3" },
     { name = "bioio-ome-tiff", specifier = "~=1.4" },
     { name = "bioio-tifffile", specifier = "~=1.3" },
-    { name = "fsspec", extras = ["http"], specifier = ">=2025.9.0" },
     { name = "imageio", specifier = "~=2.27" },
     { name = "numpy", specifier = "~=2.3" },
     { name = "pdf2image", specifier = ">=1.13.1,<2" },

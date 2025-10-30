@@ -67,8 +67,7 @@ def test_403():
         headers=HEADER_403,
     )
     params = {
-        "size": "w32h32",
-        "input": "pdf",
+        "size": "w32h32"
     }
     event = _make_event({"url": url, **params})
     # Get the response
@@ -221,7 +220,7 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
         # Traceback (most recent call last):
-        #   File ".site-packages/PIL/Image.py", line 3308, in fromarray
+        #   File "site-packages/PIL/Image.py", line 3308, in fromarray
         #     mode, rawmode = _fromarray_typemap[typekey]
         #                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^
         # KeyError: ((1, 1, 3), '<u2')
@@ -234,7 +233,7 @@ SIZE = (1024, 768)
         #     img = generate_thumbnail(img, size)
         #   File "src/t4_lambda_thumbnail/__init__.py", line 376, in generate_thumbnail
         #     img = Image.fromarray(arr)
-        #   File ".site-packages/PIL/Image.py", line 3312, in fromarray
+        #   File "site-packages/PIL/Image.py", line 3312, in fromarray
         #     raise TypeError(msg) from e
         # TypeError: Cannot handle this data type: (1, 1, 3), <u2
         pytest.param(
