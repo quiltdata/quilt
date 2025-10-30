@@ -11,12 +11,12 @@ setup(
         "rfc3986 ~= 2.0",
         (
             "quilt3 @ https://github.com/quiltdata/quilt/archive/"
-            "5c2b79128fe4d5d1e6093ff6a7d11d09d3315843.zip"
+            "39911cd11f6e1515853b1c67c7c77d457f5e537b.zip"
             "#subdirectory=api/python"
         ),
         (
             "quilt_shared[pydantic,boto,quilt] @ https://github.com/quiltdata/quilt/archive/"
-            "eef24b79bdf6cec917ba1e0945c74d7c7cea3d62.zip"
+            "6700d34e95d28039308f3c8ddb239bc91945aaf9.zip"
             "#subdirectory=py-shared"
         ),
     ],
