@@ -261,7 +261,7 @@ def pptx_to_pdf(*, path: str, page: int):
                 (
                     "libreoffice",
                     "--convert-to",
-                    'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"{page}-{page}"}}'.format(page=page),
+                    'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"{%s}-{%s}"}}' % (page, page),
                     "--outdir",
                     out_dir,
                     path,
