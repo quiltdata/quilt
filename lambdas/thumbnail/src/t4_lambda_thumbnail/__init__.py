@@ -428,8 +428,8 @@ def lambda_handler(request):
     if not resp.ok:
         # Errored, return error code
         ret_val = {
-            "error": resp.reason,
-            "text": resp.text,
+            'error': resp.reason,
+            'text': resp.text,
         }
         return make_json_response(resp.status_code, ret_val)
 
