@@ -150,19 +150,33 @@ def calculate_pkg_entry_hash_local(
     s3_client,
     scratch_buckets: dict[str, str],
 ):
+    # Try to get precomputed CRC64NVME from S3 (fast path)
+    try:
+        resp = s3_client.get_object_attributes(
+            **S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
+            ObjectAttributes=["Checksum"],
+        )
+        checksum_value = resp.get("Checksum", {}).get("ChecksumCRC64NVME")
+        if checksum_value is not None:
+            checksum_bytes = base64.b64decode(checksum_value)
+            pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
+            return
+    except botocore.exceptions.ClientError:
+        # GetObjectAttributes may fail - fall through to copy_object
+        pass
+
+    # Compute CRC64NVME via copy_object
     region = get_bucket_region(pkg_entry.physical_key.bucket)
     resp = s3_client.copy_object(
         CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
         Bucket=scratch_buckets[region],
         Key=make_scratch_key(),
-        ChecksumAlgorithm="SHA256",
+        ChecksumAlgorithm="CRC64NVME",
         # TODO: make sure we hash the correct object in the case of an unversioned object
         # CopySourceIfMatch=etag,
     )
-    checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
-    pkg_entry.hash = (
-        Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)
-    ).dict()
+    checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
+    pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
 
 
 @functools.cache
@@ -199,7 +213,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
             )
 
         if not entry.size:
-            entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
+            entry.hash = Checksum.empty_crc64nvme().dict()
         elif entry.size < MIN_PART_SIZE:
             entries_local.append(entry)
         else:
