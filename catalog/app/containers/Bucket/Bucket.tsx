@@ -1,11 +1,11 @@
 import * as React from 'react'
-import { Route, Switch, useLocation } from 'react-router-dom'
+import { Route, Switch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout, { Container } from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { useBucketStrict } from 'containers/Bucket/Routes'
-import { ThrowNotFound } from 'containers/NotFoundPage'
+import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -14,7 +14,6 @@ import * as RT from 'utils/reactTools'
 
 import * as AssistantContext from './AssistantContext'
 import * as BucketNav from './BucketNav'
-import CatchNotFound from './CatchNotFound'
 import type { RouteMap } from './Routes'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -70,7 +69,6 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
 }
 
 export default function Bucket() {
-  const location = useLocation()
   const bucket = useBucketStrict()
 
   const { paths } = NamedRoutes.use<RouteMap>()
@@ -80,48 +78,49 @@ export default function Bucket() {
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket}>
         <AssistantContext.BucketContext bucket={bucket} />
-        <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
-          <Switch>
-            <Route path={paths.bucketFile} exact strict>
-              <File />
-            </Route>
-            <Route path={paths.bucketDir} exact>
-              <Selection.Provider>
-                <Dir />
-              </Selection.Provider>
-            </Route>
-            <Route path={paths.bucketOverview} exact>
-              <Overview />
-            </Route>
-            <Route path={paths.bucketPackageList} exact>
-              <PackageList />
-            </Route>
-            <Route path={paths.bucketPackageDetail} exact>
-              <PackageTree />
-            </Route>
-            <Route path={paths.bucketPackageTree} exact>
-              <PackageTree />
-            </Route>
-            <Route path={paths.bucketPackageRevisions} exact>
-              <PackageRevisions />
-            </Route>
-            <Route path={paths.bucketPackageCompare} exact>
-              <PackageCompare />
-            </Route>
-            <Route path={paths.bucketWorkflowList} exact>
-              <Workflows />
-            </Route>
-            <Route path={paths.bucketWorkflowDetail} exact>
-              <Workflows />
-            </Route>
-            <Route path={paths.bucketQueries}>
-              <Queries />
-            </Route>
-            <Route>
-              <ThrowNotFound />
-            </Route>
-          </Switch>
-        </CatchNotFound>
+        <Switch>
+          <Route path={paths.bucketFile} exact strict>
+            <File />
+          </Route>
+          <Route path={paths.bucketDir} exact>
+            <Selection.Provider>
+              <Dir />
+            </Selection.Provider>
+          </Route>
+          <Route path={paths.bucketOverview} exact>
+            <Overview />
+          </Route>
+          <Route path={paths.bucketPackageList} exact>
+            <PackageList />
+          </Route>
+          <Route path={paths.bucketPackageAddFiles} exact>
+            <PackageTree />
+          </Route>
+          <Route path={paths.bucketPackageDetail} exact>
+            <PackageTree />
+          </Route>
+          <Route path={paths.bucketPackageTree} exact>
+            <PackageTree />
+          </Route>
+          <Route path={paths.bucketPackageRevisions} exact>
+            <PackageRevisions />
+          </Route>
+          <Route path={paths.bucketPackageCompare} exact>
+            <PackageCompare />
+          </Route>
+          <Route path={paths.bucketWorkflowList} exact>
+            <Workflows />
+          </Route>
+          <Route path={paths.bucketWorkflowDetail} exact>
+            <Workflows />
+          </Route>
+          <Route path={paths.bucketQueries}>
+            <Queries />
+          </Route>
+          <Route>
+            <NotFoundInTabs />
+          </Route>
+        </Switch>
       </BucketLayout>
     </BucketPreferences.Provider>
   )

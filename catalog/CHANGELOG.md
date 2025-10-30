@@ -18,6 +18,10 @@ where verb is one of
 
 ## Changes
 
+- [Added] Package Dialog can now reuse manifest from existing packages when entering their names ([#4564](https://github.com/quiltdata/quilt/pull/4564))
+- [Changed] Refactor Package Dialog: add centralized state management with strict TypeScript typing and remove "react-final-form" ([#4564](https://github.com/quiltdata/quilt/pull/4564))
+- [Fixed] Correct code sample for downloading an S3 file via AWS CLI ([#4613](https://github.com/quiltdata/quilt/pull/4613))
+- [Changed] Migrate error boundaries from custom implementation to react-error-boundary package ([#4610](https://github.com/quiltdata/quilt/pull/4610))
 - [Fixed] Creating a package from a directory containing unencoded special symbols ([#4577](https://github.com/quiltdata/quilt/pull/4577))
 - [Added] Qurator: auto-load context files (AGENTS.md and README.md) ([#4561](https://github.com/quiltdata/quilt/pull/4561))
 - [Added] Qurator: add package metadata to the context ([#4561](https://github.com/quiltdata/quilt/pull/4561))
@@ -29,7 +33,7 @@ where verb is one of
 - [Fixed] Qurator: Limit total search results contents context to 100k characters to avoid context window overflow ([#4573](https://github.com/quiltdata/quilt/pull/4573))
 - [Fixed] Empty directory upload on Bucket tab ([#4552](https://github.com/quiltdata/quilt/pull/4552))
 - [Changed] Improve handling of no results on packages tab ([#4539](https://github.com/quiltdata/quilt/pull/4539))
-- [Changed] Removed unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
+- [Changed] Remove unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
 - [Added] File upload and deletion functionality to manage files directly in buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Refactor toolbar layout in Bucket tab for improved consistency and maintainability ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Make 'add bucket' buttons on the main page route to 'add bucket' admin page instead of bucket list ([#4538](https://github.com/quiltdata/quilt/pull/4538))

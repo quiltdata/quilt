@@ -57,7 +57,7 @@ describe('components/FileEditor/routes', () => {
         ),
       )
       expect(result.current('lk')).toBe(
-        'bucketFile(b, k, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+        'bucketFile(b, k, {"add":"quilt+s3://b#package=n&path=lk","edit":true})',
       )
     })
   })
@@ -68,7 +68,7 @@ describe('components/FileEditor/routes', () => {
         useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }),
       )
       expect(result.current('lk')).toBe(
-        'bucketFile(b, ro/ot/n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+        'bucketFile(b, ro/ot/n/lk, {"add":"quilt+s3://b#package=n&path=lk","edit":true})',
       )
     })
   })

@@ -2,6 +2,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import ReactDOM from 'react-dom'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import 'sanitize.css' // side-effect: inject global css
@@ -10,7 +11,6 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as style from 'constants/style'
-import { createBoundary } from 'utils/ErrorBoundary'
 import * as OIDC from 'utils/OIDC'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
@@ -249,7 +249,7 @@ function Embedder() {
   )
 }
 
-const ErrorBoundary = createBoundary(() => (/* error, info */) => (
+const FallbackComponent = () => (
   <h1
     style={{
       alignItems: 'center',
@@ -262,11 +262,11 @@ const ErrorBoundary = createBoundary(() => (/* error, info */) => (
   >
     Something went wrong
   </h1>
-))
+)
 
 function App() {
   return RT.nest(
-    ErrorBoundary,
+    [ErrorBoundary, { FallbackComponent }],
     [M.MuiThemeProvider, { theme: style.appTheme }],
     WithGlobalStyles,
     Layout.Root,

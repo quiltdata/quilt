@@ -1,8 +1,8 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
-import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
 import logout from 'utils/logout'
 import mkStorage from 'utils/storage'
@@ -129,10 +129,14 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   )
 }
 
-const FinalBoundary = createBoundary(() => (error: Error /* , info */) => (
+const FallbackComponent = ({ error }: FallbackProps) => (
   <M.MuiThemeProvider theme={style.navTheme}>
     <FinalBoundaryLayout error={error} />
   </M.MuiThemeProvider>
-))
+)
+
+const FinalBoundary = ({ children }: React.PropsWithChildren<{}>) => (
+  <ErrorBoundary {...{ children, FallbackComponent }} />
+)
 
 export default FinalBoundary
