@@ -23,7 +23,6 @@ import bioio_czi
 import bioio_ome_tiff
 import bioio_tifffile
 import dask.array as da
-import imageio
 import numpy as np
 import pdf2image
 import pptx
@@ -61,13 +60,6 @@ SUPPORTED_SIZES = [
 ]
 # Map URL parameters to actual sizes, e.g. 'w128h128' -> (128, 128)
 SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
-
-# If the image is one of these formats, retain the format after formatting
-SUPPORTED_BROWSER_FORMATS = {
-    imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
-    imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
-    imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
-}
 
 SCHEMA = {
     'type': 'object',
@@ -455,6 +447,12 @@ def lambda_handler(request):
             # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
             #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
             #      So for now, always use PNG.
+            # If the image is one of these formats, retain the format after formatting
+            # SUPPORTED_BROWSER_FORMATS = {
+            #     imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
+            #     imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
+            #     imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
+            # }
             # try:
             #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
             #         imageio.get_reader(url),
