@@ -9,7 +9,6 @@ Timepoint-Channel-SpacialZ-SpacialY-SpacialX-(Samples).
 
 import contextlib
 import functools
-import io
 import json
 import os
 import subprocess
@@ -30,7 +29,6 @@ import pdf2image
 import pptx
 import requests
 from bioio import BioImage
-from pdf2image import convert_from_bytes
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
     PDFPageCountError,
