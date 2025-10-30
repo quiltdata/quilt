@@ -21,7 +21,7 @@ boto = [
   "types-aiobotocore[s3] ~= 2.11",
 ]
 quilt = [
-  "quilt3 ~= 5.4",
+  "quilt3 >= 5.4, < 8",
 ]
 es = [
   "aws-requests-auth ~= 0.4.2",
