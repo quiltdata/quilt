@@ -1435,7 +1435,6 @@ dependencies = [
     { name = "pdf2image" },
     { name = "pillow" },
     { name = "python-pptx" },
-    { name = "quilt3" },
     { name = "requests" },
     { name = "t4-lambda-shared" },
 ]
@@ -1447,6 +1446,7 @@ prod = [
 test = [
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "quilt3" },
     { name = "responses" },
 ]
 
@@ -1463,7 +1463,6 @@ requires-dist = [
     { name = "pdf2image", specifier = ">=1.13.1,<2" },
     { name = "pillow", specifier = "~=11.3" },
     { name = "python-pptx", specifier = "~=1.0.0" },
-    { name = "quilt3", specifier = "~=7.0" },
     { name = "requests", specifier = ">=2.26.0,<3" },
     { name = "t4-lambda-shared", url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" },
 ]
@@ -1473,6 +1472,7 @@ prod = [{ name = "awslambdaric", specifier = "~=3.1" }]
 test = [
     { name = "pytest", specifier = "~=8.4" },
     { name = "pytest-cov", specifier = "~=7.0" },
+    { name = "quilt3", specifier = "~=7.0" },
     { name = "responses", specifier = "~=0.25" },
 ]
 
