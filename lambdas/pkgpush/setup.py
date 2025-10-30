@@ -6,7 +6,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "boto3 ~= 1.28",
+        "boto3 ~= 1.35",
         "pydantic ~= 2.10",
         "rfc3986 ~= 2.0",
         (
@@ -16,7 +16,7 @@ setup(
         ),
         (
             "quilt_shared[pydantic,boto,quilt] @ https://github.com/quiltdata/quilt/archive/"
-            "3c8e5472b78c7293c07eecbf27d1df31eb64fb9f.zip"
+            "eef24b79bdf6cec917ba1e0945c74d7c7cea3d62.zip"
             "#subdirectory=py-shared"
         ),
     ],
