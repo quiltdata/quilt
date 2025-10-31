@@ -328,7 +328,7 @@ SIZE = (1024, 768)
         # ValueError: different number of dimensions on data and dims: 3 vs 4
         pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=ValueError)),
         # RuntimeError: Sorry, this pixeltype isn't implemented yet.
-        pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=RuntimeError)),
+        pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=(RuntimeError, ValueError))),
         (CZI_PKG, "c1_gray16.czi"),
         (CZI_PKG, "c1_gray32float.czi"),
         (CZI_PKG, "c1_gray8.czi"),
