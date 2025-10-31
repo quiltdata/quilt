@@ -90,8 +90,8 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
           aws-region: us-east-1
-      - name: Push Docker image to Prod ECR
-        run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+      # - name: Push Docker image to Prod ECR
+      #   run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
       # - name: Configure AWS credentials from GovCloud account
       #   uses: aws-actions/configure-aws-credentials@v5
       #   with:
