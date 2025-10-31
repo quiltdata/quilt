@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Restored `package-name?action=revisePackage` URL but redirect to new `package-name/add` ([#4628](https://github.com/quiltdata/quilt/pull/4628))
 - [Added] Package Dialog can now reuse manifest from existing packages when entering their names ([#4564](https://github.com/quiltdata/quilt/pull/4564))
 - [Changed] Refactor Package Dialog: add centralized state management with strict TypeScript typing and remove "react-final-form" ([#4564](https://github.com/quiltdata/quilt/pull/4564))
 - [Fixed] Correct code sample for downloading an S3 file via AWS CLI ([#4613](https://github.com/quiltdata/quilt/pull/4613))
