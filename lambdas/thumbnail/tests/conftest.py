@@ -44,7 +44,7 @@ def pytest_configure(config):
     config.option.markexpr = ' and '.join([f'not {m}' for m in markers_to_exclude])
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def disable_tmp_dir_cleanup(mocker):
     # It's already supposed to be disabled by default in test environment,
     # but just in case, we explicitly mock out the cleanup function here.
