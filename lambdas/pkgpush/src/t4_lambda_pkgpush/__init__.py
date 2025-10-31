@@ -125,6 +125,7 @@ def invoke_hash_lambda(
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
 ) -> Checksum:
+    logger.info(f"[PERF] invoke_hash_lambda START: {pk}")
     result = invoke_lambda(
         function_name=S3_HASH_LAMBDA,
         params=S3HashLambdaParams(
@@ -134,7 +135,9 @@ def invoke_hash_lambda(
         ),
         err_prefix="S3HashLambda",
     )
-    return ChecksumResult(**result).checksum
+    checksum = ChecksumResult(**result).checksum
+    logger.info(f"[PERF] invoke_hash_lambda END: {pk} -> {checksum.type}")
+    return checksum
 
 
 def calculate_pkg_entry_hash(
@@ -150,25 +153,34 @@ def calculate_pkg_entry_hash_local(
     s3_client,
     scratch_buckets: dict[str, str],
 ):
+    pk = pkg_entry.physical_key
+    logger.info(f"[PERF] calculate_pkg_entry_hash_local START: {pk} size={pkg_entry.size}")
+
     # Try to get precomputed CRC64NVME from S3 (fast path)
     try:
+        logger.info(f"[PERF] GetObjectAttributes attempt: {pk}")
         resp = s3_client.get_object_attributes(
-            **S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
+            **S3ObjectSource.from_pk(pk).boto_args,
             ObjectAttributes=["Checksum"],
         )
         checksum_value = resp.get("Checksum", {}).get("ChecksumCRC64NVME")
         if checksum_value is not None:
             checksum_bytes = base64.b64decode(checksum_value)
             pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
+            logger.info(f"[PERF] GetObjectAttributes SUCCESS: {pk}")
             return
-    except botocore.exceptions.ClientError:
+        else:
+            logger.info(f"[PERF] GetObjectAttributes returned no CRC64NVME: {pk}")
+    except botocore.exceptions.ClientError as e:
         # GetObjectAttributes may fail - fall through to copy_object
+        logger.info(f"[PERF] GetObjectAttributes FAILED: {pk} error={e}")
         pass
 
     # Compute CRC64NVME via copy_object
-    region = get_bucket_region(pkg_entry.physical_key.bucket)
+    logger.info(f"[PERF] copy_object fallback: {pk}")
+    region = get_bucket_region(pk.bucket)
     resp = s3_client.copy_object(
-        CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
+        CopySource=S3ObjectSource.from_pk(pk).boto_args,
         Bucket=scratch_buckets[region],
         Key=make_scratch_key(),
         ChecksumAlgorithm="CRC64NVME",
@@ -177,6 +189,7 @@ def calculate_pkg_entry_hash_local(
     )
     checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
     pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
+    logger.info(f"[PERF] copy_object SUCCESS: {pk}")
 
 
 @functools.cache
@@ -196,6 +209,7 @@ def get_bucket_region(bucket: str) -> str:
 
 
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
+    logger.info("[PERF] calculate_pkg_hashes START")
     entries_local = []
     entries = []
     for lk, entry in pkg.walk():
@@ -219,6 +233,8 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
         else:
             entries.append(entry)
 
+    logger.info(f"[PERF] Hash strategy: {len(entries_local)} local, {len(entries)} via s3hash lambda")
+
     # Schedule longer tasks first so we don't end up waiting for a single long task.
     entries_local.sort(key=lambda entry: entry.size, reverse=True)
     entries.sort(key=lambda entry: entry.size, reverse=True)
@@ -229,6 +245,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
     )
 
+    logger.info("[PERF] Submitting hash tasks to thread pools")
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
     ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
@@ -242,6 +259,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
+    logger.info("[PERF] calculate_pkg_hashes END")
 
 
 def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> T.Optional[str]:
@@ -274,6 +292,7 @@ def copy_file_list(
     message=None,
     callback=None,
 ) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]:
+    logger.info(f"[PERF] copy_file_list START: {len(file_list)} files")
     # TODO: Copy single part files directly, because using lambda for that just adds overhead,
     #       this can be done is a separate thread pool providing higher concurrency.
     # TODO: Use checksums to deduplicate?
@@ -294,6 +313,7 @@ def copy_file_list(
         # Sort by idx to restore original order.
         results.sort(key=lambda x: x[0])
 
+    logger.info(f"[PERF] copy_file_list END: {len(file_list)} files")
     return [x[1] for x in results]
 
 
@@ -526,6 +546,7 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
 )
 def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     params = PackageConstructParams.parse_raw(next(req_file))
+    logger.info(f"[PERF] create_package START: {params.bucket}/{params.name}")
     registry_url = f"s3://{params.bucket}"
     try:
         package_registry = get_registry(registry_url)
@@ -600,15 +621,18 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
     calculate_pkg_hashes(pkg, params.scratch_buckets)
     try:
+        logger.info("[PERF] pkg._build START")
         top_hash = pkg._build(
             name=params.name,
             registry=registry_url,
             message=params.message,
         )
+        logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
     except botocore.exceptions.ClientError as boto_error:
         raise PkgpushException.from_boto_error(boto_error)
 
     # XXX: return mtime?
+    logger.info(f"[PERF] create_package END: {params.bucket}/{params.name}")
     return PackagePushResult(top_hash=TopHash(top_hash))
 
 
