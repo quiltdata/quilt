@@ -11,6 +11,7 @@ import contextlib
 import functools
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,14 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # Use 0 to disable the limit.
 if _MAX_IMAGE_PIXELS := os.environ.get("MAX_IMAGE_PIXELS"):
     Image.MAX_IMAGE_PIXELS = int(_MAX_IMAGE_PIXELS) or None
+
+# If set to "1", /tmp directory will be cleaned up at the start of each invocation.
+# Should be set in the Lambda environment variables.
+# We need this because if the process is killed due to out-of-memory,
+# temporary files are not deleted neither by Python nor by OS.
+# It *seems* that Lambda should restart the environment in this case, but
+# it doesn't (AWS bug?).
+CLEANUP_TMP_DIR = os.environ.get("CLEANUP_TMP_DIR") == "1"
 
 # Eventually we'll want to precompute/cache thumbnails, so we won't be able to support
 # arbitrary sizes. Might as well copy Dropbox' API:
@@ -86,6 +95,22 @@ SCHEMA = {
     'required': ['url', 'size'],
     'additionalProperties': False
 }
+
+
+def clean_tmp_dir():
+    if not CLEANUP_TMP_DIR:
+        return
+
+    tmp_dir = tempfile.gettempdir()
+    for filename in os.listdir(tmp_dir):
+        file_path = os.path.join(tmp_dir, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path, ignore_errors=True)
+        except Exception as e:
+            print(f'Failed to delete {file_path}. Reason: {e}', file=sys.stderr)
 
 
 def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
@@ -425,11 +450,7 @@ def lambda_handler(request):
         }
         return make_json_response(resp.status_code, ret_val)
 
-    # FIXME: If the process is killed because it's out of memory, named temporary files
-    #        are not deleted neither by Python nor by OS.
-    #        It *seems* that Lambda should restart the environment in this case, but
-    #        it doesn't (AWS bug?). So we may end up cleaning tmp files manually in
-    #        the beginning of the invocation.
+    clean_tmp_dir()
     # XXX: BioImage can read from s3/http(s) URLs directly, but in practice it's at least 2x slower
     #      than downloading the file first and reading from local FS even with cache_type='all' which
     #      downloads the file in one shot.
