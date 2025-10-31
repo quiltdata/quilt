@@ -25,6 +25,7 @@ build-backend = "uv_build"
 test = [
     "pytest~=8.4",
     "pytest-cov~=7.0",
+    "pytest-mock~=3.15",
     "responses~=0.25",
     "quilt3~=7.0",
 ]
