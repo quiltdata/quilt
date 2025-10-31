@@ -98,7 +98,7 @@ SCHEMA = {
 
 
 def clean_tmp_dir():
-    tmp_dir = "/tmp"
+    tmp_dir = tempfile.gettempdir()
     for filename in os.listdir(tmp_dir):
         file_path = os.path.join(tmp_dir, filename)
         try:
