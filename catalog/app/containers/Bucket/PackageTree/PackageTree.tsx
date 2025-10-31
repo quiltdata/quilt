@@ -62,6 +62,16 @@ import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
 
+interface LegacyRevisePackageRedirectProps {
+  bucket: string
+  name: string
+}
+
+function LegacyRevisePackageRedirect({ bucket, name }: LegacyRevisePackageRedirectProps) {
+  const { urls } = NamedRoutes.use()
+  return <RRDom.Redirect to={urls.bucketPackageAddFiles(bucket, name)} />
+}
+
 interface RouteArgs {
   bucket: string
   name: string
@@ -1191,7 +1201,11 @@ export default function PackageTreeWrapper() {
 
   const path = s3paths.decode(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
-  const { resolvedFrom, mode } = parseSearch(location.search, true)
+  const { action, resolvedFrom, mode } = parseSearch(location.search, true)
+
+  if (action === 'revisePackage')
+    return <LegacyRevisePackageRedirect bucket={bucket} name={name} />
+
   return (
     <>
       <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
