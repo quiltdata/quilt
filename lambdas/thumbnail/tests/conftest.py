@@ -1,3 +1,6 @@
+import pytest
+
+
 def pytest_addoption(parser):
     parser.addoption(
         '--poppler',
@@ -39,3 +42,10 @@ def pytest_configure(config):
         markers_to_exclude.append('loffice')
 
     config.option.markexpr = ' and '.join([f'not {m}' for m in markers_to_exclude])
+
+
+@pytest.fixture(scope="session")
+def disable_tmp_dir_cleanup(mocker):
+    # It's already supposed to be disabled by default in test environment,
+    # but just in case, we explicitly mock out the cleanup function here.
+    mocker.patch("t4_lambda_thumbnail.clean_tmp_dir")
