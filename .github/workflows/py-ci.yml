@@ -171,15 +171,6 @@ jobs:
           uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} --only-group test -o test-requirements.txt
       - name: Install dependencies
         run: |
-          if [ ${{ matrix.path }} == "thumbnail" ]
-          then
-            # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
-            # from thumbnail lambda fails whithout installed wheel.
-            # See https://github.com/pypa/pip/issues/8559.
-            # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
-            python -m pip install wheel 'numpy<2'
-          fi
-
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
