@@ -148,50 +148,6 @@ def calculate_pkg_entry_hash(
     pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
 
 
-def calculate_pkg_entry_hash_local(
-    pkg_entry: quilt3.packages.PackageEntry,
-    s3_client,
-    scratch_buckets: dict[str, str],
-):
-    pk = pkg_entry.physical_key
-    logger.info(f"[PERF] calculate_pkg_entry_hash_local START: {pk} size={pkg_entry.size}")
-
-    # Try to get precomputed CRC64NVME from S3 (fast path)
-    try:
-        logger.info(f"[PERF] GetObjectAttributes attempt: {pk}")
-        resp = s3_client.get_object_attributes(
-            **S3ObjectSource.from_pk(pk).boto_args,
-            ObjectAttributes=["Checksum"],
-        )
-        checksum_value = resp.get("Checksum", {}).get("ChecksumCRC64NVME")
-        if checksum_value is not None:
-            checksum_bytes = base64.b64decode(checksum_value)
-            pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
-            logger.info(f"[PERF] GetObjectAttributes SUCCESS: {pk}")
-            return
-        else:
-            logger.info(f"[PERF] GetObjectAttributes returned no CRC64NVME: {pk}")
-    except botocore.exceptions.ClientError as e:
-        # GetObjectAttributes may fail - fall through to copy_object
-        logger.info(f"[PERF] GetObjectAttributes FAILED: {pk} error={e}")
-        pass
-
-    # Compute CRC64NVME via copy_object
-    logger.info(f"[PERF] copy_object fallback: {pk}")
-    region = get_bucket_region(pk.bucket)
-    resp = s3_client.copy_object(
-        CopySource=S3ObjectSource.from_pk(pk).boto_args,
-        Bucket=scratch_buckets[region],
-        Key=make_scratch_key(),
-        ChecksumAlgorithm="CRC64NVME",
-        # TODO: make sure we hash the correct object in the case of an unversioned object
-        # CopySourceIfMatch=etag,
-    )
-    checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
-    pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
-    logger.info(f"[PERF] copy_object SUCCESS: {pk}")
-
-
 @functools.cache
 def get_bucket_region(bucket: str) -> str:
     """
@@ -211,7 +167,7 @@ def get_bucket_region(bucket: str) -> str:
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
     logger.info("[PERF] calculate_pkg_hashes START")
     entries_local = []
-    entries = []
+    entries_s3hash = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
             continue
@@ -228,16 +184,14 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
 
         if not entry.size:
             entry.hash = Checksum.empty_crc64nvme().dict()
-        elif entry.size < MIN_PART_SIZE:
-            entries_local.append(entry)
         else:
-            entries.append(entry)
+            # Try GetObjectAttributes for all files first (Tier 1 optimization)
+            entries_local.append(entry)
 
-    logger.info(f"[PERF] Hash strategy: {len(entries_local)} local, {len(entries)} via s3hash lambda")
+    logger.info(f"[PERF] Hash strategy: trying GetObjectAttributes for {len(entries_local)} files")
 
     # Schedule longer tasks first so we don't end up waiting for a single long task.
     entries_local.sort(key=lambda entry: entry.size, reverse=True)
-    entries.sort(key=lambda entry: entry.size, reverse=True)
     assert user_boto_session is not None
     credentials = AWSCredentials.from_boto_session(user_boto_session)
     user_s3_client = user_boto_session.client(
@@ -245,20 +199,65 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
     )
 
-    logger.info("[PERF] Submitting hash tasks to thread pools")
+    logger.info("[PERF] Submitting GetObjectAttributes tasks with concurrent s3hash fallback")
+
+    # Concurrent approach: try GetObjectAttributes, immediately delegate to s3hash on failure
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
-        fs = [
-            pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
-            for entry in entries
-        ]
-        fs += [
-            local_pool.submit(calculate_pkg_entry_hash_local, entry, user_s3_client, scratch_buckets)
-            for entry in entries_local
-        ]
-        for f in concurrent.futures.as_completed(fs):
-            f.result()
+    ) as s3hash_pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
+        futures = []
+
+        def try_get_attributes_or_delegate(entry):
+            """Try GetObjectAttributes, delegate to s3hash lambda on failure"""
+            pk = entry.physical_key
+            logger.info(f"[PERF] GetObjectAttributes attempt: {pk}")
+            try:
+                resp = user_s3_client.get_object_attributes(
+                    **S3ObjectSource.from_pk(pk).boto_args,
+                    ObjectAttributes=["Checksum"],
+                )
+                checksum_value = resp.get("Checksum", {}).get("ChecksumCRC64NVME")
+                if checksum_value is not None:
+                    checksum_bytes = base64.b64decode(checksum_value)
+                    entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
+                    logger.info(f"[PERF] GetObjectAttributes SUCCESS: {pk}")
+                    return True
+                else:
+                    logger.info(f"[PERF] GetObjectAttributes returned no CRC64NVME: {pk}")
+            except botocore.exceptions.ClientError as e:
+                logger.info(f"[PERF] GetObjectAttributes FAILED: {pk} error={e}")
+
+            # GetObjectAttributes failed or returned no checksum
+            if entry.size >= MIN_PART_SIZE:
+                # Delegate to s3hash lambda for MPU computation
+                logger.info(f"[PERF] Delegating to s3hash lambda: {pk}")
+                return s3hash_pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
+            else:
+                # Small file, fall back to copy_object
+                logger.info(f"[PERF] copy_object fallback: {pk}")
+                region = get_bucket_region(pk.bucket)
+                resp = user_s3_client.copy_object(
+                    CopySource=S3ObjectSource.from_pk(pk).boto_args,
+                    Bucket=scratch_buckets[region],
+                    Key=make_scratch_key(),
+                    ChecksumAlgorithm="CRC64NVME",
+                )
+                checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
+                entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
+                logger.info(f"[PERF] copy_object SUCCESS: {pk}")
+                return True
+
+        # Submit all GetObjectAttributes attempts
+        for entry in entries_local:
+            futures.append(local_pool.submit(try_get_attributes_or_delegate, entry))
+
+        # Wait for all tasks to complete (includes both GetObjectAttributes and delegated s3hash tasks)
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            # If result is a Future (s3hash task), wait for it
+            if isinstance(result, concurrent.futures.Future):
+                result.result()
+
     logger.info("[PERF] calculate_pkg_hashes END")
 
 
