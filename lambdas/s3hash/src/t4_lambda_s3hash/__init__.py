@@ -171,10 +171,12 @@ def get_aws_crc64nvme_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Opt
     """Retrieve precomputed CRC64NVME checksum from S3 object attributes (Tier 1)."""
     checksum_value = attrs.get("Checksum", {}).get("ChecksumCRC64NVME")
     if checksum_value is None or attrs["ObjectSize"] == 0:
+        logger.info(f"[PERF] get_aws_crc64nvme_checksum: No precomputed CRC64NVME (size={attrs.get('ObjectSize', 0)})")
         return None
 
     # CRC64NVME is always whole-file checksum, no chunked variant needed
     checksum_bytes = base64.b64decode(checksum_value)
+    logger.info(f"[PERF] get_aws_crc64nvme_checksum: Found precomputed CRC64NVME (size={attrs['ObjectSize']})")
     return Checksum.crc64nvme(checksum_bytes)
 
 
@@ -274,6 +276,7 @@ async def compute_part_checksums(
     etag: str,
     parts: T.Sequence[PartDef],
 ) -> T.List[bytes]:
+    logger.info(f"[PERF] compute_part_checksums START: {len(parts)} parts for {location}")
     part_upload_results = await upload_parts(
         mpu,
         location,
@@ -281,6 +284,7 @@ async def compute_part_checksums(
         parts,
     )
     checksums = [base64.b64decode(part_upload_result.crc64nvme) for part_upload_result in part_upload_results]
+    logger.info(f"[PERF] compute_part_checksums END: {len(parts)} parts")
     return checksums
 
 
@@ -437,22 +441,29 @@ def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> byte
 
 
 async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str, str]) -> ChecksumResult:
+    logger.info(f"[PERF] compute_checksum START: {location}")
+
     # Tier 1: Try to get precomputed CRC64NVME from S3
+    logger.info(f"[PERF] Tier 1: Attempting GetObjectAttributes for {location}")
     obj_attrs = await get_obj_attributes(location)
     if obj_attrs:
         checksum = get_aws_crc64nvme_checksum(obj_attrs)
         if checksum is not None:
+            logger.info(f"[PERF] compute_checksum END: Using Tier 1 (precomputed) for {location}")
             return ChecksumResult(checksum=checksum)
 
         etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
     else:
+        logger.info(f"[PERF] GetObjectAttributes failed/unavailable, falling back to HeadObject for {location}")
         resp = await S3.get().head_object(**location.boto_args)
         etag, total_size = resp["ETag"], resp["ContentLength"]
 
     if total_size == 0:
+        logger.info(f"[PERF] compute_checksum END: Empty file for {location}")
         return ChecksumResult(checksum=Checksum.empty_crc64nvme())
 
     # Tier 2: Compute CRC64NVME via scratch bucket MPU
+    logger.info(f"[PERF] Tier 2: Computing CRC64NVME via MPU for {location} (size={total_size})")
     part_defs = get_parts_for_size(total_size)
 
     mpu_dst = await get_mpu_dst_for_location(location, scratch_buckets)
@@ -469,12 +480,15 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
     if len(part_checksums) == 1:
         # Single-part upload: use the checksum directly
         combined_crc = part_checksums[0]
+        logger.info(f"[PERF] Single-part checksum for {location}")
     else:
         # Multi-part upload: combine the part checksums
         part_sizes = [part_def.size for part_def in part_defs]
         combined_crc = combine_crc64nvme(part_checksums, part_sizes)
+        logger.info(f"[PERF] Combined {len(part_checksums)} part checksums for {location}")
 
     checksum = Checksum.crc64nvme(combined_crc)
+    logger.info(f"[PERF] compute_checksum END: Using Tier 2 (computed) for {location}")
     return ChecksumResult(checksum=checksum)
 
 
@@ -487,8 +501,11 @@ async def lambda_handler(
     scratch_buckets: T.Dict[str, str],
     location: S3ObjectSource,
 ) -> ChecksumResult:
+    logger.info(f"[PERF] lambda_handler START: {location}")
     async with aio_context(credentials):
-        return await compute_checksum(location, scratch_buckets)
+        result = await compute_checksum(location, scratch_buckets)
+    logger.info(f"[PERF] lambda_handler END: {location} -> {result.checksum.type}")
+    return result
 
 
 async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyResult:
