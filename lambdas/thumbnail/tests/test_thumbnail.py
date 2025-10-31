@@ -206,7 +206,7 @@ TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "f551ee98499be442fbe67419a53f0ab51cb5c0a71cc1ee0e63638266a930e8c3"
+THUMBS_PKG = "images/thumbs", "8b3e9fea2049fc381c7e364b64cabf52e40c9c9fb9da2434bc6744ef292a1914"
 SIZE = (1024, 768)
 
 
@@ -327,34 +327,8 @@ SIZE = (1024, 768)
         #     )
         # ValueError: different number of dimensions on data and dims: 3 vs 4
         pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=ValueError)),
-        #   File "site-packages/bioio_base/reader.py", line 613, in dims
-        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
-        #                                  ^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
-        #     self._xarray_dask_data = self._read_delayed()
-        #                              ~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
-        #     return self._implementation._read_delayed()
-        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
-        #     return xr.DataArray(
-        #            ~~~~~~~~~~~~^
-        #         data=da.block(lazy_arrays.tolist()),
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     ...<2 lines>...
-        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     )
-        #     ^
-        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
-        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
-        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
-        #     raise ValueError(
-        #     ...<2 lines>...
-        #     )
-        # ValueError: different number of dimensions on data and dims: 3 vs 4
-        pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        # RuntimeError: Sorry, this pixeltype isn't implemented yet.
+        pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=RuntimeError)),
         (CZI_PKG, "c1_gray16.czi"),
         (CZI_PKG, "c1_gray32float.czi"),
         (CZI_PKG, "c1_gray8.czi"),
