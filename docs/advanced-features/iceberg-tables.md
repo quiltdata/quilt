@@ -1,12 +1,14 @@
-<!-- markdownlint-disable -->
-
 # Querying packages with Iceberg tables
 
 > **NOTE:** This feature requires Quilt Platform version 1.64.0 or higher.
 
-Quilt automatically maintains Apache Iceberg tables that provide high-efficiency, externally queryable access to package information. This is particularly useful for buckets that contain thousands of packages or queries that span multiple buckets.
+Quilt automatically maintains Apache Iceberg tables that provide high-efficiency,
+externally queryable access to package information. This is particularly useful
+for buckets that contain thousands of packages or queries that span multiple buckets.
 
-You can query package revisions, tags, file entries, and metadata using Amazon Athena or external data warehouses that support Iceberg (e.g., Databricks, Snowflake). 
+You can query package revisions, tags, file entries, and metadata using
+Amazon Athena or external data warehouses that support Iceberg
+(e.g., Databricks, Snowflake).
 
 ## Tables
 
@@ -19,7 +21,8 @@ Four tables are available:
 
 ## Example: Get entries and metadata for the latest version of a package
 
-The Iceberg tables are in the database specified by the `UserAthenaDatabaseName` output in your CloudFormation stack (the same database as the standard package views).
+The Iceberg tables are in the database specified by the `IcebergDatabase`
+resource in your CloudFormation stack.
 
 ```sql
 SELECT
