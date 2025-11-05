@@ -1,5 +1,6 @@
 import type * as Model from 'model'
 import * as tagged from 'utils/taggedV2'
+import * as s3paths from 'utils/s3paths'
 
 /*
 s3 urls:
@@ -25,17 +26,17 @@ export const parse = (url: string) => {
   }
   if (S3_RE.test(url)) {
     const pth = url.replace(S3_RE, '')
-    if (!pth.includes('/')) {
-      return Pointer.S3({ bucket: pth, key: '' })
+    if (pth.startsWith('.')) {
+      return Pointer.S3Rel(pth)
     }
     const m = pth.match(/^([a-z0-9-]+)?\/([^.].+)$/)
     if (m) {
       return Pointer.S3({ bucket: m[1], key: m[2] })
     }
-    if (pth.startsWith('.')) {
-      return Pointer.S3Rel(pth)
+    const bucket = s3paths.ensureNoSlash(pth)
+    if (!bucket.includes('/')) {
+      return Pointer.S3({ bucket, key: '' })
     }
-    // TODO
     throw new TypeError(`Invalid S3 URL: ${url}`)
   }
   // TODO: check path format as well
