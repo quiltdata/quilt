@@ -63,7 +63,7 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
       bucket: 'resolved-bucket',
       key: path,
     })
-    let processUrl = createUrlProcessor(sign, resolvePath)
+    let processUrl = createUrlProcessor(sign, resolvePath, { bucket: 'foo', key: 'bar' })
     it('should return unsinged web', () => {
       expect(processUrl('http://bucket/path')).resolves.toBe('http://bucket/path')
     })
