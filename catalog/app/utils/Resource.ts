@@ -9,10 +9,12 @@ bucket/key/with/path/segments
 ./relative/path
 ../relative/path
 */
+type OptionalProperty<T, P extends keyof T> = Pick<Partial<T>, P> & Omit<T, P>
+type S3LocationWithNoBucket = OptionalProperty<Model.S3.S3ObjectLocation, 'bucket'>
 
 export const Pointer = tagged.create('app/utils/Resource:Pointer' as const, {
   Web: (url: string) => url,
-  S3: (h: Model.S3.S3ObjectLocation) => h,
+  S3: (h: Model.S3.S3ObjectLocation | S3LocationWithNoBucket) => h,
   S3Rel: (path: string) => path,
   Path: (path: string) => path,
 })

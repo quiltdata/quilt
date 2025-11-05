@@ -92,6 +92,13 @@ describe('utils/Resource', () => {
           'Invalid S3 URL: s3://bucket/../key',
         )
       })
+
+      it('should handle absolute S3 URLs "relative" to any bucket', () => {
+        const key = 'no/matter/what/bucket'
+        expect(Resource.parse(`s3:///${key}`)).toStrictEqual(
+          Resource.Pointer.S3({ bucket: undefined, key }),
+        )
+      })
     })
 
     describe('Relative S3 URLs', () => {
