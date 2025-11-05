@@ -25,6 +25,9 @@ export const parse = (url: string) => {
   }
   if (S3_RE.test(url)) {
     const pth = url.replace(S3_RE, '')
+    if (!pth.includes('/')) {
+      return Pointer.S3({ bucket: pth, key: '' })
+    }
     const m = pth.match(/^([a-z0-9-]+)?\/([^.].+)$/)
     if (m) {
       return Pointer.S3({ bucket: m[1], key: m[2] })
