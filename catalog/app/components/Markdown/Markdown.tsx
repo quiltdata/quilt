@@ -144,11 +144,7 @@ function handleLink(process: AttributeProcessor, element: HTMLElement) {
   const attributeValue = element.getAttribute('href')
   if (typeof attributeValue !== 'string') return
 
-  try {
-    element.setAttribute('href', process(attributeValue))
-  } catch (e) {
-    Sentry.captureException(e)
-  }
+  element.setAttribute('href', process(attributeValue))
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
@@ -160,8 +156,12 @@ const htmlHandler =
     const element = currentNode as HTMLElement
     const tagName = currentNode.tagName?.toUpperCase()
 
-    if (processLink && tagName === 'A') handleLink(processLink, element)
-    else if (processImage && tagName === 'IMG') handleImage(processImage, element)
+    try {
+      if (processLink && tagName === 'A') handleLink(processLink, element)
+      else if (processImage && tagName === 'IMG') handleImage(processImage, element)
+    } catch (e) {
+      Sentry.captureException(e)
+    }
   }
 
 interface RendererArgs {
