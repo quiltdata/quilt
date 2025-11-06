@@ -10,7 +10,7 @@ export interface DirHandle {
 export const DirHandleCreate = (bucket: string, path: string): DirHandle => ({
   _tag: 'dir',
   bucket,
-  path: s3paths.ensureSlash(path),
+  path: path ? s3paths.ensureSlash(path) : path,
 })
 
 export interface FileHandle extends Model.S3.S3ObjectLocation {

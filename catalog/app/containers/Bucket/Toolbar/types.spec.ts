@@ -7,7 +7,7 @@ describe('containers/Bucket/Toolbar/types', () => {
 
       expect(DirHandleCreate(bucket, 'folder/subfolder').path).toBe('folder/subfolder/')
       expect(DirHandleCreate(bucket, 'folder/subfolder/').path).toBe('folder/subfolder/')
-      expect(DirHandleCreate(bucket, '').path).toBe('/')
+      expect(DirHandleCreate(bucket, '').path).toBe('')
     })
   })
 })
