@@ -22,6 +22,10 @@ jest.mock(
 )
 
 describe('containers/Bucket/Dir/Toolbar/Get/Options', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   const props = {
     bucket: expect.any(String),
     className: expect.any(String),
