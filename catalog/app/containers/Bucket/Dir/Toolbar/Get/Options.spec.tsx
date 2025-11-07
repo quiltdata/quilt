@@ -31,12 +31,12 @@ describe('containers/Bucket/Dir/Toolbar/Get/Options', () => {
   }
 
   it('should render CodeSamples components with correct dest for nested path', () => {
-    const handle = DirHandleCreate('test-bucket', 'folder/subfolder/file.txt')
+    const handle = DirHandleCreate('test-bucket', 'folder/subfolder/')
 
     render(<Options handle={handle} />)
 
-    expect(Quilt3Fetch).toHaveBeenCalledWith({ ...props, dest: 'file.txt' }, {})
-    expect(CliFetch).toHaveBeenCalledWith({ ...props, dest: 'file.txt' }, {})
+    expect(Quilt3Fetch).toHaveBeenCalledWith({ ...props, dest: 'subfolder' }, {})
+    expect(CliFetch).toHaveBeenCalledWith({ ...props, dest: 'subfolder' }, {})
   })
 
   it('should render CodeSamples components with bucket as dest for root path', () => {
