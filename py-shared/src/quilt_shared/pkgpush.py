@@ -68,6 +68,7 @@ class S3HashLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     scratch_buckets: T.Dict[str, str]
     location: S3ObjectSource
+    checksum_algorithm: str = "SHA256_CHUNKED"  # explicit algorithm (default for backward compat)
 
 
 class S3CopyLambdaParams(pydantic.v1.BaseModel):
