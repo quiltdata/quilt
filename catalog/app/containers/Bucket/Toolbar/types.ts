@@ -4,6 +4,7 @@ import * as s3paths from 'utils/s3paths'
 export interface DirHandle {
   _tag: 'dir'
   bucket: string
+  /** Path relative to a bucket root, without leading slash */
   path: string
 }
 
