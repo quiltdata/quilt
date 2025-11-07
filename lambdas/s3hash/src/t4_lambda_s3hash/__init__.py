@@ -21,7 +21,7 @@ from quilt_shared.aws import AWSCredentials
 from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import (
-    Checksum as ChecksumBase,
+    Checksum,
     ChecksumResult,
     CopyResult,
     MPURef as MPURefBase,
@@ -39,7 +39,6 @@ logger = logging.getLogger("quilt-lambda-s3hash")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
 MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
-CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 
 # How much seconds before lambda is supposed to timeout we give up.
 SECONDS_TO_CLEANUP = 1
@@ -65,12 +64,6 @@ async def aio_context(credentials: AWSCredentials):
             yield
         finally:
             S3.reset(s3_token)
-
-
-class Checksum(ChecksumBase):
-    @classmethod
-    def empty(cls):
-        return cls.sha256_chunked(cls._EMPTY_HASH) if CHUNKED_CHECKSUMS else cls.sha256(cls._EMPTY_HASH)
 
 
 # XXX: import this logic from quilt3 when it's available
@@ -117,6 +110,9 @@ async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.
 
     return S3ObjectDestination(bucket=scratch_bucket, key=make_scratch_key())
 
+
+# NOTE: Functions below (get_obj_attributes, get_compliant_checksum, get_aws_crc64nvme_checksum)
+# are preserved for future use in priority-based checksum selection (will be moved to pkgpush lambda)
 
 async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAttributesOutputTypeDef]:
     try:
@@ -235,7 +231,9 @@ def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     return parts
 
 
-async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef) -> PartUploadResult:
+async def upload_part(
+    mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef, algorithm: str
+) -> PartUploadResult:
     res = await S3.get().upload_part_copy(
         **mpu.boto_args,
         **part.boto_args,
@@ -247,10 +245,21 @@ async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef
     )
     copy_result = res["CopyPartResult"]
     assert "ETag" in copy_result
-    assert "ChecksumCRC64NVME" in copy_result
+
+    # Extract checksum based on algorithm
+    if algorithm == "CRC64NVME":
+        assert "ChecksumCRC64NVME" in copy_result
+        checksum_value = copy_result["ChecksumCRC64NVME"]
+    elif algorithm == "SHA256_CHUNKED":
+        assert "ChecksumSHA256" in copy_result
+        checksum_value = copy_result["ChecksumSHA256"]
+    else:
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
+
     return PartUploadResult(
         etag=copy_result["ETag"],
-        crc64nvme=copy_result["ChecksumCRC64NVME"],
+        checksum=checksum_value,
+        algorithm=algorithm,
     )
 
 
@@ -259,6 +268,7 @@ async def upload_parts(
     location: S3ObjectSource,
     etag: str,
     parts: T.Sequence[PartDef],
+    algorithm: str,
 ) -> T.List[PartUploadResult]:
     s = asyncio.Semaphore(MPU_CONCURRENCY)
 
@@ -266,7 +276,7 @@ async def upload_parts(
         async with s:
             return await upload_part(*args, **kwargs)
 
-    uploads = [_upload_part(mpu, location, etag, p) for p in parts]
+    uploads = [_upload_part(mpu, location, etag, p, algorithm) for p in parts]
     return await asyncio.gather(*uploads)
 
 
@@ -275,29 +285,34 @@ async def compute_part_checksums(
     location: S3ObjectSource,
     etag: str,
     parts: T.Sequence[PartDef],
+    algorithm: str,
 ) -> T.List[bytes]:
-    logger.info(f"[PERF] compute_part_checksums START: {len(parts)} parts for {location}")
+    logger.info(f"[PERF] compute_part_checksums START: {len(parts)} parts for {location} algorithm={algorithm}")
     part_upload_results = await upload_parts(
         mpu,
         location,
         etag,
         parts,
+        algorithm,
     )
-    checksums = [base64.b64decode(part_upload_result.crc64nvme) for part_upload_result in part_upload_results]
+    checksums = [base64.b64decode(part_upload_result.checksum) for part_upload_result in part_upload_results]
     logger.info(f"[PERF] compute_part_checksums END: {len(parts)} parts")
     return checksums
 
 
 class PartUploadResult(pydantic.v1.BaseModel):
     etag: str
-    crc64nvme: str  # base64-encoded
+    checksum: str  # base64-encoded checksum value
+    algorithm: str  # "CRC64NVME" or "SHA256_CHUNKED"
 
     @property
     def boto_args(self):
-        return {
-            "ETag": self.etag,
-            "ChecksumCRC64NVME": self.crc64nvme,
-        }
+        args = {"ETag": self.etag}
+        if self.algorithm == "CRC64NVME":
+            args["ChecksumCRC64NVME"] = self.checksum
+        elif self.algorithm == "SHA256_CHUNKED":
+            args["ChecksumSHA256"] = self.checksum
+        return args
 
 
 class MPURef(MPURefBase):
@@ -333,11 +348,19 @@ class MPURef(MPURefBase):
 
 
 @contextlib.asynccontextmanager
-async def create_mpu(target: S3ObjectDestination):
+async def create_mpu(target: S3ObjectDestination, algorithm: str):
+    # Map algorithm name to S3 ChecksumAlgorithm parameter
+    if algorithm == "CRC64NVME":
+        checksum_algorithm = "CRC64NVME"
+    elif algorithm == "SHA256_CHUNKED":
+        checksum_algorithm = "SHA256"
+    else:
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
+
     try:
         upload_data = await S3.get().create_multipart_upload(
             **target.boto_args,
-            ChecksumAlgorithm="CRC64NVME",
+            ChecksumAlgorithm=checksum_algorithm,
         )
         mpu = MPURef(bucket=target.bucket, key=target.key, id=upload_data["UploadId"])
     except botocore.exceptions.ClientError as ex:
@@ -382,16 +405,6 @@ def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
             return {"error": e.dict()}
 
     return wrapper
-
-
-async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
-    resp = await S3.get().get_object(**location.boto_args)
-    hashobj = hashlib.sha256()
-    async with resp["Body"] as stream:
-        async for chunk in stream.content.iter_any():
-            hashobj.update(chunk)
-
-    return Checksum.sha256(hashobj.digest())
 
 
 def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> bytes:
@@ -440,55 +453,58 @@ def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> byte
     return combined.to_bytes(8, byteorder='big')
 
 
-async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str, str]) -> ChecksumResult:
-    logger.info(f"[PERF] compute_checksum START: {location}")
+async def compute_checksum(
+    location: S3ObjectSource, scratch_buckets: T.Dict[str, str], algorithm: str
+) -> ChecksumResult:
+    logger.info(f"[PERF] compute_checksum START: {location} algorithm={algorithm}")
 
-    # Tier 1: Try to get precomputed CRC64NVME from S3
-    logger.info(f"[PERF] Tier 1: Attempting GetObjectAttributes for {location}")
-    obj_attrs = await get_obj_attributes(location)
-    if obj_attrs:
-        checksum = get_aws_crc64nvme_checksum(obj_attrs)
-        if checksum is not None:
-            logger.info(f"[PERF] compute_checksum END: Using Tier 1 (precomputed) for {location}")
-            return ChecksumResult(checksum=checksum)
+    # Get object metadata
+    resp = await S3.get().head_object(**location.boto_args)
+    etag, total_size = resp["ETag"], resp["ContentLength"]
 
-        etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
-    else:
-        logger.info(f"[PERF] GetObjectAttributes failed/unavailable, falling back to HeadObject for {location}")
-        resp = await S3.get().head_object(**location.boto_args)
-        etag, total_size = resp["ETag"], resp["ContentLength"]
-
+    # Handle empty files
     if total_size == 0:
         logger.info(f"[PERF] compute_checksum END: Empty file for {location}")
-        return ChecksumResult(checksum=Checksum.empty_crc64nvme())
+        if algorithm == "CRC64NVME":
+            return ChecksumResult(checksum=Checksum.empty_crc64nvme())
+        elif algorithm == "SHA256_CHUNKED":
+            return ChecksumResult(checksum=Checksum.empty_sha256_chunked())
+        else:
+            raise ValueError(f"Unsupported algorithm: {algorithm}")
 
-    # Tier 2: Compute CRC64NVME via scratch bucket MPU
-    logger.info(f"[PERF] Tier 2: Computing CRC64NVME via MPU for {location} (size={total_size})")
+    # Compute checksum via scratch bucket MPU
+    logger.info(f"[PERF] Computing checksum via MPU for {location} (size={total_size} algorithm={algorithm})")
     part_defs = get_parts_for_size(total_size)
-
     mpu_dst = await get_mpu_dst_for_location(location, scratch_buckets)
 
-    async with create_mpu(mpu_dst) as mpu:
+    async with create_mpu(mpu_dst, algorithm) as mpu:
         part_checksums = await compute_part_checksums(
             mpu,
             location,
             etag,
             part_defs,
+            algorithm,
         )
 
-    # Combine per-part CRC64NVME checksums into whole-file checksum
-    if len(part_checksums) == 1:
-        # Single-part upload: use the checksum directly
-        combined_crc = part_checksums[0]
-        logger.info(f"[PERF] Single-part checksum for {location}")
+    # Combine per-part checksums into whole-file checksum
+    if algorithm == "CRC64NVME":
+        if len(part_checksums) == 1:
+            combined_checksum = part_checksums[0]
+            logger.info(f"[PERF] Single-part CRC64NVME checksum for {location}")
+        else:
+            part_sizes = [part_def.size for part_def in part_defs]
+            combined_checksum = combine_crc64nvme(part_checksums, part_sizes)
+            logger.info(f"[PERF] Combined {len(part_checksums)} part CRC64NVME checksums for {location}")
+        checksum = Checksum.crc64nvme(combined_checksum)
+    elif algorithm == "SHA256_CHUNKED":
+        # SHA256_CHUNKED: compute hash-of-hashes
+        combined_checksum = Checksum.hash_parts(part_checksums)
+        logger.info(f"[PERF] Combined {len(part_checksums)} part SHA256 checksums for {location}")
+        checksum = Checksum.sha256_chunked(combined_checksum)
     else:
-        # Multi-part upload: combine the part checksums
-        part_sizes = [part_def.size for part_def in part_defs]
-        combined_crc = combine_crc64nvme(part_checksums, part_sizes)
-        logger.info(f"[PERF] Combined {len(part_checksums)} part checksums for {location}")
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
 
-    checksum = Checksum.crc64nvme(combined_crc)
-    logger.info(f"[PERF] compute_checksum END: Using Tier 2 (computed) for {location}")
+    logger.info(f"[PERF] compute_checksum END: {location} -> {checksum.type}")
     return ChecksumResult(checksum=checksum)
 
 
@@ -500,10 +516,11 @@ async def lambda_handler(
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
     location: S3ObjectSource,
+    checksum_algorithm: str = "SHA256_CHUNKED",  # explicit algorithm from S3HashLambdaParams
 ) -> ChecksumResult:
-    logger.info(f"[PERF] lambda_handler START: {location}")
+    logger.info(f"[PERF] lambda_handler START: {location} algorithm={checksum_algorithm}")
     async with aio_context(credentials):
-        result = await compute_checksum(location, scratch_buckets)
+        result = await compute_checksum(location, scratch_buckets, checksum_algorithm)
     logger.info(f"[PERF] lambda_handler END: {location} -> {result.checksum.type}")
     return result
 
