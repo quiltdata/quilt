@@ -24,10 +24,6 @@ jest.mock(
 const { Quilt3Fetch, CliFetch } = CodeSamples as jest.Mocked<typeof CodeSamples>
 
 describe('containers/Bucket/Dir/Toolbar/Get/Options', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
   const props = {
     bucket: expect.any(String),
     className: expect.any(String),
