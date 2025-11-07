@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Remove leading slash when creating a file from the root directory ([#4631](https://github.com/quiltdata/quilt/pull/4631))
+- [Fixed] Remove leading slash from code samples for downloading an S3 directory ([#4631](https://github.com/quiltdata/quilt/pull/4631))
 - [Fixed] Handle invalid URLs in Markdown gracefully ([#4630](https://github.com/quiltdata/quilt/pull/4630))
 - [Added] Package Dialog can now reuse manifest from existing packages when entering their names ([#4564](https://github.com/quiltdata/quilt/pull/4564))
 - [Changed] Refactor Package Dialog: add centralized state management with strict TypeScript typing and remove "react-final-form" ([#4564](https://github.com/quiltdata/quilt/pull/4564))

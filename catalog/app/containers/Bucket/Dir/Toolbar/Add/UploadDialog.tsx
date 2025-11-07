@@ -9,7 +9,6 @@ import * as FI from 'containers/Bucket/PackageDialog/Inputs/Files/State'
 import { FilesInput } from 'containers/Bucket/PackageDialog/Inputs/Files/Input'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 import Log from 'utils/Logging'
-import * as s3paths from 'utils/s3paths'
 
 const useUploadDialogStyles = M.makeStyles((t) => ({
   drop: {
@@ -72,7 +71,7 @@ export default function UploadDialog({
       const uploadedEntries = await upload({
         files,
         bucket: handle.bucket,
-        getCanonicalKey: (key) => s3paths.withoutPrefix('/', join(handle.path, key)),
+        getCanonicalKey: (key) => join(handle.path, key),
       })
       setUploadState({ _tag: 'success', count: Object.keys(uploadedEntries).length })
     } catch (e) {
