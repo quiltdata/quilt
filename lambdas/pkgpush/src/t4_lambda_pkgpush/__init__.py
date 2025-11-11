@@ -65,7 +65,11 @@ S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
 S3_COPY_LAMBDA_CONCURRENCY = int(os.environ["S3_COPY_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
-CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
+
+# Priority-ordered list of acceptable checksum algorithms (default for backward compatibility)
+# Only SHA256_CHUNKED and CRC64NVME are supported (legacy SHA256 dropped)
+DEFAULT_CHECKSUM_ALGORITHMS = ["SHA256_CHUNKED"]
+CHECKSUM_ALGORITHMS = json.loads(os.environ.get("CHECKSUM_ALGORITHMS", json.dumps(DEFAULT_CHECKSUM_ALGORITHMS)))
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
@@ -120,18 +124,150 @@ def invoke_lambda(*, function_name: str, params: pydantic.v1.BaseModel, err_pref
     return parsed["result"]
 
 
+def get_empty_checksum(algorithm: str) -> Checksum:
+    """Get empty checksum for a given algorithm (only SHA256_CHUNKED and CRC64NVME supported)."""
+    if algorithm == "CRC64NVME":
+        return Checksum.empty_crc64nvme()
+    elif algorithm == "SHA256_CHUNKED":
+        return Checksum.empty_sha256_chunked()
+    else:
+        raise PkgpushException("UnsupportedChecksumAlgorithm", {"algorithm": algorithm})
+
+
+def try_get_crc64nvme_via_head(s3_client, pk: PhysicalKey) -> T.Optional[Checksum]:
+    """
+    Try to get precomputed CRC64NVME checksum using HeadObject with ChecksumMode=ENABLED.
+
+    Note: Uses HeadObject instead of GetObjectAttributes because:
+    - Cheaper API call
+    - No separate s3:GetObjectAttributes permission needed (uses existing s3:GetObject)
+    - CRC64NVME has no chunked variant, so no compliance check needed
+    """
+    try:
+        resp = s3_client.head_object(
+            **S3ObjectSource.from_pk(pk).boto_args,
+            ChecksumMode="ENABLED",
+        )
+        checksum_value = resp.get("ChecksumCRC64NVME")
+        if checksum_value is not None:
+            checksum_bytes = base64.b64decode(checksum_value)
+            return Checksum.crc64nvme(checksum_bytes)
+        return None
+    except botocore.exceptions.ClientError:
+        return None
+
+
+def try_get_compliant_sha256_chunked(s3_client, pk: PhysicalKey, file_size: int) -> T.Optional[Checksum]:
+    """
+    Try to get compliant SHA256_CHUNKED checksum using GetObjectAttributes.
+
+    "Compliant" means the object's part sizes match our expected part size boundaries.
+    This requires GetObjectAttributes to retrieve ObjectParts information.
+
+    Note: This is more expensive than HeadObject and requires s3:GetObjectAttributes permission,
+    but it's necessary to validate part size compliance for SHA256_CHUNKED.
+    """
+    try:
+        from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
+
+        resp = s3_client.get_object_attributes(
+            **S3ObjectSource.from_pk(pk).boto_args,
+            ObjectAttributes=["Checksum", "ObjectParts", "ObjectSize"],
+            MaxParts=MAX_PARTS,
+        )
+
+        checksum_value = resp.get("Checksum", {}).get("ChecksumSHA256")
+        if checksum_value is None:
+            return None
+
+        # Calculate expected part size (same logic as s3hash lambda)
+        def get_part_size(size: int) -> T.Optional[int]:
+            if size < MIN_PART_SIZE:
+                return None
+            num_parts, rem = divmod(size, MIN_PART_SIZE)
+            if rem:
+                num_parts += 1
+            while num_parts > MAX_PARTS:
+                num_parts, rem = divmod(num_parts, 2)
+                if rem:
+                    num_parts += 1
+            part_size, rem = divmod(size, num_parts)
+            if rem:
+                part_size += 1
+            return part_size
+
+        part_size = get_part_size(file_size)
+        if part_size is None:
+            return None
+
+        object_parts = resp.get("ObjectParts")
+        if object_parts is None:
+            return None
+
+        num_parts = object_parts["TotalPartsCount"]
+        parts = object_parts.get("Parts", [])
+
+        # Make sure we have all parts
+        if len(parts) != num_parts:
+            return None
+
+        # Check if part sizes match expected
+        expected_num_parts, remainder = divmod(file_size, part_size)
+        expected_part_sizes = [part_size] * expected_num_parts + ([remainder] if remainder else [])
+        actual_part_sizes = [part.get("Size") for part in parts]
+
+        if actual_part_sizes == expected_part_sizes:
+            checksum_bytes = base64.b64decode(checksum_value)
+            return Checksum.sha256_chunked(checksum_bytes)
+
+        return None
+    except botocore.exceptions.ClientError:
+        return None
+
+
+def compute_checksum_via_copy(s3_client, pk: PhysicalKey, scratch_buckets: T.Dict[str, str], algorithm: str) -> Checksum:
+    """
+    Compute checksum for small file using copy_object with ChecksumAlgorithm.
+    Only SHA256_CHUNKED and CRC64NVME are supported.
+    """
+    region = get_bucket_region(pk.bucket)
+
+    if algorithm == "CRC64NVME":
+        resp = s3_client.copy_object(
+            CopySource=S3ObjectSource.from_pk(pk).boto_args,
+            Bucket=scratch_buckets[region],
+            Key=make_scratch_key(),
+            ChecksumAlgorithm="CRC64NVME",
+        )
+        checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
+        return Checksum.crc64nvme(checksum_bytes)
+    elif algorithm == "SHA256_CHUNKED":
+        resp = s3_client.copy_object(
+            CopySource=S3ObjectSource.from_pk(pk).boto_args,
+            Bucket=scratch_buckets[region],
+            Key=make_scratch_key(),
+            ChecksumAlgorithm="SHA256",
+        )
+        checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
+        return Checksum.sha256_chunked(checksum_bytes)
+    else:
+        raise PkgpushException("UnsupportedChecksumAlgorithm", {"algorithm": algorithm})
+
+
 def invoke_hash_lambda(
     pk: PhysicalKey,
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
+    checksum_algorithm: str,
 ) -> Checksum:
-    logger.info(f"[PERF] invoke_hash_lambda START: {pk}")
+    logger.info(f"[PERF] invoke_hash_lambda START: {pk} algorithm={checksum_algorithm}")
     result = invoke_lambda(
         function_name=S3_HASH_LAMBDA,
         params=S3HashLambdaParams(
             credentials=credentials,
             scratch_buckets=scratch_buckets,
             location=S3ObjectSource.from_pk(pk),
+            checksum_algorithm=checksum_algorithm,
         ),
         err_prefix="S3HashLambda",
     )
@@ -144,8 +280,9 @@ def calculate_pkg_entry_hash(
     pkg_entry: quilt3.packages.PackageEntry,
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
+    checksum_algorithm: str,
 ):
-    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
+    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets, checksum_algorithm).dict()
 
 
 @functools.cache
@@ -164,10 +301,32 @@ def get_bucket_region(bucket: str) -> str:
     return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
 
-def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
-    logger.info("[PERF] calculate_pkg_hashes START")
-    entries_local = []
-    entries_s3hash = []
+def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str], checksum_algorithms: T.Optional[T.List[str]] = None):
+    """
+    Calculate checksums for package entries using priority-based selection.
+
+    Args:
+        pkg: Package to calculate hashes for
+        scratch_buckets: Scratch buckets for checksum computation
+        checksum_algorithms: Priority-ordered list of algorithms (default: CHECKSUM_ALGORITHMS from env)
+
+    Algorithm selection:
+    1. For empty files: Use highest-priority algorithm's empty checksum
+    2. For non-empty files: Try to get precomputed checksums in priority order:
+       - CRC64NVME: HeadObject with ChecksumMode=ENABLED (cheap, no extra permissions)
+       - SHA256_CHUNKED: GetObjectAttributes to check compliance (expensive, needs extra permissions)
+    3. If no precomputed: Compute using highest-priority algorithm
+    """
+    if checksum_algorithms is None:
+        checksum_algorithms = CHECKSUM_ALGORITHMS
+
+    if not checksum_algorithms:
+        raise PkgpushException("NoChecksumAlgorithms", {"details": "At least one checksum algorithm required"})
+
+    highest_priority_algorithm = checksum_algorithms[0]
+    logger.info(f"[PERF] calculate_pkg_hashes START: algorithms={checksum_algorithms}, highest_priority={highest_priority_algorithm}")
+
+    entries_to_hash = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
             continue
@@ -183,15 +342,21 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
             )
 
         if not entry.size:
-            entry.hash = Checksum.empty_crc64nvme().dict()
+            # Empty file: use highest-priority algorithm's empty checksum
+            entry.hash = get_empty_checksum(highest_priority_algorithm).dict()
         else:
-            # Try GetObjectAttributes for all files first (Tier 1 optimization)
-            entries_local.append(entry)
+            entries_to_hash.append(entry)
 
-    logger.info(f"[PERF] Hash strategy: trying GetObjectAttributes for {len(entries_local)} files")
+    logger.info(f"[PERF] Hash strategy: {len(entries_to_hash)} files need checksums")
 
-    # Schedule longer tasks first so we don't end up waiting for a single long task.
-    entries_local.sort(key=lambda entry: entry.size, reverse=True)
+    # Separate into small (local) and large (s3hash) files, sort each by size descending to minimize tail latency
+    entries_small = [e for e in entries_to_hash if e.size < MIN_PART_SIZE]
+    entries_large = [e for e in entries_to_hash if e.size >= MIN_PART_SIZE]
+    entries_small.sort(key=lambda entry: entry.size, reverse=True)
+    entries_large.sort(key=lambda entry: entry.size, reverse=True)
+
+    logger.info(f"[PERF] Split: {len(entries_small)} small files, {len(entries_large)} large files")
+
     assert user_boto_session is not None
     credentials = AWSCredentials.from_boto_session(user_boto_session)
     user_s3_client = user_boto_session.client(
@@ -199,59 +364,78 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
     )
 
-    logger.info("[PERF] Submitting GetObjectAttributes tasks with concurrent s3hash fallback")
+    logger.info("[PERF] Starting concurrent checksum retrieval/computation")
 
-    # Concurrent approach: try GetObjectAttributes, immediately delegate to s3hash on failure
+    # Concurrent approach: try precomputed checksums, delegate to s3hash or compute locally if not available
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
     ) as s3hash_pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
         futures = []
 
-        def try_get_attributes_or_delegate(entry):
-            """Try GetObjectAttributes, delegate to s3hash lambda on failure"""
+        def try_precomputed_or_compute_large(entry):
+            """Try precomputed checksums for large file, compute via s3hash lambda if not available"""
             pk = entry.physical_key
-            logger.info(f"[PERF] GetObjectAttributes attempt: {pk}")
-            try:
-                resp = user_s3_client.get_object_attributes(
-                    **S3ObjectSource.from_pk(pk).boto_args,
-                    ObjectAttributes=["Checksum"],
-                )
-                checksum_value = resp.get("Checksum", {}).get("ChecksumCRC64NVME")
-                if checksum_value is not None:
-                    checksum_bytes = base64.b64decode(checksum_value)
-                    entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
-                    logger.info(f"[PERF] GetObjectAttributes SUCCESS: {pk}")
-                    return True
-                else:
-                    logger.info(f"[PERF] GetObjectAttributes returned no CRC64NVME: {pk}")
-            except botocore.exceptions.ClientError as e:
-                logger.info(f"[PERF] GetObjectAttributes FAILED: {pk} error={e}")
+            logger.info(f"[PERF] Processing large file: {pk}")
 
-            # GetObjectAttributes failed or returned no checksum
-            if entry.size >= MIN_PART_SIZE:
-                # Delegate to s3hash lambda for MPU computation
-                logger.info(f"[PERF] Delegating to s3hash lambda: {pk}")
-                return s3hash_pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
-            else:
-                # Small file, fall back to copy_object
-                logger.info(f"[PERF] copy_object fallback: {pk}")
-                region = get_bucket_region(pk.bucket)
-                resp = user_s3_client.copy_object(
-                    CopySource=S3ObjectSource.from_pk(pk).boto_args,
-                    Bucket=scratch_buckets[region],
-                    Key=make_scratch_key(),
-                    ChecksumAlgorithm="CRC64NVME",
-                )
-                checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
-                entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
-                logger.info(f"[PERF] copy_object SUCCESS: {pk}")
-                return True
+            # Try to get precomputed checksums in priority order
+            for algorithm in checksum_algorithms:
+                if algorithm == "CRC64NVME":
+                    logger.info(f"[PERF] Trying CRC64NVME via HeadObject: {pk}")
+                    checksum = try_get_crc64nvme_via_head(user_s3_client, pk)
+                    if checksum is not None:
+                        entry.hash = checksum.dict()
+                        logger.info(f"[PERF] Found precomputed CRC64NVME: {pk}")
+                        return True
+                elif algorithm == "SHA256_CHUNKED":
+                    logger.info(f"[PERF] Trying compliant SHA256_CHUNKED via GetObjectAttributes: {pk}")
+                    checksum = try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size)
+                    if checksum is not None:
+                        entry.hash = checksum.dict()
+                        logger.info(f"[PERF] Found compliant SHA256_CHUNKED: {pk}")
+                        return True
 
-        # Submit all GetObjectAttributes attempts
-        for entry in entries_local:
-            futures.append(local_pool.submit(try_get_attributes_or_delegate, entry))
+            # No precomputed checksum found - compute via s3hash lambda
+            logger.info(f"[PERF] Delegating to s3hash lambda: {pk}")
+            return s3hash_pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets, highest_priority_algorithm)
 
-        # Wait for all tasks to complete (includes both GetObjectAttributes and delegated s3hash tasks)
+        def try_precomputed_or_compute_small(entry):
+            """Try precomputed checksums for small file, compute via copy_object if not available"""
+            pk = entry.physical_key
+            logger.info(f"[PERF] Processing small file: {pk}")
+
+            # Try to get precomputed checksums in priority order
+            for algorithm in checksum_algorithms:
+                if algorithm == "CRC64NVME":
+                    logger.info(f"[PERF] Trying CRC64NVME via HeadObject: {pk}")
+                    checksum = try_get_crc64nvme_via_head(user_s3_client, pk)
+                    if checksum is not None:
+                        entry.hash = checksum.dict()
+                        logger.info(f"[PERF] Found precomputed CRC64NVME: {pk}")
+                        return True
+                elif algorithm == "SHA256_CHUNKED":
+                    logger.info(f"[PERF] Trying compliant SHA256_CHUNKED via GetObjectAttributes: {pk}")
+                    checksum = try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size)
+                    if checksum is not None:
+                        entry.hash = checksum.dict()
+                        logger.info(f"[PERF] Found compliant SHA256_CHUNKED: {pk}")
+                        return True
+
+            # No precomputed checksum found - compute via copy_object
+            logger.info(f"[PERF] Computing via copy_object: {pk}")
+            checksum = compute_checksum_via_copy(user_s3_client, pk, scratch_buckets, highest_priority_algorithm)
+            entry.hash = checksum.dict()
+            logger.info(f"[PERF] Computed via copy_object: {pk}")
+            return True
+
+        # Submit large files to s3hash pool (sorted by size descending)
+        for entry in entries_large:
+            futures.append(local_pool.submit(try_precomputed_or_compute_large, entry))
+
+        # Submit small files to local pool (sorted by size descending)
+        for entry in entries_small:
+            futures.append(local_pool.submit(try_precomputed_or_compute_small, entry))
+
+        # Wait for all tasks to complete (includes both local and delegated s3hash tasks)
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             # If result is a Future (s3hash task), wait for it
