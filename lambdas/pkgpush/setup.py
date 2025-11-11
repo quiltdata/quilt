@@ -16,7 +16,7 @@ setup(
         ),
         (
             "quilt_shared[pydantic,boto,quilt] @ https://github.com/quiltdata/quilt/archive/"
-            "6700d34e95d28039308f3c8ddb239bc91945aaf9.zip"
+            "12a7a24eb67b21adbedd26dbbb15fce485b01c93.zip"
             "#subdirectory=py-shared"
         ),
     ],
