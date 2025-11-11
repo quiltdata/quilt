@@ -78,7 +78,7 @@ function useCreate() {
             physicalKey: f.physicalKey,
             hash: f.hash ?? null,
             meta: f.meta ?? null,
-            size: f.size ?? null,
+            size: f.size,
           }))
           .sort(({ logicalKey: a }, { logicalKey: b }) => a.localeCompare(b))
 
