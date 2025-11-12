@@ -331,15 +331,6 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str],
         if entry.hash is not None:
             continue
         assert isinstance(entry.size, int)
-        if entry.size > S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES:
-            raise PkgpushException(
-                "FileTooLargeForHashing",
-                {
-                    "logical_key": lk,
-                    "size": entry.size,
-                    "max_size": S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES,
-                },
-            )
 
         if not entry.size:
             # Empty file: use highest-priority algorithm's empty checksum
@@ -418,11 +409,21 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str],
             if entry is None:
                 continue
 
+            # Decide computation method based on size
             assert isinstance(entry.size, int)
             if entry.size < MIN_PART_SIZE:
                 cf = local_pool.submit(compute_via_copy, entry)
-            else:
+            elif entry.size <= S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES:
                 cf = s3hash_pool.submit(compute_via_s3hash, entry)
+            else:
+                raise PkgpushException(
+                    "FileTooLargeForHashing",
+                    {
+                        "physical_key": str(entry.physical_key),
+                        "size": entry.size,
+                        "max_size": S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES,
+                    },
+                )
             comp_futures.append(cf)
 
         # Wait for all computations to complete
