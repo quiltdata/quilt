@@ -755,35 +755,24 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                     {"physical_key": str(physical_key)},
                 )
 
-            if entry.hash and entry.size is not None:
-                # Both hash and size available - set directly (no head request)
-                pkg.set(
-                    entry.logical_key,
-                    quilt3.packages.PackageEntry(
-                        physical_key,
-                        entry.size,
-                        entry.hash.dict(),
-                        entry.meta,
-                    ),
+            if entry.size is not None:
+                # size available - construct entry explicitly to avoid a head request
+                pkg_entry = quilt3.packages.PackageEntry(
+                    physical_key,
+                    entry.size,
+                    entry.hash.dict() if entry.hash else None,
+                    entry.meta,
                 )
-            else:
-                # Need to compute hash - prepare PackageEntry with size if available
-                if entry.size is not None:
-                    # Size available - create PackageEntry directly (avoids head request)
-                    pkg_entry = quilt3.packages.PackageEntry(
-                        physical_key,
-                        entry.size,
-                        None,  # hash will be computed later
-                        entry.meta or {},
-                    )
-                    pkg.set(entry.logical_key, pkg_entry)
-                else:
-                    # Size not available - fall back to string path (triggers head request)
-                    pkg.set(entry.logical_key, str(physical_key))
-                    pkg_entry = pkg[entry.logical_key]
-                    assert isinstance(pkg_entry, quilt3.packages.PackageEntry)
-                    pkg_entry._meta = entry.meta or {}
+                pkg.set(entry.logical_key, pkg_entry)
 
+            else:
+                # size not available - fall back to string path (triggers head request)
+                pkg.set(entry.logical_key, str(physical_key))
+                pkg_entry = pkg[entry.logical_key]
+                assert isinstance(pkg_entry, quilt3.packages.PackageEntry)
+                pkg_entry._meta = entry.meta or {}
+
+            if not entry.hash:
                 # Validate size limits for files that need hashing
                 assert isinstance(pkg_entry.size, int)
                 size_to_hash += pkg_entry.size
