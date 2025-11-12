@@ -349,13 +349,8 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str],
 
     logger.info(f"[PERF] Hash strategy: {len(entries_to_hash)} files need checksums")
 
-    # Separate into small (local) and large (s3hash) files, sort each by size descending to minimize tail latency
-    entries_small = [e for e in entries_to_hash if e.size < MIN_PART_SIZE]
-    entries_large = [e for e in entries_to_hash if e.size >= MIN_PART_SIZE]
-    entries_small.sort(key=lambda entry: entry.size, reverse=True)
-    entries_large.sort(key=lambda entry: entry.size, reverse=True)
-
-    logger.info(f"[PERF] Split: {len(entries_small)} small files, {len(entries_large)} large files")
+    # Sort all entries by size descending to minimize tail latency
+    entries_to_hash.sort(key=lambda entry: entry.size, reverse=True)
 
     assert user_boto_session is not None
     credentials = AWSCredentials.from_boto_session(user_boto_session)
@@ -364,83 +359,74 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str],
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
     )
 
-    logger.info("[PERF] Starting concurrent checksum retrieval/computation")
+    logger.info("[PERF] Phase 1: Trying precomputed checksums concurrently")
 
-    # Concurrent approach: try precomputed checksums, delegate to s3hash or compute locally if not available
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as s3hash_pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
-        futures = []
+    def try_get_precomputed(entry: quilt3.packages.PackageEntry):
+        """Try to get precomputed checksum in priority order (doesn't compute)"""
+        pk = entry.physical_key
+        logger.info(f"[PERF] Trying precomputed: {pk}")
 
-        def try_precomputed_or_compute_large(entry):
-            """Try precomputed checksums for large file, compute via s3hash lambda if not available"""
-            pk = entry.physical_key
-            logger.info(f"[PERF] Processing large file: {pk}")
+        # Try to get precomputed checksums in priority order
+        for algorithm in checksum_algorithms:
+            if algorithm == "CRC64NVME":
+                checksum = try_get_crc64nvme_via_head(user_s3_client, pk)
+                if checksum is not None:
+                    entry.hash = checksum.dict()
+                    logger.info(f"[PERF] Found precomputed CRC64NVME: {pk}")
+                    return None
+            elif algorithm == "SHA256_CHUNKED":
+                checksum = try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size)
+                if checksum is not None:
+                    entry.hash = checksum.dict()
+                    logger.info(f"[PERF] Found compliant SHA256_CHUNKED: {pk}")
+                    return None
 
-            # Try to get precomputed checksums in priority order
-            for algorithm in checksum_algorithms:
-                if algorithm == "CRC64NVME":
-                    logger.info(f"[PERF] Trying CRC64NVME via HeadObject: {pk}")
-                    checksum = try_get_crc64nvme_via_head(user_s3_client, pk)
-                    if checksum is not None:
-                        entry.hash = checksum.dict()
-                        logger.info(f"[PERF] Found precomputed CRC64NVME: {pk}")
-                        return True
-                elif algorithm == "SHA256_CHUNKED":
-                    logger.info(f"[PERF] Trying compliant SHA256_CHUNKED via GetObjectAttributes: {pk}")
-                    checksum = try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size)
-                    if checksum is not None:
-                        entry.hash = checksum.dict()
-                        logger.info(f"[PERF] Found compliant SHA256_CHUNKED: {pk}")
-                        return True
+        # No precomputed checksum found
+        logger.info(f"[PERF] No precomputed checksum: {pk}")
+        return entry
 
-            # No precomputed checksum found - compute via s3hash lambda
-            logger.info(f"[PERF] Delegating to s3hash lambda: {pk}")
-            return s3hash_pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets, highest_priority_algorithm)
+    def compute_via_copy(entry: quilt3.packages.PackageEntry):
+        """Compute checksum for small file via copy_object"""
+        logger.info(f"[PERF] Computing via copy_object: {entry.physical_key}")
+        entry.hash = compute_checksum_via_copy(
+            user_s3_client,
+            entry.physical_key,
+            scratch_buckets,
+            highest_priority_algorithm,
+        ).dict()
+        logger.info(f"[PERF] Computed via copy_object: {entry.physical_key}")
 
-        def try_precomputed_or_compute_small(entry):
-            """Try precomputed checksums for small file, compute via copy_object if not available"""
-            pk = entry.physical_key
-            logger.info(f"[PERF] Processing small file: {pk}")
+    def compute_via_s3hash(entry: quilt3.packages.PackageEntry):
+        """Compute checksum for large file via s3hash lambda"""
+        logger.info(f"[PERF] Computing via s3hash lambda: {entry.physical_key}")
+        entry.hash = invoke_hash_lambda(
+            entry.physical_key,
+            credentials,
+            scratch_buckets,
+            highest_priority_algorithm,
+        ).dict()
+        logger.info(f"[PERF] Computed via s3hash lambda: {entry.physical_key}")
 
-            # Try to get precomputed checksums in priority order
-            for algorithm in checksum_algorithms:
-                if algorithm == "CRC64NVME":
-                    logger.info(f"[PERF] Trying CRC64NVME via HeadObject: {pk}")
-                    checksum = try_get_crc64nvme_via_head(user_s3_client, pk)
-                    if checksum is not None:
-                        entry.hash = checksum.dict()
-                        logger.info(f"[PERF] Found precomputed CRC64NVME: {pk}")
-                        return True
-                elif algorithm == "SHA256_CHUNKED":
-                    logger.info(f"[PERF] Trying compliant SHA256_CHUNKED via GetObjectAttributes: {pk}")
-                    checksum = try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size)
-                    if checksum is not None:
-                        entry.hash = checksum.dict()
-                        logger.info(f"[PERF] Found compliant SHA256_CHUNKED: {pk}")
-                        return True
+    with (
+        concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as s3hash_pool,
+        concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool,
+    ):
+        precomp_futures = [local_pool.submit(try_get_precomputed, e) for e in entries_to_hash]
+        comp_futures = []
+        for f in concurrent.futures.as_completed(precomp_futures):
+            entry = f.result()
+            if entry is None:
+                continue
 
-            # No precomputed checksum found - compute via copy_object
-            logger.info(f"[PERF] Computing via copy_object: {pk}")
-            checksum = compute_checksum_via_copy(user_s3_client, pk, scratch_buckets, highest_priority_algorithm)
-            entry.hash = checksum.dict()
-            logger.info(f"[PERF] Computed via copy_object: {pk}")
-            return True
+            assert isinstance(entry.size, int)
+            if entry.size < MIN_PART_SIZE:
+                cf = local_pool.submit(compute_via_copy, entry)
+            else:
+                cf = s3hash_pool.submit(compute_via_s3hash, entry)
+            comp_futures.append(cf)
 
-        # Submit large files to s3hash pool (sorted by size descending)
-        for entry in entries_large:
-            futures.append(local_pool.submit(try_precomputed_or_compute_large, entry))
-
-        # Submit small files to local pool (sorted by size descending)
-        for entry in entries_small:
-            futures.append(local_pool.submit(try_precomputed_or_compute_small, entry))
-
-        # Wait for all tasks to complete (includes both local and delegated s3hash tasks)
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            # If result is a Future (s3hash task), wait for it
-            if isinstance(result, concurrent.futures.Future):
-                result.result()
+        # Wait for all computations to complete
+        concurrent.futures.wait(comp_futures)
 
     logger.info("[PERF] calculate_pkg_hashes END")
 
@@ -744,6 +730,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
         for entry in map(PackageConstructEntry.parse_raw, req_file):
             try:
                 physical_key = PhysicalKey.from_url(entry.physical_key)
+                # FIXME: physical key may have no version id, so we have to fetch that
             except ValueError:
                 raise PkgpushException(
                     "InvalidS3PhysicalKey",
@@ -773,27 +760,28 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                 pkg_entry._meta = entry.meta or {}
 
             if not entry.hash:
-                # Validate size limits for files that need hashing
                 assert isinstance(pkg_entry.size, int)
                 size_to_hash += pkg_entry.size
-                if size_to_hash > MAX_BYTES_TO_HASH:
-                    raise PkgpushException(
-                        "PackageTooLargeToHash",
-                        {
-                            "size": size_to_hash,
-                            "max_size": MAX_BYTES_TO_HASH,
-                        },
-                    )
-
                 files_to_hash += 1
-                if files_to_hash > MAX_FILES_TO_HASH:
-                    raise PkgpushException(
-                        "TooManyFilesToHash",
-                        {
-                            "num_files": files_to_hash,
-                            "max_files": MAX_FILES_TO_HASH,
-                        },
-                    )
+
+            # XXX: don't check this before all the "fast" requests are done?
+            if size_to_hash > MAX_BYTES_TO_HASH:
+                raise PkgpushException(
+                    "PackageTooLargeToHash",
+                    {
+                        "size": size_to_hash,
+                        "max_size": MAX_BYTES_TO_HASH,
+                    },
+                )
+
+            if files_to_hash > MAX_FILES_TO_HASH:
+                raise PkgpushException(
+                    "TooManyFilesToHash",
+                    {
+                        "num_files": files_to_hash,
+                        "max_files": MAX_FILES_TO_HASH,
+                    },
+                )
 
         pkg._validate_with_workflow(
             registry=package_registry,
