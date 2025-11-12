@@ -5,7 +5,6 @@ import base64
 import contextlib
 import contextvars
 import functools
-import hashlib
 import logging
 import math
 import os
@@ -32,7 +31,6 @@ from quilt_shared.pkgpush import (
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
-    from types_aiobotocore_s3.type_defs import GetObjectAttributesOutputTypeDef
 
 
 logger = logging.getLogger("quilt-lambda-s3hash")
@@ -460,13 +458,18 @@ async def lambda_handler(
     return result
 
 
-async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyResult:
+async def copy(
+    location: S3ObjectSource,
+    target: S3ObjectDestination,
+    checksum_algorithm: str = "CRC64NVME",  # FIXME: unhardcode checksum algorithm
+) -> CopyResult:
     resp = await S3.get().head_object(**location.boto_args)
     etag, total_size = resp["ETag"], resp["ContentLength"]
 
     part_defs = get_parts_for_size(total_size)
     if part_defs == PARTS_SINGLE:
         logger.warning("Consider using copy_object() directly instead of invoking this lambda.")
+        # FIXME: pass checksum algorithm
         resp = await S3.get().copy_object(
             **target.boto_args,
             CopySource=location.boto_args,
@@ -474,8 +477,8 @@ async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyRes
         )
         return CopyResult(version=resp.get("VersionId"))
 
-    async with create_mpu(target) as mpu:
-        part_upload_results = await upload_parts(mpu, location, etag, part_defs)
+    async with create_mpu(target, checksum_algorithm) as mpu:
+        part_upload_results = await upload_parts(mpu, location, etag, part_defs, checksum_algorithm)
         resp = await mpu.complete(part_upload_results)
         return CopyResult(version=resp.get("VersionId"))
 
