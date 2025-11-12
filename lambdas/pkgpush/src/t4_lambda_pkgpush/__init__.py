@@ -716,6 +716,7 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
 def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     params = PackageConstructParams.parse_raw(next(req_file))
     logger.info(f"[PERF] create_package START: {params.bucket}/{params.name}")
+    logger.info(f"[PERF] Using checksum algorithms: {CHECKSUM_ALGORITHMS}")
     registry_url = f"s3://{params.bucket}"
     try:
         package_registry = get_registry(registry_url)
@@ -725,12 +726,14 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
         if params.user_meta is not None:
             pkg.set_meta(params.user_meta)
 
-        size_to_hash = 0
-        files_to_hash = 0
+        # Phase 1: Parse entries and create PackageEntry objects (store temporarily)
+        logger.info("[PERF] Parsing entries and creating PackageEntry objects")
+        pkg_entries: T.Dict[str, quilt3.packages.PackageEntry] = {}
+        entries_need_metadata = []
+
         for entry in map(PackageConstructEntry.parse_raw, req_file):
             try:
                 physical_key = PhysicalKey.from_url(entry.physical_key)
-                # FIXME: physical key may have no version id, so we have to fetch that
             except ValueError:
                 raise PkgpushException(
                     "InvalidS3PhysicalKey",
@@ -742,29 +745,102 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                     {"physical_key": str(physical_key)},
                 )
 
-            if entry.size is not None:
-                # size available - construct entry explicitly to avoid a head request
-                pkg_entry = quilt3.packages.PackageEntry(
-                    physical_key,
-                    entry.size,
-                    entry.hash.dict() if entry.hash else None,
-                    entry.meta,
-                )
-                pkg.set(entry.logical_key, pkg_entry)
+            # Create PackageEntry (may need metadata later)
+            pkg_entry = quilt3.packages.PackageEntry(
+                physical_key,
+                entry.size,  # May be None - will fetch via HEAD
+                entry.hash.dict() if entry.hash else None,
+                entry.meta,
+            )
+            pkg_entries[entry.logical_key] = pkg_entry
 
-            else:
-                # size not available - fall back to string path (triggers head request)
-                pkg.set(entry.logical_key, str(physical_key))
-                pkg_entry = pkg[entry.logical_key]
-                assert isinstance(pkg_entry, quilt3.packages.PackageEntry)
-                pkg_entry._meta = entry.meta or {}
+            # Track entries that need metadata/checksum fetching
+            needs_metadata = physical_key.version_id is None or entry.size is None or entry.hash is None
+            if needs_metadata:
+                entries_need_metadata.append(entry.logical_key)
 
-            if not entry.hash:
-                assert isinstance(pkg_entry.size, int)
+        logger.info(f"[PERF] Created {len(pkg_entries)} PackageEntry objects, {len(entries_need_metadata)} need metadata")
+
+        # Phase 2: Fetch missing metadata and precomputed checksums concurrently
+        if entries_need_metadata:
+            assert user_boto_session is not None
+            user_s3_client = user_boto_session.client(
+                "s3",
+                config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+            )
+
+            def fetch_and_update_metadata(logical_key: str):
+                """Fetch metadata and precomputed checksums, mutate PackageEntry in place"""
+                pkg_entry = pkg_entries[logical_key]
+                pk = pkg_entry.physical_key
+                logger.info(f"[PERF] HEAD request (with checksums): s3://{pk.bucket}/{pk.path}")
+
+                try:
+                    resp = user_s3_client.head_object(
+                        Bucket=pk.bucket,
+                        Key=pk.path,
+                        ChecksumMode="ENABLED",  # Get precomputed checksums
+                    )
+
+                    # Update physical_key with version_id if missing
+                    if pk.version_id is None:
+                        pkg_entry._physical_key = PhysicalKey(
+                            pk.bucket,
+                            pk.path,
+                            resp.get("VersionId"),
+                        )
+
+                    # Update size if missing
+                    if pkg_entry.size is None:
+                        pkg_entry._size = resp["ContentLength"]
+
+                    # Try to get precomputed checksum (priority order)
+                    if pkg_entry.hash is None:
+                        for algorithm in CHECKSUM_ALGORITHMS:
+                            if algorithm == "CRC64NVME":
+                                checksum_value = resp.get("ChecksumCRC64NVME")
+                                if checksum_value is not None:
+                                    checksum_bytes = base64.b64decode(checksum_value)
+                                    pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
+                                    logger.info(f"[PERF] Found precomputed CRC64NVME via HEAD: {logical_key}")
+                                    break
+                            # SHA256_CHUNKED cannot be reliably retrieved via HEAD (needs GetObjectAttributes with part validation)
+                            # Will be handled by calculate_pkg_hashes if still needed
+
+                    logger.info(
+                        f"[PERF] HEAD success: {logical_key} "
+                        f"version={pkg_entry.physical_key.version_id} size={pkg_entry.size} "
+                        f"hash={pkg_entry.hash['type'] if pkg_entry.hash else None}"
+                    )
+                except botocore.exceptions.ClientError as e:
+                    raise PkgpushException(
+                        "FailedToFetchObjectMetadata",
+                        {
+                            "logical_key": logical_key,
+                            "physical_key": str(pk),
+                            "error": str(e),
+                        },
+                    )
+
+            logger.info(f"[PERF] Fetching metadata for {len(entries_need_metadata)} objects concurrently")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as pool:
+                futures = [pool.submit(fetch_and_update_metadata, lk) for lk in entries_need_metadata]
+                # Check for exceptions
+                for f in concurrent.futures.as_completed(futures):
+                    f.result()  # Raises exception if any occurred
+
+        # Phase 3: Add fully-prepared entries to package and validate limits
+        logger.info("[PERF] Adding entries to package and validating limits")
+        size_to_hash = 0
+        files_to_hash = 0
+        for logical_key, pkg_entry in pkg_entries.items():
+            assert isinstance(pkg_entry.size, int), f"Size must be available after HEAD requests: {logical_key}"
+            pkg.set(logical_key, pkg_entry)
+
+            if pkg_entry.hash is None:
                 size_to_hash += pkg_entry.size
                 files_to_hash += 1
 
-            # XXX: don't check this before all the "fast" requests are done?
             if size_to_hash > MAX_BYTES_TO_HASH:
                 raise PkgpushException(
                     "PackageTooLargeToHash",
@@ -783,6 +859,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                     },
                 )
 
+        logger.info("[PERF] Validating workflow")
         pkg._validate_with_workflow(
             registry=package_registry,
             workflow=params.workflow_normalized,
