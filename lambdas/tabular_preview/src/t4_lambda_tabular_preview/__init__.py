@@ -5,6 +5,7 @@ import json
 import urllib.request
 from urllib.parse import urlparse
 
+import anndata
 import fsspec
 import pandas
 import pyarrow
@@ -234,12 +235,59 @@ def preview_parquet(url, compression, max_out_size):
     }
 
 
+def preview_h5ad(url, compression, max_out_size):
+    with urlopen(url, compression=compression) as src:
+        data = src.read()
+
+    # AnnData objects are read from H5AD files
+    adata = anndata.read_h5ad(io.BytesIO(data))
+
+    # Convert the expression matrix (X) to a pandas DataFrame
+    # X is the main data matrix in AnnData objects
+    if hasattr(adata.X, 'toarray'):
+        # Handle sparse matrices
+        X_dense = adata.X.toarray()
+    else:
+        X_dense = adata.X
+
+    # Create DataFrame with gene names as columns and cell barcodes as index
+    df = pandas.DataFrame(
+        X_dense,
+        index=adata.obs.index if adata.obs is not None else None,
+        columns=adata.var.index if adata.var is not None else None
+    )
+
+    # Convert to Arrow table (preserves index) and write as Arrow format
+    table = pyarrow.Table.from_pandas(df, preserve_index=True)
+    output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
+
+    return 200, output_data, {
+        "Content-Type": "application/vnd.apache.arrow.file",
+        "Content-Encoding": "gzip",
+        QUILT_INFO_HEADER: json.dumps({
+            "truncated": output_truncated,
+            "meta": {
+                "n_obs": adata.n_obs,
+                "n_vars": adata.n_vars,
+                "obs_keys": list(adata.obs.columns) if adata.obs is not None else [],
+                "var_keys": list(adata.var.columns) if adata.var is not None else [],
+                "uns_keys": list(adata.uns.keys()) if adata.uns is not None else [],
+                "obsm_keys": list(adata.obsm.keys()) if adata.obsm is not None else [],
+                "varm_keys": list(adata.varm.keys()) if adata.varm is not None else [],
+                "layers_keys": list(adata.layers.keys()) if adata.layers is not None else [],
+                "shape": (adata.n_obs, adata.n_vars),
+            },
+        }),
+    }
+
+
 handlers = {
     "csv": functools.partial(preview_csv, delimiter=","),
     "tsv": functools.partial(preview_csv, delimiter="\t"),
     "excel": preview_excel,
     "parquet": preview_parquet,
     "jsonl": preview_jsonl,
+    "h5ad": preview_h5ad,
 }
 
 SCHEMA = {
