@@ -5,6 +5,16 @@ import * as Icons from '@material-ui/icons'
 import Iconized from './Iconized'
 import type { StrIcon, SvgIcon } from './Iconized'
 
+const ANCHOR_ORIGIN = {
+  vertical: 'bottom' as const,
+  horizontal: 'right' as const,
+}
+
+const TRANSFORM_ORIGIN = {
+  vertical: 'top' as const,
+  horizontal: 'right' as const,
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -57,9 +67,9 @@ export default function WithPopover({
 }: WithPopoverProps) {
   // TODO: close on location change
   const classes = useStyles()
-  const [opened, setOpened] = React.useState(false)
-  const handleClick = React.useCallback(() => setOpened((o) => !o), [])
-  const handleClose = React.useCallback(() => setOpened(false), [])
+  const [anchorEl, setAnchorEl] = React.useState(null)
+  const handleClick = React.useCallback((event) => setAnchorEl(event.currentTarget), [])
+  const handleClose = React.useCallback(() => setAnchorEl(null), [])
   return (
     <div className={classes.root}>
       {icon ? (
@@ -84,12 +94,15 @@ export default function WithPopover({
         </M.Button>
       )}
 
-      <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
-      {opened && (
-        <M.Paper className={classes.popup} elevation={4} onClick={handleClose}>
-          {children}
-        </M.Paper>
-      )}
+      <M.Popover
+        anchorEl={anchorEl}
+        open={!!anchorEl}
+        onClose={handleClose}
+        anchorOrigin={ANCHOR_ORIGIN}
+        transformOrigin={TRANSFORM_ORIGIN}
+      >
+        <div onClick={handleClose}>{children}</div>
+      </M.Popover>
     </div>
   )
 }
