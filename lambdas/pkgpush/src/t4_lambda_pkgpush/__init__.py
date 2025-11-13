@@ -785,7 +785,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
                     # Update physical_key with version_id if missing
                     if pk.version_id is None:
-                        pkg_entry._physical_key = PhysicalKey(
+                        pkg_entry.physical_key = PhysicalKey(
                             pk.bucket,
                             pk.path,
                             resp.get("VersionId"),
@@ -793,7 +793,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
                     # Update size if missing
                     if pkg_entry.size is None:
-                        pkg_entry._size = resp["ContentLength"]
+                        pkg_entry.size = resp["ContentLength"]
 
                     # Try to get precomputed checksum (priority order)
                     if pkg_entry.hash is None:
