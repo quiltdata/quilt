@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Prevent package download form from being prematurely removed from DOM ([#4634](https://github.com/quiltdata/quilt/pull/4634))
 - [Fixed] Remove leading slash when creating a file from the root directory ([#4631](https://github.com/quiltdata/quilt/pull/4631))
 - [Fixed] Remove leading slash from code samples for downloading an S3 directory ([#4631](https://github.com/quiltdata/quilt/pull/4631))
 - [Fixed] Handle invalid URLs in Markdown gracefully ([#4630](https://github.com/quiltdata/quilt/pull/4630))
