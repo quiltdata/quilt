@@ -299,6 +299,40 @@ def get_bucket_region(bucket: str) -> str:
     return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
 
+def try_get_precomputed_from_head(
+    head_response: dict,
+    file_size: int,
+    checksum_algorithms: T.List[str],
+) -> T.Optional[Checksum]:
+    """
+    Try to extract precomputed checksum from HeadObject response in priority order.
+
+    Args:
+        head_response: Response from HeadObject with ChecksumMode=ENABLED
+        file_size: Size of the file in bytes
+        checksum_algorithms: Priority-ordered list of algorithms
+
+    Returns:
+        Checksum if found, None otherwise
+    """
+    for algorithm in checksum_algorithms:
+        if algorithm == "CRC64NVME":
+            checksum_value = head_response.get("ChecksumCRC64NVME")
+            if checksum_value is not None:
+                checksum_bytes = base64.b64decode(checksum_value)
+                return Checksum.crc64nvme(checksum_bytes)
+        elif algorithm == "SHA256_CHUNKED":
+            # For small files with SHA256 FULL_OBJECT, compute sha2-256-chunked by double hashing
+            # This is much cheaper than copy_object (no data transfer, just local hash)
+            checksum_value = head_response.get("ChecksumSHA256")
+            if checksum_value is not None and file_size < MIN_PART_SIZE:
+                checksum_bytes = base64.b64decode(checksum_value)
+                return Checksum.for_parts([checksum_bytes])
+            # For large files, SHA256_CHUNKED needs GetObjectAttributes with part validation
+            # Will be handled by calculate_pkg_hashes if still needed
+    return None
+
+
 def calculate_pkg_hashes(
     pkg: quilt3.Package,
     scratch_buckets: T.Dict[str, str],
@@ -322,9 +356,6 @@ def calculate_pkg_hashes(
     if checksum_algorithms is None:
         checksum_algorithms = CHECKSUM_ALGORITHMS
 
-    if not checksum_algorithms:
-        raise PkgpushException("NoChecksumAlgorithms", {"details": "At least one checksum algorithm required"})
-
     highest_priority_algorithm = checksum_algorithms[0]
     logger.info(
         f"[PERF] calculate_pkg_hashes START: algorithms={checksum_algorithms}, highest_priority={highest_priority_algorithm}"
@@ -336,8 +367,9 @@ def calculate_pkg_hashes(
             continue
         assert isinstance(entry.size, int)
 
+        # Defensive: empty files should already have checksums from fetch_and_update_metadata()
+        # but handle them here in case they weren't processed (e.g., size already known)
         if not entry.size:
-            # Empty file: use highest-priority algorithm's empty checksum
             entry.hash = get_empty_checksum(highest_priority_algorithm).dict()
         else:
             entries_to_hash.append(entry)
@@ -718,6 +750,11 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     params = PackageConstructParams.parse_raw(next(req_file))
     logger.info(f"[PERF] create_package START: {params.bucket}/{params.name}")
     logger.info(f"[PERF] Using checksum algorithms: {CHECKSUM_ALGORITHMS}")
+
+    # Validate CHECKSUM_ALGORITHMS early to avoid issues in threaded code
+    if not CHECKSUM_ALGORITHMS:
+        raise PkgpushException("NoChecksumAlgorithms", {"details": "At least one checksum algorithm required"})
+
     registry_url = f"s3://{params.bucket}"
     try:
         package_registry = get_registry(registry_url)
@@ -797,29 +834,18 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                     if pkg_entry.size is None:
                         pkg_entry.size = resp["ContentLength"]
 
-                    # Try to get precomputed checksum (priority order)
+                    # Set hash for empty files immediately (use highest-priority algorithm)
+                    if pkg_entry.hash is None and pkg_entry.size == 0:
+                        highest_priority_algorithm = CHECKSUM_ALGORITHMS[0]
+                        pkg_entry.hash = get_empty_checksum(highest_priority_algorithm).dict()
+                        logger.info(f"[PERF] Set empty checksum ({highest_priority_algorithm}): {logical_key}")
+
+                    # Try to get precomputed checksum from HEAD response (priority order)
                     if pkg_entry.hash is None:
-                        for algorithm in CHECKSUM_ALGORITHMS:
-                            if algorithm == "CRC64NVME":
-                                checksum_value = resp.get("ChecksumCRC64NVME")
-                                if checksum_value is not None:
-                                    checksum_bytes = base64.b64decode(checksum_value)
-                                    pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
-                                    logger.info(f"[PERF] Found precomputed CRC64NVME via HEAD: {logical_key}")
-                                    break
-                            elif algorithm == "SHA256_CHUNKED":
-                                # For small files with SHA256 FULL_OBJECT, compute sha2-256-chunked by double hashing
-                                # This is much cheaper than copy_object (no data transfer, just local hash)
-                                checksum_value = resp.get("ChecksumSHA256")
-                                if checksum_value is not None and pkg_entry.size < MIN_PART_SIZE:
-                                    checksum_bytes = base64.b64decode(checksum_value)
-                                    pkg_entry.hash = Checksum.for_parts([checksum_bytes]).dict()
-                                    logger.info(
-                                        f"[PERF] Computed SHA256_CHUNKED from FULL_OBJECT via HEAD: {logical_key}"
-                                    )
-                                    break
-                                # For large files, SHA256_CHUNKED needs GetObjectAttributes with part validation
-                                # Will be handled by calculate_pkg_hashes if still needed
+                        checksum = try_get_precomputed_from_head(resp, pkg_entry.size, CHECKSUM_ALGORITHMS)
+                        if checksum is not None:
+                            pkg_entry.hash = checksum.dict()
+                            logger.info(f"[PERF] Found precomputed {checksum.type} via HEAD: {logical_key}")
 
                     logger.info(
                         f"[PERF] HEAD success: {logical_key} "
