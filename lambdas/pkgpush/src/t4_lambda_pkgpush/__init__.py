@@ -30,7 +30,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT, MIN_PART_SIZE
+from quilt_shared.const import LAMBDA_READ_TIMEOUT, MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
@@ -65,7 +65,11 @@ S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
 S3_COPY_LAMBDA_CONCURRENCY = int(os.environ["S3_COPY_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
-CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
+
+# Priority-ordered list of acceptable checksum algorithms (default for backward compatibility)
+# Only SHA256_CHUNKED and CRC64NVME are supported (legacy SHA256 dropped)
+DEFAULT_CHECKSUM_ALGORITHMS = ["SHA256_CHUNKED"]
+CHECKSUM_ALGORITHMS = json.loads(os.environ.get("CHECKSUM_ALGORITHMS", json.dumps(DEFAULT_CHECKSUM_ALGORITHMS)))
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
@@ -96,9 +100,7 @@ class PkgpushException(LambdaError):
     @classmethod
     def from_quilt_exception(cls, qe: quilt3.util.QuiltException):
         name = (
-            "WorkflowValidationError"
-            if isinstance(qe, quilt3.workflows.WorkflowValidationError)
-            else "QuiltException"
+            "WorkflowValidationError" if isinstance(qe, quilt3.workflows.WorkflowValidationError) else "QuiltException"
         )
         return cls(name, {"details": qe.message})
 
@@ -120,49 +122,165 @@ def invoke_lambda(*, function_name: str, params: pydantic.v1.BaseModel, err_pref
     return parsed["result"]
 
 
+def get_empty_checksum(algorithm: str) -> Checksum:
+    """Get empty checksum for a given algorithm (only SHA256_CHUNKED and CRC64NVME supported)."""
+    if algorithm == "CRC64NVME":
+        return Checksum.empty_crc64nvme()
+    elif algorithm == "SHA256_CHUNKED":
+        return Checksum.empty_sha256_chunked()
+    else:
+        raise PkgpushException("UnsupportedChecksumAlgorithm", {"algorithm": algorithm})
+
+
+def try_get_crc64nvme_via_head(s3_client, pk: PhysicalKey) -> T.Optional[Checksum]:
+    """
+    Try to get precomputed CRC64NVME checksum using HeadObject with ChecksumMode=ENABLED.
+
+    Note: Uses HeadObject instead of GetObjectAttributes because:
+    - Cheaper API call
+    - No separate s3:GetObjectAttributes permission needed (uses existing s3:GetObject)
+    - CRC64NVME has no chunked variant, so no compliance check needed
+    """
+    try:
+        resp = s3_client.head_object(
+            **S3ObjectSource.from_pk(pk).boto_args,
+            ChecksumMode="ENABLED",
+        )
+        checksum_value = resp.get("ChecksumCRC64NVME")
+        if checksum_value is not None:
+            checksum_bytes = base64.b64decode(checksum_value)
+            return Checksum.crc64nvme(checksum_bytes)
+        return None
+    except botocore.exceptions.ClientError:
+        return None
+
+
+def try_get_compliant_sha256_chunked(s3_client, pk: PhysicalKey, file_size: int) -> T.Optional[Checksum]:
+    """
+    Try to get compliant SHA256_CHUNKED checksum using GetObjectAttributes.
+
+    "Compliant" means the object's part sizes match our expected part size boundaries.
+    This requires GetObjectAttributes to retrieve ObjectParts information.
+
+    Note: This is more expensive than HeadObject and requires s3:GetObjectAttributes permission,
+    but it's necessary to validate part size compliance for SHA256_CHUNKED.
+    """
+    try:
+        # Small files should be handled by fetch_and_update_metadata() via HeadObject
+        # Return early to avoid expensive GetObjectAttributes call
+        if file_size < MIN_PART_SIZE:
+            return None
+
+        resp = s3_client.get_object_attributes(
+            **S3ObjectSource.from_pk(pk).boto_args,
+            ObjectAttributes=["Checksum", "ObjectParts", "ObjectSize"],
+            MaxParts=MAX_PARTS,
+        )
+
+        checksum_value = resp.get("Checksum", {}).get("ChecksumSHA256")
+        if checksum_value is None:
+            return None
+
+        # Calculate expected part size (same logic as s3hash lambda)
+        def get_part_size(size: int) -> T.Optional[int]:
+            if size < MIN_PART_SIZE:
+                return None
+            num_parts, rem = divmod(size, MIN_PART_SIZE)
+            if rem:
+                num_parts += 1
+            while num_parts > MAX_PARTS:
+                num_parts, rem = divmod(num_parts, 2)
+                if rem:
+                    num_parts += 1
+            part_size, rem = divmod(size, num_parts)
+            if rem:
+                part_size += 1
+            return part_size
+
+        part_size = get_part_size(file_size)
+        if part_size is None:
+            return None
+
+        object_parts = resp.get("ObjectParts")
+        if object_parts is None:
+            return None
+
+        num_parts = object_parts["TotalPartsCount"]
+        parts = object_parts.get("Parts", [])
+
+        # Make sure we have all parts
+        if len(parts) != num_parts:
+            return None
+
+        # Check if part sizes match expected
+        expected_num_parts, remainder = divmod(file_size, part_size)
+        expected_part_sizes = [part_size] * expected_num_parts + ([remainder] if remainder else [])
+        actual_part_sizes = [part.get("Size") for part in parts]
+
+        if actual_part_sizes == expected_part_sizes:
+            checksum_bytes = base64.b64decode(checksum_value)
+            return Checksum.sha256_chunked(checksum_bytes)
+
+        return None
+    except botocore.exceptions.ClientError:
+        return None
+
+
+def compute_checksum_via_copy(
+    s3_client,
+    pk: PhysicalKey,
+    scratch_buckets: T.Dict[str, str],
+    algorithm: str,
+) -> Checksum:
+    """
+    Compute checksum for small file using copy_object with ChecksumAlgorithm.
+    Only SHA256_CHUNKED and CRC64NVME are supported.
+    """
+    region = get_bucket_region(pk.bucket)
+
+    if algorithm == "CRC64NVME":
+        resp = s3_client.copy_object(
+            CopySource=S3ObjectSource.from_pk(pk).boto_args,
+            Bucket=scratch_buckets[region],
+            Key=make_scratch_key(),
+            ChecksumAlgorithm="CRC64NVME",
+        )
+        checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumCRC64NVME"])
+        return Checksum.crc64nvme(checksum_bytes)
+    elif algorithm == "SHA256_CHUNKED":
+        resp = s3_client.copy_object(
+            CopySource=S3ObjectSource.from_pk(pk).boto_args,
+            Bucket=scratch_buckets[region],
+            Key=make_scratch_key(),
+            ChecksumAlgorithm="SHA256",
+        )
+        checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
+        # sha2-256-chunked requires double hashing (see CHUNKED_CHECKSUMS.md)
+        return Checksum.for_parts([checksum_bytes])
+    else:
+        raise PkgpushException("UnsupportedChecksumAlgorithm", {"algorithm": algorithm})
+
+
 def invoke_hash_lambda(
     pk: PhysicalKey,
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
+    checksum_algorithm: str,
 ) -> Checksum:
+    logger.info(f"[PERF] invoke_hash_lambda START: {pk} algorithm={checksum_algorithm}")
     result = invoke_lambda(
         function_name=S3_HASH_LAMBDA,
         params=S3HashLambdaParams(
             credentials=credentials,
             scratch_buckets=scratch_buckets,
             location=S3ObjectSource.from_pk(pk),
+            checksum_algorithm=checksum_algorithm,
         ),
         err_prefix="S3HashLambda",
     )
-    return ChecksumResult(**result).checksum
-
-
-def calculate_pkg_entry_hash(
-    pkg_entry: quilt3.packages.PackageEntry,
-    credentials: AWSCredentials,
-    scratch_buckets: T.Dict[str, str],
-):
-    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
-
-
-def calculate_pkg_entry_hash_local(
-    pkg_entry: quilt3.packages.PackageEntry,
-    s3_client,
-    scratch_buckets: dict[str, str],
-):
-    region = get_bucket_region(pkg_entry.physical_key.bucket)
-    resp = s3_client.copy_object(
-        CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
-        Bucket=scratch_buckets[region],
-        Key=make_scratch_key(),
-        ChecksumAlgorithm="SHA256",
-        # TODO: make sure we hash the correct object in the case of an unversioned object
-        # CopySourceIfMatch=etag,
-    )
-    checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
-    pkg_entry.hash = (
-        Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)
-    ).dict()
+    checksum = ChecksumResult(**result).checksum
+    logger.info(f"[PERF] invoke_hash_lambda END: {pk} -> {checksum.type}")
+    return checksum
 
 
 @functools.cache
@@ -181,33 +299,86 @@ def get_bucket_region(bucket: str) -> str:
     return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
 
-def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
-    entries_local = []
-    entries = []
+def try_get_precomputed_from_head(
+    head_response: dict,
+    file_size: int,
+    checksum_algorithms: T.List[str],
+) -> T.Optional[Checksum]:
+    """
+    Try to extract precomputed checksum from HeadObject response in priority order.
+
+    Args:
+        head_response: Response from HeadObject with ChecksumMode=ENABLED
+        file_size: Size of the file in bytes
+        checksum_algorithms: Priority-ordered list of algorithms
+
+    Returns:
+        Checksum if found, None otherwise
+    """
+    for algorithm in checksum_algorithms:
+        if algorithm == "CRC64NVME":
+            checksum_value = head_response.get("ChecksumCRC64NVME")
+            if checksum_value is not None:
+                checksum_bytes = base64.b64decode(checksum_value)
+                return Checksum.crc64nvme(checksum_bytes)
+        elif algorithm == "SHA256_CHUNKED":
+            # For small files with SHA256 FULL_OBJECT, compute sha2-256-chunked by double hashing
+            # This is much cheaper than copy_object (no data transfer, just local hash)
+            checksum_value = head_response.get("ChecksumSHA256")
+            if checksum_value is not None and file_size < MIN_PART_SIZE:
+                checksum_bytes = base64.b64decode(checksum_value)
+                return Checksum.for_parts([checksum_bytes])
+            # For large files, SHA256_CHUNKED needs GetObjectAttributes with part validation
+            # Will be handled by calculate_pkg_hashes if still needed
+    return None
+
+
+def calculate_pkg_hashes(
+    pkg: quilt3.Package,
+    scratch_buckets: T.Dict[str, str],
+    checksum_algorithms: T.Optional[T.List[str]] = None,
+):
+    """
+    Calculate checksums for package entries using priority-based selection.
+
+    Args:
+        pkg: Package to calculate hashes for
+        scratch_buckets: Scratch buckets for checksum computation
+        checksum_algorithms: Priority-ordered list of algorithms (default: CHECKSUM_ALGORITHMS from env)
+
+    Algorithm selection:
+    1. For empty files: Use highest-priority algorithm's empty checksum
+    2. For non-empty files: Try to get precomputed checksums in priority order:
+       - CRC64NVME: HeadObject with ChecksumMode=ENABLED (cheap, no extra permissions)
+       - SHA256_CHUNKED: GetObjectAttributes to check compliance (expensive, needs extra permissions)
+    3. If no precomputed: Compute using highest-priority algorithm
+    """
+    if checksum_algorithms is None:
+        checksum_algorithms = CHECKSUM_ALGORITHMS
+
+    highest_priority_algorithm = checksum_algorithms[0]
+    logger.info(
+        f"[PERF] calculate_pkg_hashes START: algorithms={checksum_algorithms}, highest_priority={highest_priority_algorithm}"
+    )
+
+    entries_to_hash = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
             continue
         assert isinstance(entry.size, int)
-        if entry.size > S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES:
-            raise PkgpushException(
-                "FileTooLargeForHashing",
-                {
-                    "logical_key": lk,
-                    "size": entry.size,
-                    "max_size": S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES,
-                },
-            )
 
+        # Defensive: empty files should already have checksums from fetch_and_update_metadata()
+        # but handle them here in case they weren't processed (e.g., size already known)
         if not entry.size:
-            entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
-        elif entry.size < MIN_PART_SIZE:
-            entries_local.append(entry)
+            entry.hash = get_empty_checksum(highest_priority_algorithm).dict()
         else:
-            entries.append(entry)
+            entries_to_hash.append(entry)
 
-    # Schedule longer tasks first so we don't end up waiting for a single long task.
-    entries_local.sort(key=lambda entry: entry.size, reverse=True)
-    entries.sort(key=lambda entry: entry.size, reverse=True)
+    logger.info(f"[PERF] Hash strategy: {len(entries_to_hash)} files need checksums")
+
+    # Sort all entries by size descending to minimize tail latency
+    entries_to_hash.sort(key=lambda entry: entry.size, reverse=True)
+
     assert user_boto_session is not None
     credentials = AWSCredentials.from_boto_session(user_boto_session)
     user_s3_client = user_boto_session.client(
@@ -215,19 +386,86 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
     )
 
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
-        fs = [
-            pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
-            for entry in entries
-        ]
-        fs += [
-            local_pool.submit(calculate_pkg_entry_hash_local, entry, user_s3_client, scratch_buckets)
-            for entry in entries_local
-        ]
-        for f in concurrent.futures.as_completed(fs):
-            f.result()
+    logger.info("[PERF] Phase 1: Trying precomputed checksums concurrently")
+
+    def try_get_precomputed(entry: quilt3.packages.PackageEntry):
+        """Try to get precomputed checksum in priority order (doesn't compute)"""
+        pk = entry.physical_key
+        logger.info(f"[PERF] Trying precomputed: {pk}")
+
+        # Try to get precomputed checksums in priority order
+        for algorithm in checksum_algorithms:
+            if algorithm == "CRC64NVME":
+                checksum = try_get_crc64nvme_via_head(user_s3_client, pk)
+                if checksum is not None:
+                    entry.hash = checksum.dict()
+                    logger.info(f"[PERF] Found precomputed CRC64NVME: {pk}")
+                    return None
+            elif algorithm == "SHA256_CHUNKED":
+                checksum = try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size)
+                if checksum is not None:
+                    entry.hash = checksum.dict()
+                    logger.info(f"[PERF] Found compliant SHA256_CHUNKED: {pk}")
+                    return None
+
+        # No precomputed checksum found
+        logger.info(f"[PERF] No precomputed checksum: {pk}")
+        return entry
+
+    def compute_via_copy(entry: quilt3.packages.PackageEntry):
+        """Compute checksum for small file via copy_object"""
+        logger.info(f"[PERF] Computing via copy_object: {entry.physical_key}")
+        entry.hash = compute_checksum_via_copy(
+            user_s3_client,
+            entry.physical_key,
+            scratch_buckets,
+            highest_priority_algorithm,
+        ).dict()
+        logger.info(f"[PERF] Computed via copy_object: {entry.physical_key}")
+
+    def compute_via_s3hash(entry: quilt3.packages.PackageEntry):
+        """Compute checksum for large file via s3hash lambda"""
+        logger.info(f"[PERF] Computing via s3hash lambda: {entry.physical_key}")
+        entry.hash = invoke_hash_lambda(
+            entry.physical_key,
+            credentials,
+            scratch_buckets,
+            highest_priority_algorithm,
+        ).dict()
+        logger.info(f"[PERF] Computed via s3hash lambda: {entry.physical_key}")
+
+    with (
+        concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as s3hash_pool,
+        concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool,
+    ):
+        precomp_futures = [local_pool.submit(try_get_precomputed, e) for e in entries_to_hash]
+        comp_futures = []
+        for f in concurrent.futures.as_completed(precomp_futures):
+            entry = f.result()
+            if entry is None:
+                continue
+
+            # Decide computation method based on size
+            assert isinstance(entry.size, int)
+            if entry.size < MIN_PART_SIZE:
+                cf = local_pool.submit(compute_via_copy, entry)
+            elif entry.size <= S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES:
+                cf = s3hash_pool.submit(compute_via_s3hash, entry)
+            else:
+                raise PkgpushException(
+                    "FileTooLargeForHashing",
+                    {
+                        "physical_key": str(entry.physical_key),
+                        "size": entry.size,
+                        "max_size": S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES,
+                    },
+                )
+            comp_futures.append(cf)
+
+        # Wait for all computations to complete
+        concurrent.futures.wait(comp_futures)
+
+    logger.info("[PERF] calculate_pkg_hashes END")
 
 
 def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> T.Optional[str]:
@@ -248,16 +486,19 @@ def copy_pkg_entry_data(
     src: PhysicalKey,
     dst: PhysicalKey,
     idx: int,
-) -> T.Tuple[int, PhysicalKey]:
+) -> T.Tuple[int, T.Tuple[PhysicalKey, T.Optional[str]]]:
     version_id = invoke_copy_lambda(credentials, src, dst)
-    return idx, PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+    versioned_key = PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+    # Return tuple of (versioned_key, checksum) - checksum is None since we don't compute it during copy
+    return idx, (versioned_key, None)
 
 
 def copy_file_list(
     file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
     message=None,
     callback=None,
-) -> T.List[PhysicalKey]:
+) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]:
+    logger.info(f"[PERF] copy_file_list START: {len(file_list)} files")
     # TODO: Copy single part files directly, because using lambda for that just adds overhead,
     #       this can be done is a separate thread pool providing higher concurrency.
     # TODO: Use checksums to deduplicate?
@@ -268,16 +509,13 @@ def copy_file_list(
     with concurrent.futures.ThreadPoolExecutor(max_workers=S3_COPY_LAMBDA_CONCURRENCY) as pool:
         credentials = AWSCredentials.from_boto_session(user_boto_session)
         fs = [
-            pool.submit(copy_pkg_entry_data, credentials, src, dst, idx)
-            for idx, (src, dst, _) in file_list_enumerated
+            pool.submit(copy_pkg_entry_data, credentials, src, dst, idx) for idx, (src, dst, _) in file_list_enumerated
         ]
-        results = [
-            f.result()
-            for f in concurrent.futures.as_completed(fs)
-        ]
+        results = [f.result() for f in concurrent.futures.as_completed(fs)]
         # Sort by idx to restore original order.
         results.sort(key=lambda x: x[0])
 
+    logger.info(f"[PERF] copy_file_list END: {len(file_list)} files")
     return [x[1] for x in results]
 
 
@@ -510,6 +748,13 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
 )
 def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     params = PackageConstructParams.parse_raw(next(req_file))
+    logger.info(f"[PERF] create_package START: {params.bucket}/{params.name}")
+    logger.info(f"[PERF] Using checksum algorithms: {CHECKSUM_ALGORITHMS}")
+
+    # Validate CHECKSUM_ALGORITHMS early to avoid issues in threaded code
+    if not CHECKSUM_ALGORITHMS:
+        raise PkgpushException("NoChecksumAlgorithms", {"details": "At least one checksum algorithm required"})
+
     registry_url = f"s3://{params.bucket}"
     try:
         package_registry = get_registry(registry_url)
@@ -519,8 +764,11 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
         if params.user_meta is not None:
             pkg.set_meta(params.user_meta)
 
-        size_to_hash = 0
-        files_to_hash = 0
+        # Phase 1: Parse entries and create PackageEntry objects (store temporarily)
+        logger.info("[PERF] Parsing entries and creating PackageEntry objects")
+        pkg_entries: T.Dict[str, quilt3.packages.PackageEntry] = {}
+        entries_need_metadata = []
+
         for entry in map(PackageConstructEntry.parse_raw, req_file):
             try:
                 physical_key = PhysicalKey.from_url(entry.physical_key)
@@ -535,43 +783,123 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                     {"physical_key": str(physical_key)},
                 )
 
-            if entry.hash and entry.size is not None:
-                pkg.set(
-                    entry.logical_key,
-                    quilt3.packages.PackageEntry(
-                        physical_key,
-                        entry.size,
-                        entry.hash.dict(),
-                        entry.meta,
-                    ),
-                )
-            else:
-                pkg.set(entry.logical_key, str(physical_key))
-                pkg_entry = pkg[entry.logical_key]
-                assert isinstance(pkg_entry, quilt3.packages.PackageEntry)
-                pkg_entry._meta = entry.meta or {}
+            # Create PackageEntry (may need metadata later)
+            pkg_entry = quilt3.packages.PackageEntry(
+                physical_key,
+                entry.size,  # May be None - will fetch via HEAD
+                entry.hash.dict() if entry.hash else None,
+                entry.meta,
+            )
+            pkg_entries[entry.logical_key] = pkg_entry
 
-                assert isinstance(pkg_entry.size, int)
+            # Track entries that need metadata/checksum fetching
+            needs_metadata = physical_key.version_id is None or entry.size is None or entry.hash is None
+            if needs_metadata:
+                entries_need_metadata.append(entry.logical_key)
+
+        logger.info(
+            f"[PERF] Created {len(pkg_entries)} PackageEntry objects, {len(entries_need_metadata)} need metadata"
+        )
+
+        # Phase 2: Fetch missing metadata and precomputed checksums concurrently
+        if entries_need_metadata:
+            assert user_boto_session is not None
+            user_s3_client = user_boto_session.client(
+                "s3",
+                config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+            )
+
+            def fetch_and_update_metadata(logical_key: str):
+                """Fetch metadata and precomputed checksums, mutate PackageEntry in place"""
+                pkg_entry = pkg_entries[logical_key]
+                pk = pkg_entry.physical_key
+                logger.info(f"[PERF] HEAD request (with checksums): s3://{pk.bucket}/{pk.path}")
+
+                try:
+                    resp = user_s3_client.head_object(
+                        Bucket=pk.bucket,
+                        Key=pk.path,
+                        ChecksumMode="ENABLED",  # Get precomputed checksums
+                    )
+
+                    # Update physical_key with version_id if missing
+                    if pk.version_id is None:
+                        pkg_entry.physical_key = PhysicalKey(
+                            pk.bucket,
+                            pk.path,
+                            resp.get("VersionId"),
+                        )
+
+                    # Update size if missing
+                    if pkg_entry.size is None:
+                        pkg_entry.size = resp["ContentLength"]
+
+                    # Set hash for empty files immediately (use highest-priority algorithm)
+                    if pkg_entry.hash is None and pkg_entry.size == 0:
+                        highest_priority_algorithm = CHECKSUM_ALGORITHMS[0]
+                        pkg_entry.hash = get_empty_checksum(highest_priority_algorithm).dict()
+                        logger.info(f"[PERF] Set empty checksum ({highest_priority_algorithm}): {logical_key}")
+
+                    # Try to get precomputed checksum from HEAD response (priority order)
+                    if pkg_entry.hash is None:
+                        checksum = try_get_precomputed_from_head(resp, pkg_entry.size, CHECKSUM_ALGORITHMS)
+                        if checksum is not None:
+                            pkg_entry.hash = checksum.dict()
+                            logger.info(f"[PERF] Found precomputed {checksum.type} via HEAD: {logical_key}")
+
+                    logger.info(
+                        f"[PERF] HEAD success: {logical_key} "
+                        f"version={pkg_entry.physical_key.version_id} size={pkg_entry.size} "
+                        f"hash={pkg_entry.hash['type'] if pkg_entry.hash else None}"
+                    )
+                except botocore.exceptions.ClientError as e:
+                    raise PkgpushException(
+                        "FailedToFetchObjectMetadata",
+                        {
+                            "logical_key": logical_key,
+                            "physical_key": str(pk),
+                            "error": str(e),
+                        },
+                    )
+
+            logger.info(f"[PERF] Fetching metadata for {len(entries_need_metadata)} objects concurrently")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as pool:
+                futures = [pool.submit(fetch_and_update_metadata, lk) for lk in entries_need_metadata]
+                # Check for exceptions
+                for f in concurrent.futures.as_completed(futures):
+                    f.result()  # Raises exception if any occurred
+
+        # Phase 3: Add fully-prepared entries to package and validate limits
+        logger.info("[PERF] Adding entries to package and validating limits")
+        size_to_hash = 0
+        files_to_hash = 0
+        for logical_key, pkg_entry in pkg_entries.items():
+            assert isinstance(pkg_entry.size, int), f"Size must be available after HEAD requests: {logical_key}"
+            pkg.set(logical_key, pkg_entry)
+
+            if pkg_entry.hash is None:
                 size_to_hash += pkg_entry.size
-                if size_to_hash > MAX_BYTES_TO_HASH:
-                    raise PkgpushException(
-                        "PackageTooLargeToHash",
-                        {
-                            "size": size_to_hash,
-                            "max_size": MAX_BYTES_TO_HASH,
-                        },
-                    )
-
                 files_to_hash += 1
-                if files_to_hash > MAX_FILES_TO_HASH:
-                    raise PkgpushException(
-                        "TooManyFilesToHash",
-                        {
-                            "num_files": files_to_hash,
-                            "max_files": MAX_FILES_TO_HASH,
-                        },
-                    )
 
+            if size_to_hash > MAX_BYTES_TO_HASH:
+                raise PkgpushException(
+                    "PackageTooLargeToHash",
+                    {
+                        "size": size_to_hash,
+                        "max_size": MAX_BYTES_TO_HASH,
+                    },
+                )
+
+            if files_to_hash > MAX_FILES_TO_HASH:
+                raise PkgpushException(
+                    "TooManyFilesToHash",
+                    {
+                        "num_files": files_to_hash,
+                        "max_files": MAX_FILES_TO_HASH,
+                    },
+                )
+
+        logger.info("[PERF] Validating workflow")
         pkg._validate_with_workflow(
             registry=package_registry,
             workflow=params.workflow_normalized,
@@ -584,15 +912,18 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
     calculate_pkg_hashes(pkg, params.scratch_buckets)
     try:
+        logger.info("[PERF] pkg._build START")
         top_hash = pkg._build(
             name=params.name,
             registry=registry_url,
             message=params.message,
         )
+        logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
     except botocore.exceptions.ClientError as boto_error:
         raise PkgpushException.from_boto_error(boto_error)
 
     # XXX: return mtime?
+    logger.info(f"[PERF] create_package END: {params.bucket}/{params.name}")
     return PackagePushResult(top_hash=TopHash(top_hash))
 
 

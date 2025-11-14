@@ -108,7 +108,7 @@ def test_calculate_pkg_entry_hash(
 ):
     invoke_hash_lambda_mock = mocker.patch(
         "t4_lambda_pkgpush.invoke_hash_lambda",
-        return_value=Checksum(type=ChecksumType.SHA256_CHUNKED, value="base64hash"),
+        return_value=Checksum(type=ChecksumType.CRC64NVME, value="base64hash"),
     )
 
     t4_lambda_pkgpush.calculate_pkg_entry_hash(
@@ -127,7 +127,7 @@ def test_calculate_pkg_entry_hash(
 
 
 def test_invoke_hash_lambda(lambda_stub: Stubber):
-    checksum = {"type": "sha2-256-chunked", "value": "base64hash"}
+    checksum = {"type": "CRC64NVME", "value": "base64hash"}
     pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
     lambda_stub.add_response(
@@ -200,25 +200,64 @@ def test_invoke_hash_lambda_error(lambda_stub: Stubber):
     assert excinfo.value.name == "S3HashLambdaUnhandledError"
 
 
-@pytest.mark.parametrize(
-    "chunked, expected",
-    [
-        (True, Checksum.sha256_chunked(base64.b64decode("WZ1xAz1wCsiSoOSPphsSXS9ZlBu0XaGQlETUPG7gurI="))),
-        (False, Checksum.sha256(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="))),
-    ],
-)
-def test_calculate_pkg_entry_hash_local(
+def test_calculate_pkg_entry_hash_local_precomputed(
+    entry_without_hash: PackageEntry,
+):
+    """Test fast path: precomputed CRC64NVME is available from S3."""
+    # Use known CRC64NVME checksum value
+    expected = Checksum.crc64nvme(base64.b64decode("AAAA/w8ODRQTGhkgHy4tNDM6OQ=="))
+
+    s3_client = boto3.client("s3")
+
+    with Stubber(s3_client) as stubber:
+        # get_object_attributes returns precomputed checksum
+        stubber.add_response(
+            "get_object_attributes",
+            expected_params={
+                "Bucket": entry_without_hash.physical_key.bucket,
+                "Key": entry_without_hash.physical_key.path,
+                "VersionId": entry_without_hash.physical_key.version_id,
+                "ObjectAttributes": ["Checksum"],
+            },
+            service_response={
+                "Checksum": {
+                    "ChecksumCRC64NVME": "AAAA/w8ODRQTGhkgHy4tNDM6OQ==",
+                },
+            },
+        )
+
+        t4_lambda_pkgpush.calculate_pkg_entry_hash_local(
+            entry_without_hash,
+            s3_client,
+            SCRATCH_BUCKETS,
+        )
+
+    stubber.assert_no_pending_responses()
+
+    assert entry_without_hash.hash == expected
+
+
+def test_calculate_pkg_entry_hash_local_computed(
     entry_without_hash: PackageEntry,
     mocker: MockerFixture,
-    chunked: bool,
-    expected: Checksum,
 ):
-    mocker.patch("t4_lambda_pkgpush.CHUNKED_CHECKSUMS", chunked)
+    """Test fallback path: compute CRC64NVME via copy_object."""
+    # Use known CRC64NVME checksum value
+    expected = Checksum.crc64nvme(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="))
+
     get_bucket_region_mock = mocker.patch("t4_lambda_pkgpush.get_bucket_region", return_value=SCRATCH_REGION)
     make_scratch_key_mock = mocker.patch("t4_lambda_pkgpush.make_scratch_key", return_value=SCRATCH_KEY)
     s3_client = boto3.client("s3")
 
     with Stubber(s3_client) as stubber:
+        # get_object_attributes returns no precomputed checksum
+        stubber.add_client_error(
+            "get_object_attributes",
+            service_error_code="NoSuchKey",
+            service_message="The specified key does not exist.",
+        )
+
+        # Fall back to copy_object with CRC64NVME
         stubber.add_response(
             "copy_object",
             expected_params={
@@ -229,11 +268,11 @@ def test_calculate_pkg_entry_hash_local(
                     "VersionId": entry_without_hash.physical_key.version_id,
                 },
                 "Key": make_scratch_key_mock.return_value,
-                "ChecksumAlgorithm": "SHA256",
+                "ChecksumAlgorithm": "CRC64NVME",
             },
             service_response={
                 "CopyObjectResult": {
-                    "ChecksumSHA256": "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=",
+                    "ChecksumCRC64NVME": "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=",
                 },
             },
         )

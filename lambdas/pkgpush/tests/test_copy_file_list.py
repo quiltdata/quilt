@@ -31,8 +31,9 @@ def test_copy_file_list():
     with mock.patch("t4_lambda_pkgpush.invoke_copy_lambda", return_value=VERSION_ID) as invoke_copy_lambda_mock:
         with mock.patch("t4_lambda_pkgpush.AWSCredentials.from_boto_session", return_value=CREDENTIALS):
             # Check results has the same order as in supplied list.
+            # copy_file_list now returns tuples of (versioned_key, checksum) for quilt3 7.x
             assert t4_lambda_pkgpush.copy_file_list([(e["src"], e["dst"], e["size"]) for e in ENTRIES.values()]) == [
-                e["result"] for e in ENTRIES.values()
+                (e["result"], None) for e in ENTRIES.values()
             ]
             # Check that larger files are processed first.
             assert invoke_copy_lambda_mock.call_args_list == [
