@@ -891,7 +891,7 @@ requires-dist = [
     { name = "elasticsearch", marker = "extra == 'es'", specifier = "~=6.8" },
     { name = "orjson", marker = "extra == 'es'", specifier = "~=3.10" },
     { name = "pydantic", marker = "extra == 'pydantic'", specifier = "~=2.10" },
-    { name = "quilt3", marker = "extra == 'quilt'", specifier = "~=5.4" },
+    { name = "quilt3", marker = "extra == 'quilt'", specifier = ">=5.4,<8" },
     { name = "types-aiobotocore", extras = ["s3"], marker = "extra == 'boto'", specifier = "~=2.11" },
     { name = "typing-extensions", marker = "extra == 'pydantic'", specifier = "~=4.9" },
 ]
