@@ -30,7 +30,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT, MIN_PART_SIZE
+from quilt_shared.const import LAMBDA_READ_TIMEOUT, MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
@@ -168,7 +168,10 @@ def try_get_compliant_sha256_chunked(s3_client, pk: PhysicalKey, file_size: int)
     but it's necessary to validate part size compliance for SHA256_CHUNKED.
     """
     try:
-        from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
+        # Small files should be handled by fetch_and_update_metadata() via HeadObject
+        # Return early to avoid expensive GetObjectAttributes call
+        if file_size < MIN_PART_SIZE:
+            return None
 
         resp = s3_client.get_object_attributes(
             **S3ObjectSource.from_pk(pk).boto_args,
@@ -249,7 +252,8 @@ def compute_checksum_via_copy(s3_client, pk: PhysicalKey, scratch_buckets: T.Dic
             ChecksumAlgorithm="SHA256",
         )
         checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
-        return Checksum.sha256_chunked(checksum_bytes)
+        # sha2-256-chunked requires double hashing (see CHUNKED_CHECKSUMS.md)
+        return Checksum.for_parts([checksum_bytes])
     else:
         raise PkgpushException("UnsupportedChecksumAlgorithm", {"algorithm": algorithm})
 
@@ -805,8 +809,17 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                                     pkg_entry.hash = Checksum.crc64nvme(checksum_bytes).dict()
                                     logger.info(f"[PERF] Found precomputed CRC64NVME via HEAD: {logical_key}")
                                     break
-                            # SHA256_CHUNKED cannot be reliably retrieved via HEAD (needs GetObjectAttributes with part validation)
-                            # Will be handled by calculate_pkg_hashes if still needed
+                            elif algorithm == "SHA256_CHUNKED":
+                                # For small files with SHA256 FULL_OBJECT, compute sha2-256-chunked by double hashing
+                                # This is much cheaper than copy_object (no data transfer, just local hash)
+                                checksum_value = resp.get("ChecksumSHA256")
+                                if checksum_value is not None and pkg_entry.size < MIN_PART_SIZE:
+                                    checksum_bytes = base64.b64decode(checksum_value)
+                                    pkg_entry.hash = Checksum.for_parts([checksum_bytes]).dict()
+                                    logger.info(f"[PERF] Computed SHA256_CHUNKED from FULL_OBJECT via HEAD: {logical_key}")
+                                    break
+                                # For large files, SHA256_CHUNKED needs GetObjectAttributes with part validation
+                                # Will be handled by calculate_pkg_hashes if still needed
 
                     logger.info(
                         f"[PERF] HEAD success: {logical_key} "
