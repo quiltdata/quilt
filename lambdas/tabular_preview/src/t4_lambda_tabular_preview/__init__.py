@@ -12,6 +12,7 @@ import pyarrow
 import pyarrow.csv
 import pyarrow.json
 import pyarrow.parquet
+import scanpy as sc
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import (
@@ -242,23 +243,27 @@ def preview_h5ad(url, compression, max_out_size):
     # AnnData objects are read from H5AD files
     adata = anndata.read_h5ad(io.BytesIO(data))
 
-    # Convert the expression matrix (X) to a pandas DataFrame
-    # X is the main data matrix in AnnData objects
-    if hasattr(adata.X, 'toarray'):
-        # Handle sparse matrices
-        X_dense = adata.X.toarray()
-    else:
-        X_dense = adata.X
+    # Calculate QC metrics using scanpy
+    # This adds quality control metrics to both obs (cell-level) and var (gene-level)
+    sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 
-    # Create DataFrame with gene names as columns and cell barcodes as index
-    df = pandas.DataFrame(
-        X_dense,
-        index=adata.obs.index if adata.obs is not None else None,
-        columns=adata.var.index if adata.var is not None else None
-    )
+    # Use the variable (gene-level) metrics as the main output
+    # This is more informative than raw expression values and compresses better
+    var_df = adata.var.copy()
 
-    # Convert to Arrow table (preserves index) and write as Arrow format
-    table = pyarrow.Table.from_pandas(df, preserve_index=True)
+    # Add gene expression statistics from the QC metrics
+    # These columns are added by calculate_qc_metrics:
+    # - total_counts: total UMI counts for this gene across all cells
+    # - n_cells_by_counts: number of cells with non-zero counts for this gene
+    # - mean_counts: mean counts per cell for this gene
+    # - pct_dropout_by_counts: percentage of cells with zero counts
+
+    # Reset index to include gene IDs as a regular column
+    var_df_with_index = var_df.reset_index()
+    var_df_with_index = var_df_with_index.rename(columns={'index': 'gene_id'})
+
+    # Convert to Arrow table and write as Arrow format
+    table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
     output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
     return 200, output_data, {

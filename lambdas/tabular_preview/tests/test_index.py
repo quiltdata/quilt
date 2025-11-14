@@ -129,12 +129,19 @@ def test_preview_h5ad():
 
         # Convert back to pandas to check content
         df = table.to_pandas()
-        assert "ENSG001" in df.columns
-        assert "ENSG002" in df.columns
-        assert "cell_1" in df.index
-        assert "cell_2" in df.index
-        assert df.loc["cell_1", "ENSG001"] == 1.0
-        assert df.loc["cell_2", "ENSG002"] == 4.0
+
+        # Should have gene-level QC metrics instead of expression matrix
+        assert "gene_id" in df.columns
+        assert "ENSG001" in df["gene_id"].values
+        assert "ENSG002" in df["gene_id"].values
+
+        # Should have QC metric columns added by scanpy
+        expected_qc_columns = ["total_counts", "n_cells_by_counts", "mean_counts", "pct_dropout_by_counts"]
+        for col in expected_qc_columns:
+            assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
+
+        # Check that we have the right number of genes (rows)
+        assert len(df) == 2  # Should have 2 genes from our test data
 
 
 def test_preview_simple_parquet():
