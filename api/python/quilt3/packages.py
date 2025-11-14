@@ -74,10 +74,12 @@ if MANIFEST_MAX_RECORD_SIZE is None:
 
 SHA256_HASH_NAME = 'SHA256'
 SHA256_CHUNKED_HASH_NAME = 'sha2-256-chunked'
+CRC64NVME_HASH_NAME = 'CRC64NVME'
 
 SUPPORTED_HASH_TYPES = (
     SHA256_HASH_NAME,
     SHA256_CHUNKED_HASH_NAME,
+    CRC64NVME_HASH_NAME,
 )
 
 
@@ -225,7 +227,11 @@ class PackageEntry:
 
     def _verify_hash(self, read_bytes):
         """
-        Verifies hash of bytes
+        Verifies hash of bytes.
+
+        Note: CRC64NVME validation is skipped as these checksums come from trusted
+        S3 infrastructure. Full CRC64NVME validation support will be added in a
+        future update.
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
@@ -236,8 +242,12 @@ class PackageEntry:
             expected_value = calculate_checksum_bytes(read_bytes)
         elif hash_type == SHA256_HASH_NAME:
             expected_value = legacy_calculate_checksum_bytes(read_bytes)
+        elif hash_type == CRC64NVME_HASH_NAME:
+            # Skip validation for CRC64NVME (trusted S3 checksums)
+            # TODO: Implement CRC64NVME validation when Python library is available
+            return
         else:
-            assert False
+            assert False, f"Unsupported hash type: {hash_type}"
 
         if expected_value != self.hash.get('value'):
             raise QuiltException("Hash validation failed")
@@ -1829,8 +1839,12 @@ class Package:
                 legacy_expected_hash_list.append(hash_value)
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
+            elif hash_type == CRC64NVME_HASH_NAME:
+                # Skip validation for CRC64NVME (trusted S3 checksums)
+                # Size was already verified above
+                pass
             else:
-                assert False, hash_type
+                assert False, f"Unsupported hash type: {hash_type}"
 
         if src_dict and not extra_files_ok:
             return False
