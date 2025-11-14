@@ -100,9 +100,7 @@ class PkgpushException(LambdaError):
     @classmethod
     def from_quilt_exception(cls, qe: quilt3.util.QuiltException):
         name = (
-            "WorkflowValidationError"
-            if isinstance(qe, quilt3.workflows.WorkflowValidationError)
-            else "QuiltException"
+            "WorkflowValidationError" if isinstance(qe, quilt3.workflows.WorkflowValidationError) else "QuiltException"
         )
         return cls(name, {"details": qe.message})
 
@@ -228,7 +226,12 @@ def try_get_compliant_sha256_chunked(s3_client, pk: PhysicalKey, file_size: int)
         return None
 
 
-def compute_checksum_via_copy(s3_client, pk: PhysicalKey, scratch_buckets: T.Dict[str, str], algorithm: str) -> Checksum:
+def compute_checksum_via_copy(
+    s3_client,
+    pk: PhysicalKey,
+    scratch_buckets: T.Dict[str, str],
+    algorithm: str,
+) -> Checksum:
     """
     Compute checksum for small file using copy_object with ChecksumAlgorithm.
     Only SHA256_CHUNKED and CRC64NVME are supported.
@@ -280,15 +283,6 @@ def invoke_hash_lambda(
     return checksum
 
 
-def calculate_pkg_entry_hash(
-    pkg_entry: quilt3.packages.PackageEntry,
-    credentials: AWSCredentials,
-    scratch_buckets: T.Dict[str, str],
-    checksum_algorithm: str,
-):
-    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets, checksum_algorithm).dict()
-
-
 @functools.cache
 def get_bucket_region(bucket: str) -> str:
     """
@@ -305,7 +299,11 @@ def get_bucket_region(bucket: str) -> str:
     return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
 
-def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str], checksum_algorithms: T.Optional[T.List[str]] = None):
+def calculate_pkg_hashes(
+    pkg: quilt3.Package,
+    scratch_buckets: T.Dict[str, str],
+    checksum_algorithms: T.Optional[T.List[str]] = None,
+):
     """
     Calculate checksums for package entries using priority-based selection.
 
@@ -328,7 +326,9 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str],
         raise PkgpushException("NoChecksumAlgorithms", {"details": "At least one checksum algorithm required"})
 
     highest_priority_algorithm = checksum_algorithms[0]
-    logger.info(f"[PERF] calculate_pkg_hashes START: algorithms={checksum_algorithms}, highest_priority={highest_priority_algorithm}")
+    logger.info(
+        f"[PERF] calculate_pkg_hashes START: algorithms={checksum_algorithms}, highest_priority={highest_priority_algorithm}"
+    )
 
     entries_to_hash = []
     for lk, entry in pkg.walk():
@@ -477,13 +477,9 @@ def copy_file_list(
     with concurrent.futures.ThreadPoolExecutor(max_workers=S3_COPY_LAMBDA_CONCURRENCY) as pool:
         credentials = AWSCredentials.from_boto_session(user_boto_session)
         fs = [
-            pool.submit(copy_pkg_entry_data, credentials, src, dst, idx)
-            for idx, (src, dst, _) in file_list_enumerated
+            pool.submit(copy_pkg_entry_data, credentials, src, dst, idx) for idx, (src, dst, _) in file_list_enumerated
         ]
-        results = [
-            f.result()
-            for f in concurrent.futures.as_completed(fs)
-        ]
+        results = [f.result() for f in concurrent.futures.as_completed(fs)]
         # Sort by idx to restore original order.
         results.sort(key=lambda x: x[0])
 
@@ -764,7 +760,9 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
             if needs_metadata:
                 entries_need_metadata.append(entry.logical_key)
 
-        logger.info(f"[PERF] Created {len(pkg_entries)} PackageEntry objects, {len(entries_need_metadata)} need metadata")
+        logger.info(
+            f"[PERF] Created {len(pkg_entries)} PackageEntry objects, {len(entries_need_metadata)} need metadata"
+        )
 
         # Phase 2: Fetch missing metadata and precomputed checksums concurrently
         if entries_need_metadata:
@@ -816,7 +814,9 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                                 if checksum_value is not None and pkg_entry.size < MIN_PART_SIZE:
                                     checksum_bytes = base64.b64decode(checksum_value)
                                     pkg_entry.hash = Checksum.for_parts([checksum_bytes]).dict()
-                                    logger.info(f"[PERF] Computed SHA256_CHUNKED from FULL_OBJECT via HEAD: {logical_key}")
+                                    logger.info(
+                                        f"[PERF] Computed SHA256_CHUNKED from FULL_OBJECT via HEAD: {logical_key}"
+                                    )
                                     break
                                 # For large files, SHA256_CHUNKED needs GetObjectAttributes with part validation
                                 # Will be handled by calculate_pkg_hashes if still needed
