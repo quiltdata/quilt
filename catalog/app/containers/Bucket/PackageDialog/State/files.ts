@@ -33,7 +33,7 @@ export type FormFiles = {
 
       hash?: Model.Checksum
       meta?: Types.JsonRecord | null
-      size?: number
+      size: number
     }
   }
 }
@@ -230,9 +230,10 @@ export function groupAddedFiles({ added, deleted, existing }: FI.FilesState): Fo
       [path]: {
         physicalKey: s3paths.handleToS3Url(file),
         meta: file.meta,
+        size: file.size,
       },
     }),
-    {} as Record<string, Types.AtLeast<Model.PackageEntry, 'physicalKey'>>,
+    {} as Record<string, Types.AtLeast<Model.PackageEntry, 'physicalKey' | 'size'>>,
   )
   const existingS3Files: Model.PackageContentsFlatMap = R.omit(
     Object.keys(deleted),
