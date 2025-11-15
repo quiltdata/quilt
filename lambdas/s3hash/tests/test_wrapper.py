@@ -72,7 +72,12 @@ def test_timeout(mocker: MockerFixture):
 def test_aws_wiring(mocker: MockerFixture):
     result = {"checksum": "fake-checksum"}
 
+    class FakeChecksum:
+        type = "CRC64NVME"
+
     class FakeResponse:
+        checksum = FakeChecksum()
+
         def dict(self):
             return result
 
