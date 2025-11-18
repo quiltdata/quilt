@@ -1,8 +1,8 @@
 """Efficient CRC64-NVME checksum combination using GF(2) matrix multiplication.
 
 This module provides O(log n) CRC64 extension using precomputed transformation matrices.
-The naive bit-by-bit approach would take O(n*8) time, which is prohibitively slow for
-multi-gigabyte parts (e.g., 58 minutes for a 4.7 GB file vs 4 milliseconds with this approach).
+The naive bit-by-bit approach would take O(data_len × 8) time, which is prohibitively slow
+for multi-gigabyte parts (e.g., ~ 1 hour for a ~ 5 GiB file vs 4 milliseconds with this approach).
 """
 
 from __future__ import annotations
@@ -29,11 +29,11 @@ def _build_single_byte_matrix() -> list[int]:
     matrix = []
 
     for bit_pos in range(_CRC64_BITS):
-        # Start with CRC having only bit bit_pos set
+        # Start with CRC having only bit at position bit_pos set
         crc = 1 << bit_pos
 
         # Process 8 bits (1 byte) of zeros using reflected CRC algorithm
-        for _ in range(_CRC64_BYTES):
+        for _ in range(8):
             if crc & 1:  # Check LSB for reflected CRC
                 crc = (crc >> 1) ^ _CRC64_POLY
             else:
@@ -104,7 +104,7 @@ def crc64_extend(crc: int, data_len: int) -> int:
     """Extend CRC for data_len zero bytes using lazy matrix computation.
 
     Matrices are computed on-demand and cached, supporting unbounded offsets.
-    Time complexity: O(log(data_len)) with one-time O(log(data_len)) setup cost.
+    Time complexity: O(log(data_len)) with amortized matrix computation cost.
 
     Args:
         crc: Current CRC64 value (0 <= crc < 2^64)
@@ -171,7 +171,7 @@ def combine_crc64nvme(part_crcs: list[bytes], part_sizes: list[int]) -> bytes:
 
     # Combine remaining CRCs using fast matrix-based extension
     for i in range(1, len(part_crcs)):
-        # Extend combined CRC for the length of the next part
+        # Extend combined CRC by the size (in bytes) of the next part
         combined = crc64_extend(combined, part_sizes[i])
         # XOR with the next part's CRC
         part_crc = int.from_bytes(part_crcs[i], byteorder=_BYTEORDER)

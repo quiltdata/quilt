@@ -86,9 +86,10 @@ def test_combine_mismatched_lengths():
 
 
 def test_combine_many_parts():
-    """Handles 560 parts efficiently (~4.7 GB file)."""
-    part_crcs = [(i % 256).to_bytes(1, byteorder='big') + b"\x00" * 7 for i in range(560)]
-    part_sizes = [8388608] * 560
+    """Handles 640 parts efficiently (~5 GiB file)."""
+    parts = 640
+    part_crcs = [(i % 256).to_bytes(1, byteorder='big') + b"\x00" * 7 for i in range(parts)]
+    part_sizes = [2**23] * parts
 
     result = combine_crc64nvme(part_crcs, part_sizes)
     assert len(result) == 8
@@ -113,7 +114,7 @@ def test_combine_known_values():
 
 
 def test_combine_associative():
-    """Combining parts is associative."""
+    """Combining parts is associative: tests both (A+B)+C and A+(B+C)."""
     part_a = bytes.fromhex("1111111111111111")
     part_b = bytes.fromhex("2222222222222222")
     part_c = bytes.fromhex("3333333333333333")
