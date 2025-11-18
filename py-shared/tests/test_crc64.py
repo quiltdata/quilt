@@ -23,11 +23,33 @@ def test_extend_additive():
 
 
 def test_extend_large_offset():
-    """Handles multi-GB offsets efficiently (O(log n) performance)."""
+    """Handles multi-GiB offsets efficiently (O(log n) performance)."""
     crc = 0x1234567890ABCDEF
-    huge_offset = 4_700_000_000  # ~4.7 GB
-    result = crc64_extend(crc, huge_offset)
+    large_offset = 5 * 1024**3  # 5 GiB (AWS S3 max part size)
+    result = crc64_extend(crc, large_offset)
     assert 0 <= result < (1 << 64)
+
+
+def test_extend_validation():
+    """Input validation: negative data_len, out-of-range CRC, excessive offset."""
+    # Negative data_len
+    with pytest.raises(ValueError, match="data_len must be non-negative"):
+        crc64_extend(0, -1)
+
+    # Invalid CRC (negative)
+    with pytest.raises(ValueError, match="crc must be 64-bit unsigned"):
+        crc64_extend(-1, 100)
+
+    # Invalid CRC (too large)
+    with pytest.raises(ValueError, match="crc must be 64-bit unsigned"):
+        crc64_extend(1 << 64, 100)
+
+    # Offset exceeding 2^33 bytes (8 GiB)
+    max_offset = 1 << 33
+    with pytest.raises(ValueError, match="exceeds maximum supported offset"):
+        crc64_extend(0, max_offset)
+    with pytest.raises(ValueError, match="exceeds maximum supported offset"):
+        crc64_extend(0, max_offset + 1)
 
 
 def test_combine_empty_parts():

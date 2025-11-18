@@ -7,20 +7,20 @@ multi-gigabyte parts (e.g., 58 minutes for a 4.7 GB file vs 4 milliseconds with 
 
 from __future__ import annotations
 
-import logging
-import typing as T
-
-
-logger = logging.getLogger(__name__)
+import functools
 
 # CRC64-NVME reflected polynomial
 _CRC64_POLY = 0x9A6C9329AC4BC9B5
 
-# Global power table cache (built once on first use)
-_CRC64_POWER_TABLE: T.Optional[T.List[T.List[int]]] = None
+# CRC64 constants
+_CRC64_BITS = 64
+_CRC64_BYTES = 8
+_MAX_POWER = 33  # 2^33 bytes = 8 GiB (exceeds AWS S3 max part size of 5 GiB)
+_MAX_OFFSET = 1 << _MAX_POWER  # Maximum supported offset for crc64_extend
+_BYTEORDER = "big"
 
 
-def _build_single_byte_matrix() -> T.List[int]:
+def _build_single_byte_matrix() -> list[int]:
     """Build the 64×64 GF(2) matrix representing CRC update for 1 byte of zeros.
 
     Each entry i represents the result of processing 1 byte of zeros
@@ -30,12 +30,12 @@ def _build_single_byte_matrix() -> T.List[int]:
     """
     matrix = []
 
-    for bit_pos in range(64):
+    for bit_pos in range(_CRC64_BITS):
         # Start with CRC having only bit bit_pos set
         crc = 1 << bit_pos
 
         # Process 8 bits (1 byte) of zeros using reflected CRC algorithm
-        for _ in range(8):
+        for _ in range(_CRC64_BYTES):
             if crc & 1:  # Check LSB for reflected CRC
                 crc = (crc >> 1) ^ _CRC64_POLY
             else:
@@ -46,7 +46,7 @@ def _build_single_byte_matrix() -> T.List[int]:
     return matrix
 
 
-def _matrix_multiply_gf2(matrix_a: T.List[int], matrix_b: T.List[int]) -> T.List[int]:
+def _matrix_multiply_gf2(matrix_a: list[int], matrix_b: list[int]) -> list[int]:
     """Multiply two 64×64 GF(2) matrices.
 
     Each matrix is represented as a list of 64 integers where each integer
@@ -54,12 +54,12 @@ def _matrix_multiply_gf2(matrix_a: T.List[int], matrix_b: T.List[int]) -> T.List
     """
     result = []
 
-    for i in range(64):
+    for i in range(_CRC64_BITS):
         row = 0
-        for j in range(64):
+        for j in range(_CRC64_BITS):
             # Compute dot product of row i from matrix_a with column j from matrix_b
             col_bits = 0
-            for k in range(64):
+            for k in range(_CRC64_BITS):
                 if matrix_b[k] & (1 << j):  # If bit j is set in row k
                     col_bits ^= (matrix_a[i] >> k) & 1  # XOR with bit k from row i
 
@@ -71,9 +71,11 @@ def _matrix_multiply_gf2(matrix_a: T.List[int], matrix_b: T.List[int]) -> T.List
     return result
 
 
-def _build_power_table() -> T.List[T.List[int]]:
-    """Build table of matrices for extending by 2^k bytes (k = 0 to 40).
+@functools.cache
+def _get_power_table() -> list[list[int]]:
+    """Get or build the precomputed CRC64 power table (cached).
 
+    Builds table of matrices for extending by 2^k bytes (k = 0 to _MAX_POWER).
     power_table[k] represents the transformation matrix for extending CRC
     by 2^k bytes. Returns list of matrices where each matrix is a list of 64 ints.
 
@@ -84,7 +86,7 @@ def _build_power_table() -> T.List[T.List[int]]:
     power_table = [single_byte_matrix]
 
     # Each subsequent entry is the previous one squared: M^(2^k) = (M^(2^(k-1)))^2
-    for k in range(1, 41):  # Up to 2^40 bytes = 1 TB
+    for k in range(1, _MAX_POWER + 1):
         prev_matrix = power_table[k - 1]
         squared_matrix = _matrix_multiply_gf2(prev_matrix, prev_matrix)
         power_table.append(squared_matrix)
@@ -92,20 +94,10 @@ def _build_power_table() -> T.List[T.List[int]]:
     return power_table
 
 
-def _get_power_table() -> T.List[T.List[int]]:
-    """Get or build the precomputed CRC64 power table."""
-    global _CRC64_POWER_TABLE
-    if _CRC64_POWER_TABLE is None:
-        logger.info("Building CRC64 power table (one-time setup)...")
-        _CRC64_POWER_TABLE = _build_power_table()
-        logger.info("CRC64 power table built successfully")
-    return _CRC64_POWER_TABLE
-
-
-def _apply_matrix_gf2(matrix: T.List[int], crc: int) -> int:
+def _apply_matrix_gf2(matrix: list[int], crc: int) -> int:
     """Apply a 64×64 GF(2) matrix to a 64-bit CRC value."""
     result = 0
-    for bit_pos in range(64):
+    for bit_pos in range(_CRC64_BITS):
         if crc & (1 << bit_pos):
             result ^= matrix[bit_pos]
     return result
@@ -117,12 +109,25 @@ def crc64_extend(crc: int, data_len: int) -> int:
     Time complexity: O(log(data_len)) instead of O(data_len * 8)
 
     Args:
-        crc: Current CRC64 value
-        data_len: Number of zero bytes to extend by
+        crc: Current CRC64 value (0 <= crc < 2^64)
+        data_len: Number of zero bytes to extend by (0 <= data_len < 2^33)
 
     Returns:
         Extended CRC64 value
+
+    Raises:
+        ValueError: If crc or data_len are out of valid range
     """
+    if data_len < 0:
+        raise ValueError(f"data_len must be non-negative, got {data_len}")
+    if data_len >= _MAX_OFFSET:
+        raise ValueError(
+            f"data_len exceeds maximum supported offset of {_MAX_OFFSET} bytes "
+            f"(2^{_MAX_POWER} = {_MAX_OFFSET // (1024**3)} GiB), got {data_len}"
+        )
+    if not (0 <= crc < (1 << _CRC64_BITS)):
+        raise ValueError(f"crc must be 64-bit unsigned (0 <= crc < 2^64), got {crc}")
+
     if data_len == 0:
         return crc
 
@@ -144,7 +149,7 @@ def crc64_extend(crc: int, data_len: int) -> int:
     return result
 
 
-def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> bytes:
+def combine_crc64nvme(part_crcs: list[bytes], part_sizes: list[int]) -> bytes:
     """Combine per-part CRC64NVME checksums into whole-file checksum.
 
     CRC64 is composable: CRC(A || B) can be computed from CRC(A), CRC(B), and len(B).
@@ -166,18 +171,18 @@ def combine_crc64nvme(part_crcs: T.List[bytes], part_sizes: T.List[int]) -> byte
         raise ValueError("part_crcs and part_sizes must have the same length")
 
     if len(part_crcs) == 0:
-        return b"\x00" * 8
+        return b"\x00" * _CRC64_BYTES
 
     # Convert first CRC from bytes to int (big-endian)
-    combined = int.from_bytes(part_crcs[0], byteorder='big')
+    combined = int.from_bytes(part_crcs[0], byteorder=_BYTEORDER)
 
     # Combine remaining CRCs using fast matrix-based extension
     for i in range(1, len(part_crcs)):
         # Extend combined CRC for the length of the next part
         combined = crc64_extend(combined, part_sizes[i])
         # XOR with the next part's CRC
-        part_crc = int.from_bytes(part_crcs[i], byteorder='big')
+        part_crc = int.from_bytes(part_crcs[i], byteorder=_BYTEORDER)
         combined ^= part_crc
 
     # Convert back to bytes (big-endian)
-    return combined.to_bytes(8, byteorder='big')
+    return combined.to_bytes(_CRC64_BYTES, byteorder=_BYTEORDER)
