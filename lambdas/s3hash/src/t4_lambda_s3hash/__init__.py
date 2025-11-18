@@ -18,6 +18,7 @@ import pydantic.v1
 
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
+from quilt_shared.crc64 import combine_crc64nvme
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import (
     Checksum,
@@ -28,8 +29,6 @@ from quilt_shared.pkgpush import (
     S3ObjectSource,
     make_scratch_key,
 )
-
-from .crc64 import combine_crc64nvme
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
