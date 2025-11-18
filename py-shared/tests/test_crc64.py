@@ -31,7 +31,7 @@ def test_extend_large_offset():
 
 
 def test_extend_validation():
-    """Input validation: negative data_len, out-of-range CRC, excessive offset."""
+    """Input validation: negative data_len, out-of-range CRC."""
     # Negative data_len
     with pytest.raises(ValueError, match="data_len must be non-negative"):
         crc64_extend(0, -1)
@@ -43,13 +43,6 @@ def test_extend_validation():
     # Invalid CRC (too large)
     with pytest.raises(ValueError, match="crc must be 64-bit unsigned"):
         crc64_extend(1 << 64, 100)
-
-    # Offset exceeding 2^33 bytes (8 GiB)
-    max_offset = 1 << 33
-    with pytest.raises(ValueError, match="exceeds maximum supported offset"):
-        crc64_extend(0, max_offset)
-    with pytest.raises(ValueError, match="exceeds maximum supported offset"):
-        crc64_extend(0, max_offset + 1)
 
 
 def test_combine_empty_parts():

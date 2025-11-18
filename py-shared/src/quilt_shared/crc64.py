@@ -15,8 +15,6 @@ _CRC64_POLY = 0x9A6C9329AC4BC9B5
 # CRC64 constants
 _CRC64_BITS = 64
 _CRC64_BYTES = 8
-_MAX_POWER = 33  # 2^33 bytes = 8 GiB (exceeds AWS S3 max part size of 5 GiB)
-_MAX_OFFSET = 1 << _MAX_POWER  # Maximum supported offset for crc64_extend
 _BYTEORDER = "big"
 
 
@@ -72,26 +70,25 @@ def _matrix_multiply_gf2(matrix_a: list[int], matrix_b: list[int]) -> list[int]:
 
 
 @functools.cache
-def _get_power_table() -> list[list[int]]:
-    """Get or build the precomputed CRC64 power table (cached).
+def _get_matrix_for_power(k: int) -> list[int]:
+    """Get transformation matrix for extending CRC by 2^k bytes (lazy, cached).
 
-    Builds table of matrices for extending by 2^k bytes (k = 0 to _MAX_POWER).
-    power_table[k] represents the transformation matrix for extending CRC
-    by 2^k bytes. Returns list of matrices where each matrix is a list of 64 ints.
+    Matrix is computed on-demand using recursion: M^(2^k) = (M^(2^(k-1)))^2
+    Results are cached, so each power is computed at most once.
 
-    This is a one-time setup cost (~1 second) that enables O(log n) CRC extension.
+    Args:
+        k: Power of 2 (e.g., k=20 returns matrix for 2^20 bytes = 1 MiB)
+
+    Returns:
+        Transformation matrix as list of 64 integers
     """
-    # Start with the matrix for 1 byte
-    single_byte_matrix = _build_single_byte_matrix()
-    power_table = [single_byte_matrix]
+    if k == 0:
+        # Base case: matrix for 2^0 = 1 byte
+        return _build_single_byte_matrix()
 
-    # Each subsequent entry is the previous one squared: M^(2^k) = (M^(2^(k-1)))^2
-    for k in range(1, _MAX_POWER + 1):
-        prev_matrix = power_table[k - 1]
-        squared_matrix = _matrix_multiply_gf2(prev_matrix, prev_matrix)
-        power_table.append(squared_matrix)
-
-    return power_table
+    # Recursive case: M^(2^k) = (M^(2^(k-1)))^2
+    prev_matrix = _get_matrix_for_power(k - 1)
+    return _matrix_multiply_gf2(prev_matrix, prev_matrix)
 
 
 def _apply_matrix_gf2(matrix: list[int], crc: int) -> int:
@@ -104,13 +101,14 @@ def _apply_matrix_gf2(matrix: list[int], crc: int) -> int:
 
 
 def crc64_extend(crc: int, data_len: int) -> int:
-    """Extend CRC for data_len zero bytes using matrix power table.
+    """Extend CRC for data_len zero bytes using lazy matrix computation.
 
-    Time complexity: O(log(data_len)) instead of O(data_len * 8)
+    Matrices are computed on-demand and cached, supporting unbounded offsets.
+    Time complexity: O(log(data_len)) with one-time O(log(data_len)) setup cost.
 
     Args:
         crc: Current CRC64 value (0 <= crc < 2^64)
-        data_len: Number of zero bytes to extend by (0 <= data_len < 2^33)
+        data_len: Number of zero bytes to extend by (>= 0)
 
     Returns:
         Extended CRC64 value
@@ -120,28 +118,23 @@ def crc64_extend(crc: int, data_len: int) -> int:
     """
     if data_len < 0:
         raise ValueError(f"data_len must be non-negative, got {data_len}")
-    if data_len >= _MAX_OFFSET:
-        raise ValueError(
-            f"data_len exceeds maximum supported offset of {_MAX_OFFSET} bytes "
-            f"(2^{_MAX_POWER} = {_MAX_OFFSET // (1024**3)} GiB), got {data_len}"
-        )
     if not (0 <= crc < (1 << _CRC64_BITS)):
         raise ValueError(f"crc must be 64-bit unsigned (0 <= crc < 2^64), got {crc}")
 
     if data_len == 0:
         return crc
 
-    power_table = _get_power_table()
     result = crc
 
     # Decompose data_len into powers of 2 and apply transformations
     power = 0
     remaining = data_len
 
-    while remaining > 0 and power < len(power_table):
+    while remaining > 0:
         if remaining & 1:
-            # Apply transformation for 2^power bytes
-            result = _apply_matrix_gf2(power_table[power], result)
+            # Apply transformation for 2^power bytes (computed lazily, cached)
+            matrix = _get_matrix_for_power(power)
+            result = _apply_matrix_gf2(matrix, result)
 
         remaining >>= 1
         power += 1
