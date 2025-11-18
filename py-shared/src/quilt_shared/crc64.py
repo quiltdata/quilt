@@ -8,6 +8,7 @@ for multi-gigabyte parts (e.g., ~ 1 hour for a ~ 5 GiB file vs 4 milliseconds wi
 from __future__ import annotations
 
 import functools
+import typing as T
 
 # CRC64-NVME reflected polynomial
 _CRC64_POLY = 0x9A6C9329AC4BC9B5
@@ -142,7 +143,7 @@ def crc64_extend(crc: int, data_len: int) -> int:
     return result
 
 
-def combine_crc64nvme(part_crcs: list[bytes], part_sizes: list[int]) -> bytes:
+def combine_crc64nvme(part_crcs: T.Sequence[bytes], part_sizes: T.Sequence[int]) -> bytes:
     """Combine per-part CRC64NVME checksums into whole-file checksum.
 
     CRC64 is composable: CRC(A || B) can be computed from CRC(A), CRC(B), and len(B).
@@ -151,8 +152,8 @@ def combine_crc64nvme(part_crcs: list[bytes], part_sizes: list[int]) -> bytes:
     The CRC64-NVME reflected polynomial is 0x9a6c9329ac4bc9b5.
 
     Args:
-        part_crcs: List of per-part CRC64 checksums (as bytes, big-endian)
-        part_sizes: List of part sizes in bytes (must match length of part_crcs)
+        part_crcs: Sequence of per-part CRC64 checksums (as bytes, big-endian)
+        part_sizes: Sequence of part sizes in bytes (must match length of part_crcs)
 
     Returns:
         Combined CRC64 checksum as 8 bytes (big-endian)
