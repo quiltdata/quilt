@@ -256,7 +256,7 @@ def compute_checksum_via_copy(
         )
         checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
         # sha2-256-chunked requires double hashing (see CHUNKED_CHECKSUMS.md)
-        return Checksum.for_parts([checksum_bytes])
+        return Checksum.sha256_chunked_from_parts([checksum_bytes])
     else:
         raise PkgpushException("UnsupportedChecksumAlgorithm", {"algorithm": algorithm})
 
@@ -327,7 +327,7 @@ def try_get_precomputed_from_head(
             checksum_value = head_response.get("ChecksumSHA256")
             if checksum_value is not None and file_size < MIN_PART_SIZE:
                 checksum_bytes = base64.b64decode(checksum_value)
-                return Checksum.for_parts([checksum_bytes])
+                return Checksum.sha256_chunked_from_parts([checksum_bytes])
             # For large files, SHA256_CHUNKED needs GetObjectAttributes with part validation
             # Will be handled by calculate_pkg_hashes if still needed
     return None
