@@ -5,12 +5,14 @@ import json
 import urllib.request
 from urllib.parse import urlparse
 
+import anndata
 import fsspec
 import pandas
 import pyarrow
 import pyarrow.csv
 import pyarrow.json
 import pyarrow.parquet
+import scanpy as sc
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import (
@@ -234,12 +236,63 @@ def preview_parquet(url, compression, max_out_size):
     }
 
 
+def preview_h5ad(url, compression, max_out_size):
+    with urlopen(url, compression=compression) as src:
+        data = src.read()
+
+    # AnnData objects are read from H5AD files
+    adata = anndata.read_h5ad(io.BytesIO(data))
+
+    # Calculate QC metrics using scanpy
+    # This adds quality control metrics to both obs (cell-level) and var (gene-level)
+    sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+
+    # Use the variable (gene-level) metrics as the main output
+    # This is more informative than raw expression values and compresses better
+    var_df = adata.var.copy()
+
+    # Add gene expression statistics from the QC metrics
+    # These columns are added by calculate_qc_metrics:
+    # - total_counts: total UMI counts for this gene across all cells
+    # - n_cells_by_counts: number of cells with non-zero counts for this gene
+    # - mean_counts: mean counts per cell for this gene
+    # - pct_dropout_by_counts: percentage of cells with zero counts
+
+    # Reset index to include gene IDs as a regular column
+    var_df_with_index = var_df.reset_index()
+    var_df_with_index = var_df_with_index.rename(columns={'index': 'gene_id'})
+
+    # Convert to Arrow table and write as Arrow format
+    table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
+    output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
+
+    return 200, output_data, {
+        "Content-Type": "application/vnd.apache.arrow.file",
+        "Content-Encoding": "gzip",
+        QUILT_INFO_HEADER: json.dumps({
+            "truncated": output_truncated,
+            "meta": {
+                "n_obs": adata.n_obs,
+                "n_vars": adata.n_vars,
+                "obs_keys": list(adata.obs.columns) if adata.obs is not None else [],
+                "var_keys": list(adata.var.columns) if adata.var is not None else [],
+                "uns_keys": list(adata.uns.keys()) if adata.uns is not None else [],
+                "obsm_keys": list(adata.obsm.keys()) if adata.obsm is not None else [],
+                "varm_keys": list(adata.varm.keys()) if adata.varm is not None else [],
+                "layers_keys": list(adata.layers.keys()) if adata.layers is not None else [],
+                "shape": (adata.n_obs, adata.n_vars),
+            },
+        }),
+    }
+
+
 handlers = {
     "csv": functools.partial(preview_csv, delimiter=","),
     "tsv": functools.partial(preview_csv, delimiter="\t"),
     "excel": preview_excel,
     "parquet": preview_parquet,
     "jsonl": preview_jsonl,
+    "h5ad": preview_h5ad,
 }
 
 SCHEMA = {

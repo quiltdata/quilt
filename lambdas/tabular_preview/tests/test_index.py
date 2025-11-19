@@ -98,6 +98,52 @@ def test_preview_simple(filename, handler_name):
         )
 
 
+def test_preview_h5ad():
+    data = (pathlib.Path(__file__).parent / "data" / "simple/test.h5ad").read_bytes()
+    with patch_urlopen(data) as urlopen_mock:
+        code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
+            url=mock.sentinel.URL,
+            compression=mock.sentinel.COMPRESSION,
+            max_out_size=None,
+        )
+
+        urlopen_mock.assert_called_once_with(mock.sentinel.URL, compression=mock.sentinel.COMPRESSION)
+
+        assert code == 200
+        assert headers["Content-Type"] == "application/vnd.apache.arrow.file"
+        assert headers["Content-Encoding"] == "gzip"
+
+        # Parse the QUILT_INFO_HEADER to check metadata
+        info = json.loads(headers[QUILT_INFO_HEADER])
+        assert "truncated" in info
+        assert "meta" in info
+        assert info["meta"]["n_obs"] == 2  # 2 cells
+        assert info["meta"]["n_vars"] == 2  # 2 genes
+        assert info["meta"]["shape"] == [2, 2]
+        assert "obs_keys" in info["meta"]
+        assert "var_keys" in info["meta"]
+
+        # Check that the Arrow data can be read and contains expected content
+        with pyarrow.ipc.open_file(io.BytesIO(gzip.decompress(body))) as reader:
+            table = reader.read_all()
+
+        # Convert back to pandas to check content
+        df = table.to_pandas()
+
+        # Should have gene-level QC metrics instead of expression matrix
+        assert "gene_id" in df.columns
+        assert "ENSG001" in df["gene_id"].values
+        assert "ENSG002" in df["gene_id"].values
+
+        # Should have QC metric columns added by scanpy
+        expected_qc_columns = ["total_counts", "n_cells_by_counts", "mean_counts", "pct_dropout_by_counts"]
+        for col in expected_qc_columns:
+            assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
+
+        # Check that we have the right number of genes (rows)
+        assert len(df) == 2  # Should have 2 genes from our test data
+
+
 def test_preview_simple_parquet():
     data = (pathlib.Path(__file__).parent / "data" / "simple/test.parquet").read_bytes()
     with patch_urlopen(data) as urlopen_mock:
