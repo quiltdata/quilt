@@ -24,7 +24,7 @@ class AWSCredentials(pydantic.v1.BaseModel, frozen=True):
 
     @property
     def boto_args(self):
-        return dict(
+        return BotoSessionCredentials(
             aws_access_key_id=self.key,
             aws_secret_access_key=self.secret,
             aws_session_token=self.token,
