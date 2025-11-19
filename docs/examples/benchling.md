@@ -1,7 +1,7 @@
 # Benchling Webhook Integration for Quilt
 
-The Benchling Webhook creates a seamless connection between [Benchling](https://www.benchling.com)'s Electronic Lab Notebook (ELN) and [Quilt](https://www.quilt.bio)'s Scientific Data Managements System (SDMS) for Amazon S3.
-It not only allows you to view Benchling metadata and attachments inside Quilt packages, but also enables users to browse Quilt package descriptions from inside Benchling notebookes.
+The Benchling Webhook creates a seamless connection between [Benchling](https://www.benchling.com)'s Electronic Lab Notebook (ELN) and [Quilt](https://www.quilt.bio)'s Scientific Data Management System (SDMS) for Amazon S3.
+It not only allows you to view Benchling metadata and attachments inside Quilt packages, but also enables users to browse Quilt package descriptions from inside Benchling notebooks.
 
 The webhook works through a [Benchling App](https://docs.benchling.com/docs/getting-started-benchling-apps) that must be installed in your Organization by a Benchling Administrator and configured to call your stack's unique webhook (see Installation, below).
 
@@ -20,13 +20,13 @@ When scientists create notebook entries in Benchling, this webhook automatically
 - **Creates a dedicated Quilt package** for each notebook entry
 - **Synchronizes metadata** from Benchling (experiment IDs, authors, etc.) into that package
 - **Copies attachments** from that notebook into Amazon S3 as part of the package.
-- **Enables orgnizational data discovery** by making contents available in ElasticSearch, and metadata available in Amazon Athena.
+- **Enables organizational data discovery** by making contents available in ElasticSearch, and metadata available in Amazon Athena.
 
 ### Package Linking
 
 ![experiment_id](imgs/benchling-link.png)
 
-In addition, Quilt users can 'tag' additional packages by setting the `experiment_id` (or a custom metadta key) to the display ID of a Benchling notebook, e.g., `EXP00001234`.
+In addition, Quilt users can 'tag' additional packages by setting the `experiment_id` (or a custom metadata key) to the display ID of a Benchling notebook, e.g., `EXP00001234`.
 
 From inside the Quilt Catalog:
 
@@ -52,7 +52,7 @@ The canvas also allows you to browse package contents:
 
 and view package metadata:
 
-![App Canvas - Metadata](imgs/benchling-browse.png)
+![App Canvas - Metadata](imgs/benchling-metadata.png)
 
 #### Inserting a Canvas
 
