@@ -60,7 +60,7 @@ class S3ObjectDestination(pydantic.v1.BaseModel):
 
     @property
     def boto_args(self) -> BucketKey:
-        return BucketKey(Bucket = self.bucket, Key = self.key)
+        return BucketKey(Bucket=self.bucket, Key=self.key)
 
 
 class ChecksumAlgorithm(str, enum.Enum):
@@ -68,6 +68,15 @@ class ChecksumAlgorithm(str, enum.Enum):
 
     SHA256_CHUNKED = "SHA256_CHUNKED"
     CRC64NVME = "CRC64NVME"
+
+    @classmethod
+    def from_str(cls, value: str, *, strict: bool = True):
+        for v in cls:
+            if v.value == value:
+                return v
+
+        if strict:
+            raise ValueError(f"Unsupported checksum algorithm: {value}")
 
     @property
     def s3_checksum_algorithm(self):
@@ -203,6 +212,7 @@ class BucketKey(T.TypedDict):
     Bucket: str
     Key: str
 
+
 class BucketKeyUpload(BucketKey):
     UploadId: str
 
@@ -216,9 +226,9 @@ class MPURef(pydantic.v1.BaseModel):
     @property
     def boto_args(self) -> BucketKeyUpload:
         return BucketKeyUpload(
-            Bucket = self.bucket,
-            Key = self.key,
-            UploadId = self.id,
+            Bucket=self.bucket,
+            Key=self.key,
+            UploadId=self.id,
         )
 
 
@@ -287,13 +297,14 @@ class S3HashLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     scratch_buckets: T.Dict[str, str]
     location: S3ObjectSource
-    checksum_algorithm: ChecksumAlgorithm = ChecksumAlgorithm.SHA256_CHUNKED
+    checksum_algorithm: ChecksumAlgorithm
 
 
 class S3CopyLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
     target: S3ObjectDestination
+    checksum_algorithm: ChecksumAlgorithm
 
 
 def make_scratch_key() -> str:
