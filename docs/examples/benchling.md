@@ -151,4 +151,4 @@ In Benchling:
 
 A Quilt package will be automatically created and linked to your notebook
 entry.
-If you run into problems, contact [Quilt Support](support@quilt.bio)
+If you run into problems, contact [Quilt Support](mailto:support@quilt.bio)
