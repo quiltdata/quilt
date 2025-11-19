@@ -8,7 +8,13 @@ from .types import NonEmptyStr
 
 if T.TYPE_CHECKING:
     import boto3
-    from mypy_boto3_sts.type_defs import CredentialsTypeDef
+    from types_boto3_sts.type_defs import CredentialsTypeDef
+
+
+class BotoSessionCredentials(T.TypedDict):
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    aws_session_token: str
 
 
 class AWSCredentials(pydantic.v1.BaseModel, frozen=True):
