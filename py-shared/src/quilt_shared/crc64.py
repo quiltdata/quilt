@@ -167,6 +167,9 @@ def combine_crc64nvme(part_crcs: T.Sequence[bytes], part_sizes: T.Sequence[int])
     if len(part_crcs) == 0:
         return b"\x00" * _CRC64_BYTES
 
+    if len(part_crcs) == 1:
+        return part_crcs[0]
+
     # Convert first CRC from bytes to int (big-endian)
     combined = int.from_bytes(part_crcs[0], byteorder=_BYTEORDER)
 
