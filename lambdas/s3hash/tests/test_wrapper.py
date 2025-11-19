@@ -29,9 +29,13 @@ class FakeContext:
 def test_input_validation_error(mocker: MockerFixture):
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum")
 
-    # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
-        {"credentials": AWS_CREDENTIALS, "location": "s3://bucket/key"},
+        {
+            "credentials": AWS_CREDENTIALS,
+            "location": "s3://bucket/key",
+            "scratch_buckets": {},
+            "checksum_algorithm": "CRC64NVME",
+        },
         None,
     )
 
@@ -53,9 +57,13 @@ def test_timeout(mocker: MockerFixture):
 
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", side_effect=sleep)
 
-    # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
-        {"credentials": AWS_CREDENTIALS, "location": S3_SRC, "scratch_buckets": {}},
+        {
+            "credentials": AWS_CREDENTIALS,
+            "location": S3_SRC,
+            "scratch_buckets": {},
+            "checksum_algorithm": "CRC64NVME",
+        },
         FakeContext(1001),
     )
 
@@ -85,9 +93,13 @@ def test_aws_wiring(mocker: MockerFixture):
 
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", return_value=FakeResponse())
 
-    # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
-        {"credentials": AWS_CREDENTIALS, "location": S3_SRC, "scratch_buckets": {"region": "bucket"}},
+        {
+            "credentials": AWS_CREDENTIALS,
+            "location": S3_SRC,
+            "scratch_buckets": {"region": "bucket"},
+            "checksum_algorithm": "CRC64NVME",
+        },
         FakeContext(2000),
     )
 
@@ -100,6 +112,7 @@ def test_aws_wiring(mocker: MockerFixture):
             version=S3_SRC["version"],
         ),
         {"region": "bucket"},
+        s3hash.ChecksumAlgorithm.CRC64NVME,
     )
 
     aio_context_mock.assert_called_once_with(s3hash.AWSCredentials.parse_obj(AWS_CREDENTIALS))
