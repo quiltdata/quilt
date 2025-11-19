@@ -7,7 +7,7 @@ import * as SearchUIModel from 'containers/Search/model'
 import * as NoResults from 'containers/Search/NoResults'
 import StyledLink from 'utils/StyledLink'
 
-import { usePackageCreationDialog } from './PackageDialog/PackageCreationForm'
+import { useCreateDialog } from './PackageDialog/Create'
 
 const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`
 
@@ -16,10 +16,11 @@ interface CreatePackageProps {
 }
 
 function CreatePackage({ bucket }: CreatePackageProps) {
-  const createDialog = usePackageCreationDialog({
-    bucket,
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const createDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
+    dst,
   })
   const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
   return (
@@ -37,12 +38,6 @@ function CreatePackage({ bucket }: CreatePackageProps) {
       })}
     </>
   )
-}
-
-interface EmptyProps {
-  bucket: string
-  className?: string
-  onRefine: (action: NoResults.Refine) => void
 }
 
 function WithFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => void }) {
@@ -87,7 +82,13 @@ function BareFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => voi
   )
 }
 
-export default function NoPackages({ className, bucket, onRefine }: EmptyProps) {
+interface NoPackagesProps {
+  className?: string
+  bucket: string
+  onRefine: (action: NoResults.Refine) => void
+}
+
+export default function NoPackages({ bucket, className, onRefine }: NoPackagesProps) {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const numFilters = state.filter.order.length + state.userMetaFilters.filters.size

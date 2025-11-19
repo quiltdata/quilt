@@ -3,28 +3,48 @@ import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
 import { isQuickPreviewAvailable } from 'components/Preview/quick'
-import * as AddToPackage from 'containers/AddToPackage'
+import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageUri from 'utils/PackageUri'
 import parseSearch from 'utils/parseSearch'
+import * as s3paths from 'utils/s3paths'
 
 import { detect, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
 function useRedirect() {
-  const addToPackage = AddToPackage.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
   // TODO: put this into FileEditor/routes
-  const { add, next } = parseSearch(location.search, true)
-  return React.useCallback(
-    ({ bucket, key, size, version }: Model.S3File) => {
-      if (add && addToPackage?.append) {
-        addToPackage.append(add, { bucket, key, size, version })
+
+  const getRedirectRoute = React.useCallback(
+    (fileHandle: Model.S3File) => {
+      const { add, next } = parseSearch(location.search, true)
+      if (next) return next
+
+      if (add) {
+        try {
+          const packageHandle = PackageUri.parse(add)
+          if (packageHandle.path) {
+            return urls.bucketPackageAddFiles(packageHandle.bucket, packageHandle.name, {
+              [packageHandle.path!]: encodeURI(s3paths.handleToS3Url(fileHandle)),
+            })
+          }
+          throw new Error('"add" parameter must contain `PackageUri` with "path"')
+        } catch (error) {
+          Log.error(error)
+        }
       }
-      history.push(next || urls.bucketFile(bucket, key, { version }))
+
+      const { bucket, key, version } = fileHandle
+      return urls.bucketFile(bucket, key, { version })
     },
-    [history, next, addToPackage, add, urls],
+    [location.search, urls],
+  )
+  return React.useCallback(
+    (file: Model.S3File) => history.push(getRedirectRoute(file)),
+    [history, getRedirectRoute],
   )
 }
 

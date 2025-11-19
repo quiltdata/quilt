@@ -9,9 +9,10 @@ import * as AWS from 'utils/AWS'
 import { getPartSize, MIN_PART_SIZE } from 'utils/checksums'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
+import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
-import type { LocalFile } from './FilesInput'
+import type { LocalFile } from './Inputs/Files/Input'
 
 interface UploadResult extends S3.ManagedUpload.SendData {
   VersionId: string
@@ -23,7 +24,7 @@ export interface UploadTotalProgress {
   percent: number
 }
 
-export interface UploadsState {
+interface UploadsState {
   [path: string]: {
     file: File
     promise: Promise<S3.ManagedUpload.SendData>
@@ -31,7 +32,7 @@ export interface UploadsState {
   }
 }
 
-export const computeTotalProgress = (uploads: UploadsState): UploadTotalProgress =>
+const computeTotalProgress = (uploads: UploadsState): UploadTotalProgress =>
   FP.function.pipe(
     uploads,
     R.values,
@@ -69,12 +70,10 @@ export function useUploads() {
       files,
       bucket,
       getCanonicalKey,
-      getMeta,
     }: {
-      files: { path: string; file: LocalFile }[]
+      files: { path: string; file: LocalFile; meta?: Types.JsonRecord | null }[]
       bucket: string
       getCanonicalKey: (path: string) => string
-      getMeta?: (path: string) => Model.EntryMeta | undefined
     }) => {
       const limit = pLimit(2)
       let rejected = false
@@ -155,7 +154,7 @@ export function useUploads() {
                 }),
                 size: f.file.size,
                 hash: f.file.hash.value,
-                meta: getMeta?.(f.path),
+                meta: f.meta,
               },
             ] as R.KeyValuePair<string, Model.PackageEntry>,
         ),

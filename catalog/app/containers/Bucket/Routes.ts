@@ -11,6 +11,7 @@ export interface RouteMap {
   bucketESQueries: routes.BucketESQueriesArgs
   bucketFile: routes.BucketFileArgs
   bucketOverview: routes.BucketOverviewArgs
+  bucketPackageAddFiles: routes.BucketPackageAddFilesArgs
   bucketPackageDetail: routes.BucketPackageDetailArgs
   bucketPackageList: routes.BucketPackageListArgs
   bucketPackageRevisions: routes.BucketPackageRevisionsArgs
