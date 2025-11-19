@@ -32,6 +32,7 @@ from quilt_shared.pkgpush import (
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
+    from types_aiobotocore_s3.type_defs import CompletedPartTypeDef
 
 
 logger = logging.getLogger("quilt-lambda-s3hash")
@@ -43,17 +44,6 @@ MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 SECONDS_TO_CLEANUP = 1
 
 S3: contextvars.ContextVar[S3Client] = contextvars.ContextVar("s3")
-
-# Algorithm → S3 API mappings
-S3_CHECKSUM_ALGORITHM = {
-    ChecksumAlgorithm.CRC64NVME: "CRC64NVME",
-    ChecksumAlgorithm.SHA256_CHUNKED: "SHA256",
-}
-
-S3_RESPONSE_FIELD = {
-    ChecksumAlgorithm.CRC64NVME: "ChecksumCRC64NVME",
-    ChecksumAlgorithm.SHA256_CHUNKED: "ChecksumSHA256",
-}
 
 
 # Isolated for test-ability.
@@ -121,6 +111,11 @@ async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.
     return S3ObjectDestination(bucket=scratch_bucket, key=make_scratch_key())
 
 
+class PartSourceDef(T.TypedDict):
+    PartNumber: int
+    CopySourceRange: T.NotRequired[str]
+
+
 class PartDef(pydantic.v1.BaseModel):
     part_number: int
     range: T.Optional[T.Tuple[int, int]]
@@ -133,8 +128,8 @@ class PartDef(pydantic.v1.BaseModel):
         return self.range[1] - self.range[0] + 1
 
     @property
-    def boto_args(self):
-        args: T.Dict[str, T.Any] = {"PartNumber": self.part_number}
+    def boto_args(self) -> PartSourceDef:
+        args = PartSourceDef(PartNumber=self.part_number)
         if self.range:
             args["CopySourceRange"] = f"bytes={self.range[0]}-{self.range[1]}"
         return args
@@ -196,9 +191,8 @@ async def upload_part(
     assert "ETag" in copy_result
 
     # Extract checksum from response
-    checksum_field = S3_RESPONSE_FIELD[algorithm]
-    assert checksum_field in copy_result
-    checksum_value = copy_result[checksum_field]
+    checksum_value = copy_result.get(algorithm.s3_checksum_field)
+    assert isinstance(checksum_value, str)
 
     return PartUploadResult(
         etag=copy_result["ETag"],
@@ -249,12 +243,13 @@ class PartUploadResult(pydantic.v1.BaseModel):
     checksum: str  # base64-encoded checksum value
     algorithm: ChecksumAlgorithm
 
-    @property
-    def boto_args(self):
-        args = {"ETag": self.etag}
-        checksum_field = S3_RESPONSE_FIELD[self.algorithm]
-        args[checksum_field] = self.checksum
-        return args
+    def boto_args_completed(self, part_number: int) -> CompletedPartTypeDef:
+        a: CompletedPartTypeDef = {
+            "PartNumber": part_number,
+            "ETag": self.etag,
+        }
+        a[self.algorithm.s3_checksum_field] = self.checksum
+        return a
 
 
 class MPURef(MPURefBase):
@@ -272,13 +267,7 @@ class MPURef(MPURefBase):
         result = await S3.get().complete_multipart_upload(
             **self.boto_args,
             MultipartUpload={
-                "Parts": [
-                    {
-                        **part.boto_args,
-                        "PartNumber": n,
-                    }
-                    for n, part in enumerate(parts, 1)
-                ],
+                "Parts": [part.boto_args_completed(n) for n, part in enumerate(parts, 1)],
             },
         )
         self._completed = True
@@ -295,7 +284,7 @@ async def create_mpu(target: S3ObjectDestination, algorithm: ChecksumAlgorithm):
     try:
         upload_data = await S3.get().create_multipart_upload(
             **target.boto_args,
-            ChecksumAlgorithm=S3_CHECKSUM_ALGORITHM[algorithm],
+            ChecksumAlgorithm=algorithm.s3_checksum_algorithm,
         )
         mpu = MPURef(bucket=target.bucket, key=target.key, id=upload_data["UploadId"])
     except botocore.exceptions.ClientError as ex:
@@ -388,8 +377,6 @@ async def compute_checksum(
         else:
             logger.info(f"[PERF] Combined {len(part_checksums)} part SHA256 checksums for {location}")
             checksum = Checksum.sha256_chunked_from_parts(part_checksums)
-    else:
-        assert False, f"Unsupported algorithm: {algorithm}"
 
     logger.info(f"[PERF] compute_checksum END: {location} -> {checksum.type}")
     return ChecksumResult(checksum=checksum)
