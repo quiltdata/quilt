@@ -15,6 +15,7 @@ import aiobotocore.response
 import aiobotocore.session
 import botocore.exceptions
 import pydantic.v1
+import typing_extensions as TX
 
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
@@ -99,7 +100,7 @@ async def get_bucket_region(bucket: str) -> str:
     return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
 
-async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.Dict[str, str]) -> S3ObjectDestination:
+async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: dict[str, str]) -> S3ObjectDestination:
     region = await get_bucket_region(location.bucket)
     scratch_bucket = scratch_buckets.get(region)
     if scratch_bucket is None:
@@ -118,13 +119,15 @@ class PartSourceDef(T.TypedDict):
 
 class PartDef(pydantic.v1.BaseModel):
     part_number: int
-    range: T.Optional[T.Tuple[int, int]]
+    range: T.Optional[tuple[int, int]]
 
     @property
     def size(self) -> int:
         """Get the size of this part in bytes."""
+        # dummy part size for the single-part case
+        # (first part's size is ignored by the downstream combination logic)
         if self.range is None:
-            raise ValueError("Cannot get size of single-part upload without range")
+            return -1
         return self.range[1] - self.range[0] + 1
 
     @property
@@ -145,7 +148,7 @@ class PartDef(pydantic.v1.BaseModel):
 PARTS_SINGLE = [PartDef(part_number=1, range=None)]
 
 
-def get_parts_for_size(total_size: int) -> T.List[PartDef]:
+def get_parts_for_size(total_size: int) -> list[PartDef]:
     part_size = get_part_size(total_size)
 
     # single-part upload
@@ -207,7 +210,7 @@ async def upload_parts(
     etag: str,
     parts: T.Sequence[PartDef],
     algorithm: ChecksumAlgorithm,
-) -> T.List[PartUploadResult]:
+) -> list[PartUploadResult]:
     s = asyncio.Semaphore(MPU_CONCURRENCY)
 
     async def _upload_part(*args, **kwargs):
@@ -224,7 +227,7 @@ async def compute_part_checksums(
     etag: str,
     parts: T.Sequence[PartDef],
     algorithm: ChecksumAlgorithm,
-) -> T.List[bytes]:
+) -> list[bytes]:
     logger.info(f"[PERF] compute_part_checksums START: {len(parts)} parts for {location} algorithm={algorithm}")
     part_upload_results = await upload_parts(
         mpu,
@@ -300,7 +303,7 @@ async def create_mpu(target: S3ObjectDestination, algorithm: ChecksumAlgorithm):
             logger.exception("Error aborting MPU")
 
 
-AnyDict = T.Dict[str, T.Any]
+AnyDict = dict[str, T.Any]
 LambdaContext = T.Any
 
 
@@ -333,7 +336,7 @@ def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
 
 async def compute_checksum(
     location: S3ObjectSource,
-    scratch_buckets: T.Dict[str, str],
+    scratch_buckets: dict[str, str],
     algorithm: ChecksumAlgorithm,
 ) -> ChecksumResult:
     logger.info(f"[PERF] compute_checksum START: {location} algorithm={algorithm}")
@@ -362,21 +365,13 @@ async def compute_checksum(
         )
 
     # Combine per-part checksums into whole-file checksum
-    if algorithm == ChecksumAlgorithm.CRC64NVME:
-        if len(part_checksums) == 1:
-            logger.info(f"[PERF] Single-part CRC64NVME checksum for {location}")
-            checksum = Checksum.crc64nvme(part_checksums[0])
-        else:
-            part_sizes = [part_def.size for part_def in part_defs]
-            logger.info(f"[PERF] Combined {len(part_checksums)} part CRC64NVME checksums for {location}")
-            checksum = Checksum.crc64nvme_from_parts(part_checksums, part_sizes)
-    elif algorithm == ChecksumAlgorithm.SHA256_CHUNKED:
-        if len(part_checksums) == 1:
-            logger.info(f"[PERF] Single-part SHA256 checksum for {location}")
-            checksum = Checksum.sha256_chunked(part_checksums[0])
-        else:
-            logger.info(f"[PERF] Combined {len(part_checksums)} part SHA256 checksums for {location}")
-            checksum = Checksum.sha256_chunked_from_parts(part_checksums)
+    if algorithm is ChecksumAlgorithm.CRC64NVME:
+        part_sizes = [part_def.size for part_def in part_defs]
+        checksum = Checksum.crc64nvme_from_parts(part_checksums, part_sizes)
+    elif algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
+        checksum = Checksum.sha256_chunked_from_parts(part_checksums)
+    else:
+        TX.assert_never(algorithm)
 
     logger.info(f"[PERF] compute_checksum END: {location} -> {checksum.type}")
     return ChecksumResult(checksum=checksum)
@@ -388,9 +383,9 @@ async def compute_checksum(
 async def lambda_handler(
     *,
     credentials: AWSCredentials,
-    scratch_buckets: T.Dict[str, str],
+    scratch_buckets: dict[str, str],
     location: S3ObjectSource,
-    checksum_algorithm: ChecksumAlgorithm = ChecksumAlgorithm.SHA256_CHUNKED,
+    checksum_algorithm: ChecksumAlgorithm,
 ) -> ChecksumResult:
     logger.info(f"[PERF] lambda_handler START: {location} algorithm={checksum_algorithm}")
     async with aio_context(credentials):
@@ -402,7 +397,7 @@ async def lambda_handler(
 async def copy(
     location: S3ObjectSource,
     target: S3ObjectDestination,
-    checksum_algorithm: ChecksumAlgorithm = ChecksumAlgorithm.CRC64NVME,
+    checksum_algorithm: ChecksumAlgorithm,
 ) -> CopyResult:
     resp = await S3.get().head_object(**location.boto_args)
     etag, total_size = resp["ETag"], resp["ContentLength"]
@@ -410,11 +405,11 @@ async def copy(
     part_defs = get_parts_for_size(total_size)
     if part_defs == PARTS_SINGLE:
         logger.warning("Consider using copy_object() directly instead of invoking this lambda.")
-        # FIXME: pass checksum algorithm
         resp = await S3.get().copy_object(
             **target.boto_args,
             CopySource=location.boto_args,
             CopySourceIfMatch=etag,
+            ChecksumAlgorithm=checksum_algorithm.s3_checksum_algorithm,
         )
         return CopyResult(version=resp.get("VersionId"))
 
@@ -432,6 +427,7 @@ async def lambda_handler_copy(
     credentials: AWSCredentials,
     location: S3ObjectSource,
     target: S3ObjectDestination,
+    checksum_algorithm: ChecksumAlgorithm,
 ) -> CopyResult:
     async with aio_context(credentials):
-        return await copy(location, target)
+        return await copy(location, target, checksum_algorithm)
