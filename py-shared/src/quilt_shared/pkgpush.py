@@ -8,6 +8,7 @@ import random
 import typing as T
 
 import pydantic.v1
+import typing_extensions as TX
 
 from .aws import AWSCredentials
 from .crc64 import combine_crc64nvme
@@ -58,11 +59,8 @@ class S3ObjectDestination(pydantic.v1.BaseModel):
         return S3ObjectDestination(bucket=pk.bucket, key=pk.path)
 
     @property
-    def boto_args(self):
-        return {
-            "Bucket": self.bucket,
-            "Key": self.key,
-        }
+    def boto_args(self) -> BucketKey:
+        return BucketKey(Bucket = self.bucket, Key = self.key)
 
 
 class ChecksumAlgorithm(str, enum.Enum):
@@ -70,6 +68,22 @@ class ChecksumAlgorithm(str, enum.Enum):
 
     SHA256_CHUNKED = "SHA256_CHUNKED"
     CRC64NVME = "CRC64NVME"
+
+    @property
+    def s3_checksum_algorithm(self):
+        if self is self.SHA256_CHUNKED:
+            return "SHA256"
+        if self is self.CRC64NVME:
+            return "CRC64NVME"
+        TX.assert_never(self)
+
+    @property
+    def s3_checksum_field(self):
+        if self is self.SHA256_CHUNKED:
+            return "ChecksumSHA256"
+        if self is self.CRC64NVME:
+            return "ChecksumCRC64NVME"
+        TX.assert_never(self)
 
 
 class ChecksumType(str, enum.Enum):
@@ -166,9 +180,6 @@ class Checksum(pydantic.v1.BaseModel):
         if algorithm == ChecksumAlgorithm.SHA256_CHUNKED:
             return cls.empty_sha256_chunked()
 
-        # Should never happen with proper typing
-        assert False, f"Unsupported algorithm: {algorithm}"
-
     # S3 response parsing
     @classmethod
     def from_s3_checksum(cls, algorithm: ChecksumAlgorithm, checksum_value: str):
@@ -187,8 +198,13 @@ class Checksum(pydantic.v1.BaseModel):
         if algorithm == ChecksumAlgorithm.SHA256_CHUNKED:
             return cls.sha256_chunked(checksum_bytes)
 
-        # Should never happen with proper typing
-        assert False, f"Unsupported algorithm: {algorithm}"
+
+class BucketKey(T.TypedDict):
+    Bucket: str
+    Key: str
+
+class BucketKeyUpload(BucketKey):
+    UploadId: str
 
 
 # XXX: maybe it doesn't make sense outside of s3hash lambda
@@ -198,12 +214,12 @@ class MPURef(pydantic.v1.BaseModel):
     id: str
 
     @property
-    def boto_args(self):
-        return {
-            "Bucket": self.bucket,
-            "Key": self.key,
-            "UploadId": self.id,
-        }
+    def boto_args(self) -> BucketKeyUpload:
+        return BucketKeyUpload(
+            Bucket = self.bucket,
+            Key = self.key,
+            UploadId = self.id,
+        )
 
 
 class ChecksumResult(pydantic.v1.BaseModel):
