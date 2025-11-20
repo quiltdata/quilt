@@ -217,7 +217,7 @@ def try_get_compliant_sha256_chunked(s3_client: S3Client, pk: PhysicalKey, file_
     but it's necessary to validate part size compliance for SHA256_CHUNKED.
     """
     try:
-        # Small files should be handled by fetch_and_update_metadata() via HeadObject
+        # Small files should be handled by complete_entries_metadata() via HeadObject
         # Return early to avoid expensive GetObjectAttributes call
         if not is_mpu(file_size):
             return None
@@ -363,9 +363,8 @@ def calculate_pkg_hashes(
 
     Algorithm selection:
     1. For empty files: Use highest-priority algorithm's empty checksum
-    2. For non-empty files: Try to get precomputed checksums in priority order:
-       - CRC64NVME: HeadObject with ChecksumMode=ENABLED (cheap, no extra permissions)
-       - SHA256_CHUNKED: GetObjectAttributes to check compliance (expensive, needs extra permissions)
+    2. For non-empty files: Check SHA256_CHUNKED compliance if needed
+       (CRC64NVME already checked in complete_entries_metadata via HeadObject)
     3. If no precomputed: Compute using highest-priority algorithm
     """
     assert checksum_algorithms
@@ -403,13 +402,12 @@ def calculate_pkg_hashes(
         """
         pk = entry.physical_key
 
-        # Try SHA256_CHUNKED compliance check (requires part size validation via GetObjectAttributes)
-        for algorithm in checksum_algorithms:
-            if algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
-                assert isinstance(entry.size, int)
-                if checksum := try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size):
-                    entry.hash = checksum.dict()
-                    return None
+        # Check SHA256_CHUNKED compliance if it's in the priority list
+        if ChecksumAlgorithm.SHA256_CHUNKED in checksum_algorithms:
+            assert isinstance(entry.size, int)
+            if checksum := try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size):
+                entry.hash = checksum.dict()
+                return None
 
         # No precomputed checksum found
         return entry
