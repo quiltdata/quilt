@@ -395,16 +395,17 @@ def calculate_pkg_hashes(
     user_s3_client = get_user_s3_client()
 
     def try_get_precomputed(entry: quilt3.packages.PackageEntry):
-        """Try to get precomputed checksum in priority order (doesn't compute)"""
+        """
+        Try to get precomputed checksum in priority order (doesn't compute).
+
+        Note: CRC64NVME already checked in complete_entries_metadata() via HeadObject.
+        Only need to check SHA256_CHUNKED compliance here (requires GetObjectAttributes).
+        """
         pk = entry.physical_key
 
-        # Try to get precomputed checksums in priority order
+        # Try SHA256_CHUNKED compliance check (requires part size validation via GetObjectAttributes)
         for algorithm in checksum_algorithms:
-            if algorithm is ChecksumAlgorithm.CRC64NVME:
-                if checksum := try_get_crc64nvme_via_head(user_s3_client, pk):
-                    entry.hash = checksum.dict()
-                    return None
-            elif algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
+            if algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
                 assert isinstance(entry.size, int)
                 if checksum := try_get_compliant_sha256_chunked(user_s3_client, pk, entry.size):
                     entry.hash = checksum.dict()
@@ -715,11 +716,15 @@ def complete_entries_metadata(
         pk = pkg_entry.physical_key
 
         try:
-            resp = user_s3_client.head_object(
-                Bucket=pk.bucket,
-                Key=pk.path,
-                ChecksumMode="ENABLED",  # Get precomputed checksums
-            )
+            head_params = {
+                "Bucket": pk.bucket,
+                "Key": pk.path,
+                "ChecksumMode": "ENABLED",
+            }
+            if pk.version_id:
+                head_params["VersionId"] = pk.version_id
+
+            resp = user_s3_client.head_object(**head_params)
 
             # Update physical_key with version_id if missing
             if pk.version_id is None:
