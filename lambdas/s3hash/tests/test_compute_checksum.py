@@ -8,9 +8,11 @@ from aiobotocore.response import StreamingBody
 from botocore.stub import Stubber
 from pytest_mock import MockerFixture
 
-import t4_lambda_s3hash as s3hash
-from quilt_shared.const import MAX_PART_SIZE
 from quilt_shared.crc64 import combine_crc64nvme
+from quilt3.data_transfer import CHECKSUM_MULTIPART_THRESHOLD
+
+import t4_lambda_s3hash as s3hash
+
 
 
 def test_combine_crc64nvme():
@@ -273,7 +275,7 @@ async def test_mpu_multi(
 ):
     """Test multi-part MPU combines checksums correctly"""
     ETAG = "test-etag"
-    SIZE = s3hash.MIN_PART_SIZE + 1
+    SIZE = CHECKSUM_MULTIPART_THRESHOLD + 1
     s3_stub.add_response(
         "head_object",
         {"ContentLength": SIZE, "ETag": ETAG},
@@ -381,7 +383,7 @@ async def test_mpu_multi_complete(
 ):
     """Test copy() function completes MPU with specified algorithm"""
     ETAG = "test-etag"
-    SIZE = s3hash.MIN_PART_SIZE + 1
+    SIZE = CHECKSUM_MULTIPART_THRESHOLD + 1
     s3_stub.add_response(
         "head_object",
         {"ContentLength": SIZE, "ETag": ETAG},
