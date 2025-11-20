@@ -6,7 +6,6 @@ import contextlib
 import contextvars
 import functools
 import logging
-import math
 import os
 import typing as T
 
@@ -17,8 +16,8 @@ import botocore.exceptions
 import pydantic.v1
 import typing_extensions as TX
 
+from quilt3.data_transfer import get_checksum_chunksize, is_mpu
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import (
     Checksum,
@@ -65,24 +64,6 @@ async def aio_context(credentials: AWSCredentials):
             yield
         finally:
             S3.reset(s3_token)
-
-
-# XXX: import this logic from quilt3 when it's available
-def get_part_size(file_size: int) -> T.Optional[int]:
-    # XXX: do we need this?
-    if not 0 <= file_size <= 5 * 2**40:
-        raise ValueError("size must be non-negative and less than 5 TiB")
-
-    if file_size < MIN_PART_SIZE:
-        return None  # use single-part (compute via copy_object)
-
-    # NOTE: in the case where file_size is exactly equal to MIN_PART_SIZE,
-    # boto creates a 1-part multipart upload :shrug:
-    part_size = MIN_PART_SIZE
-    while math.ceil(file_size / part_size) > MAX_PARTS:
-        part_size *= 2
-
-    return part_size
 
 
 async def get_bucket_region(bucket: str) -> str:
@@ -149,13 +130,12 @@ PARTS_SINGLE = [PartDef(part_number=1, range=None)]
 
 
 def get_parts_for_size(total_size: int) -> list[PartDef]:
-    part_size = get_part_size(total_size)
-
     # single-part upload
-    if part_size is None:
+    if not is_mpu(total_size):
         return PARTS_SINGLE
 
     # multipart upload
+    part_size = get_checksum_chunksize(total_size)
     offset = 0
     part_number = 1
     parts = []
