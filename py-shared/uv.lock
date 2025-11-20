@@ -829,7 +829,7 @@ requires-dist = [
     { name = "elasticsearch", marker = "extra == 'es'", specifier = "~=6.8" },
     { name = "orjson", marker = "extra == 'es'", specifier = "~=3.10" },
     { name = "pydantic", marker = "extra == 'pydantic'", specifier = "~=2.10" },
-    { name = "quilt3", marker = "extra == 'quilt'", specifier = ">=5.4,<8" },
+    { name = "quilt3", marker = "extra == 'quilt'", specifier = ">=7,<8" },
     { name = "types-aiobotocore", extras = ["s3"], marker = "extra == 'boto'", specifier = "~=2.11" },
     { name = "types-boto3", extras = ["athena", "s3", "sts"], marker = "extra == 'boto'", specifier = "~=1.34" },
     { name = "typing-extensions", marker = "extra == 'pydantic'", specifier = "~=4.9" },
@@ -847,23 +847,23 @@ test = [
 
 [[package]]
 name = "quilt3"
-version = "5.4.0"
+version = "7.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "aws-requests-auth" },
     { name = "boto3" },
     { name = "jsonlines" },
     { name = "jsonschema" },
     { name = "platformdirs" },
+    { name = "pydantic" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "requests-futures" },
     { name = "tenacity" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/52/43f80d75b90b733517da9d69e28bf55fbe7a439296765ec118145355c3a1/quilt3-5.4.0.tar.gz", hash = "sha256:6e56f9b46b214cf7655e7d97e1b47dc483670dcafadedf8097ee8d9166cafba6", size = 84594, upload-time = "2023-11-29T10:40:59.942Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/96/9c9477ece3f592f1a2cd1157eb64d86af5c491ab1c56ab45a660dac374d8/quilt3-7.0.0.tar.gz", hash = "sha256:0a8e2123c6702bd186e747cf63b005ab4a084005c96190c0153b976e4c71d11c", size = 106106, upload-time = "2025-08-25T13:59:49.605Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/8d/b8a16911c0f895636ff906b0cd91177137a7bd3f33d867004562e72fc625/quilt3-5.4.0-py3-none-any.whl", hash = "sha256:3a873e02c9e2d7a8e7c14b5edc7e5b94c2819a4ff28fa7e32d102c94bc0151a5", size = 79593, upload-time = "2023-11-29T10:40:58.63Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/67/f80562b72eaa84c28f87e1c08e39dcfe7dca1c31955c2350240ca86c93af/quilt3-7.0.0-py3-none-any.whl", hash = "sha256:89066590fa36a063da4cdbc2c1f246a783fb384f7c40aa9902f4714cfc345c77", size = 106379, upload-time = "2025-08-25T13:59:48.578Z" },
 ]
 
 [[package]]
