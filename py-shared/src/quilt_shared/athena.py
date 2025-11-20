@@ -6,8 +6,8 @@ import typing as T
 if T.TYPE_CHECKING:
     import logging
 
-    from mypy_boto3_athena import AthenaClient
-    from mypy_boto3_athena.type_defs import QueryExecutionTypeDef
+    from types_boto3_athena.client import AthenaClient
+    from types_boto3_athena.type_defs import QueryExecutionTypeDef
 
 
 class AthenaQueryBaseException(Exception):
