@@ -70,13 +70,12 @@ class ChecksumAlgorithm(str, enum.Enum):
     CRC64NVME = "CRC64NVME"
 
     @classmethod
-    def from_str(cls, value: str, *, strict: bool = True):
+    def from_str(cls, value: str):
         for v in cls:
             if v.value == value:
                 return v
 
-        if strict:
-            raise ValueError(f"Unsupported checksum algorithm: {value}")
+        raise ValueError(f"Unsupported checksum algorithm: {value}")
 
     @property
     def s3_checksum_algorithm(self):
@@ -184,9 +183,9 @@ class Checksum(pydantic.v1.BaseModel):
         Returns:
             Checksum for empty file
         """
-        if algorithm == ChecksumAlgorithm.CRC64NVME:
+        if algorithm is ChecksumAlgorithm.CRC64NVME:
             return cls.empty_crc64nvme()
-        if algorithm == ChecksumAlgorithm.SHA256_CHUNKED:
+        if algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
             return cls.empty_sha256_chunked()
 
     # S3 response parsing
@@ -202,9 +201,9 @@ class Checksum(pydantic.v1.BaseModel):
             Checksum object
         """
         checksum_bytes = base64.b64decode(checksum_value)
-        if algorithm == ChecksumAlgorithm.CRC64NVME:
+        if algorithm is ChecksumAlgorithm.CRC64NVME:
             return cls.crc64nvme(checksum_bytes)
-        if algorithm == ChecksumAlgorithm.SHA256_CHUNKED:
+        if algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
             return cls.sha256_chunked(checksum_bytes)
 
 
