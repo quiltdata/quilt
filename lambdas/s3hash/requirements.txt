@@ -17,8 +17,6 @@ attrs==25.4.0
     #   aiohttp
     #   jsonschema
     #   referencing
-aws-requests-auth==0.4.3
-    # via quilt3
 boto3==1.40.61
     # via
     #   quilt-shared
@@ -71,6 +69,7 @@ pydantic==2.12.3
     # via
     #   t4-lambda-s3hash (setup.py)
     #   quilt-shared
+    #   quilt3
 pydantic-core==2.41.4
     # via pydantic
 python-dateutil==2.9.0.post0
@@ -79,17 +78,18 @@ python-dateutil==2.9.0.post0
     #   botocore
 pyyaml==6.0.3
     # via quilt3
-quilt-shared @ https://github.com/quiltdata/quilt/archive/71d289f3c43e509f35e390a5696a0195a24d3e9e.zip#subdirectory=py-shared
+quilt-shared @ https://github.com/quiltdata/quilt/archive/a860e9936efccb5160fe476894ad1030ebdbf863.zip#subdirectory=py-shared
     # via t4-lambda-s3hash (setup.py)
-quilt3==5.4.0
-    # via quilt-shared
+quilt3==7.0.0
+    # via
+    #   t4-lambda-s3hash (setup.py)
+    #   quilt-shared
 referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
 requests==2.32.5
     # via
-    #   aws-requests-auth
     #   quilt3
     #   requests-futures
 requests-futures==1.0.0
