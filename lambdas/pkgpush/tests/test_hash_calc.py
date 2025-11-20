@@ -11,7 +11,7 @@ import t4_lambda_pkgpush
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.pkgpush import Checksum, ChecksumType
+from quilt_shared.pkgpush import Checksum, ChecksumAlgorithm, ChecksumType
 from quilt_shared.types import NonEmptyStr
 
 CREDENTIALS = AWSCredentials(
@@ -49,7 +49,7 @@ def entry_without_hash() -> PackageEntry:
 @pytest.fixture
 def entry_without_hash_large() -> PackageEntry:
     return PackageEntry(
-        PhysicalKey("test-bucket", "without-hash", "without-hash"),
+        PhysicalKey("test-bucket", "without-hash-large", "without-hash-large"),
         8 * 2**20,
         None,
         {},
@@ -73,69 +73,60 @@ def test_calculate_pkg_hashes(
     entry_without_hash_large: PackageEntry,
     mocker: MockerFixture,
 ):
-    calculate_pkg_entry_hash_mock = mocker.patch.object(
-        t4_lambda_pkgpush, "calculate_pkg_entry_hash"
-    )
-    calculate_pkg_entry_hash_local_mock = mocker.patch.object(t4_lambda_pkgpush, "calculate_pkg_entry_hash_local")
+    """Test calculate_pkg_hashes orchestrates small file copy and large file lambda invocations"""
+    checksum_algorithms = [ChecksumAlgorithm.SHA256_CHUNKED]
+
     session_mock = boto3.Session(**CREDENTIALS.boto_args)
 
-    with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
-        t4_lambda_pkgpush.calculate_pkg_hashes(pkg, SCRATCH_BUCKETS)
+    # Mock SHA256_CHUNKED compliance check to return None (not compliant/available)
+    # Note: CRC64NVME is not checked here - already done in complete_entries_metadata
+    mocker.patch.object(t4_lambda_pkgpush, "try_get_compliant_sha256_chunked", return_value=None)
 
-    calculate_pkg_entry_hash_mock.assert_called_once_with(
-        entry_without_hash_large,
-        CREDENTIALS,
-        SCRATCH_BUCKETS,
-    )
-    calculate_pkg_entry_hash_local_mock.assert_called_once_with(
-        entry_without_hash,
-        mocker.ANY,
-        SCRATCH_BUCKETS,
-    )
+    # Mock the computation functions
+    compute_via_copy_mock = mocker.patch.object(t4_lambda_pkgpush, "compute_checksum_via_copy")
+    compute_via_copy_mock.return_value = Checksum.sha256_chunked(b"small_hash")
+
+    invoke_hash_lambda_mock = mocker.patch.object(t4_lambda_pkgpush, "invoke_hash_lambda")
+    invoke_hash_lambda_mock.return_value = Checksum.sha256_chunked(b"large_hash")
+
+    with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
+        t4_lambda_pkgpush.calculate_pkg_hashes(pkg, SCRATCH_BUCKETS, checksum_algorithms)
+
+    # Verify small file was processed via copy_object
+    assert compute_via_copy_mock.call_count == 1
+    # Verify large file was processed via s3hash lambda
+    assert invoke_hash_lambda_mock.call_count == 1
+    # Verify hashes were set
+    assert entry_without_hash.hash is not None
+    assert entry_without_hash_large.hash is not None
 
 
 def test_calculate_pkg_hashes_too_large_file_error(pkg: Package, mocker: MockerFixture):
+    """Test that files exceeding max size raise error"""
+    checksum_algorithms = [ChecksumAlgorithm.SHA256_CHUNKED]
     mocker.patch.object(t4_lambda_pkgpush, "S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES", 1)
 
-    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-        t4_lambda_pkgpush.calculate_pkg_hashes(pkg, SCRATCH_BUCKETS)
+    session_mock = boto3.Session(**CREDENTIALS.boto_args)
+
+    # Mock SHA256_CHUNKED compliance check to force computation
+    mocker.patch.object(t4_lambda_pkgpush, "try_get_compliant_sha256_chunked", return_value=None)
+
+    with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
+        with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
+            t4_lambda_pkgpush.calculate_pkg_hashes(pkg, SCRATCH_BUCKETS, checksum_algorithms)
+
     assert excinfo.value.name == "FileTooLargeForHashing"
 
 
-def test_calculate_pkg_entry_hash(
-    entry_without_hash: PackageEntry,
-    mocker: MockerFixture,
-):
-    invoke_hash_lambda_mock = mocker.patch(
-        "t4_lambda_pkgpush.invoke_hash_lambda",
-        return_value=Checksum(type=ChecksumType.CRC64NVME, value="base64hash"),
-    )
-
-    t4_lambda_pkgpush.calculate_pkg_entry_hash(
-        entry_without_hash,
-        CREDENTIALS,
-        SCRATCH_BUCKETS,
-    )
-
-    invoke_hash_lambda_mock.assert_called_once_with(
-        entry_without_hash.physical_key,
-        CREDENTIALS,
-        SCRATCH_BUCKETS,
-    )
-
-    assert entry_without_hash.hash == invoke_hash_lambda_mock.return_value.dict()
-
-
 def test_invoke_hash_lambda(lambda_stub: Stubber):
+    """Test invoke_hash_lambda calls S3_HASH_LAMBDA with correct parameters"""
     checksum = {"type": "CRC64NVME", "value": "base64hash"}
     pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
     lambda_stub.add_response(
         "invoke",
         service_response={
-            "Payload": io.BytesIO(
-                b'{"result": {"checksum": %s}}' % json.dumps(checksum).encode()
-            ),
+            "Payload": io.BytesIO(b'{"result": {"checksum": %s}}' % json.dumps(checksum).encode()),
         },
         expected_params={
             "FunctionName": t4_lambda_pkgpush.S3_HASH_LAMBDA,
@@ -152,18 +143,18 @@ def test_invoke_hash_lambda(lambda_stub: Stubber):
                         "key": pk.path,
                         "version": pk.version_id,
                     },
+                    "checksum_algorithm": "CRC64NVME",
                 }
             ),
         },
     )
 
-    assert (
-        t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS)
-        == checksum
-    )
+    result = t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS, ChecksumAlgorithm.CRC64NVME)
+    assert result == Checksum(**checksum)
 
 
 def test_invoke_hash_lambda_error(lambda_stub: Stubber):
+    """Test invoke_hash_lambda handles lambda errors"""
     pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
     lambda_stub.add_response(
@@ -190,84 +181,37 @@ def test_invoke_hash_lambda_error(lambda_stub: Stubber):
                         "key": pk.path,
                         "version": pk.version_id,
                     },
+                    "checksum_algorithm": "SHA256_CHUNKED",
                 }
             ),
         },
     )
 
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-        t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS)
+        t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS, ChecksumAlgorithm.SHA256_CHUNKED)
     assert excinfo.value.name == "S3HashLambdaUnhandledError"
 
 
-def test_calculate_pkg_entry_hash_local_precomputed(
-    entry_without_hash: PackageEntry,
-):
-    """Test fast path: precomputed CRC64NVME is available from S3."""
-    # Use known CRC64NVME checksum value
-    expected = Checksum.crc64nvme(base64.b64decode("AAAA/w8ODRQTGhkgHy4tNDM6OQ=="))
-
-    s3_client = boto3.client("s3")
-
-    with Stubber(s3_client) as stubber:
-        # get_object_attributes returns precomputed checksum
-        stubber.add_response(
-            "get_object_attributes",
-            expected_params={
-                "Bucket": entry_without_hash.physical_key.bucket,
-                "Key": entry_without_hash.physical_key.path,
-                "VersionId": entry_without_hash.physical_key.version_id,
-                "ObjectAttributes": ["Checksum"],
-            },
-            service_response={
-                "Checksum": {
-                    "ChecksumCRC64NVME": "AAAA/w8ODRQTGhkgHy4tNDM6OQ==",
-                },
-            },
-        )
-
-        t4_lambda_pkgpush.calculate_pkg_entry_hash_local(
-            entry_without_hash,
-            s3_client,
-            SCRATCH_BUCKETS,
-        )
-
-    stubber.assert_no_pending_responses()
-
-    assert entry_without_hash.hash == expected
-
-
-def test_calculate_pkg_entry_hash_local_computed(
-    entry_without_hash: PackageEntry,
-    mocker: MockerFixture,
-):
-    """Test fallback path: compute CRC64NVME via copy_object."""
-    # Use known CRC64NVME checksum value
-    expected = Checksum.crc64nvme(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="))
+def test_compute_checksum_via_copy(mocker: MockerFixture):
+    """Test compute_checksum_via_copy uses copy_object with correct ChecksumAlgorithm"""
+    pk = PhysicalKey(bucket="test-bucket", path="test-key", version_id="test-version")
+    expected_checksum = Checksum.crc64nvme(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="))
 
     get_bucket_region_mock = mocker.patch("t4_lambda_pkgpush.get_bucket_region", return_value=SCRATCH_REGION)
     make_scratch_key_mock = mocker.patch("t4_lambda_pkgpush.make_scratch_key", return_value=SCRATCH_KEY)
     s3_client = boto3.client("s3")
 
     with Stubber(s3_client) as stubber:
-        # get_object_attributes returns no precomputed checksum
-        stubber.add_client_error(
-            "get_object_attributes",
-            service_error_code="NoSuchKey",
-            service_message="The specified key does not exist.",
-        )
-
-        # Fall back to copy_object with CRC64NVME
         stubber.add_response(
             "copy_object",
             expected_params={
                 "Bucket": SCRATCH_BUCKET,
                 "CopySource": {
-                    "Bucket": entry_without_hash.physical_key.bucket,
-                    "Key": entry_without_hash.physical_key.path,
-                    "VersionId": entry_without_hash.physical_key.version_id,
+                    "Bucket": pk.bucket,
+                    "Key": pk.path,
+                    "VersionId": pk.version_id,
                 },
-                "Key": make_scratch_key_mock.return_value,
+                "Key": SCRATCH_KEY,
                 "ChecksumAlgorithm": "CRC64NVME",
             },
             service_response={
@@ -277,14 +221,15 @@ def test_calculate_pkg_entry_hash_local_computed(
             },
         )
 
-        t4_lambda_pkgpush.calculate_pkg_entry_hash_local(
-            entry_without_hash,
+        result = t4_lambda_pkgpush.compute_checksum_via_copy(
             s3_client,
+            pk,
             SCRATCH_BUCKETS,
+            ChecksumAlgorithm.CRC64NVME,
         )
 
-    get_bucket_region_mock.assert_called_once_with(entry_without_hash.physical_key.bucket)
+    get_bucket_region_mock.assert_called_once_with(pk.bucket)
     make_scratch_key_mock.assert_called_once_with()
     stubber.assert_no_pending_responses()
 
-    assert entry_without_hash.hash == expected
+    assert result == expected_checksum
