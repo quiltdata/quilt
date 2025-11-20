@@ -1,5 +1,4 @@
 import contextlib
-import functools
 import hashlib
 import io
 import json
@@ -14,15 +13,12 @@ from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.pkgpush import ChecksumAlgorithm
 from quilt_shared.types import NonEmptyStr
 
 
 def hash_data(data):
     return hashlib.sha256(data).hexdigest()
-
-
-# NOTE: calculate_sha256 mock removed - function no longer exists in quilt3 and pkgpush doesn't use it
-# calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
 CREDENTIALS = AWSCredentials(
@@ -328,8 +324,6 @@ class PackagePromoteTest(PackagePromoteTestBase):
                     response = self.make_request(params)
                     if expected_copy_data:
                         # Verify copy_file_list was called with checksum_algorithm
-                        from quilt_shared.pkgpush import ChecksumAlgorithm
-
                         copy_file_list_mock.assert_called_once_with(ChecksumAlgorithm.SHA256_CHUNKED)
                         # Verify the returned function was called with file list
                         copy_fn_mock.assert_called_once_with(
