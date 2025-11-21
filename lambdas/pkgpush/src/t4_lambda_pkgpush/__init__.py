@@ -342,7 +342,8 @@ def try_get_precomputed_from_head(
                 if not is_mpu(file_size):
                     checksum_bytes = base64.b64decode(checksum_value)
                     return Checksum.sha256_chunked_from_parts([checksum_bytes])
-                # Fall through: will be handled by calculate_pkg_hashes if still needed.
+                # Large file: skip for now, will be validated in calculate_pkg_hashes()
+                continue
 
             return Checksum.from_s3_checksum(algorithm, checksum_value)
     return None
