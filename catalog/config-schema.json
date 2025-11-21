@@ -85,9 +85,9 @@
     "desktop": {
       "type": "boolean"
     },
-    "chunkedChecksums": {
+    "crc64Checksums": {
       "type": "boolean",
-      "description": "Whether to use chunked checksums when creating / modifying packages via the Catalog UI."
+      "description": "Whether to use CRC64/NVME checksums when creating / modifying packages via the Catalog UI."
     },
     "build_version": {
       "type": "string",
