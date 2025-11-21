@@ -5,6 +5,7 @@ from botocore.stub import Stubber
 import t4_lambda_pkgpush
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.pkgpush import ChecksumAlgorithm
 from quilt_shared.types import NonEmptyStr
 
 CREDENTIALS = AWSCredentials(
@@ -24,11 +25,7 @@ def test_invoke_copy_lambda(lambda_stub: Stubber):
 
     lambda_stub.add_response(
         "invoke",
-        {
-            "Payload": io.BytesIO(
-                b'{"result": {"version": "%s"}}' % DST_VERSION_ID.encode()
-            )
-        },
+        {"Payload": io.BytesIO(b'{"result": {"version": "%s"}}' % DST_VERSION_ID.encode())},
     )
 
     assert (
@@ -36,6 +33,7 @@ def test_invoke_copy_lambda(lambda_stub: Stubber):
             CREDENTIALS,
             PhysicalKey(SRC_BUCKET, SRC_KEY, SRC_VERSION_ID),
             PhysicalKey(DST_BUCKET, DST_KEY, None),
+            ChecksumAlgorithm.SHA256_CHUNKED,
         )
         == DST_VERSION_ID
     )
