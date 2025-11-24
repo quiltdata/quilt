@@ -8,7 +8,7 @@ aiobotocore==2.3.4
     # via t4_lambda_status_reports (setup.py)
 aiohappyeyeballs==2.4.3
     # via aiohttp
-aiohttp==3.10.2
+aiohttp==3.12.14
     # via aiobotocore
 aioitertools==0.10.0
     # via aiobotocore
