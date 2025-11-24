@@ -110,7 +110,8 @@ class QueryRunner:
         results: list[QueryExecutionTypeDef | None] = [None] * len(query_list)
 
         remaining_queries = list(enumerate(query_list))
-        remaining_queries.reverse()  # Just to make unit tests more sane: we use pop() later, so keep the order the same.
+        # Just to make unit tests more sane: we use pop() later, so keep the order the same.
+        remaining_queries.reverse()
         pending_execution_ids = {}
 
         while remaining_queries or pending_execution_ids:
