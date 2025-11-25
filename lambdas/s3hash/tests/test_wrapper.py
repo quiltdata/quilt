@@ -1,6 +1,9 @@
 import asyncio
 from unittest.mock import ANY
 
+import botocore.exceptions
+import pytest
+from botocore.stub import Stubber
 from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
@@ -116,3 +119,77 @@ def test_aws_wiring(mocker: MockerFixture):
     )
 
     aio_context_mock.assert_called_once_with(s3hash.AWSCredentials.parse_obj(AWS_CREDENTIALS))
+
+
+@pytest.mark.asyncio
+async def test_mpu_abort_failure(s3_stub: Stubber, mocker: MockerFixture):
+    """Test that MPU abort errors don't crash the cleanup.
+
+    This tests the error recovery path in create_mpu context manager (lines 279-283)
+    where aborting an MPU fails but we catch and log the exception.
+    """
+    target = s3hash.S3ObjectDestination(bucket="test-bucket", key="test-key")
+    algorithm = s3hash.ChecksumAlgorithm.CRC64NVME
+
+    # Mock make_scratch_key to avoid needing the full setup
+    mocker.patch("t4_lambda_s3hash.make_scratch_key", return_value="test-key")
+
+    # Create MPU succeeds
+    s3_stub.add_response(
+        "create_multipart_upload",
+        {"UploadId": "test-upload-id"},
+        {
+            **target.boto_args,
+            "ChecksumAlgorithm": algorithm.s3_checksum_algorithm,
+        },
+    )
+
+    # Abort MPU fails with a client error
+    s3_stub.add_client_error(
+        "abort_multipart_upload",
+        service_error_code="InternalError",
+        service_message="S3 internal error during abort",
+        expected_params={
+            **target.boto_args,
+            "UploadId": "test-upload-id",
+        },
+    )
+
+    # Mock logger to verify the exception is logged
+    mock_logger = mocker.patch("t4_lambda_s3hash.logger")
+
+    # The context manager should not raise even though abort fails
+    async with s3hash.create_mpu(target, algorithm) as mpu:
+        assert mpu.id == "test-upload-id"
+        # Simulate an error in the body that triggers cleanup
+        pass
+
+    # Verify the exception was logged
+    mock_logger.exception.assert_called_once_with("Error aborting MPU")
+
+
+@pytest.mark.asyncio
+async def test_mpu_double_completion(s3_stub: Stubber):
+    """Test that completing MPU twice raises an error.
+
+    This tests the defensive check in MPURef.complete() (lines 246-248)
+    that prevents double-completion of an MPU.
+    """
+    mpu = s3hash.MPURef(bucket="test-bucket", key="test-key", id="test-upload-id")
+
+    # First completion succeeds
+    s3_stub.add_response(
+        "complete_multipart_upload",
+        {"VersionId": "test-version"},
+        {
+            **mpu.boto_args,
+            "MultipartUpload": {"Parts": []},
+        },
+    )
+
+    # Complete the MPU
+    await mpu.complete([])
+
+    # Second completion attempt should raise
+    with pytest.raises(Exception, match="MPU is already completed"):
+        await mpu.complete([])
