@@ -7,9 +7,8 @@ import pytest
 from aiobotocore.response import StreamingBody
 from botocore.stub import Stubber
 from pytest_mock import MockerFixture
-
-from quilt_shared.crc64 import combine_crc64nvme
 from quilt3.data_transfer import CHECKSUM_MULTIPART_THRESHOLD
+from quilt_shared.crc64 import combine_crc64nvme
 
 import t4_lambda_s3hash as s3hash
 
