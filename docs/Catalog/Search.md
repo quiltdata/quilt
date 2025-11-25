@@ -46,7 +46,7 @@ The following are all valid search parameters:
 | `ext` | `keyword` | Object extension | `ext:*.fastq.gz` |
 | `key` | `keyword` | Object key | `key:phase*` |
 | `key_text` | `text` | Analyzed object key | `key:"phase"` |
-| `last_modified` | `date` | Last modified date | `last_modified:[2022-02-04 TO 2022-02-20]`|
+| `last_modified` | `date` | Last modified date | `last_modified:[2022-02-04 TO 2022-02-20]` |
 | `size` | `long` | Object size in bytes | `size:>=4096` |
 | `version_id` | `keyword` | Object version id | `version_id:t.LVVCx*` |
 
@@ -94,7 +94,7 @@ match the search query.
 #### Logical operators and grouping
 
 | Syntax | Description | Example |
-|- | - | - |
+| - | - | - |
 | `AND` | Conjunction | `a AND b` |
 | `OR` | Disjunction | `a OR b` |
 | `NOT` | Negation | `NOT a` |
@@ -104,7 +104,7 @@ match the search query.
 #### Wildcard and regular expressions
 
 | Syntax | Description | Example |
-|- | - | - |
+| - | - | - |
 | `*` | Zero or more characters, avoid leading `*` (slows performance) | `ext:config.y*ml` |
 | `?` | Exactly one character | `ext:React.?sx` |
 | `//` | Regular expression (slows performance) | `content:/lmnb[12]/` |
