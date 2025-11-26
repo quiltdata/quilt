@@ -4,15 +4,10 @@ import util from 'util'
 
 import computeFileChecksumLimit from './checksums'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
-    chunkedChecksums: true,
-  })),
-)
+jest.mock('constants/config', () => ({}))
 
 describe('utils/checksums', () => {
-  describe('computeFileChecksumLimit, chunked', () => {
+  describe('computeFileChecksumLimit', () => {
     it('produces a correct checksum given an empty file', async () => {
       const file = new File([], 'empty')
       await expect(computeFileChecksumLimit(file)).resolves.toEqual({

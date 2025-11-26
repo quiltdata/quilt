@@ -43,7 +43,9 @@ export interface ConfigJson {
   ssoAuth: AuthMethodConfig
   ssoProviders: string
 
-  chunkedChecksums?: boolean
+  // NOTE: Does not affect anything in Catalog at the moment.
+  //       Though, QuiltSync/quilt_rs relies on it.
+  crc64Checksums?: boolean
 
   qurator?: boolean
 
@@ -94,7 +96,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   noOverviewImages: !!cfg.noOverviewImages,
   /** @deprecated */
   desktop: !!cfg.desktop,
-  chunkedChecksums: !!cfg.chunkedChecksums,
+  crc64Checksums: !!cfg.crc64Checksums,
   qurator: !!cfg.qurator,
 })
 
