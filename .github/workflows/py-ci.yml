@@ -15,7 +15,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: Lint
         run: uv run poe lint
@@ -26,7 +26,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: Check formatting (quilt3)
         run: uv run poe fmt --check
@@ -34,7 +34,7 @@ jobs:
   lint-rest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: Run Ruff linter on entire codebase
         run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
@@ -43,7 +43,7 @@ jobs:
   # format-rest:
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v5
+  #     - uses: actions/checkout@v6
   #     - uses: astral-sh/setup-uv@v7
   #     - name: Check formatting (rest of codebase)
   #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
@@ -56,7 +56,7 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: Check generated docs are up-to-date
         run: uv run poe gendocs-check
@@ -69,7 +69,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: Test codeblocks
         run: uv run poe testdocs
@@ -86,7 +86,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
@@ -122,7 +122,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: verify git tag vs. version
         run: uv run poe verify-release-tag "${{ github.ref_name }}"
@@ -159,7 +159,7 @@ jobs:
       PYTHONPATH: deps
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version
@@ -171,15 +171,6 @@ jobs:
           uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} --only-group test -o test-requirements.txt
       - name: Install dependencies
         run: |
-          if [ ${{ matrix.path }} == "thumbnail" ]
-          then
-            # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
-            # from thumbnail lambda fails whithout installed wheel.
-            # See https://github.com/pypa/pip/issues/8559.
-            # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
-            python -m pip install wheel 'numpy<2'
-          fi
-
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
@@ -207,7 +198,7 @@ jobs:
       run:
         working-directory: py-shared
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - name: test
         run: uv run --only-group test pytest --cov=. --cov-report=xml

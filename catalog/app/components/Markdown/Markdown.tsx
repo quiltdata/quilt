@@ -7,6 +7,7 @@ import * as React from 'react'
 import * as Remarkable from 'remarkable'
 import { linkify } from 'remarkable/linkify'
 import * as M from '@material-ui/core'
+import * as Sentry from '@sentry/react'
 
 import { linkStyle } from 'utils/StyledLink'
 
@@ -131,7 +132,12 @@ function handleImage(process: AttributeProcessor, element: Element) {
   const attributeValue = element.getAttribute('src')
   if (!attributeValue) return
 
-  element.setAttribute('src', process(attributeValue))
+  try {
+    element.setAttribute('src', process(attributeValue))
+  } catch (e) {
+    element.removeAttribute('src')
+    Sentry.captureException(e)
+  }
 
   const alt = element.getAttribute('alt')
   if (alt) {
@@ -143,7 +149,12 @@ function handleLink(process: AttributeProcessor, element: HTMLElement) {
   const attributeValue = element.getAttribute('href')
   if (typeof attributeValue !== 'string') return
 
-  element.setAttribute('href', process(attributeValue))
+  try {
+    element.setAttribute('href', process(attributeValue))
+  } catch (e) {
+    element.removeAttribute('href')
+    Sentry.captureException(e)
+  }
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')

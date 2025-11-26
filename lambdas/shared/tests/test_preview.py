@@ -20,12 +20,22 @@ from t4_lambda_shared.preview import (
 TEST_EXTRACT_PARQUET_MAX_BYTES = 10_000
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 ACCEPTABLE_ERROR_MESSAGES = [
-    'Start tag seen without seeing a doctype first. Expected “<!DOCTYPE html>”.',
-    'Element “head” is missing a required instance of child element “title”.',
-    'Element “style” not allowed as child of element “div” in this context. '
+    'Start tag seen without seeing a doctype first. Expected "<!DOCTYPE html>".',
+    'Element "head" is missing a required instance of child element "title".',
+    'Element "style" not allowed as child of element "div" in this context. '
     '(Suppressing further errors from this subtree.)',
-    'The “border” attribute on the “table” element is obsolete. Use CSS instead.',
+    'The "border" attribute on the "table" element is obsolete. Consider specifying "img { border: 0; }" in CSS instead.',
 ]
+
+
+def normalize_quotes(text):
+    """Normalize Unicode curly quotes to ASCII straight quotes for comparison.
+
+    The W3C HTML validator service now returns error messages with Unicode
+    curly quotes (" " ' ') instead of ASCII straight quotes (" ').
+    This function normalizes both quote styles to enable consistent comparison.
+    """
+    return text.replace('\u201c', '"').replace('\u201d', '"').replace('\u2018', "'").replace('\u2019', "'")
 
 
 def iterate_chunks(file_obj, chunk_size=4096):
@@ -105,9 +115,10 @@ class TestPreview(TestCase):
                     if html:
                         vld.validate_fragment(body)
                         assert all(t in body for t in tags)
+                        normalized_acceptable = [normalize_quotes(msg) for msg in ACCEPTABLE_ERROR_MESSAGES]
                         serious_errors = [
                             e for e in vld.errors
-                            if e["message"] not in ACCEPTABLE_ERROR_MESSAGES
+                            if normalize_quotes(e["message"]) not in normalized_acceptable
                         ]
                         assert not serious_errors
                         print(vld.warnings)

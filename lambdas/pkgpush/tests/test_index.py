@@ -1,5 +1,4 @@
 import contextlib
-import functools
 import hashlib
 import io
 import json
@@ -14,14 +13,12 @@ from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.pkgpush import ChecksumAlgorithm
 from quilt_shared.types import NonEmptyStr
 
 
 def hash_data(data):
     return hashlib.sha256(data).hexdigest()
-
-
-calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
 CREDENTIALS = AWSCredentials(
@@ -41,7 +38,7 @@ class PackagePromoteTestBase(unittest.TestCase):
     parent_pkg_name = 'parent/pkg-name'
     parent_commit_message = 'parent commit message'
     dst_bucket = 'dest-bucket'
-    dst_registry = f's3://{dst_bucket}'
+    dst_registry = f's3://{dst_bucket}/'  # Include trailing slash to match quilt3 7.x normalization
     dst_pkg_name = 'dest/pkg-name'
     dst_pkg_loc_params = {
         'bucket': dst_bucket,
@@ -76,10 +73,7 @@ class PackagePromoteTestBase(unittest.TestCase):
 
     @classmethod
     def prepare_prefix_pkg_entries(cls, prefix, files_range, lk_prefix=''):
-        return {
-            lk_prefix + str(x): cls.get_pkg_entry(f'{prefix}{x}')
-            for x in files_range
-        }
+        return {lk_prefix + str(x): cls.get_pkg_entry(f'{prefix}{x}') for x in files_range}
 
     @classmethod
     def get_pkg_entries(cls):
@@ -141,7 +135,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
-        def calculate_pkg_hashes_side_effect(pkg, scratch_buckets):
+        def calculate_pkg_hashes_side_effect(pkg, scratch_buckets, checksum_algorithms):
             for lk, entry in pkg.walk():
                 if entry.hash is None:
                     entry.hash = {
@@ -170,8 +164,10 @@ class PackagePromoteTestBase(unittest.TestCase):
                 return src_registry
             return mock.DEFAULT
 
-        with mock.patch.object(src_registry, 'get_workflow_config', return_value=workflow_config_mock), \
-             mock.patch('t4_lambda_pkgpush.get_package_registry', side_effect=side_effect, wraps=get_package_registry):
+        with (
+            mock.patch.object(src_registry, 'get_workflow_config', return_value=workflow_config_mock),
+            mock.patch('t4_lambda_pkgpush.get_package_registry', side_effect=side_effect, wraps=get_package_registry),
+        ):
             yield
 
     def make_request_wrapper(self, params, *, credentials, **kwargs):
@@ -194,17 +190,13 @@ class PackagePromoteTestBase(unittest.TestCase):
     @mock.patch('time.time', mock.MagicMock(return_value=mock_timestamp))
     def make_request(self, params, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
-        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock, \
-             calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
+        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
             response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
             **self.credentials.boto_args,
         )
         reset_session_id_mock.assert_called_once_with()
-
-        if calculate_sha256_mock.called:
-            calculate_sha256_mock.assert_called_once_with([], [])
 
         return response
 
@@ -244,8 +236,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         # Push new manifest.
         self.s3_stubber.add_response(
             'put_object',
-            service_response={
-            },
+            service_response={},
             expected_params={
                 'Bucket': self.dst_bucket,
                 'Key': f'.quilt/packages/{top_hash}',
@@ -254,13 +245,12 @@ class PackagePromoteTestBase(unittest.TestCase):
         )
         self.s3_stubber.add_response(
             'put_object',
-            service_response={
-            },
+            service_response={},
             expected_params={
                 'Body': top_hash.encode(),
                 'Bucket': self.dst_bucket,
-                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/{str(int(self.mock_timestamp))}'
-            }
+                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/{str(int(self.mock_timestamp))}',
+            },
         )
         self.s3_stubber.add_response(
             'put_object',
@@ -270,8 +260,8 @@ class PackagePromoteTestBase(unittest.TestCase):
             expected_params={
                 'Body': top_hash.encode(),
                 'Bucket': self.dst_bucket,
-                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/latest'
-            }
+                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/latest',
+            },
         )
 
     def prepare_pkg(self, *, copy_data):
@@ -281,8 +271,8 @@ class PackagePromoteTestBase(unittest.TestCase):
             pkg_entries = [
                 (
                     lk,
-                    e.with_physical_key(PhysicalKey(
-                        self.dst_bucket, f'{self.dst_pkg_name}/{lk}', 'dst_' + e.physical_key.version_id)
+                    e.with_physical_key(
+                        PhysicalKey(self.dst_bucket, f'{self.dst_pkg_name}/{lk}', 'dst_' + e.physical_key.version_id)
                     ),
                 )
                 for lk, e in pkg_entries
@@ -322,22 +312,28 @@ class PackagePromoteTest(PackagePromoteTestBase):
                 top_hash = expected_pkg.top_hash
                 self.setup_s3(expected_pkg=expected_pkg)
 
-                with self.mock_successors({self.dst_registry: config_params}), \
-                     mock.patch("t4_lambda_pkgpush.copy_file_list") as copy_file_list_mock:
-                    copy_file_list_mock.return_value = [
-                        e.physical_key
-                        for lk, e in expected_pkg.walk()
-                    ]
+                with (
+                    self.mock_successors({self.dst_registry: config_params}),
+                    mock.patch("t4_lambda_pkgpush.copy_file_list") as copy_file_list_mock,
+                ):
+                    # copy_file_list now takes checksum_algorithm and returns a callable
+                    copy_fn_mock = mock.Mock()
+                    copy_fn_mock.return_value = [(e.physical_key, None) for lk, e in expected_pkg.walk()]
+                    copy_file_list_mock.return_value = copy_fn_mock
+
                     response = self.make_request(params)
                     if expected_copy_data:
-                        copy_file_list_mock.assert_called_once_with(
+                        # Verify copy_file_list was called with checksum_algorithm
+                        copy_file_list_mock.assert_called_once_with(ChecksumAlgorithm.SHA256_CHUNKED)
+                        # Verify the returned function was called with file list
+                        copy_fn_mock.assert_called_once_with(
                             [
                                 (
                                     src.physical_key,
                                     PhysicalKey(dst.physical_key.bucket, dst.physical_key.path, None),
-                                    src.size
+                                    src.size,
                                 )
-                                for src, (lk, dst) in zip(self.entries.values(), expected_pkg.walk())
+                                for src, (lk, dst) in zip(self.entries.values(), expected_pkg.walk(), strict=False)
                             ],
                             message=mock.ANY,
                         )
@@ -370,7 +366,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                             "name": "InvalidSuccessor",
                             "context": {
                                 "successor": self.dst_registry,
-                            }
+                            },
                         },
                     }
 
@@ -393,7 +389,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                             "name": "InvalidRegistry",
                             "context": {
                                 "registry_url": registry_url,
-                            }
+                            },
                         },
                     }
 
@@ -406,8 +402,10 @@ class PackagePromoteTest(PackagePromoteTestBase):
         expected_pkg = self.prepare_pkg(copy_data=True)
         self.setup_s3(expected_pkg=expected_pkg)
 
-        with self.mock_successors({self.dst_registry: {'copy_data': True}}), \
-             mock.patch(f't4_lambda_pkgpush.{self.max_files_const}', 1):
+        with (
+            self.mock_successors({self.dst_registry: {'copy_data': True}}),
+            mock.patch(f't4_lambda_pkgpush.{self.max_files_const}', 1),
+        ):
             response = self.make_request(params)
             assert response == {
                 "error": {
@@ -415,7 +413,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                     "context": {
                         "max_files": 1,
                         "num_files": 2,
-                    }
+                    },
                 },
             }
 
@@ -447,7 +445,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                         "context": {
                             "max_size": 1,
                             "size": 42,
-                        }
+                        },
                     },
                 }
 
@@ -474,7 +472,7 @@ class PackagePromoteTestSizeExceeded(PackagePromoteTestBase):
                     "context": {
                         "max_size": 1,
                         "size": self.file_size,
-                    }
+                    },
                 },
             }
 
@@ -513,11 +511,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
     file_data_size = len(file_data)
     file_data_hash = hash_data(file_data)
     dst_commit_message = 'test commit message'
-    meta = {
-        'donut': {
-            'type': 'glazed'
-        }
-    }
+    meta = {'donut': {'type': 'glazed'}}
     package_entry = {
         'logical_key': path,
         'physical_key': str(physical_key),
@@ -556,9 +550,11 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
 
     def make_request_base(self, data, **kwargs):
         stream = io.BytesIO(data)
-        with self.make_lambda_s3_stubber() as stubber, \
-             mock.patch.object(stubber.client, 'download_fileobj') as mock_download_fileobj, \
-             mock.patch('tempfile.TemporaryFile', return_value=stream):
+        with (
+            self.make_lambda_s3_stubber() as stubber,
+            mock.patch.object(stubber.client, 'download_fileobj') as mock_download_fileobj,
+            mock.patch('tempfile.TemporaryFile', return_value=stream),
+        ):
             # Check object size.
             stubber.add_response(
                 'head_object',
@@ -569,7 +565,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
                     'Bucket': self.user_request_obj_bucket,
                     'Key': self.user_request_obj_key,
                     'VersionId': self.user_request_obj_version_id,
-                }
+                },
             )
             result = super().make_request_base(self.user_request_obj_version_id, **kwargs)
             mock_download_fileobj.assert_called_once_with(
@@ -582,9 +578,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
             return result
 
     def make_request(self, params, **kwargs):
-        return super().make_request(
-            '\n'.join(map(json.dumps, params)).encode()
-        )
+        return super().make_request('\n'.join(map(json.dumps, params)).encode())
 
     @contextlib.contextmanager
     def _mock_package_build(self, entries, *, message=..., expected_workflow=...):
@@ -661,10 +655,12 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         ]:
             with self.subTest(entry=entry):
                 with self._mock_package_build([entry]):
-                    pkg_response = self.make_request([
-                        self.params,
-                        entry,
-                    ])
+                    pkg_response = self.make_request(
+                        [
+                            self.params,
+                            entry,
+                        ]
+                    )
                     assert "result" in pkg_response
 
     def test_object_level_meta(self):
@@ -687,10 +683,12 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         ]
 
         with self._mock_package_build(entries):
-            pkg_response = self.make_request([
-                self.params,
-                *entries,
-            ])
+            pkg_response = self.make_request(
+                [
+                    self.params,
+                    *entries,
+                ]
+            )
             assert "result" in pkg_response
 
     def test_workflow_param(self):
@@ -702,10 +700,12 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         ):
             with self.subTest(params=params, expected_workflow=expected_workflow):
                 with self._mock_package_build(self.package_entries, expected_workflow=expected_workflow):
-                    pkg_response = self.make_request([
-                        params,
-                        *self.package_entries,
-                    ])
+                    pkg_response = self.make_request(
+                        [
+                            params,
+                            *self.package_entries,
+                        ]
+                    )
                     assert "result" in pkg_response
 
     def test_invalid_parameters(self):
@@ -727,10 +727,12 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
             ),
         ):
             with self.subTest(params=params):
-                pkg_response = self.make_request([
-                    params,
-                    *self.package_entries,
-                ])
+                pkg_response = self.make_request(
+                    [
+                        params,
+                        *self.package_entries,
+                    ]
+                )
                 assert pkg_response["error"]["name"] == err_name
                 assert err_details in pkg_response["error"]["context"]["details"]
 
@@ -739,15 +741,17 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         for prop_name in ('logical_key', 'physical_key'):
             with self.subTest(prop_name=prop_name):
                 entry = self.gen_pkg_entry(**{prop_name: ...})
-                pkg_response = self.make_request([
-                    {
-                        'name': 'user/atestpackage',
-                        'bucket': self.dst_bucket,
-                        'message': 'test package',
-                        'scratch_buckets': SCRATCH_BUCKETS,
-                    },
-                    entry,
-                ])
+                pkg_response = self.make_request(
+                    [
+                        {
+                            'name': 'user/atestpackage',
+                            'bucket': self.dst_bucket,
+                            'message': 'test package',
+                            'scratch_buckets': SCRATCH_BUCKETS,
+                        },
+                        entry,
+                    ]
+                )
 
                 error = pkg_response["error"]
                 assert error["name"] == "InvalidInputParameters"
@@ -756,13 +760,15 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_invalid_entries_non_url_pk(self):
         bad_pkey = 'foo/bar.csv'
-        pkg_response = self.make_request([
-            self.params,
-            {
-                **self.package_entry,
-                'physical_key': bad_pkey,
-            },
-        ])
+        pkg_response = self.make_request(
+            [
+                self.params,
+                {
+                    **self.package_entry,
+                    'physical_key': bad_pkey,
+                },
+            ]
+        )
         assert pkg_response == {
             "error": {
                 "name": "InvalidS3PhysicalKey",
@@ -773,13 +779,15 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_invalid_entries_local_pk(self):
         bad_pkey = 'file:///foo/bar.csv'
-        pkg_response = self.make_request([
-            self.params,
-            {
-                **self.package_entry,
-                'physical_key': bad_pkey,
-            },
-        ])
+        pkg_response = self.make_request(
+            [
+                self.params,
+                {
+                    **self.package_entry,
+                    'physical_key': bad_pkey,
+                },
+            ]
+        )
         assert pkg_response == {
             "error": {
                 "name": "InvalidLocalPhysicalKey",
@@ -801,10 +809,12 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
             service_message=mock_service_msg,
             http_status_code=mock_http_code,
         )
-        pkg_response = self.make_request([
-            self.params,
-            *self.package_entries,
-        ])
+        pkg_response = self.make_request(
+            [
+                self.params,
+                *self.package_entries,
+            ]
+        )
         assert pkg_response == {
             "error": {
                 "name": "AWSError",
@@ -839,13 +849,16 @@ class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
                         'Bucket': self.physical_key.bucket,
                         'Key': self.physical_key.path,
                         'VersionId': self.physical_key.version_id,
+                        'ChecksumMode': 'ENABLED',
                     },
                 )
                 with self._mock_package_build(self.package_entries):
-                    pkg_response = self.make_request([
-                        self.params,
-                        entry,
-                    ])
+                    pkg_response = self.make_request(
+                        [
+                            self.params,
+                            entry,
+                        ]
+                    )
                 assert "result" in pkg_response
 
     def test_create_package_no_browser_hash_no_meta(self):
@@ -859,11 +872,14 @@ class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
                 'Bucket': self.physical_key.bucket,
                 'Key': self.physical_key.path,
                 'VersionId': self.physical_key.version_id,
+                'ChecksumMode': 'ENABLED',
             },
         )
         with self._mock_package_build([{**self.package_entry, "meta": {}}]):
-            pkg_response = self.make_request([
-                self.params,
-                entry,
-            ])
+            pkg_response = self.make_request(
+                [
+                    self.params,
+                    entry,
+                ]
+            )
         assert "result" in pkg_response
