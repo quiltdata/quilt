@@ -43,7 +43,8 @@ export interface ConfigJson {
   ssoAuth: AuthMethodConfig
   ssoProviders: string
 
-  // NOTE: does not affect anything at the moment
+  // NOTE: Does not affect anything in Catalog at the moment.
+  //       Though, QuiltSync/quilt_rs relies on it.
   crc64Checksums?: boolean
 
   qurator?: boolean
