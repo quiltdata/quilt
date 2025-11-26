@@ -21,6 +21,7 @@ from enum import Enum
 from threading import Lock
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+import awscrt.checksums
 import jsonlines
 from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
@@ -1254,6 +1255,14 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]
                 future.cancel()
 
     return results
+
+
+def _encode_crc64nvme(data: int) -> str:
+    return binascii.b2a_base64(data.to_bytes(8, byteorder="big"), newline=False).decode()
+
+
+def calculate_checksum_crc64nvme_bytes(data: bytes) -> str:
+    return _encode_crc64nvme(awscrt.checksums.crc64nvme(data))
 
 
 def calculate_checksum_bytes(data: bytes) -> str:

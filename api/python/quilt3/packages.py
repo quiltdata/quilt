@@ -18,6 +18,7 @@ import warnings
 from collections import deque
 from multiprocessing import Pool
 
+import awscrt.checksums
 import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
@@ -27,6 +28,7 @@ from .backends import get_package_registry
 from .data_transfer import (
     calculate_checksum,
     calculate_checksum_bytes,
+    calculate_checksum_crc64nvme_bytes,
     copy_file,
     copy_file_list,
     get_bytes,
@@ -228,10 +230,6 @@ class PackageEntry:
     def _verify_hash(self, read_bytes):
         """
         Verifies hash of bytes.
-
-        Note: CRC64NVME validation is skipped as these checksums come from trusted
-        S3 infrastructure. Full CRC64NVME validation support will be added in a
-        future update.
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
@@ -243,9 +241,7 @@ class PackageEntry:
         elif hash_type == SHA256_HASH_NAME:
             expected_value = legacy_calculate_checksum_bytes(read_bytes)
         elif hash_type == CRC64NVME_HASH_NAME:
-            # Skip validation for CRC64NVME (trusted S3 checksums)
-            # TODO: Implement CRC64NVME validation when Python library is available
-            return
+            expected_value = calculate_checksum_crc64nvme_bytes(read_bytes)
         else:
             assert False, f"Unsupported hash type: {hash_type}"
 
