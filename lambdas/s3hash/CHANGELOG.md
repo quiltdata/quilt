@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Add CRC64NVME checksum support with algorithm-agnostic MPU computation ([#4624](https://github.com/quiltdata/quilt/pull/4624))
 - [Changed] Use `make_scratch_key()` function from py-shared to avoid S3 Slow Down errors ([#4358](https://github.com/quiltdata/quilt/pull/4358))
 - [Changed] Move some constants and `Checksum` methods to py-shared ([#4358](https://github.com/quiltdata/quilt/pull/4358))
 - [Changed] Bump pydantic to v2 ([#4355](https://github.com/quiltdata/quilt/pull/4355))

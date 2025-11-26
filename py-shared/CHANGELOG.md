@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Add CRC64NVME checksum type support ([#4623](https://github.com/quiltdata/quilt/pull/4623))
 - [Added] Add utilities for Athena/Iceberg ([#4570](https://github.com/quiltdata/quilt/pull/4570))
 - [Added] Add various utilities for ES ingest ([#4433](https://github.com/quiltdata/quilt/pull/4433))
 - [Added] Add optional `dest_prefix` to `PackagePromoteParams` for setting prefix to copy data to ([#4382](https://github.com/quiltdata/quilt/pull/4382))
