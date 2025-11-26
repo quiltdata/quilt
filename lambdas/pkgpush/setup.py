@@ -13,7 +13,7 @@ setup(
         "quilt3 >= 7, < 8",
         (
             "quilt_shared[pydantic,boto,quilt] @ https://github.com/quiltdata/quilt/archive/"
-            "7698788139c8ea0b425b9932c1db6c8903526c28.zip"
+            "a4b310300bfe1cd5f2b319930b03f5264e82d5e5.zip"
             "#subdirectory=py-shared"
         ),
     ],
