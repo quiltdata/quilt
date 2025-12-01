@@ -18,7 +18,6 @@ import warnings
 from collections import deque
 from multiprocessing import Pool
 
-import awscrt.checksums
 import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
@@ -28,6 +27,7 @@ from .backends import get_package_registry
 from .data_transfer import (
     calculate_checksum,
     calculate_checksum_bytes,
+    calculate_checksum_crc64nvme,
     calculate_checksum_crc64nvme_bytes,
     copy_file,
     copy_file_list,
@@ -1820,6 +1820,10 @@ class Package:
         legacy_url_list = []
         legacy_size_list = []
 
+        сrc64nvme_expected_size_list = []
+        crc64nvme_url_list = []
+        crc64nvme_size_list = []
+
         for logical_key, entry in self.walk():
             src_size = src_dict.pop(logical_key, None)
             if src_size is None or entry.size != src_size:
@@ -1836,9 +1840,9 @@ class Package:
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
             elif hash_type == CRC64NVME_HASH_NAME:
-                # Skip validation for CRC64NVME (trusted S3 checksums)
-                # Size was already verified above
-                pass
+                сrc64nvme_expected_size_list.append(hash_value)
+                crc64nvme_url_list.append(entry_url)
+                crc64nvme_size_list.append(src_size)
             else:
                 assert False, f"Unsupported hash type: {hash_type}"
 
@@ -1847,6 +1851,13 @@ class Package:
 
         hash_list = calculate_checksum(url_list, size_list)
         for expected_hash, url_hash in zip(expected_hash_list, hash_list):
+            if isinstance(url_hash, Exception):
+                raise url_hash
+            if expected_hash != url_hash:
+                return False
+
+        crc64nvme_hash_list = calculate_checksum_crc64nvme(crc64nvme_url_list, crc64nvme_size_list)
+        for expected_hash, url_hash in zip(сrc64nvme_expected_size_list, crc64nvme_hash_list):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:

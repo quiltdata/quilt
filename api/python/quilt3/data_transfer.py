@@ -1,3 +1,4 @@
+import abc
 import binascii
 import concurrent
 import functools
@@ -42,7 +43,7 @@ from tenacity import (
 )
 from tqdm import tqdm
 
-from . import hooks, util
+from . import crc64, hooks, util
 from .session import get_boto3_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
@@ -983,12 +984,79 @@ def get_size_and_version(src: PhysicalKey):
     return size, version
 
 
+class MultiPartChecksumCalculator(abc.ABC):
+    @abc.abstractmethod
+    def __init__(self):
+        pass
+
+    @abc.abstractmethod
+    def update(self, data: bytes):
+        pass
+
+    @abc.abstractmethod
+    def digest(self) -> bytes:
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
+        pass
+
+
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator):
+    def __init__(self):
+        self._hash_obj = hashlib.sha256()
+
+    def update(self, data: bytes):
+        self._hash_obj.update(data)
+
+    def digest(self) -> bytes:
+        return self._hash_obj.digest()
+
+    @staticmethod
+    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
+        return _make_checksum_from_parts(part_digests)
+
+
+class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator):
+    def __init__(self):
+        self._crc = 0
+
+    def update(self, data: bytes):
+        self._crc = awscrt.checksums.crc64nvme(data, self._crc)
+
+    def digest(self) -> bytes:
+        return self._crc.to_bytes(8, byteorder="big")
+
+    @staticmethod
+    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
+        return binascii.b2a_base64(crc64.combine_crc64nvme(part_digests, part_sizes), newline=False).decode()
+
+
+def calculate_checksum_crc64nvme(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
+    assert len(src_list) == len(sizes)
+
+    if not src_list:
+        return []
+    return _calculate_checksum_internal(
+        src_list,
+        sizes,
+        [None] * len(src_list),
+        checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator,
+    )
+
+
 def calculate_checksum(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
     assert len(src_list) == len(sizes)
 
     if not src_list:
         return []
-    return _calculate_checksum_internal(src_list, sizes, [None] * len(src_list))
+    return _calculate_checksum_internal(
+        src_list,
+        sizes,
+        [None] * len(src_list),
+        checksum_calculator_cls=SHA256MultiPartChecksumCalculator,
+    )
 
 
 def with_lock(f):
@@ -1030,7 +1098,13 @@ def _make_checksum_from_parts(parts: List[bytes]) -> str:
     retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
     retry_error_callback=lambda retry_state: retry_state.outcome.result(),
 )
-def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
+def _calculate_checksum_internal(
+    src_list,
+    sizes,
+    results,
+    *,
+    checksum_calculator_cls: type[MultiPartChecksumCalculator],
+) -> list[bytes]:
     total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
     stopped = False
 
@@ -1045,7 +1119,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
             if src.is_local():
                 return _calculate_local_part_checksum(src.path, offset, length, progress_update)
             else:
-                hash_obj = hashlib.sha256()
+                checksum_calculator = checksum_calculator_cls()
                 end = offset + length - 1
                 params = dict(
                     Bucket=src.bucket,
@@ -1060,37 +1134,41 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                 try:
                     body = s3_client.get_object(**params)['Body']
                     for chunk in read_file_chunks(body):
-                        hash_obj.update(chunk)
+                        checksum_calculator.update(chunk)
                         progress_update(len(chunk))
                         if stopped:
                             return None
                 except (ConnectionError, HTTPClientError, ReadTimeoutError) as ex:
                     return ex
 
-                return hash_obj.digest()
+                return checksum_calculator.digest()
 
-        futures: List[Tuple[int, List[Future]]] = []
+        futures: list[tuple[int, list[int], list[Future]]] = []
 
         for idx, (src, size, result) in enumerate(zip(src_list, sizes, results)):
             if result is None or isinstance(result, Exception):
                 chunksize = get_checksum_chunksize(size)
 
                 src_future_list = []
+                part_sizes = []
                 for start in range(0, size, chunksize):
                     end = min(start + chunksize, size)
                     future = executor.submit(_process_url_part, src, start, end - start)
                     src_future_list.append(future)
+                    part_sizes.append(end - start)
 
-                futures.append((idx, src_future_list))
+                futures.append((idx, part_sizes, src_future_list))
 
         try:
-            for idx, future_list in futures:
+            for idx, part_sizes, future_list in futures:
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
-                results[idx] = exceptions[0] if exceptions else _make_checksum_from_parts(future_results)
+                results[idx] = (
+                    exceptions[0] if exceptions else checksum_calculator_cls.combine_parts(future_results, part_sizes)
+                )
         finally:
             stopped = True
-            for _, future_list in futures:
+            for _, _, future_list in futures:
                 for future in future_list:
                     future.cancel()
 
