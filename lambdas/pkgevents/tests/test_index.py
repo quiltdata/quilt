@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from botocore.stub import Stubber
+
 from t4_lambda_pkgevents import (
     EventsQueue,
     PutEventsException,
