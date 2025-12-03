@@ -7,9 +7,9 @@ export default defineConfig({
   optimizeDeps: {
     esbuildOptions: {
       loader: {
-        '.js': 'jsx'
-      }
-    }
+        '.js': 'jsx',
+      },
+    },
   },
   test: {
     // Environment setup
@@ -28,7 +28,7 @@ export default defineConfig({
       // Utils tests migrated from Jest:
       'app/utils/validators.spec.js',
       'app/utils/defer.spec.ts',
-      'app/utils/error.spec.ts', 
+      'app/utils/error.spec.ts',
       'app/utils/format.spec.tsx',
       'app/utils/JSONOneliner.spec.ts',
       'app/utils/JSONPointer.spec.ts',
@@ -41,7 +41,12 @@ export default defineConfig({
       'app/utils/spreadsheets/spreadsheets.spec.ts',
       'app/utils/tagged.spec.js',
       'app/utils/taggedV2.spec.ts',
-      // 'app/utils/workflows.spec.ts', // TODO: Fix JSX in Message.js issue
+      'app/utils/workflows.spec.ts',
+
+      // Component tests:
+      'app/components/Buttons/Skeleton.spec.tsx',
+      'app/components/Buttons/Iconized.spec.tsx',
+      'app/components/Buttons/WithPopover.spec.tsx',
     ],
 
     // Exclude patterns
@@ -54,9 +59,7 @@ export default defineConfig({
     // Coverage configuration (matching Jest setup)
     coverage: {
       provider: 'v8',
-      include: [
-        'app/**/*.{j,t}s{,x}',
-      ],
+      include: ['app/**/*.{j,t}s{,x}'],
       exclude: [
         'app/**/*.{test,spec}.{j,t}s{,x}',
         'app/**/mocks/*.{j,t}s{,x}',
@@ -85,10 +88,12 @@ export default defineConfig({
       // Add shared folder alias to match tsconfig paths
       '@shared': path.resolve(__dirname, '../shared'),
       // Handle relative utils imports (match baseUrl: './app/' from tsconfig)
-      'utils': path.resolve(__dirname, './app/utils'),
-      'components': path.resolve(__dirname, './app/components'),
-      'containers': path.resolve(__dirname, './app/containers'),
-      'constants': path.resolve(__dirname, './app/constants'),
+      utils: path.resolve(__dirname, './app/utils'),
+      components: path.resolve(__dirname, './app/components'),
+      containers: path.resolve(__dirname, './app/containers'),
+      constants: path.resolve(__dirname, './app/constants'),
+      // Add schemas from shared directory (matching webpack modules resolution)
+      schemas: path.resolve(__dirname, '../shared/schemas'),
     },
   },
 

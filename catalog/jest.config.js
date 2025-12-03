@@ -39,9 +39,9 @@ module.exports = {
     '<rootDir>/app/components/Assistant/Model/GlobalContext/navigation.spec.ts',
     '<rootDir>/app/components/BreadCrumbs/BreadCrumbs.spec.tsx',
     '<rootDir>/app/components/BucketIcon/BucketIcon.spec.tsx',
-    '<rootDir>/app/components/Buttons/Iconized.spec.tsx',
-    '<rootDir>/app/components/Buttons/Skeleton.spec.tsx',
-    '<rootDir>/app/components/Buttons/WithPopover.spec.tsx',
+    // '<rootDir>/app/components/Buttons/Iconized.spec.tsx', // Migrated to Vitest
+    // '<rootDir>/app/components/Buttons/Skeleton.spec.tsx', // Migrated to Vitest
+    // '<rootDir>/app/components/Buttons/WithPopover.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/components/FileEditor/CreateFile.spec.tsx',
     '<rootDir>/app/components/FileEditor/FileEditor.spec.tsx',
     '<rootDir>/app/components/FileEditor/HelpLinks.spec.tsx',
@@ -122,7 +122,7 @@ module.exports = {
     // '<rootDir>/app/utils/tagged.spec.js', // Migrated to Vitest
     // '<rootDir>/app/utils/taggedV2.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/utils/validators.spec.js', // Migrated to Vitest
-    '<rootDir>/app/utils/workflows.spec.ts', // TODO: Migrate after fixing JSX issue
+    // '<rootDir>/app/utils/workflows.spec.ts', // Migrated to Vitest
   ],
   snapshotSerializers: [],
 }
