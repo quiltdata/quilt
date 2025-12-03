@@ -17,5 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Switch to uv ([#4654](https://github.com/quiltdata/quilt/pull/4654))
+- [Changed] Upgrade to Python 3.13 ([#4654](https://github.com/quiltdata/quilt/pull/4654))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Added] Bootstrap the change log ([#4241](https://github.com/quiltdata/quilt/pull/4241))
