@@ -1,0 +1,30 @@
+[project]
+name = "t4_lambda_pkgevents"
+version = "0.1.0"
+authors = [
+    { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
+]
+requires-python = "==3.13.*"
+dependencies = [
+    "boto3~=1.40",
+    "t4-lambda-shared",
+]
+
+[build-system]
+requires = ["uv_build==0.9.*"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = [
+    "pytest~=8.4",
+    "pytest-cov~=7.0",
+    "pytest-env~=1.1",
+    "pytest-mock~=3.15",
+]
+
+[tool.uv]
+default-groups = ["test"]
+
+[tool.uv.sources]
+t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
+

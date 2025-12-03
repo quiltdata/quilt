@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from botocore.stub import Stubber
-from index import (
+from t4_lambda_pkgevents import (
     EventsQueue,
     PutEventsException,
     handler,
@@ -136,9 +136,9 @@ def test_pkg_created_event():
         stubber.assert_no_pending_responses()
 
 
-@mock.patch('index.EventsQueue.flush')
-@mock.patch('index.EventsQueue.append')
-@mock.patch('index.pkg_created_event', wraps=str)
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush")
+@mock.patch("t4_lambda_pkgevents.EventsQueue.append")
+@mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
     event = {
         'Records': [
@@ -164,7 +164,7 @@ def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
 
 @pytest.mark.parametrize('failed_count', (0, 1))
 def test_queue(failed_count):
-    with mock.patch('index.event_bridge.put_events') as put_events_mock:
+    with mock.patch("t4_lambda_pkgevents.event_bridge.put_events") as put_events_mock:
         put_events_mock.return_value = {'FailedEntryCount': failed_count}
         q = EventsQueue()
         for x in range(EventsQueue.MAX_SIZE - 1):
