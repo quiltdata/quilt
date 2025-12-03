@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks'
+import { vi } from 'vitest'
 
 import * as workflows from 'utils/workflows'
 
@@ -6,11 +7,11 @@ import { useParams, Invalid, Ok } from './params'
 import * as Schema from './schema'
 import * as Meta from './meta'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({}))
 
 describe('containers/Bucket/PackageDialog/State/params', () => {
-  const onChange = jest.fn()
-  const resetDirty = jest.fn()
+  const onChange = vi.fn()
+  const resetDirty = vi.fn()
 
   const dst = { bucket: 'test-bucket', name: 'test-package' }
 

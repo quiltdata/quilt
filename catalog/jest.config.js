@@ -54,7 +54,7 @@ module.exports = {
     '<rootDir>/app/components/Filters/DatesRange.spec.tsx',
     '<rootDir>/app/components/Filters/NumbersRange.spec.tsx',
     '<rootDir>/app/components/JsonEditor/State.spec.js',
-    '<rootDir>/app/components/Layout/Container.spec.tsx',
+    // '<rootDir>/app/components/Layout/Container.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/components/Logo/index.spec.tsx',
     '<rootDir>/app/components/Markdown/Markdown.spec.ts',
     '<rootDir>/app/components/Markdown/parseTasklist.spec.ts',
@@ -72,17 +72,17 @@ module.exports = {
     '<rootDir>/app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx',
     '<rootDir>/app/containers/Bucket/ListingActions.spec.tsx',
     '<rootDir>/app/containers/Bucket/Overview/Downloads.spec.ts',
-    '<rootDir>/app/containers/Bucket/PackageCompare/Diff/compareJsons.spec.ts',
-    '<rootDir>/app/containers/Bucket/PackageCompare/Diff/diffJsons.spec.ts',
-    '<rootDir>/app/containers/Bucket/PackageCompare/Diff/Summary/comparePackageEntries.spec.ts',
+    // '<rootDir>/app/containers/Bucket/PackageCompare/Diff/compareJsons.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/PackageCompare/Diff/diffJsons.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/PackageCompare/Diff/Summary/comparePackageEntries.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts',
     '<rootDir>/app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts',
     '<rootDir>/app/containers/Bucket/PackageDialog/Layout.spec.ts',
-    '<rootDir>/app/containers/Bucket/PackageDialog/State/form.spec.ts',
+    // '<rootDir>/app/containers/Bucket/PackageDialog/State/form.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/PackageDialog/State/meta.spec.ts',
     '<rootDir>/app/containers/Bucket/PackageDialog/State/name.spec.ts',
     '<rootDir>/app/containers/Bucket/PackageDialog/State/params.spec.ts',
-    '<rootDir>/app/containers/Bucket/PackageDialog/State/schema.spec.ts',
+    // '<rootDir>/app/containers/Bucket/PackageDialog/State/schema.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/Queries/Athena/Database.spec.tsx',
     '<rootDir>/app/containers/Bucket/Queries/Athena/model/createPackage.spec.ts',
     '<rootDir>/app/containers/Bucket/Queries/Athena/model/requests.spec.ts',

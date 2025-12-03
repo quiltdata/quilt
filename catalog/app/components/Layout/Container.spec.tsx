@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
+import { vi } from 'vitest'
 
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 
@@ -16,7 +17,7 @@ const EmptyContainer = () => (
 
 describe('components/Layout/Container', () => {
   it('requires Provider', () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn())
+    vi.spyOn(console, 'error').mockImplementation(vi.fn())
     const { container } = render(<EmptyContainer />)
     expect(container.firstChild).toMatchSnapshot()
   })

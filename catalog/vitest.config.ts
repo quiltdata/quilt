@@ -53,9 +53,21 @@ export default defineConfig({
       // Component tests:
       'app/components/BreadCrumbs/BreadCrumbs.spec.tsx',
       'app/components/BucketIcon/BucketIcon.spec.tsx',
+      'app/components/Layout/Container.spec.tsx',
       'app/components/Buttons/Skeleton.spec.tsx',
       'app/components/Buttons/Iconized.spec.tsx',
       'app/components/Buttons/WithPopover.spec.tsx',
+
+      // Container tests:
+      'app/containers/Bucket/PackageCompare/Diff/compareJsons.spec.ts',
+      'app/containers/Bucket/PackageCompare/Diff/diffJsons.spec.ts',
+      'app/containers/Bucket/PackageCompare/Diff/Summary/comparePackageEntries.spec.ts',
+      'app/containers/Bucket/PackageDialog/State/form.spec.ts',
+      'app/containers/Bucket/PackageDialog/State/schema.spec.ts',
+      // Temporarily disabled due to JSX parsing issues in dependencies:
+      // 'app/containers/Bucket/PackageDialog/State/meta.spec.ts',
+      // 'app/containers/Bucket/PackageDialog/State/name.spec.ts',
+      // 'app/containers/Bucket/PackageDialog/State/params.spec.ts',
     ],
 
     // Exclude patterns

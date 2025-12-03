@@ -1,11 +1,12 @@
 import { renderHook } from '@testing-library/react-hooks'
+import { vi, beforeEach } from 'vitest'
 
 import * as Form from './form'
 
 describe('containers/Bucket/PackageDialog/State/form', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'crypto', {
-      value: { subtle: { digest: jest.fn() } },
+      value: { subtle: { digest: vi.fn() } },
       writable: true,
     })
   })

@@ -1,24 +1,28 @@
 import { renderHook, act } from '@testing-library/react-hooks'
+import { vi, beforeEach } from 'vitest'
 
 import * as Form from './form'
 import * as Manifest from './manifest'
 import { useMeta, Err, Ok } from './meta'
 import * as Schema from './schema'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({}))
 
-const mkMetaValidator = jest.fn()
-jest.mock('./schema', () => ({
-  ...jest.requireActual('./schema'),
-  mkMetaValidator: () => mkMetaValidator(),
-}))
+const mkMetaValidator = vi.fn()
+vi.mock('./schema', async () => {
+  const actual = await vi.importActual('./schema')
+  return {
+    ...actual,
+    mkMetaValidator: () => mkMetaValidator(),
+  }
+})
 
 const SchemaReady = Schema.Ready()
 
 describe('containers/Bucket/PackageDialog/State/meta', () => {
   describe('useMeta', () => {
     beforeEach(() => {
-      jest.clearAllMocks()
+      vi.clearAllMocks()
     })
 
     describe('value', () => {

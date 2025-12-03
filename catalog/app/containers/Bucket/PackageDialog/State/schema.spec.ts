@@ -1,18 +1,19 @@
 import { act, renderHook } from '@testing-library/react-hooks'
+import { vi } from 'vitest'
 
 import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({}))
 
-jest.mock('utils/AWS', () => ({
+vi.mock('utils/AWS', () => ({
   S3: {
-    use: jest.fn(),
+    use: vi.fn(),
   },
 }))
 
-const metadataSchema = jest.fn()
-const objectSchema = jest.fn()
-jest.mock('../../requests', () => ({
+const metadataSchema = vi.fn()
+const objectSchema = vi.fn()
+vi.mock('../../requests', () => ({
   metadataSchema: ({ s3, ...rest }: any) => Promise.resolve(metadataSchema({ ...rest })),
   objectSchema: ({ s3, ...rest }: any) => Promise.resolve(objectSchema({ ...rest })),
 }))
