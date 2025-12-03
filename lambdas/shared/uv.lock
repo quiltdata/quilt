@@ -503,8 +503,8 @@ requires-dist = [
     { name = "openpyxl", marker = "extra == 'preview'", specifier = "~=3.1" },
     { name = "pandas", marker = "extra == 'preview'", specifier = "~=2.2" },
     { name = "psutil", marker = "extra == 'mem'", specifier = "~=6.1" },
-    { name = "psutil", marker = "extra == 'preview'", specifier = "~=6.1" },
     { name = "pyarrow", marker = "extra == 'preview'", specifier = "~=18.0" },
+    { name = "t4-lambda-shared", extras = ["mem"], marker = "extra == 'preview'" },
     { name = "xlrd", marker = "extra == 'preview'", specifier = "~=2.0" },
 ]
 provides-extras = ["mem", "preview", "lambda"]

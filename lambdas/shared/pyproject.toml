@@ -14,8 +14,8 @@ preview = [
     "fcsparser~=0.2.1",
     "openpyxl~=3.1",
     "pandas~=2.2",
-    "psutil~=6.1",
     "pyarrow~=18.0",
+    "t4_lambda_shared[mem]",
     "xlrd~=2.0",
 ]
 lambda = [
