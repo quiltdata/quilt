@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Proper package structure ([#4618](https://github.com/quiltdata/quilt/pull/4618))
+- [Changed] Migrate to proper package structure ([#4618](https://github.com/quiltdata/quilt/pull/4618))
 - [Changed] Switch to uv ([#4618](https://github.com/quiltdata/quilt/pull/4618))
 - [Changed] Upgrade to Python 3.13 ([#4618](https://github.com/quiltdata/quilt/pull/4618))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
