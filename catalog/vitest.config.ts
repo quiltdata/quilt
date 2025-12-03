@@ -64,6 +64,24 @@ export default defineConfig({
       'app/containers/Bucket/PackageCompare/Diff/Summary/comparePackageEntries.spec.ts',
       'app/containers/Bucket/PackageDialog/State/form.spec.ts',
       'app/containers/Bucket/PackageDialog/State/schema.spec.ts',
+      'app/containers/Bucket/Selection/utils.spec.ts',
+      'app/components/FileEditor/routes.spec.ts',
+      'app/components/Markdown/parseTasklist.spec.ts',
+      'app/containers/Bucket/PackageDialog/Layout.spec.ts',
+      'app/containers/Redir/Redir.spec.tsx',
+      'app/components/Filters/DatesRange.spec.tsx',
+      'app/containers/Search/Table/index.spec.tsx',
+      'app/containers/Bucket/Queries/QuerySelect.spec.tsx',
+      'app/components/FileEditor/HelpLinks.spec.tsx',
+      'app/components/JsonEditor/State.spec.js',
+      'app/components/Preview/quick/index.spec.tsx',
+      // 'app/components/Preview/loaders/Vega.spec.js', // Blocked by JSX in utils/string.js
+      // 'app/containers/Bucket/Selection/Dashboard.spec.tsx', // Blocked by JSX in FileView.js
+      // 'app/components/FileEditor/CreateFile.spec.tsx', // Blocked by JSX in utils/string.js
+      // 'app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx', // Blocked by JSX in utils/string.js
+      // 'app/containers/Bucket/CodeSamples.spec.tsx', // Blocked by JSX in Notifications/index.js
+      // 'app/components/Filters/NumbersRange.spec.tsx', // Blocked by JSX in utils/string.js
+      // 'app/containers/Bucket/Overview/Downloads.spec.ts', // Blocked by JSX in StackedAreaChart.js
       // Temporarily disabled due to JSX parsing issues in dependencies:
       // 'app/containers/Bucket/PackageDialog/State/meta.spec.ts',
       // 'app/containers/Bucket/PackageDialog/State/name.spec.ts',

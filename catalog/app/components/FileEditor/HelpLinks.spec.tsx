@@ -1,44 +1,50 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { vi } from 'vitest'
 
 import { WorkflowsConfigLink } from './HelpLinks'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  'utils/StyledLink',
-  () =>
-    ({ href, to, children }: React.PropsWithChildren<{ href: string; to: string }>) => (
-      <a href={to || href}>{children}</a>
-    ),
-)
-
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: () => ({
-    urls: {
-      bucketFile: (b: string, k: string, opts: Record<string, any>) => {
-        const params = new URLSearchParams(opts)
-        return `/b/${b}/tree/k/${k}?${params}`
-      },
-    },
-  }),
+vi.mock('utils/StyledLink', () => ({
+  default: ({
+    href,
+    to,
+    children,
+  }: React.PropsWithChildren<{ href: string; to: string }>) => (
+    <a href={to || href}>{children}</a>
+  ),
 }))
 
-const useLocation = jest.fn(
+vi.mock('utils/NamedRoutes', async () => {
+  const actual = await vi.importActual('utils/NamedRoutes')
+  return {
+    ...actual,
+    use: () => ({
+      urls: {
+        bucketFile: (b: string, k: string, opts: Record<string, any>) => {
+          const params = new URLSearchParams(opts)
+          return `/b/${b}/tree/k/${k}?${params}`
+        },
+      },
+    }),
+  }
+})
+
+const useLocation = vi.fn(
   () => ({ pathname: '/a/b/c', search: '?foo=bar' }) as Record<string, string>,
 )
 
-const useParams = jest.fn(() => ({ bucket: 'buck' }) as Record<string, string>)
+const useParams = vi.fn(() => ({ bucket: 'buck' }) as Record<string, string>)
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(() => useParams()),
-  useLocation: jest.fn(() => useLocation()),
-}))
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useParams: vi.fn(() => useParams()),
+    useLocation: vi.fn(() => useLocation()),
+  }
+})
 
 describe('components/FileEditor/HelpLinks', () => {
   describe('WorkflowsConfigLink', () => {
@@ -48,7 +54,7 @@ describe('components/FileEditor/HelpLinks', () => {
     })
 
     it('should throw outside bucket', () => {
-      jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+      vi.spyOn(console, 'error').mockImplementationOnce(vi.fn())
       useParams.mockImplementationOnce(() => ({}))
       const tree = () => render(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
       expect(tree).toThrowError('`bucket` must be defined')

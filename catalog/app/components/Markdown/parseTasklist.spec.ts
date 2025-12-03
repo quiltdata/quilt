@@ -1,4 +1,5 @@
 import type { Remarkable } from 'remarkable'
+
 import parseTasklist from './parseTasklist'
 
 function createState(src: string) {

@@ -1,6 +1,8 @@
+import { vi } from 'vitest'
+
 import { calcDialogHeight } from './Layout'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/PackageDialog/Layout', () => {
   describe('calcDialogHeight', () => {

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
+import { vi } from 'vitest'
 
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -11,39 +12,38 @@ const FallbackComponent = ({ error }: FallbackProps) => (
   <span>Error: {error.message}</span>
 )
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  'components/Layout',
-  jest.fn(() => ({ children }: React.PropsWithChildren<{}>) => (
+vi.mock('components/Layout', () => ({
+  default: ({ children }: React.PropsWithChildren<{}>) => (
     <div role="main">{children}</div>
-  )),
-)
-
-const useParams = jest.fn(() => ({ uri: '' }) as Record<string, string>)
-
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(() => useParams()),
-  Redirect: jest.fn(({ to }: { to: string }) => `Redirect to ${to}`),
+  ),
 }))
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Button: jest.fn(({ children, href }: React.PropsWithChildren<{ href: string }>) => (
+const useParams = vi.fn(() => ({ uri: '' }) as Record<string, string>)
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useParams: vi.fn(() => useParams()),
+    Redirect: vi.fn(({ to }: { to: string }) => `Redirect to ${to}`),
+  }
+})
+
+vi.mock('@material-ui/core', async () => {
+  const actual = await vi.importActual('@material-ui/core')
+  return {
+    ...actual,
+    Button: vi.fn(({ children, href }: React.PropsWithChildren<{ href: string }>) => (
       <a href={href}>{children}</a>
     )),
-  })),
-)
+  }
+})
 
 describe('containers/Redir/Redir', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn())
+    vi.spyOn(console, 'error').mockImplementation(vi.fn())
   })
 
   it('must have uri', () => {
@@ -77,7 +77,7 @@ describe('containers/Redir/Redir', () => {
 
   it('redirects to package page', async () => {
     // TODO: spy on window.location.assign
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     useParams.mockImplementation(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
@@ -86,8 +86,8 @@ describe('containers/Redir/Redir', () => {
         <Redir />
       </NamedRoutes.Provider>,
     )
-    await act(() => jest.runAllTimersAsync())
+    await act(() => vi.runAllTimersAsync())
     expect(container.firstChild).toMatchSnapshot()
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 })
