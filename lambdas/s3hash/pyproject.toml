@@ -1,0 +1,32 @@
+[project]
+name = "t4_lambda_s3hash"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "aiobotocore ~= 2.15",
+    "types-aiobotocore[s3] ~= 2.15",
+    "botocore >= 1.35.50",
+    "pydantic ~= 2.10",
+    "quilt3 >= 7, < 8",
+    "quilt-shared[boto,pydantic,quilt]",
+]
+
+[build-system]
+requires = ["uv_build==0.9.*"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = [
+    "pytest~=8.4",
+    "pytest-asyncio ~= 0.23",
+    "pytest-cov~=7.0",
+    "pytest-env~=1.1",
+    "pytest-mock~=3.15",
+]
+
+[tool.uv]
+default-groups = ["test"]
+
+[tool.uv.sources]
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/a4b310300bfe1cd5f2b319930b03f5264e82d5e5.zip", subdirectory = "py-shared" }
+
