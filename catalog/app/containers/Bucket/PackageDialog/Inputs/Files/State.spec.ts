@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 import type * as Model from 'model'
 
 import {
@@ -13,7 +15,7 @@ import {
   EMPTY_DIR_MARKER,
 } from './State'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({}))
 
 describe('utils/object', () => {
   describe('renameKey', () => {

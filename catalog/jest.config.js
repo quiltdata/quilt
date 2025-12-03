@@ -75,8 +75,8 @@ module.exports = {
     // '<rootDir>/app/containers/Bucket/PackageCompare/Diff/compareJsons.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/PackageCompare/Diff/diffJsons.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/PackageCompare/Diff/Summary/comparePackageEntries.spec.ts', // Migrated to Vitest
-    '<rootDir>/app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts',
-    '<rootDir>/app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts',
+    // '<rootDir>/app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/PackageDialog/Layout.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/PackageDialog/State/form.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/PackageDialog/State/meta.spec.ts',
@@ -84,23 +84,23 @@ module.exports = {
     '<rootDir>/app/containers/Bucket/PackageDialog/State/params.spec.ts',
     // '<rootDir>/app/containers/Bucket/PackageDialog/State/schema.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/Queries/Athena/Database.spec.tsx',
-    '<rootDir>/app/containers/Bucket/Queries/Athena/model/createPackage.spec.ts',
-    '<rootDir>/app/containers/Bucket/Queries/Athena/model/requests.spec.ts',
-    '<rootDir>/app/containers/Bucket/Queries/Athena/model/state.spec.tsx',
+    // '<rootDir>/app/containers/Bucket/Queries/Athena/model/createPackage.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/Queries/Athena/model/requests.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/Queries/Athena/model/state.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/Queries/QuerySelect.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/requests/object.spec.ts',
     '<rootDir>/app/containers/Bucket/Selection/Dashboard.spec.tsx',
     // '<rootDir>/app/containers/Bucket/Selection/utils.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/Successors.spec.tsx',
     '<rootDir>/app/containers/Bucket/Summarize.spec.tsx',
-    '<rootDir>/app/containers/Bucket/Toolbar/Toolbar.spec.tsx',
-    '<rootDir>/app/containers/Bucket/Toolbar/types.spec.ts',
-    '<rootDir>/app/containers/Bucket/viewModes.spec.ts',
+    // '<rootDir>/app/containers/Bucket/Toolbar/Toolbar.spec.tsx', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/Toolbar/types.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/containers/Bucket/viewModes.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Redir/Redir.spec.tsx', // Migrated to Vitest
-    '<rootDir>/app/containers/Search/Layout/Results.spec.tsx',
+    // '<rootDir>/app/containers/Search/Layout/Results.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/containers/Search/List/Hit.spec.tsx',
     '<rootDir>/app/containers/Search/List/index.spec.tsx',
-    '<rootDir>/app/containers/Search/model.spec.ts',
+    // '<rootDir>/app/containers/Search/model.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Search/Table/CellValue.spec.tsx',
     // '<rootDir>/app/containers/Search/Table/index.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/utils/AWS/Bedrock/History.spec.ts', // Migrated to Vitest

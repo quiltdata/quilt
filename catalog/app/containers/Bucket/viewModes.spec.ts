@@ -1,7 +1,3 @@
-/**
- * @jest-environment jsdom
- */
-
 import { renderHook, act } from '@testing-library/react-hooks'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests

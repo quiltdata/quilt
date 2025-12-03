@@ -1,28 +1,32 @@
 import * as React from 'react'
 import { render, fireEvent, act } from '@testing-library/react'
+import { vi, beforeEach } from 'vitest'
 
 import * as Toolbar from './Toolbar'
 
-jest.mock('./Assist', jest.fn)
+vi.mock('./Assist', () => ({}))
 
-jest.mock('@material-ui/core', () => ({
-  ...jest.requireActual('@material-ui/core'),
-  IconButton: ({ className, children, onClick }: any) => (
-    <button role="button" {...{ className, children, onClick }} />
-  ),
-  Button: ({ className, children, onClick }: any) => (
-    <button role="button" {...{ className, children, onClick }} />
-  ),
-}))
+vi.mock('@material-ui/core', async () => {
+  const actual = await vi.importActual('@material-ui/core')
+  return {
+    ...actual,
+    IconButton: ({ className, children, onClick }: any) => (
+      <button role="button" {...{ className, children, onClick }} />
+    ),
+    Button: ({ className, children, onClick }: any) => (
+      <button role="button" {...{ className, children, onClick }} />
+    ),
+  }
+})
 
-const useSelection = jest.fn()
-jest.mock('containers/Bucket/Selection/Provider', () => ({
+const useSelection = vi.fn()
+vi.mock('containers/Bucket/Selection/Provider', () => ({
   useSelection: () => useSelection(),
 }))
 
 describe('containers/Bucket/Toolbar', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Add', () => {

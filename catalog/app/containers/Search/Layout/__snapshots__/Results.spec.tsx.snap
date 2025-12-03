@@ -1,10 +1,10 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`containers/Search/Layout/Results does not show ToggleResultsView for S3Object result type 1`] = `
+exports[`containers/Search/Layout/Results > does not show ToggleResultsView for S3Object result type 1`] = `
 <div>
   <div>
     <div>
-      Column Title: 
+      Column Title:
       5 results
     </div>
     <div>
@@ -18,11 +18,11 @@ exports[`containers/Search/Layout/Results does not show ToggleResultsView for S3
 </div>
 `;
 
-exports[`containers/Search/Layout/Results renders error state 1`] = `
+exports[`containers/Search/Layout/Results > renders error state 1`] = `
 <div>
   <div>
     <div>
-      Column Title: 
+      Column Title:
     </div>
     <div>
       <div>
@@ -49,11 +49,11 @@ exports[`containers/Search/Layout/Results renders error state 1`] = `
 </div>
 `;
 
-exports[`containers/Search/Layout/Results renders with FiltersButton when onFilters prop is provided 1`] = `
+exports[`containers/Search/Layout/Results > renders with FiltersButton when onFilters prop is provided 1`] = `
 <div>
   <div>
     <div>
-      Column Title: 
+      Column Title:
       3 results
     </div>
     <div>
@@ -84,11 +84,11 @@ exports[`containers/Search/Layout/Results renders with FiltersButton when onFilt
 </div>
 `;
 
-exports[`containers/Search/Layout/Results renders with data and shows number of results 1`] = `
+exports[`containers/Search/Layout/Results > renders with data and shows number of results 1`] = `
 <div>
   <div>
     <div>
-      Column Title: 
+      Column Title:
       5 results
     </div>
     <div>
@@ -116,11 +116,11 @@ exports[`containers/Search/Layout/Results renders with data and shows number of 
 </div>
 `;
 
-exports[`containers/Search/Layout/Results renders with loading state 1`] = `
+exports[`containers/Search/Layout/Results > renders with loading state 1`] = `
 <div>
   <div>
     <div>
-      Column Title: 
+      Column Title:
       <div>
         Loading…
       </div>
@@ -150,11 +150,11 @@ exports[`containers/Search/Layout/Results renders with loading state 1`] = `
 </div>
 `;
 
-exports[`containers/Search/Layout/Results shows Create Package button in bucket 1`] = `
+exports[`containers/Search/Layout/Results > shows Create Package button in bucket 1`] = `
 <div>
   <div>
     <div>
-      Column Title: 
+      Column Title:
       5 results
     </div>
     <div>

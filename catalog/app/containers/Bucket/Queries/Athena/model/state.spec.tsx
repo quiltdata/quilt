@@ -1,20 +1,24 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { act, renderHook } from '@testing-library/react-hooks'
+import { vi } from 'vitest'
 
 import * as Model from './'
 
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: jest.fn(() => ({
-    urls: {
-      bucketAthenaExecution: () => 'bucket-route',
-      bucketAthenaWorkgroup: () => 'workgroup-route',
-    },
-  })),
-}))
+vi.mock('utils/NamedRoutes', async () => {
+  const actual = await vi.importActual('utils/NamedRoutes')
+  return {
+    ...actual,
+    use: vi.fn(() => ({
+      urls: {
+        bucketAthenaExecution: () => 'bucket-route',
+        bucketAthenaWorkgroup: () => 'workgroup-route',
+      },
+    })),
+  }
+})
 
-const useParams = jest.fn(
+const useParams = vi.fn(
   () =>
     ({
       bucket: 'b',
@@ -22,23 +26,26 @@ const useParams = jest.fn(
     }) as Record<string, string>,
 )
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(() => useParams()),
-  Redirect: jest.fn(() => null),
-}))
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useParams: vi.fn(() => useParams()),
+    Redirect: vi.fn(() => null),
+  }
+})
 
-const batchGetQueryExecution = jest.fn()
-const getWorkGroup = jest.fn()
-const listDataCatalogs = jest.fn()
-const listDatabases = jest.fn()
-const listQueryExecutions = jest.fn()
-const listWorkGroups = jest.fn()
-const getQueryExecution = jest.fn()
-const listNamedQueries = jest.fn()
-const batchGetNamedQuery = jest.fn()
-const getQueryResults = jest.fn()
-const startQueryExecution = jest.fn()
+const batchGetQueryExecution = vi.fn()
+const getWorkGroup = vi.fn()
+const listDataCatalogs = vi.fn()
+const listDatabases = vi.fn()
+const listQueryExecutions = vi.fn()
+const listWorkGroups = vi.fn()
+const getQueryExecution = vi.fn()
+const listNamedQueries = vi.fn()
+const batchGetNamedQuery = vi.fn()
+const getQueryResults = vi.fn()
+const startQueryExecution = vi.fn()
 
 const AthenaApi = {
   batchGetNamedQuery,
@@ -54,11 +61,11 @@ const AthenaApi = {
   startQueryExecution,
 }
 
-jest.mock('utils/AWS', () => ({ Athena: { use: () => AthenaApi } }))
+vi.mock('utils/AWS', () => ({ Athena: { use: () => AthenaApi } }))
 
 describe('app/containers/Queries/Athena/model/state', () => {
   it('throw error when no bucket', () => {
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+    vi.spyOn(console, 'error').mockImplementationOnce(vi.fn())
     useParams.mockImplementationOnce(() => ({}))
     const Component = () => {
       const state = Model.useState()
@@ -93,13 +100,13 @@ describe('app/containers/Queries/Athena/model/state', () => {
     listNamedQueries.mockImplementation((_x, cb) => {
       cb(undefined, { NamedQueryIds: [] })
       return {
-        abort: jest.fn(),
+        abort: vi.fn(),
       }
     })
     listQueryExecutions.mockImplementation((_x, cb) => {
       cb(undefined, { QueryExecutionIds: [] })
       return {
-        abort: jest.fn(),
+        abort: vi.fn(),
       }
     })
     listDataCatalogs.mockImplementation(() => ({

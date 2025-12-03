@@ -90,6 +90,7 @@ export default defineConfig({
       // Remaining test files from Jest config (not yet attempted):
       'app/components/Assistant/Model/GlobalContext/navigation.spec.ts',
       // 'app/components/FileEditor/FileEditor.spec.tsx',
+      // 'app/components/FileEditor/loader.spec.ts', // Blocked by JSX in Preview/loaders/Markdown.js
       // 'app/components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences.spec.tsx',
       // 'app/components/FileEditor/QuiltConfigEditor/BucketPreferences/State.spec.ts',
       // 'app/components/FileEditor/QuiltConfigEditor/QuiltSummarize/QuiltSummarize.spec.tsx',
@@ -104,23 +105,23 @@ export default defineConfig({
       'app/containers/Bucket/Download/PackageCodeSamples.spec.tsx',
       // 'app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx', // Blocked by JSX in components/Thumbnail/Thumbnail.js
       // 'app/containers/Bucket/ListingActions.spec.tsx', // Blocked by JSX in components/Thumbnail/Thumbnail.js
-      // 'app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts',
-      // 'app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts',
-      // 'app/containers/Bucket/Queries/Athena/Database.spec.tsx',
-      // 'app/containers/Bucket/Queries/Athena/model/createPackage.spec.ts',
-      // 'app/containers/Bucket/Queries/Athena/model/requests.spec.ts',
-      // 'app/containers/Bucket/Queries/Athena/model/state.spec.tsx',
-      // 'app/containers/Bucket/requests/object.spec.ts',
-      // 'app/containers/Bucket/Successors.spec.tsx',
-      // 'app/containers/Bucket/Summarize.spec.tsx',
-      // 'app/containers/Bucket/Toolbar/Toolbar.spec.tsx',
-      // 'app/containers/Bucket/Toolbar/types.spec.ts',
-      // 'app/containers/Bucket/viewModes.spec.ts',
-      // 'app/containers/Search/Layout/Results.spec.tsx',
+      'app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts',
+      'app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts',
+      // 'app/containers/Bucket/Queries/Athena/Database.spec.tsx', // Blocked by JSX in utils/AWS/Config.js
+      'app/containers/Bucket/Queries/Athena/model/createPackage.spec.ts',
+      'app/containers/Bucket/Queries/Athena/model/requests.spec.ts',
+      'app/containers/Bucket/Queries/Athena/model/state.spec.tsx',
+      // 'app/containers/Bucket/requests/object.spec.ts', // Blocked by JSX in components/Thumbnail/Thumbnail.js
+      // 'app/containers/Bucket/Successors.spec.tsx', // Blocked by JSX in utils/AWS/Config.js
+      // 'app/containers/Bucket/Summarize.spec.tsx', // Blocked by JSX in Notifications/index.js
+      'app/containers/Bucket/Toolbar/Toolbar.spec.tsx',
+      'app/containers/Bucket/Toolbar/types.spec.ts',
+      'app/containers/Bucket/viewModes.spec.ts',
+      'app/containers/Search/Layout/Results.spec.tsx',
       // 'app/containers/Search/List/Hit.spec.tsx',
       // 'app/containers/Search/List/index.spec.tsx',
-      // 'app/containers/Search/model.spec.ts',
-      // 'app/containers/Search/Table/CellValue.spec.tsx',
+      'app/containers/Search/model.spec.ts',
+      // 'app/containers/Search/Table/CellValue.spec.tsx', // Blocked by JSX in utils/string.js
     ],
 
     // Exclude patterns

@@ -1,36 +1,28 @@
 import { renderHook } from '@testing-library/react-hooks'
+import { vi } from 'vitest'
 
 import { detect, isSupportedFileType, loadMode, useWriteData } from './loader'
 
-const putObject = jest.fn(async () => ({ VersionId: 'bar' }))
+const putObject = vi.fn(async () => ({ VersionId: 'bar' }))
 
-const headObject = jest.fn(async () => ({ VersionId: 'foo', ContentLength: 999 }))
+const headObject = vi.fn(async () => ({ VersionId: 'foo', ContentLength: 999 }))
 
-jest.mock(
-  'utils/AWS',
-  jest.fn(() => ({
-    S3: {
-      use: jest.fn(() => ({
-        putObject: () => ({
-          promise: putObject,
-        }),
-        headObject: () => ({
-          promise: headObject,
-        }),
-      })),
-    },
-  })),
-)
+vi.mock('utils/AWS', () => ({
+  S3: {
+    use: vi.fn(() => ({
+      putObject: () => ({
+        promise: putObject,
+      }),
+      headObject: () => ({
+        promise: headObject,
+      }),
+    })),
+  },
+}))
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({}))
 
-jest.mock(
-  'brace/mode/json',
-  jest.fn(() => Promise.resolve(undefined)),
-)
+vi.mock('brace/mode/json', () => Promise.resolve(undefined))
 
 describe('components/FileEditor/loader', () => {
   describe('isSupportedFileType', () => {
