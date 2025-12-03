@@ -720,7 +720,6 @@ name = "t4-lambda-preview"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "mistune" },
     { name = "nbconvert" },
     { name = "nbformat" },
     { name = "pandas" },
@@ -739,7 +738,6 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mistune", specifier = ">=3.0.2" },
     { name = "nbconvert", specifier = "~=7.16" },
     { name = "nbformat", specifier = "~=5.10" },
     { name = "pandas", specifier = "~=2.2" },
