@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Switch to uv ([#4651](https://github.com/quiltdata/quilt/pull/4651))
+- [Changed] Upgrade to Python 3.13 ([#4651](https://github.com/quiltdata/quilt/pull/4651))
 - [Added] Add CRC64NVME checksum support with algorithm-agnostic MPU computation ([#4624](https://github.com/quiltdata/quilt/pull/4624))
 - [Changed] Use `make_scratch_key()` function from py-shared to avoid S3 Slow Down errors ([#4358](https://github.com/quiltdata/quilt/pull/4358))
 - [Changed] Move some constants and `Checksum` methods to py-shared ([#4358](https://github.com/quiltdata/quilt/pull/4358))
