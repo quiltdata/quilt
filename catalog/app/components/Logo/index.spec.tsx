@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { vi } from 'vitest'
 import { handleToS3Url } from 'utils/s3paths'
 
 import Logo from '.'
 
-jest.mock('utils/AWS', () => ({
+vi.mock('utils/AWS', () => ({
   Signer: {
     useS3Signer: () => handleToS3Url,
   },

@@ -1,13 +1,11 @@
 import * as Eff from 'effect'
+import { vi } from 'vitest'
 
 import { makeJSONSchema } from '../Tool'
 
 import * as nav from './navigation'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({}))
 
 describe('components/Assistant/Model/GlobalTools/navigation', () => {
   describe('NavigateSchema', () => {
