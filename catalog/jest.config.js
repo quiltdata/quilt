@@ -36,7 +36,7 @@ module.exports = {
   setupFiles: ['jest-localstorage-mock', './setup-jest.ts'],
   // Explicitly list all test files (for gradual migration to Vitest)
   testMatch: [
-    '<rootDir>/app/components/Assistant/Model/GlobalContext/navigation.spec.ts',
+    // '<rootDir>/app/components/Assistant/Model/GlobalContext/navigation.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/BreadCrumbs/BreadCrumbs.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/BucketIcon/BucketIcon.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Buttons/Iconized.spec.tsx', // Migrated to Vitest
@@ -55,8 +55,8 @@ module.exports = {
     '<rootDir>/app/components/Filters/NumbersRange.spec.tsx',
     // '<rootDir>/app/components/JsonEditor/State.spec.js', // Migrated to Vitest
     // '<rootDir>/app/components/Layout/Container.spec.tsx', // Migrated to Vitest
-    '<rootDir>/app/components/Logo/index.spec.tsx',
-    '<rootDir>/app/components/Markdown/Markdown.spec.ts',
+    // '<rootDir>/app/components/Logo/index.spec.tsx', // Migrated to Vitest
+    // '<rootDir>/app/components/Markdown/Markdown.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/Markdown/parseTasklist.spec.ts', // Migrated to Vitest
     '<rootDir>/app/components/Preview/loaders/Ngl.spec.ts',
     '<rootDir>/app/components/Preview/loaders/useGate.spec.ts',
@@ -68,7 +68,7 @@ module.exports = {
     '<rootDir>/app/containers/Bucket/CodeSamples.spec.tsx',
     '<rootDir>/app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx',
     '<rootDir>/app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx',
-    '<rootDir>/app/containers/Bucket/Download/PackageCodeSamples.spec.tsx',
+    // '<rootDir>/app/containers/Bucket/Download/PackageCodeSamples.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx',
     '<rootDir>/app/containers/Bucket/ListingActions.spec.tsx',
     '<rootDir>/app/containers/Bucket/Overview/Downloads.spec.ts',

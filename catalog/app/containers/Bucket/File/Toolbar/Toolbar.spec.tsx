@@ -1,71 +1,84 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
+import { vi, beforeEach } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as FileToolbar from './Toolbar'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({}))
 
-jest.mock('./Get', () => ({
+vi.mock('./Get', () => ({
   Options: () => <div>"Get" popover</div>,
 }))
 
-jest.mock('./Organize', () => ({
+vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
   Options: () => <>"Organize" popover</>,
 }))
 
-jest.mock('@material-ui/lab', () => ({
-  ...jest.requireActual('@material-ui/lab'),
-  Skeleton: () => <i>⌛</i>,
-}))
+vi.mock('@material-ui/lab', async () => {
+  const actual = await vi.importActual('@material-ui/lab')
+  return {
+    ...actual,
+    Skeleton: () => <i>⌛</i>,
+  }
+})
 
-jest.mock('components/Buttons', () => ({
-  ...jest.requireActual('components/Buttons'),
-  WithPopover: ({
-    label,
-    children,
-    disabled,
-  }: {
-    disabled: boolean
-    label: string
-    children: React.ReactNode
-  }) => (
-    <button title={label} disabled={disabled}>
-      {children}
-    </button>
-  ),
-}))
+vi.mock('components/Buttons', async () => {
+  const actual = await vi.importActual('components/Buttons')
+  return {
+    ...actual,
+    WithPopover: ({
+      label,
+      children,
+      disabled,
+    }: {
+      disabled: boolean
+      label: string
+      children: React.ReactNode
+    }) => (
+      <button title={label} disabled={disabled}>
+        {children}
+      </button>
+    ),
+  }
+})
 
-jest.mock('containers/Bucket/Toolbar', () => ({
-  ...jest.requireActual('containers/Bucket/Toolbar'),
-  Assist: () => <button>Assist</button>,
-}))
+vi.mock('containers/Bucket/Toolbar', async () => {
+  const actual = await vi.importActual('containers/Bucket/Toolbar')
+  return {
+    ...actual,
+    Assist: () => <button>Assist</button>,
+  }
+})
 
-const prefsHook: jest.Mock<{ prefs: BucketPreferences.Result }> = jest.fn(() => ({
+const prefsHook = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 
-jest.mock('utils/BucketPreferences', () => ({
-  ...jest.requireActual('utils/BucketPreferences'),
-  use: () => prefsHook(),
-}))
+vi.mock('utils/BucketPreferences', async () => {
+  const actual = await vi.importActual('utils/BucketPreferences')
+  return {
+    ...actual,
+    use: () => prefsHook(),
+  }
+})
 
-const viewModes = { modes: [], mode: null, handlePreviewResult: jest.fn() }
+const viewModes = { modes: [], mode: null, handlePreviewResult: vi.fn() }
 
 const editorState = {
   editing: null,
   error: null,
-  onCancel: jest.fn(),
-  onChange: jest.fn(),
-  onEdit: jest.fn(),
-  onPreview: jest.fn(),
-  onSave: jest.fn(),
+  onCancel: vi.fn(),
+  onChange: vi.fn(),
+  onEdit: vi.fn(),
+  onPreview: vi.fn(),
+  onSave: vi.fn(),
   preview: false,
   saving: false,
   types: [],
@@ -74,7 +87,7 @@ const editorState = {
 
 describe('useFeatures', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should return null when preferences are loading', () => {
@@ -174,7 +187,7 @@ describe('Toolbar', () => {
       <FileToolbar.Toolbar
         features={null}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
@@ -187,7 +200,7 @@ describe('Toolbar', () => {
       <FileToolbar.Toolbar
         features={{ get: { code: true }, organize: true, qurator: true }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
         editorState={editorState}
       />,
@@ -201,7 +214,7 @@ describe('Toolbar', () => {
       <FileToolbar.Toolbar
         features={{ get: false, organize: false, qurator: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
@@ -214,7 +227,7 @@ describe('Toolbar', () => {
       <FileToolbar.Toolbar
         features={{ get: { code: true }, organize: false, qurator: true }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
@@ -227,7 +240,7 @@ describe('Toolbar', () => {
       <FileToolbar.Toolbar
         features={{ get: false, organize: true, qurator: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )

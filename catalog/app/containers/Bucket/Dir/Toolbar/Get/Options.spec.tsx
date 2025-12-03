@@ -1,29 +1,28 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { vi, beforeEach } from 'vitest'
 
 import { Quilt3Fetch, CliFetch } from 'containers/Bucket/CodeSamples'
 import { DirHandleCreate } from 'containers/Bucket/Toolbar'
 
 import Options from './Options'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({}))
 
-jest.mock('containers/Bucket/CodeSamples', () => ({
-  Quilt3List: jest.fn(() => <></>),
-  Quilt3Fetch: jest.fn(() => <></>),
-  CliList: jest.fn(() => <></>),
-  CliFetch: jest.fn(() => <></>),
+vi.mock('containers/Bucket/CodeSamples', () => ({
+  Quilt3List: vi.fn(() => <></>),
+  Quilt3Fetch: vi.fn(() => <></>),
+  CliList: vi.fn(() => <></>),
+  CliFetch: vi.fn(() => <></>),
 }))
 
-jest.mock(
-  'containers/Bucket/Toolbar/GetOptions',
-  () =>
-    ({ code }: { code: React.ReactNode }) => <>{code}</>,
-)
+vi.mock('containers/Bucket/Toolbar/GetOptions', () => ({
+  default: ({ code }: { code: React.ReactNode }) => <>{code}</>,
+}))
 
 describe('containers/Bucket/Dir/Toolbar/Get/Options', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   const props = {

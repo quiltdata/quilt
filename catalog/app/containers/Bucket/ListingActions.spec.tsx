@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { vi } from 'vitest'
 
 import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
@@ -8,13 +9,10 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import RowActions from './ListingActions'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
-    noDownload: false,
-    s3Proxy: '',
-  })),
-)
+vi.mock('constants/config', () => ({
+  noDownload: false,
+  s3Proxy: '',
+}))
 
 const defaultPrefs = {
   copyPackage: true,
@@ -27,26 +25,29 @@ const defaultPrefs = {
   writeFile: true,
 }
 
-jest.mock('@material-ui/core', () => ({
-  ...jest.requireActual('@material-ui/core'),
-  IconButton: ({ onClick, ...props }: any) =>
-    props.href ? <a {...props} /> : <button {...props} />,
-}))
+vi.mock('@material-ui/core', async () => {
+  const actual = await vi.importActual('@material-ui/core')
+  return {
+    ...actual,
+    IconButton: ({ onClick, ...props }: any) =>
+      props.href ? <a {...props} /> : <button {...props} />,
+  }
+})
 
-jest.mock('@material-ui/icons', () => ({
+vi.mock('@material-ui/icons', () => ({
   ArrowDownwardOutlined: () => <span>arrow_downward</span>,
   DeleteOutlined: () => <span>delete</span>,
   TurnedInOutlined: () => <span>turned_in</span>,
   TurnedInNotOutlined: () => <span>turned_in_not</span>,
 }))
 
-jest.mock('containers/Notifications', () => ({
+vi.mock('containers/Notifications', () => ({
   use: () => ({
-    push: jest.fn(() => {}),
+    push: vi.fn(() => {}),
   }),
 }))
 
-jest.mock('utils/AWS', () => ({
+vi.mock('utils/AWS', () => ({
   S3: {
     use: () => null,
   },

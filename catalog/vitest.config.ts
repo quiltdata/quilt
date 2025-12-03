@@ -99,11 +99,11 @@ export default defineConfig({
       // 'app/components/Preview/loaders/Ngl.spec.ts', // Blocked by JSX in utils/AWS/Config.js
       // 'app/components/Preview/loaders/useGate.spec.ts', // Blocked by JSX in utils/string.js
       // 'app/components/Preview/loaders/useSignObjectUrls.spec.ts', // Blocked by JSX in utils/string.js
-      // 'app/components/Preview/quick/Markdown/Render.spec.tsx',
-      // 'app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx',
-      // 'app/containers/Bucket/Download/PackageCodeSamples.spec.tsx',
-      // 'app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx',
-      // 'app/containers/Bucket/ListingActions.spec.tsx',
+      // 'app/components/Preview/quick/Markdown/Render.spec.tsx', // Blocked by JSX in Preview/loaders/Markdown.js
+      // 'app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx', // Blocked by JSX in utils/AWS/Config.js
+      'app/containers/Bucket/Download/PackageCodeSamples.spec.tsx',
+      // 'app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx', // Blocked by JSX in components/Thumbnail/Thumbnail.js
+      // 'app/containers/Bucket/ListingActions.spec.tsx', // Blocked by JSX in components/Thumbnail/Thumbnail.js
       // 'app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts',
       // 'app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts',
       // 'app/containers/Bucket/Queries/Athena/Database.spec.tsx',
