@@ -37,8 +37,8 @@ module.exports = {
   // Explicitly list all test files (for gradual migration to Vitest)
   testMatch: [
     '<rootDir>/app/components/Assistant/Model/GlobalContext/navigation.spec.ts',
-    '<rootDir>/app/components/BreadCrumbs/BreadCrumbs.spec.tsx',
-    '<rootDir>/app/components/BucketIcon/BucketIcon.spec.tsx',
+    // '<rootDir>/app/components/BreadCrumbs/BreadCrumbs.spec.tsx', // Migrated to Vitest
+    // '<rootDir>/app/components/BucketIcon/BucketIcon.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Buttons/Iconized.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Buttons/Skeleton.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Buttons/WithPopover.spec.tsx', // Migrated to Vitest

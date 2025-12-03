@@ -51,6 +51,8 @@ export default defineConfig({
       'app/constants/routes.spec.ts',
 
       // Component tests:
+      'app/components/BreadCrumbs/BreadCrumbs.spec.tsx',
+      'app/components/BucketIcon/BucketIcon.spec.tsx',
       'app/components/Buttons/Skeleton.spec.tsx',
       'app/components/Buttons/Iconized.spec.tsx',
       'app/components/Buttons/WithPopover.spec.tsx',
