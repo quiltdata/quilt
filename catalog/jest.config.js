@@ -64,7 +64,7 @@ module.exports = {
     '<rootDir>/app/components/Preview/loaders/Vega.spec.js',
     '<rootDir>/app/components/Preview/quick/index.spec.tsx',
     '<rootDir>/app/components/Preview/quick/Markdown/Render.spec.tsx',
-    '<rootDir>/app/constants/routes.spec.ts',
+    // '<rootDir>/app/constants/routes.spec.ts', // Migrated to Vitest
     '<rootDir>/app/containers/Bucket/CodeSamples.spec.tsx',
     '<rootDir>/app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx',
     '<rootDir>/app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx',
@@ -103,10 +103,10 @@ module.exports = {
     '<rootDir>/app/containers/Search/model.spec.ts',
     '<rootDir>/app/containers/Search/Table/CellValue.spec.tsx',
     '<rootDir>/app/containers/Search/Table/index.spec.tsx',
-    '<rootDir>/app/utils/AWS/Bedrock/History.spec.ts',
-    '<rootDir>/app/utils/AWS/Bedrock/Message.spec.ts',
-    '<rootDir>/app/utils/BucketPreferences/BucketPreferences.spec.ts',
-    '<rootDir>/app/utils/checksums/checksums.spec.ts',
+    // '<rootDir>/app/utils/AWS/Bedrock/History.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/utils/AWS/Bedrock/Message.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/utils/BucketPreferences/BucketPreferences.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/utils/checksums/checksums.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/utils/defer.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/utils/error.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/utils/format.spec.tsx', // Migrated to Vitest

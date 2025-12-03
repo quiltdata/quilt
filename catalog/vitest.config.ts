@@ -42,6 +42,13 @@ export default defineConfig({
       'app/utils/tagged.spec.js',
       'app/utils/taggedV2.spec.ts',
       'app/utils/workflows.spec.ts',
+      'app/utils/AWS/Bedrock/History.spec.ts',
+      'app/utils/AWS/Bedrock/Message.spec.ts',
+      'app/utils/BucketPreferences/BucketPreferences.spec.ts',
+      'app/utils/checksums/checksums.spec.ts',
+
+      // Constants tests:
+      'app/constants/routes.spec.ts',
 
       // Component tests:
       'app/components/Buttons/Skeleton.spec.tsx',
@@ -94,6 +101,8 @@ export default defineConfig({
       constants: path.resolve(__dirname, './app/constants'),
       // Add schemas from shared directory (matching webpack modules resolution)
       schemas: path.resolve(__dirname, '../shared/schemas'),
+      // Add model directory (matching webpack modules resolution)
+      model: path.resolve(__dirname, './app/model'),
     },
   },
 
