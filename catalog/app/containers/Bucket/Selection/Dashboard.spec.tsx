@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { render } from '@testing-library/react'
+import { vi } from 'vitest'
 
 import { bucketDir, bucketFile, bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -9,7 +10,7 @@ import Dashboard from './Dashboard'
 import { Provider, useSelection } from './Provider'
 import type { merge } from './utils'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 interface SelectionSetupProps {
   mergeWith: Parameters<typeof merge>

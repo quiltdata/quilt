@@ -20,9 +20,11 @@ vi.mock('utils/AWS', () => ({
   },
 }))
 
-vi.mock('constants/config', () => ({}))
+vi.mock('utils/Config', () => ({
+  getConfig: vi.fn(() => ({})),
+}))
 
-vi.mock('brace/mode/json', () => Promise.resolve(undefined))
+vi.mock('brace/mode/json', () => ({ default: Promise.resolve(undefined) }))
 
 describe('components/FileEditor/loader', () => {
   describe('isSupportedFileType', () => {
@@ -107,7 +109,7 @@ describe('components/FileEditor/loader', () => {
         setTimeout(() => {
           expect(loadMode('json')).toBe('fulfilled')
           resolve(null)
-        })
+        }, 100)
       })
     })
   })

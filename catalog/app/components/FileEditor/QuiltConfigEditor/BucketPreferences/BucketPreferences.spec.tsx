@@ -1,42 +1,35 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
+import { vi } from 'vitest'
 
 import BucketPreferences from './BucketPreferences'
 
 const theme = createMuiTheme()
 const noop = () => {}
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  'utils/BucketConfig',
-  jest.fn(() => ({
-    useRelevantBucketConfigs: () => [],
-  })),
-)
+vi.mock('utils/BucketConfig', () => ({
+  useRelevantBucketConfigs: () => [],
+}))
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Checkbox: jest.fn(({ checked }: { checked: boolean }) => (
+vi.mock('@material-ui/core', async () => {
+  const actual = await vi.importActual('@material-ui/core')
+  return {
+    ...actual,
+    Checkbox: ({ checked }: { checked: boolean }) => (
       <div id="checkbox">{checked.toString()}</div>
-    )),
-    IconButton: jest.fn(({ children }: { children: React.ReactNode }) => (
+    ),
+    IconButton: ({ children }: { children: React.ReactNode }) => (
       <div id="icon-button">{children}</div>
-    )),
-    Icon: jest.fn(({ children }: { children: string }) => (
-      <div id="icon">{children}</div>
-    )),
-    TextField: jest.fn(({ value }: { value: React.ReactNode }) => (
+    ),
+    Icon: ({ children }: { children: string }) => <div id="icon">{children}</div>,
+    TextField: ({ value }: { value: React.ReactNode }) => (
       <div id="text-field">{value}</div>
-    )),
-    Select: jest.fn(({ value }: { value: string }) => <div id="select">{value}</div>),
-    makeStyles: jest.fn((cb: any) => () => {
+    ),
+    Select: ({ value }: { value: string }) => <div id="select">{value}</div>,
+    makeStyles: (cb: any) => () => {
       const classes = typeof cb === 'function' ? cb(theme) : cb
       return Object.keys(classes).reduce(
         (acc, key) => ({
@@ -45,21 +38,21 @@ jest.mock(
         }),
         {},
       )
-    }),
-  })),
-)
+    },
+  }
+})
 
-jest.mock(
-  '@material-ui/lab',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Autocomplete: jest.fn(({ options, value }: { options?: string[]; value: string }) => (
+vi.mock('@material-ui/lab', async () => {
+  const actual = await vi.importActual('@material-ui/lab')
+  return {
+    ...actual,
+    Autocomplete: ({ options, value }: { options?: string[]; value: string }) => (
       <div id="autocomplete">
         {value} from [{options?.join(', ')}]
       </div>
-    )),
-  })),
-)
+    ),
+  }
+})
 
 describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences', () => {
   it('render form with default values', () => {

@@ -76,33 +76,33 @@ export default defineConfig({
       'app/components/JsonEditor/State.spec.js',
       'app/components/Preview/quick/index.spec.tsx',
       'app/components/Preview/loaders/Vega.spec.js',
-      // 'app/containers/Bucket/Selection/Dashboard.spec.tsx', // Blocked by JSX in FileView.js
-      // 'app/components/FileEditor/CreateFile.spec.tsx', // Blocked by JSX in Preview/loaders/Markdown.js
-      // 'app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx', // Blocked by JSX in containers/Bucket/FileView.js
-      // 'app/containers/Bucket/CodeSamples.spec.tsx', // Blocked by JSX in Notifications/index.js
+      'app/containers/Bucket/Selection/Dashboard.spec.tsx',
+      'app/components/FileEditor/CreateFile.spec.tsx',
+      'app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx',
+      'app/containers/Bucket/CodeSamples.spec.tsx',
       'app/components/Filters/NumbersRange.spec.tsx',
-      // 'app/containers/Bucket/Overview/Downloads.spec.ts', // Blocked by JSX in StackedAreaChart.js
+      'app/containers/Bucket/Overview/Downloads.spec.ts',
       'app/containers/Bucket/PackageDialog/State/meta.spec.ts',
       'app/containers/Bucket/PackageDialog/State/name.spec.ts',
       'app/containers/Bucket/PackageDialog/State/params.spec.ts',
 
       'app/components/Assistant/Model/GlobalContext/navigation.spec.ts',
-      // 'app/components/FileEditor/FileEditor.spec.tsx', // Blocked by JSX in Preview/loaders/Markdown.js
-      // 'app/components/FileEditor/loader.spec.ts', // Blocked by JSX in Preview/loaders/Markdown.js
-      // 'app/components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences.spec.tsx',
-      // 'app/components/FileEditor/QuiltConfigEditor/BucketPreferences/State.spec.ts',
-      // 'app/components/FileEditor/QuiltConfigEditor/QuiltSummarize/QuiltSummarize.spec.tsx',
-      // 'app/components/FileEditor/QuiltConfigEditor/QuiltSummarize/State.spec.tsx',
+      'app/components/FileEditor/FileEditor.spec.tsx',
+      'app/components/FileEditor/loader.spec.ts',
+      'app/components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences.spec.tsx',
+      'app/components/FileEditor/QuiltConfigEditor/BucketPreferences/State.spec.ts',
+      'app/components/FileEditor/QuiltConfigEditor/QuiltSummarize/QuiltSummarize.spec.tsx',
+      'app/components/FileEditor/QuiltConfigEditor/QuiltSummarize/State.spec.tsx',
       'app/components/Logo/index.spec.tsx',
       'app/components/Markdown/Markdown.spec.ts',
       'app/components/Preview/loaders/Ngl.spec.ts',
       'app/components/Preview/loaders/useGate.spec.ts',
       'app/components/Preview/loaders/useSignObjectUrls.spec.ts',
-      // 'app/components/Preview/quick/Markdown/Render.spec.tsx', // Blocked by JSX in Preview/loaders/Markdown.js
-      // 'app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx', // Blocked by JSX in containers/Bucket/FileView.js
+      'app/components/Preview/quick/Markdown/Render.spec.tsx',
+      'app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx',
       'app/containers/Bucket/Download/PackageCodeSamples.spec.tsx',
       'app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx',
-      // 'app/containers/Bucket/ListingActions.spec.tsx', // Blocked by JSX in containers/Bucket/FileView.js
+      'app/containers/Bucket/ListingActions.spec.tsx',
       'app/containers/Bucket/PackageDialog/Inputs/Files/State.spec.ts',
       'app/containers/Bucket/PackageDialog/Inputs/Files/stats.spec.ts',
       'app/containers/Bucket/Queries/Athena/Database.spec.tsx',
@@ -111,13 +111,13 @@ export default defineConfig({
       'app/containers/Bucket/Queries/Athena/model/state.spec.tsx',
       'app/containers/Bucket/requests/object.spec.ts',
       'app/containers/Bucket/Successors.spec.tsx',
-      // 'app/containers/Bucket/Summarize.spec.tsx', // Blocked by JSX in Notifications/index.js
+      'app/containers/Bucket/Summarize.spec.tsx',
       'app/containers/Bucket/Toolbar/Toolbar.spec.tsx',
       'app/containers/Bucket/Toolbar/types.spec.ts',
       'app/containers/Bucket/viewModes.spec.ts',
       'app/containers/Search/Layout/Results.spec.tsx',
-      // 'app/containers/Search/List/Hit.spec.tsx', // Blocked by JSX in app/components/Preview/Display.js
-      // 'app/containers/Search/List/index.spec.tsx', // Blocked by JSX in app/components/Preview/Display.js
+      'app/containers/Search/List/Hit.spec.tsx',
+      'app/containers/Search/List/index.spec.tsx',
       'app/containers/Search/model.spec.ts',
       'app/containers/Search/Table/CellValue.spec.tsx',
     ],

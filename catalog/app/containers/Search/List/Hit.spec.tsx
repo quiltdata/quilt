@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { render } from '@testing-library/react'
 
@@ -9,8 +10,10 @@ import type { SearchHitPackage } from '../model'
 
 import { Package } from './Hit'
 
-jest.mock('constants/config', () => ({}))
-jest.mock('components/Preview', () => ({}))
+vi.mock('utils/Config', () => ({
+  getConfig: vi.fn(() => ({})),
+}))
+vi.mock('components/Preview', () => ({}))
 
 const hitBase = {
   id: 'unique-id',

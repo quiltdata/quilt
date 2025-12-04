@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
@@ -7,67 +8,64 @@ import AsyncResult from 'utils/AsyncResult'
 import { useState } from './State'
 import { Editor } from './FileEditor'
 
-jest.mock('utils/AWS', () => ({ S3: { use: () => {} } }))
+vi.mock('utils/AWS', () => ({ S3: { use: () => {} } }))
 
-jest.mock('./Skeleton', () => () => <div id="Skeleton" />)
+vi.mock('./Skeleton', () => ({ default: () => <div id="Skeleton" /> }))
 
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: jest.fn(() => ({ urls: {} })),
+vi.mock('utils/NamedRoutes', async () => {
+  const actual = await vi.importActual('utils/NamedRoutes')
+  return {
+    ...actual,
+    use: vi.fn(() => ({ urls: {} })),
+  }
+})
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useParams: vi.fn(() => ({ bucket: 'b', key: 'k' })),
+    useLocation: vi.fn(() => ({ search: '?edit=true' })),
+  }
+})
+
+vi.mock('components/Preview/Display', () => ({
+  default: () => <div id="error" />,
 }))
 
-jest.mock(
-  'react-router-dom',
-  jest.fn(() => ({
-    ...jest.requireActual('react-router-dom'),
-    useParams: jest.fn(() => ({ bucket: 'b', key: 'k' })),
-    useLocation: jest.fn(() => ({ search: '?edit=true' })),
-  })),
-)
-
-jest.mock(
-  'components/Preview/Display',
-  jest.fn(() => () => <div id="error" />),
-)
-
-const getObjectData = jest.fn((cases: any) =>
+const getObjectData = vi.fn((cases: any) =>
   AsyncResult.case(cases, AsyncResult.Ok({ Body: 'body' })),
 )
 
-jest.mock(
-  'components/Preview/loaders/utils',
-  jest.fn(() => ({
-    ...jest.requireActual('components/Preview/loaders/utils'),
+vi.mock('components/Preview/loaders/utils', async () => {
+  const actual = await vi.importActual('components/Preview/loaders/utils')
+  return {
+    ...actual,
     useObjectGetter: () => ({
       case: getObjectData,
     }),
-  })),
-)
+  }
+})
 
-jest.mock(
-  './TextEditor',
-  jest.fn(() => ({ initialValue }: { initialValue: string }) => (
+vi.mock('./TextEditor', () => ({
+  default: ({ initialValue }: { initialValue: string }) => (
     <div id="Text Editor">
       <span id="initialValue">{initialValue}</span>
     </div>
-  )),
-)
+  ),
+}))
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('utils/Config', () => ({
+  getConfig: vi.fn(() => ({})),
+}))
 
-const loadMode = jest.fn(() => 'fulfilled')
+const loadMode = vi.fn(() => 'fulfilled')
 
-jest.mock(
-  './loader',
-  jest.fn(() => ({
-    loadMode: jest.fn(() => loadMode()),
-    detect: () => 'text',
-    useWriteData: () => {},
-  })),
-)
+vi.mock('./loader', () => ({
+  loadMode: vi.fn(() => loadMode()),
+  detect: () => 'text',
+  useWriteData: () => {},
+}))
 
 describe('components/FileEditor/FileEditor', () => {
   describe('Editor', () => {

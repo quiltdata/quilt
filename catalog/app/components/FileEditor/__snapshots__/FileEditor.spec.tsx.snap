@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/FileEditor/FileEditor Editor shows Error when loading failed 1`] = `
+exports[`components/FileEditor/FileEditor > Editor > shows Error when loading failed 1`] = `
 <div
   class="makeStyles-tab-9 makeStyles-active-10"
 >
@@ -12,7 +12,7 @@ exports[`components/FileEditor/FileEditor Editor shows Error when loading failed
 </div>
 `;
 
-exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading data 1`] = `
+exports[`components/FileEditor/FileEditor > Editor > shows Skeleton while loading data 1`] = `
 <div
   class="makeStyles-tab-7 makeStyles-active-8"
 >
@@ -22,7 +22,7 @@ exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading da
 </div>
 `;
 
-exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
+exports[`components/FileEditor/FileEditor > Editor > shows TextEditor 1`] = `
 <div
   class="makeStyles-tab-3 makeStyles-active-4"
 >
@@ -38,7 +38,7 @@ exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
 </div>
 `;
 
-exports[`components/FileEditor/FileEditor Editor shows an empty TextEditor 1`] = `
+exports[`components/FileEditor/FileEditor > Editor > shows an empty TextEditor 1`] = `
 <div
   class="makeStyles-tab-5 makeStyles-active-6"
 >
@@ -52,7 +52,7 @@ exports[`components/FileEditor/FileEditor Editor shows an empty TextEditor 1`] =
 </div>
 `;
 
-exports[`components/FileEditor/FileEditor Editor shows skeleton when loadMode is not resolved yet 1`] = `
+exports[`components/FileEditor/FileEditor > Editor > shows skeleton when loadMode is not resolved yet 1`] = `
 <div
   class="makeStyles-tab-1 makeStyles-active-2"
   style="display: none;"

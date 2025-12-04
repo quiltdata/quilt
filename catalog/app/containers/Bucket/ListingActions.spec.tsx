@@ -60,6 +60,10 @@ vi.mock('utils/AWS', () => ({
 
 const noop = () => {}
 
+vi.mock('react-redux', () => ({
+  useSelector: vi.fn(() => ({ token: 'mock-token' })),
+}))
+
 function TestBucket({ children }: React.PropsWithChildren<{}>) {
   return (
     <Bookmarks.Provider>

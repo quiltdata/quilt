@@ -6,7 +6,7 @@ import AsyncResult from 'utils/AsyncResult'
 
 import Render from './Render'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 const useMarkdownRenderer = vi.fn()
 vi.mock('components/Preview/loaders/Markdown', async () => {

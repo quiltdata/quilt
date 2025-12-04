@@ -1,9 +1,8 @@
+import { vi } from 'vitest'
+
 import { processBucketAccessCounts } from './Downloads'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/Overview/Downloads', () => {
   describe('processBucketAccessCounts', () => {

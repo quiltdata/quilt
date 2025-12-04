@@ -1,28 +1,31 @@
+import { vi } from 'vitest'
 import { renderHook } from '@testing-library/react-hooks'
 
 import { DirHandleCreate } from 'containers/Bucket/Toolbar'
 
 import { useCreateFileInBucket } from './CreateFile'
 
-jest.mock('constants/config', () => ({}))
-
-jest.mock('react-router-dom', () => ({
-  useHistory: jest.fn(() => ({ push: jest.fn() })),
+vi.mock('utils/Config', () => ({
+  getConfig: vi.fn(() => ({})),
 }))
 
-const usePrompt = jest.fn()
-jest.mock('components/Dialog', () => ({
-  usePrompt: jest.fn(({ onSubmit }) => usePrompt({ onSubmit })),
+vi.mock('react-router-dom', () => ({
+  useHistory: vi.fn(() => ({ push: vi.fn() })),
 }))
 
-const toFile = jest.fn()
-jest.mock('./routes', () => ({
-  useAddFileInBucket: jest.fn(() => toFile),
+const usePrompt = vi.fn()
+vi.mock('components/Dialog', () => ({
+  usePrompt: vi.fn(({ onSubmit }) => usePrompt({ onSubmit })),
+}))
+
+const toFile = vi.fn()
+vi.mock('./routes', () => ({
+  useAddFileInBucket: vi.fn(() => toFile),
 }))
 
 describe('useCreateFileInBucket', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should call toFile with path with no leading slash', () => {
