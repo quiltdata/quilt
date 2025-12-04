@@ -3,16 +3,7 @@ import { defineConfig } from 'vitest/config'
 import path from 'path'
 
 export default defineConfig({
-  // Configure esbuild to handle JSX in .js files
-  optimizeDeps: {
-    esbuildOptions: {
-      loader: {
-        '.js': 'jsx',
-      },
-    },
-  },
   test: {
-    // Environment setup
     environment: 'jsdom',
     environmentOptions: {
       jsdom: {
@@ -20,31 +11,18 @@ export default defineConfig({
       },
     },
 
-    // Setup files
     setupFiles: ['./setup-vitest.ts'],
 
-    // Test file patterns - use glob patterns to include all test files
-    include: [
-      'app/**/*.{test,spec}.{js,ts,jsx,tsx}',
-    ],
+    include: ['app/**/*.spec.{js,ts,tsx}',],
 
-    // Exclude patterns
-    exclude: [
-      'node_modules/**',
-      'build/**',
-    ],
+    exclude: ['node_modules/**',],
 
-    // Coverage configuration (matching Jest setup)
     coverage: {
       provider: 'v8',
       include: ['app/**/*.{j,t}s{,x}'],
       exclude: [
-        'app/**/*.{test,spec}.{j,t}s{,x}',
+        'app/**/*.spec.{js,ts,tsx}',
         'app/**/mocks/*.{j,t}s{,x}',
-        'app/*/RbGenerated*/*.{j,t}s{,x}',
-        'app/app.{j,t}s{,x}',
-        'app/global-styles.{j,t}s{,x}',
-        'app/*/*/Loadable.{j,t}s{,x}',
       ],
       thresholds: {
         statements: 4,
@@ -54,11 +32,9 @@ export default defineConfig({
       },
     },
 
-    // Global setup for mocking
     globals: true,
   },
 
-  // Module resolution (matching webpack/tsconfig setup)
   resolve: {
     alias: {
       // Match webpack's module resolution
@@ -74,25 +50,6 @@ export default defineConfig({
       schemas: path.resolve(__dirname, '../shared/schemas'),
       // Add model directory (matching webpack modules resolution)
       model: path.resolve(__dirname, './app/model'),
-    },
-  },
-
-  // Define to handle environment variables
-  define: {
-    // Match webpack's environment plugin
-    'process.env.LOGGER_REDUX': JSON.stringify(process.env.LOGGER_REDUX || 'enabled'),
-  },
-
-  // ESM handling (addresses current p-limit and msgpackr workarounds)
-  esbuild: {
-    target: 'es2020',
-  },
-
-  // Module name mapping (equivalent to Jest's moduleNameMapper)
-  server: {
-    deps: {
-      // Handle ESM modules that Jest had issues with
-      inline: ['p-limit'],
     },
   },
 })
