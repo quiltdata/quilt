@@ -12,13 +12,22 @@ error() {
 
 [ -f "/.dockerenv" ] || error "This should only run inside of quiltdata/lambda container."
 
+dnf --setopt=install_weak_deps=0 install -y \
+    gcc \
+    findutils \
+    zip \
+    binutils \
+    jq \
+    unzip
+
+pip install uv
+
 mkdir out
 cd out
 
-pip3 install -U pip setuptools
-
 # install everything into a temporary directory
-pip3 install --no-compile --no-deps -t . -r /lambda/function/requirements.txt /lambda/function/
+uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt
+uv pip install --no-compile --no-deps --target . -r /lambda/function/requirements.txt /lambda/function/
 python3 -m compileall -b .
 
 # add binaries

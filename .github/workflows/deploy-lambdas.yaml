@@ -32,11 +32,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-      - name: Export requirements.txt from uv.lock
-        if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
-        run: |
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
       - name: Build zip
         run: |
           BUILDER_IMAGE=amazon/aws-lambda-python:$(cat lambdas/${{ matrix.path }}/.python-version)
