@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
-import { vi } from 'vitest'
+import { expect, beforeEach, describe, it, vi } from 'vitest'
 
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'

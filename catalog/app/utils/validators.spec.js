@@ -1,5 +1,5 @@
 import { Map } from 'immutable'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import validate, * as validators from './validators'
 

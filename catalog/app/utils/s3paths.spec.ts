@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { canonicalKey } from './s3paths'
 
 vi.mock('constants/config', () => ({ default: {} }))

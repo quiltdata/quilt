@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-hooks'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
 

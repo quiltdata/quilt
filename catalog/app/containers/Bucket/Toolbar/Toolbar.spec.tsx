@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, fireEvent, act } from '@testing-library/react'
-import { vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import * as Toolbar from './Toolbar'
 

@@ -1,6 +1,6 @@
 import type { S3, AWSError } from 'aws-sdk'
 import log from 'loglevel'
-import { vi, beforeAll, afterAll } from 'vitest'
+import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 
 import { PreviewError } from '../types'
 

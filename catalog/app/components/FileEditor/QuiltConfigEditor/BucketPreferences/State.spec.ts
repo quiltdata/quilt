@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import * as legacyBucketPreferences from 'utils/BucketPreferences/BucketPreferences'
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'

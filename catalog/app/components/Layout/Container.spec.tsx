@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 

@@ -1,4 +1,4 @@
-import { vi, type MockedFunction } from 'vitest'
+import { describe, it, expect, vi, type MockedFunction } from 'vitest'
 import * as packageHandle from './packageHandle'
 
 /* eslint-disable no-console */

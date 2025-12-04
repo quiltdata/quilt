@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { act, renderHook } from '@testing-library/react-hooks'
-import { vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import * as Model from './'
 

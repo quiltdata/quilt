@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import QuiltSummarize from './QuiltSummarize'
 

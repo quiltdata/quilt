@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Helmet } from 'react-helmet'
 import { render } from '@testing-library/react'
+import { beforeAll, describe, it, expect } from 'vitest'
 
 import MetaTitle, { getTitle } from './MetaTitle'
 

@@ -1,4 +1,5 @@
 import type { Remarkable } from 'remarkable'
+import { describe, it, expect } from 'vitest'
 
 import parseTasklist from './parseTasklist'
 

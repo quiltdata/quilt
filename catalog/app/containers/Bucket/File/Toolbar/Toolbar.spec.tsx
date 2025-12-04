@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
-import { vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'

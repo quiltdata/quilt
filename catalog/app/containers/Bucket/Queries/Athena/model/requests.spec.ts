@@ -1,6 +1,6 @@
 import type A from 'aws-sdk/clients/athena'
 import { act, renderHook } from '@testing-library/react-hooks'
-import { vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import Log from 'utils/Logging'
 

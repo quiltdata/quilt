@@ -1,5 +1,5 @@
 import type { S3 } from 'aws-sdk'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import { FileNotFound } from '../errors'
 

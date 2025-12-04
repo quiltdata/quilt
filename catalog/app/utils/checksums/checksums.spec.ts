@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
-import { vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import computeFileChecksumLimit from './checksums'
 
