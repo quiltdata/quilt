@@ -13,17 +13,14 @@ export default defineConfig({
 
     setupFiles: ['./setup-vitest.ts'],
 
-    include: ['app/**/*.spec.{js,ts,tsx}',],
+    include: ['app/**/*.spec.{js,ts,tsx}'],
 
-    exclude: ['node_modules/**',],
+    exclude: ['node_modules/**'],
 
     coverage: {
       provider: 'v8',
       include: ['app/**/*.{j,t}s{,x}'],
-      exclude: [
-        'app/**/*.spec.{js,ts,tsx}',
-        'app/**/mocks/*.{j,t}s{,x}',
-      ],
+      exclude: ['app/**/*.spec.{js,ts,tsx}', 'app/**/mocks/*.{j,t}s{,x}'],
       thresholds: {
         statements: 4,
         branches: 3,
