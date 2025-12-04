@@ -14,7 +14,7 @@ class AWSError extends Error {
   }
 }
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('app/containers/Bucket/requests/object', () => {
   describe('objectVersions', () => {

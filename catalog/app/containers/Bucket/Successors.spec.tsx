@@ -1,52 +1,55 @@
 import * as React from 'react'
+import { vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import type { Successor } from 'utils/workflows'
 
 import { SuccessorsSelect } from './Successors'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('utils/Config', () => ({
+  getConfig: vi.fn(() => ({})),
+}))
 
-jest.mock('@material-ui/core', () => ({
-  ...jest.requireActual('@material-ui/core'),
-  Menu: jest.fn(({ children }: React.PropsWithChildren<{}>) => (
-    <ul data-testid="menu">{children}</ul>
-  )),
-  MenuItem: jest.fn(({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>),
-  ListItemText: jest.fn(
-    ({ primary, secondary }: { primary: string; secondary?: string }) => (
-      <span title={secondary}>{primary}</span>
+vi.mock('@material-ui/core', async () => {
+  const actual = await vi.importActual('@material-ui/core')
+  return {
+    ...actual,
+    Menu: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
+      <ul data-testid="menu">{children}</ul>
+    )),
+    MenuItem: vi.fn(({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>),
+    ListItemText: vi.fn(
+      ({ primary, secondary }: { primary: string; secondary?: string }) => (
+        <span title={secondary}>{primary}</span>
+      ),
     ),
-  ),
-  ListSubheader: jest.fn(({ children }: React.PropsWithChildren<{}>) => (
-    <h1>{children}</h1>
-  )),
-  Popover: jest.fn(({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>),
+    ListSubheader: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
+      <h1>{children}</h1>
+    )),
+    Popover: vi.fn(({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>),
+  }
+})
+
+vi.mock('@material-ui/lab', () => ({
+  Skeleton: vi.fn(() => <div>Loading…</div>),
 }))
 
-jest.mock('@material-ui/lab', () => ({
-  Skeleton: jest.fn(() => <div>Loading…</div>),
-}))
-
-jest.mock('components/FileEditor/HelpLinks', () => ({
-  WorkflowsConfigLink: jest.fn(({ children }: React.PropsWithChildren<{}>) => (
+vi.mock('components/FileEditor/HelpLinks', () => ({
+  WorkflowsConfigLink: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
     <a>{children}</a>
   )),
 }))
 
-jest.mock('utils/StyledLink', () =>
-  jest.fn(({ children, ...props }: React.PropsWithChildren<any>) => (
+vi.mock('utils/StyledLink', () => ({
+  default: vi.fn(({ children, ...props }: React.PropsWithChildren<any>) => (
     <a {...props}>{children}</a>
   )),
-)
+}))
 
 const props = {
   anchorEl: document.createElement('div'),
-  onChange: jest.fn(),
-  onClose: jest.fn(),
+  onChange: vi.fn(),
+  onClose: vi.fn(),
 }
 
 describe('containers/Bucket/Successors/SuccessorsSelect', () => {

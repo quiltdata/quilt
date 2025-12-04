@@ -10,8 +10,10 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import RowActions from './ListingActions'
 
 vi.mock('constants/config', () => ({
-  noDownload: false,
-  s3Proxy: '',
+  default: {
+    noDownload: false,
+    s3Proxy: '',
+  },
 }))
 
 const defaultPrefs = {

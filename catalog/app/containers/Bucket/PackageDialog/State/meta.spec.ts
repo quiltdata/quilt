@@ -6,7 +6,7 @@ import * as Manifest from './manifest'
 import { useMeta, Err, Ok } from './meta'
 import * as Schema from './schema'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 const mkMetaValidator = vi.fn()
 vi.mock('./schema', async () => {

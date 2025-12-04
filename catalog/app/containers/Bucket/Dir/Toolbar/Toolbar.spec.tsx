@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
@@ -7,72 +8,83 @@ import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as DirToolbar from './Toolbar'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('utils/Config', () => ({
+  getConfig: vi.fn(() => ({})),
+}))
 
-jest.mock('./Add', () => ({
+vi.mock('./Add', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   },
   Options: () => <>"Add" popover</>,
 }))
 
-jest.mock('./Get', () => ({
+vi.mock('./Get', () => ({
   Options: () => <div>"Get" popover</div>,
 }))
 
-jest.mock('./Organize', () => ({
+vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
   Options: () => <>"Organize" popover</>,
 }))
 
-jest.mock('./CreatePackage', () => ({
+vi.mock('./CreatePackage', () => ({
   Options: () => <>"Create package" popover</>,
   useSuccessors: () => {},
 }))
 
-jest.mock('containers/Bucket/PackageDialog', () => ({
+vi.mock('containers/Bucket/PackageDialog', () => ({
   useCreateDialog: () => ({
-    open: jest.fn(),
-    render: jest.fn(),
+    open: vi.fn(),
+    render: vi.fn(),
   }),
 }))
 
-jest.mock('@material-ui/lab', () => ({
-  ...jest.requireActual('@material-ui/lab'),
-  Skeleton: () => <i>⌛</i>,
-}))
+vi.mock('@material-ui/lab', async () => {
+  const actual = await vi.importActual('@material-ui/lab')
+  return {
+    ...actual,
+    Skeleton: () => <i>⌛</i>,
+  }
+})
 
-jest.mock('components/Buttons', () => ({
-  ...jest.requireActual('components/Buttons'),
-  WithPopover: ({
-    label,
-    children,
-    disabled,
-  }: {
-    disabled: boolean
-    label: string
-    children: React.ReactNode
-  }) => (
-    <button title={label} disabled={disabled}>
-      {children}
-    </button>
-  ),
-}))
+vi.mock('components/Buttons', async () => {
+  const actual = await vi.importActual('components/Buttons')
+  return {
+    ...actual,
+    WithPopover: ({
+      label,
+      children,
+      disabled,
+    }: {
+      disabled: boolean
+      label: string
+      children: React.ReactNode
+    }) => (
+      <button title={label} disabled={disabled}>
+        {children}
+      </button>
+    ),
+  }
+})
 
-const prefsHook: jest.Mock<{ prefs: BucketPreferences.Result }> = jest.fn(() => ({
+const prefsHook = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 
-jest.mock('utils/BucketPreferences', () => ({
-  ...jest.requireActual('utils/BucketPreferences'),
-  use: () => prefsHook(),
-}))
+vi.mock('utils/BucketPreferences', async () => {
+  const actual = await vi.importActual('utils/BucketPreferences')
+  return {
+    ...actual,
+    use: () => prefsHook(),
+  }
+})
 
 describe('useFeatures', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should return null when preferences are loading', () => {
@@ -147,7 +159,7 @@ const handle = DirToolbar.CreateHandle('test-bucket', 'test/path')
 describe('Toolbar', () => {
   it('should render skeleton buttons when features is null', () => {
     const { container } = render(
-      <DirToolbar.Toolbar features={null} handle={handle} onReload={jest.fn()} />,
+      <DirToolbar.Toolbar features={null} handle={handle} onReload={vi.fn()} />,
     )
 
     expect(container.firstChild).toMatchSnapshot()
@@ -158,7 +170,7 @@ describe('Toolbar', () => {
       <DirToolbar.Toolbar
         features={{ add: true, get: { code: true }, organize: true, createPackage: true }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
       />,
     )
 
@@ -170,7 +182,7 @@ describe('Toolbar', () => {
       <DirToolbar.Toolbar
         features={{ add: false, get: false, organize: false, createPackage: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
       />,
     )
 
@@ -182,7 +194,7 @@ describe('Toolbar', () => {
       <DirToolbar.Toolbar
         features={{ add: true, get: false, organize: true, createPackage: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
       />,
     )
 

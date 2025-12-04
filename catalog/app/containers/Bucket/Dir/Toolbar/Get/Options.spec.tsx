@@ -7,7 +7,7 @@ import { DirHandleCreate } from 'containers/Bucket/Toolbar'
 
 import Options from './Options'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('containers/Bucket/CodeSamples', () => ({
   Quilt3List: vi.fn(() => <></>),

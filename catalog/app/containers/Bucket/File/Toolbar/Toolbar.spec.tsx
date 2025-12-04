@@ -8,7 +8,7 @@ import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as FileToolbar from './Toolbar'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('./Get', () => ({
   Options: () => <div>"Get" popover</div>,

@@ -2,7 +2,9 @@ import { vi } from 'vitest'
 import { getUsernamePrefix } from './name'
 
 vi.mock('constants/config', () => ({
-  registryUrl: '',
+  default: {
+    registryUrl: '',
+  },
 }))
 
 describe('containers/Bucket/PackageDialog/State/name', () => {

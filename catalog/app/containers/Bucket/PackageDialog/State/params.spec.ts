@@ -7,7 +7,7 @@ import { useParams, Invalid, Ok } from './params'
 import * as Schema from './schema'
 import * as Meta from './meta'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/PackageDialog/State/params', () => {
   const onChange = vi.fn()

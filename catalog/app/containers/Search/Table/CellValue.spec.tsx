@@ -10,7 +10,7 @@ import CellValue from './CellValue'
 import { ColumnTag, type ColumnSystemMeta } from './useColumns'
 import type { Hit } from './useResults'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 const hitBase = {
   bucket: 'foo',
