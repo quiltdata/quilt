@@ -58,10 +58,10 @@ module.exports = {
     // '<rootDir>/app/components/Logo/index.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Markdown/Markdown.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/Markdown/parseTasklist.spec.ts', // Migrated to Vitest
-    '<rootDir>/app/components/Preview/loaders/Ngl.spec.ts',
+    // '<rootDir>/app/components/Preview/loaders/Ngl.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/Preview/loaders/useGate.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/Preview/loaders/useSignObjectUrls.spec.ts', // Migrated to Vitest
-    '<rootDir>/app/components/Preview/loaders/Vega.spec.js',
+    // '<rootDir>/app/components/Preview/loaders/Vega.spec.js', // Migrated to Vitest
     // '<rootDir>/app/components/Preview/quick/index.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/components/Preview/quick/Markdown/Render.spec.tsx',
     // '<rootDir>/app/constants/routes.spec.ts', // Migrated to Vitest
@@ -83,7 +83,7 @@ module.exports = {
     '<rootDir>/app/containers/Bucket/PackageDialog/State/name.spec.ts',
     '<rootDir>/app/containers/Bucket/PackageDialog/State/params.spec.ts',
     // '<rootDir>/app/containers/Bucket/PackageDialog/State/schema.spec.ts', // Migrated to Vitest
-    '<rootDir>/app/containers/Bucket/Queries/Athena/Database.spec.tsx',
+    // '<rootDir>/app/containers/Bucket/Queries/Athena/Database.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/Queries/Athena/model/createPackage.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/Queries/Athena/model/requests.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/containers/Bucket/Queries/Athena/model/state.spec.tsx', // Migrated to Vitest

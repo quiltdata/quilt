@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`containers/Bucket/Queries/Athena/Database should disable selection if no spare values 1`] = `
+exports[`containers/Bucket/Queries/Athena/Database > should disable selection if no spare values 1`] = `
 <div
   class="makeStyles-root-17"
 >
@@ -83,7 +83,7 @@ exports[`containers/Bucket/Queries/Athena/Database should disable selection if n
 </div>
 `;
 
-exports[`containers/Bucket/Queries/Athena/Database should render selected values 1`] = `
+exports[`containers/Bucket/Queries/Athena/Database > should render selected values 1`] = `
 <div
   class="makeStyles-root-9"
 >
@@ -166,7 +166,7 @@ exports[`containers/Bucket/Queries/Athena/Database should render selected values
 </div>
 `;
 
-exports[`containers/Bucket/Queries/Athena/Database should render skeletons 1`] = `
+exports[`containers/Bucket/Queries/Athena/Database > should render skeletons 1`] = `
 <div
   class="makeStyles-root-1"
 >
@@ -179,7 +179,7 @@ exports[`containers/Bucket/Queries/Athena/Database should render skeletons 1`] =
 </div>
 `;
 
-exports[`containers/Bucket/Queries/Athena/Database should show error when data failed 1`] = `
+exports[`containers/Bucket/Queries/Athena/Database > should show error when data failed 1`] = `
 <div
   class="makeStyles-root-26"
 >
@@ -270,7 +270,7 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when data f
 </div>
 `;
 
-exports[`containers/Bucket/Queries/Athena/Database should show error when values failed 1`] = `
+exports[`containers/Bucket/Queries/Athena/Database > should show error when values failed 1`] = `
 <div
   class="makeStyles-root-21"
 >
@@ -361,7 +361,7 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when values
 </div>
 `;
 
-exports[`containers/Bucket/Queries/Athena/Database should show no value (zero-width space) if selected no value 1`] = `
+exports[`containers/Bucket/Queries/Athena/Database > should show no value (zero-width space) if selected no value 1`] = `
 <div
   class="makeStyles-root-13"
 >

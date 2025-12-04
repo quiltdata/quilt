@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
@@ -7,10 +8,7 @@ import Database from './Database'
 
 import * as Model from './model'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 const noop = () => {}
 

@@ -2,7 +2,9 @@ import { vi } from 'vitest'
 import { parseResponse } from './Ngl'
 
 vi.mock('constants/config', () => ({
-  apiGatewayEndpoint: '',
+  default: {
+    apiGatewayEndpoint: '',
+  },
 }))
 
 const fileA = `fileA.sdf

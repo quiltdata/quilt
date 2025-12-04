@@ -1,11 +1,11 @@
+import { vi } from 'vitest'
 import { traverseUrls } from './Vega'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
+vi.mock('constants/config', () => ({
+  default: {
     apiGatewayEndpoint: '',
-  })),
-)
+  },
+}))
 
 describe('components/Preview/loaders/Vega', () => {
   describe('traverseUrls', () => {
