@@ -290,15 +290,15 @@ export function useWaitForQueryExecution(
   queryExecutionId?: string,
 ): Model.Value<QueryExecution> {
   const [data, fetch] = useFetchQueryExecution(queryExecutionId)
-  const [timer, setTimer] = React.useState<NodeJS.Timer | null>(null)
+  const [timer, setTimer] = React.useState<number | null>(null)
   React.useEffect(() => {
-    const t = setInterval(fetch, 1000)
+    const t = window.setInterval(fetch, 1000)
     setTimer(t)
     return () => clearInterval(t)
   }, [queryExecutionId, fetch])
   React.useEffect(() => {
     if (Model.isReady(data) && timer) {
-      clearInterval(timer)
+      window.clearInterval(timer)
     }
   }, [timer, data])
   return data

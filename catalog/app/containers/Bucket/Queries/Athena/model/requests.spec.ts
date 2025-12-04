@@ -1019,7 +1019,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         await waitFor(() => typeof result.current.data === 'string')
         expect(result.current.data).toBe('bar')
       })
-      getStorageKey.mockImplementation(storageMock)
+      getStorageKey.mockImplementation(storageMock!)
       unmount()
     })
 

@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks'
-import { vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { detect, isSupportedFileType, loadMode, useWriteData } from './loader'
 

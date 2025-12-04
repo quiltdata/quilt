@@ -88,7 +88,7 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
   })
 
   describe('createPathResolver', () => {
-    test('Join keys if no logical key', async () => {
+    it('Join keys if no logical key', async () => {
       const resolveKey = (key: string) => ({
         bucket: 'foo/bar',
         key: `CCC/${key}`,
@@ -99,7 +99,7 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
         key: 'AAA/BBB',
       })
     })
-    test('Resovle logical key', async () => {
+    it('Resovle logical key', async () => {
       const resolveLogicalKey = (key: string) => ({
         bucket: 'foo/bar',
         key: `CCC/${key}`,

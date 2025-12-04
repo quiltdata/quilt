@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
@@ -57,7 +57,7 @@ vi.mock('containers/Bucket/Toolbar', async () => {
   }
 })
 
-const prefsHook = vi.fn(() => ({
+const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 

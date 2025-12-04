@@ -118,7 +118,9 @@ describe('containers/Redir/Redir', () => {
         <Redir />
       </NamedRoutes.Provider>,
     )
-    await act(() => vi.runAllTimersAsync())
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
 
     expect(container.firstChild).toMatchSnapshot()
 

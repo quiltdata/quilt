@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi, type Mock } from 'vitest'
 import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
@@ -70,7 +70,7 @@ vi.mock('components/Buttons', async () => {
   }
 })
 
-const prefsHook = vi.fn(() => ({
+const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 

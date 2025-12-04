@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 
 import type { SearchHitPackage } from '../model'
 
