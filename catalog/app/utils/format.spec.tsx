@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import * as Format from './format'
 
 describe('utils/format', () => {
@@ -53,11 +54,12 @@ describe('utils/format', () => {
 
   describe('relativify', () => {
     beforeEach(() => {
-      jest.useFakeTimers({ now: new Date(2020, 0, 30, 0, 0, 0, 0) })
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date(2020, 0, 30, 0, 0, 0, 0))
     })
 
     afterEach(() => {
-      jest.useRealTimers()
+      vi.useRealTimers()
     })
 
     it('format seconds', () => {

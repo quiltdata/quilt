@@ -3,7 +3,7 @@ import { vi } from 'vitest'
 
 import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('utils/AWS', () => ({
   S3: {

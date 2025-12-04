@@ -51,7 +51,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
   it('should render empty state when no selection', () => {
     const { getByText } = render(
       <TestWrapper>
-        <Dashboard onClose={jest.fn()} />
+        <Dashboard onClose={vi.fn()} />
       </TestWrapper>,
     )
 
@@ -64,7 +64,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
 
     const { getByText } = render(
       <TestWrapper mergeWith={[items, bucket, path]}>
-        <Dashboard onClose={jest.fn()} />
+        <Dashboard onClose={vi.fn()} />
       </TestWrapper>,
     )
 
@@ -80,7 +80,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
 
     const { getByText, queryByText } = render(
       <TestWrapper mergeWith={[items, bucket, path]}>
-        <Dashboard onClose={jest.fn()} />
+        <Dashboard onClose={vi.fn()} />
       </TestWrapper>,
     )
 

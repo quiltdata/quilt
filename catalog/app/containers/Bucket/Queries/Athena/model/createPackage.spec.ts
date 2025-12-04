@@ -5,7 +5,7 @@ import Log from 'utils/Logging'
 import type * as Model from './requests'
 import { doQueryResultsContainManifestEntries, parseQueryResults } from './createPackage'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/Queries/Athena/model/createPackage', () => {
   describe('parseQueryResults', () => {

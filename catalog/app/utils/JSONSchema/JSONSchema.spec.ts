@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import {
   isSchemaEnum,
   findTypeInCompoundSchema,
@@ -371,7 +372,8 @@ describe('utils/JSONSchema', () => {
     })
 
     it('should return value with prepopulated date', () => {
-      jest.useFakeTimers({ now: new Date(2020, 0, 30) })
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date(2020, 0, 30))
 
       const obj = { a: { b: 1 } }
       const schema = {
@@ -410,7 +412,7 @@ describe('utils/JSONSchema', () => {
         },
         g: '2020-01-30',
       })
-      jest.useRealTimers()
+      vi.useRealTimers()
     })
   })
 

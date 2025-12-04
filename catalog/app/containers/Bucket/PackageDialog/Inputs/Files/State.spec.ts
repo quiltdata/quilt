@@ -15,7 +15,7 @@ import {
   EMPTY_DIR_MARKER,
 } from './State'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('utils/object', () => {
   describe('renameKey', () => {

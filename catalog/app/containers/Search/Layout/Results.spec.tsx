@@ -5,7 +5,7 @@ import { vi, beforeEach } from 'vitest'
 
 import Results from './Results'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('@material-ui/core', async () => {
   const actual = await vi.importActual('@material-ui/core')

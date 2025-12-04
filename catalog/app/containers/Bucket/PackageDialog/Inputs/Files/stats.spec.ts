@@ -4,7 +4,7 @@ import type * as Model from 'model'
 import { calcStats } from './stats'
 import { FilesState, FileWithHash } from './State'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 // Mock the dependencies
 vi.mock('./constants', () => ({

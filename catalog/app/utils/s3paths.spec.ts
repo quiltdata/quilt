@@ -1,9 +1,7 @@
+import { vi } from 'vitest'
 import { canonicalKey } from './s3paths'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('utils/s3paths', () => {
   describe('canonicalKey', () => {

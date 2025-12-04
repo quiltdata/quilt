@@ -5,7 +5,7 @@ import { makeJSONSchema } from '../Tool'
 
 import * as nav from './navigation'
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('components/Assistant/Model/GlobalTools/navigation', () => {
   describe('NavigateSchema', () => {

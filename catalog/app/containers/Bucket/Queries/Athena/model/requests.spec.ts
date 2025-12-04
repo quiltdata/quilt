@@ -23,7 +23,7 @@ vi.mock('utils/Logging', () => ({
   },
 }))
 
-vi.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 const getStorageKey = vi.fn((): string => '')
 vi.mock('utils/storage', () => ({
