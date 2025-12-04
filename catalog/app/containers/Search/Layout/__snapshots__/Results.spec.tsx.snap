@@ -4,7 +4,7 @@ exports[`containers/Search/Layout/Results > does not show ToggleResultsView for 
 <div>
   <div>
     <div>
-      Column Title:
+      Column Title: 
       5 results
     </div>
     <div>
@@ -22,7 +22,7 @@ exports[`containers/Search/Layout/Results > renders error state 1`] = `
 <div>
   <div>
     <div>
-      Column Title:
+      Column Title: 
     </div>
     <div>
       <div>
@@ -53,7 +53,7 @@ exports[`containers/Search/Layout/Results > renders with FiltersButton when onFi
 <div>
   <div>
     <div>
-      Column Title:
+      Column Title: 
       3 results
     </div>
     <div>
@@ -88,7 +88,7 @@ exports[`containers/Search/Layout/Results > renders with data and shows number o
 <div>
   <div>
     <div>
-      Column Title:
+      Column Title: 
       5 results
     </div>
     <div>
@@ -120,7 +120,7 @@ exports[`containers/Search/Layout/Results > renders with loading state 1`] = `
 <div>
   <div>
     <div>
-      Column Title:
+      Column Title: 
       <div>
         Loading…
       </div>
@@ -154,7 +154,7 @@ exports[`containers/Search/Layout/Results > shows Create Package button in bucke
 <div>
   <div>
     <div>
-      Column Title:
+      Column Title: 
       5 results
     </div>
     <div>

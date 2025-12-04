@@ -52,15 +52,15 @@ module.exports = {
     '<rootDir>/app/components/FileEditor/QuiltConfigEditor/QuiltSummarize/State.spec.tsx',
     // '<rootDir>/app/components/FileEditor/routes.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/Filters/DatesRange.spec.tsx', // Migrated to Vitest
-    '<rootDir>/app/components/Filters/NumbersRange.spec.tsx',
+    // '<rootDir>/app/components/Filters/NumbersRange.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/JsonEditor/State.spec.js', // Migrated to Vitest
     // '<rootDir>/app/components/Layout/Container.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Logo/index.spec.tsx', // Migrated to Vitest
     // '<rootDir>/app/components/Markdown/Markdown.spec.ts', // Migrated to Vitest
     // '<rootDir>/app/components/Markdown/parseTasklist.spec.ts', // Migrated to Vitest
     '<rootDir>/app/components/Preview/loaders/Ngl.spec.ts',
-    '<rootDir>/app/components/Preview/loaders/useGate.spec.ts',
-    '<rootDir>/app/components/Preview/loaders/useSignObjectUrls.spec.ts',
+    // '<rootDir>/app/components/Preview/loaders/useGate.spec.ts', // Migrated to Vitest
+    // '<rootDir>/app/components/Preview/loaders/useSignObjectUrls.spec.ts', // Migrated to Vitest
     '<rootDir>/app/components/Preview/loaders/Vega.spec.js',
     // '<rootDir>/app/components/Preview/quick/index.spec.tsx', // Migrated to Vitest
     '<rootDir>/app/components/Preview/quick/Markdown/Render.spec.tsx',

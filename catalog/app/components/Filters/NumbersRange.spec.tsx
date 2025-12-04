@@ -1,20 +1,20 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { vi, beforeEach } from 'vitest'
 
 import NumbersRange from './NumbersRange'
 
-jest.mock(
-  './Slider',
-  jest.fn(() => ({ min, max }: { min: number; max: number }) => (
+vi.mock('./Slider', () => ({
+  default: ({ min, max }: { min: number; max: number }) => (
     <div data-min={min} data-max={max} />
-  )),
-)
+  ),
+}))
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    TextField: jest.fn(
+vi.mock('@material-ui/core', async () => {
+  const actual = await vi.importActual('@material-ui/core')
+  return {
+    ...actual,
+    TextField: vi.fn(
       ({
         helperText,
         inputProps: { min, max } = {},
@@ -35,20 +35,19 @@ jest.mock(
         />
       ),
     ),
-  })),
-)
+  }
+})
 
-jest.mock('utils/Logging', () => ({
-  __esModule: true,
-  default: { error: jest.fn() },
+vi.mock('utils/Logging', () => ({
+  default: { error: vi.fn() },
 }))
 
-const onChange = jest.fn()
+const onChange = vi.fn()
 const findGteInput = (container: HTMLElement) => container.querySelector('input')!
 
 describe('components/Filters/NumbersRange', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders with a valid number', () => {

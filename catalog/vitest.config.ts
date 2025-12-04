@@ -75,12 +75,12 @@ export default defineConfig({
       'app/components/FileEditor/HelpLinks.spec.tsx',
       'app/components/JsonEditor/State.spec.js',
       'app/components/Preview/quick/index.spec.tsx',
-      // 'app/components/Preview/loaders/Vega.spec.js', // Blocked by JSX in utils/string.js
+      // 'app/components/Preview/loaders/Vega.spec.js', // Blocked by JSX in utils/AWS/Config.js
       // 'app/containers/Bucket/Selection/Dashboard.spec.tsx', // Blocked by JSX in FileView.js
-      // 'app/components/FileEditor/CreateFile.spec.tsx', // Blocked by JSX in utils/string.js
-      // 'app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx', // Blocked by JSX in utils/string.js
+      // 'app/components/FileEditor/CreateFile.spec.tsx', // Blocked by JSX in utils/AWS/Config.js
+      // 'app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx', // Blocked by JSX in components/Thumbnail/Thumbnail.js
       // 'app/containers/Bucket/CodeSamples.spec.tsx', // Blocked by JSX in Notifications/index.js
-      // 'app/components/Filters/NumbersRange.spec.tsx', // Blocked by JSX in utils/string.js
+      'app/components/Filters/NumbersRange.spec.tsx',
       // 'app/containers/Bucket/Overview/Downloads.spec.ts', // Blocked by JSX in StackedAreaChart.js
       // Temporarily disabled due to JSX parsing issues in dependencies:
       // 'app/containers/Bucket/PackageDialog/State/meta.spec.ts',
@@ -98,8 +98,8 @@ export default defineConfig({
       'app/components/Logo/index.spec.tsx',
       'app/components/Markdown/Markdown.spec.ts',
       // 'app/components/Preview/loaders/Ngl.spec.ts', // Blocked by JSX in utils/AWS/Config.js
-      // 'app/components/Preview/loaders/useGate.spec.ts', // Blocked by JSX in utils/string.js
-      // 'app/components/Preview/loaders/useSignObjectUrls.spec.ts', // Blocked by JSX in utils/string.js
+      'app/components/Preview/loaders/useGate.spec.ts', // Blocked by JSX in utils/AWS/S3.js
+      'app/components/Preview/loaders/useSignObjectUrls.spec.ts', // Blocked by JSX in utils/AWS/S3.js
       // 'app/components/Preview/quick/Markdown/Render.spec.tsx', // Blocked by JSX in Preview/loaders/Markdown.js
       // 'app/containers/Bucket/Dir/Toolbar/Get/Options.spec.tsx', // Blocked by JSX in utils/AWS/Config.js
       'app/containers/Bucket/Download/PackageCodeSamples.spec.tsx',
@@ -121,7 +121,7 @@ export default defineConfig({
       // 'app/containers/Search/List/Hit.spec.tsx',
       // 'app/containers/Search/List/index.spec.tsx',
       'app/containers/Search/model.spec.ts',
-      // 'app/containers/Search/Table/CellValue.spec.tsx', // Blocked by JSX in utils/string.js
+      // 'app/containers/Search/Table/CellValue.spec.tsx', // Blocked by JSX in components/Thumbnail/Thumbnail.js
     ],
 
     // Exclude patterns
