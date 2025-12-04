@@ -47,15 +47,37 @@ describe('containers/Redir/Redir', () => {
   })
 
   it('must have uri', () => {
+    const errorHandler = vi.fn((event) => event.preventDefault())
+    window.addEventListener('error', errorHandler)
+
     const { container } = render(
       <ErrorBoundary FallbackComponent={FallbackComponent}>
         <Redir />
       </ErrorBoundary>,
     )
+
     expect(container.firstChild).toMatchSnapshot()
+
+    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          message: expect.stringContaining('`uri` must be defined'),
+        }),
+      }),
+    )
+
+    window.removeEventListener('error', errorHandler)
   })
 
   it('shows waiting screen', () => {
+    // Mock window.location.assign to prevent jsdom navigation error
+    const locationAssignSpy = vi.fn()
+    Object.defineProperty(window, 'location', {
+      value: { assign: locationAssignSpy },
+      writable: true,
+    })
+
     useParams.mockImplementationOnce(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
@@ -65,6 +87,10 @@ describe('containers/Redir/Redir', () => {
       </NamedRoutes.Provider>,
     )
     expect(container.firstChild).toMatchSnapshot()
+
+    // Verify that location.assign is eventually called (navigation happens)
+    expect(locationAssignSpy).toHaveBeenCalledTimes(1)
+    expect(locationAssignSpy).toHaveBeenCalledWith(expect.stringContaining('bucket'))
   })
 
   it('shows error', () => {
@@ -76,7 +102,13 @@ describe('containers/Redir/Redir', () => {
   })
 
   it('redirects to package page', async () => {
-    // TODO: spy on window.location.assign
+    // Mock window.location.assign to prevent jsdom "Not implemented: navigation" error
+    const locationAssignSpy = vi.fn()
+    Object.defineProperty(window, 'location', {
+      value: { assign: locationAssignSpy },
+      writable: true,
+    })
+
     vi.useFakeTimers()
     useParams.mockImplementation(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
@@ -87,7 +119,13 @@ describe('containers/Redir/Redir', () => {
       </NamedRoutes.Provider>,
     )
     await act(() => vi.runAllTimersAsync())
+
     expect(container.firstChild).toMatchSnapshot()
+
+    // Verify that location.assign was called (redirect occurred)
+    expect(locationAssignSpy).toHaveBeenCalledTimes(1)
+    expect(locationAssignSpy).toHaveBeenCalledWith(expect.stringContaining('bucket'))
+
     vi.useRealTimers()
   })
 })
