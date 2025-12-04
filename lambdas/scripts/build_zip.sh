@@ -14,6 +14,7 @@ error() {
 
 dnf --setopt=install_weak_deps=0 install -y \
     gcc \
+    g++ \
     findutils \
     zip \
     binutils \
