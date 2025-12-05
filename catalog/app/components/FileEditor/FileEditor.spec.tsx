@@ -55,9 +55,7 @@ vi.mock('./TextEditor', () => ({
   ),
 }))
 
-vi.mock('utils/Config', () => ({
-  getConfig: vi.fn(() => ({})),
-}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 const loadMode = vi.fn(() => 'fulfilled')
 

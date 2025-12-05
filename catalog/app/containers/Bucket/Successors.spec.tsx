@@ -6,9 +6,7 @@ import type { Successor } from 'utils/workflows'
 
 import { SuccessorsSelect } from './Successors'
 
-vi.mock('utils/Config', () => ({
-  getConfig: vi.fn(() => ({})),
-}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('@material-ui/core', async () => {
   const actual = await vi.importActual('@material-ui/core')

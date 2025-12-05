@@ -8,9 +8,7 @@ import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as DirToolbar from './Toolbar'
 
-vi.mock('utils/Config', () => ({
-  getConfig: vi.fn(() => ({})),
-}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('./Add', () => ({
   Context: {

@@ -5,9 +5,7 @@ import { DirHandleCreate } from 'containers/Bucket/Toolbar'
 
 import { useCreateFileInBucket } from './CreateFile'
 
-vi.mock('utils/Config', () => ({
-  getConfig: vi.fn(() => ({})),
-}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('react-router-dom', () => ({
   useHistory: vi.fn(() => ({ push: vi.fn() })),

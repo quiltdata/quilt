@@ -20,9 +20,7 @@ vi.mock('utils/AWS', () => ({
   },
 }))
 
-vi.mock('utils/Config', () => ({
-  getConfig: vi.fn(() => ({})),
-}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('brace/mode/json', () => ({ default: Promise.resolve(undefined) }))
 

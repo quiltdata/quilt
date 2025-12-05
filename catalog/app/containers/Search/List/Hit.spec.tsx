@@ -10,9 +10,8 @@ import type { SearchHitPackage } from '../model'
 
 import { Package } from './Hit'
 
-vi.mock('utils/Config', () => ({
-  getConfig: vi.fn(() => ({})),
-}))
+vi.mock('constants/config', () => ({ default: {} }))
+
 vi.mock('components/Preview', () => ({}))
 
 const hitBase = {
