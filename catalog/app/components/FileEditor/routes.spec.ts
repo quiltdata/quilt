@@ -32,7 +32,7 @@ vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
   useParams: vi.fn(() => useParamsInternal()),
   useLocation: vi.fn(() => useLocationInternal()),
-  Redirect: vi.fn(() => null),
+  Redirect: () => null,
 }))
 
 const urls = {
@@ -44,7 +44,7 @@ const urls = {
 
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
-  use: vi.fn(() => ({ urls })),
+  use: () => ({ urls }),
 }))
 
 describe('components/FileEditor/routes', () => {

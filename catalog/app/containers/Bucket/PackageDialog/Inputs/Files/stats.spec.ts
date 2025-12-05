@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import noop from 'utils/noop'
 import type * as Model from 'model'
 import { calcStats } from './stats'
 import { FilesState, FileWithHash } from './State'
@@ -14,7 +15,7 @@ vi.mock('./constants', () => ({
 }))
 
 vi.mock('./State', () => ({
-  isS3File: vi.fn((f: any) => f && typeof f === 'object' && 'bucket' in f && 'key' in f),
+  isS3File: (f: any) => f && typeof f === 'object' && 'bucket' in f && 'key' in f,
 }))
 
 // Helper function to create a mock local file
@@ -30,10 +31,10 @@ const createMockLocalFile = (
     type: 'text/plain',
     lastModified: Date.now(),
     webkitRelativePath: '',
-    slice: vi.fn(),
-    stream: vi.fn(),
-    text: vi.fn(),
-    arrayBuffer: vi.fn(),
+    slice: noop,
+    stream: noop,
+    text: noop,
+    arrayBuffer: noop,
     hash: {
       ready: hashReady,
       value: {

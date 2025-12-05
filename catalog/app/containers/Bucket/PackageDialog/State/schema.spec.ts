@@ -1,13 +1,14 @@
 import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
+import noop from 'utils/noop'
 import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('utils/AWS', () => ({
   S3: {
-    use: vi.fn(),
+    use: noop,
   },
 }))
 
