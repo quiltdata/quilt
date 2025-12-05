@@ -111,7 +111,7 @@ describe('components/FileEditor/loader', () => {
         thrownPromise = error as Promise<void>
       }
 
-      await thrownPromise!
+      await thrownPromise
       expect(loadMode('json')).toBe('fulfilled')
     })
   })
