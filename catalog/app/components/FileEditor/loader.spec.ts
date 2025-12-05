@@ -101,14 +101,18 @@ describe('components/FileEditor/loader', () => {
   })
 
   describe('loadMode', () => {
-    it('throws on the first call and resolves on the second', () => {
-      expect(() => loadMode('json')).toThrow()
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          expect(loadMode('json')).toBe('fulfilled')
-          resolve(null)
-        }, 100)
-      })
+    it('throws on the first call and resolves on the second', async () => {
+      let thrownPromise: Promise<void>
+      try {
+        loadMode('json')
+        throw new Error('Expected loadMode to throw')
+      } catch (error) {
+        expect(error).toBeInstanceOf(Promise)
+        thrownPromise = error as Promise<void>
+      }
+
+      await thrownPromise!
+      expect(loadMode('json')).toBe('fulfilled')
     })
   })
 })
