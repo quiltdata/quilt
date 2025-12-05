@@ -27,7 +27,7 @@ mkdir out
 cd out
 
 # install everything into a temporary directory
-uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt
+uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt --no-default-groups
 uv pip install --no-compile --no-deps --target . -r /lambda/function/requirements.txt /lambda/function/
 python3 -m compileall -b .
 
