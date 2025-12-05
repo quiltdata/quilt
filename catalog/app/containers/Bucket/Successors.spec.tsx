@@ -8,25 +8,22 @@ import { SuccessorsSelect } from './Successors'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    Menu: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
-      <ul data-testid="menu">{children}</ul>
-    )),
-    MenuItem: vi.fn(({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>),
-    ListItemText: vi.fn(
-      ({ primary, secondary }: { primary: string; secondary?: string }) => (
-        <span title={secondary}>{primary}</span>
-      ),
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Menu: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
+    <ul data-testid="menu">{children}</ul>
+  )),
+  MenuItem: vi.fn(({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>),
+  ListItemText: vi.fn(
+    ({ primary, secondary }: { primary: string; secondary?: string }) => (
+      <span title={secondary}>{primary}</span>
     ),
-    ListSubheader: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
-      <h1>{children}</h1>
-    )),
-    Popover: vi.fn(({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>),
-  }
-})
+  ),
+  ListSubheader: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
+    <h1>{children}</h1>
+  )),
+  Popover: vi.fn(({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>),
+}))
 
 vi.mock('@material-ui/lab', () => ({
   Skeleton: vi.fn(() => <div>Loading…</div>),

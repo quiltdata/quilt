@@ -14,45 +14,39 @@ vi.mock('utils/BucketConfig', () => ({
   useRelevantBucketConfigs: () => [],
 }))
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    Checkbox: ({ checked }: { checked: boolean }) => (
-      <div id="checkbox">{checked.toString()}</div>
-    ),
-    IconButton: ({ children }: { children: React.ReactNode }) => (
-      <div id="icon-button">{children}</div>
-    ),
-    Icon: ({ children }: { children: string }) => <div id="icon">{children}</div>,
-    TextField: ({ value }: { value: React.ReactNode }) => (
-      <div id="text-field">{value}</div>
-    ),
-    Select: ({ value }: { value: string }) => <div id="select">{value}</div>,
-    makeStyles: (cb: any) => () => {
-      const classes = typeof cb === 'function' ? cb(theme) : cb
-      return Object.keys(classes).reduce(
-        (acc, key) => ({
-          [key]: key,
-          ...acc,
-        }),
-        {},
-      )
-    },
-  }
-})
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Checkbox: ({ checked }: { checked: boolean }) => (
+    <div id="checkbox">{checked.toString()}</div>
+  ),
+  IconButton: ({ children }: { children: React.ReactNode }) => (
+    <div id="icon-button">{children}</div>
+  ),
+  Icon: ({ children }: { children: string }) => <div id="icon">{children}</div>,
+  TextField: ({ value }: { value: React.ReactNode }) => (
+    <div id="text-field">{value}</div>
+  ),
+  Select: ({ value }: { value: string }) => <div id="select">{value}</div>,
+  makeStyles: (cb: any) => () => {
+    const classes = typeof cb === 'function' ? cb(theme) : cb
+    return Object.keys(classes).reduce(
+      (acc, key) => ({
+        [key]: key,
+        ...acc,
+      }),
+      {},
+    )
+  },
+}))
 
-vi.mock('@material-ui/lab', async () => {
-  const actual = await vi.importActual('@material-ui/lab')
-  return {
-    ...actual,
-    Autocomplete: ({ options, value }: { options?: string[]; value: string }) => (
-      <div id="autocomplete">
-        {value} from [{options?.join(', ')}]
-      </div>
-    ),
-  }
-})
+vi.mock('@material-ui/lab', async () => ({
+  ...(await vi.importActual('@material-ui/lab')),
+  Autocomplete: ({ options, value }: { options?: string[]; value: string }) => (
+    <div id="autocomplete">
+      {value} from [{options?.join(', ')}]
+    </div>
+  ),
+}))
 
 describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences', () => {
   it('render form with default values', () => {

@@ -9,13 +9,10 @@ import Render from './Render'
 vi.mock('constants/config', () => ({ default: {} }))
 
 const useMarkdownRenderer = vi.fn()
-vi.mock('components/Preview/loaders/Markdown', async () => {
-  const actual = await vi.importActual('components/Preview/loaders/Markdown')
-  return {
-    ...actual,
-    useMarkdownRenderer: vi.fn(() => useMarkdownRenderer()),
-  }
-})
+vi.mock('components/Preview/loaders/Markdown', async () => ({
+  ...(await vi.importActual('components/Preview/loaders/Markdown')),
+  useMarkdownRenderer: vi.fn(() => useMarkdownRenderer()),
+}))
 
 vi.mock('components/Preview/renderers/Markdown', () => ({
   default: ({ rendered }: { rendered: string }) => (

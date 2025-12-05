@@ -21,53 +21,41 @@ vi.mock('./Organize', () => ({
   Options: () => <>"Organize" popover</>,
 }))
 
-vi.mock('@material-ui/lab', async () => {
-  const actual = await vi.importActual('@material-ui/lab')
-  return {
-    ...actual,
-    Skeleton: () => <i>⌛</i>,
-  }
-})
+vi.mock('@material-ui/lab', async () => ({
+  ...(await vi.importActual('@material-ui/lab')),
+  Skeleton: () => <i>⌛</i>,
+}))
 
-vi.mock('components/Buttons', async () => {
-  const actual = await vi.importActual('components/Buttons')
-  return {
-    ...actual,
-    WithPopover: ({
-      label,
-      children,
-      disabled,
-    }: {
-      disabled: boolean
-      label: string
-      children: React.ReactNode
-    }) => (
-      <button title={label} disabled={disabled}>
-        {children}
-      </button>
-    ),
-  }
-})
+vi.mock('components/Buttons', async () => ({
+  ...(await vi.importActual('components/Buttons')),
+  WithPopover: ({
+    label,
+    children,
+    disabled,
+  }: {
+    disabled: boolean
+    label: string
+    children: React.ReactNode
+  }) => (
+    <button title={label} disabled={disabled}>
+      {children}
+    </button>
+  ),
+}))
 
-vi.mock('containers/Bucket/Toolbar', async () => {
-  const actual = await vi.importActual('containers/Bucket/Toolbar')
-  return {
-    ...actual,
-    Assist: () => <button>Assist</button>,
-  }
-})
+vi.mock('containers/Bucket/Toolbar', async () => ({
+  ...(await vi.importActual('containers/Bucket/Toolbar')),
+  Assist: () => <button>Assist</button>,
+}))
 
 const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 
-vi.mock('utils/BucketPreferences', async () => {
-  const actual = await vi.importActual('utils/BucketPreferences')
-  return {
-    ...actual,
-    use: () => prefsHook(),
-  }
-})
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual('utils/BucketPreferences')),
+  use: () => prefsHook(),
+}))
 
 const viewModes = { modes: [], mode: null, handlePreviewResult: vi.fn() }
 

@@ -27,14 +27,11 @@ const defaultPrefs = {
   writeFile: true,
 }
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    IconButton: ({ onClick, ...props }: any) =>
-      props.href ? <a {...props} /> : <button {...props} />,
-  }
-})
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  IconButton: ({ onClick, ...props }: any) =>
+    props.href ? <a {...props} /> : <button {...props} />,
+}))
 
 vi.mock('@material-ui/icons', () => ({
   ArrowDownwardOutlined: () => <span>arrow_downward</span>,

@@ -7,20 +7,17 @@ import Results from './Results'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
-    Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
-    makeStyles: () => () => ({}),
-    useTheme: () => ({
-      breakpoints: { down: () => false },
-      spacing: (x: number) => x * 8,
-    }),
-    useMediaQuery: () => false,
-  }
-})
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
+  Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
+  makeStyles: () => () => ({}),
+  useTheme: () => ({
+    breakpoints: { down: () => false },
+    spacing: (x: number) => x * 8,
+  }),
+  useMediaQuery: () => false,
+}))
 
 vi.mock('@material-ui/icons', () => ({
   GridOn: () => 'table icon',

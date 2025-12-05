@@ -12,22 +12,16 @@ vi.mock('utils/AWS', () => ({ S3: { use: () => {} } }))
 
 vi.mock('./Skeleton', () => ({ default: () => <div id="Skeleton" /> }))
 
-vi.mock('utils/NamedRoutes', async () => {
-  const actual = await vi.importActual('utils/NamedRoutes')
-  return {
-    ...actual,
-    use: vi.fn(() => ({ urls: {} })),
-  }
-})
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: vi.fn(() => ({ urls: {} })),
+}))
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
-    useParams: vi.fn(() => ({ bucket: 'b', key: 'k' })),
-    useLocation: vi.fn(() => ({ search: '?edit=true' })),
-  }
-})
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: vi.fn(() => ({ bucket: 'b', key: 'k' })),
+  useLocation: vi.fn(() => ({ search: '?edit=true' })),
+}))
 
 vi.mock('components/Preview/Display', () => ({
   default: () => <div id="error" />,
@@ -37,15 +31,12 @@ const getObjectData = vi.fn((cases: any) =>
   AsyncResult.case(cases, AsyncResult.Ok({ Body: 'body' })),
 )
 
-vi.mock('components/Preview/loaders/utils', async () => {
-  const actual = await vi.importActual('components/Preview/loaders/utils')
-  return {
-    ...actual,
-    useObjectGetter: () => ({
-      case: getObjectData,
-    }),
-  }
-})
+vi.mock('components/Preview/loaders/utils', async () => ({
+  ...(await vi.importActual('components/Preview/loaders/utils')),
+  useObjectGetter: () => ({
+    case: getObjectData,
+  }),
+}))
 
 vi.mock('./TextEditor', () => ({
   default: ({ initialValue }: { initialValue: string }) => (

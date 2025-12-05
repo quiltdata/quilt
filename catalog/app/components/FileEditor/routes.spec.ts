@@ -28,15 +28,12 @@ const useLocationInternal = vi.fn(() => ({
   search: '?prefix=foo/',
 }))
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
-    useParams: vi.fn(() => useParamsInternal()),
-    useLocation: vi.fn(() => useLocationInternal()),
-    Redirect: vi.fn(() => null),
-  }
-})
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: vi.fn(() => useParamsInternal()),
+  useLocation: vi.fn(() => useLocationInternal()),
+  Redirect: vi.fn(() => null),
+}))
 
 const urls = {
   bucketFile: vi.fn((a, b, c) => `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`),
@@ -45,13 +42,10 @@ const urls = {
   ),
 }
 
-vi.mock('utils/NamedRoutes', async () => {
-  const actual = await vi.importActual('utils/NamedRoutes')
-  return {
-    ...actual,
-    use: vi.fn(() => ({ urls })),
-  }
-})
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: vi.fn(() => ({ urls })),
+}))
 
 describe('components/FileEditor/routes', () => {
   describe('useEditFileInPackage', () => {

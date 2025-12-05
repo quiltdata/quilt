@@ -16,20 +16,17 @@ vi.mock('utils/StyledLink', () => ({
   ),
 }))
 
-vi.mock('utils/NamedRoutes', async () => {
-  const actual = await vi.importActual('utils/NamedRoutes')
-  return {
-    ...actual,
-    use: () => ({
-      urls: {
-        bucketFile: (b: string, k: string, opts: Record<string, any>) => {
-          const params = new URLSearchParams(opts)
-          return `/b/${b}/tree/k/${k}?${params}`
-        },
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: () => ({
+    urls: {
+      bucketFile: (b: string, k: string, opts: Record<string, any>) => {
+        const params = new URLSearchParams(opts)
+        return `/b/${b}/tree/k/${k}?${params}`
       },
-    }),
-  }
-})
+    },
+  }),
+}))
 
 const useLocation = vi.fn(
   () => ({ pathname: '/a/b/c', search: '?foo=bar' }) as Record<string, string>,
@@ -37,14 +34,11 @@ const useLocation = vi.fn(
 
 const useParams = vi.fn(() => ({ bucket: 'buck' }) as Record<string, string>)
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
-    useParams: vi.fn(() => useParams()),
-    useLocation: vi.fn(() => useLocation()),
-  }
-})
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: vi.fn(() => useParams()),
+  useLocation: vi.fn(() => useLocation()),
+}))
 
 describe('components/FileEditor/HelpLinks', () => {
   describe('WorkflowsConfigLink', () => {

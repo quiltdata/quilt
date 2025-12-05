@@ -6,18 +6,15 @@ import * as Toolbar from './Toolbar'
 
 vi.mock('./Assist', () => ({}))
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    IconButton: ({ className, children, onClick }: any) => (
-      <button role="button" {...{ className, children, onClick }} />
-    ),
-    Button: ({ className, children, onClick }: any) => (
-      <button role="button" {...{ className, children, onClick }} />
-    ),
-  }
-})
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  IconButton: ({ className, children, onClick }: any) => (
+    <button role="button" {...{ className, children, onClick }} />
+  ),
+  Button: ({ className, children, onClick }: any) => (
+    <button role="button" {...{ className, children, onClick }} />
+  ),
+}))
 
 const useSelection = vi.fn()
 vi.mock('containers/Bucket/Selection/Provider', () => ({

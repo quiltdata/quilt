@@ -6,13 +6,10 @@ import type * as FileEditor from 'components/FileEditor'
 
 import { QuickPreview, isQuickPreviewAvailable } from './index'
 
-vi.mock('./Markdown', async () => {
-  const actual = await vi.importActual('./Markdown')
-  return {
-    ...actual,
-    Render: () => <h1>This is Markdown quick preview</h1>,
-  }
-})
+vi.mock('./Markdown', async () => ({
+  ...(await vi.importActual('./Markdown')),
+  Render: () => <h1>This is Markdown quick preview</h1>,
+}))
 
 describe('app/components/Preview/quick/index.spec.tsx', () => {
   describe('isQuickPreviewAvailable', () => {

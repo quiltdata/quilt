@@ -5,18 +5,15 @@ import { describe, expect, it, vi } from 'vitest'
 
 import * as Model from './'
 
-vi.mock('utils/NamedRoutes', async () => {
-  const actual = await vi.importActual('utils/NamedRoutes')
-  return {
-    ...actual,
-    use: vi.fn(() => ({
-      urls: {
-        bucketAthenaExecution: () => 'bucket-route',
-        bucketAthenaWorkgroup: () => 'workgroup-route',
-      },
-    })),
-  }
-})
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: vi.fn(() => ({
+    urls: {
+      bucketAthenaExecution: () => 'bucket-route',
+      bucketAthenaWorkgroup: () => 'workgroup-route',
+    },
+  })),
+}))
 
 const useParams = vi.fn(
   () =>
@@ -26,14 +23,11 @@ const useParams = vi.fn(
     }) as Record<string, string>,
 )
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
-    useParams: vi.fn(() => useParams()),
-    Redirect: vi.fn(() => null),
-  }
-})
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: vi.fn(() => useParams()),
+  Redirect: vi.fn(() => null),
+}))
 
 const batchGetQueryExecution = vi.fn()
 const getWorkGroup = vi.fn()

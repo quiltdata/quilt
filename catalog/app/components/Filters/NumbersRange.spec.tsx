@@ -10,33 +10,30 @@ vi.mock('./Slider', () => ({
   ),
 }))
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    TextField: vi.fn(
-      ({
-        helperText,
-        inputProps: { min, max } = {},
-        onChange,
-        value,
-      }: {
-        helperText?: string
-        inputProps?: { min?: string; max?: string }
-        onChange: () => void
-        value: string
-      }) => (
-        <input
-          data-error={helperText}
-          max={max}
-          min={min}
-          onChange={onChange}
-          value={value}
-        />
-      ),
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  TextField: vi.fn(
+    ({
+      helperText,
+      inputProps: { min, max } = {},
+      onChange,
+      value,
+    }: {
+      helperText?: string
+      inputProps?: { min?: string; max?: string }
+      onChange: () => void
+      value: string
+    }) => (
+      <input
+        data-error={helperText}
+        max={max}
+        min={min}
+        onChange={onChange}
+        value={value}
+      />
     ),
-  }
-})
+  ),
+}))
 
 vi.mock('utils/Logging', () => ({
   default: { error: vi.fn() },

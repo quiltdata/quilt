@@ -9,13 +9,10 @@ import * as Schema from './schema'
 vi.mock('constants/config', () => ({ default: {} }))
 
 const mkMetaValidator = vi.fn()
-vi.mock('./schema', async () => {
-  const actual = await vi.importActual('./schema')
-  return {
-    ...actual,
-    mkMetaValidator: () => mkMetaValidator(),
-  }
-})
+vi.mock('./schema', async () => ({
+  ...(await vi.importActual('./schema')),
+  mkMetaValidator: () => mkMetaValidator(),
+}))
 
 const SchemaReady = Schema.Ready()
 

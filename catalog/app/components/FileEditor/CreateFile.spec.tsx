@@ -8,18 +8,16 @@ import { useCreateFileInBucket } from './CreateFile'
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('react-router-dom', () => ({
-  useHistory: vi.fn(() => ({ push: vi.fn() })),
+  useHistory: () => ({ push: () => {} }),
 }))
 
 const usePrompt = vi.fn()
 vi.mock('components/Dialog', () => ({
-  usePrompt: vi.fn(({ onSubmit }) => usePrompt({ onSubmit })),
+  usePrompt: ({ onSubmit }: { onSubmit: (v: string) => void }) => usePrompt({ onSubmit }),
 }))
 
 const toFile = vi.fn()
-vi.mock('./routes', () => ({
-  useAddFileInBucket: vi.fn(() => toFile),
-}))
+vi.mock('./routes', () => ({ useAddFileInBucket: () => toFile }))
 
 describe('useCreateFileInBucket', () => {
   beforeEach(() => {

@@ -40,45 +40,34 @@ vi.mock('containers/Bucket/PackageDialog', () => ({
   }),
 }))
 
-vi.mock('@material-ui/lab', async () => {
-  const actual = await vi.importActual('@material-ui/lab')
-  return {
-    ...actual,
-    Skeleton: () => <i>⌛</i>,
-  }
-})
+vi.mock('@material-ui/lab', () => ({
+  Skeleton: () => <i>⌛</i>,
+}))
 
-vi.mock('components/Buttons', async () => {
-  const actual = await vi.importActual('components/Buttons')
-  return {
-    ...actual,
-    WithPopover: ({
-      label,
-      children,
-      disabled,
-    }: {
-      disabled: boolean
-      label: string
-      children: React.ReactNode
-    }) => (
-      <button title={label} disabled={disabled}>
-        {children}
-      </button>
-    ),
-  }
-})
+vi.mock('components/Buttons', () => ({
+  WithPopover: ({
+    label,
+    children,
+    disabled,
+  }: {
+    disabled: boolean
+    label: string
+    children: React.ReactNode
+  }) => (
+    <button title={label} disabled={disabled}>
+      {children}
+    </button>
+  ),
+}))
 
 const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 
-vi.mock('utils/BucketPreferences', async () => {
-  const actual = await vi.importActual('utils/BucketPreferences')
-  return {
-    ...actual,
-    use: () => prefsHook(),
-  }
-})
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual('utils/BucketPreferences')),
+  use: () => prefsHook(),
+}))
 
 describe('useFeatures', () => {
   beforeEach(() => {

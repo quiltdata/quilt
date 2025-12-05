@@ -22,24 +22,18 @@ vi.mock('components/Layout', () => ({
 
 const useParams = vi.fn(() => ({ uri: '' }) as Record<string, string>)
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
-    useParams: vi.fn(() => useParams()),
-    Redirect: vi.fn(({ to }: { to: string }) => `Redirect to ${to}`),
-  }
-})
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: vi.fn(() => useParams()),
+  Redirect: vi.fn(({ to }: { to: string }) => `Redirect to ${to}`),
+}))
 
-vi.mock('@material-ui/core', async () => {
-  const actual = await vi.importActual('@material-ui/core')
-  return {
-    ...actual,
-    Button: vi.fn(({ children, href }: React.PropsWithChildren<{ href: string }>) => (
-      <a href={href}>{children}</a>
-    )),
-  }
-})
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Button: vi.fn(({ children, href }: React.PropsWithChildren<{ href: string }>) => (
+    <a href={href}>{children}</a>
+  )),
+}))
 
 describe('containers/Redir/Redir', () => {
   beforeEach(() => {
