@@ -3,6 +3,8 @@ import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import noop from 'utils/noop'
+
 import Results from './Results'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -151,7 +153,7 @@ describe('containers/Search/Layout/Results', () => {
 
     const { container } = render(
       <MemoryRouter>
-        <Results onFilters={() => {}} />
+        <Results onFilters={noop} />
       </MemoryRouter>,
     )
     expect(container).toMatchSnapshot()

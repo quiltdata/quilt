@@ -5,6 +5,7 @@ import { expect, beforeEach, describe, it, vi } from 'vitest'
 
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import noop from 'utils/noop'
 
 import Redir from './Redir'
 
@@ -37,7 +38,7 @@ vi.mock('@material-ui/core', async () => ({
 
 describe('containers/Redir/Redir', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(noop)
   })
 
   it('must have uri', () => {

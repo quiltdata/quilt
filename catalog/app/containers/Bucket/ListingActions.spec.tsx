@@ -6,6 +6,7 @@ import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import noop from 'utils/noop'
 
 import RowActions from './ListingActions'
 
@@ -42,7 +43,7 @@ vi.mock('@material-ui/icons', () => ({
 
 vi.mock('containers/Notifications', () => ({
   use: () => ({
-    push: () => {},
+    push: noop,
   }),
 }))
 
@@ -54,8 +55,6 @@ vi.mock('utils/AWS', () => ({
     useDownloadUrl: (h: Model.S3.S3ObjectLocation) => `s3://${h.bucket}/${h.key}`,
   },
 }))
-
-const noop = () => {}
 
 vi.mock('react-redux', () => ({
   useSelector: vi.fn(() => ({ token: 'mock-token' })),

@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { bucketDir, bucketFile, bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import noop from 'utils/noop'
 
 import Dashboard from './Dashboard'
 import { Provider, useSelection } from './Provider'
@@ -51,7 +52,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
   it('should render empty state when no selection', () => {
     const { getByText } = render(
       <TestWrapper>
-        <Dashboard onClose={() => {}} />
+        <Dashboard onClose={noop} />
       </TestWrapper>,
     )
 
@@ -64,7 +65,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
 
     const { getByText } = render(
       <TestWrapper mergeWith={[items, bucket, path]}>
-        <Dashboard onClose={() => {}} />
+        <Dashboard onClose={noop} />
       </TestWrapper>,
     )
 
@@ -80,7 +81,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
 
     const { getByText, queryByText } = render(
       <TestWrapper mergeWith={[items, bucket, path]}>
-        <Dashboard onClose={() => {}} />
+        <Dashboard onClose={noop} />
       </TestWrapper>,
     )
 

@@ -2,6 +2,8 @@ import * as React from 'react'
 import { render } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import noop from 'utils/noop'
+
 import DatesRange from './DatesRange'
 
 vi.mock('./Slider', () => ({
@@ -34,10 +36,10 @@ vi.mock('@material-ui/core', async () => ({
 }))
 
 vi.mock('utils/Logging', () => ({
-  default: { error: () => {} },
+  default: { error: noop },
 }))
 
-const onChange = () => {}
+const onChange = noop
 
 const findGteInput = (container: HTMLElement) => container.querySelector('input')!
 

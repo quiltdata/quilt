@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import type { Successor } from 'utils/workflows'
+import noop from 'utils/noop'
 
 import { SuccessorsSelect } from './Successors'
 
@@ -37,8 +38,8 @@ vi.mock('utils/StyledLink', () => ({
 
 const props = {
   anchorEl: document.createElement('div'),
-  onChange: () => {},
-  onClose: () => {},
+  onChange: noop,
+  onClose: noop,
 }
 
 describe('containers/Bucket/Successors/SuccessorsSelect', () => {

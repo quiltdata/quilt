@@ -2,12 +2,14 @@ import * as React from 'react'
 import { render } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 
+import noop from 'utils/noop'
+
 import type { SearchHitPackage } from '../model'
 
 import TableView from './index'
 
 vi.mock('components/Layout', () => ({
-  useSetFullWidth: () => {},
+  useSetFullWidth: noop,
 }))
 
 vi.mock('../model', () => ({
@@ -75,9 +77,7 @@ vi.mock('./Table', () => ({
   ),
 }))
 
-const TablePage = () => (
-  <TableView emptySlot={<div>No results</div>} onRefine={() => {}} />
-)
+const TablePage = () => <TableView emptySlot={<div>No results</div>} onRefine={noop} />
 
 describe('containers/Search/Table/index', () => {
   describe('when no results', () => {

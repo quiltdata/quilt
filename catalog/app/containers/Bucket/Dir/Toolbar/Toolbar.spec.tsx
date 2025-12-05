@@ -5,6 +5,7 @@ import { renderHook } from '@testing-library/react-hooks'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
+import noop from 'utils/noop'
 
 import * as DirToolbar from './Toolbar'
 
@@ -30,7 +31,7 @@ vi.mock('./Organize', () => ({
 
 vi.mock('./CreatePackage', () => ({
   Options: () => <>"Create package" popover</>,
-  useSuccessors: () => {},
+  useSuccessors: noop,
 }))
 
 vi.mock('containers/Bucket/PackageDialog', () => ({

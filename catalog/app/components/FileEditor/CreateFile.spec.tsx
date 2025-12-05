@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react-hooks'
 
 import { DirHandleCreate } from 'containers/Bucket/Toolbar'
+import noop from 'utils/noop'
 
 import { useCreateFileInBucket } from './CreateFile'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('react-router-dom', () => ({
-  useHistory: () => ({ push: () => {} }),
+  useHistory: () => ({ push: noop }),
 }))
 
 const usePrompt = vi.fn()

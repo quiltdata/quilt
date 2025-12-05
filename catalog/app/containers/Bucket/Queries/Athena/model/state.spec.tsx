@@ -3,6 +3,8 @@ import { render } from '@testing-library/react'
 import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
+import noop from 'utils/noop'
+
 import * as Model from './'
 
 vi.mock('utils/NamedRoutes', async () => ({
@@ -59,7 +61,7 @@ vi.mock('utils/AWS', () => ({ Athena: { use: () => AthenaApi } }))
 
 describe('app/containers/Queries/Athena/model/state', () => {
   it('throw error when no bucket', () => {
-    vi.spyOn(console, 'error').mockImplementationOnce(() => {})
+    vi.spyOn(console, 'error').mockImplementationOnce(noop)
     useParams.mockImplementationOnce(() => ({}))
     const Component = () => {
       const state = Model.useState()
@@ -94,13 +96,13 @@ describe('app/containers/Queries/Athena/model/state', () => {
     listNamedQueries.mockImplementation((_x, cb) => {
       cb(undefined, { NamedQueryIds: [] })
       return {
-        abort: () => {},
+        abort: noop,
       }
     })
     listQueryExecutions.mockImplementation((_x, cb) => {
       cb(undefined, { QueryExecutionIds: [] })
       return {
-        abort: () => {},
+        abort: noop,
       }
     })
     listDataCatalogs.mockImplementation(() => ({

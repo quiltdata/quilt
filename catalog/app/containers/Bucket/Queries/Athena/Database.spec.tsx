@@ -3,14 +3,13 @@ import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
+import noop from 'utils/noop'
 
 import Database from './Database'
 
 import * as Model from './model'
 
 vi.mock('constants/config', () => ({ default: {} }))
-
-const noop = () => {}
 
 const emptyState: Model.State = {
   bucket: 'any',

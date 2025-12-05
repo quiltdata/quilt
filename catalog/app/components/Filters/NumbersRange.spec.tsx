@@ -2,6 +2,8 @@ import * as React from 'react'
 import { render } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import noop from 'utils/noop'
+
 import NumbersRange from './NumbersRange'
 
 vi.mock('./Slider', () => ({
@@ -34,7 +36,7 @@ vi.mock('@material-ui/core', async () => ({
 }))
 
 vi.mock('utils/Logging', () => ({
-  default: { error: () => {} },
+  default: { error: noop },
 }))
 
 const onChange = vi.fn()

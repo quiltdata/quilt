@@ -4,11 +4,12 @@ import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
 import AsyncResult from 'utils/AsyncResult'
+import noop from 'utils/noop'
 
 import { useState } from './State'
 import { Editor } from './FileEditor'
 
-vi.mock('utils/AWS', () => ({ S3: { use: () => {} } }))
+vi.mock('utils/AWS', () => ({ S3: { use: noop } }))
 
 vi.mock('./Skeleton', () => ({ default: () => <div id="Skeleton" /> }))
 
@@ -53,7 +54,7 @@ const loadMode = vi.fn(() => 'fulfilled')
 vi.mock('./loader', () => ({
   loadMode: vi.fn(() => loadMode()),
   detect: () => 'text',
-  useWriteData: () => {},
+  useWriteData: noop,
 }))
 
 describe('components/FileEditor/FileEditor', () => {

@@ -2,6 +2,8 @@ import * as React from 'react'
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import noop from 'utils/noop'
+
 import { WorkflowsConfigLink } from './HelpLinks'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -47,7 +49,7 @@ describe('components/FileEditor/HelpLinks', () => {
     })
 
     it('should throw outside bucket', () => {
-      vi.spyOn(console, 'error').mockImplementationOnce(() => {})
+      vi.spyOn(console, 'error').mockImplementationOnce(noop)
       useParams.mockImplementationOnce(() => ({}))
       const tree = () => render(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
       expect(tree).toThrowError('`bucket` must be defined')

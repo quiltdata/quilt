@@ -3,10 +3,11 @@ import { render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
 import { describe, it, expect, vi } from 'vitest'
 
+import noop from 'utils/noop'
+
 import QuiltSummarize from './QuiltSummarize'
 
 const theme = createMuiTheme()
-const noop = () => {}
 
 vi.mock('constants/config', () => ({ default: {} }))
 
