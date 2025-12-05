@@ -57,7 +57,7 @@ vi.mock('utils/AWS', () => ({
 }))
 
 vi.mock('react-redux', () => ({
-  useSelector: vi.fn(() => ({ token: 'mock-token' })),
+  useSelector: vi.fn(() => ({ token: 'ABC' })),
 }))
 
 function TestBucket({ children }: React.PropsWithChildren<{}>) {

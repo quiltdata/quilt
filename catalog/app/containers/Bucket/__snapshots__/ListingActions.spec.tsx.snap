@@ -35,7 +35,7 @@ exports[`components/ListingActions > RowActions > should render Bucket directory
         <input
           name="token"
           type="hidden"
-          value="mock-token"
+          value="ABC"
         />
         <button
           class="makeStyles-root-21 makeStyles-item-18"
@@ -143,7 +143,7 @@ exports[`components/ListingActions > RowActions > should render Package director
         <input
           name="token"
           type="hidden"
-          value="mock-token"
+          value="ABC"
         />
         <button
           class="makeStyles-root-33"
