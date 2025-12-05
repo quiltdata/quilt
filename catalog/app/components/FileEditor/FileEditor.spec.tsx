@@ -20,8 +20,8 @@ vi.mock('utils/NamedRoutes', async () => ({
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
-  useParams: vi.fn(() => ({ bucket: 'b', key: 'k' })),
-  useLocation: vi.fn(() => ({ search: '?edit=true' })),
+  useParams: () => ({ bucket: 'b', key: 'k' }),
+  useLocation: () => ({ search: '?edit=true' }),
 }))
 
 vi.mock('components/Preview/Display', () => ({
@@ -52,7 +52,7 @@ vi.mock('constants/config', () => ({ default: {} }))
 const loadMode = vi.fn(() => 'fulfilled')
 
 vi.mock('./loader', () => ({
-  loadMode: vi.fn(() => loadMode()),
+  loadMode: () => loadMode(),
   detect: () => 'text',
   useWriteData: noop,
 }))
