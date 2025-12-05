@@ -188,7 +188,6 @@
     "@typescript-eslint/eslint-plugin": "^6.3.0",
     "@typescript-eslint/parser": "^6.3.0",
     "@vitest/coverage-v8": "^4.0.15",
-    "@vitest/ui": "^4.0.15",
     "blob-polyfill": "^7.0.20220408",
     "bundlewatch": "^0.4.1",
     "chalk": "^4.1.2",
