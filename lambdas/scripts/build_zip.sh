@@ -10,7 +10,7 @@ error() {
     exit 1
 }
 
-[ -f "/.dockerenv" ] || error "This should only run inside of quiltdata/lambda container."
+[ -f "/.dockerenv" ] || error "This should only run inside a lambda container."
 
 dnf --setopt=install_weak_deps=0 install -y \
     gcc \
