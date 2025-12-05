@@ -183,21 +183,63 @@ describe('components/Filters/DatesRange', () => {
   })
 
   it('does not trigger an extra render when updating with the same Date instance', () => {
-    // This test relies on Jest-specific mock behavior and is testing implementation details
-    // Skipping for Vitest migration - the component behavior is covered by other tests
     const date = new Date(2025, 0, 13)
+    const mockOnChange = vi.fn()
 
+    // Track render behavior by monitoring the TextField component's onChange calls
+    // which would be triggered if internal state unnecessarily updates
     const { container, rerender } = render(
-      <DatesRange value={{ gte: date, lte: null }} extents={{}} onChange={onChange} />,
+      <DatesRange
+        value={{ gte: date, lte: null }}
+        extents={{}}
+        onChange={mockOnChange}
+      />,
     )
+
+    const initialInput = findGteInput(container)
+    const initialValue = initialInput.value
+
+    // Clear any initial onChange calls
+    mockOnChange.mockClear()
+
+    // Rerender with the same Date instance
+    rerender(
+      <DatesRange
+        value={{ gte: date, lte: null }}
+        extents={{}}
+        onChange={mockOnChange}
+      />,
+    )
+
+    // Verify behavior remains stable
+    const inputAfterRerender = findGteInput(container)
+
+    // The key test: same Date instance should not cause internal state changes
+    // that would manifest as DOM changes or unexpected onChange calls
+    expect(inputAfterRerender.value).toBe(initialValue)
+    expect(inputAfterRerender.value).toBe('2025-01-13')
+    expect(inputAfterRerender.getAttribute('data-error')).toBeFalsy()
+
+    // onChange should not have been called during rerender with same instance
+    expect(mockOnChange).not.toHaveBeenCalled()
+
+    // Now test with a different Date instance with the same value to show contrast
+    const differentDateSameValue = new Date(2025, 0, 13)
+    expect(differentDateSameValue).not.toBe(date) // Different instances
+    expect(differentDateSameValue.getTime()).toBe(date.getTime()) // Same value
 
     rerender(
-      <DatesRange value={{ gte: date, lte: null }} extents={{}} onChange={onChange} />,
+      <DatesRange
+        value={{ gte: differentDateSameValue, lte: null }}
+        extents={{}}
+        onChange={mockOnChange}
+      />,
     )
 
-    // Verify the value stays the same, no error text
-    const input = findGteInput(container)
-    expect(input.value).toBe('2025-01-13')
-    expect(input.getAttribute('data-error')).toBeFalsy()
+    // Should still work correctly with different instance but same value
+    const inputAfterDifferentInstance = findGteInput(container)
+    expect(inputAfterDifferentInstance.value).toBe('2025-01-13')
+    expect(inputAfterDifferentInstance.getAttribute('data-error')).toBeFalsy()
+    expect(mockOnChange).not.toHaveBeenCalled()
   })
 })
