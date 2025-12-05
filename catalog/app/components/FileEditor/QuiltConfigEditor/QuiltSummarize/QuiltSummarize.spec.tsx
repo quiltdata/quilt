@@ -22,20 +22,18 @@ vi.mock('utils/GlobalDialogs', () => ({
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
-  Divider: vi.fn(() => <div id="divider" />),
-  Button: vi.fn(({ children }: { children: React.ReactNode }) => (
+  Divider: () => <div id="divider" />,
+  Button: ({ children }: { children: React.ReactNode }) => (
     <div id="button">{children}</div>
-  )),
-  IconButton: vi.fn(({ children }: { children: React.ReactNode }) => (
+  ),
+  IconButton: ({ children }: { children: React.ReactNode }) => (
     <div id="icon-button">{children}</div>
-  )),
-  Icon: vi.fn(({ children }: { children: React.ReactNode }) => (
-    <div id="icon">{children}</div>
-  )),
-  TextField: vi.fn(({ value }: { value: React.ReactNode }) => (
+  ),
+  Icon: ({ children }: { children: React.ReactNode }) => <div id="icon">{children}</div>,
+  TextField: ({ value }: { value: React.ReactNode }) => (
     <div id="text-field">{value}</div>
-  )),
-  makeStyles: vi.fn((cb: any) => () => {
+  ),
+  makeStyles: (cb: any) => () => {
     const classes = typeof cb === 'function' ? cb(theme) : cb
     return Object.keys(classes).reduce(
       (acc, key) => ({
@@ -44,7 +42,7 @@ vi.mock('@material-ui/core', async () => ({
       }),
       {},
     )
-  }),
+  },
 }))
 
 describe('QuiltSummarize', () => {

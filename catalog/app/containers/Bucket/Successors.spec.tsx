@@ -10,19 +10,15 @@ vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
-  Menu: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
+  Menu: ({ children }: React.PropsWithChildren<{}>) => (
     <ul data-testid="menu">{children}</ul>
-  )),
-  MenuItem: vi.fn(({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>),
-  ListItemText: vi.fn(
-    ({ primary, secondary }: { primary: string; secondary?: string }) => (
-      <span title={secondary}>{primary}</span>
-    ),
   ),
-  ListSubheader: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
-    <h1>{children}</h1>
-  )),
-  Popover: vi.fn(({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>),
+  MenuItem: ({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>,
+  ListItemText: ({ primary, secondary }: { primary: string; secondary?: string }) => (
+    <span title={secondary}>{primary}</span>
+  ),
+  ListSubheader: ({ children }: React.PropsWithChildren<{}>) => <h1>{children}</h1>,
+  Popover: ({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>,
 }))
 
 vi.mock('@material-ui/lab', () => ({

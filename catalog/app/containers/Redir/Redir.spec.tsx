@@ -30,9 +30,9 @@ vi.mock('react-router-dom', async () => ({
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
-  Button: vi.fn(({ children, href }: React.PropsWithChildren<{ href: string }>) => (
+  Button: ({ children, href }: React.PropsWithChildren<{ href: string }>) => (
     <a href={href}>{children}</a>
-  )),
+  ),
 }))
 
 describe('containers/Redir/Redir', () => {
