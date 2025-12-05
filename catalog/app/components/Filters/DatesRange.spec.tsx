@@ -34,7 +34,7 @@ vi.mock('@material-ui/core', async () => ({
 }))
 
 vi.mock('utils/Logging', () => ({
-  default: { error: vi.fn() },
+  default: { error: () => {} },
 }))
 
 const onChange = () => {}

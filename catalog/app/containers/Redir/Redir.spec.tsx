@@ -24,8 +24,8 @@ const useParams = vi.fn(() => ({ uri: '' }) as Record<string, string>)
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
-  useParams: vi.fn(() => useParams()),
-  Redirect: vi.fn(({ to }: { to: string }) => `Redirect to ${to}`),
+  useParams: () => useParams(),
+  Redirect: ({ to }: { to: string }) => `Redirect to ${to}`,
 }))
 
 vi.mock('@material-ui/core', async () => ({
@@ -37,7 +37,7 @@ vi.mock('@material-ui/core', async () => ({
 
 describe('containers/Redir/Redir', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'error').mockImplementation(vi.fn())
+    vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   it('must have uri', () => {

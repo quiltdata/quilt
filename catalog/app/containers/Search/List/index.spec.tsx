@@ -72,7 +72,7 @@ vi.mock('./Hit', () => ({
   ),
 }))
 
-const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={vi.fn()} />
+const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={() => {}} />
 
 describe('containers/Search/List/index', () => {
   describe('when no results', () => {

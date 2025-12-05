@@ -42,7 +42,7 @@ vi.mock('@material-ui/icons', () => ({
 
 vi.mock('containers/Notifications', () => ({
   use: () => ({
-    push: vi.fn(() => {}),
+    push: () => {},
   }),
 }))
 

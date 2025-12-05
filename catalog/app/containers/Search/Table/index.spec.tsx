@@ -7,7 +7,7 @@ import type { SearchHitPackage } from '../model'
 import TableView from './index'
 
 vi.mock('components/Layout', () => ({
-  useSetFullWidth: vi.fn(),
+  useSetFullWidth: () => {},
 }))
 
 vi.mock('../model', () => ({
@@ -75,7 +75,9 @@ vi.mock('./Table', () => ({
   ),
 }))
 
-const TablePage = () => <TableView emptySlot={<div>No results</div>} onRefine={vi.fn()} />
+const TablePage = () => (
+  <TableView emptySlot={<div>No results</div>} onRefine={() => {}} />
+)
 
 describe('containers/Search/Table/index', () => {
   describe('when no results', () => {

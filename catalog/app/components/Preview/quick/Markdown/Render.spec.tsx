@@ -11,7 +11,7 @@ vi.mock('constants/config', () => ({ default: {} }))
 const useMarkdownRenderer = vi.fn()
 vi.mock('components/Preview/loaders/Markdown', async () => ({
   ...(await vi.importActual('components/Preview/loaders/Markdown')),
-  useMarkdownRenderer: vi.fn(() => useMarkdownRenderer()),
+  useMarkdownRenderer: () => useMarkdownRenderer(),
 }))
 
 vi.mock('components/Preview/renderers/Markdown', () => ({

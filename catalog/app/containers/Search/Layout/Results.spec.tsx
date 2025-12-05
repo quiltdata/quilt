@@ -151,7 +151,7 @@ describe('containers/Search/Layout/Results', () => {
 
     const { container } = render(
       <MemoryRouter>
-        <Results onFilters={vi.fn()} />
+        <Results onFilters={() => {}} />
       </MemoryRouter>,
     )
     expect(container).toMatchSnapshot()

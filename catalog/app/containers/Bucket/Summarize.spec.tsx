@@ -29,14 +29,14 @@ vi.mock('components/FileEditor/FileEditor', () => ({}))
 
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
-  use: vi.fn(() => ({
+  use: () => ({
     urls: {
       bucketPackageDetail: (b: string, n: string, opts: any) =>
         `package: ${b}/${n} ${JSON.stringify(opts)}`,
       bucketFile: (b: string, k: string, opts: any) =>
         `file: ${b}/${k} ${JSON.stringify(opts)}`,
     },
-  })),
+  }),
 }))
 
 vi.mock('react-router-dom', async () => ({

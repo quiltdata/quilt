@@ -22,25 +22,23 @@ vi.mock('@material-ui/core', async () => ({
 }))
 
 vi.mock('@material-ui/lab', () => ({
-  Skeleton: vi.fn(() => <div>Loading…</div>),
+  Skeleton: () => <div>Loading…</div>,
 }))
 
 vi.mock('components/FileEditor/HelpLinks', () => ({
-  WorkflowsConfigLink: vi.fn(({ children }: React.PropsWithChildren<{}>) => (
-    <a>{children}</a>
-  )),
+  WorkflowsConfigLink: ({ children }: React.PropsWithChildren<{}>) => <a>{children}</a>,
 }))
 
 vi.mock('utils/StyledLink', () => ({
-  default: vi.fn(({ children, ...props }: React.PropsWithChildren<any>) => (
+  default: ({ children, ...props }: React.PropsWithChildren<any>) => (
     <a {...props}>{children}</a>
-  )),
+  ),
 }))
 
 const props = {
   anchorEl: document.createElement('div'),
-  onChange: vi.fn(),
-  onClose: vi.fn(),
+  onChange: () => {},
+  onClose: () => {},
 }
 
 describe('containers/Bucket/Successors/SuccessorsSelect', () => {

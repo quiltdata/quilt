@@ -25,8 +25,8 @@ const useParams = vi.fn(
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
-  useParams: vi.fn(() => useParams()),
-  Redirect: vi.fn(() => null),
+  useParams: () => useParams(),
+  Redirect: () => null,
 }))
 
 const batchGetQueryExecution = vi.fn()
@@ -59,7 +59,7 @@ vi.mock('utils/AWS', () => ({ Athena: { use: () => AthenaApi } }))
 
 describe('app/containers/Queries/Athena/model/state', () => {
   it('throw error when no bucket', () => {
-    vi.spyOn(console, 'error').mockImplementationOnce(vi.fn())
+    vi.spyOn(console, 'error').mockImplementationOnce(() => {})
     useParams.mockImplementationOnce(() => ({}))
     const Component = () => {
       const state = Model.useState()
@@ -94,13 +94,13 @@ describe('app/containers/Queries/Athena/model/state', () => {
     listNamedQueries.mockImplementation((_x, cb) => {
       cb(undefined, { NamedQueryIds: [] })
       return {
-        abort: vi.fn(),
+        abort: () => {},
       }
     })
     listQueryExecutions.mockImplementation((_x, cb) => {
       cb(undefined, { QueryExecutionIds: [] })
       return {
-        abort: vi.fn(),
+        abort: () => {},
       }
     })
     listDataCatalogs.mockImplementation(() => ({

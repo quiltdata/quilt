@@ -12,8 +12,8 @@ vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
-  useParams: vi.fn(() => ({ bucket: 'b', key: 'k' })),
-  useLocation: vi.fn(() => ({ search: '?edit=true' })),
+  useParams: () => ({ bucket: 'b', key: 'k' }),
+  useLocation: () => ({ search: '?edit=true' }),
 }))
 
 vi.mock('utils/GlobalDialogs', () => ({

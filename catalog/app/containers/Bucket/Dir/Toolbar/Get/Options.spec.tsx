@@ -10,9 +10,9 @@ import Options from './Options'
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('containers/Bucket/CodeSamples', () => ({
-  Quilt3List: vi.fn(() => <></>),
+  Quilt3List: () => <></>,
   Quilt3Fetch: vi.fn(() => <></>),
-  CliList: vi.fn(() => <></>),
+  CliList: () => <></>,
   CliFetch: vi.fn(() => <></>),
 }))
 
