@@ -19,8 +19,8 @@ class AWSError extends Error {
 
 vi.mock('utils/Logging', () => ({
   default: {
-    error: noop,
-    info: noop,
+    error: vi.fn(),
+    info: vi.fn(),
   },
 }))
 
@@ -1352,7 +1352,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('updates query body and resets query when handleValue is called', async () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
       const execution = {}
-      const setQuery = noop
+      const setQuery = vi.fn()
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
