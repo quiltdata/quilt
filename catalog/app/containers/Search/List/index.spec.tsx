@@ -1,5 +1,8 @@
 import * as React from 'react'
+import { describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
+
+import noop from 'utils/noop'
 
 import type { SearchHitObject, SearchHitPackage } from '../model'
 
@@ -7,7 +10,7 @@ import ListView from './index'
 
 let firstPageQuery: any = { _tag: 'fetching' }
 
-jest.mock('../model', () => ({
+vi.mock('../model', () => ({
   use: () => ({
     state: {
       resultType: 'p',
@@ -27,7 +30,7 @@ jest.mock('../model', () => ({
   },
 }))
 
-jest.mock('../NoResults', () => ({
+vi.mock('../NoResults', () => ({
   Skeleton: () => <div>Loading…</div>,
   Error: ({ children, kind }: { children?: React.ReactNode; kind?: string }) => {
     switch (kind) {
@@ -62,7 +65,7 @@ jest.mock('../NoResults', () => ({
   ),
 }))
 
-jest.mock('./Hit', () => ({
+vi.mock('./Hit', () => ({
   Object: ({ hit }: { hit: SearchHitObject }) => <div>Object: {hit.key}</div>,
   Package: ({ hit }: { hit: SearchHitPackage }) => (
     <div>
@@ -71,7 +74,7 @@ jest.mock('./Hit', () => ({
   ),
 }))
 
-const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={jest.fn()} />
+const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={noop} />
 
 describe('containers/Search/List/index', () => {
   describe('when no results', () => {

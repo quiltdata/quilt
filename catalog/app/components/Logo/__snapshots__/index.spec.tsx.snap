@@ -1,19 +1,19 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/Logo should render custom logo 1`] = `
+exports[`components/Logo > should render custom logo 1`] = `
 <img
   class="makeStyles-custom-9 makeStyles-custom-11"
   src="https://example.com/example.png"
 />
 `;
 
-exports[`components/Logo should render rectangular logo 1`] = `
+exports[`components/Logo > should render rectangular logo 1`] = `
 <div
   class="makeStyles-quilt-6 makeStyles-quilt-8"
 />
 `;
 
-exports[`components/Logo should render squared logo 1`] = `
+exports[`components/Logo > should render squared logo 1`] = `
 <div
   class="makeStyles-quilt-2 makeStyles-quilt-4"
 />

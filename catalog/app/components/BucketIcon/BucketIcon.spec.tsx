@@ -1,5 +1,8 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('./bucket.svg', () => ({ default: 'IMAGE_MOCK' }))
 
 import BucketIcon from './'
 

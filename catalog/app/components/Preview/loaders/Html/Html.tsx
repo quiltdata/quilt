@@ -166,13 +166,13 @@ function useSession(handle: FileHandle) {
   React.useEffect(() => {
     let disposed = false
     let sessionId: SessionId | null = null
-    let timer: NodeJS.Timer
+    let timer: number
 
     const handleError = (e: unknown) => {
       if (disposed) return
       log.error(e)
       Sentry.captureException(e)
-      clearInterval(timer)
+      window.clearInterval(timer)
       setResult(AsyncResult.Err(mapPreviewError(retry, e)))
     }
 
@@ -180,7 +180,7 @@ function useSession(handle: FileHandle) {
       if (disposed) return
       sessionId = id
       setResult(AsyncResult.Ok(sessionId))
-      timer = setInterval(
+      timer = window.setInterval(
         () => refreshSession(sessionId).catch(handleError),
         REFRESH_INTERVAL,
       )
@@ -188,7 +188,7 @@ function useSession(handle: FileHandle) {
 
     return () => {
       disposed = true
-      clearInterval(timer)
+      window.clearInterval(timer)
       disposeSession(sessionId)
     }
   }, [key, createSession, disposeSession, refreshSession, retry, scope])

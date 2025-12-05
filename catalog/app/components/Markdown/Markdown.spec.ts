@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom'
+import { describe, it, expect } from 'vitest'
 
 import { getRenderer } from './Markdown'
 

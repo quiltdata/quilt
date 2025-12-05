@@ -1,36 +1,29 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 
 import AsyncResult from 'utils/AsyncResult'
 
 import Render from './Render'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => {}),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-const useMarkdownRenderer = jest.fn()
-jest.mock('components/Preview/loaders/Markdown', () => ({
-  ...jest.requireActual('components/Preview/loaders/Markdown'),
-  useMarkdownRenderer: jest.fn(() => useMarkdownRenderer()),
+const useMarkdownRenderer = vi.fn()
+vi.mock('components/Preview/loaders/Markdown', async () => ({
+  ...(await vi.importActual('components/Preview/loaders/Markdown')),
+  useMarkdownRenderer: () => useMarkdownRenderer(),
 }))
 
-jest.mock(
-  'components/Preview/renderers/Markdown',
-  () =>
-    ({ rendered }: { rendered: string }) => (
-      // eslint-disable-next-line react/no-danger
-      <section dangerouslySetInnerHTML={{ __html: rendered }} />
-    ),
-)
+vi.mock('components/Preview/renderers/Markdown', () => ({
+  default: ({ rendered }: { rendered: string }) => (
+    // eslint-disable-next-line react/no-danger
+    <section dangerouslySetInnerHTML={{ __html: rendered }} />
+  ),
+}))
 
-jest.mock(
-  '@material-ui/lab',
-  jest.fn(() => ({
-    Alert: ({ children }: { children: string }) => <p>Error: {children}</p>,
-  })),
-)
+vi.mock('@material-ui/lab', () => ({
+  Alert: ({ children }: { children: string }) => <p>Error: {children}</p>,
+}))
 
 const handle = {
   bucket: 'foo',

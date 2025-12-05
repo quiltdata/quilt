@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form config where every value is custom 1`] = `
+exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences > render form config where every value is custom 1`] = `
 <div
   class="root root"
 >
@@ -699,7 +699,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
 </div>
 `;
 
-exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form with default values 1`] = `
+exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences > render form with default values 1`] = `
 <div
   class="root root"
 >

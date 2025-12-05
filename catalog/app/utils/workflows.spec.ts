@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import dedent from 'dedent'
 
 import * as errors from 'containers/Bucket/errors'

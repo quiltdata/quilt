@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`containers/Bucket/Successors/SuccessorsSelect should render empty state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect > should render empty state 1`] = `
 <div>
   <div
     class="MuiBox-root MuiBox-root-3"
@@ -29,7 +29,7 @@ exports[`containers/Bucket/Successors/SuccessorsSelect should render empty state
 </div>
 `;
 
-exports[`containers/Bucket/Successors/SuccessorsSelect should render error state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect > should render error state 1`] = `
 <div>
   <div
     class="MuiBox-root MuiBox-root-2"
@@ -46,7 +46,7 @@ exports[`containers/Bucket/Successors/SuccessorsSelect should render error state
 </div>
 `;
 
-exports[`containers/Bucket/Successors/SuccessorsSelect should render loading state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect > should render loading state 1`] = `
 <ul
   data-testid="menu"
 >
@@ -68,7 +68,7 @@ exports[`containers/Bucket/Successors/SuccessorsSelect should render loading sta
 </ul>
 `;
 
-exports[`containers/Bucket/Successors/SuccessorsSelect should render populated state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect > should render populated state 1`] = `
 <ul
   data-testid="menu"
 >

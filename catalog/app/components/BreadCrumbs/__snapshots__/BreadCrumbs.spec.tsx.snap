@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/BreadCrumbs Segment should render EMPTY 1`] = `
+exports[`components/BreadCrumbs > Segment > should render EMPTY 1`] = `
 <div>
   <i>
     &lt;EMPTY&gt;
@@ -8,13 +8,13 @@ exports[`components/BreadCrumbs Segment should render EMPTY 1`] = `
 </div>
 `;
 
-exports[`components/BreadCrumbs Segment should render label 1`] = `
+exports[`components/BreadCrumbs > Segment > should render label 1`] = `
 <div>
   Lorem ipsum
 </div>
 `;
 
-exports[`components/BreadCrumbs Segment should render link 1`] = `
+exports[`components/BreadCrumbs > Segment > should render link 1`] = `
 <div>
   <a
     class="makeStyles-root-1"
@@ -25,7 +25,7 @@ exports[`components/BreadCrumbs Segment should render link 1`] = `
 </div>
 `;
 
-exports[`components/BreadCrumbs render and end with separator 1`] = `
+exports[`components/BreadCrumbs > render > and end with separator 1`] = `
 <div>
   <a
     class="makeStyles-root-5"
@@ -51,7 +51,7 @@ exports[`components/BreadCrumbs render and end with separator 1`] = `
 </div>
 `;
 
-exports[`components/BreadCrumbs render and make links for every crumb 1`] = `
+exports[`components/BreadCrumbs > render > and make links for every crumb 1`] = `
 <div>
   <a
     class="makeStyles-root-4"
@@ -76,7 +76,7 @@ exports[`components/BreadCrumbs render and make links for every crumb 1`] = `
 </div>
 `;
 
-exports[`components/BreadCrumbs render and transform links 1`] = `
+exports[`components/BreadCrumbs > render > and transform links 1`] = `
 <div>
   <a
     class="makeStyles-root-3"
@@ -96,7 +96,7 @@ exports[`components/BreadCrumbs render and transform links 1`] = `
 </div>
 `;
 
-exports[`components/BreadCrumbs render basic breadcrumbs 1`] = `
+exports[`components/BreadCrumbs > render > basic breadcrumbs 1`] = `
 <div>
   <a
     class="makeStyles-root-2"
@@ -130,7 +130,7 @@ exports[`components/BreadCrumbs render basic breadcrumbs 1`] = `
 </div>
 `;
 
-exports[`components/BreadCrumbs render without root label 1`] = `
+exports[`components/BreadCrumbs > render > without root label 1`] = `
 <div>
   <a
     class="makeStyles-root-6"

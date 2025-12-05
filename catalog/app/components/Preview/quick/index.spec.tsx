@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import type * as FileEditor from 'components/FileEditor'
 
 import { QuickPreview, isQuickPreviewAvailable } from './index'
 
-jest.mock('./Markdown', () => ({
-  ...jest.requireActual('./Markdown'),
+vi.mock('./Markdown', async () => ({
+  ...(await vi.importActual('./Markdown')),
   Render: () => <h1>This is Markdown quick preview</h1>,
 }))
 

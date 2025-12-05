@@ -1,18 +1,15 @@
 import * as React from 'react'
+import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
+import noop from 'utils/noop'
 
 import Database from './Database'
 
 import * as Model from './model'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
-
-const noop = () => {}
+vi.mock('constants/config', () => ({ default: {} }))
 
 const emptyState: Model.State = {
   bucket: 'any',

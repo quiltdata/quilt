@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`containers/Bucket/Toolbar Add should render children when popover is opened 1`] = `
+exports[`containers/Bucket/Toolbar > Add > should render children when popover is opened 1`] = `
 <div>
   <div
     class="makeStyles-root-9"
@@ -24,7 +24,7 @@ exports[`containers/Bucket/Toolbar Add should render children when popover is op
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Add should render with custom label 1`] = `
+exports[`containers/Bucket/Toolbar > Add > should render with custom label 1`] = `
 <div>
   <div
     class="makeStyles-root-5"
@@ -43,7 +43,7 @@ exports[`containers/Bucket/Toolbar Add should render with custom label 1`] = `
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Add should render with default label 1`] = `
+exports[`containers/Bucket/Toolbar > Add > should render with default label 1`] = `
 <div>
   <div
     class="makeStyles-root-1"
@@ -63,7 +63,7 @@ exports[`containers/Bucket/Toolbar Add should render with default label 1`] = `
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar CreatePackage should render children when popover is opened 1`] = `
+exports[`containers/Bucket/Toolbar > CreatePackage > should render children when popover is opened 1`] = `
 <div>
   <div
     class="makeStyles-root-31"
@@ -88,7 +88,7 @@ exports[`containers/Bucket/Toolbar CreatePackage should render children when pop
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar CreatePackage should render with empty selection 1`] = `
+exports[`containers/Bucket/Toolbar > CreatePackage > should render with empty selection 1`] = `
 <div>
   <div
     class="makeStyles-root-26"
@@ -108,7 +108,7 @@ exports[`containers/Bucket/Toolbar CreatePackage should render with empty select
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Get should render children when popover is opened 1`] = `
+exports[`containers/Bucket/Toolbar > Get > should render children when popover is opened 1`] = `
 <div>
   <div
     class="makeStyles-root-21"
@@ -132,7 +132,7 @@ exports[`containers/Bucket/Toolbar Get should render children when popover is op
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Get should render with custom label 1`] = `
+exports[`containers/Bucket/Toolbar > Get > should render with custom label 1`] = `
 <div>
   <div
     class="makeStyles-root-17"
@@ -151,7 +151,7 @@ exports[`containers/Bucket/Toolbar Get should render with custom label 1`] = `
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Get should render with default label 1`] = `
+exports[`containers/Bucket/Toolbar > Get > should render with default label 1`] = `
 <div>
   <div
     class="makeStyles-root-13"
@@ -171,7 +171,7 @@ exports[`containers/Bucket/Toolbar Get should render with default label 1`] = `
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Organize should render children when popover is opened 1`] = `
+exports[`containers/Bucket/Toolbar > Organize > should render children when popover is opened 1`] = `
 <div>
   <span
     class="MuiBadge-root"
@@ -204,7 +204,7 @@ exports[`containers/Bucket/Toolbar Organize should render children when popover 
 </div>
 `;
 
-exports[`containers/Bucket/Toolbar Organize should render with selection items 1`] = `
+exports[`containers/Bucket/Toolbar > Organize > should render with selection items 1`] = `
 <div>
   <span
     class="MuiBadge-root"

@@ -1,12 +1,15 @@
+import { describe, it, expect } from 'vitest'
+
 import * as R from 'ramda'
 
+import noop from 'utils/noop'
 import * as tagged from './taggedV2'
 
 describe('utils/taggedv2', () => {
   describe('equality check', () => {
     const Type = tagged.create('Type' as const, {
       A: (v: number) => v,
-      B: () => {},
+      B: noop,
     })
 
     it('should return true for equal values', () => {
@@ -29,12 +32,12 @@ describe('utils/taggedv2', () => {
   describe('.is', () => {
     const Type = tagged.create('Type' as const, {
       A: (v: number) => v,
-      B: () => {},
+      B: noop,
     })
 
     const Type2 = tagged.create('Type2' as const, {
       A: (v: number) => v,
-      B: () => {},
+      B: noop,
     })
 
     it('should return true if the argument is an instance of the given type', () => {
@@ -50,7 +53,7 @@ describe('utils/taggedv2', () => {
   describe('Constructor.is', () => {
     const Type = tagged.create('Type' as const, {
       A: (v: number) => v,
-      B: () => {},
+      B: noop,
     })
 
     it('should return true if the argument is an instance of the given variant', () => {
@@ -65,7 +68,7 @@ describe('utils/taggedv2', () => {
   describe('Constructor.unbox', () => {
     const Type = tagged.create('Type' as const, {
       A: (v: number) => v,
-      B: () => {},
+      B: noop,
     })
 
     it('should return the boxed value if the argument is an instance of the given variant', () => {

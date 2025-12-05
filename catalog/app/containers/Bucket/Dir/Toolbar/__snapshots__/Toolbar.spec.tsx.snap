@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Toolbar should render all buttons when all features are enabled 1`] = `
+exports[`Toolbar > should render all buttons when all features are enabled 1`] = `
 <div
   class="makeStyles-root-2"
 >
@@ -40,7 +40,7 @@ exports[`Toolbar should render all buttons when all features are enabled 1`] = `
 </div>
 `;
 
-exports[`Toolbar should render buttons for enabled features: add, organize 1`] = `
+exports[`Toolbar > should render buttons for enabled features: add, organize 1`] = `
 <div
   class="makeStyles-root-6"
 >
@@ -68,13 +68,13 @@ exports[`Toolbar should render buttons for enabled features: add, organize 1`] =
 </div>
 `;
 
-exports[`Toolbar should render nothing when all features are disabled 1`] = `
+exports[`Toolbar > should render nothing when all features are disabled 1`] = `
 <div
   class="makeStyles-root-5"
 />
 `;
 
-exports[`Toolbar should render skeleton buttons when features is null 1`] = `
+exports[`Toolbar > should render skeleton buttons when features is null 1`] = `
 <div
   class="makeStyles-root-1"
 >

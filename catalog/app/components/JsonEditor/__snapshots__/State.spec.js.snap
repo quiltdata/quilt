@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/JsonEditor/State iterateJsonDict should add sortIndexes to nested fields of object 1`] = `
+exports[`components/JsonEditor/State > iterateJsonDict > should add sortIndexes to nested fields of object 1`] = `
 [
   {
     "items": [
@@ -141,7 +141,7 @@ exports[`components/JsonEditor/State iterateJsonDict should add sortIndexes to n
 ]
 `;
 
-exports[`components/JsonEditor/State iterateJsonDict should add sortIndexes to object 1`] = `
+exports[`components/JsonEditor/State > iterateJsonDict > should add sortIndexes to object 1`] = `
 [
   {
     "items": [
@@ -203,7 +203,7 @@ exports[`components/JsonEditor/State iterateJsonDict should add sortIndexes to o
 ]
 `;
 
-exports[`components/JsonEditor/State iterateJsonDict should return one state object utilizing Schema keys and object keys, when input is a flat object 1`] = `
+exports[`components/JsonEditor/State > iterateJsonDict > should return one state object utilizing Schema keys and object keys, when input is a flat object 1`] = `
 [
   {
     "items": [
@@ -435,7 +435,7 @@ exports[`components/JsonEditor/State iterateJsonDict should return one state obj
 ]
 `;
 
-exports[`components/JsonEditor/State iterateJsonDict should return one state object utilizing Schema keys, when input is an empty object 1`] = `
+exports[`components/JsonEditor/State > iterateJsonDict > should return one state object utilizing Schema keys, when input is an empty object 1`] = `
 [
   {
     "items": [
@@ -614,7 +614,7 @@ exports[`components/JsonEditor/State iterateJsonDict should return one state obj
 ]
 `;
 
-exports[`components/JsonEditor/State iterateJsonDict should return three state objects, when input is an empty object and the path is provided 1`] = `
+exports[`components/JsonEditor/State > iterateJsonDict > should return three state objects, when input is an empty object and the path is provided 1`] = `
 [
   {
     "items": [
@@ -919,7 +919,7 @@ exports[`components/JsonEditor/State iterateJsonDict should return three state o
 ]
 `;
 
-exports[`components/JsonEditor/State iterateJsonDict should return three state objects, when input is an object, no Schema and path is provided 1`] = `
+exports[`components/JsonEditor/State > iterateJsonDict > should return three state objects, when input is an object, no Schema and path is provided 1`] = `
 [
   {
     "items": [
@@ -1322,7 +1322,7 @@ exports[`components/JsonEditor/State iterateJsonDict should return three state o
 ]
 `;
 
-exports[`components/JsonEditor/State iterateSchema should return first value only for deep nesting level of Schema, when type is \`array\` 1`] = `
+exports[`components/JsonEditor/State > iterateSchema > should return first value only for deep nesting level of Schema, when type is \`array\` 1`] = `
 {
   "/longNestedList": {
     "address": [
@@ -1668,7 +1668,7 @@ exports[`components/JsonEditor/State iterateSchema should return first value onl
 }
 `;
 
-exports[`components/JsonEditor/State iterateSchema should return values for a flat Schema 1`] = `
+exports[`components/JsonEditor/State > iterateSchema > should return values for a flat Schema 1`] = `
 {
   "/boolValue": {
     "address": [
@@ -1710,7 +1710,7 @@ exports[`components/JsonEditor/State iterateSchema should return values for a fl
 }
 `;
 
-exports[`components/JsonEditor/State iterateSchema should return values for every nesting level of Schema, when type is \`object\` 1`] = `
+exports[`components/JsonEditor/State > iterateSchema > should return values for every nesting level of Schema, when type is \`object\` 1`] = `
 {
   "/a": {
     "address": [

@@ -1,10 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
+import { describe, expect, it, vi } from 'vitest'
 
 import computeFileChecksumLimit from './checksums'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('utils/checksums', () => {
   describe('computeFileChecksumLimit', () => {

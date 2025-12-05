@@ -1,12 +1,12 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders Markdown 1`] = `
+exports[`app/components/Preview/quick/index.spec.tsx > QuickPreview > renders Markdown 1`] = `
 <h1>
   This is Markdown quick preview
 </h1>
 `;
 
-exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders no preview if unsupported file type 1`] = `
+exports[`app/components/Preview/quick/index.spec.tsx > QuickPreview > renders no preview if unsupported file type 1`] = `
 <p
   class="MuiTypography-root MuiTypography-body1"
 >
@@ -14,7 +14,7 @@ exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders no pre
 </p>
 `;
 
-exports[`app/components/Preview/quick/index.spec.tsx QuickPreview renders no value 1`] = `
+exports[`app/components/Preview/quick/index.spec.tsx > QuickPreview > renders no value 1`] = `
 <p
   class="MuiTypography-root MuiTypography-body1"
 >

@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import { describe, expect, it, vi } from 'vitest'
 
 import type * as Model from 'model'
 import type { JsonRecord } from 'utils/types'
@@ -8,6 +9,8 @@ import {
   createPathResolver,
   createUrlProcessor,
 } from './useSignObjectUrls'
+
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('components/Preview/loaders/useSignObjectUrls', () => {
   describe('createObjectUrlsSigner', () => {
@@ -33,9 +36,9 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
         },
       },
     }
-    it('should return strings', async () => {
+    it('should return strings', () => {
       let processor = createObjectUrlsSigner(traverseUrls, processUrl, false)
-      await expect(processor(object)).resolves.toEqual({
+      return expect(processor(object)).resolves.toEqual({
         check: true,
         foo: {
           bar: 'ABCDEF',
@@ -64,39 +67,35 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
       key: path,
     })
     let processUrl = createUrlProcessor(sign, resolvePath, { bucket: 'foo', key: 'bar' })
-    it('should return unsinged web', () => {
-      expect(processUrl('http://bucket/path')).resolves.toBe('http://bucket/path')
-    })
-    it('should return signed S3 URL', () => {
+    it('should return unsinged web', () =>
+      expect(processUrl('http://bucket/path')).resolves.toBe('http://bucket/path'))
+    it('should return signed S3 URL', () =>
       expect(processUrl('s3://bucket/path')).resolves.toBe(
         'https://bucket+path+undefined',
-      )
-    })
-    it('should return signed S3 relative URL', () => {
+      ))
+    it('should return signed S3 relative URL', () =>
       expect(processUrl('s3://./relative/path')).resolves.toBe(
         'https://resolved-bucket+./relative/path+undefined',
-      )
-    })
-    it('should return signed path', () => {
+      ))
+    it('should return signed path', () =>
       expect(processUrl('./relative/path')).resolves.toBe(
         'https://resolved-bucket+./relative/path+undefined',
-      )
-    })
+      ))
   })
 
   describe('createPathResolver', () => {
-    test('Join keys if no logical key', () => {
+    it('Join keys if no logical key', () => {
       const resolveKey = (key: string) => ({
         bucket: 'foo/bar',
         key: `CCC/${key}`,
       })
       let resolve = createPathResolver(resolveKey, { bucket: 'foo/bar', key: 'AAA/' })
-      expect(resolve('BBB')).resolves.toEqual({
+      return expect(resolve('BBB')).resolves.toEqual({
         bucket: 'foo/bar',
         key: 'AAA/BBB',
       })
     })
-    test('Resovle logical key', () => {
+    it('Resovle logical key', () => {
       const resolveLogicalKey = (key: string) => ({
         bucket: 'foo/bar',
         key: `CCC/${key}`,
@@ -106,7 +105,7 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
         key: 'AAA/',
         logicalKey: 'AAA/',
       })
-      expect(resolve('BBB')).resolves.toEqual({
+      return expect(resolve('BBB')).resolves.toEqual({
         bucket: 'foo/bar',
         key: 'CCC/AAA/BBB',
       })

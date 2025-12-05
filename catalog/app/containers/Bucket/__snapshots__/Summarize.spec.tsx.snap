@@ -1,12 +1,12 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`containers/Buckets/Summarize ConfigureAppearance should not render buttons when there are files out there 1`] = `
+exports[`containers/Buckets/Summarize > ConfigureAppearance > should not render buttons when there are files out there 1`] = `
 <div
   class="makeStyles-root-1"
 />
 `;
 
-exports[`containers/Buckets/Summarize ConfigureAppearance should render both links 1`] = `
+exports[`containers/Buckets/Summarize > ConfigureAppearance > should render both links 1`] = `
 <div
   class="makeStyles-root-7"
 >
@@ -39,7 +39,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
 </div>
 `;
 
-exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_summarize link 1`] = `
+exports[`containers/Buckets/Summarize > ConfigureAppearance > should render quilt_summarize link 1`] = `
 <div
   class="makeStyles-root-5"
 >
@@ -59,7 +59,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_su
 </div>
 `;
 
-exports[`containers/Buckets/Summarize ConfigureAppearance should render readme link 1`] = `
+exports[`containers/Buckets/Summarize > ConfigureAppearance > should render readme link 1`] = `
 <div
   class="makeStyles-root-3"
 >

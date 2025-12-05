@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 import * as stubs from 'utils/JSONSchema/__stubs__'
 
 import {

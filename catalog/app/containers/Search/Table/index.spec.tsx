@@ -1,15 +1,18 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+
+import noop from 'utils/noop'
 
 import type { SearchHitPackage } from '../model'
 
 import TableView from './index'
 
-jest.mock('components/Layout', () => ({
-  useSetFullWidth: jest.fn(),
+vi.mock('components/Layout', () => ({
+  useSetFullWidth: noop,
 }))
 
-jest.mock('../model', () => ({
+vi.mock('../model', () => ({
   use: () => ({
     state: {
       resultType: 'p',
@@ -26,12 +29,12 @@ jest.mock('../model', () => ({
   },
 }))
 
-const useResults = jest.fn()
-jest.mock('./useResults', () => ({
+const useResults = vi.fn()
+vi.mock('./useResults', () => ({
   useResults: () => useResults(),
 }))
 
-jest.mock('../NoResults', () => ({
+vi.mock('../NoResults', () => ({
   Skeleton: () => <div>Loading…</div>,
   Error: ({ children, kind }: { children?: React.ReactNode; kind?: string }) => {
     switch (kind) {
@@ -60,26 +63,26 @@ jest.mock('../NoResults', () => ({
   },
 }))
 
-jest.mock('./Table', () => ({ hits }: { hits: SearchHitPackage[] }) => (
-  <table>
-    <tbody>
-      {hits.map((hit) => (
-        <tr key={hit.id}>
-          <td>{hit.name}</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-))
+vi.mock('./Table', () => ({
+  default: ({ hits }: { hits: SearchHitPackage[] }) => (
+    <table>
+      <tbody>
+        {hits.map((hit) => (
+          <tr key={hit.id}>
+            <td>{hit.name}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ),
+}))
 
-const TablePage = () => (
-  <TableView emptySlot={<div>No results</div>} onRefine={jest.fn()} />
-)
+const TablePage = () => <TableView emptySlot={<div>No results</div>} onRefine={noop} />
 
 describe('containers/Search/Table/index', () => {
   describe('when no results', () => {
     beforeEach(() => {
-      jest.clearAllMocks()
+      vi.clearAllMocks()
     })
 
     it('renders null for idle state', () => {

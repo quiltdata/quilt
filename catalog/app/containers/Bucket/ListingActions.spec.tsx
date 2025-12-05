@@ -1,20 +1,21 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import noop from 'utils/noop'
 
 import RowActions from './ListingActions'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
+vi.mock('constants/config', () => ({
+  default: {
     noDownload: false,
     s3Proxy: '',
-  })),
-)
+  },
+}))
 
 const defaultPrefs = {
   copyPackage: true,
@@ -27,26 +28,26 @@ const defaultPrefs = {
   writeFile: true,
 }
 
-jest.mock('@material-ui/core', () => ({
-  ...jest.requireActual('@material-ui/core'),
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
   IconButton: ({ onClick, ...props }: any) =>
     props.href ? <a {...props} /> : <button {...props} />,
 }))
 
-jest.mock('@material-ui/icons', () => ({
+vi.mock('@material-ui/icons', () => ({
   ArrowDownwardOutlined: () => <span>arrow_downward</span>,
   DeleteOutlined: () => <span>delete</span>,
   TurnedInOutlined: () => <span>turned_in</span>,
   TurnedInNotOutlined: () => <span>turned_in_not</span>,
 }))
 
-jest.mock('containers/Notifications', () => ({
+vi.mock('containers/Notifications', () => ({
   use: () => ({
-    push: jest.fn(() => {}),
+    push: noop,
   }),
 }))
 
-jest.mock('utils/AWS', () => ({
+vi.mock('utils/AWS', () => ({
   S3: {
     use: () => null,
   },
@@ -55,7 +56,9 @@ jest.mock('utils/AWS', () => ({
   },
 }))
 
-const noop = () => {}
+vi.mock('react-redux', () => ({
+  useSelector: vi.fn(() => ({ token: 'ABC' })),
+}))
 
 function TestBucket({ children }: React.PropsWithChildren<{}>) {
   return (

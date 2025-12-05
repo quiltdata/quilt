@@ -1,7 +1,9 @@
 import type A from 'aws-sdk/clients/athena'
 import { act, renderHook } from '@testing-library/react-hooks'
+import { describe, expect, it, vi } from 'vitest'
 
 import Log from 'utils/Logging'
+import noop from 'utils/noop'
 
 import * as Model from './utils'
 import * as requests from './requests'
@@ -15,31 +17,29 @@ class AWSError extends Error {
   }
 }
 
-jest.mock(
-  'utils/Logging',
-  jest.fn(() => ({
-    error: jest.fn(),
-    info: jest.fn(),
-  })),
-)
+vi.mock('utils/Logging', () => ({
+  default: {
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}))
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-const getStorageKey = jest.fn((): string => '')
-jest.mock('utils/storage', () => () => ({
-  get: jest.fn(() => getStorageKey()),
+const getStorageKey = vi.fn((): string => '')
+vi.mock('utils/storage', () => ({
+  default: () => ({
+    get: () => getStorageKey(),
+  }),
 }))
 
 function req<I, O>(output: O, delay = 100) {
-  return jest.fn((_x: I, callback: (e: Error | null, d: O) => void) => {
+  return vi.fn((_x: I, callback: (e: Error | null, d: O) => void) => {
     const timer = setTimeout(() => {
       callback(null, output)
     }, delay)
     return {
-      abort: jest.fn(() => {
+      abort: vi.fn(() => {
         clearTimeout(timer)
       }),
     }
@@ -47,7 +47,7 @@ function req<I, O>(output: O, delay = 100) {
 }
 
 function reqThen<I, O>(output: (x: I) => O, delay = 100) {
-  return jest.fn((x: I) => ({
+  return vi.fn((x: I) => ({
     promise: () =>
       new Promise((resolve) => {
         setTimeout(() => {
@@ -57,33 +57,33 @@ function reqThen<I, O>(output: (x: I) => O, delay = 100) {
   }))
 }
 
-const reqThrow = jest.fn(() => ({
+const reqThrow = vi.fn(() => ({
   promise: () => {
     throw new Error()
   },
 }))
 
 const reqThrowWith = (o: unknown) =>
-  jest.fn(() => ({
+  vi.fn(() => ({
     promise: () => {
       throw o
     },
   }))
 
-const batchGetNamedQuery = jest.fn()
-const batchGetQueryExecution = jest.fn()
-const getDataCatalog = jest.fn()
-const getQueryExecution = jest.fn()
-const getQueryResults = jest.fn()
-const getWorkGroup = jest.fn()
-const listDataCatalogs = jest.fn()
-const listDatabases = jest.fn()
-const listNamedQueries = jest.fn()
-const listQueryExecutions = jest.fn()
-const listWorkGroups = jest.fn()
-const startQueryExecution = jest.fn()
+const batchGetNamedQuery = vi.fn()
+const batchGetQueryExecution = vi.fn()
+const getDataCatalog = vi.fn()
+const getQueryExecution = vi.fn()
+const getQueryResults = vi.fn()
+const getWorkGroup = vi.fn()
+const listDataCatalogs = vi.fn()
+const listDatabases = vi.fn()
+const listNamedQueries = vi.fn()
+const listQueryExecutions = vi.fn()
+const listWorkGroups = vi.fn()
+const startQueryExecution = vi.fn()
 
-jest.mock('utils/AWS', () => ({
+vi.mock('utils/AWS', () => ({
   Athena: {
     use: () => ({
       batchGetNamedQuery,
@@ -994,7 +994,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const workgroups = {
           data: { list: ['foo', 'bar'] },
-          loadMore: jest.fn(),
+          loadMore: noop,
         }
         const { result, waitFor } = renderHook(() =>
           useWrapper([workgroups, 'bar', undefined]),
@@ -1009,7 +1009,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       getStorageKey.mockImplementation(() => 'bar')
       const workgroups = {
         data: { list: ['foo', 'bar'] },
-        loadMore: jest.fn(),
+        loadMore: noop,
       }
 
       const { result, waitFor, unmount } = renderHook(() =>
@@ -1020,14 +1020,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         await waitFor(() => typeof result.current.data === 'string')
         expect(result.current.data).toBe('bar')
       })
-      getStorageKey.mockImplementation(storageMock)
+      getStorageKey.mockImplementation(storageMock!)
       unmount()
     })
 
     it('select default workgroup from preferences if valid', async () => {
       const workgroups = {
         data: { list: ['foo', 'bar'] },
-        loadMore: jest.fn(),
+        loadMore: noop,
       }
       const preferences = { defaultWorkgroup: 'bar' }
 
@@ -1046,7 +1046,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const workgroups = {
           data: { list: ['foo', 'bar', 'baz'] },
-          loadMore: jest.fn(),
+          loadMore: noop,
         }
 
         const { result, waitFor } = renderHook(() =>
@@ -1062,7 +1062,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const workgroups = {
           data: { list: [] },
-          loadMore: jest.fn(),
+          loadMore: noop,
         }
 
         const { result, waitFor } = renderHook(() =>
@@ -1081,7 +1081,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('wait for workgroups', async () => {
       const workgroups = {
         data: undefined,
-        loadMore: jest.fn(),
+        loadMore: noop,
       }
 
       const { result, rerender, unmount, waitForNextUpdate } = renderHook(
@@ -1281,7 +1281,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body from query if query is ready', () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
       const execution = null
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1295,7 +1295,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body from execution if query is not selected', () => {
       const query = null
       const execution = { query: 'SELECT * FROM bar' }
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1309,7 +1309,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body to null if query is an error', () => {
       const query = new Error('Query failed')
       const execution = {}
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1323,7 +1323,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('does not change value if query and execution are both not ready', async () => {
       const query = undefined
       const execution = undefined
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (x: Parameters<typeof requests.useQueryBody>) => useWrapper(x),
@@ -1352,7 +1352,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('updates query body and resets query when handleValue is called', async () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
       const execution = {}
-      const setQuery = jest.fn()
+      const setQuery = vi.fn()
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1367,7 +1367,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('obtains value when execution and query are initially empty but later update', async () => {
       const initialQuery = null
       const initialExecution = null
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
@@ -1399,7 +1399,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body to null if query is null after being loaded', async () => {
       const initialQuery = Model.Loading
       const initialExecution = null
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
@@ -1432,7 +1432,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       // So, at least, it is documented here.
       const initialQuery = null
       const initialExecution = { id: 'any', query: 'SELECT * FROM updated' }
-      const setQuery = jest.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
@@ -1461,7 +1461,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('preserves user input during query submission loading', async () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
-      const setQuery = jest.fn()
+      const setQuery = vi.fn()
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),

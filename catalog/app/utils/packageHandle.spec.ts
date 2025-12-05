@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, type MockedFunction } from 'vitest'
 import * as packageHandle from './packageHandle'
 
 /* eslint-disable no-console */
@@ -34,8 +35,8 @@ describe('utils/packageHandle', () => {
     })
 
     it('should return null when no value for directory', () => {
-      console.log = jest.fn()
-      console.error = jest.fn()
+      console.log = vi.fn()
+      console.error = vi.fn()
       expect(
         packageHandle.execTemplateItem(
           'what-<%= username %>-do/make-<%= directory %>-update',
@@ -47,14 +48,16 @@ describe('utils/packageHandle', () => {
       expect(console.log).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
-      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+      expect(
+        (console.error as MockedFunction<typeof console.error>).mock.calls[0][0],
+      ).toMatchObject({
         message: 'directory is not defined',
       })
     })
 
     it('should return null when no value for username', () => {
-      console.log = jest.fn()
-      console.error = jest.fn()
+      console.log = vi.fn()
+      console.error = vi.fn()
       expect(
         packageHandle.execTemplateItem('<%= username %>/<%= directory %>', {
           directory: 'staging',
@@ -63,7 +66,9 @@ describe('utils/packageHandle', () => {
       expect(console.log).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
-      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+      expect(
+        (console.error as MockedFunction<typeof console.error>).mock.calls[0][0],
+      ).toMatchObject({
         message: 'username is not defined',
       })
     })
@@ -100,8 +105,8 @@ describe('utils/packageHandle', () => {
     })
 
     it('should return empty string if not enough values', () => {
-      console.log = jest.fn()
-      console.error = jest.fn()
+      console.log = vi.fn()
+      console.error = vi.fn()
       expect(
         packageHandle.execTemplate(
           { files: '<%= username %>/<%= directory %>' },
@@ -114,7 +119,9 @@ describe('utils/packageHandle', () => {
       expect(console.log).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
-      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+      expect(
+        (console.error as MockedFunction<typeof console.error>).mock.calls[0][0],
+      ).toMatchObject({
         message: 'directory is not defined',
       })
     })

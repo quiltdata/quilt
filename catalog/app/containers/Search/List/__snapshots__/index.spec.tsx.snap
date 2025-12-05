@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`containers/Search/List/index when has results renders ObjectsSearchResultSet with object hits 1`] = `
+exports[`containers/Search/List/index > when has results > renders ObjectsSearchResultSet with object hits 1`] = `
 <div>
   <div>
     <div>
@@ -15,7 +15,7 @@ exports[`containers/Search/List/index when has results renders ObjectsSearchResu
 </div>
 `;
 
-exports[`containers/Search/List/index when has results renders PackagesSearchResultSet with empty hits and secure search 1`] = `
+exports[`containers/Search/List/index > when has results > renders PackagesSearchResultSet with empty hits and secure search 1`] = `
 <div>
   <div>
     <section>
@@ -30,7 +30,7 @@ exports[`containers/Search/List/index when has results renders PackagesSearchRes
 </div>
 `;
 
-exports[`containers/Search/List/index when has results renders PackagesSearchResultSet with package hits 1`] = `
+exports[`containers/Search/List/index > when has results > renders PackagesSearchResultSet with package hits 1`] = `
 <div>
   <div>
     <div>
@@ -49,7 +49,7 @@ exports[`containers/Search/List/index when has results renders PackagesSearchRes
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders empty slot for EmptySearchResultSet 1`] = `
+exports[`containers/Search/List/index > when no results > renders empty slot for EmptySearchResultSet 1`] = `
 <div>
   <div>
     No results
@@ -57,7 +57,7 @@ exports[`containers/Search/List/index when no results renders empty slot for Emp
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders error for InputError 1`] = `
+exports[`containers/Search/List/index > when no results > renders error for InputError 1`] = `
 <div>
   <section>
     <h1>
@@ -77,7 +77,7 @@ exports[`containers/Search/List/index when no results renders error for InputErr
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders error for error state 1`] = `
+exports[`containers/Search/List/index > when no results > renders error for error state 1`] = `
 <div>
   <section>
     <h1>
@@ -90,7 +90,7 @@ exports[`containers/Search/List/index when no results renders error for error st
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders operation error for other OperationError 1`] = `
+exports[`containers/Search/List/index > when no results > renders operation error for other OperationError 1`] = `
 <div>
   <section>
     <h1>
@@ -104,7 +104,7 @@ exports[`containers/Search/List/index when no results renders operation error fo
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders skeleton for fetching state 1`] = `
+exports[`containers/Search/List/index > when no results > renders skeleton for fetching state 1`] = `
 <div>
   <div>
     Loading…
@@ -112,7 +112,7 @@ exports[`containers/Search/List/index when no results renders skeleton for fetch
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders syntax error for QuerySyntaxError 1`] = `
+exports[`containers/Search/List/index > when no results > renders syntax error for QuerySyntaxError 1`] = `
 <div>
   <section>
     <h1>
@@ -125,7 +125,7 @@ exports[`containers/Search/List/index when no results renders syntax error for Q
 </div>
 `;
 
-exports[`containers/Search/List/index when no results renders timeout error for OperationError with Timeout 1`] = `
+exports[`containers/Search/List/index > when no results > renders timeout error for OperationError with Timeout 1`] = `
 <div>
   <section>
     <h1>
