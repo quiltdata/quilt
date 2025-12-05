@@ -30,16 +30,16 @@ const useLocationInternal = vi.fn(() => ({
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
-  useParams: vi.fn(() => useParamsInternal()),
-  useLocation: vi.fn(() => useLocationInternal()),
+  useParams: () => useParamsInternal(),
+  useLocation: () => useLocationInternal(),
   Redirect: () => null,
 }))
 
 const urls = {
-  bucketFile: vi.fn((a, b, c) => `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`),
-  bucketPackageDetail: vi.fn(
-    (a, b, c) => `bucketPackageDetail(${a}, ${b}, ${JSON.stringify(c)})`,
-  ),
+  bucketFile: (a: string, b: string, c: string) =>
+    `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`,
+  bucketPackageDetail: (a: string, b: string, c: string) =>
+    `bucketPackageDetail(${a}, ${b}, ${JSON.stringify(c)})`,
 }
 
 vi.mock('utils/NamedRoutes', async () => ({
