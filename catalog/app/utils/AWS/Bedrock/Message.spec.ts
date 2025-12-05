@@ -20,11 +20,10 @@ describe('utils/AWS/Bedrock/Message', () => {
   })
 
   describe('bedrockBodyToMessage', () => {
-    it('Support application/json only', async () => {
-      await expect(Message.bedrockBodyToMessage('foo', 'text/html')).rejects.toThrow(
+    it('Support application/json only', () =>
+      expect(Message.bedrockBodyToMessage('foo', 'text/html')).rejects.toThrow(
         'Unsupported content type',
-      )
-    })
+      ))
 
     it('Throws on invalid formats', async () => {
       await expect(
