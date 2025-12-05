@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
 import Log from 'utils/Logging'
+import noop from 'utils/noop'
 
 import * as Model from './utils'
 import * as requests from './requests'
@@ -18,8 +19,8 @@ class AWSError extends Error {
 
 vi.mock('utils/Logging', () => ({
   default: {
-    error: vi.fn(),
-    info: vi.fn(),
+    error: noop,
+    info: noop,
   },
 }))
 
@@ -28,7 +29,7 @@ vi.mock('constants/config', () => ({ default: {} }))
 const getStorageKey = vi.fn((): string => '')
 vi.mock('utils/storage', () => ({
   default: () => ({
-    get: vi.fn(() => getStorageKey()),
+    get: () => getStorageKey(),
   }),
 }))
 
@@ -993,7 +994,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const workgroups = {
           data: { list: ['foo', 'bar'] },
-          loadMore: vi.fn(),
+          loadMore: noop,
         }
         const { result, waitFor } = renderHook(() =>
           useWrapper([workgroups, 'bar', undefined]),
@@ -1008,7 +1009,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       getStorageKey.mockImplementation(() => 'bar')
       const workgroups = {
         data: { list: ['foo', 'bar'] },
-        loadMore: vi.fn(),
+        loadMore: noop,
       }
 
       const { result, waitFor, unmount } = renderHook(() =>
@@ -1026,7 +1027,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('select default workgroup from preferences if valid', async () => {
       const workgroups = {
         data: { list: ['foo', 'bar'] },
-        loadMore: vi.fn(),
+        loadMore: noop,
       }
       const preferences = { defaultWorkgroup: 'bar' }
 
@@ -1045,7 +1046,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const workgroups = {
           data: { list: ['foo', 'bar', 'baz'] },
-          loadMore: vi.fn(),
+          loadMore: noop,
         }
 
         const { result, waitFor } = renderHook(() =>
@@ -1061,7 +1062,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const workgroups = {
           data: { list: [] },
-          loadMore: vi.fn(),
+          loadMore: noop,
         }
 
         const { result, waitFor } = renderHook(() =>
@@ -1080,7 +1081,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('wait for workgroups', async () => {
       const workgroups = {
         data: undefined,
-        loadMore: vi.fn(),
+        loadMore: noop,
       }
 
       const { result, rerender, unmount, waitForNextUpdate } = renderHook(
@@ -1280,7 +1281,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body from query if query is ready', () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
       const execution = null
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1294,7 +1295,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body from execution if query is not selected', () => {
       const query = null
       const execution = { query: 'SELECT * FROM bar' }
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1308,7 +1309,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body to null if query is an error', () => {
       const query = new Error('Query failed')
       const execution = {}
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1322,7 +1323,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('does not change value if query and execution are both not ready', async () => {
       const query = undefined
       const execution = undefined
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (x: Parameters<typeof requests.useQueryBody>) => useWrapper(x),
@@ -1351,7 +1352,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('updates query body and resets query when handleValue is called', async () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
       const execution = {}
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
@@ -1366,7 +1367,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('obtains value when execution and query are initially empty but later update', async () => {
       const initialQuery = null
       const initialExecution = null
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
@@ -1398,7 +1399,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('sets query body to null if query is null after being loaded', async () => {
       const initialQuery = Model.Loading
       const initialExecution = null
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
@@ -1431,7 +1432,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       // So, at least, it is documented here.
       const initialQuery = null
       const initialExecution = { id: 'any', query: 'SELECT * FROM updated' }
-      const setQuery = vi.fn()
+      const setQuery = noop
 
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
