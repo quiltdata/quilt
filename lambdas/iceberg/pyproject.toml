@@ -5,7 +5,7 @@ description = "Add your description here"
 authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
-requires-python = "==3.11.*"
+requires-python = "==3.13.*"
 dependencies = [
     "boto3>=1.40.41,<2.0.0",
     "quilt-shared[boto]",

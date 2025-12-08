@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
-requires-python = ">=3.11"
+requires-python = "==3.13.*"
 dependencies = [
     "jsonpointer~=2.4",
     "orjson~=3.10",
