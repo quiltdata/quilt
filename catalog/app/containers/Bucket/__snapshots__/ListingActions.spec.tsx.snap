@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/ListingActions RowActions should render Bucket directory 1`] = `
+exports[`components/ListingActions > RowActions > should render Bucket directory 1`] = `
 <div
   class="makeStyles-root-16"
 >
@@ -52,7 +52,7 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
 </div>
 `;
 
-exports[`components/ListingActions RowActions should render Bucket file 1`] = `
+exports[`components/ListingActions > RowActions > should render Bucket file 1`] = `
 <div
   class="makeStyles-root-22"
 >
@@ -93,7 +93,7 @@ exports[`components/ListingActions RowActions should render Bucket file 1`] = `
 </div>
 `;
 
-exports[`components/ListingActions RowActions should render Bucket file without download button 1`] = `
+exports[`components/ListingActions > RowActions > should render Bucket file without download button 1`] = `
 <div
   class="makeStyles-root-40"
 >
@@ -124,7 +124,7 @@ exports[`components/ListingActions RowActions should render Bucket file without 
 </div>
 `;
 
-exports[`components/ListingActions RowActions should render Package directory 1`] = `
+exports[`components/ListingActions > RowActions > should render Package directory 1`] = `
 <div
   class="makeStyles-root-28"
 >
@@ -160,9 +160,9 @@ exports[`components/ListingActions RowActions should render Package directory 1`
 </div>
 `;
 
-exports[`components/ListingActions RowActions should render Package directory without download button 1`] = `null`;
+exports[`components/ListingActions > RowActions > should render Package directory without download button 1`] = `null`;
 
-exports[`components/ListingActions RowActions should render Package file 1`] = `
+exports[`components/ListingActions > RowActions > should render Package file 1`] = `
 <div
   class="makeStyles-root-34"
 >
@@ -187,10 +187,10 @@ exports[`components/ListingActions RowActions should render Package file 1`] = `
 </div>
 `;
 
-exports[`components/ListingActions RowActions should render Package file without download button 1`] = `null`;
+exports[`components/ListingActions > RowActions > should render Package file without download button 1`] = `null`;
 
-exports[`components/ListingActions RowActions should render nothing if archived 1`] = `null`;
+exports[`components/ListingActions > RowActions > should render nothing if archived 1`] = `null`;
 
-exports[`components/ListingActions RowActions should render nothing if no route 1`] = `null`;
+exports[`components/ListingActions > RowActions > should render nothing if no route 1`] = `null`;
 
-exports[`components/ListingActions RowActions should render nothing if wrong route 1`] = `null`;
+exports[`components/ListingActions > RowActions > should render nothing if wrong route 1`] = `null`;

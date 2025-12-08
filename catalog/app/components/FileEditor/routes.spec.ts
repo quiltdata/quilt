@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   useAddFileInPackage,
@@ -8,14 +9,13 @@ import {
   useParams,
 } from './routes'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
+vi.mock('constants/config', () => ({
+  default: {
     packageRoot: 'ro/ot',
-  })),
-)
+  },
+}))
 
-const useParamsInternal = jest.fn(
+const useParamsInternal = vi.fn(
   () =>
     ({
       bucket: 'b',
@@ -23,28 +23,28 @@ const useParamsInternal = jest.fn(
     }) as Record<string, string>,
 )
 
-const useLocationInternal = jest.fn(() => ({
+const useLocationInternal = vi.fn(() => ({
   pathname: '/bucket/b/tree',
   search: '?prefix=foo/',
 }))
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(() => useParamsInternal()),
-  useLocation: jest.fn(() => useLocationInternal()),
-  Redirect: jest.fn(() => null),
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: () => useParamsInternal(),
+  useLocation: () => useLocationInternal(),
+  Redirect: () => null,
 }))
 
 const urls = {
-  bucketFile: jest.fn((a, b, c) => `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`),
-  bucketPackageDetail: jest.fn(
-    (a, b, c) => `bucketPackageDetail(${a}, ${b}, ${JSON.stringify(c)})`,
-  ),
+  bucketFile: (a: string, b: string, c: string) =>
+    `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`,
+  bucketPackageDetail: (a: string, b: string, c: string) =>
+    `bucketPackageDetail(${a}, ${b}, ${JSON.stringify(c)})`,
 }
 
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: jest.fn(() => ({ urls })),
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: () => ({ urls }),
 }))
 
 describe('components/FileEditor/routes', () => {
@@ -95,7 +95,7 @@ describe('components/FileEditor/routes', () => {
     it('should throw error when no bucket', () => {
       useParamsInternal.mockImplementationOnce(() => ({}))
       const { result } = renderHook(() => useParams())
-      expect(result.error).toEqual(new Error('`bucket` must be defined'))
+      expect(result.error?.message).toBe('`bucket` must be defined')
     })
 
     it('should return initial path', () => {
