@@ -1,6 +1,6 @@
 import type A from 'aws-sdk/clients/athena'
-import { act, renderHook } from '@testing-library/react-hooks'
-import { describe, expect, it, vi } from 'vitest'
+import { act, renderHook, cleanup } from '@testing-library/react-hooks'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import Log from 'utils/Logging'
 import noop from 'utils/noop'
@@ -103,6 +103,11 @@ vi.mock('utils/AWS', () => ({
 }))
 
 describe('containers/Bucket/Queries/Athena/model/requests', () => {
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
+
   describe('useCatalogNames', () => {
     getDataCatalog.mockImplementation(
       reqThen<A.GetDataCatalogInput, A.GetDataCatalogOutput>(
@@ -120,13 +125,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
         })),
       )
-      const { result, waitForValueToChange } = renderHook(() =>
+      const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
       expect(result.current.data).toBe(undefined)
 
-      await waitForValueToChange(() => result.current)
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
       expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] })
+      unmount()
     })
 
     it('return empty list', async () => {
@@ -135,12 +141,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [],
         })),
       )
-      const { result, waitForValueToChange } = renderHook(() =>
+      const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current)
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
       expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('return empty list on invalid catalog data', async () => {
@@ -150,12 +157,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
         })),
       )
-      const { result, waitForValueToChange } = renderHook(() =>
+      const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current)
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
       expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('return empty list on invalid list data', async () => {
@@ -165,12 +173,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           Invalid: [],
         })),
       )
-      const { result, waitForValueToChange } = renderHook(() =>
+      const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current)
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
       expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('doesnt return catalogs with denied access', async () => {
@@ -182,12 +191,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       getDataCatalog.mockImplementation(
         reqThrowWith(new AWSError('AccessDeniedException')),
       )
-      const { result, waitForValueToChange } = renderHook(() =>
+      const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current)
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
       expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('doesnt return failed catalogs', async () => {
@@ -197,12 +207,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       getDataCatalog.mockImplementation(reqThrow)
-      const { result, waitForValueToChange } = renderHook(() =>
+      const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current)
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
       expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('handle fail in requesting list', async () => {
@@ -230,14 +241,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
       await act(async () => {
         rerender([Model.Loading])
-        await waitForValueToChange(() => result.current)
+        await waitForValueToChange(() => result.current, { timeout: 5000 })
       })
       expect(result.current.data).toBe(Model.Loading)
 
       const error = new Error('foo')
       await act(async () => {
         rerender([error])
-        await waitForValueToChange(() => result.current)
+        await waitForValueToChange(() => result.current, { timeout: 5000 })
       })
       expect(result.current.data).toBe(error)
       unmount()
@@ -974,7 +985,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitForValueToChange(() => result.current)
+        await waitForValueToChange(() => result.current, { timeout: 5000 })
         await waitForValueToChange(() => result.current[0])
         expect(result.current[0]).toBeNull()
         const run = await result.current[1](false)

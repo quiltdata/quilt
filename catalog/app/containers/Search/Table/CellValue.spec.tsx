@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -29,6 +29,10 @@ const column = {
 } as ColumnSystemMeta
 
 describe('containers/Search/Table/CellValue', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it('renders with pointer "latest"', () => {
     const hit = { ...hitBase, pointer: 'latest' }
 

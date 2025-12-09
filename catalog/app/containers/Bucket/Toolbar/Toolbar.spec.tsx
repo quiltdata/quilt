@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render, fireEvent, act } from '@testing-library/react'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { render, fireEvent, act, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 import { makeStyles } from 'utils/makeStyles.spec'
 
@@ -27,6 +27,10 @@ vi.mock('containers/Bucket/Selection/Provider', () => ({
 describe('containers/Bucket/Toolbar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    cleanup()
   })
 
   describe('Add', () => {
