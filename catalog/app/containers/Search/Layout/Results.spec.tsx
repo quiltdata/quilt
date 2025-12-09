@@ -1,13 +1,16 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+import noop from 'utils/noop'
 
 import Results from './Results'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock('@material-ui/core', () => ({
-  ...jest.requireActual('@material-ui/core'),
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
   Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
   Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
   makeStyles: () => () => ({}),
@@ -18,12 +21,12 @@ jest.mock('@material-ui/core', () => ({
   useMediaQuery: () => false,
 }))
 
-jest.mock('@material-ui/icons', () => ({
+vi.mock('@material-ui/icons', () => ({
   GridOn: () => 'table icon',
   List: () => 'list icon',
 }))
 
-jest.mock('@material-ui/lab', () => ({
+vi.mock('@material-ui/lab', () => ({
   Skeleton: () => <div>Loading…</div>,
   ToggleButtonGroup: ({
     value,
@@ -53,8 +56,8 @@ const model = {
     latestOnly: true,
   },
   actions: {
-    setView: jest.fn(),
-    setOrder: jest.fn(),
+    setView: vi.fn(),
+    setOrder: vi.fn(),
   },
   firstPageQuery: {
     _tag: 'fetching',
@@ -64,7 +67,7 @@ const model = {
   } as any,
 }
 
-jest.mock('../model', () => ({
+vi.mock('../model', () => ({
   use: () => model,
   ResultType: {
     QuiltPackage: 'p',
@@ -76,25 +79,29 @@ jest.mock('../model', () => ({
   },
 }))
 
-jest.mock('containers/Bucket/PackageDialog', () => ({
+vi.mock('containers/Bucket/PackageDialog', () => ({
   Provider: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
   useCreateDialog: () => ({
-    open: jest.fn(),
+    open: vi.fn(),
     render: () => <>Don't forget to render dialog</>,
   }),
 }))
 
-jest.mock('containers/Bucket/Routes', () => ({
+vi.mock('containers/Bucket/Routes', () => ({
   useBucketStrict: () => 'test-bucket',
 }))
 
-jest.mock('./ColumnTitle', () => ({ children }: React.PropsWithChildren<{}>) => (
-  <div>Column Title: {children}</div>
-))
+vi.mock('./ColumnTitle', () => ({
+  default: ({ children }: React.PropsWithChildren<{}>) => (
+    <div>Column Title: {children}</div>
+  ),
+}))
 
-jest.mock('../Sort', () => () => <div>Sort Selector</div>)
+vi.mock('../Sort', () => ({
+  default: () => <div>Sort Selector</div>,
+}))
 
-jest.mock('utils/NamedRoutes', () => ({
+vi.mock('utils/NamedRoutes', () => ({
   use: () => ({
     paths: {
       bucketRoot: '/b/:bucket',
@@ -104,7 +111,7 @@ jest.mock('utils/NamedRoutes', () => ({
 
 describe('containers/Search/Layout/Results', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     model.firstPageQuery = { _tag: 'fetching' }
     model.state.resultType = 'p'
   })
@@ -146,7 +153,7 @@ describe('containers/Search/Layout/Results', () => {
 
     const { container } = render(
       <MemoryRouter>
-        <Results onFilters={jest.fn()} />
+        <Results onFilters={noop} />
       </MemoryRouter>,
     )
     expect(container).toMatchSnapshot()

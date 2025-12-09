@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/Buttons/Iconized render contained 1`] = `
+exports[`components/Buttons/Iconized > render contained 1`] = `
 <button
   class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedSizeSmall MuiButton-sizeSmall"
   tabindex="0"
@@ -27,7 +27,7 @@ exports[`components/Buttons/Iconized render contained 1`] = `
 </button>
 `;
 
-exports[`components/Buttons/Iconized render icon and label 1`] = `
+exports[`components/Buttons/Iconized > render icon and label 1`] = `
 <button
   class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
   tabindex="0"
@@ -54,7 +54,7 @@ exports[`components/Buttons/Iconized render icon and label 1`] = `
 </button>
 `;
 
-exports[`components/Buttons/Iconized render rotated 1`] = `
+exports[`components/Buttons/Iconized > render rotated 1`] = `
 <button
   class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
   tabindex="0"
@@ -81,7 +81,7 @@ exports[`components/Buttons/Iconized render rotated 1`] = `
 </button>
 `;
 
-exports[`components/Buttons/Iconized render with SvgIcon component 1`] = `
+exports[`components/Buttons/Iconized > render with SvgIcon component 1`] = `
 <button
   class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
   tabindex="0"

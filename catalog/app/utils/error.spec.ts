@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 import { BaseError, ErrorDisplay } from 'utils/error'
 
 describe('utils/error', () => {

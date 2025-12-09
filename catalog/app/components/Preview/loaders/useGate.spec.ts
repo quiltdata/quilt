@@ -1,9 +1,12 @@
 import type { S3, AWSError } from 'aws-sdk'
 import log from 'loglevel'
+import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 
 import { PreviewError } from '../types'
 
 import { gate } from './useGate'
+
+vi.mock('constants/config', () => ({ default: {} }))
 
 const handle = {
   bucket: 'B',

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 
@@ -16,9 +17,23 @@ const EmptyContainer = () => (
 
 describe('components/Layout/Container', () => {
   it('requires Provider', () => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn())
+    const errorHandler = vi.fn((event) => event.preventDefault())
+    window.addEventListener('error', errorHandler)
+
     const { container } = render(<EmptyContainer />)
+
     expect(container.firstChild).toMatchSnapshot()
+
+    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          message: expect.stringContaining('Context must be used within a Provider'),
+        }),
+      }),
+    )
+
+    window.removeEventListener('error', errorHandler)
   })
 
   it('has restricted width by default', () => {

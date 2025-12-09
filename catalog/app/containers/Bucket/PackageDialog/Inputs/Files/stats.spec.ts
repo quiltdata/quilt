@@ -1,20 +1,21 @@
+import { describe, expect, it, vi } from 'vitest'
+
+import noop from 'utils/noop'
 import type * as Model from 'model'
 import { calcStats } from './stats'
 import { FilesState, FileWithHash } from './State'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 // Mock the dependencies
-jest.mock('./constants', () => ({
+vi.mock('./constants', () => ({
   MAX_UPLOAD_SIZE: 20 * 1000 * 1000 * 1000, // 20GB
   MAX_S3_SIZE: 50 * 1000 * 1000 * 1000, // 50GB
   MAX_FILE_COUNT: 1000,
 }))
 
-jest.mock('./State', () => ({
-  isS3File: jest.fn(
-    (f: any) => f && typeof f === 'object' && 'bucket' in f && 'key' in f,
-  ),
+vi.mock('./State', () => ({
+  isS3File: (f: any) => f && typeof f === 'object' && 'bucket' in f && 'key' in f,
 }))
 
 // Helper function to create a mock local file
@@ -30,10 +31,10 @@ const createMockLocalFile = (
     type: 'text/plain',
     lastModified: Date.now(),
     webkitRelativePath: '',
-    slice: jest.fn(),
-    stream: jest.fn(),
-    text: jest.fn(),
-    arrayBuffer: jest.fn(),
+    slice: noop,
+    stream: noop,
+    text: noop,
+    arrayBuffer: noop,
     hash: {
       ready: hashReady,
       value: {

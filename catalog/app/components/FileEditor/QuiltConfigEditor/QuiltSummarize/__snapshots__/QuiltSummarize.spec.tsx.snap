@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`QuiltSummarize Render columns 1`] = `
+exports[`QuiltSummarize > Render columns 1`] = `
 <div
   class="root root"
 >
@@ -139,7 +139,7 @@ exports[`QuiltSummarize Render columns 1`] = `
 </div>
 `;
 
-exports[`QuiltSummarize Render empty placeholders 1`] = `
+exports[`QuiltSummarize > Render empty placeholders 1`] = `
 <div
   class="root root"
 >
@@ -228,7 +228,7 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
 </div>
 `;
 
-exports[`QuiltSummarize Render row 1`] = `
+exports[`QuiltSummarize > Render row 1`] = `
 <div
   class="root root"
 >

@@ -1,11 +1,14 @@
 import { renderHook } from '@testing-library/react-hooks'
+import { describe, it, expect, beforeEach } from 'vitest'
+
+import noop from 'utils/noop'
 
 import * as Form from './form'
 
 describe('containers/Bucket/PackageDialog/State/form', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'crypto', {
-      value: { subtle: { digest: jest.fn() } },
+      value: { subtle: { digest: noop } },
       writable: true,
     })
   })

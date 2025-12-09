@@ -1,11 +1,11 @@
+import { describe, it, expect, vi } from 'vitest'
 import { getUsernamePrefix } from './name'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
+vi.mock('constants/config', () => ({
+  default: {
     registryUrl: '',
-  })),
-)
+  },
+}))
 
 describe('containers/Bucket/PackageDialog/State/name', () => {
   describe('getUsernamePrefix', () => {

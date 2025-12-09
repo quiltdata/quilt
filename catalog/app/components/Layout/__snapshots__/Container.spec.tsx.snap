@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/Layout/Container has full width once set 1`] = `
+exports[`components/Layout/Container > has full width once set 1`] = `
 <div
   class="MuiContainer-root makeStyles-fullWidth-1"
 >
@@ -8,20 +8,20 @@ exports[`components/Layout/Container has full width once set 1`] = `
 </div>
 `;
 
-exports[`components/Layout/Container has restricted width by default 1`] = `
+exports[`components/Layout/Container > has restricted width by default 1`] = `
 <div
   class="MuiContainer-root makeStyles-contained-2 MuiContainer-maxWidthLg"
 />
 `;
 
-exports[`components/Layout/Container requires Provider 1`] = `
+exports[`components/Layout/Container > requires Provider 1`] = `
 <span>
   Error: 
   Context must be used within a Provider
 </span>
 `;
 
-exports[`components/Layout/Container still has full width when other remove full width 1`] = `
+exports[`components/Layout/Container > still has full width when other remove full width 1`] = `
 <div
   class="MuiContainer-root makeStyles-fullWidth-1"
 >
