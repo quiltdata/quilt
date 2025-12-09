@@ -8,6 +8,8 @@ dependencies = [
     "xlrd >=2,< 3",
     "openpyxl >=3,<4 ",
     "fsspec[http] >= 2022.1.0",
+    "anndata >= 0.8.0",
+    "scanpy >= 1.8.0",
     # Stripping numpy.libs in numpy 2 results in
     # libscipy_openblas64_-ff651d7f.so: ELF load command address/offset not properly aligned
     # which is probably caused by some bug in glibc (it happens on Ubuntu 22.04, Amazon Linux 2/2023,
