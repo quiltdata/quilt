@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Enable strict test isolation with `globals: false` in Vitest configuration
 - [Changed] Migrate test framework from Jest to Vitest with improved performance ([#4657](https://github.com/quiltdata/quilt/pull/4657))
 - [Changed] Add `crc64Checksums` config property indicating CRC64/NVMe checksums are enabled ([#4632](https://github.com/quiltdata/quilt/pull/4632))
 - [Changed] Remove outdated `chunkedChecksums` config property, and remove related dead code ([#4632](https://github.com/quiltdata/quilt/pull/4632))
