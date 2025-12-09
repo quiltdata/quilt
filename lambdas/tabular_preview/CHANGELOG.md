@@ -16,6 +16,7 @@ where verb is one of
 - Changed
 
 ## Changes
+
 - [Added] Preview for h5ad files ([#4636](https://github.com/quiltdata/quilt/pull/4636))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Added] Bootstrap the change log ([#4241](https://github.com/quiltdata/quilt/pull/4241))
