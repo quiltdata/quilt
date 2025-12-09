@@ -1,7 +1,14 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import * as Icons from '@material-ui/icons'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+import { makeStyles } from 'utils/makeStyles.spec'
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Iconized'),
+}))
 
 import * as Buttons from './'
 

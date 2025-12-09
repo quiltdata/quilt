@@ -5,6 +5,12 @@ import { renderHook } from '@testing-library/react-hooks'
 
 import AsyncResult from 'utils/AsyncResult'
 import noop from 'utils/noop'
+import { makeStyles } from 'utils/makeStyles.spec'
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('FileEditor'),
+}))
 
 import { useState } from './State'
 import { Editor } from './FileEditor'

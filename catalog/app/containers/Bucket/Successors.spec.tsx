@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
 import type { Successor } from 'utils/workflows'
+import { makeStyles } from 'utils/makeStyles.spec'
 import noop from 'utils/noop'
 
 import { SuccessorsSelect } from './Successors'
@@ -11,6 +12,7 @@ vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Successors'),
   Menu: ({ children }: React.PropsWithChildren<{}>) => (
     <ul data-testid="menu">{children}</ul>
   ),

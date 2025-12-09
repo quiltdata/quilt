@@ -3,6 +3,13 @@ import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { render, act } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 
+import { makeStyles } from 'utils/makeStyles.spec'
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Container'),
+}))
+
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 
 const FallbackComponent = ({ error }: FallbackProps) => (

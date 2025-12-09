@@ -2,7 +2,7 @@
 
 exports[`components/Layout/Container > has full width once set 1`] = `
 <div
-  class="MuiContainer-root makeStyles-fullWidth-1"
+  class="MuiContainer-root Container-fullWidth"
 >
   long content
 </div>
@@ -10,7 +10,7 @@ exports[`components/Layout/Container > has full width once set 1`] = `
 
 exports[`components/Layout/Container > has restricted width by default 1`] = `
 <div
-  class="MuiContainer-root makeStyles-contained-2 MuiContainer-maxWidthLg"
+  class="MuiContainer-root Container-contained MuiContainer-maxWidthLg"
 />
 `;
 
@@ -23,7 +23,7 @@ exports[`components/Layout/Container > requires Provider 1`] = `
 
 exports[`components/Layout/Container > still has full width when other remove full width 1`] = `
 <div
-  class="MuiContainer-root makeStyles-fullWidth-1"
+  class="MuiContainer-root Container-fullWidth"
 >
   short content
   long content

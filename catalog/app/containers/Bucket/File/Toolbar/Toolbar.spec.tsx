@@ -43,6 +43,14 @@ vi.mock('components/Buttons', async () => ({
   ),
 }))
 
+vi.mock('@material-ui/core', async () => {
+  const { makeStyles } = await import('utils/makeStyles.spec')
+  return {
+    ...(await vi.importActual('@material-ui/core')),
+    makeStyles: makeStyles('Toolbar'),
+  }
+})
+
 vi.mock('containers/Bucket/Toolbar', async () => ({
   ...(await vi.importActual('containers/Bucket/Toolbar')),
   Assist: () => <button>Assist</button>,

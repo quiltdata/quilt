@@ -2,12 +2,15 @@ import * as React from 'react'
 import { render, fireEvent, act } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
+import { makeStyles } from 'utils/makeStyles.spec'
+
 import * as Toolbar from './Toolbar'
 
 vi.mock('./Assist', () => ({}))
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Toolbar'),
   IconButton: ({ className, children, onClick }: any) => (
     <button role="button" {...{ className, children, onClick }} />
   ),

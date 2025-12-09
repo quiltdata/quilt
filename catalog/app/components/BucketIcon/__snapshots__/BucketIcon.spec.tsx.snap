@@ -3,7 +3,7 @@
 exports[`components/BucketIcon > class names > should apply \`\` className if src is set 1`] = `
 <img
   alt="Custom className"
-  class="makeStyles-root-4 C A"
+  class="BucketIcon-root C A"
   src="https://custom-src"
 />
 `;
@@ -11,7 +11,7 @@ exports[`components/BucketIcon > class names > should apply \`\` className if sr
 exports[`components/BucketIcon > class names > should apply \`stub\` className if no src 1`] = `
 <img
   alt="Stub className"
-  class="makeStyles-root-5 S A"
+  class="BucketIcon-root S A"
   src="IMAGE_MOCK"
 />
 `;
@@ -19,7 +19,7 @@ exports[`components/BucketIcon > class names > should apply \`stub\` className i
 exports[`components/BucketIcon > class names > should apply className 1`] = `
 <img
   alt="Set className"
-  class="makeStyles-root-3 A"
+  class="BucketIcon-root A"
   src="https://custom-src"
 />
 `;
@@ -27,7 +27,7 @@ exports[`components/BucketIcon > class names > should apply className 1`] = `
 exports[`components/BucketIcon > should render custom src 1`] = `
 <img
   alt="Custom src"
-  class="makeStyles-root-2"
+  class="BucketIcon-root"
   src="https://custom-src"
 />
 `;
@@ -35,7 +35,7 @@ exports[`components/BucketIcon > should render custom src 1`] = `
 exports[`components/BucketIcon > should render default when no src 1`] = `
 <img
   alt="No src"
-  class="makeStyles-root-1"
+  class="BucketIcon-root"
   src="IMAGE_MOCK"
 />
 `;

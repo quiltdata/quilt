@@ -6,6 +6,7 @@ import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { makeStyles } from 'utils/makeStyles.spec'
 import noop from 'utils/noop'
 
 import RowActions from './ListingActions'
@@ -30,6 +31,7 @@ const defaultPrefs = {
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('ListingActions'),
   IconButton: ({ onClick, ...props }: any) =>
     props.href ? <a {...props} /> : <button {...props} />,
 }))

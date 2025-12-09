@@ -2,13 +2,19 @@
 
 exports[`containers/Search/Layout/Results > does not show ToggleResultsView for S3Object result type 1`] = `
 <div>
-  <div>
+  <div
+    class="Results-root"
+  >
     <div>
       Column Title: 
       5 results
     </div>
-    <div>
-      <div>
+    <div
+      class="Results-controls"
+    >
+      <div
+        class="Results-controlsInner"
+      >
         <div>
           Sort Selector
         </div>
@@ -20,12 +26,18 @@ exports[`containers/Search/Layout/Results > does not show ToggleResultsView for 
 
 exports[`containers/Search/Layout/Results > renders error state 1`] = `
 <div>
-  <div>
+  <div
+    class="Results-root"
+  >
     <div>
       Column Title: 
     </div>
-    <div>
-      <div>
+    <div
+      class="Results-controls"
+    >
+      <div
+        class="Results-controlsInner"
+      >
         <ul
           data-selected="l"
         >
@@ -51,13 +63,19 @@ exports[`containers/Search/Layout/Results > renders error state 1`] = `
 
 exports[`containers/Search/Layout/Results > renders with FiltersButton when onFilters prop is provided 1`] = `
 <div>
-  <div>
+  <div
+    class="Results-root"
+  >
     <div>
       Column Title: 
       3 results
     </div>
-    <div>
-      <div>
+    <div
+      class="Results-controls"
+    >
+      <div
+        class="Results-controlsInner"
+      >
         <ul
           data-selected="l"
         >
@@ -86,13 +104,19 @@ exports[`containers/Search/Layout/Results > renders with FiltersButton when onFi
 
 exports[`containers/Search/Layout/Results > renders with data and shows number of results 1`] = `
 <div>
-  <div>
+  <div
+    class="Results-root"
+  >
     <div>
       Column Title: 
       5 results
     </div>
-    <div>
-      <div>
+    <div
+      class="Results-controls"
+    >
+      <div
+        class="Results-controlsInner"
+      >
         <ul
           data-selected="l"
         >
@@ -118,15 +142,21 @@ exports[`containers/Search/Layout/Results > renders with data and shows number o
 
 exports[`containers/Search/Layout/Results > renders with loading state 1`] = `
 <div>
-  <div>
+  <div
+    class="Results-root"
+  >
     <div>
       Column Title: 
       <div>
         Loading…
       </div>
     </div>
-    <div>
-      <div>
+    <div
+      class="Results-controls"
+    >
+      <div
+        class="Results-controlsInner"
+      >
         <ul
           data-selected="l"
         >
@@ -152,19 +182,27 @@ exports[`containers/Search/Layout/Results > renders with loading state 1`] = `
 
 exports[`containers/Search/Layout/Results > shows Create Package button in bucket 1`] = `
 <div>
-  <div>
+  <div
+    class="Results-root"
+  >
     <div>
       Column Title: 
       5 results
     </div>
-    <div>
+    <div
+      class="Results-controls"
+    >
       <button>
-        <span>
+        <span
+          class="Results-label"
+        >
           Create new package
         </span>
       </button>
       Don't forget to render dialog
-      <div>
+      <div
+        class="Results-controlsInner"
+      >
         <ul
           data-selected="l"
         >

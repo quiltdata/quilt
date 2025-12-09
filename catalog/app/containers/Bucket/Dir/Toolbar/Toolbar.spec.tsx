@@ -45,6 +45,14 @@ vi.mock('@material-ui/lab', () => ({
   Skeleton: () => <i>⌛</i>,
 }))
 
+vi.mock('@material-ui/core', async () => {
+  const { makeStyles } = await import('utils/makeStyles.spec')
+  return {
+    ...(await vi.importActual('@material-ui/core')),
+    makeStyles: makeStyles('Toolbar'),
+  }
+})
+
 vi.mock('components/Buttons', () => ({
   WithPopover: ({
     label,

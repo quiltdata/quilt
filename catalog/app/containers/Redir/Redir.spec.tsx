@@ -6,6 +6,7 @@ import { expect, beforeEach, describe, it, vi } from 'vitest'
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import noop from 'utils/noop'
+import { makeStyles } from 'utils/makeStyles.spec'
 
 import Redir from './Redir'
 
@@ -31,6 +32,7 @@ vi.mock('react-router-dom', async () => ({
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Redir'),
   Button: ({ children, href }: React.PropsWithChildren<{ href: string }>) => (
     <a href={href}>{children}</a>
   ),

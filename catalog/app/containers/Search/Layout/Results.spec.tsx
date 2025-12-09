@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { makeStyles } from 'utils/makeStyles.spec'
 import noop from 'utils/noop'
 
 import Results from './Results'
@@ -13,7 +14,7 @@ vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
   Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
   Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
-  makeStyles: () => () => ({}),
+  makeStyles: makeStyles('Results'),
   useTheme: () => ({
     breakpoints: { down: () => false },
     spacing: (x: number) => x * 8,

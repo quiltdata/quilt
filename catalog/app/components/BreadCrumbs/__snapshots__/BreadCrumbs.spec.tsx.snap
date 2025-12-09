@@ -17,7 +17,7 @@ exports[`components/BreadCrumbs > Segment > should render label 1`] = `
 exports[`components/BreadCrumbs > Segment > should render link 1`] = `
 <div>
   <a
-    class="makeStyles-root-1"
+    class="BreadCrumbs-root"
     href="/a"
   >
     A
@@ -28,21 +28,21 @@ exports[`components/BreadCrumbs > Segment > should render link 1`] = `
 exports[`components/BreadCrumbs > render > and end with separator 1`] = `
 <div>
   <a
-    class="makeStyles-root-5"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/"
   >
     ROOT
   </a>
    / 
   <a
-    class="makeStyles-root-5"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/a/"
   >
     a
   </a>
    / 
   <a
-    class="makeStyles-root-5"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/a/b"
   >
     b
@@ -54,21 +54,21 @@ exports[`components/BreadCrumbs > render > and end with separator 1`] = `
 exports[`components/BreadCrumbs > render > and make links for every crumb 1`] = `
 <div>
   <a
-    class="makeStyles-root-4"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/"
   >
     ROOT
   </a>
    / 
   <a
-    class="makeStyles-root-4"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/a/"
   >
     a
   </a>
    / 
   <a
-    class="makeStyles-root-4"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/a/b"
   >
     b
@@ -79,14 +79,14 @@ exports[`components/BreadCrumbs > render > and make links for every crumb 1`] = 
 exports[`components/BreadCrumbs > render > and transform links 1`] = `
 <div>
   <a
-    class="makeStyles-root-3"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/"
   >
     ROOT
   </a>
    / 
   <a
-    class="makeStyles-root-3"
+    class="BreadCrumbs-root"
     href="https://quiltdata.com/a/"
   >
     a
@@ -99,28 +99,28 @@ exports[`components/BreadCrumbs > render > and transform links 1`] = `
 exports[`components/BreadCrumbs > render > basic breadcrumbs 1`] = `
 <div>
   <a
-    class="makeStyles-root-2"
+    class="BreadCrumbs-root"
     to=""
   >
     ROOT
   </a>
    / 
   <a
-    class="makeStyles-root-2"
+    class="BreadCrumbs-root"
     href="/aa a/"
   >
     aa a
   </a>
    / 
   <a
-    class="makeStyles-root-2"
+    class="BreadCrumbs-root"
     href="/aa a/bb-b/"
   >
     bb-b
   </a>
    / 
   <a
-    class="makeStyles-root-2"
+    class="BreadCrumbs-root"
     href="/aa a/bb-b/c/"
   >
     c
@@ -133,14 +133,14 @@ exports[`components/BreadCrumbs > render > basic breadcrumbs 1`] = `
 exports[`components/BreadCrumbs > render > without root label 1`] = `
 <div>
   <a
-    class="makeStyles-root-6"
+    class="BreadCrumbs-root"
     href="/a/"
   >
     a
   </a>
    / 
   <a
-    class="makeStyles-root-6"
+    class="BreadCrumbs-root"
     href="/a/b/"
   >
     b

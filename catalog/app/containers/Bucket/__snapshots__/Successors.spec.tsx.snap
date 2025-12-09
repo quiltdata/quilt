@@ -3,7 +3,7 @@
 exports[`containers/Bucket/Successors/SuccessorsSelect > should render empty state 1`] = `
 <div>
   <div
-    class="MuiBox-root MuiBox-root-3"
+    class="MuiBox-root MuiBox-root-2"
   >
     <p
       class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
@@ -32,7 +32,7 @@ exports[`containers/Bucket/Successors/SuccessorsSelect > should render empty sta
 exports[`containers/Bucket/Successors/SuccessorsSelect > should render error state 1`] = `
 <div>
   <div
-    class="MuiBox-root MuiBox-root-2"
+    class="MuiBox-root MuiBox-root-1"
   >
     <p
       class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"

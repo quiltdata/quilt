@@ -14,7 +14,7 @@ exports[`containers/Redir/Redir > shows error 1`] = `
   role="main"
 >
   <div
-    class="makeStyles-root-8 makeStyles-root-7"
+    class="Redir-root Redir-root"
   >
     <h4
       class="MuiTypography-root MuiTypography-h4"
@@ -22,10 +22,10 @@ exports[`containers/Redir/Redir > shows error 1`] = `
       Failed to redirect
     </h4>
     <div
-      class="makeStyles-actions-9"
+      class="Redir-actions"
     >
       <div
-        class="makeStyles-primary-10"
+        class="Redir-primary"
       >
         <a
           href="quilt+s3://"
@@ -34,13 +34,13 @@ exports[`containers/Redir/Redir > shows error 1`] = `
         </a>
       </div>
       <p
-        class="MuiTypography-root makeStyles-secondary-11 MuiTypography-body1"
+        class="MuiTypography-root Redir-secondary MuiTypography-body1"
       >
         Click the button to open QuiltSync
       </p>
     </div>
     <div
-      class="makeStyles-main-12"
+      class="Redir-main"
     >
       <p
         class="MuiTypography-root MuiTypography-body1 MuiTypography-colorError"
@@ -58,7 +58,7 @@ exports[`containers/Redir/Redir > shows waiting screen 1`] = `
   role="main"
 >
   <div
-    class="makeStyles-root-2 makeStyles-root-1"
+    class="Redir-root Redir-root"
   >
     <h4
       class="MuiTypography-root MuiTypography-h4"
@@ -66,10 +66,10 @@ exports[`containers/Redir/Redir > shows waiting screen 1`] = `
       Redirecting…
     </h4>
     <div
-      class="makeStyles-actions-3"
+      class="Redir-actions"
     >
       <div
-        class="makeStyles-primary-4"
+        class="Redir-primary"
       >
         <a
           href="quilt+s3://bucket#package=pkg/name@hash"
@@ -78,7 +78,7 @@ exports[`containers/Redir/Redir > shows waiting screen 1`] = `
         </a>
       </div>
       <p
-        class="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
+        class="MuiTypography-root Redir-secondary MuiTypography-body1"
       >
         Click the button if you’re not redirected automatically.
       </p>

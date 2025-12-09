@@ -2,10 +2,10 @@
 
 exports[`containers/Bucket/Queries/Athena/Database > should disable selection if no spare values 1`] = `
 <div
-  class="makeStyles-root-17"
+  class="Database-root"
 >
   <div
-    class="MuiFormControl-root makeStyles-root-20 makeStyles-field-18"
+    class="MuiFormControl-root Database-root Database-field"
   >
     <label
       class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
@@ -43,7 +43,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should disable selection if
     </div>
   </div>
   <div
-    class="MuiFormControl-root makeStyles-root-20"
+    class="MuiFormControl-root Database-root"
   >
     <label
       class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
@@ -85,10 +85,10 @@ exports[`containers/Bucket/Queries/Athena/Database > should disable selection if
 
 exports[`containers/Bucket/Queries/Athena/Database > should render selected values 1`] = `
 <div
-  class="makeStyles-root-9"
+  class="Database-root"
 >
   <div
-    class="MuiFormControl-root makeStyles-root-12 makeStyles-field-10"
+    class="MuiFormControl-root Database-root Database-field"
   >
     <label
       class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
@@ -126,7 +126,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should render selected valu
     </div>
   </div>
   <div
-    class="MuiFormControl-root makeStyles-root-12"
+    class="MuiFormControl-root Database-root"
   >
     <label
       class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
@@ -168,23 +168,23 @@ exports[`containers/Bucket/Queries/Athena/Database > should render selected valu
 
 exports[`containers/Bucket/Queries/Athena/Database > should render skeletons 1`] = `
 <div
-  class="makeStyles-root-1"
+  class="Database-root"
 >
   <div
-    class="MuiBox-root MuiBox-root-7 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
+    class="MuiBox-root MuiBox-root-1 Database-field Database-root Database-animate"
   />
   <div
-    class="MuiBox-root MuiBox-root-8 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
+    class="MuiBox-root MuiBox-root-2 Database-field Database-root Database-animate"
   />
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database > should show error when data failed 1`] = `
 <div
-  class="makeStyles-root-26"
+  class="Database-root"
 >
   <div
-    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError Database-field MuiPaper-elevation0"
     role="alert"
   >
     <div
@@ -210,7 +210,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when data
       class="MuiAlert-action"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text Database-button MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         tabindex="0"
         type="button"
       >
@@ -226,7 +226,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when data
     </div>
   </div>
   <div
-    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError Database-field MuiPaper-elevation0"
     role="alert"
   >
     <div
@@ -252,7 +252,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when data
       class="MuiAlert-action"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text Database-button MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         tabindex="0"
         type="button"
       >
@@ -272,10 +272,10 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when data
 
 exports[`containers/Bucket/Queries/Athena/Database > should show error when values failed 1`] = `
 <div
-  class="makeStyles-root-21"
+  class="Database-root"
 >
   <div
-    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError Database-field MuiPaper-elevation0"
     role="alert"
   >
     <div
@@ -301,7 +301,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when valu
       class="MuiAlert-action"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text Database-button MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         tabindex="0"
         type="button"
       >
@@ -317,7 +317,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when valu
     </div>
   </div>
   <div
-    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError Database-field MuiPaper-elevation0"
     role="alert"
   >
     <div
@@ -343,7 +343,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when valu
       class="MuiAlert-action"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text Database-button MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         tabindex="0"
         type="button"
       >
@@ -363,10 +363,10 @@ exports[`containers/Bucket/Queries/Athena/Database > should show error when valu
 
 exports[`containers/Bucket/Queries/Athena/Database > should show no value (zero-width space) if selected no value 1`] = `
 <div
-  class="makeStyles-root-13"
+  class="Database-root"
 >
   <div
-    class="MuiFormControl-root makeStyles-root-16 makeStyles-field-14"
+    class="MuiFormControl-root Database-root Database-field"
   >
     <label
       class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
@@ -406,7 +406,7 @@ exports[`containers/Bucket/Queries/Athena/Database > should show no value (zero-
     </div>
   </div>
   <div
-    class="MuiFormControl-root makeStyles-root-16"
+    class="MuiFormControl-root Database-root"
   >
     <label
       class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
