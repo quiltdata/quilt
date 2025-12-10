@@ -68,8 +68,8 @@ jobs:
       fail-fast: false
       matrix:
         path:
-          - indexer
-          - thumbnail
+          # - indexer
+          # - thumbnail
           - tabular_preview
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
@@ -93,5 +93,5 @@ jobs:
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
-      - name: Push Docker image to GovCloud ECR
-        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+      # - name: Push Docker image to GovCloud ECR
+      #   run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
