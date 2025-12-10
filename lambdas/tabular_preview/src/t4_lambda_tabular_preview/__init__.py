@@ -241,9 +241,9 @@ def preview_parquet(url, compression, max_out_size):
 
 
 def preview_h5ad(url, compression, max_out_size):
-    import tempfile
     import os
     import shutil
+    import tempfile
 
     # Check temp directory space first
     tmp_dir = tempfile.gettempdir()  # Usually /tmp in Lambda
@@ -309,7 +309,7 @@ def preview_h5ad(url, compression, max_out_size):
                 tmp_file.flush()
                 tmp_path = tmp_file.name
 
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.error(f"Failed to create temporary file: {e}")
             return (
                 507,
