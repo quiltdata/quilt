@@ -243,13 +243,33 @@ def preview_h5ad(url, compression, max_out_size):
     # AnnData objects are read from H5AD files
     adata = anndata.read_h5ad(io.BytesIO(data))
 
-    # Calculate QC metrics using scanpy
-    # This adds quality control metrics to both obs (cell-level) and var (gene-level)
-    sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+    # Get matrix dimensions to decide processing strategy
+    n_obs, n_vars = adata.shape
 
-    # Use the variable (gene-level) metrics as the main output
-    # This is more informative than raw expression values and compresses better
-    var_df = adata.var.copy()
+    # For large files, skip intensive QC calculation that requires loading full matrix
+    # Instead, provide basic statistics to avoid memory issues
+    # Threshold based on typical Lambda memory limits and scanpy memory usage patterns
+    matrix_elements = n_obs * n_vars
+    # Skip QC for matrices that could cause memory issues in Lambda
+    # Based on actual 500MB file failures, use conservative threshold
+    if matrix_elements > 1_000_000:  # ~1M elements, safe for Lambda's 3GB limit with scanpy overhead
+        logger.warning(f"Skipping QC calculation for large matrix ({n_obs} x {n_vars}) to avoid memory issues")
+
+        # Use existing gene metadata if available, otherwise create basic dataframe
+        var_df = adata.var.copy() if adata.var is not None else pandas.DataFrame(index=range(n_vars))
+
+        # Add basic placeholder metrics instead of computing intensive QC
+        var_df["n_cells"] = n_obs  # Total cells (constant for all genes)
+        var_df["matrix_size"] = f"{n_obs}x{n_vars}"
+
+        # Add basic statistics if we can access them without loading full matrix
+        if hasattr(adata, "X") and hasattr(adata.X, "nnz"):
+            # For sparse matrices, we can get non-zero count efficiently
+            var_df["total_nonzero"] = adata.X.getnnz(axis=0) if hasattr(adata.X, "getnnz") else "unknown"
+    else:
+        # For smaller matrices, calculate full QC metrics using scanpy
+        sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+        var_df = adata.var.copy()
 
     # Add gene expression statistics from the QC metrics
     # These columns are added by calculate_qc_metrics:
@@ -260,30 +280,36 @@ def preview_h5ad(url, compression, max_out_size):
 
     # Reset index to include gene IDs as a regular column
     var_df_with_index = var_df.reset_index()
-    var_df_with_index = var_df_with_index.rename(columns={'index': 'gene_id'})
+    var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
 
     # Convert to Arrow table and write as Arrow format
     table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
     output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
-    return 200, output_data, {
-        "Content-Type": "application/vnd.apache.arrow.file",
-        "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps({
-            "truncated": output_truncated,
-            "meta": {
-                "n_obs": adata.n_obs,
-                "n_vars": adata.n_vars,
-                "obs_keys": list(adata.obs.columns) if adata.obs is not None else [],
-                "var_keys": list(adata.var.columns) if adata.var is not None else [],
-                "uns_keys": list(adata.uns.keys()) if adata.uns is not None else [],
-                "obsm_keys": list(adata.obsm.keys()) if adata.obsm is not None else [],
-                "varm_keys": list(adata.varm.keys()) if adata.varm is not None else [],
-                "layers_keys": list(adata.layers.keys()) if adata.layers is not None else [],
-                "shape": (adata.n_obs, adata.n_vars),
-            },
-        }),
-    }
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "application/vnd.apache.arrow.file",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": output_truncated,
+                    "meta": {
+                        "n_obs": adata.n_obs,
+                        "n_vars": adata.n_vars,
+                        "obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
+                        "var_keys": (list(adata.var.columns) if adata.var is not None else []),
+                        "uns_keys": (list(adata.uns.keys()) if adata.uns is not None else []),
+                        "obsm_keys": (list(adata.obsm.keys()) if adata.obsm is not None else []),
+                        "varm_keys": (list(adata.varm.keys()) if adata.varm is not None else []),
+                        "layers_keys": (list(adata.layers.keys()) if adata.layers is not None else []),
+                        "shape": (adata.n_obs, adata.n_vars),
+                    },
+                }
+            ),
+        },
+    )
 
 
 handlers = {
