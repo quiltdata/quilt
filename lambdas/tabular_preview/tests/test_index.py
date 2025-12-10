@@ -117,7 +117,7 @@ def test_preview_h5ad():
         info = json.loads(headers[QUILT_INFO_HEADER])
         assert "truncated" in info
         assert "meta" in info
-        # Check H5AD-specific metadata format 
+        # Check H5AD-specific metadata format
         assert info["meta"]["shape"] == [2, 2]  # [rows, columns] = [2 cells, 2 genes]
         assert "created_by" in info["meta"]  # Should have creation info
         assert info["meta"]["format_version"] == "h5ad"  # Should indicate h5ad format
