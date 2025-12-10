@@ -29,6 +29,7 @@ RUN --mount=type=cache,target=/root/.cache \
     uv sync \
     --locked \
     --no-dev \
+    --group=prod \
     --no-install-project
 
 COPY . /src
@@ -37,6 +38,7 @@ RUN --mount=type=cache,target=/root/.cache \
     uv sync \
     --locked \
     --no-dev \
+    --group=prod \
     --no-editable
 
 FROM base
