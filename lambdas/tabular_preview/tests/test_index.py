@@ -117,11 +117,18 @@ def test_preview_h5ad():
         info = json.loads(headers[QUILT_INFO_HEADER])
         assert "truncated" in info
         assert "meta" in info
-        assert info["meta"]["n_obs"] == 2  # 2 cells
-        assert info["meta"]["n_vars"] == 2  # 2 genes
-        assert info["meta"]["shape"] == [2, 2]
-        assert "obs_keys" in info["meta"]
-        assert "var_keys" in info["meta"]
+        # Check H5AD-specific metadata format 
+        assert info["meta"]["shape"] == [2, 2]  # [rows, columns] = [2 cells, 2 genes]
+        assert "created_by" in info["meta"]  # Should have creation info
+        assert info["meta"]["format_version"] == "h5ad"  # Should indicate h5ad format
+        assert "h5ad_obs_keys" in info["meta"]  # H5AD-specific fields
+        assert "h5ad_var_keys" in info["meta"]
+        # Check new H5AD-specific fields
+        assert info["meta"]["data_type"] == "single_cell_genomics"
+        assert info["meta"]["n_cells"] == 2  # 2 cells in test data
+        assert info["meta"]["n_genes"] == 2  # 2 genes in test data
+        assert "matrix_type" in info["meta"]  # sparse or dense
+        assert "has_raw" in info["meta"]  # boolean indicating raw data presence
 
         # Check that the Arrow data can be read and contains expected content
         with pyarrow.ipc.open_file(io.BytesIO(gzip.decompress(body))) as reader:

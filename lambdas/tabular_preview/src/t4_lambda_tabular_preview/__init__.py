@@ -270,41 +270,48 @@ def preview_h5ad(url, compression, max_out_size):
     except Exception as e:
         logger.warning(f"Could not check temp directory space: {e}")
 
-    # Use temporary file approach like thumbnail lambda to handle large files
+    # For files that are likely too large, give up early and return basic info
     with urlopen(url, compression=compression) as src:
+        # Read first chunk to check file size
+        first_chunk = src.read(20 * 1024 * 1024)  # 20MB
+        remaining_check = src.read(1024)  # Check if there's more
+
+        if remaining_check:
+            # File is >20MB, likely to timeout - return basic info only
+            logger.warning("Large h5ad file detected (>20MB), returning basic metadata only to avoid timeout")
+
+            # Create a minimal response with file size estimate
+            return (
+                200,
+                b"",  # Empty data
+                {
+                    "Content-Type": "application/json",
+                    "x-quilt-info": json.dumps(
+                        {
+                            "error": "File too large for full preview - showing basic info only",
+                            "truncated": True,
+                            "file_size_mb": ">20MB",
+                            "meta": {
+                                "message": "H5AD file detected but too large for Lambda processing",
+                                "recommendation": "Download file locally for full analysis",
+                                "file_type": "h5ad"
+                            }
+                        }
+                    ),
+                },
+            )
+
+        # File is ≤20MB, process normally with temp file
         try:
-            # Write to temporary file instead of loading into memory
             with tempfile.NamedTemporaryFile(suffix='.h5ad', delete=False, dir=tmp_dir) as tmp_file:
-                # Stream download in chunks to avoid memory issues
-                chunk_size = 10 * 1024 * 1024  # 10MB chunks
-                total_size = 0
+                # Write the data we already read
+                tmp_file.write(first_chunk)
+                total_size = len(first_chunk)
 
-                while True:
-                    chunk = src.read(chunk_size)
-                    if not chunk:
-                        break
-
-                    tmp_file.write(chunk)
-                    total_size += len(chunk)
-
-                    # Still enforce size limit, but now we can handle larger files
-                    if total_size > 200 * 1024 * 1024:  # 200MB limit with temp file approach
-                        logger.error(f"H5AD file too large: {total_size / (1024**2):.1f}MB > 200MB limit")
-                        os.unlink(tmp_file.name)  # Clean up
-                        return (
-                            413,
-                            b"",
-                            {
-                                "Content-Type": "application/json",
-                                "x-quilt-info": json.dumps(
-                                    {
-                                        "error": f"File too large: {total_size / (1024**2):.1f}MB. Max 200MB.",
-                                        "truncated": True,
-                                        "file_size_mb": round(total_size / (1024**2), 1),
-                                    }
-                                ),
-                            },
-                        )
+                # If there's remaining data, write it too
+                if remaining_check:
+                    tmp_file.write(remaining_check)
+                    total_size += len(remaining_check)
 
                 tmp_file.flush()
                 tmp_path = tmp_file.name
@@ -326,15 +333,9 @@ def preview_h5ad(url, compression, max_out_size):
             )
 
         try:
-            logger.info(f"Processing h5ad file: {total_size / (1024**2):.1f}MB via temp file")
-
-            # For large files, use backed mode to avoid loading full matrix
-            if total_size > 50 * 1024 * 1024:  # 50MB+, use backed mode
-                adata = anndata.read_h5ad(tmp_path, backed='r')
-                logger.info(f"Using backed mode for large file: {adata.shape}")
-            else:
-                # Smaller files can be loaded normally
-                adata = anndata.read_h5ad(tmp_path)
+            logger.info(f"Processing small h5ad file: {total_size / (1024**2):.1f}MB")
+            # For small files, process normally
+            adata = anndata.read_h5ad(tmp_path)
 
         finally:
             # Always clean up temp file
@@ -393,16 +394,30 @@ def preview_h5ad(url, compression, max_out_size):
             QUILT_INFO_HEADER: json.dumps(
                 {
                     "truncated": output_truncated,
+                    # H5AD-specific metadata format
                     "meta": {
-                        "n_obs": adata.n_obs,
-                        "n_vars": adata.n_vars,
-                        "obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
-                        "var_keys": (list(adata.var.columns) if adata.var is not None else []),
-                        "uns_keys": (list(adata.uns.keys()) if adata.uns is not None else []),
-                        "obsm_keys": (list(adata.obsm.keys()) if adata.obsm is not None else []),
-                        "varm_keys": (list(adata.varm.keys()) if adata.varm is not None else []),
-                        "layers_keys": (list(adata.layers.keys()) if adata.layers is not None else []),
+                        "created_by": f"AnnData h5ad file processed with scanpy {sc.__version__}" if hasattr(sc, '__version__') else "h5ad file processed with AnnData",
+                        "format_version": "h5ad",
+                        "num_row_groups": 1,  # Keep for interface compatibility
+                        "schema": {
+                            "names": list(var_df_with_index.columns)
+                        },
+                        "serialized_size": len(output_data),
                         "shape": (adata.n_obs, adata.n_vars),
+                        # H5AD-specific metadata with descriptive names
+                        "h5ad_obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
+                        "h5ad_var_keys": (list(adata.var.columns) if adata.var is not None else []),
+                        "h5ad_uns_keys": (list(adata.uns.keys()) if adata.uns is not None else []),
+                        "h5ad_obsm_keys": (list(adata.obsm.keys()) if adata.obsm is not None else []),
+                        "h5ad_varm_keys": (list(adata.varm.keys()) if adata.varm is not None else []),
+                        "h5ad_layers_keys": (list(adata.layers.keys()) if adata.layers is not None else []),
+                        # Additional biological context
+                        "anndata_version": getattr(adata, "__version__", None),
+                        "n_cells": adata.n_obs,
+                        "n_genes": adata.n_vars,
+                        "data_type": "single_cell_genomics",
+                        "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
+                        "has_raw": adata.raw is not None,
                     },
                 }
             ),
