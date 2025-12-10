@@ -217,31 +217,129 @@ def preview_parquet(url, compression, max_out_size):
 
     output_data, output_truncated = write_pandas_as_csv(df, max_out_size)
 
-    return 200, output_data, {
-        "Content-Type": "text/csv",
-        "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps({
-            "truncated": output_truncated,
-            "meta": {
-                "created_by": meta.created_by,
-                "format_version": meta.format_version,
-                "num_row_groups": meta.num_row_groups,
-                "schema": {
-                    "names": meta.schema.names
-                },
-                "serialized_size": meta.serialized_size,
-                "shape": (meta.num_rows, meta.num_columns),
-            },
-        }),
-    }
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "text/csv",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": output_truncated,
+                    "meta": {
+                        "created_by": meta.created_by,
+                        "format_version": meta.format_version,
+                        "num_row_groups": meta.num_row_groups,
+                        "schema": {"names": meta.schema.names},
+                        "serialized_size": meta.serialized_size,
+                        "shape": (meta.num_rows, meta.num_columns),
+                    },
+                }
+            ),
+        },
+    )
 
 
 def preview_h5ad(url, compression, max_out_size):
-    with urlopen(url, compression=compression) as src:
-        data = src.read()
+    import tempfile
+    import os
+    import shutil
 
-    # AnnData objects are read from H5AD files
-    adata = anndata.read_h5ad(io.BytesIO(data))
+    # Check temp directory space first
+    tmp_dir = tempfile.gettempdir()  # Usually /tmp in Lambda
+    try:
+        disk_usage = shutil.disk_usage(tmp_dir)
+        available_mb = disk_usage.free / (1024**2)
+        logger.info(f"Temp directory: {tmp_dir}, Available space: {available_mb:.1f}MB")
+
+        if available_mb < 100:  # Need at least 100MB free space
+            logger.error(f"Insufficient temp space: {available_mb:.1f}MB < 100MB required")
+            return (
+                507,
+                b"",
+                {
+                    "Content-Type": "application/json",
+                    "x-quilt-info": json.dumps(
+                        {
+                            "error": f"Insufficient temporary storage space: {available_mb:.1f}MB available, need 100MB+",
+                            "truncated": True,
+                        }
+                    ),
+                },
+            )
+    except Exception as e:
+        logger.warning(f"Could not check temp directory space: {e}")
+
+    # Use temporary file approach like thumbnail lambda to handle large files
+    with urlopen(url, compression=compression) as src:
+        try:
+            # Write to temporary file instead of loading into memory
+            with tempfile.NamedTemporaryFile(suffix='.h5ad', delete=False, dir=tmp_dir) as tmp_file:
+                # Stream download in chunks to avoid memory issues
+                chunk_size = 10 * 1024 * 1024  # 10MB chunks
+                total_size = 0
+
+                while True:
+                    chunk = src.read(chunk_size)
+                    if not chunk:
+                        break
+
+                    tmp_file.write(chunk)
+                    total_size += len(chunk)
+
+                    # Still enforce size limit, but now we can handle larger files
+                    if total_size > 200 * 1024 * 1024:  # 200MB limit with temp file approach
+                        logger.error(f"H5AD file too large: {total_size / (1024**2):.1f}MB > 200MB limit")
+                        os.unlink(tmp_file.name)  # Clean up
+                        return (
+                            413,
+                            b"",
+                            {
+                                "Content-Type": "application/json",
+                                "x-quilt-info": json.dumps(
+                                    {
+                                        "error": f"File too large: {total_size / (1024**2):.1f}MB. Max 200MB.",
+                                        "truncated": True,
+                                        "file_size_mb": round(total_size / (1024**2), 1),
+                                    }
+                                ),
+                            },
+                        )
+
+                tmp_file.flush()
+                tmp_path = tmp_file.name
+
+        except (OSError, IOError) as e:
+            logger.error(f"Failed to create temporary file: {e}")
+            return (
+                507,
+                b"",
+                {
+                    "Content-Type": "application/json",
+                    "x-quilt-info": json.dumps(
+                        {
+                            "error": f"Temporary storage error: {str(e)}",
+                            "truncated": True,
+                        }
+                    ),
+                },
+            )
+
+        try:
+            logger.info(f"Processing h5ad file: {total_size / (1024**2):.1f}MB via temp file")
+
+            # For large files, use backed mode to avoid loading full matrix
+            if total_size > 50 * 1024 * 1024:  # 50MB+, use backed mode
+                adata = anndata.read_h5ad(tmp_path, backed='r')
+                logger.info(f"Using backed mode for large file: {adata.shape}")
+            else:
+                # Smaller files can be loaded normally
+                adata = anndata.read_h5ad(tmp_path)
+
+        finally:
+            # Always clean up temp file
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 
     # Get matrix dimensions to decide processing strategy
     n_obs, n_vars = adata.shape
