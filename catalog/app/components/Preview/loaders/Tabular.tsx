@@ -29,12 +29,14 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIn(['.tsv', '.tab'])
 
+const isH5ad = utils.extIs('.h5ad')
+
 export const detect = R.pipe(
   utils.stripCompression,
-  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
+  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv, isH5ad]),
 )
 
-type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
+type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'h5ad'
 
 const detectTabularType: (type: string) => TabularType = R.pipe(
   utils.stripCompression,
@@ -44,6 +46,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
     [isJsonl, R.always('jsonl')],
     [isParquet, R.always('parquet')],
     [isTsv, R.always('tsv')],
+    [isH5ad, R.always('h5ad')],
     [R.T, R.always('csv')],
   ]),
 )
