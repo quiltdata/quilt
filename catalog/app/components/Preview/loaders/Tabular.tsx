@@ -73,9 +73,54 @@ export interface ParquetMetadata {
   shape: { rows: number; columns: number }
 }
 
+interface H5adMetadataBackend {
+  created_by: string
+  format_version: string
+  num_row_groups: number
+  schema: {
+    names: string[]
+  }
+  serialized_size: number
+  shape: [number, number] // rows, columns
+  h5ad_obs_keys: string[]
+  h5ad_var_keys: string[]
+  h5ad_uns_keys: string[]
+  h5ad_obsm_keys: string[]
+  h5ad_varm_keys: string[]
+  h5ad_layers_keys: string[]
+  anndata_version?: string
+  n_cells: number
+  n_genes: number
+  data_type: string
+  matrix_type: string
+  has_raw: boolean
+}
+
+export interface H5adMetadata {
+  createdBy: string
+  formatVersion: string
+  shape: { rows: number; columns: number }
+  schema: {
+    names: string[]
+  }
+  serializedSize: number
+  obsKeys: string[]
+  varKeys: string[]
+  unsKeys: string[]
+  obsmKeys: string[]
+  varmKeys: string[]
+  layersKeys: string[]
+  anndataVersion?: string
+  nCells: number
+  nGenes: number
+  dataType: string
+  matrixType: string
+  hasRaw: boolean
+}
+
 function getQuiltInfo(
   headers: Headers,
-): { meta?: ParquetMetadataBackend; truncated: boolean } | null {
+): { meta?: ParquetMetadataBackend | H5adMetadataBackend; truncated: boolean } | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
@@ -111,6 +156,32 @@ export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata 
   shape: { rows: data.shape[0], columns: data.shape[1] },
 })
 
+export const parseH5adData = (data: H5adMetadataBackend): H5adMetadata => ({
+  createdBy: data.created_by,
+  formatVersion: data.format_version,
+  shape: { rows: data.shape[0], columns: data.shape[1] },
+  schema: data.schema,
+  serializedSize: data.serialized_size,
+  obsKeys: data.h5ad_obs_keys,
+  varKeys: data.h5ad_var_keys,
+  unsKeys: data.h5ad_uns_keys,
+  obsmKeys: data.h5ad_obsm_keys,
+  varmKeys: data.h5ad_varm_keys,
+  layersKeys: data.h5ad_layers_keys,
+  anndataVersion: data.anndata_version,
+  nCells: data.n_cells,
+  nGenes: data.n_genes,
+  dataType: data.data_type,
+  matrixType: data.matrix_type,
+  hasRaw: data.has_raw,
+})
+
+function isH5adMetadata(
+  meta: ParquetMetadataBackend | H5adMetadataBackend,
+): meta is H5adMetadataBackend {
+  return 'h5ad_obs_keys' in meta
+}
+
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
   handle: Model.S3.S3ObjectLocation
@@ -122,6 +193,7 @@ interface LoadTabularDataArgs {
 interface TabularDataOutput {
   csv: ArrayBuffer | string
   parquetMeta: ParquetMetadata | null
+  h5adMeta: H5adMetadata | null
   size: number | null
   truncated: boolean
 }
@@ -152,9 +224,19 @@ const loadTabularData = async ({
     const quiltInfo = getQuiltInfo(r.headers)
     const contentLength = getContentLength(r.headers)
 
+    const parquetMeta =
+      quiltInfo?.meta && !isH5adMetadata(quiltInfo.meta)
+        ? parseParquetData(quiltInfo.meta)
+        : null
+    const h5adMeta =
+      quiltInfo?.meta && isH5adMetadata(quiltInfo.meta)
+        ? parseH5adData(quiltInfo.meta)
+        : null
+
     return {
       csv,
-      parquetMeta: quiltInfo?.meta ? parseParquetData(quiltInfo?.meta) : null,
+      parquetMeta,
+      h5adMeta,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -208,12 +290,13 @@ export const Loader = function TabularLoader({
   // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, parquetMeta, truncated }: TabularDataOutput) =>
+    ({ csv, parquetMeta, h5adMeta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         data: csv,
         handle,
         modes: [FileType.Tabular, FileType.Text],
         parquetMeta,
+        h5adMeta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
       }),

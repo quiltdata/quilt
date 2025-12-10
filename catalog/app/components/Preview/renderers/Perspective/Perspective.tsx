@@ -8,7 +8,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
 import { JsonRecord } from 'utils/types'
 
-import { ParquetMetadata } from '../../loaders/Tabular'
+import { ParquetMetadata, H5adMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
@@ -99,6 +99,115 @@ function ParquetMeta({
             ))}
             {renderMeta('Schema:', schema, (s: { names: string[] }) => (
               <JsonDisplay value={s} />
+            ))}
+          </tbody>
+        </table>
+      </M.Collapse>
+    </div>
+  )
+}
+
+interface H5adMetaProps extends H5adMetadata {
+  className: string
+}
+
+function H5adMeta({
+  className,
+  createdBy,
+  formatVersion,
+  shape, // { rows, columns }
+  schema, // { names }
+  serializedSize,
+  obsKeys,
+  varKeys,
+  unsKeys,
+  obsmKeys,
+  varmKeys,
+  layersKeys,
+  anndataVersion,
+  nCells,
+  nGenes,
+  dataType,
+  matrixType,
+  hasRaw,
+  ...props
+}: H5adMetaProps) {
+  const classes = useParquetMetaStyles()
+  const [show, setShow] = React.useState(false)
+  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
+  const renderMeta = (
+    name: string,
+    value: H5adMetadata[keyof H5adMetadata],
+    render: (v: $TSFixMe) => JSX.Element = R.identity,
+  ) =>
+    !!value && (
+      <tr>
+        <th className={classes.metaName}>{name}</th>
+        <td className={classes.metaValue}>{render(value)}</td>
+      </tr>
+    )
+
+  return (
+    <div className={className} {...props}>
+      <M.Typography className={classes.header} onClick={toggleShow}>
+        <M.Icon
+          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
+        >
+          expand_more
+        </M.Icon>
+        H5AD metadata
+      </M.Typography>
+      <M.Collapse in={show}>
+        <table className={classes.table}>
+          <tbody>
+            {renderMeta('Created by:', createdBy, (c: string) => (
+              <span className={classes.mono}>{c}</span>
+            ))}
+            {renderMeta('Data type:', dataType, (type: string) => (
+              <span className={classes.mono}>{type.replace('_', ' ')}</span>
+            ))}
+            {renderMeta('Matrix type:', matrixType, (type: string) => (
+              <span className={classes.mono}>{type}</span>
+            ))}
+            {renderMeta('Cells:', nCells, (count: number) => (
+              <span>{count.toLocaleString()}</span>
+            ))}
+            {renderMeta('Genes:', nGenes, (count: number) => (
+              <span>{count.toLocaleString()}</span>
+            ))}
+            {renderMeta('Has raw data:', hasRaw, (raw: boolean) => (
+              <span>{raw ? 'Yes' : 'No'}</span>
+            ))}
+            {renderMeta('Format version:', formatVersion, (v: string) => (
+              <span className={classes.mono}>{v}</span>
+            ))}
+            {anndataVersion &&
+              renderMeta('AnnData version:', anndataVersion, (v: string) => (
+                <span className={classes.mono}>{v}</span>
+              ))}
+            {renderMeta('Serialized size:', serializedSize, (size: number) => (
+              <span>{(size / 1024 / 1024).toFixed(1)} MB</span>
+            ))}
+            {renderMeta('Schema (gene data):', schema, (s: { names: string[] }) => (
+              <JsonDisplay value={s} />
+            ))}
+            {renderMeta('Cell metadata keys:', obsKeys, (keys: string[]) => (
+              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
+            ))}
+            {renderMeta('Gene metadata keys:', varKeys, (keys: string[]) => (
+              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
+            ))}
+            {renderMeta('Unstructured keys:', unsKeys, (keys: string[]) => (
+              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
+            ))}
+            {renderMeta('Cell embeddings:', obsmKeys, (keys: string[]) => (
+              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
+            ))}
+            {renderMeta('Gene embeddings:', varmKeys, (keys: string[]) => (
+              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
+            ))}
+            {renderMeta('Expression layers:', layersKeys, (keys: string[]) => (
+              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
             ))}
           </tbody>
         </table>
@@ -212,6 +321,7 @@ export interface PerspectiveProps
   data: perspective.PerspectiveInput
   packageMeta?: JsonRecord
   parquetMeta?: ParquetMetadata
+  h5adMeta?: H5adMetadata
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
@@ -222,6 +332,7 @@ export default function Perspective({
   className,
   data,
   parquetMeta,
+  h5adMeta,
   packageMeta,
   onLoadMore,
   onRender,
@@ -246,6 +357,7 @@ export default function Perspective({
       />
       {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
       {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
+      {!!h5adMeta && <H5adMeta className={classes.meta} {...h5adMeta} />}
       {children}
     </div>
   )
