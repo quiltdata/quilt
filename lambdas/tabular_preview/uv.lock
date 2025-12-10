@@ -97,12 +97,19 @@ wheels = [
 
 [[package]]
 name = "awslambdaric"
-version = "2.2.1"
+version = "3.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "simplejson" },
+    { name = "snapshot-restore-py" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/76/a0/3a40e6fcb0ec63ad48ca3d58dd0f463b0c0c418e9ba823f4a6df645f9b2e/awslambdaric-2.2.1.tar.gz", hash = "sha256:17ec20101efee954540b008a2dc881002b8a0b1a6081cd7eb2b4b3a151067f80", size = 4502664, upload-time = "2024-08-23T11:30:09.167Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/25/9ae3c97af6dc4628cf8094dd2189a8b97388409870fba1c54f58c64d5766/awslambdaric-3.1.1.tar.gz", hash = "sha256:1c1fd30570b9a2c5cc4ccd2151c883312c5eef2dbf759c8e9d29c18cec6de2e8", size = 4500924, upload-time = "2025-05-27T16:06:05.241Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/8c/24cd782cb5406bea659a386b8edf48d35c7ded88a7f30df533da96664eac/awslambdaric-3.1.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9bb003f14f3754a3d6912e3a478cf3a306b84febdc26b612fe23c1143a89f0fd", size = 343077, upload-time = "2025-05-27T16:05:53.286Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/de/d8901e24e5a4852c3f88b7e3abaf897b1473ca00d1952100ff1cfa5ba500/awslambdaric-3.1.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:755db7118d1ed900a675a2608ea9c48c463949ede5cc91648c542a5ec89df4ed", size = 345680, upload-time = "2025-05-27T16:06:02.291Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/35/0e97e4cc862f586211b22d3cbb070e9d9a8c1646aaa5a38b5a530192805c/awslambdaric-3.1.1-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:889b4bb6e9d88aab26d67cce7f9212aafa1f53c64eca2dc83cdf42a79eb3e6ec", size = 344893, upload-time = "2025-05-27T16:05:54.545Z" },
+    { url = "https://files.pythonhosted.org/packages/79/10/2cc723ad18b3bd049af5175bf620262bedc0c788433c3e2e90e67ec3d16e/awslambdaric-3.1.1-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4972127ef34729c44c9567148e68a4eacc283d685400f9d08bf51138ac4ee3d5", size = 347136, upload-time = "2025-05-27T16:06:04.053Z" },
+]
 
 [[package]]
 name = "colorama"
@@ -1040,6 +1047,15 @@ wheels = [
 ]
 
 [[package]]
+name = "snapshot-restore-py"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/19/2d7584749a7f6d1b4b3a129995b1bc31e70ed9c5ecc323f1ee748b767268/snapshot-restore-py-1.0.0.tar.gz", hash = "sha256:4d27f82fb6f09968f422501e9c3c2dea48a46cd19dc798eb7d6cbc57523c8004", size = 3379, upload-time = "2024-11-13T14:40:22.477Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/b8/f9da2457e9dfb5872042202d69b329940527672e20cbfdb26610c09e1d8e/snapshot_restore_py-1.0.0-py3-none-any.whl", hash = "sha256:38f99e696793790f54658e71c68c7a8a40cea877c81232b5052383b1301aceba", size = 3782, upload-time = "2024-11-13T14:40:21.33Z" },
+]
+
+[[package]]
 name = "statsmodels"
 version = "0.14.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1126,7 +1142,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-prod = [{ name = "awslambdaric", specifier = "~=2.1" }]
+prod = [{ name = "awslambdaric", specifier = "~=3.1" }]
 test = [
     { name = "pytest", specifier = "~=8.4" },
     { name = "pytest-cov", specifier = "~=7.0" },

@@ -30,7 +30,7 @@ test = [
     "pytest-mock~=3.15",
 ]
 prod = [
-    "awslambdaric~=2.1",
+    "awslambdaric~=3.1",
 ]
 
 [tool.uv]
