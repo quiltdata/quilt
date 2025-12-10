@@ -56,5 +56,8 @@ WORKDIR ${FUNCTION_DIR}
 
 COPY --from=build ${FUNCTION_DIR} ${FUNCTION_DIR}
 
+# Disable numba JIT compilation to avoid cache issues in Lambda environment
+ENV NUMBA_DISABLE_JIT=1
+
 ENTRYPOINT ["./bin/python3", "-m", "awslambdaric"]
 CMD ["t4_lambda_tabular_preview.lambda_handler"]
