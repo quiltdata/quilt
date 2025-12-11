@@ -42,6 +42,38 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
   },
 }))
 
+// Reusable render components for metadata values
+const RenderMonoString: React.FC<{ value: string }> = ({ value }) => {
+  const classes = useParquetMetaStyles()
+  return <span className={classes.mono}>{value}</span>
+}
+
+const RenderNumber: React.FC<{ value: number }> = ({ value }) => <>{value}</>
+
+const RenderJson: React.FC<{ value: any }> = ({ value }) => <JsonDisplay value={value} />
+
+const RenderShape: React.FC<{ value: { rows: number; columns: number } }> = ({
+  value,
+}) => (
+  <span>
+    {value.rows} rows &times; {value.columns} columns
+  </span>
+)
+
+const RenderList: React.FC<{ value: string[] }> = ({ value }) => (
+  <span>{value.length > 0 ? value.join(', ') : 'None'}</span>
+)
+
+const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
+  <span>{value ? '✓' : '✗'}</span>
+)
+
+// Helper function to create render functions with proper typing
+const createRenderer =
+  <T,>(component: React.ComponentType<{ value: T }>) =>
+  (value: T) =>
+    React.createElement(component, { value })
+
 interface ParquetMetaProps extends ParquetMetadata {
   className: string
 }
@@ -84,22 +116,15 @@ function ParquetMeta({
       <M.Collapse in={show}>
         <table className={classes.table}>
           <tbody>
-            {renderMeta('Created by:', createdBy, (c: string) => (
-              <span className={classes.mono}>{c}</span>
-            ))}
-            {renderMeta('Format version:', formatVersion, (v: string) => (
-              <span className={classes.mono}>{v}</span>
-            ))}
-            {renderMeta('# row groups:', numRowGroups)}
-            {renderMeta('Serialized size:', serializedSize)}
-            {renderMeta('Shape:', shape, ({ rows, columns }) => (
-              <span>
-                {rows} rows &times; {columns} columns
-              </span>
-            ))}
-            {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-              <JsonDisplay value={s} />
-            ))}
+            {renderMeta('Created by:', createdBy, createRenderer(RenderMonoString))}
+            {renderMeta(
+              'Format version:',
+              formatVersion,
+              createRenderer(RenderMonoString),
+            )}
+            {renderMeta('# row groups:', numRowGroups, createRenderer(RenderNumber))}
+            {renderMeta('Shape:', shape, createRenderer(RenderShape))}
+            {renderMeta('Schema:', schema, createRenderer(RenderJson))}
           </tbody>
         </table>
       </M.Collapse>
@@ -127,7 +152,6 @@ function H5adMeta({
   anndataVersion,
   nCells,
   nGenes,
-  dataType,
   matrixType,
   hasRaw,
   ...props
@@ -160,55 +184,29 @@ function H5adMeta({
       <M.Collapse in={show}>
         <table className={classes.table}>
           <tbody>
-            {renderMeta('Created by:', createdBy, (c: string) => (
-              <span className={classes.mono}>{c}</span>
-            ))}
-            {renderMeta('Data type:', dataType, (type: string) => (
-              <span className={classes.mono}>{type.replace('_', ' ')}</span>
-            ))}
-            {renderMeta('Matrix type:', matrixType, (type: string) => (
-              <span className={classes.mono}>{type}</span>
-            ))}
-            {renderMeta('Cells:', nCells, (count: number) => (
-              <span>{count.toLocaleString()}</span>
-            ))}
-            {renderMeta('Genes:', nGenes, (count: number) => (
-              <span>{count.toLocaleString()}</span>
-            ))}
-            {renderMeta('Has raw data:', hasRaw, (raw: boolean) => (
-              <span>{raw ? 'Yes' : 'No'}</span>
-            ))}
-            {renderMeta('Format version:', formatVersion, (v: string) => (
-              <span className={classes.mono}>{v}</span>
-            ))}
+            {renderMeta('Created by:', createdBy, createRenderer(RenderMonoString))}
+            {renderMeta('Matrix type:', matrixType, createRenderer(RenderMonoString))}
+            {renderMeta('Cells:', nCells, createRenderer(RenderNumber))}
+            {renderMeta('Genes:', nGenes, createRenderer(RenderNumber))}
+            {renderMeta('Has raw data:', hasRaw, createRenderer(RenderBoolean))}
+            {renderMeta(
+              'Format version:',
+              formatVersion,
+              createRenderer(RenderMonoString),
+            )}
             {anndataVersion &&
-              renderMeta('AnnData version:', anndataVersion, (v: string) => (
-                <span className={classes.mono}>{v}</span>
-              ))}
-            {renderMeta('Serialized size:', serializedSize, (size: number) => (
-              <span>{(size / 1024 / 1024).toFixed(1)} MB</span>
-            ))}
-            {renderMeta('Schema (gene data):', schema, (s: { names: string[] }) => (
-              <JsonDisplay value={s} />
-            ))}
-            {renderMeta('Cell metadata keys:', obsKeys, (keys: string[]) => (
-              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
-            ))}
-            {renderMeta('Gene metadata keys:', varKeys, (keys: string[]) => (
-              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
-            ))}
-            {renderMeta('Unstructured keys:', unsKeys, (keys: string[]) => (
-              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
-            ))}
-            {renderMeta('Cell embeddings:', obsmKeys, (keys: string[]) => (
-              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
-            ))}
-            {renderMeta('Gene embeddings:', varmKeys, (keys: string[]) => (
-              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
-            ))}
-            {renderMeta('Expression layers:', layersKeys, (keys: string[]) => (
-              <span>{keys.length > 0 ? keys.join(', ') : 'None'}</span>
-            ))}
+              renderMeta(
+                'AnnData version:',
+                anndataVersion,
+                createRenderer(RenderMonoString),
+              )}
+            {renderMeta('Schema (gene data):', schema, createRenderer(RenderJson))}
+            {renderMeta('Cell metadata keys:', obsKeys, createRenderer(RenderList))}
+            {renderMeta('Gene metadata keys:', varKeys, createRenderer(RenderList))}
+            {renderMeta('Unstructured keys:', unsKeys, createRenderer(RenderList))}
+            {renderMeta('Cell embeddings:', obsmKeys, createRenderer(RenderList))}
+            {renderMeta('Gene embeddings:', varmKeys, createRenderer(RenderList))}
+            {renderMeta('Expression layers:', layersKeys, createRenderer(RenderList))}
           </tbody>
         </table>
       </M.Collapse>
