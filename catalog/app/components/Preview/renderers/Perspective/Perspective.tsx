@@ -52,13 +52,12 @@ const FIELDS_MAP: Record<
   MetadataFieldConfig
 > = {
   format_version: { title: 'Format version:', Component: RenderMonoString },
-  num_row_groups: { title: '# row groups:', Component: RenderNumber },
-  schema: { title: 'Schema:', Component: RenderJson },
-  serialized_size: { title: 'Serialized size:', Component: RenderNumber },
   shape: { title: 'Shape:', Component: RenderShape },
-  matrix_type: { title: 'Matrix type:', Component: RenderMonoString },
   n_cells: { title: 'Cells:', Component: RenderNumber },
   n_genes: { title: 'Genes:', Component: RenderNumber },
+  serialized_size: { title: 'Serialized size:', Component: RenderNumber },
+  schema: { title: 'Schema:', Component: RenderJson },
+  matrix_type: { title: 'Matrix type:', Component: RenderMonoString },
   has_raw: { title: 'Has raw data:', Component: RenderBoolean },
   anndata_version: { title: 'AnnData version:', Component: RenderMonoString },
   h5ad_obs_keys: { title: 'Cell metadata keys:', Component: RenderList },
@@ -67,6 +66,7 @@ const FIELDS_MAP: Record<
   h5ad_obsm_keys: { title: 'Cell embeddings:', Component: RenderList },
   h5ad_varm_keys: { title: 'Gene embeddings:', Component: RenderList },
   h5ad_layers_keys: { title: 'Expression layers:', Component: RenderList },
+  num_row_groups: { title: '# row groups:', Component: RenderNumber },
 }
 
 const useMetaRowStyles = M.makeStyles((t) => ({

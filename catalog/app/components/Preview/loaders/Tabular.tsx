@@ -216,7 +216,8 @@ export const Loader = function TabularLoader({
         handle,
         modes: [FileType.Tabular, FileType.Text],
         meta,
-        onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
+        onLoadMore:
+          truncated && size !== 'large' && !isH5ad(handle.key) ? onLoadMore : null,
         truncated,
       }),
   )
