@@ -10,24 +10,15 @@ import { JsonRecord } from 'utils/types'
 import type { ParquetMetadataBackend, H5adMetadataBackend } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
-const useParquetMetaStyles = M.makeStyles((t) => ({
+const useRenderMonoStringStyles = M.makeStyles((t) => ({
   mono: {
     fontFamily: t.typography.monospace.fontFamily,
-  },
-  metaName: {
-    paddingRight: t.spacing(1),
-    textAlign: 'left',
-    verticalAlign: 'top',
-    whiteSpace: 'nowrap',
-  },
-  metaValue: {
-    paddingLeft: t.spacing(1),
   },
 }))
 
 // Reusable render components for metadata values
 const RenderMonoString: React.FC<{ value: string }> = ({ value }) => {
-  const classes = useParquetMetaStyles()
+  const classes = useRenderMonoStringStyles()
   return <span className={classes.mono}>{value}</span>
 }
 
@@ -51,7 +42,6 @@ const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
   <span>{value ? '✓' : '✗'}</span>
 )
 
-// Metadata field configuration
 interface MetadataFieldConfig {
   title: string
   Component: React.ComponentType<{ value: NonNullable<any> }>
@@ -79,24 +69,36 @@ const FIELDS_MAP: Record<
   h5ad_layers_keys: { title: 'Expression layers:', Component: RenderList },
 }
 
-// Reusable MetaRow component
+const useMetaRowStyles = M.makeStyles((t) => ({
+  cell: {
+    padding: t.spacing(0.5, 2, 0.5, 1),
+  },
+}))
+
 interface MetaRowProps {
   title: string
   children?: React.ReactNode
 }
 
 const MetaRow: React.FC<MetaRowProps> = ({ title, children }) => {
-  const classes = useParquetMetaStyles()
-
+  const classes = useMetaRowStyles()
   return (
     <M.TableRow>
-      <M.TableCell className={classes.metaName} component="th" scope="row">
+      <M.TableCell className={classes.cell} component="th" scope="row">
         {title}
       </M.TableCell>
-      <M.TableCell className={classes.metaValue}>{children}</M.TableCell>
+      <M.TableCell className={classes.cell}>{children}</M.TableCell>
     </M.TableRow>
   )
 }
+
+const useRenderMetaStyles = M.makeStyles((t) => ({
+  table: {
+    '& caption': {
+      padding: t.spacing(1),
+    },
+  },
+}))
 
 interface RenderMetaProps {
   className: string
@@ -104,8 +106,10 @@ interface RenderMetaProps {
 }
 
 function RenderMeta({ className, metadata }: RenderMetaProps) {
+  const classes = useRenderMetaStyles()
+
   return (
-    <M.Table className={className} size="small">
+    <M.Table className={cx(className, classes.table)} size="small">
       {metadata.created_by && <caption>{metadata.created_by}</caption>}
       <M.TableBody>
         {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
