@@ -8,7 +8,8 @@
 This feature allows Quilt admin to configure what roles and admin flag value are
 assigned to the user who logs in via SSO based on the user's ID token claims.
 
-The configuration can be set with `quilt3.admin.sso_config.set()` or with admin UI.
+The configuration can be set with `quilt3.admin.sso_config.set()`
+or with admin UI.
 
 ![admin UI for setting SSO permissions mapping](../imgs/admin-sso-config.png)
 
