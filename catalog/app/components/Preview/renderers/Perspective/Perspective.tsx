@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
@@ -68,11 +67,22 @@ const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
   <span>{value ? '✓' : '✗'}</span>
 )
 
-// Helper function to create render functions with proper typing
-const createRenderer =
-  <T,>(component: React.ComponentType<{ value: T }>) =>
-  (value: T) =>
-    React.createElement(component, { value })
+// Reusable MetaRow component
+interface MetaRowProps {
+  title: string
+  children?: React.ReactNode
+}
+
+const MetaRow: React.FC<MetaRowProps> = ({ title, children }) => {
+  const classes = useParquetMetaStyles()
+
+  return (
+    <tr>
+      <th className={classes.metaName}>{title}</th>
+      <td className={classes.metaValue}>{children}</td>
+    </tr>
+  )
+}
 
 interface ParquetMetaProps extends ParquetMetadata {
   className: string
@@ -91,17 +101,6 @@ function ParquetMeta({
   const classes = useParquetMetaStyles()
   const [show, setShow] = React.useState(false)
   const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
-  const renderMeta = (
-    name: string,
-    value: ParquetMetadata[keyof ParquetMetadata],
-    render: (v: $TSFixMe) => JSX.Element = R.identity,
-  ) =>
-    !!value && (
-      <tr>
-        <th className={classes.metaName}>{name}</th>
-        <td className={classes.metaValue}>{render(value)}</td>
-      </tr>
-    )
 
   return (
     <div className={className} {...props}>
@@ -116,15 +115,31 @@ function ParquetMeta({
       <M.Collapse in={show}>
         <table className={classes.table}>
           <tbody>
-            {renderMeta('Created by:', createdBy, createRenderer(RenderMonoString))}
-            {renderMeta(
-              'Format version:',
-              formatVersion,
-              createRenderer(RenderMonoString),
+            {createdBy && (
+              <MetaRow title="Created by:">
+                <RenderMonoString value={createdBy} />
+              </MetaRow>
             )}
-            {renderMeta('# row groups:', numRowGroups, createRenderer(RenderNumber))}
-            {renderMeta('Shape:', shape, createRenderer(RenderShape))}
-            {renderMeta('Schema:', schema, createRenderer(RenderJson))}
+            {formatVersion && (
+              <MetaRow title="Format version:">
+                <RenderMonoString value={formatVersion} />
+              </MetaRow>
+            )}
+            {numRowGroups && (
+              <MetaRow title="# row groups:">
+                <RenderNumber value={numRowGroups} />
+              </MetaRow>
+            )}
+            {shape && (
+              <MetaRow title="Shape:">
+                <RenderShape value={shape} />
+              </MetaRow>
+            )}
+            {schema && (
+              <MetaRow title="Schema:">
+                <RenderJson value={schema} />
+              </MetaRow>
+            )}
           </tbody>
         </table>
       </M.Collapse>
@@ -159,17 +174,6 @@ function H5adMeta({
   const classes = useParquetMetaStyles()
   const [show, setShow] = React.useState(false)
   const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
-  const renderMeta = (
-    name: string,
-    value: H5adMetadata[keyof H5adMetadata],
-    render: (v: $TSFixMe) => JSX.Element = R.identity,
-  ) =>
-    !!value && (
-      <tr>
-        <th className={classes.metaName}>{name}</th>
-        <td className={classes.metaValue}>{render(value)}</td>
-      </tr>
-    )
 
   return (
     <div className={className} {...props}>
@@ -184,29 +188,76 @@ function H5adMeta({
       <M.Collapse in={show}>
         <table className={classes.table}>
           <tbody>
-            {renderMeta('Created by:', createdBy, createRenderer(RenderMonoString))}
-            {renderMeta('Matrix type:', matrixType, createRenderer(RenderMonoString))}
-            {renderMeta('Cells:', nCells, createRenderer(RenderNumber))}
-            {renderMeta('Genes:', nGenes, createRenderer(RenderNumber))}
-            {renderMeta('Has raw data:', hasRaw, createRenderer(RenderBoolean))}
-            {renderMeta(
-              'Format version:',
-              formatVersion,
-              createRenderer(RenderMonoString),
+            {createdBy && (
+              <MetaRow title="Created by:">
+                <RenderMonoString value={createdBy} />
+              </MetaRow>
             )}
-            {anndataVersion &&
-              renderMeta(
-                'AnnData version:',
-                anndataVersion,
-                createRenderer(RenderMonoString),
-              )}
-            {renderMeta('Schema (gene data):', schema, createRenderer(RenderJson))}
-            {renderMeta('Cell metadata keys:', obsKeys, createRenderer(RenderList))}
-            {renderMeta('Gene metadata keys:', varKeys, createRenderer(RenderList))}
-            {renderMeta('Unstructured keys:', unsKeys, createRenderer(RenderList))}
-            {renderMeta('Cell embeddings:', obsmKeys, createRenderer(RenderList))}
-            {renderMeta('Gene embeddings:', varmKeys, createRenderer(RenderList))}
-            {renderMeta('Expression layers:', layersKeys, createRenderer(RenderList))}
+            {matrixType && (
+              <MetaRow title="Matrix type:">
+                <RenderMonoString value={matrixType} />
+              </MetaRow>
+            )}
+            {nCells !== undefined && (
+              <MetaRow title="Cells:">
+                <RenderNumber value={nCells} />
+              </MetaRow>
+            )}
+            {nGenes !== undefined && (
+              <MetaRow title="Genes:">
+                <RenderNumber value={nGenes} />
+              </MetaRow>
+            )}
+            {hasRaw !== undefined && (
+              <MetaRow title="Has raw data:">
+                <RenderBoolean value={hasRaw} />
+              </MetaRow>
+            )}
+            {formatVersion && (
+              <MetaRow title="Format version:">
+                <RenderMonoString value={formatVersion} />
+              </MetaRow>
+            )}
+            {anndataVersion && (
+              <MetaRow title="AnnData version:">
+                <RenderMonoString value={anndataVersion} />
+              </MetaRow>
+            )}
+            {schema && (
+              <MetaRow title="Schema (gene data):">
+                <RenderJson value={schema} />
+              </MetaRow>
+            )}
+            {obsKeys && (
+              <MetaRow title="Cell metadata keys:">
+                <RenderList value={obsKeys} />
+              </MetaRow>
+            )}
+            {varKeys && (
+              <MetaRow title="Gene metadata keys:">
+                <RenderList value={varKeys} />
+              </MetaRow>
+            )}
+            {unsKeys && (
+              <MetaRow title="Unstructured keys:">
+                <RenderList value={unsKeys} />
+              </MetaRow>
+            )}
+            {obsmKeys && (
+              <MetaRow title="Cell embeddings:">
+                <RenderList value={obsmKeys} />
+              </MetaRow>
+            )}
+            {varmKeys && (
+              <MetaRow title="Gene embeddings:">
+                <RenderList value={varmKeys} />
+              </MetaRow>
+            )}
+            {layersKeys && (
+              <MetaRow title="Expression layers:">
+                <RenderList value={layersKeys} />
+              </MetaRow>
+            )}
           </tbody>
         </table>
       </M.Collapse>
