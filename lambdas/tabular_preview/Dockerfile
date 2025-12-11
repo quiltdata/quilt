@@ -7,10 +7,6 @@ FROM base AS build
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 
-RUN dnf --setopt=install_weak_deps=0 install -y \
-    gcc \
-    gcc-c++
-
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 ENV UV_LINK_MODE=copy \
