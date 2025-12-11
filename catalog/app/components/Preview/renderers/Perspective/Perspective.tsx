@@ -11,10 +11,6 @@ import type { ParquetMetadataBackend, H5adMetadataBackend } from '../../loaders/
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
-  table: {
-    margin: t.spacing(1, 0, 1, 3),
-    width: '100%',
-  },
   mono: {
     fontFamily: t.typography.monospace.fontFamily,
   },
@@ -26,20 +22,6 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
   },
   metaValue: {
     paddingLeft: t.spacing(1),
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-  },
-  headerIcon: {
-    fontSize: '1.1rem',
-    transform: 'rotate(-90deg)',
-    marginRight: t.spacing(0.5),
-    transition: 'transform 0.3s ease',
-  },
-  headerIconExpanded: {
-    transform: 'rotate(0deg)',
   },
 }))
 
@@ -69,13 +51,6 @@ const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
   <span>{value ? '✓' : '✗'}</span>
 )
 
-// Type guard to distinguish between metadata types
-function isH5adMetadata(
-  meta: ParquetMetadataBackend | H5adMetadataBackend,
-): meta is H5adMetadataBackend {
-  return 'h5ad_obs_keys' in meta
-}
-
 // Metadata field configuration
 interface MetadataFieldConfig {
   title: string
@@ -83,10 +58,9 @@ interface MetadataFieldConfig {
 }
 
 const FIELDS_MAP: Record<
-  keyof H5adMetadataBackend | keyof ParquetMetadataBackend,
+  Exclude<keyof H5adMetadataBackend | keyof ParquetMetadataBackend, 'created_by'>,
   MetadataFieldConfig
 > = {
-  created_by: { title: 'Created by:', Component: RenderMonoString },
   format_version: { title: 'Format version:', Component: RenderMonoString },
   num_row_groups: { title: '# row groups:', Component: RenderNumber },
   schema: { title: 'Schema:', Component: RenderJson },
@@ -115,88 +89,38 @@ const MetaRow: React.FC<MetaRowProps> = ({ title, children }) => {
   const classes = useParquetMetaStyles()
 
   return (
-    <tr>
-      <th className={classes.metaName}>{title}</th>
-      <td className={classes.metaValue}>{children}</td>
-    </tr>
+    <M.TableRow>
+      <M.TableCell className={classes.metaName} component="th" scope="row">
+        {title}
+      </M.TableCell>
+      <M.TableCell className={classes.metaValue}>{children}</M.TableCell>
+    </M.TableRow>
   )
 }
 
-interface ParquetMetaProps extends ParquetMetadataBackend {
+interface RenderMetaProps {
   className: string
+  metadata: ParquetMetadataBackend | H5adMetadataBackend
 }
 
-function ParquetMeta({ className, ...metadata }: ParquetMetaProps) {
-  const classes = useParquetMetaStyles()
-  const [show, setShow] = React.useState(false)
-  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
-
+function RenderMeta({ className, metadata }: RenderMetaProps) {
   return (
-    <div className={className} {...metadata}>
-      <M.Typography className={classes.header} onClick={toggleShow}>
-        <M.Icon
-          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
-        >
-          expand_more
-        </M.Icon>
-        Parquet metadata
-      </M.Typography>
-      <M.Collapse in={show}>
-        <table className={classes.table}>
-          <tbody>
-            {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
-              const value = metadata[key as keyof ParquetMetadataBackend]
-              return (
-                value != null && (
-                  <MetaRow key={key} title={title}>
-                    <Component value={value} />
-                  </MetaRow>
-                )
-              )
-            })}
-          </tbody>
-        </table>
-      </M.Collapse>
-    </div>
-  )
-}
-
-interface H5adMetaProps extends H5adMetadataBackend {
-  className: string
-}
-
-function H5adMeta({ className, ...metadata }: H5adMetaProps) {
-  const classes = useParquetMetaStyles()
-  const [show, setShow] = React.useState(false)
-  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
-
-  return (
-    <div className={className}>
-      <M.Typography className={classes.header} onClick={toggleShow}>
-        <M.Icon
-          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
-        >
-          expand_more
-        </M.Icon>
-        H5AD metadata
-      </M.Typography>
-      <M.Collapse in={show}>
-        <table className={classes.table}>
-          <tbody>
-            {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
-              const value = metadata[key as keyof H5adMetadataBackend]
-              return (
-                value != null && (
-                  <MetaRow key={key} title={title}>
-                    <Component value={value} />
-                  </MetaRow>
-                )
-              )
-            })}
-          </tbody>
-        </table>
-      </M.Collapse>
-    </div>
+    <M.Table className={className} size="small">
+      {metadata.created_by && <caption>{metadata.created_by}</caption>}
+      <M.TableBody>
+        {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
+          const value =
+            metadata[key as keyof (ParquetMetadataBackend | H5adMetadataBackend)]
+          return (
+            value != null && (
+              <MetaRow key={key} title={title}>
+                <Component value={value} />
+              </MetaRow>
+            )
+          )
+        })}
+      </M.TableBody>
+    </M.Table>
   )
 }
 
@@ -281,7 +205,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    minHeight: t.spacing(80),
+    minHeight: t.spacing(120),
     overflow: 'hidden',
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 8px',
@@ -339,10 +263,7 @@ export default function Perspective({
         truncated={truncated}
       />
       {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
-      {!!meta && !isH5adMetadata(meta) && (
-        <ParquetMeta className={classes.meta} {...meta} />
-      )}
-      {!!meta && isH5adMetadata(meta) && <H5adMeta className={classes.meta} {...meta} />}
+      {!!meta && <RenderMeta className={classes.meta} metadata={meta} />}
       {children}
     </div>
   )
