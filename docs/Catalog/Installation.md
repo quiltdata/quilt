@@ -56,8 +56,8 @@ Service Catalog).
     1. Refer to this [example service role](../cfn-service-role.yaml)
     and modify as needed to fit your use case.
 
-    > Ensure that your service role is up-to-date with the example before every stack
-    update so as to prevent installation failures.
+    > Ensure that your service role is up-to-date with the example before every
+    stack update so as to prevent installation failures.
 
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
@@ -304,5 +304,6 @@ to your new template and provide the snapshot identifier to the
     > existing search domain, and existing vpc in order for the terraform modules
     > to function properly.
 
-1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
+1. You now have a new Quilt stack
+with a configuration equivalent to your prior stack.
 Verify that the new stack is working as desired. Delete the old stack.
