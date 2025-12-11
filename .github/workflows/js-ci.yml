@@ -41,4 +41,4 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: 'catalog/package.json'
-      - run: npx --package=markdownlint-cli markdownlint .
+      - run: npx --package=markdownlint-cli@0.46 markdownlint .
