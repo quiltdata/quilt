@@ -69,7 +69,6 @@ export interface ParquetMetadata {
   schema: {
     names: string[]
   }
-  serializedSize: number
   shape: { rows: number; columns: number }
 }
 
@@ -102,7 +101,6 @@ export interface H5adMetadata {
   schema: {
     names: string[]
   }
-  serializedSize: number
   obsKeys: string[]
   varKeys: string[]
   unsKeys: string[]
@@ -150,7 +148,6 @@ export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata 
   formatVersion: data.format_version,
   numRowGroups: data.num_row_groups,
   schema: data.schema,
-  serializedSize: data.serialized_size,
   shape: { rows: data.shape[0], columns: data.shape[1] },
 })
 
@@ -159,7 +156,6 @@ export const parseH5adData = (data: H5adMetadataBackend): H5adMetadata => ({
   formatVersion: data.format_version,
   shape: { rows: data.shape[0], columns: data.shape[1] },
   schema: data.schema,
-  serializedSize: data.serialized_size,
   obsKeys: data.h5ad_obs_keys,
   varKeys: data.h5ad_var_keys,
   unsKeys: data.h5ad_uns_keys,

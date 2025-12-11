@@ -49,7 +49,9 @@ const RenderMonoString: React.FC<{ value: string }> = ({ value }) => {
 
 const RenderNumber: React.FC<{ value: number }> = ({ value }) => <>{value}</>
 
-const RenderJson: React.FC<{ value: any }> = ({ value }) => <JsonDisplay value={value} />
+const RenderJson: React.FC<{ value: JsonRecord }> = ({ value }) => (
+  <JsonDisplay value={value} />
+)
 
 const RenderShape: React.FC<{ value: { rows: number; columns: number } }> = ({
   value,
@@ -66,6 +68,34 @@ const RenderList: React.FC<{ value: string[] }> = ({ value }) => (
 const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
   <span>{value ? '✓' : '✗'}</span>
 )
+
+// Metadata field configuration
+interface MetadataFieldConfig {
+  title: string
+  Component: React.ComponentType<{ value: NonNullable<any> }>
+}
+
+const FIELDS_MAP: Record<
+  keyof H5adMetadata | keyof ParquetMetadata,
+  MetadataFieldConfig
+> = {
+  createdBy: { title: 'Created by:', Component: RenderMonoString },
+  formatVersion: { title: 'Format version:', Component: RenderMonoString },
+  numRowGroups: { title: '# row groups:', Component: RenderNumber },
+  schema: { title: 'Schema:', Component: RenderJson },
+  matrixType: { title: 'Matrix type:', Component: RenderMonoString },
+  nCells: { title: 'Cells:', Component: RenderNumber },
+  nGenes: { title: 'Genes:', Component: RenderNumber },
+  hasRaw: { title: 'Has raw data:', Component: RenderBoolean },
+  anndataVersion: { title: 'AnnData version:', Component: RenderMonoString },
+  obsKeys: { title: 'Cell metadata keys:', Component: RenderList },
+  varKeys: { title: 'Gene metadata keys:', Component: RenderList },
+  unsKeys: { title: 'Unstructured keys:', Component: RenderList },
+  obsmKeys: { title: 'Cell embeddings:', Component: RenderList },
+  varmKeys: { title: 'Gene embeddings:', Component: RenderList },
+  layersKeys: { title: 'Expression layers:', Component: RenderList },
+  shape: { title: 'Shape:', Component: RenderShape },
+}
 
 // Reusable MetaRow component
 interface MetaRowProps {
@@ -88,22 +118,13 @@ interface ParquetMetaProps extends ParquetMetadata {
   className: string
 }
 
-function ParquetMeta({
-  className,
-  createdBy,
-  formatVersion,
-  numRowGroups,
-  schema, // { names }
-  serializedSize,
-  shape, // { rows, columns }
-  ...props
-}: ParquetMetaProps) {
+function ParquetMeta({ className, ...metadata }: ParquetMetaProps) {
   const classes = useParquetMetaStyles()
   const [show, setShow] = React.useState(false)
   const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
 
   return (
-    <div className={className} {...props}>
+    <div className={className} {...metadata}>
       <M.Typography className={classes.header} onClick={toggleShow}>
         <M.Icon
           className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
@@ -115,31 +136,16 @@ function ParquetMeta({
       <M.Collapse in={show}>
         <table className={classes.table}>
           <tbody>
-            {createdBy && (
-              <MetaRow title="Created by:">
-                <RenderMonoString value={createdBy} />
-              </MetaRow>
-            )}
-            {formatVersion && (
-              <MetaRow title="Format version:">
-                <RenderMonoString value={formatVersion} />
-              </MetaRow>
-            )}
-            {numRowGroups && (
-              <MetaRow title="# row groups:">
-                <RenderNumber value={numRowGroups} />
-              </MetaRow>
-            )}
-            {shape && (
-              <MetaRow title="Shape:">
-                <RenderShape value={shape} />
-              </MetaRow>
-            )}
-            {schema && (
-              <MetaRow title="Schema:">
-                <RenderJson value={schema} />
-              </MetaRow>
-            )}
+            {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
+              const value = metadata[key as keyof ParquetMetadata]
+              return (
+                value != null && (
+                  <MetaRow key={key} title={title}>
+                    <Component value={value} />
+                  </MetaRow>
+                )
+              )
+            })}
           </tbody>
         </table>
       </M.Collapse>
@@ -151,32 +157,13 @@ interface H5adMetaProps extends H5adMetadata {
   className: string
 }
 
-function H5adMeta({
-  className,
-  createdBy,
-  formatVersion,
-  shape, // { rows, columns }
-  schema, // { names }
-  serializedSize,
-  obsKeys,
-  varKeys,
-  unsKeys,
-  obsmKeys,
-  varmKeys,
-  layersKeys,
-  anndataVersion,
-  nCells,
-  nGenes,
-  matrixType,
-  hasRaw,
-  ...props
-}: H5adMetaProps) {
+function H5adMeta({ className, ...metadata }: H5adMetaProps) {
   const classes = useParquetMetaStyles()
   const [show, setShow] = React.useState(false)
   const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
 
   return (
-    <div className={className} {...props}>
+    <div className={className}>
       <M.Typography className={classes.header} onClick={toggleShow}>
         <M.Icon
           className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
@@ -188,76 +175,16 @@ function H5adMeta({
       <M.Collapse in={show}>
         <table className={classes.table}>
           <tbody>
-            {createdBy && (
-              <MetaRow title="Created by:">
-                <RenderMonoString value={createdBy} />
-              </MetaRow>
-            )}
-            {matrixType && (
-              <MetaRow title="Matrix type:">
-                <RenderMonoString value={matrixType} />
-              </MetaRow>
-            )}
-            {nCells !== undefined && (
-              <MetaRow title="Cells:">
-                <RenderNumber value={nCells} />
-              </MetaRow>
-            )}
-            {nGenes !== undefined && (
-              <MetaRow title="Genes:">
-                <RenderNumber value={nGenes} />
-              </MetaRow>
-            )}
-            {hasRaw !== undefined && (
-              <MetaRow title="Has raw data:">
-                <RenderBoolean value={hasRaw} />
-              </MetaRow>
-            )}
-            {formatVersion && (
-              <MetaRow title="Format version:">
-                <RenderMonoString value={formatVersion} />
-              </MetaRow>
-            )}
-            {anndataVersion && (
-              <MetaRow title="AnnData version:">
-                <RenderMonoString value={anndataVersion} />
-              </MetaRow>
-            )}
-            {schema && (
-              <MetaRow title="Schema (gene data):">
-                <RenderJson value={schema} />
-              </MetaRow>
-            )}
-            {obsKeys && (
-              <MetaRow title="Cell metadata keys:">
-                <RenderList value={obsKeys} />
-              </MetaRow>
-            )}
-            {varKeys && (
-              <MetaRow title="Gene metadata keys:">
-                <RenderList value={varKeys} />
-              </MetaRow>
-            )}
-            {unsKeys && (
-              <MetaRow title="Unstructured keys:">
-                <RenderList value={unsKeys} />
-              </MetaRow>
-            )}
-            {obsmKeys && (
-              <MetaRow title="Cell embeddings:">
-                <RenderList value={obsmKeys} />
-              </MetaRow>
-            )}
-            {varmKeys && (
-              <MetaRow title="Gene embeddings:">
-                <RenderList value={varmKeys} />
-              </MetaRow>
-            )}
-            {layersKeys && (
-              <MetaRow title="Expression layers:">
-                <RenderList value={layersKeys} />
-              </MetaRow>
-            )}
+            {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
+              const value = metadata[key as keyof H5adMetadata]
+              return (
+                value != null && (
+                  <MetaRow key={key} title={title}>
+                    <Component value={value} />
+                  </MetaRow>
+                )
+              )
+            })}
           </tbody>
         </table>
       </M.Collapse>
