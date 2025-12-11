@@ -91,7 +91,6 @@ interface H5adMetadataBackend {
   anndata_version?: string
   n_cells: number
   n_genes: number
-  data_type: string
   matrix_type: string
   has_raw: boolean
 }
@@ -113,7 +112,6 @@ export interface H5adMetadata {
   anndataVersion?: string
   nCells: number
   nGenes: number
-  dataType: string
   matrixType: string
   hasRaw: boolean
 }
@@ -171,7 +169,6 @@ export const parseH5adData = (data: H5adMetadataBackend): H5adMetadata => ({
   anndataVersion: data.anndata_version,
   nCells: data.n_cells,
   nGenes: data.n_genes,
-  dataType: data.data_type,
   matrixType: data.matrix_type,
   hasRaw: data.has_raw,
 })
