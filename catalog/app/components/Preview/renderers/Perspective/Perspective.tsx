@@ -13,6 +13,7 @@ import type { PerspectiveOptions } from '../../loaders/summarize'
 const useParquetMetaStyles = M.makeStyles((t) => ({
   table: {
     margin: t.spacing(1, 0, 1, 3),
+    width: '100%',
   },
   mono: {
     fontFamily: t.typography.monospace.fontFamily,
@@ -21,6 +22,7 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
     paddingRight: t.spacing(1),
     textAlign: 'left',
     verticalAlign: 'top',
+    whiteSpace: 'nowrap',
   },
   metaValue: {
     paddingLeft: t.spacing(1),
@@ -60,7 +62,7 @@ const RenderShape: React.FC<{ value: [number, number] }> = ({ value }) => (
 )
 
 const RenderList: React.FC<{ value: string[] }> = ({ value }) => (
-  <span>{value.length > 0 ? value.join(', ') : 'None'}</span>
+  <JsonDisplay value={value.length > 0 ? value : ['None']} />
 )
 
 const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
