@@ -5,9 +5,12 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
-import { JsonRecord } from 'utils/types'
 
-import type { ParquetMetadataBackend, H5adMetadataBackend } from '../../loaders/Tabular'
+import type {
+  ParquetMetadata,
+  H5adMetadata,
+  PackageMetadata,
+} from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
 const useRenderMonoStringStyles = M.makeStyles((t) => ({
@@ -16,7 +19,6 @@ const useRenderMonoStringStyles = M.makeStyles((t) => ({
   },
 }))
 
-// Reusable render components for metadata values
 const RenderMonoString: React.FC<{ value: string }> = ({ value }) => {
   const classes = useRenderMonoStringStyles()
   return <span className={classes.mono}>{value}</span>
@@ -24,18 +26,10 @@ const RenderMonoString: React.FC<{ value: string }> = ({ value }) => {
 
 const RenderNumber: React.FC<{ value: number }> = ({ value }) => <>{value}</>
 
-const RenderJson: React.FC<{ value: JsonRecord }> = ({ value }) => (
-  <JsonDisplay value={value} />
-)
-
 const RenderShape: React.FC<{ value: [number, number] }> = ({ value }) => (
   <span>
     {value[0]} rows &times; {value[1]} columns
   </span>
-)
-
-const RenderList: React.FC<{ value: string[] }> = ({ value }) => (
-  <JsonDisplay value={value.length > 0 ? value : ['None']} />
 )
 
 const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
@@ -48,7 +42,10 @@ interface MetadataFieldConfig {
 }
 
 const FIELDS_MAP: Record<
-  Exclude<keyof H5adMetadataBackend | keyof ParquetMetadataBackend, 'created_by'>,
+  Exclude<
+    keyof H5adMetadata | keyof ParquetMetadata | keyof PackageMetadata,
+    'created_by'
+  >,
   MetadataFieldConfig
 > = {
   format_version: { title: 'Format version:', Component: RenderMonoString },
@@ -56,17 +53,21 @@ const FIELDS_MAP: Record<
   n_cells: { title: 'Cells:', Component: RenderNumber },
   n_genes: { title: 'Genes:', Component: RenderNumber },
   serialized_size: { title: 'Serialized size:', Component: RenderNumber },
-  schema: { title: 'Schema:', Component: RenderJson },
+  schema: { title: 'Schema:', Component: JsonDisplay },
   matrix_type: { title: 'Matrix type:', Component: RenderMonoString },
   has_raw: { title: 'Has raw data:', Component: RenderBoolean },
   anndata_version: { title: 'AnnData version:', Component: RenderMonoString },
-  h5ad_obs_keys: { title: 'Cell metadata keys:', Component: RenderList },
-  h5ad_var_keys: { title: 'Gene metadata keys:', Component: RenderList },
-  h5ad_uns_keys: { title: 'Unstructured keys:', Component: RenderList },
-  h5ad_obsm_keys: { title: 'Cell embeddings:', Component: RenderList },
-  h5ad_varm_keys: { title: 'Gene embeddings:', Component: RenderList },
-  h5ad_layers_keys: { title: 'Expression layers:', Component: RenderList },
+  h5ad_obs_keys: { title: 'Cell metadata keys:', Component: JsonDisplay },
+  h5ad_var_keys: { title: 'Gene metadata keys:', Component: JsonDisplay },
+  h5ad_uns_keys: { title: 'Unstructured keys:', Component: JsonDisplay },
+  h5ad_obsm_keys: { title: 'Cell embeddings:', Component: JsonDisplay },
+  h5ad_varm_keys: { title: 'Gene embeddings:', Component: JsonDisplay },
+  h5ad_layers_keys: { title: 'Expression layers:', Component: JsonDisplay },
   num_row_groups: { title: '# row groups:', Component: RenderNumber },
+
+  version: { title: 'Manifest version:', Component: RenderMonoString },
+  workflow: { title: 'Workflow:', Component: JsonDisplay },
+  message: { title: 'Message:', Component: RenderMonoString },
 }
 
 const useMetaRowStyles = M.makeStyles((t) => ({
@@ -102,7 +103,7 @@ const useRenderMetaStyles = M.makeStyles((t) => ({
 
 interface RenderMetaProps {
   className: string
-  metadata: ParquetMetadataBackend | H5adMetadataBackend
+  metadata: ParquetMetadata | H5adMetadata | PackageMetadata
 }
 
 function RenderMeta({ className, metadata }: RenderMetaProps) {
@@ -110,11 +111,13 @@ function RenderMeta({ className, metadata }: RenderMetaProps) {
 
   return (
     <M.Table className={cx(className, classes.table)} size="small">
-      {metadata.created_by && <caption>{metadata.created_by}</caption>}
+      {'created_by' in metadata && metadata.created_by && (
+        <caption>{metadata.created_by}</caption>
+      )}
       <M.TableBody>
         {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
           const value =
-            metadata[key as keyof (ParquetMetadataBackend | H5adMetadataBackend)]
+            metadata[key as keyof (ParquetMetadata | H5adMetadata | PackageMetadata)]
           return (
             value != null && (
               <MetaRow key={key} title={title}>
@@ -231,8 +234,7 @@ export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
   data: perspective.PerspectiveInput
-  packageMeta?: JsonRecord
-  meta?: ParquetMetadataBackend | H5adMetadataBackend
+  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
@@ -243,14 +245,12 @@ export default function Perspective({
   className,
   data,
   meta,
-  packageMeta,
   onLoadMore,
   onRender,
   truncated,
   config,
   ...props
 }: PerspectiveProps) {
-  // console.log(isH5ad(props.handle.key))
   const classes = useStyles()
 
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
@@ -266,7 +266,6 @@ export default function Perspective({
         onLoadMore={onLoadMore}
         truncated={truncated}
       />
-      {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
       {!!meta && <RenderMeta className={classes.meta} metadata={meta} />}
       {children}
     </div>

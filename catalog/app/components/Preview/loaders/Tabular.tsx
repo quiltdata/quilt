@@ -51,7 +51,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
   ]),
 )
 
-export interface ParquetMetadataBackend {
+export interface ParquetMetadata {
   created_by: string
   format_version: string
   num_row_groups: number
@@ -62,7 +62,7 @@ export interface ParquetMetadataBackend {
   shape: [number, number] // rows, columns
 }
 
-export interface H5adMetadataBackend {
+export interface H5adMetadata {
   created_by: string
   format_version: string
   num_row_groups: number
@@ -84,9 +84,15 @@ export interface H5adMetadataBackend {
   has_raw: boolean
 }
 
+export interface PackageMetadata {
+  version?: string
+  workflow?: any
+  message?: string
+}
+
 function getQuiltInfo(
   headers: Headers,
-): { meta?: ParquetMetadataBackend | H5adMetadataBackend; truncated: boolean } | null {
+): { meta?: ParquetMetadata | H5adMetadata; truncated: boolean } | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
@@ -123,7 +129,7 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: ArrayBuffer | string
-  meta: ParquetMetadataBackend | H5adMetadataBackend | null
+  meta: ParquetMetadata | H5adMetadata | null
   size: number | null
   truncated: boolean
 }
