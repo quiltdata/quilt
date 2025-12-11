@@ -7,7 +7,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
 import { JsonRecord } from 'utils/types'
 
-import { ParquetMetadata, H5adMetadata } from '../../loaders/Tabular'
+import type { ParquetMetadataBackend, H5adMetadataBackend } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
@@ -53,11 +53,9 @@ const RenderJson: React.FC<{ value: JsonRecord }> = ({ value }) => (
   <JsonDisplay value={value} />
 )
 
-const RenderShape: React.FC<{ value: { rows: number; columns: number } }> = ({
-  value,
-}) => (
+const RenderShape: React.FC<{ value: [number, number] }> = ({ value }) => (
   <span>
-    {value.rows} rows &times; {value.columns} columns
+    {value[0]} rows &times; {value[1]} columns
   </span>
 )
 
@@ -69,6 +67,13 @@ const RenderBoolean: React.FC<{ value: boolean }> = ({ value }) => (
   <span>{value ? '✓' : '✗'}</span>
 )
 
+// Type guard to distinguish between metadata types
+function isH5adMetadata(
+  meta: ParquetMetadataBackend | H5adMetadataBackend,
+): meta is H5adMetadataBackend {
+  return 'h5ad_obs_keys' in meta
+}
+
 // Metadata field configuration
 interface MetadataFieldConfig {
   title: string
@@ -76,25 +81,26 @@ interface MetadataFieldConfig {
 }
 
 const FIELDS_MAP: Record<
-  keyof H5adMetadata | keyof ParquetMetadata,
+  keyof H5adMetadataBackend | keyof ParquetMetadataBackend,
   MetadataFieldConfig
 > = {
-  createdBy: { title: 'Created by:', Component: RenderMonoString },
-  formatVersion: { title: 'Format version:', Component: RenderMonoString },
-  numRowGroups: { title: '# row groups:', Component: RenderNumber },
+  created_by: { title: 'Created by:', Component: RenderMonoString },
+  format_version: { title: 'Format version:', Component: RenderMonoString },
+  num_row_groups: { title: '# row groups:', Component: RenderNumber },
   schema: { title: 'Schema:', Component: RenderJson },
-  matrixType: { title: 'Matrix type:', Component: RenderMonoString },
-  nCells: { title: 'Cells:', Component: RenderNumber },
-  nGenes: { title: 'Genes:', Component: RenderNumber },
-  hasRaw: { title: 'Has raw data:', Component: RenderBoolean },
-  anndataVersion: { title: 'AnnData version:', Component: RenderMonoString },
-  obsKeys: { title: 'Cell metadata keys:', Component: RenderList },
-  varKeys: { title: 'Gene metadata keys:', Component: RenderList },
-  unsKeys: { title: 'Unstructured keys:', Component: RenderList },
-  obsmKeys: { title: 'Cell embeddings:', Component: RenderList },
-  varmKeys: { title: 'Gene embeddings:', Component: RenderList },
-  layersKeys: { title: 'Expression layers:', Component: RenderList },
+  serialized_size: { title: 'Serialized size:', Component: RenderNumber },
   shape: { title: 'Shape:', Component: RenderShape },
+  matrix_type: { title: 'Matrix type:', Component: RenderMonoString },
+  n_cells: { title: 'Cells:', Component: RenderNumber },
+  n_genes: { title: 'Genes:', Component: RenderNumber },
+  has_raw: { title: 'Has raw data:', Component: RenderBoolean },
+  anndata_version: { title: 'AnnData version:', Component: RenderMonoString },
+  h5ad_obs_keys: { title: 'Cell metadata keys:', Component: RenderList },
+  h5ad_var_keys: { title: 'Gene metadata keys:', Component: RenderList },
+  h5ad_uns_keys: { title: 'Unstructured keys:', Component: RenderList },
+  h5ad_obsm_keys: { title: 'Cell embeddings:', Component: RenderList },
+  h5ad_varm_keys: { title: 'Gene embeddings:', Component: RenderList },
+  h5ad_layers_keys: { title: 'Expression layers:', Component: RenderList },
 }
 
 // Reusable MetaRow component
@@ -114,7 +120,7 @@ const MetaRow: React.FC<MetaRowProps> = ({ title, children }) => {
   )
 }
 
-interface ParquetMetaProps extends ParquetMetadata {
+interface ParquetMetaProps extends ParquetMetadataBackend {
   className: string
 }
 
@@ -137,7 +143,7 @@ function ParquetMeta({ className, ...metadata }: ParquetMetaProps) {
         <table className={classes.table}>
           <tbody>
             {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
-              const value = metadata[key as keyof ParquetMetadata]
+              const value = metadata[key as keyof ParquetMetadataBackend]
               return (
                 value != null && (
                   <MetaRow key={key} title={title}>
@@ -153,7 +159,7 @@ function ParquetMeta({ className, ...metadata }: ParquetMetaProps) {
   )
 }
 
-interface H5adMetaProps extends H5adMetadata {
+interface H5adMetaProps extends H5adMetadataBackend {
   className: string
 }
 
@@ -176,7 +182,7 @@ function H5adMeta({ className, ...metadata }: H5adMetaProps) {
         <table className={classes.table}>
           <tbody>
             {Object.entries(FIELDS_MAP).map(([key, { title, Component }]) => {
-              const value = metadata[key as keyof H5adMetadata]
+              const value = metadata[key as keyof H5adMetadataBackend]
               return (
                 value != null && (
                   <MetaRow key={key} title={title}>
@@ -296,8 +302,7 @@ export interface PerspectiveProps
     PerspectiveOptions {
   data: perspective.PerspectiveInput
   packageMeta?: JsonRecord
-  parquetMeta?: ParquetMetadata
-  h5adMeta?: H5adMetadata
+  meta?: ParquetMetadataBackend | H5adMetadataBackend
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
@@ -307,8 +312,7 @@ export default function Perspective({
   children,
   className,
   data,
-  parquetMeta,
-  h5adMeta,
+  meta,
   packageMeta,
   onLoadMore,
   onRender,
@@ -316,6 +320,7 @@ export default function Perspective({
   config,
   ...props
 }: PerspectiveProps) {
+  // console.log(isH5ad(props.handle.key))
   const classes = useStyles()
 
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
@@ -332,8 +337,10 @@ export default function Perspective({
         truncated={truncated}
       />
       {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
-      {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
-      {!!h5adMeta && <H5adMeta className={classes.meta} {...h5adMeta} />}
+      {!!meta && !isH5adMetadata(meta) && (
+        <ParquetMeta className={classes.meta} {...meta} />
+      )}
+      {!!meta && isH5adMetadata(meta) && <H5adMeta className={classes.meta} {...meta} />}
       {children}
     </div>
   )

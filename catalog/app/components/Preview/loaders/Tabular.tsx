@@ -51,7 +51,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
   ]),
 )
 
-interface ParquetMetadataBackend {
+export interface ParquetMetadataBackend {
   created_by: string
   format_version: string
   num_row_groups: number
@@ -62,17 +62,7 @@ interface ParquetMetadataBackend {
   shape: [number, number] // rows, columns
 }
 
-export interface ParquetMetadata {
-  createdBy: string
-  formatVersion: string
-  numRowGroups: number
-  schema: {
-    names: string[]
-  }
-  shape: { rows: number; columns: number }
-}
-
-interface H5adMetadataBackend {
+export interface H5adMetadataBackend {
   created_by: string
   format_version: string
   num_row_groups: number
@@ -92,26 +82,6 @@ interface H5adMetadataBackend {
   n_genes: number
   matrix_type: string
   has_raw: boolean
-}
-
-export interface H5adMetadata {
-  createdBy: string
-  formatVersion: string
-  shape: { rows: number; columns: number }
-  schema: {
-    names: string[]
-  }
-  obsKeys: string[]
-  varKeys: string[]
-  unsKeys: string[]
-  obsmKeys: string[]
-  varmKeys: string[]
-  layersKeys: string[]
-  anndataVersion?: string
-  nCells: number
-  nGenes: number
-  matrixType: string
-  hasRaw: boolean
 }
 
 function getQuiltInfo(
@@ -143,38 +113,6 @@ async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
   return isArrow ? r.arrayBuffer() : r.text()
 }
 
-export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata => ({
-  createdBy: data.created_by,
-  formatVersion: data.format_version,
-  numRowGroups: data.num_row_groups,
-  schema: data.schema,
-  shape: { rows: data.shape[0], columns: data.shape[1] },
-})
-
-export const parseH5adData = (data: H5adMetadataBackend): H5adMetadata => ({
-  createdBy: data.created_by,
-  formatVersion: data.format_version,
-  shape: { rows: data.shape[0], columns: data.shape[1] },
-  schema: data.schema,
-  obsKeys: data.h5ad_obs_keys,
-  varKeys: data.h5ad_var_keys,
-  unsKeys: data.h5ad_uns_keys,
-  obsmKeys: data.h5ad_obsm_keys,
-  varmKeys: data.h5ad_varm_keys,
-  layersKeys: data.h5ad_layers_keys,
-  anndataVersion: data.anndata_version,
-  nCells: data.n_cells,
-  nGenes: data.n_genes,
-  matrixType: data.matrix_type,
-  hasRaw: data.has_raw,
-})
-
-function isH5adMetadata(
-  meta: ParquetMetadataBackend | H5adMetadataBackend,
-): meta is H5adMetadataBackend {
-  return 'h5ad_obs_keys' in meta
-}
-
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
   handle: Model.S3.S3ObjectLocation
@@ -185,8 +123,7 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: ArrayBuffer | string
-  parquetMeta: ParquetMetadata | null
-  h5adMeta: H5adMetadata | null
+  meta: ParquetMetadataBackend | H5adMetadataBackend | null
   size: number | null
   truncated: boolean
 }
@@ -217,19 +154,9 @@ const loadTabularData = async ({
     const quiltInfo = getQuiltInfo(r.headers)
     const contentLength = getContentLength(r.headers)
 
-    const parquetMeta =
-      quiltInfo?.meta && !isH5adMetadata(quiltInfo.meta)
-        ? parseParquetData(quiltInfo.meta)
-        : null
-    const h5adMeta =
-      quiltInfo?.meta && isH5adMetadata(quiltInfo.meta)
-        ? parseH5adData(quiltInfo.meta)
-        : null
-
     return {
       csv,
-      parquetMeta,
-      h5adMeta,
+      meta: quiltInfo?.meta || null,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -283,13 +210,12 @@ export const Loader = function TabularLoader({
   // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, parquetMeta, h5adMeta, truncated }: TabularDataOutput) =>
+    ({ csv, meta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         data: csv,
         handle,
         modes: [FileType.Tabular, FileType.Text],
-        parquetMeta,
-        h5adMeta,
+        meta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
       }),
