@@ -1,20 +1,15 @@
 ARG FUNCTION_DIR="/function"
 
-FROM debian:trixie-20251020@sha256:72547dd722cd005a8c2aa2079af9ca0ee93aad8e589689135feaed60b0a8c08d AS base
+FROM public.ecr.aws/lambda/python:3.13.2025.12.10.20@sha256:27f9d657bbd39aa94a5a32ad0c98b797c7f92fa4fddf983f06ab58c4cc931722 AS base
 
 FROM base AS build
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        gcc \
-        g++ \
-        curl \
-        python3-dev \
-        python3-pip \
-        libhdf5-dev
+RUN dnf --setopt=install_weak_deps=0 install -y \
+    gcc \
+    gcc-c++
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -42,14 +37,6 @@ RUN --mount=type=cache,target=/root/.cache \
     --no-editable
 
 FROM base
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends\
-        ca-certificates \
-        python3 \
-        libhdf5-310 \
-    && \
-    apt-get clean
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
