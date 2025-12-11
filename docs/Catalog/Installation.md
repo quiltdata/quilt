@@ -304,6 +304,6 @@ to your new template and provide the snapshot identifier to the
     > existing search domain, and existing vpc in order for the terraform modules
     > to function properly.
 
-1. You now have a new Quilt stack with a configuration equivalent to your prior
-stack.
+1. You now have a new Quilt stack
+with a configuration equivalent to your prior stack.
 Verify that the new stack is working as desired. Delete the old stack.
