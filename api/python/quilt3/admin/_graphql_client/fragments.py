@@ -19,13 +19,11 @@ class BucketConfigSelection(BaseModel):
     relevance_score: int = Field(alias="relevanceScore")
     last_indexed: Optional[datetime] = Field(alias="lastIndexed")
     sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn")
-    scanner_parallel_shards_depth: Optional[int] = Field(
-        alias="scannerParallelShardsDepth"
-    )
+    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth")
     skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing")
     file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex")
     index_content_bytes: Optional[int] = Field(alias="indexContentBytes")
-    prefixes: Optional[List[str]]
+    prefixes: List[str]
 
 
 class InvalidInputSelection(BaseModel):

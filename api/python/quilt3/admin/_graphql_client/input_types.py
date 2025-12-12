@@ -18,18 +18,10 @@ class BucketAddInput(BaseModel):
     overview_url: Optional[str] = Field(alias="overviewUrl", default=None)
     tags: Optional[List[str]] = None
     relevance_score: Optional[int] = Field(alias="relevanceScore", default=None)
-    sns_notification_arn: Optional[str] = Field(
-        alias="snsNotificationArn", default=None
-    )
-    scanner_parallel_shards_depth: Optional[int] = Field(
-        alias="scannerParallelShardsDepth", default=None
-    )
-    skip_meta_data_indexing: Optional[bool] = Field(
-        alias="skipMetaDataIndexing", default=None
-    )
-    file_extensions_to_index: Optional[List[str]] = Field(
-        alias="fileExtensionsToIndex", default=None
-    )
+    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn", default=None)
+    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth", default=None)
+    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing", default=None)
+    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex", default=None)
     index_content_bytes: Optional[int] = Field(alias="indexContentBytes", default=None)
     delay_scan: Optional[bool] = Field(alias="delayScan", default=None)
     browsable: Optional[bool] = None
@@ -44,18 +36,10 @@ class BucketUpdateInput(BaseModel):
     overview_url: Optional[str] = Field(alias="overviewUrl", default=None)
     tags: Optional[List[str]] = None
     relevance_score: Optional[int] = Field(alias="relevanceScore", default=None)
-    sns_notification_arn: Optional[str] = Field(
-        alias="snsNotificationArn", default=None
-    )
-    scanner_parallel_shards_depth: Optional[int] = Field(
-        alias="scannerParallelShardsDepth", default=None
-    )
-    skip_meta_data_indexing: Optional[bool] = Field(
-        alias="skipMetaDataIndexing", default=None
-    )
-    file_extensions_to_index: Optional[List[str]] = Field(
-        alias="fileExtensionsToIndex", default=None
-    )
+    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn", default=None)
+    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth", default=None)
+    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing", default=None)
+    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex", default=None)
     index_content_bytes: Optional[int] = Field(alias="indexContentBytes", default=None)
     browsable: Optional[bool] = None
     prefixes: Optional[List[str]] = None

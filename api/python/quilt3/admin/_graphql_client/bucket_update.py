@@ -24,9 +24,7 @@ class BucketUpdate(BaseModel):
 
 class BucketUpdateBucketUpdateBucketUpdateSuccess(BaseModel):
     typename__: Literal["BucketUpdateSuccess"] = Field(alias="__typename")
-    bucket_config: "BucketUpdateBucketUpdateBucketUpdateSuccessBucketConfig" = Field(
-        alias="bucketConfig"
-    )
+    bucket_config: "BucketUpdateBucketUpdateBucketUpdateSuccessBucketConfig" = Field(alias="bucketConfig")
 
 
 class BucketUpdateBucketUpdateBucketUpdateSuccessBucketConfig(BucketConfigSelection):
@@ -34,9 +32,7 @@ class BucketUpdateBucketUpdateBucketUpdateSuccessBucketConfig(BucketConfigSelect
 
 
 class BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid(BaseModel):
-    typename__: Literal["BucketFileExtensionsToIndexInvalid"] = Field(
-        alias="__typename"
-    )
+    typename__: Literal["BucketFileExtensionsToIndexInvalid"] = Field(alias="__typename")
 
 
 class BucketUpdateBucketUpdateBucketIndexContentBytesInvalid(BaseModel):

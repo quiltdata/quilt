@@ -26,9 +26,7 @@ class BucketAdd(BaseModel):
 
 class BucketAddBucketAddBucketAddSuccess(BaseModel):
     typename__: Literal["BucketAddSuccess"] = Field(alias="__typename")
-    bucket_config: "BucketAddBucketAddBucketAddSuccessBucketConfig" = Field(
-        alias="bucketConfig"
-    )
+    bucket_config: "BucketAddBucketAddBucketAddSuccessBucketConfig" = Field(alias="bucketConfig")
 
 
 class BucketAddBucketAddBucketAddSuccessBucketConfig(BucketConfigSelection):
@@ -44,9 +42,7 @@ class BucketAddBucketAddBucketDoesNotExist(BaseModel):
 
 
 class BucketAddBucketAddBucketFileExtensionsToIndexInvalid(BaseModel):
-    typename__: Literal["BucketFileExtensionsToIndexInvalid"] = Field(
-        alias="__typename"
-    )
+    typename__: Literal["BucketFileExtensionsToIndexInvalid"] = Field(alias="__typename")
 
 
 class BucketAddBucketAddBucketIndexContentBytesInvalid(BaseModel):
