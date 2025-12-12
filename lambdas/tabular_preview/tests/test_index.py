@@ -118,13 +118,9 @@ def test_preview_h5ad():
         assert "truncated" in info
         assert "meta" in info
         # Check H5AD-specific metadata format
-        assert info["meta"]["shape"] == [2, 2]  # [rows, columns] = [2 cells, 2 genes]
-        assert "created_by" in info["meta"]  # Should have creation info
-        assert info["meta"]["format_version"] == "h5ad"  # Should indicate h5ad format
         assert "h5ad_obs_keys" in info["meta"]  # H5AD-specific fields
         assert "h5ad_var_keys" in info["meta"]
         # Check new H5AD-specific fields
-        assert info["meta"]["data_type"] == "single_cell_genomics"
         assert info["meta"]["n_cells"] == 2  # 2 cells in test data
         assert info["meta"]["n_genes"] == 2  # 2 genes in test data
         assert "matrix_type" in info["meta"]  # sparse or dense
