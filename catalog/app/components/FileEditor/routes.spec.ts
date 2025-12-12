@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook, suppressErrorOutput } from '@testing-library/react-hooks/pure'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
@@ -93,9 +93,14 @@ describe('components/FileEditor/routes', () => {
 
   describe('useParams', () => {
     it('should throw error when no bucket', () => {
+      const restoreConsole = suppressErrorOutput()
+
       useParamsInternal.mockImplementationOnce(() => ({}))
       const { result } = renderHook(() => useParams())
+
       expect(result.error?.message).toBe('`bucket` must be defined')
+
+      restoreConsole()
     })
 
     it('should return initial path', () => {

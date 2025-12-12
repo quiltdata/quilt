@@ -3,6 +3,13 @@ import { render } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { handleToS3Url } from 'utils/s3paths'
 
+import { makeStyles } from 'utils/makeStyles.spec'
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Logo'),
+}))
+
 import Logo from '.'
 
 vi.mock('utils/AWS', () => ({

@@ -1,11 +1,13 @@
 import * as React from 'react'
-import { render, fireEvent, screen } from '@testing-library/react'
+import { render, fireEvent, screen, cleanup } from '@testing-library/react'
 import * as Icons from '@material-ui/icons'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 
 import WithPopover from './WithPopover'
 
 describe('components/Buttons/WithPopover', () => {
+  afterEach(cleanup)
+
   it('should not render children when popup is closed', () => {
     render(
       <WithPopover label="Test Button">

@@ -2,9 +2,16 @@ import * as React from 'react'
 import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
+vi.mock('@material-ui/core', async () => {
+  const { makeStyles } = await import('utils/makeStyles.spec')
+  return {
+    ...(await vi.importActual('@material-ui/core')),
+    makeStyles: makeStyles('Database'),
+  }
+})
+
 import WithGlobalDialogs from 'utils/GlobalDialogs'
 import noop from 'utils/noop'
-
 import Database from './Database'
 
 import * as Model from './model'

@@ -2,7 +2,7 @@
 
 exports[`Toolbar > should render all buttons when all features are enabled 1`] = `
 <div
-  class="makeStyles-root-2"
+  class="Toolbar-root"
 >
   <div>
     <button
@@ -27,7 +27,7 @@ exports[`Toolbar > should render all buttons when all features are enabled 1`] =
       "Organize" popover
     </button>
     <span
-      class="MuiBadge-badge makeStyles-badge-3 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary MuiBadge-invisible"
+      class="MuiBadge-badge Toolbar-badge MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary MuiBadge-invisible"
     >
       0
     </span>
@@ -42,7 +42,7 @@ exports[`Toolbar > should render all buttons when all features are enabled 1`] =
 
 exports[`Toolbar > should render buttons for enabled features: add, organize 1`] = `
 <div
-  class="makeStyles-root-6"
+  class="Toolbar-root"
 >
   <div>
     <button
@@ -60,7 +60,7 @@ exports[`Toolbar > should render buttons for enabled features: add, organize 1`]
       "Organize" popover
     </button>
     <span
-      class="MuiBadge-badge makeStyles-badge-7 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary MuiBadge-invisible"
+      class="MuiBadge-badge Toolbar-badge MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary MuiBadge-invisible"
     >
       0
     </span>
@@ -70,13 +70,13 @@ exports[`Toolbar > should render buttons for enabled features: add, organize 1`]
 
 exports[`Toolbar > should render nothing when all features are disabled 1`] = `
 <div
-  class="makeStyles-root-5"
+  class="Toolbar-root"
 />
 `;
 
 exports[`Toolbar > should render skeleton buttons when features is null 1`] = `
 <div
-  class="makeStyles-root-1"
+  class="Toolbar-root"
 >
   <i>
     ⌛

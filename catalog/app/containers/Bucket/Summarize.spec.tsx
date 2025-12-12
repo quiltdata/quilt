@@ -2,12 +2,14 @@ import * as React from 'react'
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { makeStyles } from 'utils/makeStyles.spec'
 import { ConfigureAppearance } from './Summarize'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('Summarize'),
   Button: ({ children }: { children: React.ReactNode }) => (
     <div id="button">{children}</div>
   ),

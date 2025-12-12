@@ -3,7 +3,7 @@
 exports[`containers/Bucket/Toolbar > Add > should render children when popover is opened 1`] = `
 <div>
   <div
-    class="makeStyles-root-9"
+    class="Toolbar-root"
   >
     <button
       role="button"
@@ -12,11 +12,11 @@ exports[`containers/Bucket/Toolbar > Add > should render children when popover i
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-11"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
     />
     <div
-      class="MuiPaper-root makeStyles-popup-10 MuiPaper-elevation4 MuiPaper-rounded"
+      class="MuiPaper-root Toolbar-popup MuiPaper-elevation4 MuiPaper-rounded"
     >
       Hello, Popover!
     </div>
@@ -27,7 +27,7 @@ exports[`containers/Bucket/Toolbar > Add > should render children when popover i
 exports[`containers/Bucket/Toolbar > Add > should render with custom label 1`] = `
 <div>
   <div
-    class="makeStyles-root-5"
+    class="Toolbar-root"
   >
     <button
       role="button"
@@ -36,7 +36,7 @@ exports[`containers/Bucket/Toolbar > Add > should render with custom label 1`] =
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-7"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 0; visibility: hidden;"
     />
   </div>
@@ -46,7 +46,7 @@ exports[`containers/Bucket/Toolbar > Add > should render with custom label 1`] =
 exports[`containers/Bucket/Toolbar > Add > should render with default label 1`] = `
 <div>
   <div
-    class="makeStyles-root-1"
+    class="Toolbar-root"
   >
     <button
       class="custom-class"
@@ -56,7 +56,7 @@ exports[`containers/Bucket/Toolbar > Add > should render with default label 1`] 
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-3"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 0; visibility: hidden;"
     />
   </div>
@@ -66,21 +66,21 @@ exports[`containers/Bucket/Toolbar > Add > should render with default label 1`] 
 exports[`containers/Bucket/Toolbar > CreatePackage > should render children when popover is opened 1`] = `
 <div>
   <div
-    class="makeStyles-root-31"
+    class="Toolbar-root"
   >
     <button
-      class="makeStyles-root-30"
+      class="Toolbar-root"
       role="button"
     >
       Create package
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-33"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
     />
     <div
-      class="MuiPaper-root makeStyles-popup-32 MuiPaper-elevation4 MuiPaper-rounded"
+      class="MuiPaper-root Toolbar-popup MuiPaper-elevation4 MuiPaper-rounded"
     >
       Hello, Popover!
     </div>
@@ -91,17 +91,17 @@ exports[`containers/Bucket/Toolbar > CreatePackage > should render children when
 exports[`containers/Bucket/Toolbar > CreatePackage > should render with empty selection 1`] = `
 <div>
   <div
-    class="makeStyles-root-26"
+    class="Toolbar-root"
   >
     <button
-      class="makeStyles-root-25 custom-class"
+      class="Toolbar-root custom-class"
       role="button"
     >
       Create package
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-28"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 0; visibility: hidden;"
     />
   </div>
@@ -111,7 +111,7 @@ exports[`containers/Bucket/Toolbar > CreatePackage > should render with empty se
 exports[`containers/Bucket/Toolbar > Get > should render children when popover is opened 1`] = `
 <div>
   <div
-    class="makeStyles-root-21"
+    class="Toolbar-root"
   >
     <button
       role="button"
@@ -120,11 +120,11 @@ exports[`containers/Bucket/Toolbar > Get > should render children when popover i
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-23"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
     />
     <div
-      class="MuiPaper-root makeStyles-popup-22 MuiPaper-elevation4 MuiPaper-rounded"
+      class="MuiPaper-root Toolbar-popup MuiPaper-elevation4 MuiPaper-rounded"
     >
       Hello, Popover!
     </div>
@@ -135,7 +135,7 @@ exports[`containers/Bucket/Toolbar > Get > should render children when popover i
 exports[`containers/Bucket/Toolbar > Get > should render with custom label 1`] = `
 <div>
   <div
-    class="makeStyles-root-17"
+    class="Toolbar-root"
   >
     <button
       role="button"
@@ -144,7 +144,7 @@ exports[`containers/Bucket/Toolbar > Get > should render with custom label 1`] =
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-19"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 0; visibility: hidden;"
     />
   </div>
@@ -154,7 +154,7 @@ exports[`containers/Bucket/Toolbar > Get > should render with custom label 1`] =
 exports[`containers/Bucket/Toolbar > Get > should render with default label 1`] = `
 <div>
   <div
-    class="makeStyles-root-13"
+    class="Toolbar-root"
   >
     <button
       class="custom-class"
@@ -164,7 +164,7 @@ exports[`containers/Bucket/Toolbar > Get > should render with default label 1`] 
     </button>
     <div
       aria-hidden="true"
-      class="MuiBackdrop-root makeStyles-backdrop-15"
+      class="MuiBackdrop-root Toolbar-backdrop"
       style="opacity: 0; visibility: hidden;"
     />
   </div>
@@ -177,7 +177,7 @@ exports[`containers/Bucket/Toolbar > Organize > should render children when popo
     class="MuiBadge-root"
   >
     <div
-      class="makeStyles-root-41"
+      class="Toolbar-root"
     >
       <button
         role="button"
@@ -186,17 +186,17 @@ exports[`containers/Bucket/Toolbar > Organize > should render children when popo
       </button>
       <div
         aria-hidden="true"
-        class="MuiBackdrop-root makeStyles-backdrop-43"
+        class="MuiBackdrop-root Toolbar-backdrop"
         style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
       />
       <div
-        class="MuiPaper-root makeStyles-popup-42 MuiPaper-elevation4 MuiPaper-rounded"
+        class="MuiPaper-root Toolbar-popup MuiPaper-elevation4 MuiPaper-rounded"
       >
         Hello, Popover!
       </div>
     </div>
     <span
-      class="MuiBadge-badge makeStyles-badge-40 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
+      class="MuiBadge-badge Toolbar-badge MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
     >
       5
     </span>
@@ -210,7 +210,7 @@ exports[`containers/Bucket/Toolbar > Organize > should render with selection ite
     class="MuiBadge-root"
   >
     <div
-      class="makeStyles-root-36"
+      class="Toolbar-root"
     >
       <button
         class="custom-class"
@@ -220,12 +220,12 @@ exports[`containers/Bucket/Toolbar > Organize > should render with selection ite
       </button>
       <div
         aria-hidden="true"
-        class="MuiBackdrop-root makeStyles-backdrop-38"
+        class="MuiBackdrop-root Toolbar-backdrop"
         style="opacity: 0; visibility: hidden;"
       />
     </div>
     <span
-      class="MuiBadge-badge makeStyles-badge-35 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
+      class="MuiBadge-badge Toolbar-badge MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
     >
       5
     </span>

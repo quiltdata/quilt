@@ -2,7 +2,14 @@ import * as React from 'react'
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { makeStyles } from 'utils/makeStyles.spec'
+
 vi.mock('./bucket.svg', () => ({ default: 'IMAGE_MOCK' }))
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  makeStyles: makeStyles('BucketIcon'),
+}))
 
 import BucketIcon from './'
 

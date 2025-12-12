@@ -14,7 +14,7 @@ exports[`components/Buttons/Iconized > render contained 1`] = `
     >
       <span
         aria-hidden="true"
-        class="material-icons MuiIcon-root makeStyles-root-5"
+        class="material-icons MuiIcon-root Iconized-root"
       >
         ac_unit
       </span>
@@ -41,7 +41,7 @@ exports[`components/Buttons/Iconized > render icon and label 1`] = `
     >
       <span
         aria-hidden="true"
-        class="material-icons MuiIcon-root makeStyles-root-1"
+        class="material-icons MuiIcon-root Iconized-root"
       >
         ac_unit
       </span>
@@ -68,7 +68,7 @@ exports[`components/Buttons/Iconized > render rotated 1`] = `
     >
       <span
         aria-hidden="true"
-        class="material-icons MuiIcon-root makeStyles-root-3 makeStyles-rotated-4"
+        class="material-icons MuiIcon-root Iconized-root Iconized-rotated"
       >
         ac_unit
       </span>
@@ -95,7 +95,7 @@ exports[`components/Buttons/Iconized > render with SvgIcon component 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root makeStyles-root-7"
+        class="MuiSvgIcon-root Iconized-root"
         focusable="false"
         viewBox="0 0 24 24"
       >
