@@ -9,6 +9,25 @@ from pydantic import Field
 from .base_model import BaseModel
 
 
+class BucketConfigSelection(BaseModel):
+    name: str
+    title: str
+    icon_url: Optional[str] = Field(alias="iconUrl")
+    description: Optional[str]
+    overview_url: Optional[str] = Field(alias="overviewUrl")
+    tags: Optional[List[str]]
+    relevance_score: int = Field(alias="relevanceScore")
+    last_indexed: Optional[datetime] = Field(alias="lastIndexed")
+    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn")
+    scanner_parallel_shards_depth: Optional[int] = Field(
+        alias="scannerParallelShardsDepth"
+    )
+    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing")
+    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex")
+    index_content_bytes: Optional[int] = Field(alias="indexContentBytes")
+    prefixes: Optional[List[str]]
+
+
 class InvalidInputSelection(BaseModel):
     errors: List["InvalidInputSelectionErrors"]
 
@@ -90,6 +109,7 @@ class SsoConfigSelectionUploader(UserSelection):
     pass
 
 
+BucketConfigSelection.model_rebuild()
 InvalidInputSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()

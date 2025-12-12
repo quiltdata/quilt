@@ -2,6 +2,27 @@
 
 from .base_client import BaseClient
 from .base_model import BaseModel, Upload
+from .bucket_add import (
+    BucketAdd,
+    BucketAddBucketAddBucketAddSuccess,
+    BucketAddBucketAddBucketAddSuccessBucketConfig,
+    BucketAddBucketAddBucketAlreadyAdded,
+    BucketAddBucketAddBucketDoesNotExist,
+    BucketAddBucketAddBucketFileExtensionsToIndexInvalid,
+    BucketAddBucketAddBucketIndexContentBytesInvalid,
+    BucketAddBucketAddInsufficientPermissions,
+    BucketAddBucketAddNotificationConfigurationError,
+    BucketAddBucketAddNotificationTopicNotFound,
+    BucketAddBucketAddSnsInvalid,
+    BucketAddBucketAddSubscriptionInvalid,
+)
+from .bucket_get import BucketGet, BucketGetBucketConfig
+from .bucket_remove import (
+    BucketRemove,
+    BucketRemoveBucketRemoveBucketNotFound,
+    BucketRemoveBucketRemoveBucketRemoveSuccess,
+    BucketRemoveBucketRemoveIndexingInProgress,
+)
 from .bucket_tabulator_table_rename import (
     BucketTabulatorTableRename,
     BucketTabulatorTableRenameAdmin,
@@ -21,8 +42,22 @@ from .bucket_tabulator_tables_list import (
     BucketTabulatorTablesListBucketConfig,
     BucketTabulatorTablesListBucketConfigTabulatorTables,
 )
+from .bucket_update import (
+    BucketUpdate,
+    BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid,
+    BucketUpdateBucketUpdateBucketIndexContentBytesInvalid,
+    BucketUpdateBucketUpdateBucketNotFound,
+    BucketUpdateBucketUpdateBucketUpdateSuccess,
+    BucketUpdateBucketUpdateBucketUpdateSuccessBucketConfig,
+    BucketUpdateBucketUpdateInsufficientPermissions,
+    BucketUpdateBucketUpdateNotificationConfigurationError,
+    BucketUpdateBucketUpdateNotificationTopicNotFound,
+    BucketUpdateBucketUpdateSnsInvalid,
+)
+from .buckets_list import BucketsList, BucketsListBucketConfigs
 from .client import Client
 from .fragments import (
+    BucketConfigSelection,
     InvalidInputSelection,
     InvalidInputSelectionErrors,
     ManagedRoleSelection,
@@ -36,7 +71,7 @@ from .fragments import (
     UserSelectionRoleManagedRole,
     UserSelectionRoleUnmanagedRole,
 )
-from .input_types import UserInput
+from .input_types import BucketAddInput, BucketUpdateInput, UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
@@ -147,6 +182,26 @@ from .users_set_role import (
 __all__ = [
     "BaseClient",
     "BaseModel",
+    "BucketAdd",
+    "BucketAddBucketAddBucketAddSuccess",
+    "BucketAddBucketAddBucketAddSuccessBucketConfig",
+    "BucketAddBucketAddBucketAlreadyAdded",
+    "BucketAddBucketAddBucketDoesNotExist",
+    "BucketAddBucketAddBucketFileExtensionsToIndexInvalid",
+    "BucketAddBucketAddBucketIndexContentBytesInvalid",
+    "BucketAddBucketAddInsufficientPermissions",
+    "BucketAddBucketAddNotificationConfigurationError",
+    "BucketAddBucketAddNotificationTopicNotFound",
+    "BucketAddBucketAddSnsInvalid",
+    "BucketAddBucketAddSubscriptionInvalid",
+    "BucketAddInput",
+    "BucketConfigSelection",
+    "BucketGet",
+    "BucketGetBucketConfig",
+    "BucketRemove",
+    "BucketRemoveBucketRemoveBucketNotFound",
+    "BucketRemoveBucketRemoveBucketRemoveSuccess",
+    "BucketRemoveBucketRemoveIndexingInProgress",
     "BucketTabulatorTableRename",
     "BucketTabulatorTableRenameAdmin",
     "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig",
@@ -160,6 +215,19 @@ __all__ = [
     "BucketTabulatorTablesList",
     "BucketTabulatorTablesListBucketConfig",
     "BucketTabulatorTablesListBucketConfigTabulatorTables",
+    "BucketUpdate",
+    "BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid",
+    "BucketUpdateBucketUpdateBucketIndexContentBytesInvalid",
+    "BucketUpdateBucketUpdateBucketNotFound",
+    "BucketUpdateBucketUpdateBucketUpdateSuccess",
+    "BucketUpdateBucketUpdateBucketUpdateSuccessBucketConfig",
+    "BucketUpdateBucketUpdateInsufficientPermissions",
+    "BucketUpdateBucketUpdateNotificationConfigurationError",
+    "BucketUpdateBucketUpdateNotificationTopicNotFound",
+    "BucketUpdateBucketUpdateSnsInvalid",
+    "BucketUpdateInput",
+    "BucketsList",
+    "BucketsListBucketConfigs",
     "Client",
     "InvalidInputSelection",
     "InvalidInputSelectionErrors",
