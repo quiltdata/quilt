@@ -14,6 +14,7 @@ import pyarrow.json
 import pyarrow.parquet
 import scanpy as sc
 
+from quilt_shared.lambdas_errors import LambdaError
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import (
     get_default_origins,
@@ -22,6 +23,23 @@ from t4_lambda_shared.utils import (
 )
 
 logger = get_quilt_logger()
+
+
+def handle_lambda_error(f):
+    """
+    Decorator to catch LambdaError exceptions and return structured JSON responses
+    """
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except LambdaError as e:
+            logger.exception("LambdaError")
+            return make_json_response(500, {"error": e.dict()})
+
+    return wrapper
+
 
 # Lambda's response must fit into 6 MiB, binary data must be encoded
 # with base64 (4.5 MiB limit). It's rounded down to leave some space for headers
@@ -254,19 +272,7 @@ def preview_h5ad(url, compression, max_out_size):
 
         if available_mb < 100:  # Need at least 100MB free space
             logger.error(f"Insufficient temp space: {available_mb:.1f}MB < 100MB required")
-            return (
-                507,
-                b"",
-                {
-                    "Content-Type": "application/json",
-                    "x-quilt-info": json.dumps(
-                        {
-                            "error": f"Insufficient temporary storage space: {available_mb:.1f}MB available, need 100MB+",
-                            "truncated": True,
-                        }
-                    ),
-                },
-            )
+            raise LambdaError("InsufficientStorage")
     except Exception as e:
         logger.warning(f"Could not check temp directory space: {e}")
 
@@ -279,27 +285,7 @@ def preview_h5ad(url, compression, max_out_size):
         if remaining_check:
             # File is >20MB, likely to timeout - return basic info only
             logger.warning("Large h5ad file detected (>20MB), returning basic metadata only to avoid timeout")
-
-            # Create a minimal response with file size estimate
-            return (
-                200,
-                b"",  # Empty data
-                {
-                    "Content-Type": "application/json",
-                    "x-quilt-info": json.dumps(
-                        {
-                            "error": "File too large for full preview - showing basic info only",
-                            "truncated": True,
-                            "file_size_mb": ">20MB",
-                            "meta": {
-                                "message": "H5AD file detected but too large for Lambda processing",
-                                "recommendation": "Download file locally for full analysis",
-                                "file_type": "h5ad"
-                            }
-                        }
-                    ),
-                },
-            )
+            raise LambdaError("FileTooLarge")
 
         # File is ≤20MB, process normally with temp file
         try:
@@ -318,19 +304,7 @@ def preview_h5ad(url, compression, max_out_size):
 
         except OSError as e:
             logger.error(f"Failed to create temporary file: {e}")
-            return (
-                507,
-                b"",
-                {
-                    "Content-Type": "application/json",
-                    "x-quilt-info": json.dumps(
-                        {
-                            "error": f"Temporary storage error: {str(e)}",
-                            "truncated": True,
-                        }
-                    ),
-                },
-            )
+            raise LambdaError("TempStorageError")
 
         try:
             logger.info(f"Processing small h5ad file: {total_size / (1024**2):.1f}MB")
@@ -396,9 +370,7 @@ def preview_h5ad(url, compression, max_out_size):
                     "truncated": output_truncated,
                     # H5AD-specific metadata format
                     "meta": {
-                        "schema": {
-                            "names": list(var_df_with_index.columns)
-                        },
+                        "schema": {"names": list(var_df_with_index.columns)},
                         "serialized_size": len(output_data),
                         # H5AD-specific metadata with descriptive names
                         "h5ad_obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
@@ -432,36 +404,33 @@ handlers = {
 SCHEMA = {
     "type": "object",
     "properties": {
-        "url": {
-            "type": "string"
-        },
+        "url": {"type": "string"},
         "input": {
             "enum": list(handlers),
         },
-        "compression": {
-            "enum": ["gz", "bz2"]
-        },
+        "compression": {"enum": ["gz", "bz2"]},
         "size": {
             "enum": list(OUTPUT_SIZES),
         },
     },
     "required": ["url", "input"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
 
 def is_s3_url(url: str) -> bool:
     parsed_url = urlparse(url, allow_fragments=False)
     return (
-        parsed_url.scheme == "https" and
-        parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-        parsed_url.username is None and
-        parsed_url.password is None
+        parsed_url.scheme == "https"
+        and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
+        and parsed_url.username is None
+        and parsed_url.password is None
     )
 
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
+@handle_lambda_error
 def lambda_handler(request):
     url = request.args["url"]
     input_type = request.args.get("input")
@@ -469,9 +438,7 @@ def lambda_handler(request):
     compression = request.args.get("compression")
 
     if not is_s3_url(url):
-        return make_json_response(400, {
-            "title": "Invalid url=. Expected S3 virtual-host URL."
-        })
+        return make_json_response(400, {"title": "Invalid url=. Expected S3 virtual-host URL."})
 
     handler = handlers[input_type]
     return handler(url, compression, OUTPUT_SIZES[output_size])
