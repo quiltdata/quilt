@@ -396,14 +396,10 @@ def preview_h5ad(url, compression, max_out_size):
                     "truncated": output_truncated,
                     # H5AD-specific metadata format
                     "meta": {
-                        "created_by": f"AnnData h5ad file processed with scanpy {sc.__version__}" if hasattr(sc, '__version__') else "h5ad file processed with AnnData",
-                        "format_version": "h5ad",
-                        "num_row_groups": 1,  # Keep for interface compatibility
                         "schema": {
                             "names": list(var_df_with_index.columns)
                         },
                         "serialized_size": len(output_data),
-                        "shape": (adata.n_obs, adata.n_vars),
                         # H5AD-specific metadata with descriptive names
                         "h5ad_obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
                         "h5ad_var_keys": (list(adata.var.columns) if adata.var is not None else []),
@@ -415,7 +411,6 @@ def preview_h5ad(url, compression, max_out_size):
                         "anndata_version": getattr(adata, "__version__", None),
                         "n_cells": adata.n_obs,
                         "n_genes": adata.n_vars,
-                        "data_type": "single_cell_genomics",
                         "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
                         "has_raw": adata.raw is not None,
                     },
