@@ -255,3 +255,72 @@ mutation tabulatorSetOpenQuery($enabled: Boolean!) {
     }
   }
 }
+
+fragment BucketConfigSelection on BucketConfig {
+  name
+  title
+  iconUrl
+  description
+  overviewUrl
+  tags
+  relevanceScore
+  lastIndexed
+  snsNotificationArn
+  scannerParallelShardsDepth
+  skipMetaDataIndexing
+  fileExtensionsToIndex
+  indexContentBytes
+  prefixes
+}
+
+fragment BucketAddResultSelection on BucketAddResult {
+  __typename
+  ... on BucketAddSuccess {
+    bucketConfig {
+      ...BucketConfigSelection
+    }
+  }
+}
+
+fragment BucketUpdateResultSelection on BucketUpdateResult {
+  __typename
+  ... on BucketUpdateSuccess {
+    bucketConfig {
+      ...BucketConfigSelection
+    }
+  }
+}
+
+fragment BucketRemoveResultSelection on BucketRemoveResult {
+  __typename
+}
+
+query bucketGet($name: String!) {
+  bucketConfig(name: $name) {
+    ...BucketConfigSelection
+  }
+}
+
+query bucketsList {
+  bucketConfigs {
+    ...BucketConfigSelection
+  }
+}
+
+mutation bucketAdd($input: BucketAddInput!) {
+  bucketAdd(input: $input) {
+    ...BucketAddResultSelection
+  }
+}
+
+mutation bucketUpdate($name: String!, $input: BucketUpdateInput!) {
+  bucketUpdate(name: $name, input: $input) {
+    ...BucketUpdateResultSelection
+  }
+}
+
+mutation bucketRemove($name: String!) {
+  bucketRemove(name: $name) {
+    ...BucketRemoveResultSelection
+  }
+}
