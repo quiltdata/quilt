@@ -12,7 +12,6 @@ dependencies = [
     "scanpy >= 1.8.0",
     "numpy ~= 2.3",
     "t4-lambda-shared",
-    "quilt-shared",
 ]
 
 [build-system]
@@ -35,4 +34,3 @@ default-groups = ["test"]
 
 [tool.uv.sources]
 t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "py-shared" }

@@ -881,24 +881,6 @@ wheels = [
 ]
 
 [[package]]
-name = "quilt-shared"
-version = "0.1.0"
-source = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "py-shared" }
-sdist = { hash = "sha256:301e81a066f2f01f114bc94563d444f426501af4938e95c666b0ff3c329da439" }
-
-[package.metadata]
-requires-dist = [
-    { name = "black", marker = "extra == 'dev'", specifier = "~=24.1" },
-    { name = "boto3", marker = "extra == 'boto'", specifier = "~=1.34" },
-    { name = "boto3-stubs", extras = ["s3", "sts"], marker = "extra == 'boto'", specifier = "~=1.34" },
-    { name = "pydantic", marker = "extra == 'pydantic'", specifier = "~=1.10" },
-    { name = "quilt3", marker = "extra == 'quilt'", specifier = "~=5.4" },
-    { name = "types-aiobotocore", extras = ["s3"], marker = "extra == 'boto'", specifier = "~=2.11" },
-    { name = "typing-extensions", marker = "extra == 'pydantic'", specifier = "~=4.9" },
-]
-provides-extras = ["pydantic", "boto", "quilt", "dev"]
-
-[[package]]
 name = "referencing"
 version = "0.37.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1154,7 +1136,6 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "pyarrow" },
-    { name = "quilt-shared" },
     { name = "scanpy" },
     { name = "t4-lambda-shared" },
     { name = "xlrd" },
@@ -1179,7 +1160,6 @@ requires-dist = [
     { name = "openpyxl", specifier = ">=3,<4" },
     { name = "pandas", specifier = "~=2.2" },
     { name = "pyarrow", specifier = "~=18.0" },
-    { name = "quilt-shared", url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "py-shared" },
     { name = "scanpy", specifier = ">=1.8.0" },
     { name = "t4-lambda-shared", url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" },
     { name = "xlrd", specifier = ">=2,<3" },

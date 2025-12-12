@@ -14,7 +14,6 @@ import pyarrow.json
 import pyarrow.parquet
 import scanpy as sc
 
-from quilt_shared.lambdas_errors import LambdaError
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import (
     get_default_origins,
@@ -25,20 +24,32 @@ from t4_lambda_shared.utils import (
 logger = get_quilt_logger()
 
 
-def handle_lambda_error(f):
-    """
-    Decorator to catch LambdaError exceptions and return structured JSON responses
-    """
+class FileTooLargeError(Exception):
+    """Raised when a file is too large to process in the lambda environment"""
+    pass
 
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except LambdaError as e:
-            logger.exception("LambdaError")
-            return make_json_response(500, {"error": e.dict()})
 
-    return wrapper
+class InsufficientStorageError(Exception):
+    """Raised when there's insufficient temporary storage space"""
+    pass
+
+
+class TempStorageError(Exception):
+    """Raised when there's an error with temporary file operations"""
+    pass
+
+
+def handle_exceptions(*exception_types):
+    """Decorator to catch specific exceptions and return structured JSON responses"""
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exception_types as e:
+                return make_json_response(500, {'error': str(e)})
+        return wrapper
+    return decorator
 
 
 # Lambda's response must fit into 6 MiB, binary data must be encoded
@@ -272,7 +283,7 @@ def preview_h5ad(url, compression, max_out_size):
 
         if available_mb < 100:  # Need at least 100MB free space
             logger.error(f"Insufficient temp space: {available_mb:.1f}MB < 100MB required")
-            raise LambdaError("InsufficientStorage")
+            raise InsufficientStorageError("Insufficient temporary storage space")
     except Exception as e:
         logger.warning(f"Could not check temp directory space: {e}")
 
@@ -285,7 +296,7 @@ def preview_h5ad(url, compression, max_out_size):
         if remaining_check:
             # File is >20MB, likely to timeout - return basic info only
             logger.warning("Large h5ad file detected (>20MB), returning basic metadata only to avoid timeout")
-            raise LambdaError("FileTooLarge")
+            raise FileTooLargeError("File too large")
 
         # File is ≤20MB, process normally with temp file
         try:
@@ -304,7 +315,7 @@ def preview_h5ad(url, compression, max_out_size):
 
         except OSError as e:
             logger.error(f"Failed to create temporary file: {e}")
-            raise LambdaError("TempStorageError")
+            raise TempStorageError("Temporary storage error")
 
         try:
             logger.info(f"Processing small h5ad file: {total_size / (1024**2):.1f}MB")
@@ -430,7 +441,7 @@ def is_s3_url(url: str) -> bool:
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
-@handle_lambda_error
+@handle_exceptions(FileTooLargeError, InsufficientStorageError, TempStorageError)
 def lambda_handler(request):
     url = request.args["url"]
     input_type = request.args.get("input")
