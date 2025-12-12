@@ -1,18 +1,111 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
+import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
+import { JsonRecord } from 'utils/types'
 
+import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
-import type {
-  ParquetMetadata,
-  H5adMetadata,
-  PackageMetadata,
-} from '../../loaders/Tabular'
 
-import Metadata from './Metadata'
+const useParquetMetaStyles = M.makeStyles((t) => ({
+  table: {
+    margin: t.spacing(1, 0, 1, 3),
+  },
+  mono: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
+  metaName: {
+    paddingRight: t.spacing(1),
+    textAlign: 'left',
+    verticalAlign: 'top',
+  },
+  metaValue: {
+    paddingLeft: t.spacing(1),
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  headerIcon: {
+    fontSize: '1.1rem',
+    transform: 'rotate(-90deg)',
+    marginRight: t.spacing(0.5),
+    transition: 'transform 0.3s ease',
+  },
+  headerIconExpanded: {
+    transform: 'rotate(0deg)',
+  },
+}))
+
+interface ParquetMetaProps extends ParquetMetadata {
+  className: string
+}
+
+function ParquetMeta({
+  className,
+  createdBy,
+  formatVersion,
+  numRowGroups,
+  schema, // { names }
+  serializedSize,
+  shape, // { rows, columns }
+  ...props
+}: ParquetMetaProps) {
+  const classes = useParquetMetaStyles()
+  const [show, setShow] = React.useState(false)
+  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
+  const renderMeta = (
+    name: string,
+    value: ParquetMetadata[keyof ParquetMetadata],
+    render: (v: $TSFixMe) => JSX.Element = R.identity,
+  ) =>
+    !!value && (
+      <tr>
+        <th className={classes.metaName}>{name}</th>
+        <td className={classes.metaValue}>{render(value)}</td>
+      </tr>
+    )
+
+  return (
+    <div className={className} {...props}>
+      <M.Typography className={classes.header} onClick={toggleShow}>
+        <M.Icon
+          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
+        >
+          expand_more
+        </M.Icon>
+        Parquet metadata
+      </M.Typography>
+      <M.Collapse in={show}>
+        <table className={classes.table}>
+          <tbody>
+            {renderMeta('Created by:', createdBy, (c: string) => (
+              <span className={classes.mono}>{c}</span>
+            ))}
+            {renderMeta('Format version:', formatVersion, (v: string) => (
+              <span className={classes.mono}>{v}</span>
+            ))}
+            {renderMeta('# row groups:', numRowGroups)}
+            {renderMeta('Serialized size:', serializedSize)}
+            {renderMeta('Shape:', shape, ({ rows, columns }) => (
+              <span>
+                {rows} rows &times; {columns} columns
+              </span>
+            ))}
+            {renderMeta('Schema:', schema, (s: { names: string[] }) => (
+              <JsonDisplay value={s} />
+            ))}
+          </tbody>
+        </table>
+      </M.Collapse>
+    </div>
+  )
+}
 
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
@@ -95,7 +188,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    minHeight: t.spacing(120),
+    minHeight: t.spacing(80),
     overflow: 'hidden',
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 8px',
@@ -117,7 +210,8 @@ export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
   data: perspective.PerspectiveInput
-  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
+  packageMeta?: JsonRecord
+  parquetMeta?: ParquetMetadata
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
@@ -127,7 +221,8 @@ export default function Perspective({
   children,
   className,
   data,
-  meta,
+  parquetMeta,
+  packageMeta,
   onLoadMore,
   onRender,
   truncated,
@@ -149,7 +244,8 @@ export default function Perspective({
         onLoadMore={onLoadMore}
         truncated={truncated}
       />
-      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+      {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
+      {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
       {children}
     </div>
   )

@@ -58,7 +58,7 @@ export const Loader = function ManifestLoader({ gated, handle, children }: Loade
           })),
           entries,
         )
-        return PreviewData.Perspective({ meta: packageMeta, data: packageEntries })
+        return PreviewData.Perspective({ packageMeta, data: packageEntries })
       } catch (e) {
         if (e instanceof SyntaxError) {
           const head = data.head.join('\n')
