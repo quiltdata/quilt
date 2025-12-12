@@ -19,6 +19,8 @@ where verb is one of
 ## Changes
 
 - [Changed] Enable strict test isolation with `globals: false` in Vitest configuration ([#4660](https://github.com/quiltdata/quilt/pull/4660))
+- [Added] H5AD file preview ([#4665](https://github.com/quiltdata/quilt/pull/4665))
+- [Changed] Unified metadata table design for H5AD, Parquet, and Quilt package previews ([#4665](https://github.com/quiltdata/quilt/pull/4665))
 - [Changed] Migrate test framework from Jest to Vitest with improved performance ([#4657](https://github.com/quiltdata/quilt/pull/4657))
 - [Changed] Add `crc64Checksums` config property indicating CRC64/NVMe checksums are enabled ([#4632](https://github.com/quiltdata/quilt/pull/4632))
 - [Changed] Remove outdated `chunkedChecksums` config property, and remove related dead code ([#4632](https://github.com/quiltdata/quilt/pull/4632))
