@@ -1,0 +1,14 @@
+[project]
+name = "h5ad-test"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "anndata>=0.8.0",
+    "scanpy>=1.8.0",
+    "pandas>=2.0.0",
+    "pyarrow>=18.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
