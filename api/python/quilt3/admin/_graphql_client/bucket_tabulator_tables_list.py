@@ -9,11 +9,15 @@ from .base_model import BaseModel
 
 
 class BucketTabulatorTablesList(BaseModel):
-    bucket_config: Optional["BucketTabulatorTablesListBucketConfig"] = Field(alias="bucketConfig")
+    bucket_config: Optional["BucketTabulatorTablesListBucketConfig"] = Field(
+        alias="bucketConfig"
+    )
 
 
 class BucketTabulatorTablesListBucketConfig(BaseModel):
-    tabulator_tables: List["BucketTabulatorTablesListBucketConfigTabulatorTables"] = Field(alias="tabulatorTables")
+    tabulator_tables: List["BucketTabulatorTablesListBucketConfigTabulatorTables"] = (
+        Field(alias="tabulatorTables")
+    )
 
 
 class BucketTabulatorTablesListBucketConfigTabulatorTables(BaseModel):

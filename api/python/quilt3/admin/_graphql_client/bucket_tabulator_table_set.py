@@ -25,11 +25,15 @@ class BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig(BaseModel)
     typename__: Literal["BucketConfig"] = Field(alias="__typename")
 
 
-class BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput(InvalidInputSelection):
+class BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput(
+    InvalidInputSelection
+):
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
 
 
-class BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError(OperationErrorSelection):
+class BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError(
+    OperationErrorSelection
+):
     typename__: Literal["OperationError"] = Field(alias="__typename")
 
 
