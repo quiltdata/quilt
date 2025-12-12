@@ -25,15 +25,11 @@ class BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig(Base
     typename__: Literal["BucketConfig"] = Field(alias="__typename")
 
 
-class BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput(
-    InvalidInputSelection
-):
+class BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput(InvalidInputSelection):
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
 
 
-class BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError(
-    OperationErrorSelection
-):
+class BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError(OperationErrorSelection):
     typename__: Literal["OperationError"] = Field(alias="__typename")
 
 

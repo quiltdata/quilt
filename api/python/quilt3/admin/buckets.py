@@ -164,7 +164,7 @@ def update(
             index_content_bytes=index_content_bytes,
             browsable=browsable,
             prefixes=prefixes,
-        )
+        ),
     )
     return _handle_bucket_update_result(result)
 
