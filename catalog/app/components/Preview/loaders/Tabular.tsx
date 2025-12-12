@@ -29,12 +29,14 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIn(['.tsv', '.tab'])
 
+const isH5ad = utils.extIs('.h5ad')
+
 export const detect = R.pipe(
   utils.stripCompression,
-  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
+  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv, isH5ad]),
 )
 
-type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
+type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'h5ad'
 
 const detectTabularType: (type: string) => TabularType = R.pipe(
   utils.stripCompression,
@@ -44,11 +46,12 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
     [isJsonl, R.always('jsonl')],
     [isParquet, R.always('parquet')],
     [isTsv, R.always('tsv')],
+    [isH5ad, R.always('h5ad')],
     [R.T, R.always('csv')],
   ]),
 )
 
-interface ParquetMetadataBackend {
+export interface ParquetMetadata {
   created_by: string
   format_version: string
   num_row_groups: number
@@ -59,20 +62,37 @@ interface ParquetMetadataBackend {
   shape: [number, number] // rows, columns
 }
 
-export interface ParquetMetadata {
-  createdBy: string
-  formatVersion: string
-  numRowGroups: number
+export interface H5adMetadata {
+  created_by: string
+  format_version: string
+  num_row_groups: number
   schema: {
     names: string[]
   }
-  serializedSize: number
-  shape: { rows: number; columns: number }
+  serialized_size: number
+  shape: [number, number] // rows, columns
+  h5ad_obs_keys: string[]
+  h5ad_var_keys: string[]
+  h5ad_uns_keys: string[]
+  h5ad_obsm_keys: string[]
+  h5ad_varm_keys: string[]
+  h5ad_layers_keys: string[]
+  anndata_version?: string
+  n_cells: number
+  n_genes: number
+  matrix_type: string
+  has_raw: boolean
+}
+
+export interface PackageMetadata {
+  version?: string
+  workflow?: any
+  message?: string
 }
 
 function getQuiltInfo(
   headers: Headers,
-): { meta?: ParquetMetadataBackend; truncated: boolean } | null {
+): { meta?: ParquetMetadata | H5adMetadata; truncated: boolean } | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
@@ -99,15 +119,6 @@ async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
   return isArrow ? r.arrayBuffer() : r.text()
 }
 
-export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata => ({
-  createdBy: data.created_by,
-  formatVersion: data.format_version,
-  numRowGroups: data.num_row_groups,
-  schema: data.schema,
-  serializedSize: data.serialized_size,
-  shape: { rows: data.shape[0], columns: data.shape[1] },
-})
-
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
   handle: Model.S3.S3ObjectLocation
@@ -118,7 +129,7 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: ArrayBuffer | string
-  parquetMeta: ParquetMetadata | null
+  meta: ParquetMetadata | H5adMetadata | null
   size: number | null
   truncated: boolean
 }
@@ -151,7 +162,7 @@ const loadTabularData = async ({
 
     return {
       csv,
-      parquetMeta: quiltInfo?.meta ? parseParquetData(quiltInfo?.meta) : null,
+      meta: quiltInfo?.meta || null,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -188,10 +199,20 @@ export const Loader = function TabularLoader({
   const [gated, setGated] = React.useState(true)
   const sign = AWS.Signer.useS3Signer()
   const type = React.useMemo(() => detectTabularType(handle.key), [handle.key])
-  const onLoadMore = React.useCallback(() => setGated(false), [setGated])
+  const onLoadMore = React.useCallback(() => setGated(false), [])
   const size = React.useMemo(
     () => getNeededSize(options.context, gated),
     [options.context, gated],
+  )
+  const showLoadMore = React.useCallback(
+    (truncated) =>
+      // There is more data to show
+      truncated &&
+      // We explicitly had shown less data
+      size !== 'large' &&
+      // tabular-preview is able to show more
+      !isH5ad(handle.key),
+    [size, handle.key],
   )
 
   const compression = utils.getCompression(handle.key)
@@ -205,13 +226,13 @@ export const Loader = function TabularLoader({
   // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, parquetMeta, truncated }: TabularDataOutput) =>
+    ({ csv, meta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         data: csv,
         handle,
         modes: [FileType.Tabular, FileType.Text],
-        parquetMeta,
-        onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
+        meta,
+        onLoadMore: showLoadMore(truncated) ? onLoadMore : null,
         truncated,
       }),
   )
