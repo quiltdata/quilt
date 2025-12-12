@@ -8,7 +8,7 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
 
-import { CONTEXT, PreviewData } from '../types'
+import { CONTEXT, PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
 import * as utils from './utils'
@@ -152,6 +152,10 @@ const loadTabularData = async ({
   )
   try {
     if (r.status >= 400) {
+      const errorResponse = await r.json()
+      if (errorResponse.error === 'File too large') {
+        throw PreviewError.TooLarge({ handle })
+      }
       throw new HTTPError(r)
     }
 
