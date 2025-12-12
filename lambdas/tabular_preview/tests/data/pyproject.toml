@@ -1,6 +1,7 @@
 [project]
 name = "h5ad-test"
 version = "0.1.0"
+description = "H5AD test data verification and Docker testing tools"
 requires-python = ">=3.10"
 dependencies = [
     "anndata>=0.8.0",
@@ -8,6 +9,16 @@ dependencies = [
     "pandas>=2.0.0",
     "pyarrow>=18.0.0",
 ]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+verify-h5ad = "verify_h5ad:main"
+verify-h5ad-docker = "verify_h5ad_docker:main"
 
 [build-system]
 requires = ["hatchling"]
