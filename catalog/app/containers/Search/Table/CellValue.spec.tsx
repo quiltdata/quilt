@@ -29,9 +29,7 @@ const column = {
 } as ColumnSystemMeta
 
 describe('containers/Search/Table/CellValue', () => {
-  afterEach(() => {
-    cleanup()
-  })
+  afterEach(cleanup)
 
   it('renders with pointer "latest"', () => {
     const hit = { ...hitBase, pointer: 'latest' }

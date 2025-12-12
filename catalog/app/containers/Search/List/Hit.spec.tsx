@@ -24,9 +24,7 @@ const hitBase = {
 } as Omit<SearchHitPackage, 'pointer'>
 
 describe('containers/Search/List/Hit/Package', () => {
-  afterEach(() => {
-    cleanup()
-  })
+  afterEach(cleanup)
 
   it('renders with pointer "latest"', () => {
     const hit = { ...hitBase, pointer: 'latest' }

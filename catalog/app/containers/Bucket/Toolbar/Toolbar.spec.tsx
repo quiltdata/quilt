@@ -29,9 +29,7 @@ describe('containers/Bucket/Toolbar', () => {
     vi.clearAllMocks()
   })
 
-  afterEach(() => {
-    cleanup()
-  })
+  afterEach(cleanup)
 
   describe('Add', () => {
     it('should render with default label', () => {

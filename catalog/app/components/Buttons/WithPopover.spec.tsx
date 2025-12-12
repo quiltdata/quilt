@@ -6,9 +6,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import WithPopover from './WithPopover'
 
 describe('components/Buttons/WithPopover', () => {
-  afterEach(() => {
-    cleanup()
-  })
+  afterEach(cleanup)
 
   it('should not render children when popup is closed', () => {
     render(
