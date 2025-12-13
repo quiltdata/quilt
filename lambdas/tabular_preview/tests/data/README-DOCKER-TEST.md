@@ -14,16 +14,13 @@ cd repos/h5ad-local/quilt/lambdas/tabular_preview/tests/data
 
 Then run:
 
-**Recommended: Run unit tests only (fastest, most reliable):**
 
 ```bash
-make test-unit
+make test-docker   # builds docker
 ```
 
-**Build Docker and run unit tests:**
-
 ```bash
-make test
+make verify-docker  # runs verification as well
 ```
 
 **Or use the Python script directly:**
@@ -36,7 +33,7 @@ make test
 
 Run `make help` to see all available targets:
 
-```
+```sh
 make help              # Show this help message
 make build             # Build the Docker image
 make test              # Build and run unit tests
@@ -60,14 +57,21 @@ make rebuild           # Clean and rebuild from scratch
 
 ### 1. First Time Setup
 
-Install dependencies for local testing:
+**Install uv (if not already installed):**
+
+```bash
+pip install uv
+# or visit: https://docs.astral.sh/uv/
+```
+
+**Install dependencies for local testing:**
 
 ```bash
 make install-deps
 ```
 
-This installs all dependencies from the local `pyproject.toml`
-(anndata, scanpy, pandas, pyarrow, pytest).
+This uses `uv sync --group test` to install all dependencies from the local `pyproject.toml`
+(anndata, scanpy, pandas, pyarrow, pytest) in an isolated virtual environment.
 
 ### 2. Run Tests
 
@@ -78,9 +82,11 @@ make test-unit
 ```
 
 This runs:
-- `pytest tests/test_index.py::test_preview_h5ad -v`
+
+- `uv run pytest tests/test_index.py::test_preview_h5ad -v`
 
 Validates:
+
 - ✅ H5AD file parsing via anndata
 - ✅ QC metric calculation via scanpy
 - ✅ Gene-level data extraction
@@ -184,7 +190,7 @@ The `verify-h5ad-docker.py` script provides more control:
 
 ```bash
 cd repos/h5ad-local/quilt/lambdas/tabular_preview
-pytest tests/test_index.py::test_preview_h5ad -v
+uv run pytest tests/test_index.py::test_preview_h5ad -v
 ```
 
 Or use `make test-unit` which handles this automatically.

@@ -20,7 +20,7 @@ test: build test-unit ## Build and run unit tests
 
 test-unit: ## Run unit tests only (no Docker)
 	@echo "Running unit tests..."
-	cd $(LAMBDA_DIR) && pytest tests/test_index.py::test_preview_h5ad -v
+	cd $(LAMBDA_DIR) && uv run pytest tests/test_index.py::test_preview_h5ad -v
 
 test-docker: build ## Build and test Docker container
 	@./verify-h5ad-docker.py --no-build
@@ -39,8 +39,8 @@ clean: ## Stop container and remove Docker image
 	@echo "Cleanup complete"
 
 install-deps: ## Install Python dependencies for local testing
-	@echo "Installing dependencies..."
-	pip install -e ".[test]"
+	@echo "Installing dependencies with uv..."
+	cd $(LAMBDA_DIR) && uv sync --group test
 
 shell: build ## Start a shell in the Docker container
 	docker run --rm -it --entrypoint /bin/bash $(IMAGE_NAME)

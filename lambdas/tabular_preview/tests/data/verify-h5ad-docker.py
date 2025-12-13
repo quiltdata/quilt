@@ -176,22 +176,22 @@ def run_unit_tests():
     print("Running unit tests (recommended)...")
     print("="*60)
 
-    # Check if pytest is available
+    # Check if uv is available
     result = run_command(
-        ["python3", "-c", "import pytest"],
+        ["uv", "--version"],
         check=False,
     )
 
     if result.returncode != 0:
-        print("\n⚠ pytest not installed. Install dependencies with:")
-        print(f"  cd {LAMBDA_DIR}")
-        print("  pip install uv && uv sync --group test")
+        print("\n⚠ uv not installed. Install with:")
+        print("  pip install uv")
+        print("  or visit: https://docs.astral.sh/uv/")
         return False
 
-    # Run the h5ad-specific test
-    print(f"\nRunning: pytest {LAMBDA_DIR / 'tests/test_index.py::test_preview_h5ad'} -v")
+    # Run the h5ad-specific test using uv
+    print(f"\nRunning: uv run pytest {LAMBDA_DIR / 'tests/test_index.py::test_preview_h5ad'} -v")
     result = run_command(
-        ["pytest", "tests/test_index.py::test_preview_h5ad", "-v"],
+        ["uv", "run", "pytest", "tests/test_index.py::test_preview_h5ad", "-v"],
         cwd=LAMBDA_DIR,
         check=False,
     )
