@@ -20,7 +20,7 @@ Then run:
 make test-unit
 ```
 
-**Full verification (build Docker + run tests):**
+**Build Docker and run unit tests:**
 
 ```bash
 make test
@@ -37,15 +37,23 @@ make test
 Run `make help` to see all available targets:
 
 ```
-make help              # Show all available commands
+make help              # Show this help message
 make build             # Build the Docker image
-make test              # Build and run all tests (recommended)
+make test              # Build and run unit tests
 make test-unit         # Run unit tests only (no Docker)
 make test-docker       # Build and test Docker container
-make verify            # Run full verification
+make verify            # Run full verification (build + Docker test + unit tests)
 make verify-quick      # Run unit tests only (fastest)
-make clean             # Remove Docker image and containers
-make install-deps      # Install Python dependencies
+make clean             # Stop container and remove Docker image
+make install-deps      # Install Python dependencies for local testing
+make shell             # Start a shell in the Docker container
+make logs              # Show logs from running container
+make start             # Start the container in the background
+make stop              # Stop the running container
+make invoke            # Invoke the Lambda with a test payload
+make dev               # Start development environment (build + start container)
+make dev-test          # Run unit tests in development mode
+make rebuild           # Clean and rebuild from scratch
 ```
 
 ## Development Workflow
@@ -79,7 +87,7 @@ Validates:
 - ✅ Apache Arrow format serialization
 - ✅ Metadata structure
 
-**Option B: Full Docker verification**
+**Option B: Build Docker and run unit tests**
 
 ```bash
 make test
@@ -88,7 +96,17 @@ make test
 This:
 1. Builds the Docker image (~3-5 minutes first time)
 2. Runs unit tests
-3. Verifies Lambda runtime
+
+**Option C: Full verification (includes Docker container test)**
+
+```bash
+make verify
+```
+
+This:
+1. Builds the Docker image (~3-5 minutes first time)
+2. Runs unit tests
+3. Starts Docker container and verifies Lambda runtime
 
 ### 3. Interactive Testing
 

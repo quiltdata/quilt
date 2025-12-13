@@ -16,7 +16,7 @@ build: ## Build the Docker image
 	@echo "Building Docker image: $(IMAGE_NAME)"
 	cd $(LAMBDA_DIR) && docker build -t $(IMAGE_NAME) .
 
-test: build test-unit ## Build and run all tests (recommended)
+test: build test-unit ## Build and run unit tests
 
 test-unit: ## Run unit tests only (no Docker)
 	@echo "Running unit tests..."
