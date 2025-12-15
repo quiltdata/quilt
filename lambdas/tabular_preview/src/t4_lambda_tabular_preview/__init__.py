@@ -1,7 +1,10 @@
+import errno
 import functools
 import gzip
 import io
 import json
+import os
+import tempfile
 import urllib.request
 from urllib.parse import urlparse
 
@@ -270,62 +273,24 @@ def preview_parquet(url, compression, max_out_size):
 
 
 def preview_h5ad(url, compression, max_out_size):
-    import os
-    import shutil
-    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".h5ad") as tmp_file:
+        with urlopen(url, compression=compression) as src:
+            try:
+                while data := src.read(2 ** 20):
+                    tmp_file.write(data)
+            except OSError as e:
+                match e.errno:
+                    case errno.ENOSPC:
+                        logger.error("Insufficient storage space: %s", e)
+                        raise InsufficientStorageError("Insufficient storage space") from e
+                raise TempStorageError("Temporary storage error") from e
 
-    # Check temp directory space first
-    tmp_dir = tempfile.gettempdir()  # Usually /tmp in Lambda
-    try:
-        disk_usage = shutil.disk_usage(tmp_dir)
-        available_mb = disk_usage.free / (1024**2)
-        logger.info(f"Temp directory: {tmp_dir}, Available space: {available_mb:.1f}MB")
+        tmp_file.flush()
+        return _preview_h5ad(tmp_file.name, max_out_size)
 
-        if available_mb < 100:  # Need at least 100MB free space
-            logger.error(f"Insufficient temp space: {available_mb:.1f}MB < 100MB required")
-            raise InsufficientStorageError("Insufficient temporary storage space")
-    except Exception as e:
-        logger.warning(f"Could not check temp directory space: {e}")
 
-    # For files that are likely too large, give up early and return basic info
-    with urlopen(url, compression=compression) as src:
-        # Read first chunk to check file size
-        first_chunk = src.read(20 * 1024 * 1024)  # 20MB
-        remaining_check = src.read(1024)  # Check if there's more
-
-        if remaining_check:
-            # File is >20MB, likely to timeout - return basic info only
-            logger.warning("Large h5ad file detected (>20MB), returning basic metadata only to avoid timeout")
-            raise FileTooLargeError("File too large")
-
-        # File is ≤20MB, process normally with temp file
-        try:
-            with tempfile.NamedTemporaryFile(suffix='.h5ad', delete=False, dir=tmp_dir) as tmp_file:
-                # Write the data we already read
-                tmp_file.write(first_chunk)
-                total_size = len(first_chunk)
-
-                # If there's remaining data, write it too
-                if remaining_check:
-                    tmp_file.write(remaining_check)
-                    total_size += len(remaining_check)
-
-                tmp_file.flush()
-                tmp_path = tmp_file.name
-
-        except OSError as e:
-            logger.error(f"Failed to create temporary file: {e}")
-            raise TempStorageError("Temporary storage error")
-
-        try:
-            logger.info(f"Processing small h5ad file: {total_size / (1024**2):.1f}MB")
-            # For small files, process normally
-            adata = anndata.read_h5ad(tmp_path)
-
-        finally:
-            # Always clean up temp file
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+def _preview_h5ad(path: str, max_out_size: int):
+    adata = anndata.read_h5ad(path, backed="r")
 
     # Get matrix dimensions to decide processing strategy
     n_obs, n_vars = adata.shape
@@ -351,6 +316,7 @@ def preview_h5ad(url, compression, max_out_size):
             # For sparse matrices, we can get non-zero count efficiently
             var_df["total_nonzero"] = adata.X.getnnz(axis=0) if hasattr(adata.X, "getnnz") else "unknown"
     else:
+        adata = adata.to_memory()
         # For smaller matrices, calculate full QC metrics using scanpy
         sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
         var_df = adata.var.copy()
