@@ -24,8 +24,8 @@ from t4_lambda_shared.utils import (
     make_json_response,
 )
 
-
-SKIP_QC_METRICS_SIZE = 1_000_000  # safe for Lambda's 3GB limit with scanpy overhead
+# Default is safe for Lambda's 3GB limit with scanpy overhead
+SKIP_QC_METRICS_SIZE = int(os.getenv("SKIP_QC_METRICS_SIZE", 1_000_000))
 
 
 logger = get_quilt_logger()
