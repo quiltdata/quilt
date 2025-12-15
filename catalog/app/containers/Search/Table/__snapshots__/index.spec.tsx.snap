@@ -98,8 +98,6 @@ exports[`containers/Search/Table/index > when no results > renders error for pag
 </div>
 `;
 
-exports[`containers/Search/Table/index > when no results > renders null for idle state 1`] = `<div />`;
-
 exports[`containers/Search/Table/index > when no results > renders operation error for other OperationError data fail state 1`] = `
 <div>
   <section>

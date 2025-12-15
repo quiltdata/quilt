@@ -160,8 +160,6 @@ exports[`components/ListingActions > RowActions > should render Package director
 </div>
 `;
 
-exports[`components/ListingActions > RowActions > should render Package directory without download button 1`] = `null`;
-
 exports[`components/ListingActions > RowActions > should render Package file 1`] = `
 <div
   class="ListingActions-root"
@@ -186,11 +184,3 @@ exports[`components/ListingActions > RowActions > should render Package file 1`]
   </div>
 </div>
 `;
-
-exports[`components/ListingActions > RowActions > should render Package file without download button 1`] = `null`;
-
-exports[`components/ListingActions > RowActions > should render nothing if archived 1`] = `null`;
-
-exports[`components/ListingActions > RowActions > should render nothing if no route 1`] = `null`;
-
-exports[`components/ListingActions > RowActions > should render nothing if wrong route 1`] = `null`;

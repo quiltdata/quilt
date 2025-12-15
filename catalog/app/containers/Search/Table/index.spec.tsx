@@ -89,7 +89,7 @@ describe('containers/Search/Table/index', () => {
       useResults.mockReturnValue([{ _tag: 'idle' }])
 
       const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toBe(null)
     })
 
     it('renders skeleton for in-progress state', () => {
