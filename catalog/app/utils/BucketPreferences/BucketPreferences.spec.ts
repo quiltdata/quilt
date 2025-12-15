@@ -125,7 +125,16 @@ describe('utils/BucketPreferences', () => {
             ui:
                 actions: False
       `
-      expect(parse(config, 'test-bucket').ui.actions).toMatchSnapshot()
+      expect(parse(config, 'test-bucket').ui.actions).toEqual({
+        copyPackage: false,
+        createPackage: false,
+        deleteRevision: false,
+        downloadObject: false,
+        downloadPackage: false,
+        openInDesktop: false,
+        revisePackage: false,
+        writeFile: false,
+      })
     })
 
     it('Empty sourceBuckets object returns empty list', () => {

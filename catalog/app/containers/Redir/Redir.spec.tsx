@@ -1,12 +1,11 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
-import { render, act } from '@testing-library/react'
-import { expect, beforeEach, describe, it, vi } from 'vitest'
+import { render, act, cleanup } from '@testing-library/react'
+import { expect, beforeEach, afterEach, describe, it, vi } from 'vitest'
 
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import noop from 'utils/noop'
-import { makeStyles } from 'utils/makeStyles.spec'
 
 import Redir from './Redir'
 
@@ -32,7 +31,6 @@ vi.mock('react-router-dom', async () => ({
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
-  makeStyles: makeStyles('Redir'),
   Button: ({ children, href }: React.PropsWithChildren<{ href: string }>) => (
     <a href={href}>{children}</a>
   ),
@@ -43,17 +41,19 @@ describe('containers/Redir/Redir', () => {
     vi.spyOn(console, 'error').mockImplementation(noop)
   })
 
+  afterEach(cleanup)
+
   it('must have uri', () => {
     const errorHandler = vi.fn((event) => event.preventDefault())
     window.addEventListener('error', errorHandler)
 
-    const { container } = render(
+    const { getByText } = render(
       <ErrorBoundary FallbackComponent={FallbackComponent}>
         <Redir />
       </ErrorBoundary>,
     )
 
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByText('Error: `uri` must be defined')).toBeTruthy()
 
     expect(errorHandler).toHaveBeenCalledTimes(1)
     expect(errorHandler).toHaveBeenCalledWith(
@@ -78,12 +78,14 @@ describe('containers/Redir/Redir', () => {
     useParams.mockImplementationOnce(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
-    const { container } = render(
+    const { getByText } = render(
       <NamedRoutes.Provider routes={{ bucketPackageTree }}>
         <Redir />
       </NamedRoutes.Provider>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+
+    expect(getByText('Redirecting…')).toBeTruthy()
+    expect(getByText('Open QuiltSync')).toBeTruthy()
 
     // Verify that location.assign is eventually called (navigation happens)
     expect(locationAssignSpy).toHaveBeenCalledTimes(1)
@@ -94,8 +96,15 @@ describe('containers/Redir/Redir', () => {
     useParams.mockImplementationOnce(() => ({
       uri: 'invalid',
     }))
-    const { container } = render(<Redir />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<Redir />)
+
+    expect(getByText('Failed to redirect')).toBeTruthy()
+    expect(
+      getByText(
+        'Error parsing URI: unsupported protocol "null". "quilt+s3:" is currently the only supported protocol.',
+      ),
+    ).toBeTruthy()
+    expect(getByText('Open QuiltSync')).toBeTruthy()
   })
 
   it('redirects to package page', async () => {
@@ -119,7 +128,8 @@ describe('containers/Redir/Redir', () => {
       await vi.runAllTimersAsync()
     })
 
-    expect(container.firstChild).toMatchSnapshot()
+    expect(container.textContent).toContain('Redirect to')
+    expect(container.textContent).toContain('bucket/packages/pkg/name')
 
     // Verify that location.assign was called (redirect occurred)
     expect(locationAssignSpy).toHaveBeenCalledTimes(1)
