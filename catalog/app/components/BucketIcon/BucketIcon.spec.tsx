@@ -1,41 +1,42 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-
-import { makeStyles } from 'utils/makeStyles.spec'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
 vi.mock('./bucket.svg', () => ({ default: 'IMAGE_MOCK' }))
-
-vi.mock('@material-ui/core', async () => ({
-  ...(await vi.importActual('@material-ui/core')),
-  makeStyles: makeStyles('BucketIcon'),
-}))
 
 import BucketIcon from './'
 
 describe('components/BucketIcon', () => {
+  afterEach(cleanup)
+
   it('should render default when no src', () => {
-    const { container } = render(<BucketIcon alt="No src" src="" />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByAltText } = render(<BucketIcon alt="No src" src="" />)
+    expect(getByAltText('No src').getAttribute('src')).toBe('IMAGE_MOCK')
   })
+
   it('should render custom src', () => {
-    const { container } = render(<BucketIcon alt="Custom src" src="https://custom-src" />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByAltText } = render(
+      <BucketIcon alt="Custom src" src="https://custom-src" />,
+    )
+    expect(getByAltText('Custom src').getAttribute('src')).toBe('https://custom-src')
   })
+
   describe('class names', () => {
-    const className = 'A'
+    const className = 'PRIMARY'
     const classes = {
-      custom: 'C',
-      stub: 'S',
+      custom: 'CUSTOM',
+      stub: 'STUB',
     }
+
     it('should apply className', () => {
-      const { container } = render(
+      const { getByAltText } = render(
         <BucketIcon alt="Set className" className={className} src="https://custom-src" />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByAltText('Set className').className).toContain('PRIMARY')
     })
-    it('should apply `` className if src is set', () => {
-      const { container } = render(
+
+    it('should apply custom className if src is set', () => {
+      const { getByAltText } = render(
         <BucketIcon
           alt="Custom className"
           className={className}
@@ -43,10 +44,14 @@ describe('components/BucketIcon', () => {
           src="https://custom-src"
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      const img = getByAltText('Custom className')
+      expect(img.className).toContain('CUSTOM')
+      expect(img.className).toContain('PRIMARY')
+      expect(img.className).not.toContain('STUB')
     })
+
     it('should apply `stub` className if no src', () => {
-      const { container } = render(
+      const { getByAltText } = render(
         <BucketIcon
           alt="Stub className"
           className={className}
@@ -54,7 +59,10 @@ describe('components/BucketIcon', () => {
           src=""
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      const img = getByAltText('Stub className')
+      expect(img.className).toContain('STUB')
+      expect(img.className).toContain('PRIMARY')
+      expect(img.className).not.toContain('CUSTOM')
     })
   })
 })

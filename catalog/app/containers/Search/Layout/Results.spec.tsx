@@ -1,9 +1,8 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import { makeStyles } from 'utils/makeStyles.spec'
 import noop from 'utils/noop'
 
 import Results from './Results'
@@ -14,7 +13,6 @@ vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
   Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
   Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
-  makeStyles: makeStyles('Results'),
   useTheme: () => ({
     breakpoints: { down: () => false },
     spacing: (x: number) => x * 8,
@@ -33,10 +31,14 @@ vi.mock('@material-ui/lab', () => ({
     value,
     children,
   }: React.PropsWithChildren<{ value: string }>) => (
-    <ul data-selected={value}>{children}</ul>
+    <div role="group" aria-label="toggle results view" data-selected={value}>
+      {children}
+    </div>
   ),
   ToggleButton: ({ children, value }: React.PropsWithChildren<{ value: string }>) => (
-    <li data-value={value}>{children}</li>
+    <button role="button" data-value={value}>
+      {children}
+    </button>
   ),
 }))
 
@@ -117,13 +119,15 @@ describe('containers/Search/Layout/Results', () => {
     model.state.resultType = 'p'
   })
 
+  afterEach(cleanup)
+
   it('renders with loading state', () => {
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Loading…')).toBeTruthy()
   })
 
   it('renders with data and shows number of results', () => {
@@ -135,12 +139,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Column Title: 5 results')).toBeTruthy()
   })
 
   it('renders with FiltersButton when onFilters prop is provided', () => {
@@ -152,12 +156,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter>
         <Results onFilters={noop} />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Filters')).toBeTruthy()
   })
 
   it('does not show ToggleResultsView for S3Object result type', () => {
@@ -170,12 +174,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { container } = render(
+    const { queryByRole } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(queryByRole('group', { name: 'toggle results view' })).toBeFalsy()
   })
 
   it('renders error state', () => {
@@ -184,12 +188,16 @@ describe('containers/Search/Layout/Results', () => {
       error: new Error('Test error'),
     }
 
-    const { container } = render(
+    const { getByText, getByRole } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    // The component still renders with basic structure
+    expect(getByText('Column Title:')).toBeTruthy()
+    expect(getByText('Sort Selector')).toBeTruthy()
+    // Toggle view should still be present for error state (PackageSearchResultSet)
+    expect(getByRole('group', { name: 'toggle results view' })).toBeTruthy()
   })
 
   it('shows Create Package button in bucket', () => {
@@ -200,11 +208,11 @@ describe('containers/Search/Layout/Results', () => {
         total: 5,
       },
     }
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter initialEntries={['/b/test-bucket/packages/my-package']}>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Create new package')).toBeTruthy()
   })
 })

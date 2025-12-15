@@ -1,12 +1,11 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { makeStyles } from 'utils/makeStyles.spec'
 import noop from 'utils/noop'
 
 import RowActions from './ListingActions'
@@ -31,7 +30,6 @@ const defaultPrefs = {
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
-  makeStyles: makeStyles('ListingActions'),
   IconButton: ({ onClick, ...props }: any) =>
     props.href ? <a {...props} /> : <button {...props} />,
 }))
@@ -73,6 +71,8 @@ function TestBucket({ children }: React.PropsWithChildren<{}>) {
 }
 
 describe('components/ListingActions', () => {
+  afterEach(cleanup)
+
   describe('RowActions', () => {
     it('should render nothing if archived', () => {
       const { container } = render(
@@ -102,25 +102,37 @@ describe('components/ListingActions', () => {
     })
 
     it('should render Bucket directory', () => {
-      const { container } = render(
+      const { getByTitle, getByDisplayValue } = render(
         <TestBucket>
           <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTitle('Delete')).toBeTruthy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      expect(getByTitle('Download')).toBeTruthy()
+      const tokenInput = getByDisplayValue('ABC')
+      const form = tokenInput.closest('form')
+      expect(form).toBeTruthy()
+      expect(form?.getAttribute('action')).toBe('/zip/dir/bucketA/dirB/')
+      expect(form?.getAttribute('method')).toBe('POST')
     })
 
     it('should render Bucket file', () => {
-      const { container } = render(
+      const { getByTitle } = render(
         <TestBucket>
           <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTitle('Delete')).toBeTruthy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      const downloadLink = getByTitle('Download')
+      expect(downloadLink).toBeTruthy()
+      expect(downloadLink.getAttribute('href')).toBe('s3://bucketA/fileB')
+      expect(downloadLink.getAttribute('download')).toBe('')
     })
 
     it('should render Package directory', () => {
-      const { container } = render(
+      const { getByTitle, getByDisplayValue } = render(
         <TestBucket>
           <RowActions
             to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
@@ -129,11 +141,18 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTitle('Download')).toBeTruthy()
+      const tokenInput = getByDisplayValue('ABC')
+      const form = tokenInput.closest('form')
+      expect(form).toBeTruthy()
+      expect(form?.getAttribute('action')).toBe(
+        '/zip/package/bucketA/namespaceB/nameC/latest/dirD/',
+      )
+      expect(form?.getAttribute('method')).toBe('POST')
     })
 
     it('should render Package file', () => {
-      const { container } = render(
+      const { getByTitle } = render(
         <TestBucket>
           <RowActions
             to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
@@ -143,11 +162,14 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      const downloadLink = getByTitle('Download')
+      expect(downloadLink).toBeTruthy()
+      expect(downloadLink.getAttribute('href')).toBe('s3://bucketa/pathB/fileB')
+      expect(downloadLink.getAttribute('download')).toBe('')
     })
 
     it('should render Bucket file without download button', () => {
-      const { container } = render(
+      const { getByTitle, queryByTitle } = render(
         <TestBucket>
           <RowActions
             to="/b/bucketA/tree/fileB"
@@ -156,7 +178,9 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTitle('Delete')).toBeTruthy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      expect(queryByTitle('Download')).toBeFalsy()
     })
 
     it('should render Package directory without download button', () => {
