@@ -24,6 +24,10 @@ from t4_lambda_shared.utils import (
     make_json_response,
 )
 
+
+SKIP_QC_METRICS_SIZE = 1_000_000  # safe for Lambda's 3GB limit with scanpy overhead
+
+
 logger = get_quilt_logger()
 
 
@@ -301,7 +305,7 @@ def _preview_h5ad(path: str, max_out_size: int):
     matrix_elements = n_obs * n_vars
     # Skip QC for matrices that could cause memory issues in Lambda
     # Based on actual 500MB file failures, use conservative threshold
-    if matrix_elements > 1_000_000:  # ~1M elements, safe for Lambda's 3GB limit with scanpy overhead
+    if matrix_elements >= SKIP_QC_METRICS_SIZE:
         logger.warning(f"Skipping QC calculation for large matrix ({n_obs} x {n_vars}) to avoid memory issues")
 
         # Use existing gene metadata if available, otherwise create basic dataframe
