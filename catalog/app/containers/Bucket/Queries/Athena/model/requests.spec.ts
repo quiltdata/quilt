@@ -128,11 +128,15 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       const { result, waitForValueToChange, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
-      expect(result.current.data).toBe(undefined)
 
-      await waitForValueToChange(() => result.current, { timeout: 5000 })
-      expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] })
-      unmount()
+      try {
+        expect(result.current.data).toBe(undefined)
+
+        await waitForValueToChange(() => result.current, { timeout: 5000 })
+        expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] })
+      } finally {
+        unmount()
+      }
     })
 
     it('return empty list', async () => {
@@ -222,10 +226,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         const { result, unmount, waitFor } = renderHook(() =>
           requests.useCatalogNames('any'),
         )
-        await waitFor(() => result.current.data instanceof Error)
-        expect(Log.error).toBeCalledWith(expect.any(Error))
-        expect(result.current.data).toBeInstanceOf(Error)
-        unmount()
+
+        try {
+          await waitFor(() => result.current.data instanceof Error)
+          expect(Log.error).toBeCalledWith(expect.any(Error))
+          expect(result.current.data).toBeInstanceOf(Error)
+        } finally {
+          unmount()
+        }
       })
     })
 
@@ -267,21 +275,25 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, null] },
       )
-      expect(result.current.value).toBe(undefined)
 
-      const error = new Error('Fail')
-      await act(async () => {
-        rerender([error, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(error)
+      try {
+        expect(result.current.value).toBe(undefined)
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
-      unmount()
+        const error = new Error('Fail')
+        await act(async () => {
+          rerender([error, null])
+          await waitForNextUpdate()
+        })
+        expect(result.current.value).toBe(error)
+
+        await act(async () => {
+          rerender([{ list: ['foo', 'bar'] }, null])
+          await waitForNextUpdate()
+        })
+        expect(result.current.value).toBe('foo')
+      } finally {
+        unmount()
+      }
     })
 
     it('switch catalog when execution query loaded', async () => {
@@ -454,28 +466,31 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, null] },
       )
-      expect(result.current.value).toBe(undefined)
 
-      await act(async () => {
-        rerender([Model.Loading, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(Model.Loading)
+      try {
+        expect(result.current.value).toBe(undefined)
 
-      const error = new Error('Fail')
-      await act(async () => {
-        rerender([error, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(error)
+        await act(async () => {
+          rerender([Model.Loading, null])
+          await waitForNextUpdate()
+        })
+        expect(result.current.value).toBe(Model.Loading)
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+        const error = new Error('Fail')
+        await act(async () => {
+          rerender([error, null])
+          await waitForNextUpdate()
+        })
+        expect(result.current.value).toBe(error)
 
-      unmount()
+        await act(async () => {
+          rerender([{ list: ['foo', 'bar'] }, null])
+          await waitForNextUpdate()
+        })
+        expect(result.current.value).toBe('foo')
+      } finally {
+        unmount()
+      }
     })
 
     it('switch database when execution query loaded', async () => {
@@ -648,17 +663,21 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         getWorkGroup.mockImplementation(reqThrow)
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(Log.error).toBeCalledWith(
-          'Fetching "bar" workgroup failed:',
-          expect.any(Error),
-        )
-        expect(Log.error).toBeCalledWith(
-          'Fetching "foo" workgroup failed:',
-          expect.any(Error),
-        )
-        expect(result.current.data).toMatchObject({ list: [] })
-        unmount()
+
+        try {
+          await waitFor(() => typeof result.current.data === 'object')
+          expect(Log.error).toBeCalledWith(
+            'Fetching "bar" workgroup failed:',
+            expect.any(Error),
+          )
+          expect(Log.error).toBeCalledWith(
+            'Fetching "foo" workgroup failed:',
+            expect.any(Error),
+          )
+          expect(result.current.data).toMatchObject({ list: [] })
+        } finally {
+          unmount()
+        }
       })
     })
 
@@ -668,15 +687,19 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           reqThrowWith(new AWSError('AccessDeniedException')),
         )
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(Log.info).toBeCalledWith(
-          'Fetching "bar" workgroup failed: AccessDeniedException',
-        )
-        expect(Log.info).toBeCalledWith(
-          'Fetching "foo" workgroup failed: AccessDeniedException',
-        )
-        expect(result.current.data).toMatchObject({ list: [] })
-        unmount()
+
+        try {
+          await waitFor(() => typeof result.current.data === 'object')
+          expect(Log.info).toBeCalledWith(
+            'Fetching "bar" workgroup failed: AccessDeniedException',
+          )
+          expect(Log.info).toBeCalledWith(
+            'Fetching "foo" workgroup failed: AccessDeniedException',
+          )
+          expect(result.current.data).toMatchObject({ list: [] })
+        } finally {
+          unmount()
+        }
       })
     })
 
@@ -749,15 +772,19 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         const { result, unmount, waitFor } = renderHook(() =>
           requests.useExecutions('any'),
         )
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(result.current.data).toMatchObject({
-          list: [
-            { id: '$foo' },
-            { id: '$bar' },
-            { id: '$baz', error: new Error('fail') },
-          ],
-        })
-        unmount()
+
+        try {
+          await waitFor(() => typeof result.current.data === 'object')
+          expect(result.current.data).toMatchObject({
+            list: [
+              { id: '$foo' },
+              { id: '$bar' },
+              { id: '$baz', error: new Error('fail') },
+            ],
+          })
+        } finally {
+          unmount()
+        }
       })
     })
   })
