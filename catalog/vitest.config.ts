@@ -28,8 +28,6 @@ export default defineConfig({
         lines: 4,
       },
     },
-
-    globals: true,
   },
 
   resolve: {

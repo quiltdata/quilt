@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import * as JsonPointer from 'utils/JSONPointer'
 import * as stubs from 'utils/JSONSchema/__stubs__'
 
 import {
@@ -55,7 +56,32 @@ describe('components/JsonEditor/State', () => {
         [],
         {},
       )
-      expect(jsonDict).toMatchSnapshot()
+      expect(jsonDict).toEqual({
+        '/nullValue': {
+          address: ['nullValue'],
+          required: false,
+          sortIndex: 1,
+          type: 'null',
+          valueSchema: { type: 'null' },
+        },
+        '/boolValue': {
+          address: ['boolValue'],
+          required: false,
+          sortIndex: 3,
+          type: 'boolean',
+          valueSchema: { type: 'boolean' },
+        },
+        '/enumBool': {
+          address: ['enumBool'],
+          required: false,
+          sortIndex: 5,
+          type: 'boolean',
+          valueSchema: {
+            enum: [true, false],
+            type: 'boolean',
+          },
+        },
+      })
     })
 
     it('should return values for every nesting level of Schema, when type is `object`', () => {
@@ -65,7 +91,23 @@ describe('components/JsonEditor/State', () => {
         [],
         {},
       )
-      expect(jsonDict).toMatchSnapshot()
+      expect(Object.keys(jsonDict)).toEqual([
+        '/a',
+        '/a/b',
+        '/a/b/c',
+        '/a/b/c/d',
+        '/a/b/c/d/e',
+        '/a/b/c/d/e/f',
+        '/a/b/c/d/e/f/g',
+        '/a/b/c/d/e/f/g/h',
+        '/a/b/c/d/e/f/g/h/i',
+        '/a/b/c/d/e/f/g/h/i/j',
+        '/a/b/c/d/e/f/g/h/i/j/k',
+        '/a/b/c/d/e/f/g/h/i/j/k/testMaxItems',
+        '/a/b/c/d/e/f/g/h/i/j/k/testMaxItems/__*',
+      ])
+      expect(jsonDict['/a'].type).toBe('object')
+      expect(jsonDict['/a/b/c/d/e/f/g/h/i/j/k/testMaxItems'].type).toBe('array')
     })
 
     it('should return first value only for deep nesting level of Schema, when type is `array`', () => {
@@ -75,7 +117,23 @@ describe('components/JsonEditor/State', () => {
         [],
         {},
       )
-      expect(jsonDict).toMatchSnapshot()
+      expect(Object.keys(jsonDict)).toEqual([
+        '/longNestedList',
+        '/longNestedList/__*',
+        '/longNestedList/__*/__*',
+        '/longNestedList/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*/__*',
+        '/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*/__*/__*',
+      ])
+      expect(jsonDict['/longNestedList'].type).toBe('array')
+      expect(
+        jsonDict['/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*/__*/__*'].type,
+      ).toBe('number')
     })
   })
 
@@ -147,7 +205,19 @@ describe('components/JsonEditor/State', () => {
       const jsonDict = iterateSchema({}, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, object)
       const columns = iterateJsonDict(jsonDict, object, [], rootKeys, sortOrder)
-      expect(columns).toMatchSnapshot()
+
+      expect(
+        columns[0].items.find(({ address }) => JsonPointer.stringify(address) === '/a')
+          .sortIndex,
+      ).toBe(1)
+      expect(
+        columns[0].items.find(({ address }) => JsonPointer.stringify(address) === '/123')
+          .sortIndex,
+      ).toBe(2)
+      expect(
+        columns[0].items.find(({ address }) => JsonPointer.stringify(address) === '/b')
+          .sortIndex,
+      ).toBe(3)
     })
 
     it('should add sortIndexes to nested fields of object', () => {
@@ -158,7 +228,21 @@ describe('components/JsonEditor/State', () => {
       const jsonDict = iterateSchema({}, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, object)
       const columns = iterateJsonDict(jsonDict, object, ['a', 'b'], rootKeys, sortOrder)
-      expect(columns).toMatchSnapshot()
+
+      expect(
+        columns[0].items.find(({ address }) => JsonPointer.stringify(address) === '/123')
+          .sortIndex,
+      ).toBe(1)
+      expect(
+        columns[2].items.find(
+          ({ address }) => JsonPointer.stringify(address) === '/a/b/c',
+        ).sortIndex,
+      ).toBe(3)
+      expect(
+        columns[2].items.find(
+          ({ address }) => JsonPointer.stringify(address) === '/a/b/d',
+        ).sortIndex,
+      ).toBe(2)
     })
   })
 

@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Enable strict test isolation with `globals: false` in Vitest configuration ([#4660](https://github.com/quiltdata/quilt/pull/4660))
 - [Added] H5AD file preview ([#4665](https://github.com/quiltdata/quilt/pull/4665))
 - [Changed] Unified metadata table design for H5AD, Parquet, and Quilt package previews ([#4665](https://github.com/quiltdata/quilt/pull/4665))
 - [Changed] Migrate test framework from Jest to Vitest with improved performance ([#4657](https://github.com/quiltdata/quilt/pull/4657))

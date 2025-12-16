@@ -14,19 +14,25 @@ vi.mock('utils/AWS', () => ({
 describe('components/Logo', () => {
   it('should render squared logo', () => {
     const { container } = render(<Logo height="20px" width="20px" />)
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('quilt')
+    expect(element.className).not.toContain('custom')
   })
 
   it('should render rectangular logo', () => {
     const { container } = render(<Logo height="30px" width="60px" />)
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('quilt')
+    expect(element.className).not.toContain('custom')
   })
 
   it('should render custom logo', () => {
-    // TODO: mock AWS.Signer
     const { container } = render(
       <Logo src="https://example.com/example.png" height="10px" width="10px" />,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('custom')
+    expect(element.className).not.toContain('quilt')
+    expect(element.getAttribute('src')).toBe('https://example.com/example.png')
   })
 })

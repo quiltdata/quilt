@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
 import type { Json } from 'utils/types'
@@ -34,6 +34,8 @@ function renderWithTheme(component: React.ReactElement) {
 }
 
 describe('components/Preview/renderers/Perspective/Metadata', () => {
+  afterEach(cleanup)
+
   const mockParquetMetadata: ParquetMetadata = {
     created_by: 'Apache Parquet Writer v1.0',
     format_version: '1.0',

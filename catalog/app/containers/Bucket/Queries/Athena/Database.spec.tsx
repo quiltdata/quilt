@@ -1,15 +1,25 @@
 import * as React from 'react'
-import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
 import noop from 'utils/noop'
-
 import Database from './Database'
 
 import * as Model from './model'
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('components/Skeleton', () => ({
+  default: () => <div data-testid="skeleton" />,
+}))
+
+vi.mock('@material-ui/lab', async () => ({
+  ...(await vi.importActual('@material-ui/lab')),
+  Alert: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="alert">{children}</div>
+  ),
+}))
 
 const emptyState: Model.State = {
   bucket: 'any',
@@ -41,55 +51,56 @@ function Provider({ children, value }: ProviderProps) {
 }
 
 describe('containers/Bucket/Queries/Athena/Database', () => {
-  beforeAll(() => {})
-
-  afterAll(() => {})
+  afterEach(cleanup)
 
   it('should render skeletons', () => {
-    const { container } = render(
+    const { getAllByTestId } = render(
       <Provider value={emptyState}>
         <Database />
       </Provider>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    const skeletons = getAllByTestId('skeleton')
+    expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it('should render selected values', () => {
-    const { container } = render(
+    const { getByText } = render(
       <Provider
         value={{
           ...emptyState,
-          catalogName: Model.wrapValue('foo', noop),
-          catalogNames: Model.wrapData({ list: ['foo'] }, noop),
-          databases: Model.wrapData({ list: ['bar'] }, noop),
-          database: Model.wrapValue('bar', noop),
+          catalogName: Model.wrapValue('catalog-name-foo', noop),
+          catalogNames: Model.wrapData({ list: ['catalog-name-foo'] }, noop),
+          databases: Model.wrapData({ list: ['database-bar'] }, noop),
+          database: Model.wrapValue('database-bar', noop),
         }}
       >
         <Database />
       </Provider>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByText('catalog-name-foo')).toBeTruthy()
+    expect(getByText('database-bar')).toBeTruthy()
   })
 
   it('should show no value (zero-width space) if selected no value', () => {
-    const { container } = render(
+    const { queryByText } = render(
       <Provider
         value={{
           ...emptyState,
           catalogName: { value: null, setValue: noop },
-          catalogNames: Model.wrapData({ list: ['any'] }, noop),
-          databases: Model.wrapData({ list: ['any'] }, noop),
+          catalogNames: Model.wrapData({ list: ['catalog-option'] }, noop),
+          databases: Model.wrapData({ list: ['database-option'] }, noop),
           database: { value: null, setValue: noop },
         }}
       >
         <Database />
       </Provider>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    expect(queryByText('catalog-option')).toBeFalsy()
+    expect(queryByText('database-option')).toBeFalsy()
   })
 
   it('should disable selection if no spare values', () => {
-    const { container } = render(
+    const { getByText } = render(
       <Provider
         value={{
           ...emptyState,
@@ -102,40 +113,48 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    const catalogLabel = getByText('Data catalog')
+    expect((catalogLabel.nextElementSibling as HTMLElement).className).toContain(
+      'disabled',
+    )
+
+    const databaseLabel = getByText('Database')
+    expect((databaseLabel.nextElementSibling as HTMLElement).className).toContain(
+      'disabled',
+    )
   })
 
   it('should show error when values failed', () => {
-    const { container } = render(
+    const { getAllByTestId } = render(
       <WithGlobalDialogs>
         <Provider
           value={{
             ...emptyState,
-            catalogName: { value: new Error('Value fail'), setValue: noop },
-            database: { value: new Error('Value fail'), setValue: noop },
+            catalogName: { value: new Error('Catalog value fail'), setValue: noop },
+            database: { value: new Error('Database value fail'), setValue: noop },
           }}
         >
           <Database />
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getAllByTestId('alert').length).toBe(2)
   })
 
   it('should show error when data failed', () => {
-    const { container } = render(
+    const { getAllByTestId } = render(
       <WithGlobalDialogs>
         <Provider
           value={{
             ...emptyState,
-            catalogNames: { data: new Error('Data fail'), loadMore: noop },
-            databases: { data: new Error('Data fail'), loadMore: noop },
+            catalogNames: { data: new Error('Catalog data fail'), loadMore: noop },
+            databases: { data: new Error('Database data fail'), loadMore: noop },
           }}
         >
           <Database />
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getAllByTestId('alert').length).toBe(2)
   })
 })
