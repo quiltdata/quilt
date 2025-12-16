@@ -143,6 +143,7 @@ type BucketConfig {
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
   indexContentBytes: Int @admin
+  prefixes: [String!] @admin
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
@@ -642,6 +643,7 @@ input BucketAddInput {
   indexContentBytes: Int
   delayScan: Boolean
   browsable: Boolean
+  prefixes: [String!]
 }
 
 input BucketUpdateInput {
@@ -658,6 +660,7 @@ input BucketUpdateInput {
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
   browsable: Boolean
+  prefixes: [String!]
 }
 
 type BucketAddSuccess {
@@ -697,7 +700,7 @@ type NotificationTopicNotFound {
 }
 
 type InsufficientPermissions {
-  _: Boolean
+  message: String!
 }
 
 type IndexingInProgress {
@@ -729,6 +732,7 @@ union BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid

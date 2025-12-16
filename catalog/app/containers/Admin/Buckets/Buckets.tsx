@@ -428,6 +428,8 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
+  // NOTE: prefixes are managed via quilt3.admin SDK for now
+  prefixes: () => null,
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
