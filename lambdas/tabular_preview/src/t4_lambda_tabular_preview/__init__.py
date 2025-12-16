@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import anndata
 import fsspec
+import h5py
 import pandas
 import pyarrow
 import pyarrow.csv
@@ -24,8 +25,7 @@ from t4_lambda_shared.utils import (
     make_json_response,
 )
 
-# Default is safe for Lambda's 3GB limit with scanpy overhead
-SKIP_QC_METRICS_SIZE = int(os.getenv("SKIP_QC_METRICS_SIZE", 1_000_000))
+H5AD_META_ONLY_SIZE = int(os.getenv("H5AD_META_ONLY_SIZE", 1_000_000))
 
 
 logger = get_quilt_logger()
@@ -277,68 +277,39 @@ def preview_parquet(url, compression, max_out_size):
 
 
 def preview_h5ad(url, compression, max_out_size):
-    with tempfile.NamedTemporaryFile(suffix=".h5ad") as tmp_file:
-        with urlopen(url, compression=compression) as src:
-            try:
-                while data := src.read(2 ** 20):
-                    tmp_file.write(data)
-            except OSError as e:
-                match e.errno:
-                    case errno.ENOSPC:
-                        logger.error("Insufficient storage space: %s", e)
-                        raise InsufficientStorageError("Insufficient storage space") from e
-                raise TempStorageError("Temporary storage error") from e
+    with urlopen(url, compression=compression, seekable=True) as src:
+        with h5py.File(src, "r") as h5py_file:
+            adata = anndata.experimental.read_lazy(h5py_file)
 
-        tmp_file.flush()
-        return _preview_h5ad(tmp_file.name, max_out_size)
+            # Get matrix dimensions to decide processing strategy
+            n_obs, n_vars = adata.shape
 
+            if (meta_only := n_obs * n_vars) >= H5AD_META_ONLY_SIZE:
+                # For large files, skip intensive QC calculation that requires loading full matrix
+                logger.warning(f"Getting only basic info for large matrix ({n_obs} x {n_vars}) to avoid OOM/timeout")
 
-def _preview_h5ad(path: str, max_out_size: int):
-    adata = anndata.read_h5ad(path, backed="r")
+                # Create empty dataframe
+                var_df = pandas.DataFrame(index=list(adata.var_names))
+            else:
+                adata = anndata.read_h5ad(src)
+                # For smaller matrices, calculate full QC metrics using scanpy
+                sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+                var_df = adata.var.copy()
 
-    # Get matrix dimensions to decide processing strategy
-    n_obs, n_vars = adata.shape
+            # Add gene expression statistics from the QC metrics
+            # These columns are added by calculate_qc_metrics:
+            # - total_counts: total UMI counts for this gene across all cells
+            # - n_cells_by_counts: number of cells with non-zero counts for this gene
+            # - mean_counts: mean counts per cell for this gene
+            # - pct_dropout_by_counts: percentage of cells with zero counts
 
-    # For large files, skip intensive QC calculation that requires loading full matrix
-    # Instead, provide basic statistics to avoid memory issues
-    # Threshold based on typical Lambda memory limits and scanpy memory usage patterns
-    matrix_elements = n_obs * n_vars
-    # Skip QC for matrices that could cause memory issues in Lambda
-    # Based on actual 500MB file failures, use conservative threshold
-    if matrix_elements >= SKIP_QC_METRICS_SIZE:
-        logger.warning(f"Skipping QC calculation for large matrix ({n_obs} x {n_vars}) to avoid memory issues")
+            # Reset index to include gene IDs as a regular column
+            var_df_with_index = var_df.reset_index()
+            var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
 
-        # Use existing gene metadata if available, otherwise create basic dataframe
-        var_df = adata.var.copy() if adata.var is not None else pandas.DataFrame(index=range(n_vars))
-
-        # Add basic placeholder metrics instead of computing intensive QC
-        var_df["n_cells"] = n_obs  # Total cells (constant for all genes)
-        var_df["matrix_size"] = f"{n_obs}x{n_vars}"
-
-        # Add basic statistics if we can access them without loading full matrix
-        if hasattr(adata, "X") and hasattr(adata.X, "nnz"):
-            # For sparse matrices, we can get non-zero count efficiently
-            var_df["total_nonzero"] = adata.X.getnnz(axis=0) if hasattr(adata.X, "getnnz") else "unknown"
-    else:
-        adata = adata.to_memory()
-        # For smaller matrices, calculate full QC metrics using scanpy
-        sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-        var_df = adata.var.copy()
-
-    # Add gene expression statistics from the QC metrics
-    # These columns are added by calculate_qc_metrics:
-    # - total_counts: total UMI counts for this gene across all cells
-    # - n_cells_by_counts: number of cells with non-zero counts for this gene
-    # - mean_counts: mean counts per cell for this gene
-    # - pct_dropout_by_counts: percentage of cells with zero counts
-
-    # Reset index to include gene IDs as a regular column
-    var_df_with_index = var_df.reset_index()
-    var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
-
-    # Convert to Arrow table and write as Arrow format
-    table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
-    output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
+            # Convert to Arrow table and write as Arrow format
+            table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
+            output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
     return (
         200,
@@ -349,10 +320,10 @@ def _preview_h5ad(path: str, max_out_size: int):
             QUILT_INFO_HEADER: json.dumps(
                 {
                     "truncated": output_truncated,
+                    "meta_only": meta_only,
                     # H5AD-specific metadata format
                     "meta": {
                         "schema": {"names": list(var_df_with_index.columns)},
-                        "serialized_size": len(output_data),
                         # H5AD-specific metadata with descriptive names
                         "h5ad_obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
                         "h5ad_var_keys": (list(adata.var.columns) if adata.var is not None else []),
