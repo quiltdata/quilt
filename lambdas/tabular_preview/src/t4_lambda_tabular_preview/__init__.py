@@ -258,7 +258,7 @@ def preview_h5ad(url, compression, max_out_size):
 
             if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
                 # For large files, skip intensive QC calculation that requires loading full matrix
-                logger.warning(f"Getting only meta for large matrix ({n_obs} x {n_vars}) to avoid OOM/timeout")
+                logger.warning("Getting only meta for large matrix (%d x %d) to avoid OOM/timeout", n_obs, n_vars)
 
                 # Create empty dataframe
                 var_df = pandas.DataFrame(columns=list(adata.var.keys()))
