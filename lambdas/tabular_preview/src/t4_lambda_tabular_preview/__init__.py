@@ -326,12 +326,12 @@ def preview_h5ad(url, compression, max_out_size):
                     "meta": {
                         "schema": {"names": list(var_df_with_index.columns)},
                         # H5AD-specific metadata with descriptive names
-                        "h5ad_obs_keys": (list(adata.obs.columns) if adata.obs is not None else []),
-                        "h5ad_var_keys": (list(adata.var.columns) if adata.var is not None else []),
-                        "h5ad_uns_keys": (list(adata.uns.keys()) if adata.uns is not None else []),
-                        "h5ad_obsm_keys": (list(adata.obsm.keys()) if adata.obsm is not None else []),
-                        "h5ad_varm_keys": (list(adata.varm.keys()) if adata.varm is not None else []),
-                        "h5ad_layers_keys": (list(adata.layers.keys()) if adata.layers is not None else []),
+                        "h5ad_obs_keys": list(adata.obs.columns),
+                        "h5ad_var_keys": list(adata.var.columns),
+                        "h5ad_uns_keys": list(adata.uns.keys()),
+                        "h5ad_obsm_keys": list(adata.obsm.keys()),
+                        "h5ad_varm_keys": list(adata.varm.keys()),
+                        "h5ad_layers_keys": list(adata.layers.keys()),
                         # Additional biological context
                         "anndata_version": getattr(adata, "__version__", None),
                         "n_cells": adata.n_obs,
