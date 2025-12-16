@@ -95,12 +95,14 @@ describe('components/FileEditor/routes', () => {
     it('should throw error when no bucket', () => {
       const restoreConsole = suppressErrorOutput()
 
-      useParamsInternal.mockImplementationOnce(() => ({}))
-      const { result } = renderHook(() => useParams())
+      try {
+        useParamsInternal.mockImplementationOnce(() => ({}))
+        const { result } = renderHook(() => useParams())
 
-      expect(result.error?.message).toBe('`bucket` must be defined')
-
-      restoreConsole()
+        expect(result.error?.message).toBe('`bucket` must be defined')
+      } finally {
+        restoreConsole()
+      }
     })
 
     it('should return initial path', () => {
