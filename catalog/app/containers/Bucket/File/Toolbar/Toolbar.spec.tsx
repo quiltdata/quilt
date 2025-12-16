@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
@@ -42,14 +42,6 @@ vi.mock('components/Buttons', async () => ({
     </button>
   ),
 }))
-
-vi.mock('@material-ui/core', async () => {
-  const { makeStyles } = await import('utils/makeStyles.spec')
-  return {
-    ...(await vi.importActual('@material-ui/core')),
-    makeStyles: makeStyles('Toolbar'),
-  }
-})
 
 vi.mock('containers/Bucket/Toolbar', async () => ({
   ...(await vi.importActual('containers/Bucket/Toolbar')),
@@ -178,8 +170,10 @@ describe('useFeatures', () => {
 const handle = FileToolbar.CreateHandle('test-bucket', 'test/file.txt')
 
 describe('Toolbar', () => {
+  afterEach(cleanup)
+
   it('should render skeleton buttons when features is null', () => {
-    const { container } = render(
+    const { getAllByText } = render(
       <FileToolbar.Toolbar
         features={null}
         handle={handle}
@@ -187,12 +181,12 @@ describe('Toolbar', () => {
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    const skeletonTexts = getAllByText('⌛')
+    expect(skeletonTexts.length).toBeGreaterThan(0)
   })
 
   it('should render all buttons when all features are enabled', () => {
-    const { container } = render(
+    const { getByTitle, getByText } = render(
       <FileToolbar.Toolbar
         features={{ get: { code: true }, organize: true, qurator: true }}
         handle={handle}
@@ -201,12 +195,13 @@ describe('Toolbar', () => {
         editorState={editorState}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Get file').textContent).toBe('"Get" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(getByText('Assist')).toBeTruthy()
   })
 
   it('should render nothing when all features are disabled', () => {
-    const { container } = render(
+    const { container, queryByTitle, queryByText } = render(
       <FileToolbar.Toolbar
         features={{ get: false, organize: false, qurator: false }}
         handle={handle}
@@ -214,12 +209,14 @@ describe('Toolbar', () => {
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(queryByTitle('Get file')).toBeFalsy()
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(queryByText('Assist')).toBeFalsy()
+    expect((container.firstChild as HTMLElement).children).toHaveLength(0)
   })
 
   it('should render buttons for enabled features: get, qurator', () => {
-    const { container } = render(
+    const { getByTitle, queryByTitle, getByText } = render(
       <FileToolbar.Toolbar
         features={{ get: { code: true }, organize: false, qurator: true }}
         handle={handle}
@@ -227,12 +224,13 @@ describe('Toolbar', () => {
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Get file').textContent).toBe('"Get" popover')
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(getByText('Assist')).toBeTruthy()
   })
 
   it('should not render organize button when editorState is not provided', () => {
-    const { container } = render(
+    const { container, queryByTitle } = render(
       <FileToolbar.Toolbar
         features={{ get: false, organize: true, qurator: false }}
         handle={handle}
@@ -240,7 +238,7 @@ describe('Toolbar', () => {
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect((container.firstChild as HTMLElement).children).toHaveLength(0)
   })
 })

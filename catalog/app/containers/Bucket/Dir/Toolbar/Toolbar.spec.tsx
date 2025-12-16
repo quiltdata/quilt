@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { beforeEach, describe, it, expect, vi, type Mock } from 'vitest'
-import { render } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi, afterEach, type Mock } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -44,14 +44,6 @@ vi.mock('containers/Bucket/PackageDialog', () => ({
 vi.mock('@material-ui/lab', () => ({
   Skeleton: () => <i>⌛</i>,
 }))
-
-vi.mock('@material-ui/core', async () => {
-  const { makeStyles } = await import('utils/makeStyles.spec')
-  return {
-    ...(await vi.importActual('@material-ui/core')),
-    makeStyles: makeStyles('Toolbar'),
-  }
-})
 
 vi.mock('components/Buttons', () => ({
   WithPopover: ({
@@ -153,47 +145,55 @@ describe('useFeatures', () => {
 const handle = DirToolbar.CreateHandle('test-bucket', 'test/path')
 
 describe('Toolbar', () => {
+  afterEach(cleanup)
+
   it('should render skeleton buttons when features is null', () => {
-    const { container } = render(
+    const { getAllByText } = render(
       <DirToolbar.Toolbar features={null} handle={handle} onReload={vi.fn()} />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    const skeletonTexts = getAllByText('⌛')
+    expect(skeletonTexts.length).toBeGreaterThan(0)
   })
 
   it('should render all buttons when all features are enabled', () => {
-    const { container } = render(
+    const { getByTitle } = render(
       <DirToolbar.Toolbar
         features={{ add: true, get: { code: true }, organize: true, createPackage: true }}
         handle={handle}
         onReload={vi.fn()}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Add files').textContent).toBe('"Add" popover')
+    expect(getByTitle('Get files').textContent).toBe('"Get" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(getByTitle('Create package').textContent).toBe('"Create package" popover')
   })
 
   it('should render nothing when all features are disabled', () => {
-    const { container } = render(
+    const { queryByTitle } = render(
       <DirToolbar.Toolbar
         features={{ add: false, get: false, organize: false, createPackage: false }}
         handle={handle}
         onReload={vi.fn()}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(queryByTitle('Add files')).toBeFalsy()
+    expect(queryByTitle('Get files')).toBeFalsy()
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(queryByTitle('Create package')).toBeFalsy()
   })
 
   it('should render buttons for enabled features: add, organize', () => {
-    const { container } = render(
+    const { getByTitle, queryByTitle } = render(
       <DirToolbar.Toolbar
         features={{ add: true, get: false, organize: true, createPackage: false }}
         handle={handle}
         onReload={vi.fn()}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Add files').textContent).toBe('"Add" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(queryByTitle('Get files')).toBeFalsy()
+    expect(queryByTitle('Create package')).toBeFalsy()
   })
 })

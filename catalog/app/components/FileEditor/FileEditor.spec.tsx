@@ -1,23 +1,17 @@
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
 import AsyncResult from 'utils/AsyncResult'
 import noop from 'utils/noop'
-import { makeStyles } from 'utils/makeStyles.spec'
-
-vi.mock('@material-ui/core', async () => ({
-  ...(await vi.importActual('@material-ui/core')),
-  makeStyles: makeStyles('FileEditor'),
-}))
 
 import { useState } from './State'
 import { Editor } from './FileEditor'
 
 vi.mock('utils/AWS', () => ({ S3: { use: noop } }))
 
-vi.mock('./Skeleton', () => ({ default: () => <div id="Skeleton" /> }))
+vi.mock('./Skeleton', () => ({ default: () => <div data-testid="Skeleton" /> }))
 
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
@@ -31,11 +25,11 @@ vi.mock('react-router-dom', async () => ({
 }))
 
 vi.mock('components/Preview/Display', () => ({
-  default: () => <div id="error" />,
+  default: () => <div data-testid="error" />,
 }))
 
 const getObjectData = vi.fn((cases: any) =>
-  AsyncResult.case(cases, AsyncResult.Ok({ Body: 'body' })),
+  AsyncResult.case(cases, AsyncResult.Ok({ Body: 'file text content body' })),
 )
 
 vi.mock('components/Preview/loaders/utils', async () => ({
@@ -47,8 +41,8 @@ vi.mock('components/Preview/loaders/utils', async () => ({
 
 vi.mock('./TextEditor', () => ({
   default: ({ initialValue }: { initialValue: string }) => (
-    <div id="Text Editor">
-      <span id="initialValue">{initialValue}</span>
+    <div data-testid="Text Editor">
+      <span data-testid="initialValue">{initialValue}</span>
     </div>
   ),
 }))
@@ -64,15 +58,18 @@ vi.mock('./loader', () => ({
 }))
 
 describe('components/FileEditor/FileEditor', () => {
+  afterEach(cleanup)
+
   describe('Editor', () => {
     const handle = { bucket: 'b', key: 'k' }
     const hookData = renderHook(() => useState(handle))
     const state = hookData.result.current
+
     it('shows skeleton when loadMode is not resolved yet', () => {
       loadMode.mockImplementationOnce(() => {
         throw Promise.resolve(null)
       })
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...state}
           className="root"
@@ -80,11 +77,11 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Skeleton')).toBeTruthy()
     })
 
     it('shows TextEditor', () => {
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...state}
           className="root"
@@ -92,11 +89,11 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Text Editor').textContent).toBe('file text content body')
     })
 
     it('shows an empty TextEditor', () => {
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...state}
           empty
@@ -105,7 +102,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Text Editor').textContent).toBe('')
     })
 
     it('shows Skeleton while loading data', () => {
@@ -113,7 +110,7 @@ describe('components/FileEditor/FileEditor', () => {
         AsyncResult.case(cases, AsyncResult.Pending()),
       )
       const { result } = renderHook(() => useState(handle))
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...result.current}
           className="root"
@@ -121,7 +118,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Skeleton')).toBeTruthy()
     })
 
     it('shows Error when loading failed', () => {
@@ -129,7 +126,7 @@ describe('components/FileEditor/FileEditor', () => {
         AsyncResult.case(cases, AsyncResult.Err(new Error('Fail'))),
       )
       const { result } = renderHook(() => useState(handle))
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...result.current}
           className="root"
@@ -137,7 +134,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('error')).toBeTruthy()
     })
   })
 })

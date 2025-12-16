@@ -1,27 +1,31 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-
-import { makeStyles } from 'utils/makeStyles.spec'
+import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, afterEach } from 'vitest'
 
 import * as Buttons from './'
 
-vi.mock('@material-ui/core', async () => ({
-  ...(await vi.importActual('@material-ui/core')),
-  makeStyles: makeStyles('Skeleton'),
-}))
-
 describe('components/Buttons/Skeleton', () => {
+  afterEach(cleanup)
+
   it('render medium by default', () => {
     const { container } = render(<Buttons.Skeleton />)
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('medium')
+    expect(element.className).not.toContain('large')
+    expect(element.className).not.toContain('small')
   })
   it('render small', () => {
     const { container } = render(<Buttons.Skeleton size="small" />)
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('small')
+    expect(element.className).not.toContain('large')
+    expect(element.className).not.toContain('medium')
   })
   it('render large', () => {
     const { container } = render(<Buttons.Skeleton size="large" />)
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('large')
+    expect(element.className).not.toContain('small')
+    expect(element.className).not.toContain('medium')
   })
 })

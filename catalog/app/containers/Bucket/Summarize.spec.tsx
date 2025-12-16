@@ -63,7 +63,7 @@ describe('containers/Buckets/Summarize', () => {
       )
       expect(queryByText('Add README')).toBeFalsy()
       expect(queryByText('Configure Summary')).toBeFalsy()
-      expect(container.firstChild?.textContent).toBe('')
+      expect((container.firstChild as HTMLElement).children).toHaveLength(0)
     })
 
     it('should render readme link', () => {
