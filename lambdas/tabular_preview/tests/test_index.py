@@ -98,7 +98,18 @@ def test_preview_simple(filename, handler_name):
         )
 
 
-def test_preview_h5ad():
+@pytest.mark.parametrize(
+    "skip_qc",
+    [False, True],
+)
+def test_preview_h5ad(mocker, skip_qc):
+    if skip_qc:
+        mocker.patch(
+            "t4_lambda_tabular_preview.SKIP_QC_METRICS_SIZE",
+            0,  # Force skipping QC metrics calculation
+        )
+        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview.sc.pp.calculate_qc_metrics")
+
     data = (pathlib.Path(__file__).parent / "data" / "simple/test.h5ad").read_bytes()
     with patch_urlopen(data) as urlopen_mock:
         code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
@@ -140,8 +151,13 @@ def test_preview_h5ad():
 
         # Should have QC metric columns added by scanpy
         expected_qc_columns = ["total_counts", "n_cells_by_counts", "mean_counts", "pct_dropout_by_counts"]
-        for col in expected_qc_columns:
-            assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
+        if skip_qc:
+            calculate_qc_metrics_mock.assert_not_called()
+            for col in expected_qc_columns:
+                assert col not in df.columns, f"Unexpected QC column {col} found in {df.columns.tolist()}"
+        else:
+            for col in expected_qc_columns:
+                assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
 
         # Check that we have the right number of genes (rows)
         assert len(df) == 2  # Should have 2 genes from our test data
