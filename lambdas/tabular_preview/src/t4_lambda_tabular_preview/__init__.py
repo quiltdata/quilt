@@ -31,34 +31,6 @@ H5AD_META_ONLY_SIZE = int(os.getenv("H5AD_META_ONLY_SIZE", 1_000_000))
 logger = get_quilt_logger()
 
 
-class FileTooLargeError(Exception):
-    """Raised when a file is too large to process in the lambda environment"""
-    pass
-
-
-class InsufficientStorageError(Exception):
-    """Raised when there's insufficient temporary storage space"""
-    pass
-
-
-class TempStorageError(Exception):
-    """Raised when there's an error with temporary file operations"""
-    pass
-
-
-def handle_exceptions(*exception_types):
-    """Decorator to catch specific exceptions and return structured JSON responses"""
-    def decorator(f):
-        @functools.wraps(f)
-        def wrapper(*args, **kwargs):
-            try:
-                return f(*args, **kwargs)
-            except exception_types as e:
-                return make_json_response(500, {'error': str(e)})
-        return wrapper
-    return decorator
-
-
 # Lambda's response must fit into 6 MiB, binary data must be encoded
 # with base64 (4.5 MiB limit). It's rounded down to leave some space for headers
 # and non-flushed gzip buffers.
@@ -383,7 +355,6 @@ def is_s3_url(url: str) -> bool:
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
-@handle_exceptions(FileTooLargeError, InsufficientStorageError, TempStorageError)
 def lambda_handler(request):
     url = request.args["url"]
     input_type = request.args.get("input")
