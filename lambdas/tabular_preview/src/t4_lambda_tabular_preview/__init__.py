@@ -284,7 +284,7 @@ def preview_h5ad(url, compression, max_out_size):
             # Get matrix dimensions to decide processing strategy
             n_obs, n_vars = adata.shape
 
-            if (meta_only := n_obs * n_vars) >= H5AD_META_ONLY_SIZE:
+            if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
                 # For large files, skip intensive QC calculation that requires loading full matrix
                 logger.warning(f"Getting only meta for large matrix ({n_obs} x {n_vars}) to avoid OOM/timeout")
 

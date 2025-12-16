@@ -99,11 +99,11 @@ def test_preview_simple(filename, handler_name):
 
 
 @pytest.mark.parametrize(
-    "basic_info_only",
+    "meta_only",
     [False, True],
 )
-def test_preview_h5ad(mocker, basic_info_only):
-    if basic_info_only:
+def test_preview_h5ad(mocker, meta_only):
+    if meta_only:
         mocker.patch(
             "t4_lambda_tabular_preview.H5AD_META_ONLY_SIZE",
             0,  # Force providing only meta
@@ -126,6 +126,7 @@ def test_preview_h5ad(mocker, basic_info_only):
     info = json.loads(headers[QUILT_INFO_HEADER])
     assert "truncated" in info
     assert "meta" in info
+    assert info.get("meta_only") is meta_only
     # Check H5AD-specific metadata format
     assert "h5ad_obs_keys" in info["meta"]  # H5AD-specific fields
     assert "h5ad_var_keys" in info["meta"]
@@ -145,13 +146,13 @@ def test_preview_h5ad(mocker, basic_info_only):
     # Should have gene-level QC metrics instead of expression matrix
     assert "gene_id" in df.columns
     assert "highly_variable" in df.columns
-    if not basic_info_only:
+    if not meta_only:
         assert "ENSG001" in df["gene_id"].values
         assert "ENSG002" in df["gene_id"].values
 
     # Should have QC metric columns added by scanpy
     expected_qc_columns = ["total_counts", "n_cells_by_counts", "mean_counts", "pct_dropout_by_counts"]
-    if basic_info_only:
+    if meta_only:
         calculate_qc_metrics_mock.assert_not_called()
         for col in expected_qc_columns:
             assert col not in df.columns, f"Unexpected QC column {col} found in {df.columns.tolist()}"
@@ -160,7 +161,7 @@ def test_preview_h5ad(mocker, basic_info_only):
             assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
 
     # Check that we have the right number of genes (rows)
-    if basic_info_only:
+    if meta_only:
         assert len(df) == 0  # no tabular data
     else:
         assert len(df) == 2  # Should have 2 genes from our test data
