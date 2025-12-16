@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Catch error and don't show Perspective table if Perspective failed to render ([#4669](https://github.com/quiltdata/quilt/pull/4669))
 - [Changed] Enable strict test isolation with `globals: false` in Vitest configuration ([#4660](https://github.com/quiltdata/quilt/pull/4660))
 - [Added] H5AD file preview ([#4665](https://github.com/quiltdata/quilt/pull/4665))
 - [Changed] Unified metadata table design for H5AD, Parquet, and Quilt package previews ([#4665](https://github.com/quiltdata/quilt/pull/4665))
