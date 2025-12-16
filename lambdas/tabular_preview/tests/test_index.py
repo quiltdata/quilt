@@ -144,8 +144,10 @@ def test_preview_h5ad(mocker, basic_info_only):
 
     # Should have gene-level QC metrics instead of expression matrix
     assert "gene_id" in df.columns
-    assert "ENSG001" in df["gene_id"].values
-    assert "ENSG002" in df["gene_id"].values
+    assert "highly_variable" in df.columns
+    if not basic_info_only:
+        assert "ENSG001" in df["gene_id"].values
+        assert "ENSG002" in df["gene_id"].values
 
     # Should have QC metric columns added by scanpy
     expected_qc_columns = ["total_counts", "n_cells_by_counts", "mean_counts", "pct_dropout_by_counts"]
@@ -158,7 +160,10 @@ def test_preview_h5ad(mocker, basic_info_only):
             assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
 
     # Check that we have the right number of genes (rows)
-    assert len(df) == 2  # Should have 2 genes from our test data
+    if basic_info_only:
+        assert len(df) == 0  # no tabular data
+    else:
+        assert len(df) == 2  # Should have 2 genes from our test data
 
 
 def test_preview_simple_parquet():

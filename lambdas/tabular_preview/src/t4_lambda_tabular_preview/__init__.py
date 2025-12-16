@@ -286,10 +286,10 @@ def preview_h5ad(url, compression, max_out_size):
 
             if (meta_only := n_obs * n_vars) >= H5AD_META_ONLY_SIZE:
                 # For large files, skip intensive QC calculation that requires loading full matrix
-                logger.warning(f"Getting only basic info for large matrix ({n_obs} x {n_vars}) to avoid OOM/timeout")
+                logger.warning(f"Getting only meta for large matrix ({n_obs} x {n_vars}) to avoid OOM/timeout")
 
                 # Create empty dataframe
-                var_df = pandas.DataFrame(index=list(adata.var_names))
+                var_df = pandas.DataFrame(columns=list(adata.var.keys()))
             else:
                 adata = anndata.read_h5ad(src)
                 # For smaller matrices, calculate full QC metrics using scanpy
@@ -305,6 +305,7 @@ def preview_h5ad(url, compression, max_out_size):
 
             # Reset index to include gene IDs as a regular column
             var_df_with_index = var_df.reset_index()
+            # XXX: doesn't that change the original column name?
             var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
 
             # Convert to Arrow table and write as Arrow format
