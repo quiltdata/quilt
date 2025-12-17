@@ -93,18 +93,6 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: t.spacing(60),
-    overflow: 'hidden',
-    // NOTE: padding is required because perspective-viewer covers resize handle
-    padding: '0 0 8px',
-    resize: 'vertical',
-  },
-  fullHeight: {
-    minHeight: t.spacing(120),
-  },
   meta: {
     marginBottom: t.spacing(1),
   },
@@ -114,6 +102,18 @@ const useStyles = M.makeStyles((t) => ({
   },
   toolbar: {
     marginBottom: t.spacing(1),
+  },
+  table: {
+    flexGrow: 1,
+    minHeight: t.spacing(60),
+
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+
+    // NOTE: padding is required because perspective-viewer covers resize handle
+    padding: '0 0 8px',
+    resize: 'vertical',
   },
   warning: {
     marginTop: t.spacing(2),
@@ -131,7 +131,6 @@ export interface PerspectiveProps
 }
 
 export default function Perspective({
-  children,
   className,
   data,
   meta,
@@ -148,31 +147,24 @@ export default function Perspective({
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
   const state = perspective.use(root, data, attrs, config, onRender)
 
-  if (state instanceof Error) {
-    return (
-      <div className={cx(className, classes.root)} {...props}>
-        {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+  return (
+    <div className={className} {...props}>
+      {state._tag === 'ready' && (
+        <Toolbar
+          className={classes.toolbar}
+          state={state.state}
+          onLoadMore={onLoadMore}
+          truncated={truncated}
+        />
+      )}
+      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+      {state._tag === 'error' ? (
         <Lab.Alert className={classes.warning} severity="info" icon={false}>
           Could not render tabular data
         </Lab.Alert>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className={cx(className, classes.root, classes.fullHeight)}
-      ref={setRoot}
-      {...props}
-    >
-      <Toolbar
-        className={classes.toolbar}
-        state={state}
-        onLoadMore={onLoadMore}
-        truncated={truncated}
-      />
-      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
-      {children}
+      ) : (
+        <div ref={setRoot} className={classes.table} />
+      )}
     </div>
   )
 }

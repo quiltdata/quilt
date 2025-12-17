@@ -39,6 +39,11 @@ export async function renderTable(
   return table
 }
 
+type PerspectiveState =
+  | { _tag: 'idle' }
+  | { _tag: 'ready'; state: State }
+  | { _tag: 'error'; error: Error }
+
 function usePerspective(
   container: HTMLDivElement | null,
   data: PerspectiveInput,
@@ -46,7 +51,7 @@ function usePerspective(
   config?: ViewConfig,
   onRender?: (tableEl: RegularTableElement) => void,
 ) {
-  const [state, setState] = React.useState<State | Error | null>(null)
+  const [state, setState] = React.useState<PerspectiveState>({ _tag: 'idle' })
 
   React.useEffect(() => {
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
@@ -61,7 +66,7 @@ function usePerspective(
         table = await renderTable(data, viewer)
       } catch (e) {
         const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
-        setState(error)
+        setState({ _tag: 'error', error })
         log.error(error)
         return
       }
@@ -79,16 +84,19 @@ function usePerspective(
 
       const size = await table.size()
       setState({
-        rotateThemes: async () => {
-          const settings = await viewer?.save()
-          // @ts-expect-error `ViewConfig` type doesn't have `theme`
-          const themeIndex = themes.findIndex((t) => t === settings?.theme)
-          const theme =
-            themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
-          viewer?.restore({ theme } as ViewConfig)
+        _tag: 'ready',
+        state: {
+          rotateThemes: async () => {
+            const settings = await viewer?.save()
+            // @ts-expect-error `ViewConfig` type doesn't have `theme`
+            const themeIndex = themes.findIndex((t) => t === settings?.theme)
+            const theme =
+              themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
+            viewer?.restore({ theme } as ViewConfig)
+          },
+          size,
+          toggleConfig: () => viewer?.toggleConfig(),
         },
-        size,
-        toggleConfig: () => viewer?.toggleConfig(),
       })
     }
 
