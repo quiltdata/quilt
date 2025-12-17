@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - 251212-s3-prefix-scope--catalog  # TODO: remove before merging
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
