@@ -67,4 +67,4 @@ class Bucket:
     skip_meta_data_indexing: Optional[bool]
     file_extensions_to_index: Optional[List[str]]
     index_content_bytes: Optional[int]
-    prefixes: Optional[List[str]]
+    prefixes: List[str]
