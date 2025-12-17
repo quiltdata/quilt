@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Added] Display detailed permission error messages when bucket add/update fails due to insufficient S3 permissions ([#4670](https://github.com/quiltdata/quilt/pull/4670))
+- [Added] Support `prefixes` field in bucket configuration for prefix-scoped bucket access ([#4670](https://github.com/quiltdata/quilt/pull/4670))
 - [Fixed] Catch error and don't show Perspective table if Perspective failed to render ([#4669](https://github.com/quiltdata/quilt/pull/4669))
 - [Changed] Enable strict test isolation with `globals: false` in Vitest configuration ([#4660](https://github.com/quiltdata/quilt/pull/4660))
 - [Added] H5AD file preview ([#4665](https://github.com/quiltdata/quilt/pull/4665))
