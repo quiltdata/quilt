@@ -1,9 +1,9 @@
-from typing import List, Optional
+import typing as T
 
 from . import _graphql_client, exceptions, types, util
 
 
-def get(name: str) -> Optional[types.Bucket]:
+def get(name: str) -> T.Optional[types.Bucket]:
     """
     Get a specific bucket configuration from the registry.
     Returns `None` if the bucket does not exist.
@@ -17,7 +17,7 @@ def get(name: str) -> Optional[types.Bucket]:
     return types.Bucket(**result.model_dump())
 
 
-def list() -> List[types.Bucket]:
+def list() -> list[types.Bucket]:
     """
     Get a list of all bucket configurations in the registry.
     """
@@ -28,19 +28,19 @@ def add(
     name: str,
     title: str,
     *,
-    description: Optional[str] = None,
-    icon_url: Optional[str] = None,
-    overview_url: Optional[str] = None,
-    tags: Optional[List[str]] = None,
-    relevance_score: Optional[int] = None,
-    sns_notification_arn: Optional[str] = None,
-    scanner_parallel_shards_depth: Optional[int] = None,
-    skip_meta_data_indexing: Optional[bool] = None,
-    file_extensions_to_index: Optional[List[str]] = None,
-    index_content_bytes: Optional[int] = None,
-    delay_scan: Optional[bool] = None,
-    browsable: Optional[bool] = None,
-    prefixes: Optional[List[str]] = None,
+    description: T.Optional[str] = None,
+    icon_url: T.Optional[str] = None,
+    overview_url: T.Optional[str] = None,
+    tags: T.Optional[list[str]] = None,
+    relevance_score: T.Optional[int] = None,
+    sns_notification_arn: T.Optional[str] = None,
+    scanner_parallel_shards_depth: T.Optional[int] = None,
+    skip_meta_data_indexing: T.Optional[bool] = None,
+    file_extensions_to_index: T.Optional[list[str]] = None,
+    index_content_bytes: T.Optional[int] = None,
+    delay_scan: T.Optional[bool] = None,
+    browsable: T.Optional[bool] = None,
+    prefixes: T.Optional[list[str]] = None,
 ) -> types.Bucket:
     """
     Add a new bucket to the registry.
@@ -114,18 +114,18 @@ def update(
     name: str,
     title: str,
     *,
-    description: Optional[str] = None,
-    icon_url: Optional[str] = None,
-    overview_url: Optional[str] = None,
-    tags: Optional[List[str]] = None,
-    relevance_score: Optional[int] = None,
-    sns_notification_arn: Optional[str] = None,
-    scanner_parallel_shards_depth: Optional[int] = None,
-    skip_meta_data_indexing: Optional[bool] = None,
-    file_extensions_to_index: Optional[List[str]] = None,
-    index_content_bytes: Optional[int] = None,
-    browsable: Optional[bool] = None,
-    prefixes: Optional[List[str]] = None,
+    description: T.Optional[str] = None,
+    icon_url: T.Optional[str] = None,
+    overview_url: T.Optional[str] = None,
+    tags: T.Optional[list[str]] = None,
+    relevance_score: T.Optional[int] = None,
+    sns_notification_arn: T.Optional[str] = None,
+    scanner_parallel_shards_depth: T.Optional[int] = None,
+    skip_meta_data_indexing: T.Optional[bool] = None,
+    file_extensions_to_index: T.Optional[list[str]] = None,
+    index_content_bytes: T.Optional[int] = None,
+    browsable: T.Optional[bool] = None,
+    prefixes: T.Optional[list[str]] = None,
 ) -> types.Bucket:
     """
     Update an existing bucket configuration.
