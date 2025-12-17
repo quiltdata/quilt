@@ -280,7 +280,6 @@ def preview_h5ad(url, compression, max_out_size):
             # XXX: doesn't that change the original column name?
             var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
 
-            # Convert to Arrow table and write as Arrow format
             table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
             output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
@@ -297,14 +296,12 @@ def preview_h5ad(url, compression, max_out_size):
                     # H5AD-specific metadata format
                     "meta": {
                         "schema": {"names": list(var_df_with_index.columns)},
-                        # H5AD-specific metadata with descriptive names
                         "h5ad_obs_keys": list(adata.obs.columns),
                         "h5ad_var_keys": list(adata.var.columns),
                         "h5ad_uns_keys": list(adata.uns.keys()),
                         "h5ad_obsm_keys": list(adata.obsm.keys()),
                         "h5ad_varm_keys": list(adata.varm.keys()),
                         "h5ad_layers_keys": list(adata.layers.keys()),
-                        # Additional biological context
                         "anndata_version": getattr(adata, "__version__", None),
                         "n_cells": adata.n_obs,
                         "n_genes": adata.n_vars,
