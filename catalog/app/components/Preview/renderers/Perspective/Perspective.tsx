@@ -39,7 +39,7 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface ToolbarProps {
   className: string
   onLoadMore?: () => void
-  state: perspective.State | null
+  state: Extract<perspective.Model, { _tag: 'ready' }>
   truncated: boolean
 }
 
@@ -142,17 +142,15 @@ export default function Perspective({
 }: PerspectiveProps) {
   const classes = useStyles()
 
-  const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
-
-  const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const state = perspective.use(root, data, attrs, config, onRender)
+  const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
+  const state = perspective.use(anchorEl, data, classes.viewer, config, onRender)
 
   return (
     <div className={className} {...props}>
       {state._tag === 'ready' && (
         <Toolbar
           className={classes.toolbar}
-          state={state.state}
+          state={state}
           onLoadMore={onLoadMore}
           truncated={truncated}
         />
@@ -163,7 +161,7 @@ export default function Perspective({
           Could not render tabular data
         </Lab.Alert>
       ) : (
-        <div ref={setRoot} className={classes.table} />
+        <div ref={setAnchorEl} className={classes.table} />
       )}
     </div>
   )
