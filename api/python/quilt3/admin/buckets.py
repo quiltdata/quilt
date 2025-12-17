@@ -94,7 +94,7 @@ def _handle_bucket_add_result(result) -> types.Bucket:
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketDoesNotExist):
         raise exceptions.Quilt3AdminError("Bucket does not exist in S3")
     if isinstance(result, _graphql_client.BucketAddBucketAddInsufficientPermissions):
-        raise exceptions.Quilt3AdminError("Insufficient permissions to access bucket")
+        raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketAddBucketAddSnsInvalid):
         raise exceptions.Quilt3AdminError("Invalid SNS notification ARN")
     if isinstance(result, _graphql_client.BucketAddBucketAddNotificationConfigurationError):
@@ -176,7 +176,7 @@ def _handle_bucket_update_result(result) -> types.Bucket:
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketNotFound):
         raise exceptions.BucketNotFoundError()
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateInsufficientPermissions):
-        raise exceptions.Quilt3AdminError("Insufficient permissions to access bucket")
+        raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateSnsInvalid):
         raise exceptions.Quilt3AdminError("Invalid SNS notification ARN")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateNotificationConfigurationError):

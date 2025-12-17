@@ -700,7 +700,7 @@ type NotificationTopicNotFound {
 }
 
 type InsufficientPermissions {
-  _: Boolean
+  message: String!
 }
 
 type IndexingInProgress {

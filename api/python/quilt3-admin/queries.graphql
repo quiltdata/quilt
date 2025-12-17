@@ -280,6 +280,9 @@ fragment BucketAddResultSelection on BucketAddResult {
       ...BucketConfigSelection
     }
   }
+  ... on InsufficientPermissions {
+    message
+  }
 }
 
 fragment BucketUpdateResultSelection on BucketUpdateResult {
@@ -288,6 +291,9 @@ fragment BucketUpdateResultSelection on BucketUpdateResult {
     bucketConfig {
       ...BucketConfigSelection
     }
+  }
+  ... on InsufficientPermissions {
+    message
   }
 }
 

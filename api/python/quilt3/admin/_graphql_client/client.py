@@ -1253,6 +1253,9 @@ class Client(BaseClient):
                   ...BucketConfigSelection
                 }
               }
+              ... on InsufficientPermissions {
+                message
+              }
             }
 
             fragment BucketConfigSelection on BucketConfig {
@@ -1321,6 +1324,9 @@ class Client(BaseClient):
                 bucketConfig {
                   ...BucketConfigSelection
                 }
+              }
+              ... on InsufficientPermissions {
+                message
               }
             }
             """
