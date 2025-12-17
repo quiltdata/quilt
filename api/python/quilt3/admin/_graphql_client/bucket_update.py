@@ -45,6 +45,7 @@ class BucketUpdateBucketUpdateBucketNotFound(BaseModel):
 
 class BucketUpdateBucketUpdateInsufficientPermissions(BaseModel):
     typename__: Literal["InsufficientPermissions"] = Field(alias="__typename")
+    message: str
 
 
 class BucketUpdateBucketUpdateNotificationConfigurationError(BaseModel):

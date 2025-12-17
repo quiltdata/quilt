@@ -51,6 +51,7 @@ class BucketAddBucketAddBucketIndexContentBytesInvalid(BaseModel):
 
 class BucketAddBucketAddInsufficientPermissions(BaseModel):
     typename__: Literal["InsufficientPermissions"] = Field(alias="__typename")
+    message: str
 
 
 class BucketAddBucketAddNotificationConfigurationError(BaseModel):
