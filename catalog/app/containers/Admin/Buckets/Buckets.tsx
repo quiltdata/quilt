@@ -1265,7 +1265,7 @@ function parseResponseError(
         [FF.FORM_ERROR]: 'notificationConfigurationError',
       }
     case 'InsufficientPermissions':
-      return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+      return { [FF.FORM_ERROR]: r.message }
     case 'SubscriptionInvalid':
       return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
     case 'BucketIndexContentBytesInvalid':
@@ -1366,7 +1366,6 @@ function Add({ back, settings, submit }: AddProps) {
                 errors={{
                   unexpected: 'Something went wrong',
                   notificationConfigurationError: 'Notification configuration error',
-                  insufficientPermissions: 'Insufficient permissions',
                   subscriptionInvalid: 'Subscription invalid',
                 }}
                 margin="none"
