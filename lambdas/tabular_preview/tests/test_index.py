@@ -116,8 +116,6 @@ def test_preview_h5ad(mocker, meta_only):
         max_out_size=None,
     )
 
-    # urlopen_mock.assert_called_once_with(mock.sentinel.URL, compression=mock.sentinel.COMPRESSION)
-
     assert code == 200
     assert headers["Content-Type"] == "application/vnd.apache.arrow.file"
     assert headers["Content-Encoding"] == "gzip"
