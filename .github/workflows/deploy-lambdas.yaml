@@ -23,7 +23,6 @@ jobs:
           - s3hash
           - status_reports
           - manifest_indexer
-          - tabular_preview
           - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
@@ -70,6 +69,7 @@ jobs:
         path:
           - indexer
           - thumbnail
+          - tabular_preview
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
