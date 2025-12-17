@@ -749,13 +749,16 @@ export default {
           {
             name: 'prefixes',
             type: {
-              kind: 'LIST',
+              kind: 'NON_NULL',
               ofType: {
-                kind: 'NON_NULL',
+                kind: 'LIST',
                 ofType: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
                 },
               },
             },
