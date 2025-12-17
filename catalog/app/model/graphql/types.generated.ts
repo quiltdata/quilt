@@ -131,6 +131,7 @@ export interface BucketAddInput {
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly delayScan: Maybe<Scalars['Boolean']>
   readonly browsable: Maybe<Scalars['Boolean']>
+  readonly prefixes: Maybe<ReadonlyArray<Scalars['String']>>
 }
 
 export type BucketAddResult =
@@ -172,6 +173,7 @@ export interface BucketConfig {
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
+  readonly prefixes: ReadonlyArray<Scalars['String']>
   readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
@@ -231,6 +233,7 @@ export interface BucketUpdateInput {
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly browsable: Maybe<Scalars['Boolean']>
+  readonly prefixes: Maybe<ReadonlyArray<Scalars['String']>>
 }
 
 export type BucketUpdateResult =
@@ -238,6 +241,7 @@ export type BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
@@ -325,7 +329,7 @@ export interface InputError {
 
 export interface InsufficientPermissions {
   readonly __typename: 'InsufficientPermissions'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly message: Scalars['String']
 }
 
 export interface InvalidInput {
