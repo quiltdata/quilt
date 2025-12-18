@@ -19,7 +19,7 @@ def get(name: str) -> T.Optional[types.Bucket]:
 
 def list() -> list[types.Bucket]:
     """
-    Get a list of all bucket configurations in the registry.
+    List all bucket configurations in the registry.
     """
     return [types.Bucket(**b.model_dump()) for b in util.get_client().buckets_list()]
 
@@ -31,16 +31,16 @@ def add(
     description: T.Optional[str] = None,
     icon_url: T.Optional[str] = None,
     overview_url: T.Optional[str] = None,
-    tags: T.Optional[list[str]] = None,
+    tags: T.Optional[T.List[str]] = None,
     relevance_score: T.Optional[int] = None,
     sns_notification_arn: T.Optional[str] = None,
     scanner_parallel_shards_depth: T.Optional[int] = None,
     skip_meta_data_indexing: T.Optional[bool] = None,
-    file_extensions_to_index: T.Optional[list[str]] = None,
+    file_extensions_to_index: T.Optional[T.List[str]] = None,
     index_content_bytes: T.Optional[int] = None,
     delay_scan: T.Optional[bool] = None,
     browsable: T.Optional[bool] = None,
-    prefixes: T.Optional[list[str]] = None,
+    prefixes: T.Optional[T.List[str]] = None,
 ) -> types.Bucket:
     """
     Add a new bucket to the registry.
@@ -117,15 +117,15 @@ def update(
     description: T.Optional[str] = None,
     icon_url: T.Optional[str] = None,
     overview_url: T.Optional[str] = None,
-    tags: T.Optional[list[str]] = None,
+    tags: T.Optional[T.List[str]] = None,
     relevance_score: T.Optional[int] = None,
     sns_notification_arn: T.Optional[str] = None,
     scanner_parallel_shards_depth: T.Optional[int] = None,
     skip_meta_data_indexing: T.Optional[bool] = None,
-    file_extensions_to_index: T.Optional[list[str]] = None,
+    file_extensions_to_index: T.Optional[T.List[str]] = None,
     index_content_bytes: T.Optional[int] = None,
     browsable: T.Optional[bool] = None,
-    prefixes: T.Optional[list[str]] = None,
+    prefixes: T.Optional[T.List[str]] = None,
 ) -> types.Bucket:
     """
     Update an existing bucket configuration.
