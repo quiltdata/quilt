@@ -3,6 +3,7 @@ import * as React from 'react'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+import { ErrorBoundary } from 'react-error-boundary'
 
 import * as perspective from 'utils/perspective'
 
@@ -39,7 +40,7 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface ToolbarProps {
   className: string
   onLoadMore?: () => void
-  state: Extract<perspective.Model, { _tag: 'ready' }>
+  state: perspective.Model
   truncated: boolean
 }
 
@@ -94,9 +95,10 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
 
 const useStyles = M.makeStyles((t) => ({
   meta: {
-    marginBottom: t.spacing(1),
+    marginBottom: t.spacing(2),
   },
   viewer: {
+    background: '#f2f4f6',
     flexGrow: 1,
     zIndex: 1,
   },
@@ -112,7 +114,9 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
 
     // NOTE: padding is required because perspective-viewer covers resize handle
-    padding: '0 0 8px',
+    //       and for inset shadows
+    padding: t.spacing(0.5, 0.5, 1),
+    boxShadow: `inset 0 0 ${t.spacing(0.5)}px rgba(0, 0, 0, 0.2)`,
     resize: 'vertical',
   },
   warning: {
@@ -124,16 +128,14 @@ export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
   data: perspective.PerspectiveInput
-  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
 }
 
-export default function Perspective({
+function Perspective({
   className,
   data,
-  meta,
   onLoadMore,
   onRender,
   truncated,
@@ -147,7 +149,7 @@ export default function Perspective({
 
   return (
     <div className={className} {...props}>
-      {state._tag === 'ready' && (
+      {state && (
         <Toolbar
           className={classes.toolbar}
           state={state}
@@ -155,14 +157,33 @@ export default function Perspective({
           truncated={truncated}
         />
       )}
-      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
-      {state._tag === 'error' ? (
-        <Lab.Alert className={classes.warning} severity="info" icon={false}>
-          Could not render tabular data
-        </Lab.Alert>
-      ) : (
-        <div ref={setAnchorEl} className={classes.table} />
-      )}
+      <div ref={setAnchorEl} className={classes.table} />
     </div>
+  )
+}
+
+interface TabularProps extends PerspectiveProps {
+  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
+}
+
+function ErrorFallback() {
+  const classes = useStyles()
+  return (
+    <Lab.Alert className={classes.warning} severity="info" icon={false}>
+      Could not render tabular data
+    </Lab.Alert>
+  )
+}
+
+export default function Tabular({ meta, ...props }: TabularProps) {
+  const classes = useStyles()
+
+  return (
+    <>
+      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Perspective {...props} />
+      </ErrorBoundary>
+    </>
   )
 }

@@ -6,29 +6,25 @@ import perspective from '@finos/perspective'
 import type { Table, TableData, ViewConfig } from '@finos/perspective'
 import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
+import Log from 'utils/Logging'
 import { themes } from 'utils/perspective-pollution'
 
 export type PerspectiveInput = TableData
 
 const worker = perspective.worker()
 
-export type Model =
-  | { _tag: 'idle' }
-  | {
-      _tag: 'ready'
-      rotateThemes: () => void
-      size: number | null
-      toggleConfig: () => void
-    }
-  | { _tag: 'error'; error: Error }
+export type Model = {
+  rotateThemes: () => void
+  size: number | null
+  toggleConfig: () => void
+}
 
 async function createModel(
   viewer: HTMLPerspectiveViewerElement,
   table: Table,
-): Promise<Extract<Model, { _tag: 'ready' }>> {
+): Promise<Model> {
   const size = await table.size()
   return {
-    _tag: 'ready',
     rotateThemes: async () => {
       const settings = await viewer?.save()
       // @ts-expect-error `ViewConfig` type doesn't have `theme`
@@ -45,21 +41,31 @@ function useModel(
   viewer: HTMLPerspectiveViewerElement | null,
   table: Table | Error | null,
 ) {
-  const [state, setState] = React.useState<Model>({ _tag: 'idle' })
+  const [model, setModel] = React.useState<Model | null>(null)
+  const [error, setError] = React.useState<Error | null>(null)
 
-  const init = React.useCallback((): Promise<Model> => {
-    if (!table || !viewer) return Promise.resolve({ _tag: 'idle' })
-    if (table instanceof Error) return Promise.reject(table)
+  const init = React.useCallback(async (): Promise<Model | null> => {
+    if (!table || !viewer) return null
+    if (table instanceof Error) {
+      throw table
+    }
     return createModel(viewer, table)
   }, [viewer, table])
 
   React.useEffect(() => {
     init()
-      .then(setState)
-      .catch((error) => setState({ _tag: 'error', error }))
+      .then(setModel)
+      .catch((e) => {
+        setError(e)
+        Log.error(e)
+      })
   }, [init])
 
-  return state
+  if (error) {
+    throw error
+  }
+
+  return model
 }
 
 function useViewer(anchorEl: HTMLDivElement | null, className: string) {
@@ -87,21 +93,23 @@ function useViewer(anchorEl: HTMLDivElement | null, className: string) {
 function useTable(viewer: HTMLPerspectiveViewerElement | null, data: PerspectiveInput) {
   const [table, setTable] = React.useState<Table | Error | null>(null)
   React.useEffect(() => {
-    if (!viewer) return
-
     let tbl: Table | null = null
-    worker
-      .table(data)
-      .then(async (t) => {
-        await viewer.load(t)
-        tbl = t
-        return t
-      })
-      .then(setTable)
-      .catch(setTable)
+
+    async function renderTable() {
+      if (!viewer) return
+
+      tbl = await worker.table(data)
+      await viewer.load(tbl)
+      setTable(tbl)
+    }
+
+    renderTable().catch((e) => {
+      setTable(e instanceof Error ? e : new Error(e.message || `${e}`))
+    })
 
     return () => {
       tbl?.delete()
+      tbl = null
     }
   }, [data, viewer])
   return table
