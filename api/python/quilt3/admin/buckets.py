@@ -52,7 +52,7 @@ def add(
         icon_url: Optional URL for bucket icon.
         overview_url: Optional URL for bucket overview page.
         tags: Optional list of tags.
-        relevance_score: Optional relevance score for search ranking.
+        relevance_score: Optional relevance score for bucket ordering.
         sns_notification_arn: Optional SNS topic ARN for notifications.
         scanner_parallel_shards_depth: Optional depth for parallel scanning.
         skip_meta_data_indexing: If True, skip metadata indexing.
@@ -137,7 +137,7 @@ def update(
         icon_url: Optional URL for bucket icon.
         overview_url: Optional URL for bucket overview page.
         tags: Optional list of tags.
-        relevance_score: Optional relevance score for search ranking.
+        relevance_score: Optional relevance score for bucket ordering.
         sns_notification_arn: Optional SNS topic ARN for notifications.
         scanner_parallel_shards_depth: Optional depth for parallel scanning.
         skip_meta_data_indexing: If True, skip metadata indexing.

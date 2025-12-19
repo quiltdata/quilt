@@ -50,7 +50,7 @@ __Arguments__
 * __icon_url__:  Optional URL for bucket icon.
 * __overview_url__:  Optional URL for bucket overview page.
 * __tags__:  Optional list of tags.
-* __relevance_score__:  Optional relevance score for search ranking.
+* __relevance_score__:  Optional relevance score for bucket ordering.
 * __sns_notification_arn__:  Optional SNS topic ARN for notifications.
 * __scanner_parallel_shards_depth__:  Optional depth for parallel scanning.
 * __skip_meta_data_indexing__:  If True, skip metadata indexing.
@@ -74,7 +74,7 @@ __Arguments__
 * __icon_url__:  Optional URL for bucket icon.
 * __overview_url__:  Optional URL for bucket overview page.
 * __tags__:  Optional list of tags.
-* __relevance_score__:  Optional relevance score for search ranking.
+* __relevance_score__:  Optional relevance score for bucket ordering.
 * __sns_notification_arn__:  Optional SNS topic ARN for notifications.
 * __scanner_parallel_shards_depth__:  Optional depth for parallel scanning.
 * __skip_meta_data_indexing__:  If True, skip metadata indexing.
