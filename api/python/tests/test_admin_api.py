@@ -82,7 +82,7 @@ def _as_dataclass_kwargs(data: dict) -> dict:
         "typename__" if k == "__typename" else _camel_to_snake(k): (
             _as_dataclass_kwargs(v)
             if isinstance(v, dict)
-            else [_as_dataclass_kwargs(x) for x in v]
+            else [_as_dataclass_kwargs(x) if isinstance(x, dict) else x for x in v]
             if isinstance(v, list)
             else v
         )
@@ -450,7 +450,7 @@ BUCKET_CONFIG = {
     "iconUrl": None,
     "description": "A test bucket",
     "overviewUrl": None,
-    "tags": None,
+    "tags": ["test"],
     "relevanceScore": 0,
     "lastIndexed": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "snsNotificationArn": None,
@@ -458,7 +458,7 @@ BUCKET_CONFIG = {
     "skipMetaDataIndexing": None,
     "fileExtensionsToIndex": None,
     "indexContentBytes": None,
-    "prefixes": [],
+    "prefixes": [""],
 }
 BUCKET_ADD_ERRORS = (
     ({"__typename": "BucketAlreadyAdded"}, admin.Quilt3AdminError, "Bucket already added"),
