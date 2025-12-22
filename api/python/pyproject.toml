@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "quilt3"
-version = "7.0.0"
+version = "7.1.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.9"
