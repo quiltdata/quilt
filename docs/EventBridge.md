@@ -275,7 +275,7 @@ Alternatively, manually run this quick diagnostic checklist:
 <!-- pytest-codeblocks:skip -->
 ```bash
 # 1. Verify EventBridge rule is ENABLED (not just exists)
-aws events describe-rule --name quilt-s3-events-rule --query 'State'
+aws events describe-rule --name quilt-s3-events-rule --region us-east-1 --query 'State'
 # Expected: "ENABLED"
 
 # 2. Check if rule is triggering
@@ -286,10 +286,11 @@ aws cloudwatch get-metric-statistics \
   --start-time $(date -u -d '5 minutes ago' '+%Y-%m-%dT%H:%M:%S') \
   --end-time $(date -u '+%Y-%m-%dT%H:%M:%S') \
   --period 300 \
-  --statistics Sum
+  --statistics Sum \
+  --region us-east-1
 
 # 3. Verify SNS topic has ALL required queue subscriptions
-aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --query 'Subscriptions[*].Endpoint'
+aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --region us-east-1 --query 'Subscriptions[*].Endpoint'
 # Expected: Should include IndexerQueue, PackagerQueue, and S3SNSToEventBridgeQueue
 ```
 
@@ -350,13 +351,13 @@ Someone disabled the EventBridge rule (via Console, CLI, or automation). Rules c
 <!-- pytest-codeblocks:skip -->
 ```bash
 # Check rule state
-aws events describe-rule --name quilt-s3-events-rule --query 'State'
+aws events describe-rule --name quilt-s3-events-rule --region us-east-1 --query 'State'
 
 # If DISABLED, enable it:
 aws events enable-rule --name quilt-s3-events-rule --region us-east-1
 
 # Verify it's now enabled
-aws events describe-rule --name quilt-s3-events-rule --query 'State'
+aws events describe-rule --name quilt-s3-events-rule --region us-east-1 --query 'State'
 ```
 
 **Prevention:**
@@ -382,16 +383,17 @@ The PackagerQueue is not subscribed to the SNS topic. Quilt requires multiple SQ
 <!-- pytest-codeblocks:skip -->
 ```bash
 # 1. List current subscriptions
-aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN
+aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --region us-east-1
 
 # 2. Find your PackagerQueue ARN
-aws sqs list-queues --queue-name-prefix "PackagerQueue"
+aws sqs list-queues --queue-name-prefix "PackagerQueue" --region us-east-1
 
 # 3. Subscribe PackagerQueue to SNS topic
 aws sns subscribe \
   --topic-arn YOUR_SNS_TOPIC_ARN \
   --protocol sqs \
-  --notification-endpoint YOUR_PACKAGER_QUEUE_ARN
+  --notification-endpoint YOUR_PACKAGER_QUEUE_ARN \
+  --region us-east-1
 
 # 4. Update SQS queue policy to allow SNS to send messages
 # (Use AWS Console: SQS → Queue → Access Policy)
@@ -401,7 +403,7 @@ aws sns subscribe \
 <!-- pytest-codeblocks:skip -->
 ```bash
 # Check that all 3 queues are now subscribed
-aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN \
+aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --region us-east-1 \
   --query 'Subscriptions[*].Endpoint'
 
 # Should show:
@@ -432,12 +434,13 @@ Test the transformation by triggering an event and checking the SQS message form
 <!-- pytest-codeblocks:skip -->
 ```bash
 # Upload a test file
-aws s3 cp test.txt s3://your-bucket/test.txt
+aws s3 cp test.txt s3://your-bucket/test.txt --region us-east-1
 
 # Wait 30 seconds, then check a message in the queue
 aws sqs receive-message \
   --queue-url YOUR_INDEXER_QUEUE_URL \
-  --max-number-of-messages 1
+  --max-number-of-messages 1 \
+  --region us-east-1
 
 # The message should have "Records" array with "s3" object structure
 # NOT a CloudTrail "detail" structure
