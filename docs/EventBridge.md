@@ -398,6 +398,7 @@ aws sns subscribe \
 ```
 
 **Verification:**
+<!-- pytest-codeblocks:skip -->
 ```bash
 # Check that all 3 queues are now subscribed
 aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN \
@@ -428,6 +429,7 @@ EventBridge rule is configured with "Matched event" instead of using an Input Tr
 
 **Validation:**
 Test the transformation by triggering an event and checking the SQS message format:
+<!-- pytest-codeblocks:skip -->
 ```bash
 # Upload a test file
 aws s3 cp test.txt s3://your-bucket/test.txt
