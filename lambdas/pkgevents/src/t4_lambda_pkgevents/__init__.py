@@ -59,7 +59,7 @@ def pkg_created_event(s3_event):
     if not match:
         return
     pkg_name, pointer_name = match.groups()
-    if not '1451631600' <= pointer_name <= '1767250800':
+    if not '1451631600' <= pointer_name:
         return
     bucket_obj = s3_event_obj['bucket']
     bucket = bucket_obj['name']
