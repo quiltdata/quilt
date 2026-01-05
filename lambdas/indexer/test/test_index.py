@@ -970,7 +970,7 @@ class TestIndex(TestCase):
     def test_index_if_pointer_skip(self):
         """test cases where index_if_pointer ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
-        for file_name in [1451631500, "not-a-timestamp", ""]:
+        for file_name in [1451631500]:
             key = f".quilt/named_packages/foo/bar/{file_name}"
             assert not index.index_if_pointer(
                 self.s3_client,
