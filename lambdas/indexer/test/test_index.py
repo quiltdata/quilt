@@ -1660,7 +1660,6 @@ class TestIndex(TestCase):
 def test_index_if_pointer(append_mock, es_mock, s3_client, pointer_file):
     bucket = "quilt-example"
     handle = "author/semantic"
-    # pointer_file = "1610412903"
     key = f"{NAMED_PACKAGES_PREFIX}{handle}/{pointer_file}"
     pkg_hash = "a" * 64
     last_modified = datetime.datetime(2021, 1, 1, 0, 0, tzinfo=tzutc())
