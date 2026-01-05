@@ -127,6 +127,13 @@ MANIFEST_DATA = {
 }
 
 
+@pytest.fixture
+def s3_client(mocker):
+    client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+    mocker.patch("t4_lambda_es_indexer.index.make_s3_client", return_value=client)
+    return client
+
+
 def _check_event(synthetic, organic):
     # Ensure that synthetic events have the same shape as actual organic ones,
     # and that overridden properties like bucket, key, eTag are properly set
@@ -913,60 +920,6 @@ class TestIndex(TestCase):
         )
         append_mock.assert_not_called()
 
-    @patch.object(index, "es")
-    @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_pointer(self, append_mock, es_mock):
-        bucket = "quilt-example"
-        handle = "author/semantic"
-        pointer_file = "1610412903"
-        key = f"{NAMED_PACKAGES_PREFIX}{handle}/{pointer_file}"
-        pkg_hash = "a" * 64
-        last_modified = datetime.datetime(2021, 1, 1, 0, 0, tzinfo=tzutc())
-
-        self.s3_stubber.add_response(
-            method="get_object",
-            expected_params={
-                "Bucket": bucket,
-                "Key": key,
-            },
-            service_response={
-                "Body": BytesIO(pkg_hash.encode()),
-                "LastModified": last_modified,
-            },
-        )
-
-        index.index_if_pointer(
-            self.s3_client,
-            index.DocumentQueue(None),
-            bucket=bucket,
-            key=key,
-        )
-
-        es_mock.delete_by_query.assert_called_once_with(
-            index=bucket + PACKAGE_INDEX_SUFFIX,
-            body={
-                "query": {
-                    "bool": {
-                        "filter": [{"term": {"_id": get_ptr_doc_id("author/semantic", "1610412903")}}],
-                        "must_not": [{"term": {"join_field#mnfst": get_manifest_doc_id("a" * 64)}}],
-                    }
-                }
-            },
-        )
-        append_mock.assert_called_once_with({
-            "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_op_type": "index",
-            "_id": get_ptr_doc_id(handle, pointer_file),
-            "join_field": {
-                "name": "ptr",
-                "parent": get_manifest_doc_id(pkg_hash),
-            },
-            "routing": get_manifest_doc_id(pkg_hash),
-            "ptr_name": handle,
-            "ptr_tag": pointer_file,
-            "ptr_last_modified": last_modified,
-        })
-
     def test_index_if_pointer_skip(self):
         """test cases where index_if_pointer ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
@@ -1693,6 +1646,72 @@ class TestIndex(TestCase):
                 bucket=bucket, key=key,
                 version_id=version_id
             )
+
+
+@pytest.mark.parametrize(
+    "pointer_file",
+    [
+        "1610412903",
+        "9999999999",
+    ],
+)
+@patch.object(index, "es")
+@patch.object(index.DocumentQueue, 'append_document')
+
+def test_index_if_pointer(append_mock, es_mock, s3_client, pointer_file):
+    bucket = "quilt-example"
+    handle = "author/semantic"
+    # pointer_file = "1610412903"
+    key = f"{NAMED_PACKAGES_PREFIX}{handle}/{pointer_file}"
+    pkg_hash = "a" * 64
+    last_modified = datetime.datetime(2021, 1, 1, 0, 0, tzinfo=tzutc())
+
+    with Stubber(s3_client) as s3_stubber:
+        s3_stubber.add_response(
+            method="get_object",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+            service_response={
+                "Body": BytesIO(pkg_hash.encode()),
+                "LastModified": last_modified,
+            },
+        )
+
+        index.index_if_pointer(
+            s3_client,
+            index.DocumentQueue(None),
+            bucket=bucket,
+            key=key,
+        )
+
+        es_mock.delete_by_query.assert_called_once_with(
+            index=bucket + PACKAGE_INDEX_SUFFIX,
+            body={
+                "query": {
+                    "bool": {
+                        "filter": [{"term": {"_id": get_ptr_doc_id("author/semantic", pointer_file)}}],
+                        "must_not": [{"term": {"join_field#mnfst": get_manifest_doc_id("a" * 64)}}],
+                    }
+                }
+            },
+        )
+        append_mock.assert_called_once_with({
+            "_index": bucket + PACKAGE_INDEX_SUFFIX,
+            "_op_type": "index",
+            "_id": get_ptr_doc_id(handle, pointer_file),
+            "join_field": {
+                "name": "ptr",
+                "parent": get_manifest_doc_id(pkg_hash),
+            },
+            "routing": get_manifest_doc_id(pkg_hash),
+            "ptr_name": handle,
+            "ptr_tag": pointer_file,
+            "ptr_last_modified": last_modified,
+        })
+
+    s3_stubber.assert_no_pending_responses()
 
 
 def test_extract_pptx():

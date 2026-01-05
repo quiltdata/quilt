@@ -50,10 +50,17 @@ def test_pkg_created_event_bad_key(key):
     ) is None
 
 
-def test_pkg_created_event():
+@pytest.mark.parametrize(
+    "pointer_file",
+    (
+        "1451631600",
+        "9999999999",
+    ),
+)
+def test_pkg_created_event(pointer_file):
     bucket_name = 'test-bucket'
     handle = 'a/b'
-    key = f'.quilt/named_packages/{handle}/1451631600'
+    key = f".quilt/named_packages/{handle}/{pointer_file}"
     event_time = '2021-03-11T14:29:19.277067Z'
     top_hash = b'a' * 64
     event = {
