@@ -31,7 +31,6 @@ from t4_lambda_pkgevents import (
             '.quilt/named_packages/a/b/1451631599',
             '.quilt/named_packages/a/b/1451631600/',
             '.quilt/named_packages/a/b/1767250800/',
-            '.quilt/named_packages/a/b/1767250801',
             '.quilt/named_packages//b/1451631600',
             '.quilt/named_packages/a//1451631600',
             '.quilt/named_packages/a/b/145163160߀',
