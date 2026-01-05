@@ -1655,9 +1655,8 @@ class TestIndex(TestCase):
         "9999999999",
     ],
 )
-@patch.object(index, "es")
-@patch.object(index.DocumentQueue, 'append_document')
-
+@patch("t4_lambda_es_indexer.index.es")
+@patch("t4_lambda_es_indexer.document_queue.DocumentQueue.append_document")
 def test_index_if_pointer(append_mock, es_mock, s3_client, pointer_file):
     bucket = "quilt-example"
     handle = "author/semantic"
