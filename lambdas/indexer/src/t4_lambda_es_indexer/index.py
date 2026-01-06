@@ -51,6 +51,7 @@ import json
 import os
 import pathlib
 import re
+import time
 from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
@@ -304,6 +305,8 @@ def index_if_pointer(
         if manifest_timestamp < 1451631600:
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
+        if manifest_timestamp > time.time():
+            logger_.warning("Manifest timestamp s3://%s/%s is in the future", bucket, key)
     except ValueError as err:
         logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 

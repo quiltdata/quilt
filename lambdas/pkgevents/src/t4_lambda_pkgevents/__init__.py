@@ -1,6 +1,7 @@
 import itertools
 import json
 import re
+import time
 
 import boto3
 
@@ -63,6 +64,8 @@ def pkg_created_event(s3_event):
     if pointer_name < "1451631600":
         logger.warning("pointer %r in bucket %r at %r is too old, skipping", pointer_name, bucket, key)
         return
+    if int(pointer_name) > time.time():
+        logger.warning("pointer %r in bucket %r at %r is in the future", pointer_name, bucket, key)
     try:
         resp = s3.get_object(Bucket=bucket, Key=key, Range=f'bytes=0-{EXPECTED_POINTER_SIZE - 1}')
     except s3.exceptions.NoSuchKey:
