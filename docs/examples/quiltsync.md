@@ -1,166 +1,100 @@
 # QuiltSync
 
-**Desktop client for seamless access to versioned, AI-ready datasets.**
+Desktop application for syncing versioned Quilt data packages to your local
+machine.
 
-Visit [quilt.bio/quiltsync](https://quilt.bio/quiltsync/) to download the
-latest version.
+Download: [quilt.bio/quiltsync](https://quilt.bio/quiltsync/)
 
-QuiltSync is a desktop application from Quilt Data that enables scientists,
-researchers, and engineers to access, manage, and version large datasets
-locally. Install once and seamlessly sync Quilt data packages (versioned,
-AI/ML-ready datasets) to your computer across Windows, macOS (Intel & Apple
-Silicon), and Linux.
+QuiltSync provides local access to Quilt packages stored in S3. Supported
+platforms: Windows 10+, macOS 10.14+ (Intel & Apple Silicon), Linux.
 
-With QuiltSync, you can:
+## Features
 
-- Browse and install Quilt packages through an intuitive graphical interface
-- Selectively sync specific files from packages to save disk space
-- Access cloud-stored datasets as if they were local files
-- Maintain version control and reproducibility for your data workflows
+- Browse and sync packages via graphical interface
+- Selective file sync to manage disk space
+- Version control for data packages
+- Browser-based authentication (no AWS credentials required)
 
 ## Getting Started
 
 ### Installation
 
-Download QuiltSync from [quilt.bio/quiltsync](https://quilt.bio/quiltsync/)
-and install it on your system. The application will integrate with your Quilt
-catalog and be ready to sync packages.
+Download and install QuiltSync from
+[quilt.bio/quiltsync](https://quilt.bio/quiltsync/).
 
 ### Opening Packages and Files
 
-When viewing packages in the Quilt web catalog, you can open them directly in
-QuiltSync:
+From the Quilt web catalog:
 
-1. Navigate to a package or file in your Quilt catalog
-2. Click the "Get Package" or "Get File" button
-3. Select "Open in QuiltSync" from the dropdown menu
-4. QuiltSync will open automatically (if installed) and display the package
-   contents
+1. Navigate to a package or file
+2. Click "Get Package" or "Get File"
+3. Select "Open in QuiltSync"
 
 ![Open in QuiltSync](../imgs/quiltsync-open.png)
 
-The dropdown also provides a "Download it here" link if you need to install
-QuiltSync first, as well as options to download files directly.
-
 ### Authentication
 
-The first time you open a catalog URI in QuiltSync, you'll be prompted to
-authenticate:
+On first use, QuiltSync prompts for authentication via your web browser:
 
-1. QuiltSync will prompt you to obtain an access token
-2. Your web browser will open to your Quilt Catalog login page
-3. Sign in to your catalog (if not already signed in)
-4. The access token will be automatically provided to QuiltSync
-5. QuiltSync will use this token tied to your catalog session for all future
-   access
+1. QuiltSync opens your browser to the Quilt Catalog login page
+2. Sign in to your catalog
+3. Access token is automatically provided to QuiltSync
 
-No AWS credentials configuration is required—authentication is handled
-seamlessly through your browser and catalog session.
+The token is tied to your catalog session. No AWS credentials required.
 
 ### Selective Installation
 
-QuiltSync allows you to choose which files to sync locally:
+Select which files to sync:
 
-- Use the checkboxes to select specific files or folders
-- Click "SELECT ALL" to sync the entire package
-- Review file sizes before installing to manage disk space
-- Click "INSTALL" to begin syncing selected files to your local machine
-
-This selective sync capability is particularly useful for large packages where
-you only need specific files for your workflow.
+- Use checkboxes to select files or folders
+- Click "SELECT ALL" for entire package
+- Review file sizes before installing
+- Click "INSTALL" to sync selected files
 
 ### Settings and Troubleshooting
 
-Access QuiltSync settings by clicking the gear icon in the application. The
-settings panel provides useful information and troubleshooting tools:
+Access settings via the gear icon:
 
 ![QuiltSync Settings](../imgs/quiltsync-settings.png)
 
-- **Version**: View the current QuiltSync version and access release notes
-- **Lineage and cache files**: Open the `.quilt/` directory to inspect local
-  package metadata and cached data
-- **Logs directory**: View application logs for debugging and troubleshooting
-  issues
-- **Reset state**: Use "RELOAD PAGE" to refresh the interface or "RE-LOGIN" to
-  clear authentication and start fresh
-
-These tools are particularly helpful when troubleshooting authentication
-issues, investigating sync problems, or providing information for support
-requests.
+- **Version**: Current version and release notes
+- **Lineage and cache files**: Opens `.quilt/` directory with package metadata
+- **Logs directory**: Application logs for debugging
+- **Reset state**: "RELOAD PAGE" refreshes UI, "RE-LOGIN" clears authentication
 
 ### Integration with Benchling
 
-QuiltSync integrates with the [Benchling Webhook](./benchling.md) to provide
-seamless access to notebook-linked packages:
+QuiltSync integrates with the [Benchling Webhook](./benchling.md):
 
-- In Benchling's App Canvas, click the "sync" button next to any package
-- The package or file will open directly in QuiltSync
-- Changes and updates are reflected across both platforms
+- Click "sync" button in Benchling's App Canvas
+- Package opens in QuiltSync
 
-## Overview
+## Capabilities
 
-QuiltSync brings the power of Quilt data packages to your desktop, providing
-a local sync solution for cloud-stored data. While datasets may live in
-remote storage (S3), QuiltSync gives you local access so you can work offline
-or interact with datasets as if they're on your machine.
+### User Interface
 
-## Key Features
+- Browse S3-based packages
+- Select files or directories to sync
+- View file sizes and directory structure
+- Monitor sync progress
 
-### Graphical User Interface
+### Version Control
 
-QuiltSync provides an intuitive desktop interface for working with Quilt
-packages:
+Quilt packages include version history:
 
-- **Package Browser**: Navigate S3-based packages with a familiar file browser
-  interface
-- **Selective Sync**: Choose individual files or entire directories to install
-- **Quick Actions**: Refresh package contents, access settings, and open
-  packages in the web catalog
-- **File Preview**: View file sizes and directory structures before installing
-- **Progress Tracking**: Monitor installation progress for large datasets
-
-### Versioned Data Packages
-
-QuiltSync doesn't just pull files—Quilt packages include version control for
-data, tracking changes and enabling reproducible workflows. Each package has
-a complete version history, allowing you to:
-
-- Track data changes over time
+- Track data changes
 - Roll back to previous versions
-- Ensure reproducible analysis and ML workflows
-- Collaborate with confidence that everyone uses the same data version
+- Reproducible workflows
 
-### Desktop/Local Access
-
-Even though data lives in cloud storage, QuiltSync provides local sync
-capabilities:
+### Local Access
 
 - Work offline with synced datasets
-- Interact with S3 data as if it's on your local machine
-- Reduce latency for data-intensive operations
-- Control which packages and versions are synced locally
-- Save bandwidth by selectively syncing only needed files
-
-### AI-Ready Format
-
-The platform targets researchers, machine learning engineers, and data science
-teams who need clean, versioned datasets prepared for AI/ML pipelines:
-
-- Datasets formatted for machine learning workflows
-- Metadata and schema validation
-- Integration with data science tools and notebooks
-- Support for large-scale data operations
+- Reduced latency for local operations
+- Selective sync to save bandwidth
 
 ## System Requirements
 
-QuiltSync runs on all major operating systems:
-
-- **Operating Systems**: Windows 10+, macOS 10.14+, Linux (modern
-  distributions)
-- **Disk Space**: Varies based on package sizes you plan to sync (consider
-  storage for large datasets)
-- **Network**: Internet connection required for syncing with S3 and
-  authenticating with your Quilt Catalog (bandwidth considerations for large
-  datasets)
-- **Authentication**: Browser-based login to your Quilt Catalog (no AWS
-  credentials needed)
+- **OS**: Windows 10+, macOS 10.14+, Linux
+- **Disk**: Varies by package size
+- **Network**: Required for S3 sync and catalog authentication
+- **Auth**: Browser-based login (no AWS credentials)
