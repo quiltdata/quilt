@@ -1,19 +1,17 @@
 # QuiltSync
 
-Desktop application for syncing versioned Quilt data packages to your local
-machine.
+QuiltSync is a desktop application for syncing versioned Quilt data packages to
+your local machine. It provides local access to Quilt packages stored in S3,
+with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
 
 Download: [quilt.bio/quiltsync](https://quilt.bio/quiltsync/)
-
-QuiltSync provides local access to Quilt packages stored in S3. Supported
-platforms: Windows 10+, macOS 10.14+ (Intel & Apple Silicon), Linux.
 
 ## Features
 
 - Browse and sync packages via graphical interface
 - Selective file sync to manage disk space
 - Version control for data packages
-- Browser-based authentication (no AWS credentials required)
+- Browser-based authentication
 
 ## Getting Started
 
@@ -53,7 +51,7 @@ Select which files to sync:
 
 ### Settings and Troubleshooting
 
-Access settings via the gear icon:
+Access settings via the gear icon in the lower right:
 
 ![QuiltSync Settings](../imgs/quiltsync-settings.png)
 
@@ -64,37 +62,18 @@ Access settings via the gear icon:
 
 ### Integration with Benchling
 
-QuiltSync integrates with the [Benchling Webhook](./benchling.md):
+QuiltSync integrates with the [Benchling Webhook](./benchling.md) to provide
+seamless access to Quilt packages from Benchling notebooks.
 
-- Click "sync" button in Benchling's App Canvas
-- Package opens in QuiltSync
+![Benchling App Canvas](../imgs/benchling-canvas.png)
 
-## Capabilities
+When viewing a package in the Benchling App Canvas:
 
-### User Interface
+1. Click the "sync" button next to any package or file
+2. QuiltSync automatically opens with the selected package
+3. Select files to sync locally
+4. Work offline with your data
 
-- Browse S3-based packages
-- Select files or directories to sync
-- View file sizes and directory structure
-- Monitor sync progress
-
-### Version Control
-
-Quilt packages include version history:
-
-- Track data changes
-- Roll back to previous versions
-- Reproducible workflows
-
-### Local Access
-
-- Work offline with synced datasets
-- Reduced latency for local operations
-- Selective sync to save bandwidth
-
-## System Requirements
-
-- **OS**: Windows 10+, macOS 10.14+, Linux
-- **Disk**: Varies by package size
-- **Network**: Required for S3 sync and catalog authentication
-- **Auth**: Browser-based login (no AWS credentials)
+This integration allows scientists to move from notebook entries to local
+datasets without leaving their Benchling workflow. For more details, see
+[Benchling App Canvas](./benchling.md#benchling-app-canvas).
