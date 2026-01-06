@@ -61,10 +61,11 @@ def pkg_created_event(s3_event):
     if not match:
         return
     pkg_name, pointer_name = match.groups()
-    if pointer_name < "1451631600":
+    pointer_timestamp = int(pointer_name)
+    if pointer_timestamp < 1451631600:
         logger.warning("pointer %r in bucket %r at %r is too old, skipping", pointer_name, bucket, key)
         return
-    if int(pointer_name) > time.time():
+    if pointer_timestamp > time.time():
         logger.warning("pointer %r in bucket %r at %r is in the future", pointer_name, bucket, key)
     try:
         resp = s3.get_object(Bucket=bucket, Key=key, Range=f'bytes=0-{EXPECTED_POINTER_SIZE - 1}')
