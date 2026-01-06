@@ -97,15 +97,21 @@ aws sns create-topic \
 
 **Important - SNS Subscription Configuration:**
 
-After creating the SNS topic and subscribing it to Quilt's SQS queues, you need to configure raw message delivery settings:
+After creating the SNS topic, subscribe it to your existing Quilt SQS queues. The queue names depend on your Quilt deployment but typically follow this pattern:
 
-1. Go to **SNS Console** → **Topics** → **Your topic** → **Subscriptions**
-2. For each SQS subscription:
-   - **S3SNSToEventBridgeQueue**: Enable "Raw message delivery" ✅
-   - **QuiltStack-PkgEventsQueue**: Keep "Raw message delivery" disabled ❌
-   - **QuiltStack-IndexerQueue**: Keep "Raw message delivery" disabled ❌
+1. Go to **SNS Console** → **Topics** → **Your topic** → **Create subscription**
+2. Subscribe to your Quilt queues (typical names):
+   - **`<StackName>-IndexerQueue`**: Main indexing queue
+   - **`<StackName>-PkgEventsQueue`**: Package events queue
 
-Raw message delivery must be enabled for the EventBridge-specific queue but disabled for Quilt's standard queues to ensure proper message format.
+   Replace `<StackName>` with your actual Quilt stack name (e.g., `QuiltStack`). You can find your exact queue names in the AWS SQS Console or in your Quilt deployment configuration.
+
+3. For each subscription:
+   - **Protocol**: Amazon SQS
+   - **Endpoint**: ARN of your Quilt SQS queue
+   - **Raw message delivery**: Keep **disabled** ❌
+
+**⚠️ Important**: When using EventBridge → SNS → SQS, keep "Raw message delivery" disabled for all Quilt queues to maintain the proper message envelope structure that Quilt expects.
 
 #### Step 2: Enable EventBridge on S3 Bucket
 
@@ -175,93 +181,137 @@ Set up the event pattern to capture S3 operations using native S3 events:
 
 ![Event Pattern Configuration](./imgs/event-pattern.png)
 
-#### Step 5: Configure Event Target
+#### Step 5: Create Lambda Transformation Function
 
-Set the SNS topic as the target for EventBridge events:
+**⚠️ CRITICAL COMPATIBILITY REQUIREMENT**: EventBridge native S3 events use detail-types like `"Object Created"` and `"Object Deleted"`, but Quilt expects standard S3 event names like `"ObjectCreated:Put"` and `"ObjectRemoved:Delete"`. Without this transformation, Quilt will silently ignore the events.
 
-1. **Target type**: AWS service
-2. **Select a target**: SNS topic
-3. **Topic**: Select the SNS topic created in Step 1
+Create a Lambda function to transform EventBridge events to Quilt-compatible format:
 
-![Event Target Configuration](./imgs/event-target.png)
+**1. Create the Lambda function:**
 
-#### Step 6: Set Up Input Transformer
+<!-- pytest-codeblocks:skip -->
+```python
+import json
+import boto3
+import os
 
-Configure the input transformer to convert EventBridge events to S3 event format:
+sns = boto3.client('sns')
+SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
 
-**Input Path:**
-```json
-{
-  "awsRegion": "$.region",
-  "bucket": "$.detail.bucket.name",
-  "eventName": "$.detail-type",
-  "eventTime": "$.time",
-  "key": "$.detail.object.key"
+# Map EventBridge detail-types to S3 event names
+EVENT_NAME_MAPPING = {
+    'Object Created': 'ObjectCreated:Put',
+    'Object Deleted': 'ObjectRemoved:Delete'
 }
+
+def lambda_handler(event, context):
+    """Transform EventBridge S3 events to Quilt-compatible S3 event format."""
+
+    # Extract EventBridge event details
+    detail_type = event.get('detail-type', '')
+    event_name = EVENT_NAME_MAPPING.get(detail_type, detail_type)
+
+    # Construct S3 event format that Quilt expects
+    s3_event = {
+        "Records": [{
+            "eventSource": "aws:s3",
+            "awsRegion": event['region'],
+            "eventName": event_name,
+            "eventTime": event['time'],
+            "s3": {
+                "bucket": {"name": event['detail']['bucket']['name']},
+                "object": {"key": event['detail']['object']['key']}
+            }
+        }]
+    }
+
+    # Publish to SNS
+    response = sns.publish(
+        TopicArn=SNS_TOPIC_ARN,
+        Message=json.dumps(s3_event)
+    )
+
+    print(f"Transformed and published event: {detail_type} -> {event_name}")
+    return {
+        'statusCode': 200,
+        'messageId': response['MessageId']
+    }
 ```
 
-**Input Template:**
+**2. Configure the Lambda:**
+- **Runtime**: Python 3.12
+- **Function name**: `quilt-eventbridge-transformer`
+- **Environment variables**:
+  - `SNS_TOPIC_ARN`: Your SNS topic ARN from Step 1
+- **IAM role permissions**: Add policies for:
+  - `sns:Publish` on your SNS topic
+  - `kms:GenerateDataKey` and `kms:Decrypt` if SNS uses KMS encryption
+
+**3. IAM Policy for Lambda execution role:**
 ```json
 {
-  "Records": [
+  "Version": "2012-10-17",
+  "Statement": [
     {
-      "eventSource": "aws:s3",
-      "awsRegion": "<awsRegion>",
-      "eventName": "<eventName>",
-      "eventTime": "<eventTime>",
-      "s3": {
-        "bucket": { "name": "<bucket>" },
-        "object": { "key": "<key>" }
+      "Effect": "Allow",
+      "Action": ["sns:Publish"],
+      "Resource": "arn:aws:sns:REGION:ACCOUNT:quilt-eventbridge-notifications"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["kms:GenerateDataKey", "kms:Decrypt"],
+      "Resource": "arn:aws:kms:REGION:ACCOUNT:key/YOUR-KMS-KEY-ID",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "sns.REGION.amazonaws.com"
+        }
       }
     }
   ]
 }
 ```
 
-**Note**: This transformer maps native S3 EventBridge events to the standard S3 event notification format that Quilt expects. The `eventName` field will contain the EventBridge detail-type (e.g., "Object Created", "Object Deleted"), which Quilt can process alongside standard S3 event names.
+Replace `REGION`, `ACCOUNT`, and `YOUR-KMS-KEY-ID` with your values.
 
-#### Step 7: Configure IAM Permissions
+#### Step 6: Configure Event Target
 
-If your SNS topic uses server-side encryption with KMS (which is recommended), you need to grant EventBridge permission to use the KMS key.
+Set the Lambda function as the target for EventBridge events:
 
-**Option 1: Update KMS Key Policy (Recommended)**
+1. **Target type**: AWS service
+2. **Select a target**: Lambda function
+3. **Function**: Select `quilt-eventbridge-transformer`
 
-Add this statement to your KMS key policy:
+The Lambda will automatically transform events and publish to SNS.
 
-```json
-{
-  "Sid": "Allow EventBridge to use the key",
-  "Effect": "Allow",
-  "Principal": {
-    "Service": "events.amazonaws.com"
-  },
-  "Action": [
-    "kms:Decrypt",
-    "kms:GenerateDataKey"
-  ],
-  "Resource": "*",
-  "Condition": {
-    "StringEquals": {
-      "kms:ViaService": "sns.us-east-1.amazonaws.com"
-    }
-  }
-}
+![Event Target Configuration](./imgs/event-target.png)
+
+#### Step 7: Verify Lambda Permissions
+
+Verify that EventBridge has permission to invoke your Lambda function:
+
+1. Go to **Lambda Console** → **Functions** → `quilt-eventbridge-transformer`
+2. Click **Configuration** → **Permissions**
+3. Check **Resource-based policy statements** for an EventBridge trigger
+
+If missing, AWS will automatically add this when you create the EventBridge rule. You can also add it manually:
+
+<!-- pytest-codeblocks:skip -->
+```bash
+aws lambda add-permission \
+    --function-name quilt-eventbridge-transformer \
+    --statement-id EventBridgeInvoke \
+    --action lambda:InvokeFunction \
+    --principal events.amazonaws.com \
+    --source-arn arn:aws:events:REGION:ACCOUNT:rule/quilt-s3-events-rule
 ```
-
-**Option 2: Update EventBridge Execution Role**
-
-EventBridge uses a service-linked role, but for SNS targets with encryption, ensure the role has proper permissions (this is usually handled automatically when you create the rule through the console).
-
-To verify permissions:
-1. Go to **EventBridge Console** → **Rules** → Your rule
-2. Check the **Targets** section for any permission warnings
-3. AWS will automatically request permission to publish to your SNS topic when you create the rule
 
 #### Step 8: Save and Test the Rule
 
 1. Click **Create rule** to save the EventBridge configuration
 2. Test by uploading a file to your S3 bucket
-3. Check CloudWatch Logs for the EventBridge rule to verify events are being processed
+3. Check CloudWatch Logs for both:
+   - EventBridge rule execution
+   - Lambda function logs (to verify transformation is working)
 
 #### Step 9: Configure Quilt
 
@@ -310,7 +360,7 @@ aws s3 cp eventbridge-test.txt s3://your-bucket-name/test/
 # Verify rule is active
 aws events describe-rule --name quilt-s3-events-rule
 
-# Check if events are matching
+# Check if events are matching (Linux/GNU date)
 aws cloudwatch get-metric-statistics \
     --namespace AWS/Events \
     --metric-name TriggeredRules \
@@ -319,16 +369,59 @@ aws cloudwatch get-metric-statistics \
     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
     --period 600 \
     --statistics Sum
+
+# For macOS/BSD date, use this instead:
+# aws cloudwatch get-metric-statistics \
+#     --namespace AWS/Events \
+#     --metric-name TriggeredRules \
+#     --dimensions Name=RuleName,Value=quilt-s3-events-rule \
+#     --start-time $(date -u -v-10M +%Y-%m-%dT%H:%M:%S) \
+#     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+#     --period 600 \
+#     --statistics Sum
 ```
 
-**4. Check SNS delivery metrics:**
+**4. Check Lambda transformation:**
 ```bash
+# View Lambda logs to verify event transformation is working
+aws logs tail /aws/lambda/quilt-eventbridge-transformer --follow
+```
+
+**5. Check SNS delivery metrics:**
+```bash
+# Linux/GNU date
 aws cloudwatch get-metric-statistics \
     --namespace AWS/SNS \
     --metric-name NumberOfMessagesPublished \
     --dimensions Name=TopicName,Value=quilt-eventbridge-notifications \
     --start-time $(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%S) \
     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+    --period 600 \
+    --statistics Sum
+
+# For macOS/BSD date, use this instead:
+# aws cloudwatch get-metric-statistics \
+#     --namespace AWS/SNS \
+#     --metric-name NumberOfMessagesPublished \
+#     --dimensions Name=TopicName,Value=quilt-eventbridge-notifications \
+#     --start-time $(date -u -v-10M +%Y-%m-%dT%H:%M:%S) \
+#     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+#     --period 600 \
+#     --statistics Sum
+```
+
+**Cross-platform alternative using Python:**
+```bash
+# This works on both Linux and macOS
+START_TIME=$(python3 -c "from datetime import datetime, timedelta; print((datetime.utcnow() - timedelta(minutes=10)).strftime('%Y-%m-%dT%H:%M:%S'))")
+END_TIME=$(python3 -c "from datetime import datetime; print(datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S'))")
+
+aws cloudwatch get-metric-statistics \
+    --namespace AWS/SNS \
+    --metric-name NumberOfMessagesPublished \
+    --dimensions Name=TopicName,Value=quilt-eventbridge-notifications \
+    --start-time "$START_TIME" \
+    --end-time "$END_TIME" \
     --period 600 \
     --statistics Sum
 ```
