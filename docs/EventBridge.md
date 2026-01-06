@@ -107,7 +107,32 @@ After creating the SNS topic and subscribing it to Quilt's SQS queues, you need 
 
 Raw message delivery must be enabled for the EventBridge-specific queue but disabled for Quilt's standard queues to ensure proper message format.
 
-#### Step 2: Create EventBridge Rule
+#### Step 2: Enable EventBridge on S3 Bucket
+
+Before EventBridge can receive S3 events, you must enable EventBridge notifications on your S3 bucket:
+
+**Using AWS CLI:**
+<!-- pytest-codeblocks:skip -->
+```bash
+aws s3api put-bucket-notification-configuration \
+    --bucket your-bucket-name \
+    --notification-configuration '{"EventBridgeConfiguration": {}}'
+```
+
+**Using AWS Console:**
+1. Navigate to **S3 Console** → Your bucket → **Properties**
+2. Scroll to **Amazon EventBridge** section
+3. Click **Edit** next to "Amazon EventBridge"
+4. Select **On** for "Send notifications to Amazon EventBridge for all events in this bucket"
+5. Click **Save changes**
+
+**⚠️ Important**: Enabling EventBridge on the S3 bucket is compatible with existing S3 event notifications. You can have both:
+- EventBridge enabled (sends ALL events to EventBridge)
+- S3 Event Notifications configured (for other services like FSx)
+
+However, you cannot have two separate S3 Event Notification configurations on the same bucket.
+
+#### Step 3: Create EventBridge Rule
 
 Create an EventBridge rule to capture S3 events:
 
@@ -117,7 +142,7 @@ Create an EventBridge rule to capture S3 events:
 3. **Event bus**: default
 4. **Rule type**: Rule with an event pattern
 
-#### Step 3: Configure Event Pattern
+#### Step 4: Configure Event Pattern
 
 Set up the event pattern to capture S3 operations using native S3 events:
 
@@ -150,7 +175,7 @@ Set up the event pattern to capture S3 operations using native S3 events:
 
 ![Event Pattern Configuration](./imgs/event-pattern.png)
 
-#### Step 4: Configure Event Target
+#### Step 5: Configure Event Target
 
 Set the SNS topic as the target for EventBridge events:
 
@@ -160,7 +185,7 @@ Set the SNS topic as the target for EventBridge events:
 
 ![Event Target Configuration](./imgs/event-target.png)
 
-#### Step 5: Set Up Input Transformer
+#### Step 6: Set Up Input Transformer
 
 Configure the input transformer to convert EventBridge events to S3 event format:
 
@@ -193,15 +218,52 @@ Configure the input transformer to convert EventBridge events to S3 event format
 }
 ```
 
-**Note**: This transformer maps native S3 EventBridge events to the standard S3 event notification format that Quilt expects.
+**Note**: This transformer maps native S3 EventBridge events to the standard S3 event notification format that Quilt expects. The `eventName` field will contain the EventBridge detail-type (e.g., "Object Created", "Object Deleted"), which Quilt can process alongside standard S3 event names.
 
-#### Step 6: Save and Test the Rule
+#### Step 7: Configure IAM Permissions
+
+If your SNS topic uses server-side encryption with KMS (which is recommended), you need to grant EventBridge permission to use the KMS key.
+
+**Option 1: Update KMS Key Policy (Recommended)**
+
+Add this statement to your KMS key policy:
+
+```json
+{
+  "Sid": "Allow EventBridge to use the key",
+  "Effect": "Allow",
+  "Principal": {
+    "Service": "events.amazonaws.com"
+  },
+  "Action": [
+    "kms:Decrypt",
+    "kms:GenerateDataKey"
+  ],
+  "Resource": "*",
+  "Condition": {
+    "StringEquals": {
+      "kms:ViaService": "sns.us-east-1.amazonaws.com"
+    }
+  }
+}
+```
+
+**Option 2: Update EventBridge Execution Role**
+
+EventBridge uses a service-linked role, but for SNS targets with encryption, ensure the role has proper permissions (this is usually handled automatically when you create the rule through the console).
+
+To verify permissions:
+1. Go to **EventBridge Console** → **Rules** → Your rule
+2. Check the **Targets** section for any permission warnings
+3. AWS will automatically request permission to publish to your SNS topic when you create the rule
+
+#### Step 8: Save and Test the Rule
 
 1. Click **Create rule** to save the EventBridge configuration
 2. Test by uploading a file to your S3 bucket
 3. Check CloudWatch Logs for the EventBridge rule to verify events are being processed
 
-#### Step 7: Configure Quilt
+#### Step 9: Configure Quilt
 
 Add the bucket to Quilt using the SNS topic:
 
@@ -213,7 +275,7 @@ Add the bucket to Quilt using the SNS topic:
 
 ![Quilt EventBridge Configuration](./imgs/quilt-eventbridge.png)
 
-#### Step 8: Initial Indexing
+#### Step 10: Initial Indexing
 
 Perform initial bucket indexing:
 
@@ -226,28 +288,62 @@ Perform initial bucket indexing:
 
 ### 🧪 Testing Your Setup
 
-#### Verify Event Flow
+#### Step 11: Comprehensive Verification
 
-Test that events are flowing correctly:
+Verify the complete event flow end-to-end:
 
+**1. Verify S3 EventBridge is enabled:**
 <!-- pytest-codeblocks:skip -->
 ```bash
-# Upload a test file
-aws s3 cp test.txt s3://your-bucket-name/test.txt
-
-# Check EventBridge metrics
-aws events describe-rule --name quilt-s3-events-rule
-
-# Check SNS topic metrics  
-aws sns get-topic-attributes --topic-arn YOUR_SNS_TOPIC_ARN
+aws s3api get-bucket-notification-configuration --bucket your-bucket-name
+# Should show: {"EventBridgeConfiguration": {}}
 ```
 
-#### Validate Quilt Integration
+**2. Test with a small file upload:**
+```bash
+echo "EventBridge test" > eventbridge-test.txt
+aws s3 cp eventbridge-test.txt s3://your-bucket-name/test/
+```
 
-1. Upload a file to your S3 bucket
-2. Wait 1-2 minutes for processing
-3. Check Quilt catalog to see if the file appears
-4. Search for the file in Quilt's search interface
+**3. Check EventBridge rule metrics (wait 2-3 minutes):**
+```bash
+# Verify rule is active
+aws events describe-rule --name quilt-s3-events-rule
+
+# Check if events are matching
+aws cloudwatch get-metric-statistics \
+    --namespace AWS/Events \
+    --metric-name TriggeredRules \
+    --dimensions Name=RuleName,Value=quilt-s3-events-rule \
+    --start-time $(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%S) \
+    --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+    --period 600 \
+    --statistics Sum
+```
+
+**4. Check SNS delivery metrics:**
+```bash
+aws cloudwatch get-metric-statistics \
+    --namespace AWS/SNS \
+    --metric-name NumberOfMessagesPublished \
+    --dimensions Name=TopicName,Value=quilt-eventbridge-notifications \
+    --start-time $(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%S) \
+    --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+    --period 600 \
+    --statistics Sum
+```
+
+**5. Validate Quilt Integration:**
+1. Wait 1-2 minutes for processing
+2. Check Quilt catalog to see if the test file appears
+3. Search for the file in Quilt's search interface
+4. Verify file metadata is correctly indexed
+
+**6. Clean up test file:**
+```bash
+aws s3 rm s3://your-bucket-name/test/eventbridge-test.txt
+# This should also trigger a delete event
+```
 
 ## 🔧 Troubleshooting
 
