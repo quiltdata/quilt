@@ -17,6 +17,11 @@ By default, Quilt automatically creates S3 Event Notifications to:
 S3 Bucket → S3 Event Notification → SNS Topic → SQS Queue → Lambda → Elasticsearch
 ```
 
+**EventBridge Alternative Flow:**
+```
+S3 Bucket → EventBridge → SNS Topic → SQS Queue → Lambda → Elasticsearch
+```
+
 ### The S3 Event Limitation
 
 **AWS S3 Limitation**: Each S3 bucket can only have **one event notification configuration**. This means:
@@ -66,7 +71,6 @@ Before starting, ensure you have:
 - ✅ AWS CLI or Console access with appropriate permissions
 - ✅ A Quilt deployment already running
 - ✅ The S3 bucket you want to add to Quilt
-- ✅ CloudTrail enabled for the bucket (Quilt requirement)
 
 ### Step-by-Step Implementation
 
@@ -91,21 +95,7 @@ aws sns create-topic \
 4. **Region**: Same as your S3 bucket
 5. Click **Create topic** and note the ARN
 
-#### Step 2: Verify CloudTrail Configuration
-
-Quilt requires CloudTrail for S3 data events. Check your CloudFormation stack:
-
-**Option A: Quilt-Managed Trail**
-- Go to **CloudFormation** → **Your Quilt Stack** → **Resources**
-- Look for a CloudTrail resource
-- Quilt will automatically add your bucket to this trail
-
-**Option B: Existing Trail**
-- Go to **CloudFormation** → **Your Quilt Stack** → **Parameters**  
-- Find the CloudTrail bucket parameter
-- Manually add your bucket to the existing trail in CloudTrail console
-
-#### Step 3: Create EventBridge Rule
+#### Step 2: Create EventBridge Rule
 
 Create an EventBridge rule to capture S3 events:
 
@@ -115,20 +105,17 @@ Create an EventBridge rule to capture S3 events:
 3. **Event bus**: default
 4. **Rule type**: Rule with an event pattern
 
-#### Step 4: Configure Event Pattern
+#### Step 3: Configure Event Pattern
 
-Set up the event pattern to capture S3 operations:
+Set up the event pattern to capture S3 operations using native S3 events:
 
 **Event source**: AWS services
 **AWS service**: Simple Storage Service (S3)
-**Event type**: Specific operation(s)
+**Event type**: Amazon S3 Event Notification
 
-**Select these operations:**
-- ✅ `PutObject`
-- ✅ `CopyObject` 
-- ✅ `CompleteMultipartUpload`
-- ✅ `DeleteObject`
-- ✅ `DeleteObjects`
+**Select these event types:**
+- ✅ **Object Created** - Captures PutObject, CopyObject, CompleteMultipartUpload
+- ✅ **Object Deleted** - Captures DeleteObject operations
 
 **Bucket specification:**
 - Select **Specific bucket(s) by name**
@@ -138,26 +125,20 @@ Set up the event pattern to capture S3 operations:
 ```json
 {
   "source": ["aws.s3"],
-  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail-type": ["Object Created", "Object Deleted"],
   "detail": {
-    "eventSource": ["s3.amazonaws.com"],
-    "eventName": [
-      "PutObject",
-      "CopyObject", 
-      "CompleteMultipartUpload",
-      "DeleteObject",
-      "DeleteObjects"
-    ],
-    "requestParameters": {
-      "bucketName": ["your-bucket-name"]
+    "bucket": {
+      "name": ["your-bucket-name"]
     }
   }
 }
 ```
 
+**Note**: Unlike the legacy CloudTrail approach, native S3 events in EventBridge are simpler, faster, and don't require CloudTrail to be enabled.
+
 ![Event Pattern Configuration](./imgs/event-pattern.png)
 
-#### Step 5: Configure Event Target
+#### Step 4: Configure Event Target
 
 Set the SNS topic as the target for EventBridge events:
 
@@ -167,20 +148,21 @@ Set the SNS topic as the target for EventBridge events:
 
 ![Event Target Configuration](./imgs/event-target.png)
 
-#### Step 6: Set Up Input Transformer
+#### Step 5: Set Up Input Transformer
 
 Configure the input transformer to convert EventBridge events to S3 event format:
 
 **Input Path:**
 ```json
 {
-  "awsRegion": "$.detail.awsRegion",
-  "bucketName": "$.detail.requestParameters.bucketName", 
-  "eventName": "$.detail.eventName",
-  "eventTime": "$.detail.eventTime",
-  "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
-  "key": "$.detail.requestParameters.key",
-  "versionId": "$.detail.responseElements.x-amz-version-id"
+  "awsRegion": "$.region",
+  "bucketName": "$.detail.bucket.name",
+  "eventName": "$.detail-type",
+  "eventTime": "$.time",
+  "key": "$.detail.object.key",
+  "eTag": "$.detail.object.etag",
+  "versionId": "$.detail.object.version-id",
+  "sequencer": "$.detail.object.sequencer"
 }
 ```
 
@@ -190,17 +172,17 @@ Configure the input transformer to convert EventBridge events to S3 event format
   "Records": [
     {
       "awsRegion": <awsRegion>,
-      "eventName": <eventName>, 
+      "eventName": <eventName>,
       "eventTime": <eventTime>,
       "s3": {
         "bucket": {
           "name": <bucketName>
         },
         "object": {
-          "eTag": "",
-          "isDeleteMarker": <isDeleteMarker>,
           "key": <key>,
-          "versionId": <versionId>
+          "eTag": <eTag>,
+          "versionId": <versionId>,
+          "sequencer": <sequencer>
         }
       }
     }
@@ -208,13 +190,15 @@ Configure the input transformer to convert EventBridge events to S3 event format
 }
 ```
 
-#### Step 7: Save and Test the Rule
+**Note**: Native S3 events in EventBridge have a cleaner structure than CloudTrail events, with direct access to bucket and object properties.
+
+#### Step 6: Save and Test the Rule
 
 1. Click **Create rule** to save the EventBridge configuration
 2. Test by uploading a file to your S3 bucket
 3. Check CloudWatch Logs for the EventBridge rule to verify events are being processed
 
-#### Step 8: Configure Quilt
+#### Step 7: Configure Quilt
 
 Add the bucket to Quilt using the SNS topic:
 
@@ -226,7 +210,7 @@ Add the bucket to Quilt using the SNS topic:
 
 ![Quilt EventBridge Configuration](./imgs/quilt-eventbridge.png)
 
-#### Step 9: Initial Indexing
+#### Step 8: Initial Indexing
 
 Perform initial bucket indexing:
 
@@ -280,18 +264,18 @@ aws events describe-rule --name quilt-s3-events-rule
 ```
    - Ensure `State` is `ENABLED`
 
-2. **Verify CloudTrail is Logging S3 Events**
-   - Go to CloudTrail Console → Event history
-   - Filter by Event source: `s3.amazonaws.com`
-   - Confirm events are being logged
-
-3. **Check SNS Topic Metrics**
+2. **Check SNS Topic Metrics**
    - Go to SNS Console → Your topic → Monitoring
    - Look for "Messages published" metrics
 
-4. **Validate Input Transformer**
-   - Test the EventBridge rule with a sample event
+3. **Validate Input Transformer**
+   - Test the EventBridge rule with a sample event in the AWS Console
    - Check CloudWatch Logs for transformation errors
+
+4. **Verify S3 Events are Reaching EventBridge**
+   - Upload a test file to your S3 bucket
+   - Go to EventBridge Console → Rules → Your rule → Monitoring
+   - Check "Invocations" and "Matches" metrics
 
 #### Issue 2: Permission Errors
 
@@ -331,9 +315,9 @@ Ensure EventBridge has permission to publish to SNS:
 ### Performance Considerations
 
 #### Event Latency
-- **EventBridge Latency**: ~1-5 seconds additional delay vs direct S3 events
-- **CloudTrail Dependency**: Events only trigger after CloudTrail processes them
-- **Batch Processing**: Consider batching for high-volume buckets
+- **EventBridge Latency**: Minimal additional delay vs direct S3 event notifications (typically sub-second)
+- **Native S3 Events**: EventBridge now uses native S3 events, eliminating CloudTrail processing delays
+- **Batch Processing**: Consider batching for high-volume buckets to optimize processing costs
 
 #### Cost Optimization
 <!-- pytest-codeblocks:skip -->
@@ -350,28 +334,24 @@ aws sns get-topic-attributes --topic-arn YOUR_TOPIC_ARN --attribute-names All
 #### EventBridge-Specific Limitations
 
 1. **Bulk Delete Operations**
-   - The `delete-objects` API (used by AWS Console bulk delete) doesn't generate individual `delete-object` events
+   - The `DeleteObjects` API (used by AWS Console bulk delete) may generate a single event rather than individual delete events
    - **Workaround**: Use individual delete operations or manual re-indexing
    - **Impact**: Bulk deletes may not be reflected in Quilt immediately
 
-2. **Event Transformation Complexity**
-   - EventBridge events have different structure than native S3 events
-   - Input transformer may not capture all S3 event metadata
+2. **Event Transformation**
+   - EventBridge events require transformation to match S3 event notification format
+   - The input transformer must be configured correctly for Quilt to process events
    - **Mitigation**: Test thoroughly with your specific use cases
 
 #### General S3 Event Limitations
 
 1. **Lifecycle Policy Deletions**
-   - S3 lifecycle deletions are **not** captured by CloudTrail or S3 Events
+   - S3 lifecycle deletions are **not** captured by S3 Events or EventBridge
    - **AWS Documentation**: [Supported Event Types](https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.title.html)
-   
+
    > You do not receive event notifications from automatic deletes from lifecycle policies or from failed operations.
 
-2. **CloudTrail Dependency**
-   - EventBridge S3 events require CloudTrail data events
-   - **AWS Documentation**: [Lifecycle and Logging](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-and-other-bucket-config.html#lifecycle-general-considerations-logging)
-   
-   > Amazon S3 Lifecycle actions are not captured by AWS CloudTrail object level logging. CloudTrail captures API requests made to external Amazon S3 endpoints, whereas S3 Lifecycle actions are performed using internal Amazon S3 endpoints.
+   > Amazon S3 Lifecycle actions are performed using internal Amazon S3 endpoints and are not captured by event notifications.
 
 ### Best Practices
 
@@ -396,9 +376,10 @@ aws sns get-topic-attributes --topic-arn YOUR_TOPIC_ARN --attribute-names All
 ## 📚 Additional Resources
 
 - **[AWS EventBridge Documentation](https://docs.aws.amazon.com/eventbridge/)**
+- **[S3 Event Notifications via EventBridge](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html)**
 - **[S3 Event Notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html)**
 - **[SNS Fanout Pattern](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/)**
-- **[CloudTrail S3 Data Events](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-data-events-with-cloudtrail.html)**
+- **[EventBridge Input Transformation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-transform-target-input.html)**
 
 ---
 
