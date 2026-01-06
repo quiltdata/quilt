@@ -53,16 +53,16 @@ def pkg_created_event(s3_event):
     if not s3_event['eventName'].startswith('ObjectCreated:'):
         return
     s3_event_obj = s3_event['s3']
+    bucket = s3_event_obj["bucket"]["name"]
     obj = s3_event_obj['object']
     key = obj['key']
     match = PKG_POINTER_REGEX.fullmatch(key)
     if not match:
         return
     pkg_name, pointer_name = match.groups()
-    if not '1451631600' <= pointer_name:
+    if pointer_name < "1451631600":
+        logger.warning("pointer %r in bucket %r at %r is too old, skipping", pointer_name, bucket, key)
         return
-    bucket_obj = s3_event_obj['bucket']
-    bucket = bucket_obj['name']
     try:
         resp = s3.get_object(Bucket=bucket, Key=key, Range=f'bytes=0-{EXPECTED_POINTER_SIZE - 1}')
     except s3.exceptions.NoSuchKey:

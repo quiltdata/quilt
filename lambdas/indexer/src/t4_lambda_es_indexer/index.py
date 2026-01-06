@@ -301,7 +301,7 @@ def index_if_pointer(
         return False
     try:
         manifest_timestamp = int(pointer_file)
-        if not 1451631600 <= manifest_timestamp:
+        if manifest_timestamp < 1451631600:
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
     except ValueError as err:

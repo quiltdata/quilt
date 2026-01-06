@@ -45,6 +45,9 @@ def test_pkg_created_event_bad_key(key):
                 'object': {
                     'key': key,
                 },
+                "bucket": {
+                    "name": "test-bucket",
+                },
             },
         }
     ) is None
