@@ -36,6 +36,21 @@ QuiltSync:
 3. QuiltSync will open automatically (if installed) and display the package
    contents
 
+### Authentication
+
+The first time you open a catalog URI in QuiltSync, you'll be prompted to
+authenticate:
+
+1. QuiltSync will prompt you to obtain an access token
+2. Your web browser will open to your Quilt Catalog login page
+3. Sign in to your catalog (if not already signed in)
+4. The access token will be automatically provided to QuiltSync
+5. QuiltSync will use this token tied to your catalog session for all future
+   access
+
+No AWS credentials configuration is required—authentication is handled
+seamlessly through your browser and catalog session.
+
 ### Selective Installation
 
 QuiltSync allows you to choose which files to sync locally:
@@ -119,7 +134,8 @@ QuiltSync runs on all major operating systems:
   distributions)
 - **Disk Space**: Varies based on package sizes you plan to sync (consider
   storage for large datasets)
-- **Network**: Internet connection required for syncing with S3 (bandwidth
-  considerations for large datasets)
-- **AWS Access**: Valid AWS credentials configured for accessing your Quilt
-  buckets
+- **Network**: Internet connection required for syncing with S3 and
+  authenticating with your Quilt Catalog (bandwidth considerations for large
+  datasets)
+- **Authentication**: Browser-based login to your Quilt Catalog (no AWS
+  credentials needed)
