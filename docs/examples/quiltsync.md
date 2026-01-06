@@ -11,15 +11,42 @@ locally. Install once and seamlessly sync Quilt data packages (versioned,
 AI/ML-ready datasets) to your computer across Windows, macOS (Intel & Apple
 Silicon), and Linux.
 
+With QuiltSync, you can:
+
+- Browse and install Quilt packages through an intuitive graphical interface
+- Selectively sync specific files from packages to save disk space
+- Access cloud-stored datasets as if they were local files
+- Maintain version control and reproducibility for your data workflows
+
 ## Getting Started
+
+### Installation
+
+Download QuiltSync from [quilt.bio/quiltsync](https://quilt.bio/quiltsync/)
+and install it on your system. The application will integrate with your Quilt
+catalog and be ready to sync packages.
+
+### Opening Packages
 
 When viewing packages in the Quilt web catalog, you can open them directly in
 QuiltSync:
 
 1. Navigate to a package in your Quilt catalog
 2. Click the "Get Package" button and select "QuiltSync"
-3. QuiltSync will open automatically (if installed) and begin syncing the
-   package
+3. QuiltSync will open automatically (if installed) and display the package
+   contents
+
+### Selective Installation
+
+QuiltSync allows you to choose which files to sync locally:
+
+- Use the checkboxes to select specific files or folders
+- Click "SELECT ALL" to sync the entire package
+- Review file sizes before installing to manage disk space
+- Click "INSTALL" to begin syncing selected files to your local machine
+
+This selective sync capability is particularly useful for large packages where
+you only need specific files for your workflow.
 
 ### Integration with Benchling
 
@@ -38,6 +65,19 @@ remote storage (S3), QuiltSync gives you local access so you can work offline
 or interact with datasets as if they're on your machine.
 
 ## Key Features
+
+### Graphical User Interface
+
+QuiltSync provides an intuitive desktop interface for working with Quilt
+packages:
+
+- **Package Browser**: Navigate S3-based packages with a familiar file browser
+  interface
+- **Selective Sync**: Choose individual files or entire directories to install
+- **Quick Actions**: Refresh package contents, access settings, and open
+  packages in the web catalog
+- **File Preview**: View file sizes and directory structures before installing
+- **Progress Tracking**: Monitor installation progress for large datasets
 
 ### Versioned Data Packages
 
@@ -59,6 +99,7 @@ capabilities:
 - Interact with S3 data as if it's on your local machine
 - Reduce latency for data-intensive operations
 - Control which packages and versions are synced locally
+- Save bandwidth by selectively syncing only needed files
 
 ### AI-Ready Format
 
