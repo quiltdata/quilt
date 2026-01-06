@@ -69,6 +69,25 @@ QuiltSync allows you to choose which files to sync locally:
 This selective sync capability is particularly useful for large packages where
 you only need specific files for your workflow.
 
+### Settings and Troubleshooting
+
+Access QuiltSync settings by clicking the gear icon in the application. The
+settings panel provides useful information and troubleshooting tools:
+
+![QuiltSync Settings](../imgs/quiltsync-settings.png)
+
+- **Version**: View the current QuiltSync version and access release notes
+- **Lineage and cache files**: Open the `.quilt/` directory to inspect local
+  package metadata and cached data
+- **Logs directory**: View application logs for debugging and troubleshooting
+  issues
+- **Reset state**: Use "RELOAD PAGE" to refresh the interface or "RE-LOGIN" to
+  clear authentication and start fresh
+
+These tools are particularly helpful when troubleshooting authentication
+issues, investigating sync problems, or providing information for support
+requests.
+
 ### Integration with Benchling
 
 QuiltSync integrates with the [Benchling Webhook](./benchling.md) to provide
