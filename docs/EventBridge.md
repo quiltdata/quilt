@@ -95,6 +95,18 @@ aws sns create-topic \
 4. **Region**: Same as your S3 bucket
 5. Click **Create topic** and note the ARN
 
+**Important - SNS Subscription Configuration:**
+
+After creating the SNS topic and subscribing it to Quilt's SQS queues, you need to configure raw message delivery settings:
+
+1. Go to **SNS Console** → **Topics** → **Your topic** → **Subscriptions**
+2. For each SQS subscription:
+   - **S3SNSToEventBridgeQueue**: Enable "Raw message delivery" ✅
+   - **QuiltStack-PkgEventsQueue**: Keep "Raw message delivery" disabled ❌
+   - **QuiltStack-IndexerQueue**: Keep "Raw message delivery" disabled ❌
+
+Raw message delivery must be enabled for the EventBridge-specific queue but disabled for Quilt's standard queues to ensure proper message format.
+
 #### Step 2: Create EventBridge Rule
 
 Create an EventBridge rule to capture S3 events:
@@ -156,13 +168,10 @@ Configure the input transformer to convert EventBridge events to S3 event format
 ```json
 {
   "awsRegion": "$.region",
-  "bucketName": "$.detail.bucket.name",
+  "bucket": "$.detail.bucket.name",
   "eventName": "$.detail-type",
   "eventTime": "$.time",
-  "key": "$.detail.object.key",
-  "eTag": "$.detail.object.etag",
-  "versionId": "$.detail.object.version-id",
-  "sequencer": "$.detail.object.sequencer"
+  "key": "$.detail.object.key"
 }
 ```
 
@@ -171,26 +180,20 @@ Configure the input transformer to convert EventBridge events to S3 event format
 {
   "Records": [
     {
-      "awsRegion": <awsRegion>,
-      "eventName": <eventName>,
-      "eventTime": <eventTime>,
+      "eventSource": "aws:s3",
+      "awsRegion": "<awsRegion>",
+      "eventName": "<eventName>",
+      "eventTime": "<eventTime>",
       "s3": {
-        "bucket": {
-          "name": <bucketName>
-        },
-        "object": {
-          "key": <key>,
-          "eTag": <eTag>,
-          "versionId": <versionId>,
-          "sequencer": <sequencer>
-        }
+        "bucket": { "name": "<bucket>" },
+        "object": { "key": "<key>" }
       }
     }
   ]
 }
 ```
 
-**Note**: Native S3 events in EventBridge have a cleaner structure than CloudTrail events, with direct access to bucket and object properties.
+**Note**: This transformer maps native S3 EventBridge events to the standard S3 event notification format that Quilt expects.
 
 #### Step 6: Save and Test the Rule
 
@@ -282,9 +285,10 @@ aws events describe-rule --name quilt-s3-events-rule
 **Symptoms:**
 - EventBridge rule shows errors in CloudWatch
 - SNS topic not receiving messages
+- "KMS.DisabledException" or encryption-related errors
 
 **Solution:**
-Ensure EventBridge has permission to publish to SNS:
+Ensure the IAM role used by EventBridge has proper permissions. The role needs both SNS publish permissions and KMS permissions if your SNS topic uses encryption:
 
 ```json
 {
@@ -292,15 +296,31 @@ Ensure EventBridge has permission to publish to SNS:
   "Statement": [
     {
       "Effect": "Allow",
-      "Principal": {
-        "Service": "events.amazonaws.com"
-      },
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:region:account:quilt-eventbridge-notifications"
+      "Action": [
+        "sns:Publish"
+      ],
+      "Resource": [
+        "arn:aws:sns:region:account:quilt-eventbridge-notifications"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "arn:aws:kms:region:account:key/your-kms-key-id",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "sns.us-east-1.amazonaws.com"
+        }
+      }
     }
   ]
 }
 ```
+
+**Note**: Replace `region`, `account`, and `your-kms-key-id` with your actual values. The KMS key should be the one used by your Quilt SNS topics. Adjust the `kms:ViaService` region to match your deployment region.
 
 #### Issue 3: Duplicate Events
 
