@@ -26,15 +26,21 @@ Download QuiltSync from [quilt.bio/quiltsync](https://quilt.bio/quiltsync/)
 and install it on your system. The application will integrate with your Quilt
 catalog and be ready to sync packages.
 
-### Opening Packages
+### Opening Packages and Files
 
 When viewing packages in the Quilt web catalog, you can open them directly in
 QuiltSync:
 
-1. Navigate to a package in your Quilt catalog
-2. Click the "Get Package" button and select "QuiltSync"
-3. QuiltSync will open automatically (if installed) and display the package
+1. Navigate to a package or file in your Quilt catalog
+2. Click the "Get Package" or "Get File" button
+3. Select "Open in QuiltSync" from the dropdown menu
+4. QuiltSync will open automatically (if installed) and display the package
    contents
+
+![Open in QuiltSync](../imgs/open-in-quiltsync.png)
+
+The dropdown also provides a "Download it here" link if you need to install
+QuiltSync first, as well as options to download files directly.
 
 ### Authentication
 
