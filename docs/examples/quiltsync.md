@@ -37,7 +37,7 @@ QuiltSync:
 4. QuiltSync will open automatically (if installed) and display the package
    contents
 
-![Open in QuiltSync](../imgs/open-in-quiltsync.png)
+![Open in QuiltSync](../imgs/quiltsync-open.png)
 
 The dropdown also provides a "Download it here" link if you need to install
 QuiltSync first, as well as options to download files directly.
