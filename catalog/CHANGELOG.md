@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Hide file and directory delete buttons in Bucket tab by default; enable with `ui.actions.deleteObject` ([#4689](https://github.com/quiltdata/quilt/pull/4689))
 - [Added] Display detailed permission error messages when bucket add/update fails due to insufficient S3 permissions ([#4670](https://github.com/quiltdata/quilt/pull/4670))
 - [Added] Support `prefixes` field in bucket configuration for prefix-scoped bucket access ([#4670](https://github.com/quiltdata/quilt/pull/4670))
 - [Fixed] Catch error and don't show Perspective table if Perspective failed to render ([#4669](https://github.com/quiltdata/quilt/pull/4669))
