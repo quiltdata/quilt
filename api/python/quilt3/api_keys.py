@@ -7,7 +7,6 @@ import pydantic
 
 from . import _graphql_client
 
-
 # Types
 
 
