@@ -30,7 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 interface Features {
   add: boolean | null
   get: false | { code: boolean } | null
-  organize: boolean | null
+  organize: false | { delete: boolean } | null
   createPackage: boolean | null
 }
 
@@ -44,7 +44,7 @@ export function useFeatures(): Features | null {
             add: actions.writeFile,
             get:
               !cfg.noDownload && actions.downloadObject ? { code: blocks.code } : false,
-            organize: true,
+            organize: { delete: actions.deleteObject },
             createPackage: actions.createPackage,
           }),
           _: () => null,
@@ -130,7 +130,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
         {features.organize && (
           <Organize.Context.Provider onReload={onReload}>
             <Toolbar.Organize>
-              <Organize.Options />
+              <Organize.Options canDelete={features.organize.delete} />
             </Toolbar.Organize>
           </Organize.Context.Provider>
         )}

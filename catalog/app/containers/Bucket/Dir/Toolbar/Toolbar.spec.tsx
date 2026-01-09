@@ -26,7 +26,11 @@ vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: () => <>"Organize" popover</>,
+  Options: ({ canDelete }: { canDelete?: boolean }) => (
+    <div data-testid="organize-options" data-can-delete={canDelete}>
+      "Organize" popover
+    </div>
+  ),
 }))
 
 vi.mock('./CreatePackage', () => ({
@@ -108,7 +112,7 @@ describe('useFeatures', () => {
     expect(result.current).toEqual({
       add: false,
       get: false,
-      organize: true, // Always true in the implementation
+      organize: { delete: false }, // deleteObject defaults to false
       createPackage: false,
     })
   })
@@ -122,6 +126,7 @@ describe('useFeatures', () => {
               writeFile: true,
               downloadObject: true,
               createPackage: true,
+              deleteObject: true,
             },
             blocks: {
               code: true,
@@ -136,7 +141,7 @@ describe('useFeatures', () => {
     expect(result.current).toEqual({
       add: true,
       get: { code: true },
-      organize: true,
+      organize: { delete: true },
       createPackage: true,
     })
   })
@@ -158,7 +163,12 @@ describe('Toolbar', () => {
   it('should render all buttons when all features are enabled', () => {
     const { getByTitle } = render(
       <DirToolbar.Toolbar
-        features={{ add: true, get: { code: true }, organize: true, createPackage: true }}
+        features={{
+          add: true,
+          get: { code: true },
+          organize: { delete: true },
+          createPackage: true,
+        }}
         handle={handle}
         onReload={vi.fn()}
       />,
@@ -186,7 +196,12 @@ describe('Toolbar', () => {
   it('should render buttons for enabled features: add, organize', () => {
     const { getByTitle, queryByTitle } = render(
       <DirToolbar.Toolbar
-        features={{ add: true, get: false, organize: true, createPackage: false }}
+        features={{
+          add: true,
+          get: false,
+          organize: { delete: true },
+          createPackage: false,
+        }}
         handle={handle}
         onReload={vi.fn()}
       />,
@@ -195,5 +210,39 @@ describe('Toolbar', () => {
     expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
     expect(queryByTitle('Get files')).toBeFalsy()
     expect(queryByTitle('Create package')).toBeFalsy()
+  })
+
+  it('should pass canDelete=true to Organize.Options when delete feature is enabled', () => {
+    const { getByTestId } = render(
+      <DirToolbar.Toolbar
+        features={{
+          add: false,
+          get: false,
+          organize: { delete: true },
+          createPackage: false,
+        }}
+        handle={handle}
+        onReload={vi.fn()}
+      />,
+    )
+    const organizeOptions = getByTestId('organize-options')
+    expect(organizeOptions.getAttribute('data-can-delete')).toBe('true')
+  })
+
+  it('should pass canDelete=false to Organize.Options when delete feature is disabled', () => {
+    const { getByTestId } = render(
+      <DirToolbar.Toolbar
+        features={{
+          add: false,
+          get: false,
+          organize: { delete: false },
+          createPackage: false,
+        }}
+        handle={handle}
+        onReload={vi.fn()}
+      />,
+    )
+    const organizeOptions = getByTestId('organize-options')
+    expect(organizeOptions.getAttribute('data-can-delete')).toBe('false')
   })
 })

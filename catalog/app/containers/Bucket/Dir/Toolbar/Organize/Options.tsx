@@ -34,7 +34,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function OrganizeOptions() {
+interface OrganizeOptionsProps {
+  canDelete: boolean
+}
+
+export default function OrganizeOptions({ canDelete }: OrganizeOptionsProps) {
   const classes = useStyles()
   const {
     toggleBookmarks,
@@ -102,16 +106,20 @@ export default function OrganizeOptions() {
         />
       </M.List>
 
-      <M.Divider />
+      {canDelete && (
+        <>
+          <M.Divider />
 
-      <M.List dense>
-        <MenuItem
-          className={classes.error}
-          icon={<Icons.DeleteOutlined color="error" />}
-          onClick={confirmDeleteSelected}
-          primary="Delete selected items"
-        />
-      </M.List>
+          <M.List dense>
+            <MenuItem
+              className={classes.error}
+              icon={<Icons.DeleteOutlined color="error" />}
+              onClick={confirmDeleteSelected}
+              primary="Delete selected items"
+            />
+          </M.List>
+        </>
+      )}
     </>
   )
 }
