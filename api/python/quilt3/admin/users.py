@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from . import _graphql_client, exceptions, types, util
+from .. import _graphql_client
+from . import exceptions, types, util
 
 
 def get(name: str) -> Optional[types.User]:
