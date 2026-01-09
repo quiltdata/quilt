@@ -14,12 +14,12 @@ Bucket/
 │       ├── Organize/
 │       │   ├── Context.tsx
 │       │   └── Options.tsx
-│       └── CreatePackage/
-│           └── Options.tsx
+│       ├── CreatePackage/
+│       │   └── Options.tsx
+│       └── useFeatures.tsx
 └── Toolbar/  # Button components and shared types
     ├── Assist.tsx         # Special component (doesn't follow standard pattern)
     ├── Toolbar.tsx        # All button components (Add, Get, Organize, CreatePackage)
-    ├── Toolbar.spec.tsx   # Tests for button components
     ├── types.ts           # Shared type definitions (Handle, DirHandle, etc.)
     └── index.ts           # Exports from types.ts and Toolbar.tsx
 ```
@@ -36,7 +36,10 @@ Each toolbar module consists of:
   - Business logic (optional)
 - **Options**
   - `{Dir,File}/Toolbar/[ModuleName]/Options.tsx`)
-  - Menu content
+  - Menu content with typed feature props
+- **useFeatures**
+  - `{Dir,File}/Toolbar/useFeatures.tsx`
+  - Maps BucketPreferences to feature availability with typed interfaces
 
 ## Adding New Components
 
@@ -143,13 +146,13 @@ export default function Options() {
 ### 5. Add to Features Type
 
 ```typescript
-// In Toolbar component
-interface Features {
-  add: boolean | null
-  get: false | { code: boolean } | null
-  organize: boolean | null
-  createPackage: boolean | null
-  share: boolean | null // New feature
+// In useFeatures.tsx
+export interface Features {
+  add: boolean
+  get: false | { code: boolean }
+  organize: false | { delete: boolean }
+  createPackage: boolean
+  share: boolean // New feature
 }
 
 // In useFeatures hook
@@ -198,11 +201,11 @@ describe('Share', () => {
 
 ## Usage Examples
 
-### Simple Module (without Context)
+### Simple Module
 
 ```typescript
 // Get/Options.tsx - No Context needed
-export default function Options({ handle, hideCode }: OptionsProps) {
+export default function Options({ handle }: OptionsProps) {
   return (
     <div>Hello world!</div>
   )
@@ -210,11 +213,37 @@ export default function Options({ handle, hideCode }: OptionsProps) {
 
 // Usage
 <Toolbar.Get>
-  <Get.Options handle={handle} hideCode={false} />
+  <Get.Options handle={handle} />
 </Toolbar.Get>
 ```
 
-### Complex Module (with Context)
+### Module with Features
+
+```typescript
+// Get/Options.tsx - Receives typed features
+interface OptionsProps {
+  handle: Toolbar.DirHandle
+  features: Exclude<Features['get'], false>
+}
+
+export default function Options({ handle, features }: OptionsProps) {
+  return (
+    <GetOptions
+      download={<DownloadButton />}
+      code={features.code ? <CodeSamples /> : undefined}
+    />
+  )
+}
+
+// Usage in Toolbar
+{features.get && (
+  <Toolbar.Get>
+    <Get.Options handle={handle} features={features.get} />
+  </Toolbar.Get>
+)}
+```
+
+### Module with Context
 
 ```typescript
 // Usage

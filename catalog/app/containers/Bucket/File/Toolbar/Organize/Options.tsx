@@ -7,6 +7,7 @@ import { viewModeToSelectOption } from 'containers/Bucket/viewModes'
 import type { ViewModes } from 'containers/Bucket/viewModes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import type { Features } from '../useFeatures'
 import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
@@ -60,9 +61,10 @@ const useStyles = M.makeStyles((t) => ({
 
 interface OrganizeOptionsProps {
   viewModes?: ViewModes
+  features: Exclude<Features['organize'], false>
 }
 
-export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
+export default function OrganizeOptions({ viewModes, features }: OrganizeOptionsProps) {
   const classes = useStyles()
   const {
     confirmDelete,
@@ -127,15 +129,17 @@ export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
         </M.List>
       )}
 
-      <M.List dense className={classes.subList}>
-        <MenuItem
-          className={classes.danger}
-          icon={<Icons.DeleteOutlined color="error" />}
-          onClick={confirmDelete}
-        >
-          Delete
-        </MenuItem>
-      </M.List>
+      {features.delete && (
+        <M.List dense className={classes.subList}>
+          <MenuItem
+            className={classes.danger}
+            icon={<Icons.DeleteOutlined color="error" />}
+            onClick={confirmDelete}
+          >
+            Delete
+          </MenuItem>
+        </M.List>
+      )}
     </>
   )
 }

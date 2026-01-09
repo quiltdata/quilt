@@ -8,6 +8,7 @@ const expectedDefaults = {
     actions: {
       copyPackage: true,
       createPackage: true,
+      deleteObject: false,
       deleteRevision: false,
       downloadObject: true,
       downloadPackage: true,
@@ -128,6 +129,7 @@ describe('utils/BucketPreferences', () => {
       expect(parse(config, 'test-bucket').ui.actions).toEqual({
         copyPackage: false,
         createPackage: false,
+        deleteObject: false,
         deleteRevision: false,
         downloadObject: false,
         downloadPackage: false,

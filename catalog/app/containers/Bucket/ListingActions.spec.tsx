@@ -21,6 +21,7 @@ const defaultPrefs = {
   copyPackage: true,
   createPackage: true,
   deleteRevision: true,
+  deleteObject: true,
   downloadObject: true,
   downloadPackage: true,
   openInDesktop: true,
@@ -181,6 +182,36 @@ describe('components/ListingActions', () => {
       expect(getByTitle('Delete')).toBeTruthy()
       expect(getByTitle('Bookmark')).toBeTruthy()
       expect(queryByTitle('Download')).toBeFalsy()
+    })
+
+    it('should render Bucket file without delete button', () => {
+      const { queryByTitle, getByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/tree/fileB"
+            prefs={{ ...defaultPrefs, deleteObject: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Delete')).toBeFalsy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      expect(getByTitle('Download')).toBeTruthy()
+    })
+
+    it('should render Bucket directory without delete button', () => {
+      const { queryByTitle, getByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/tree/dirB/"
+            prefs={{ ...defaultPrefs, deleteObject: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Delete')).toBeFalsy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      expect(getByTitle('Download')).toBeTruthy()
     })
 
     it('should render Package directory without download button', () => {

@@ -1,24 +1,32 @@
 import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
-import { renderHook } from '@testing-library/react-hooks'
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
+import { describe, it, expect, vi, afterEach, Mock } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as FileToolbar from './Toolbar'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('./Get', () => ({
-  Options: () => <div>"Get" popover</div>,
+  Options: ({ features }: { features?: { code: boolean } }) => (
+    <div>
+      "Get" popover
+      {features?.code && <div data-testid="code-samples" />}
+    </div>
+  ),
 }))
 
 vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: () => <>"Organize" popover</>,
+  Options: ({ features }: { features?: { delete: boolean } }) => (
+    <div>
+      "Organize" popover
+      {features?.delete && <div data-testid="delete-button" />}
+    </div>
+  ),
 }))
 
 vi.mock('@material-ui/lab', async () => ({
@@ -73,100 +81,6 @@ const editorState = {
   value: 'test content',
 }
 
-describe('useFeatures', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('should return null when preferences are loading', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Pending(),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures())
-
-    expect(result.current).toBeNull()
-  })
-
-  it('should return all features disabled when all permissions are false', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: false,
-            },
-            blocks: {
-              code: false,
-              qurator: false,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures(false))
-
-    expect(result.current).toEqual({
-      get: false,
-      organize: true, // Always true in the implementation
-      qurator: false,
-    })
-  })
-
-  it('should return all features enabled when all permissions are true', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: true,
-            },
-            blocks: {
-              code: true,
-              qurator: true,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures(false))
-
-    expect(result.current).toEqual({
-      get: { code: true },
-      organize: true,
-      qurator: true,
-    })
-  })
-
-  it('should return get as false when file is deleted', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: true,
-            },
-            blocks: {
-              code: true,
-              qurator: true,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures(true))
-
-    expect(result.current).toEqual({
-      get: false,
-      organize: false,
-      qurator: true,
-    })
-  })
-})
-
 const handle = FileToolbar.CreateHandle('test-bucket', 'test/file.txt')
 
 describe('Toolbar', () => {
@@ -188,7 +102,7 @@ describe('Toolbar', () => {
   it('should render all buttons when all features are enabled', () => {
     const { getByTitle, getByText } = render(
       <FileToolbar.Toolbar
-        features={{ get: { code: true }, organize: true, qurator: true }}
+        features={{ get: { code: true }, organize: { delete: true }, qurator: true }}
         handle={handle}
         onReload={vi.fn()}
         viewModes={viewModes}
@@ -232,7 +146,7 @@ describe('Toolbar', () => {
   it('should not render organize button when editorState is not provided', () => {
     const { container, queryByTitle } = render(
       <FileToolbar.Toolbar
-        features={{ get: false, organize: true, qurator: false }}
+        features={{ get: false, organize: { delete: true }, qurator: false }}
         handle={handle}
         onReload={vi.fn()}
         viewModes={viewModes}
@@ -240,5 +154,31 @@ describe('Toolbar', () => {
     )
     expect(queryByTitle('Organize')).toBeFalsy()
     expect((container.firstChild as HTMLElement).children).toHaveLength(0)
+  })
+
+  it('should show delete button in Organize.Options when delete feature is enabled', () => {
+    const { getByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: true }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(getByTestId('delete-button')).toBeTruthy()
+  })
+
+  it('should hide delete button in Organize.Options when delete feature is disabled', () => {
+    const { queryByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: false }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(queryByTestId('delete-button')).toBeFalsy()
   })
 })
