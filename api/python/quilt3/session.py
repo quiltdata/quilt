@@ -91,7 +91,7 @@ def _update_auth(refresh_token, timeout=None):
 
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
-        raise QuiltException("Authentication failed. Run `quilt3 login` again.")
+        raise QuiltException("Authentication failed. Check your credentials or API key.")
     elif not resp.ok:
         try:
             data = resp.json()
@@ -148,16 +148,25 @@ def _create_session(auth):
 
 
 _session = None
+_api_key = None
 
 
 def get_session(timeout=None):
     """
     Creates a session or returns an existing session.
+
+    If an API key is set via login_with_api_key(), uses that for authentication.
+    Otherwise, uses the interactive session with refresh token logic.
     """
     global _session
     if _session is None:
-        auth = _create_auth(timeout)
-        _session = _create_session(auth)
+        if _api_key is not None:
+            # API key auth: no refresh logic, use key directly
+            _session = _create_session({'access_token': _api_key})
+        else:
+            # Interactive session: refresh token logic
+            auth = _create_auth(timeout)
+            _session = _create_session(auth)
 
     assert _session is not None
 
@@ -169,6 +178,34 @@ def clear_session():
     if _session is not None:
         _session.close()
         _session = None
+
+
+def login_with_api_key(key: str):
+    """
+    Authenticate using an API key.
+
+    The API key is stored in memory only (no disk persistence).
+    While set, the API key overrides any interactive session.
+    Use clear_api_key() to revert to interactive session.
+
+    Args:
+        key: API key string (starts with 'qk_')
+    """
+    global _api_key
+    _api_key = key
+    clear_session()  # Force session recreation with new auth
+
+
+def clear_api_key():
+    """
+    Clear the API key and fall back to interactive session.
+
+    After calling this, authentication will use the interactive
+    session (refresh token from ~/.quilt/auth.json) if available.
+    """
+    global _api_key
+    _api_key = None
+    clear_session()  # Force session recreation with interactive auth
 
 
 def open_url(url):
@@ -235,10 +272,12 @@ def logout():
     """
     Do not use Quilt credentials. Useful if you have existing AWS credentials.
     """
+    global _api_key
     # TODO revoke refresh token (without logging out of web sessions)
-    if _load_auth() or _load_credentials():
+    if _load_auth() or _load_credentials() or _api_key is not None:
         _save_auth({})
         _save_credentials({})
+        _api_key = None
     else:
         print("Already logged out.")
 
@@ -263,6 +302,8 @@ def logged_in():
     Return catalog URL if Quilt client is authenticated. Otherwise
     return `None`.
     """
+    if _api_key is not None:
+        return get_from_config('navigator_url')
     url = get_registry_url()
     if url in _load_auth():
         return get_from_config('navigator_url')
