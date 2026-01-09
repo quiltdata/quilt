@@ -62,7 +62,7 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
 
 interface OptionsProps {
   handle: Toolbar.DirHandle
-  features: NonNullable<Exclude<Features['get'], false>>
+  features: Exclude<Features['get'], false>
 }
 
 export default function Options({ handle, features }: OptionsProps) {

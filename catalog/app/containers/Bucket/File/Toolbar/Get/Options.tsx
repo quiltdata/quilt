@@ -37,7 +37,7 @@ export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProp
 
 interface OptionsProps {
   handle: Toolbar.FileHandle
-  features: NonNullable<Exclude<Features['get'], false>>
+  features: Exclude<Features['get'], false>
 }
 
 export default function Options({ handle, features }: OptionsProps) {

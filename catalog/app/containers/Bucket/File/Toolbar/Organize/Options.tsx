@@ -61,7 +61,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface OrganizeOptionsProps {
   viewModes?: ViewModes
-  features: NonNullable<Exclude<Features['organize'], false>>
+  features: Exclude<Features['organize'], false>
 }
 
 export default function OrganizeOptions({ viewModes, features }: OrganizeOptionsProps) {

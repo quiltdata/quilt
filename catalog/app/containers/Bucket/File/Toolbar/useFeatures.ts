@@ -2,9 +2,9 @@ import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 export interface Features {
-  get: false | { code: boolean } | null
-  organize: false | { delete: boolean } | null
-  qurator: boolean | null
+  get: false | { code: boolean }
+  organize: false | { delete: boolean }
+  qurator: boolean
 }
 
 export function useFeatures(notAvailable?: boolean): Features | null {

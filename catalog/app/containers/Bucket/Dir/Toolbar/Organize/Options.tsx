@@ -36,7 +36,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface OrganizeOptionsProps {
-  features: NonNullable<Exclude<Features['organize'], false>>
+  features: Exclude<Features['organize'], false>
 }
 
 export default function OrganizeOptions({ features }: OrganizeOptionsProps) {

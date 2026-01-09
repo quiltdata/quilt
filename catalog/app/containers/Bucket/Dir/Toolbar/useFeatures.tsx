@@ -4,10 +4,10 @@ import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 export interface Features {
-  add: boolean | null
-  get: false | { code: boolean } | null
-  organize: false | { delete: boolean } | null
-  createPackage: boolean | null
+  add: boolean
+  get: false | { code: boolean }
+  organize: false | { delete: boolean }
+  createPackage: boolean
 }
 
 export function useFeatures(): Features | null {
