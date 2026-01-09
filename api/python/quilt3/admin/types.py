@@ -68,21 +68,3 @@ class Bucket:
     file_extensions_to_index: Optional[List[str]]
     index_content_bytes: Optional[int]
     prefixes: List[str]
-
-
-@pydantic.dataclasses.dataclass
-class APIKey:
-    id: str
-    name: str
-    fingerprint: str
-    created_at: datetime
-    expires_at: datetime
-    last_used_at: Optional[datetime]
-    created_by_email: Optional[str]
-    status: str  # "ACTIVE" or "EXPIRED"
-
-
-@pydantic.dataclasses.dataclass
-class APIKeyCreated:
-    api_key: APIKey
-    secret: str

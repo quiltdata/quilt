@@ -3,7 +3,8 @@
 from typing import List, Optional
 
 from .. import _graphql_client
-from . import exceptions, types, util
+from ..api_keys import APIKey, APIKeyCreated
+from . import util
 
 
 def list(
@@ -11,7 +12,7 @@ def list(
     name: Optional[str] = None,
     fingerprint: Optional[str] = None,
     status: Optional[str] = None,
-) -> List[types.APIKey]:
+) -> List[APIKey]:
     """
     List API keys. Optionally filter by user email, name, fingerprint, or status.
 
@@ -30,10 +31,10 @@ def list(
         fingerprint=fingerprint,
         status=_graphql_client.APIKeyStatus(status) if status else None,
     )
-    return [types.APIKey(**k.model_dump()) for k in result]
+    return [APIKey(**k.model_dump()) for k in result]
 
 
-def get(id: str) -> Optional[types.APIKey]:
+def get(id: str) -> Optional[APIKey]:
     """
     Get a specific API key by ID.
 
@@ -46,7 +47,7 @@ def get(id: str) -> Optional[types.APIKey]:
     result = util.get_client().admin_api_key_get(id=id)
     if result is None:
         return None
-    return types.APIKey(**result.model_dump())
+    return APIKey(**result.model_dump())
 
 
 def revoke(id: str) -> None:
@@ -67,7 +68,7 @@ def create_for_user(
     email: str,
     name: str,
     expires_in_days: int = 90,
-) -> types.APIKeyCreated:
+) -> APIKeyCreated:
     """
     Create an API key for a user.
 
@@ -88,7 +89,7 @@ def create_for_user(
         input=_graphql_client.APIKeyCreateInput(name=name, expires_in_days=expires_in_days),
     )
     result = util.handle_errors(result)
-    return types.APIKeyCreated(
-        api_key=types.APIKey(**result.api_key.model_dump()),
+    return APIKeyCreated(
+        api_key=APIKey(**result.api_key.model_dump()),
         secret=result.secret,
     )
