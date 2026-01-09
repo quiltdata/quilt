@@ -7,6 +7,18 @@ from typing import Annotated, Any, List, Literal, Optional, Union
 from pydantic import Field
 
 from .base_model import BaseModel
+from .enums import APIKeyStatus
+
+
+class APIKeySelection(BaseModel):
+    id: str
+    name: str
+    fingerprint: str
+    created_at: datetime = Field(alias="createdAt")
+    expires_at: datetime = Field(alias="expiresAt")
+    last_used_at: Optional[datetime] = Field(alias="lastUsedAt")
+    created_by_email: Optional[str] = Field(alias="createdByEmail")
+    status: APIKeyStatus
 
 
 class BucketConfigSelection(BaseModel):
@@ -107,6 +119,7 @@ class SsoConfigSelectionUploader(UserSelection):
     pass
 
 
+APIKeySelection.model_rebuild()
 BucketConfigSelection.model_rebuild()
 InvalidInputSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
