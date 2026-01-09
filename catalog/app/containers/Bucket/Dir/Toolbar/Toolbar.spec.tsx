@@ -26,9 +26,10 @@ vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: ({ canDelete }: { canDelete?: boolean }) => (
-    <div data-testid="organize-options" data-can-delete={canDelete}>
+  Options: ({ features }: { features?: { delete: boolean } }) => (
+    <div>
       "Organize" popover
+      {features?.delete && <div data-testid="delete-button" />}
     </div>
   ),
 }))
@@ -212,7 +213,7 @@ describe('Toolbar', () => {
     expect(queryByTitle('Create package')).toBeFalsy()
   })
 
-  it('should pass canDelete=true to Organize.Options when delete feature is enabled', () => {
+  it('should show delete button in Organize.Options when delete feature is enabled', () => {
     const { getByTestId } = render(
       <DirToolbar.Toolbar
         features={{
@@ -225,12 +226,11 @@ describe('Toolbar', () => {
         onReload={vi.fn()}
       />,
     )
-    const organizeOptions = getByTestId('organize-options')
-    expect(organizeOptions.getAttribute('data-can-delete')).toBe('true')
+    expect(getByTestId('delete-button')).toBeTruthy()
   })
 
-  it('should pass canDelete=false to Organize.Options when delete feature is disabled', () => {
-    const { getByTestId } = render(
+  it('should hide delete button in Organize.Options when delete feature is disabled', () => {
+    const { queryByTestId } = render(
       <DirToolbar.Toolbar
         features={{
           add: false,
@@ -242,7 +242,6 @@ describe('Toolbar', () => {
         onReload={vi.fn()}
       />,
     )
-    const organizeOptions = getByTestId('organize-options')
-    expect(organizeOptions.getAttribute('data-can-delete')).toBe('false')
+    expect(queryByTestId('delete-button')).toBeFalsy()
   })
 })

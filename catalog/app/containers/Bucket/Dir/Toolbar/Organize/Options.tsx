@@ -5,6 +5,7 @@ import * as Icons from '@material-ui/icons'
 import * as Format from 'utils/format'
 import assertNever from 'utils/assertNever'
 
+import type { Features } from '../useFeatures'
 import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
@@ -35,10 +36,10 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface OrganizeOptionsProps {
-  canDelete: boolean
+  features: NonNullable<Exclude<Features['organize'], false>>
 }
 
-export default function OrganizeOptions({ canDelete }: OrganizeOptionsProps) {
+export default function OrganizeOptions({ features }: OrganizeOptionsProps) {
   const classes = useStyles()
   const {
     toggleBookmarks,
@@ -106,7 +107,7 @@ export default function OrganizeOptions({ canDelete }: OrganizeOptionsProps) {
         />
       </M.List>
 
-      {canDelete && (
+      {features.delete && (
         <>
           <M.Divider />
 
