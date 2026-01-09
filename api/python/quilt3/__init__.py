@@ -9,7 +9,7 @@ import importlib.metadata
 
 __version__ = importlib.metadata.version(__name__)
 
-from . import admin, hooks
+from . import admin, api_keys, hooks
 from .api import (
     config,
     copy,
