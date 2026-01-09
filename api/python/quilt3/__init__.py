@@ -22,6 +22,13 @@ from .api import (
 from .bucket import Bucket
 from .imports import start_data_package_loader
 from .packages import Package
-from .session import get_boto3_session, logged_in, login, logout
+from .session import (
+    clear_api_key,
+    get_boto3_session,
+    logged_in,
+    login,
+    login_with_api_key,
+    logout,
+)
 
 start_data_package_loader()
