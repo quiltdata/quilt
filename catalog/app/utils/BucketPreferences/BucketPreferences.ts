@@ -14,6 +14,7 @@ import * as YAML from 'utils/yaml'
 export type ActionPreferences = Record<
   | 'copyPackage'
   | 'createPackage'
+  | 'deleteObject'
   | 'deleteRevision'
   | 'downloadObject'
   | 'downloadPackage'
@@ -148,6 +149,7 @@ function getDefaultPreferences(bucket?: string): BucketPreferences {
       actions: {
         copyPackage: true,
         createPackage: true,
+        deleteObject: false,
         deleteRevision: false,
         downloadObject: true,
         downloadPackage: true,
