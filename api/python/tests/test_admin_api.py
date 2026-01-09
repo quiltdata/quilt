@@ -99,9 +99,7 @@ def _make_nested_dict(path: str, value) -> dict:
 @contextlib.contextmanager
 def mock_client(data, operation_name, variables=None):
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
-        with mock.patch(
-            "quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE
-        ) as execute_mock:
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
             with mock.patch("quilt3._graphql_client.Client.get_data", return_value=data) as get_data_mock:
                 yield
 
@@ -610,3 +608,114 @@ def test_bucket_remove_errors(data, error_type, error_msg):
             admin.buckets.remove("test-bucket")
         if error_msg:
             assert str(exc_info.value) == error_msg
+
+
+# API Keys tests
+
+API_KEY = {
+    "id": "key-123",
+    "name": "test-key",
+    "fingerprint": "qk_abc...xyz",
+    "createdAt": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "expiresAt": datetime.datetime(2024, 9, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "lastUsedAt": None,
+    "createdByEmail": "admin@example.com",
+    "status": "ACTIVE",
+}
+
+
+def test_api_keys_list():
+    with mock_client(
+        _make_nested_dict("admin.api_keys.list", [API_KEY]),
+        "adminApiKeysList",
+        variables={"email": None, "name": None, "fingerprint": None, "status": None},
+    ):
+        result = admin.api_keys.list()
+        assert len(result) == 1
+        assert result[0] == admin.APIKey(**_as_dataclass_kwargs(API_KEY))
+
+
+def test_api_keys_list_with_filters():
+    with mock_client(
+        _make_nested_dict("admin.api_keys.list", [API_KEY]),
+        "adminApiKeysList",
+        variables={
+            "email": "user@example.com",
+            "name": "test",
+            "fingerprint": None,
+            "status": _graphql_client.APIKeyStatus.ACTIVE,
+        },
+    ):
+        result = admin.api_keys.list(email="user@example.com", name="test", status="ACTIVE")
+        assert len(result) == 1
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (API_KEY, admin.APIKey(**_as_dataclass_kwargs(API_KEY))),
+        (None, None),
+    ],
+)
+def test_api_keys_get(data, result):
+    with mock_client(
+        _make_nested_dict("admin.api_keys.get", data),
+        "adminApiKeyGet",
+        variables={"id": "key-123"},
+    ):
+        assert admin.api_keys.get("key-123") == result
+
+
+def test_api_keys_revoke_success():
+    with mock_client(
+        _make_nested_dict("admin.api_keys.revoke", {"__typename": "Ok"}),
+        "adminApiKeyRevoke",
+        variables={"id": "key-123"},
+    ):
+        assert admin.api_keys.revoke("key-123") is None
+
+
+@pytest.mark.parametrize("data,error_type", MUTATION_ERRORS)
+def test_api_keys_revoke_errors(data, error_type):
+    with mock_client(
+        _make_nested_dict("admin.api_keys.revoke", data),
+        "adminApiKeyRevoke",
+        variables={"id": "key-123"},
+    ):
+        with pytest.raises(error_type):
+            admin.api_keys.revoke("key-123")
+
+
+def test_api_keys_create_for_user_success():
+    with mock_client(
+        _make_nested_dict(
+            "admin.api_keys.create_for_user",
+            {
+                "__typename": "APIKeyCreated",
+                "apiKey": API_KEY,
+                "secret": "qk_secret_token_here",
+            },
+        ),
+        "adminApiKeyCreateForUser",
+        variables={
+            "email": "user@example.com",
+            "input": _graphql_client.APIKeyCreateInput(name="new-key", expires_in_days=90),
+        },
+    ):
+        result = admin.api_keys.create_for_user("user@example.com", "new-key", expires_in_days=90)
+        assert result.secret == "qk_secret_token_here"
+        assert result.api_key == admin.APIKey(**_as_dataclass_kwargs(API_KEY))
+
+
+@pytest.mark.parametrize("data,error_type", MUTATION_ERRORS)
+def test_api_keys_create_for_user_errors(data, error_type):
+    with mock_client(
+        _make_nested_dict("admin.api_keys.create_for_user", data),
+        "adminApiKeyCreateForUser",
+        variables={
+            "email": "user@example.com",
+            "input": _graphql_client.APIKeyCreateInput(name="new-key", expires_in_days=90),
+        },
+    ):
+        with pytest.raises(error_type):
+            admin.api_keys.create_for_user("user@example.com", "new-key", expires_in_days=90)
