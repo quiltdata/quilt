@@ -119,7 +119,7 @@ describe('useFeatures', () => {
 
     expect(result.current).toEqual({
       get: false,
-      organize: { delete: false }, // deleteObject defaults to false
+      organize: { delete: false },
       qurator: false,
     })
   })

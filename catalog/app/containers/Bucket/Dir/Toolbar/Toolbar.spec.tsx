@@ -118,7 +118,7 @@ describe('useFeatures', () => {
     expect(result.current).toEqual({
       add: false,
       get: false,
-      organize: { delete: false }, // deleteObject defaults to false
+      organize: { delete: false },
       createPackage: false,
     })
   })
