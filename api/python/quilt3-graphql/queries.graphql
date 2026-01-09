@@ -47,6 +47,16 @@ fragment OperationErrorSelection on OperationError {
   name
   context
 }
+fragment APIKeySelection on APIKey {
+  id
+  name
+  fingerprint
+  createdAt
+  expiresAt
+  lastUsedAt
+  createdByEmail
+  status
+}
 fragment SsoConfigSelection on SsoConfig {
   text
   timestamp
@@ -328,5 +338,97 @@ mutation bucketUpdate($name: String!, $input: BucketUpdateInput!) {
 mutation bucketRemove($name: String!) {
   bucketRemove(name: $name) {
     ...BucketRemoveResultSelection
+  }
+}
+
+# API Keys - User operations
+
+query apiKeysList($name: String, $fingerprint: String, $status: APIKeyStatus) {
+  me {
+    apiKeys(name: $name, fingerprint: $fingerprint, status: $status) {
+      ...APIKeySelection
+    }
+  }
+}
+
+query apiKeyGet($id: ID!) {
+  me {
+    apiKey(id: $id) {
+      ...APIKeySelection
+    }
+  }
+}
+
+mutation apiKeyCreate($input: APIKeyCreateInput!) {
+  apiKeyCreate(input: $input) {
+    __typename
+    ... on APIKeyCreated {
+      apiKey {
+        ...APIKeySelection
+      }
+      secret
+    }
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}
+
+mutation apiKeyRevoke($id: ID, $secret: String) {
+  apiKeyRevoke(id: $id, secret: $secret) {
+    __typename
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}
+
+# API Keys - Admin operations
+
+query adminApiKeysList($email: String, $name: String, $fingerprint: String, $status: APIKeyStatus) {
+  admin {
+    apiKeys {
+      list(email: $email, name: $name, fingerprint: $fingerprint, status: $status) {
+        ...APIKeySelection
+      }
+    }
+  }
+}
+
+query adminApiKeyGet($id: ID!) {
+  admin {
+    apiKeys {
+      get(id: $id) {
+        ...APIKeySelection
+      }
+    }
+  }
+}
+
+mutation adminApiKeyRevoke($id: ID!) {
+  admin {
+    apiKeys {
+      revoke(id: $id) {
+        __typename
+        ...InvalidInputSelection
+        ...OperationErrorSelection
+      }
+    }
+  }
+}
+
+mutation adminApiKeyCreateForUser($email: String!, $input: APIKeyCreateInput!) {
+  admin {
+    apiKeys {
+      createForUser(email: $email, input: $input) {
+        __typename
+        ... on APIKeyCreated {
+          apiKey {
+            ...APIKeySelection
+          }
+          secret
+        }
+        ...InvalidInputSelection
+        ...OperationErrorSelection
+      }
+    }
   }
 }
