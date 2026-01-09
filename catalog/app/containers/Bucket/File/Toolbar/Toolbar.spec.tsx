@@ -11,7 +11,12 @@ import * as FileToolbar from './Toolbar'
 vi.mock('constants/config', () => ({ default: {} }))
 
 vi.mock('./Get', () => ({
-  Options: () => <div>"Get" popover</div>,
+  Options: ({ features }: { features?: { code: boolean } }) => (
+    <div>
+      "Get" popover
+      {features?.code && <div data-testid="code-samples" />}
+    </div>
+  ),
 }))
 
 vi.mock('./Organize', () => ({
@@ -20,7 +25,8 @@ vi.mock('./Organize', () => ({
   },
   Options: ({ features }: { features?: { delete: boolean } }) => (
     <div>
-      "Organize" popover {features?.delete && <div data-testid="delete-button" />}
+      "Organize" popover
+      {features?.delete && <div data-testid="delete-button" />}
     </div>
   ),
 }))
@@ -201,7 +207,7 @@ describe('Toolbar', () => {
       />,
     )
     expect(getByTitle('Get file').textContent).toBe('"Get" popover')
-    expect(getByTitle('Organize').textContent).toBe('"Organize" popover ')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
     expect(getByText('Assist')).toBeTruthy()
   })
 

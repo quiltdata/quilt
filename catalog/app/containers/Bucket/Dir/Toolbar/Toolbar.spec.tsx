@@ -19,7 +19,12 @@ vi.mock('./Add', () => ({
 }))
 
 vi.mock('./Get', () => ({
-  Options: () => <div>"Get" popover</div>,
+  Options: ({ features }: { features?: { code: boolean } }) => (
+    <div>
+      "Get" popover
+      {features?.code && <div data-testid="code-samples" />}
+    </div>
+  ),
 }))
 
 vi.mock('./Organize', () => ({

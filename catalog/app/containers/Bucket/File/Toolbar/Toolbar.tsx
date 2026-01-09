@@ -72,7 +72,7 @@ export function FileToolbar({
 
         {features.get && (
           <Toolbar.Get label="Get file">
-            <Get.Options handle={handle} hideCode={!features.get.code} />
+            <Get.Options handle={handle} features={features.get} />
           </Toolbar.Get>
         )}
 

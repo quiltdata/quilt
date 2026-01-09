@@ -93,7 +93,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
         {features.get && (
           <Toolbar.Get>
-            <Get.Options handle={handle} hideCode={!features.get.code} />
+            <Get.Options handle={handle} features={features.get} />
           </Toolbar.Get>
         )}
 
