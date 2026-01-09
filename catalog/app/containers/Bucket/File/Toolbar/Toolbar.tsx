@@ -18,7 +18,7 @@ export { Get, Organize }
 
 interface Features {
   get: false | { code: boolean } | null
-  organize: boolean | null
+  organize: false | { delete: boolean } | null
   qurator: boolean | null
 }
 
@@ -32,7 +32,7 @@ export function useFeatures(notAvailable?: boolean): Features | null {
           !notAvailable && !cfg.noDownload && actions.downloadObject
             ? { code: blocks.code }
             : false,
-        organize: !notAvailable,
+        organize: !notAvailable ? { delete: actions.deleteObject } : false,
         qurator: blocks.qurator,
       }),
       _: () => null,
@@ -109,7 +109,10 @@ export function FileToolbar({
             onReload={onReload}
           >
             <Toolbar.Organize>
-              <Organize.Options viewModes={viewModes} />
+              <Organize.Options
+                viewModes={viewModes}
+                canDelete={features.organize.delete}
+              />
             </Toolbar.Organize>
           </Organize.Context.Provider>
         )}

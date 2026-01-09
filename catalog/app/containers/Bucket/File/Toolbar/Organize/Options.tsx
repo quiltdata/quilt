@@ -60,9 +60,10 @@ const useStyles = M.makeStyles((t) => ({
 
 interface OrganizeOptionsProps {
   viewModes?: ViewModes
+  canDelete: boolean
 }
 
-export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
+export default function OrganizeOptions({ viewModes, canDelete }: OrganizeOptionsProps) {
   const classes = useStyles()
   const {
     confirmDelete,
@@ -127,15 +128,17 @@ export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
         </M.List>
       )}
 
-      <M.List dense className={classes.subList}>
-        <MenuItem
-          className={classes.danger}
-          icon={<Icons.DeleteOutlined color="error" />}
-          onClick={confirmDelete}
-        >
-          Delete
-        </MenuItem>
-      </M.List>
+      {canDelete && (
+        <M.List dense className={classes.subList}>
+          <MenuItem
+            className={classes.danger}
+            icon={<Icons.DeleteOutlined color="error" />}
+            onClick={confirmDelete}
+          >
+            Delete
+          </MenuItem>
+        </M.List>
+      )}
     </>
   )
 }

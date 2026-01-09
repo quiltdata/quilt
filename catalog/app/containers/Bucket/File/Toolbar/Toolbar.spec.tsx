@@ -18,7 +18,11 @@ vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: () => <>"Organize" popover</>,
+  Options: ({ canDelete }: { canDelete?: boolean }) => (
+    <div data-testid="organize-options" data-can-delete={canDelete}>
+      "Organize" popover
+    </div>
+  ),
 }))
 
 vi.mock('@material-ui/lab', async () => ({
@@ -109,7 +113,7 @@ describe('useFeatures', () => {
 
     expect(result.current).toEqual({
       get: false,
-      organize: true, // Always true in the implementation
+      organize: { delete: false }, // deleteObject defaults to false
       qurator: false,
     })
   })
@@ -121,6 +125,7 @@ describe('useFeatures', () => {
           ui: {
             actions: {
               downloadObject: true,
+              deleteObject: true,
             },
             blocks: {
               code: true,
@@ -135,7 +140,7 @@ describe('useFeatures', () => {
 
     expect(result.current).toEqual({
       get: { code: true },
-      organize: true,
+      organize: { delete: true },
       qurator: true,
     })
   })
@@ -188,7 +193,7 @@ describe('Toolbar', () => {
   it('should render all buttons when all features are enabled', () => {
     const { getByTitle, getByText } = render(
       <FileToolbar.Toolbar
-        features={{ get: { code: true }, organize: true, qurator: true }}
+        features={{ get: { code: true }, organize: { delete: true }, qurator: true }}
         handle={handle}
         onReload={vi.fn()}
         viewModes={viewModes}
@@ -232,7 +237,7 @@ describe('Toolbar', () => {
   it('should not render organize button when editorState is not provided', () => {
     const { container, queryByTitle } = render(
       <FileToolbar.Toolbar
-        features={{ get: false, organize: true, qurator: false }}
+        features={{ get: false, organize: { delete: true }, qurator: false }}
         handle={handle}
         onReload={vi.fn()}
         viewModes={viewModes}
@@ -240,5 +245,33 @@ describe('Toolbar', () => {
     )
     expect(queryByTitle('Organize')).toBeFalsy()
     expect((container.firstChild as HTMLElement).children).toHaveLength(0)
+  })
+
+  it('should pass canDelete=true to Organize.Options when delete feature is enabled', () => {
+    const { getByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: true }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    const organizeOptions = getByTestId('organize-options')
+    expect(organizeOptions.getAttribute('data-can-delete')).toBe('true')
+  })
+
+  it('should pass canDelete=false to Organize.Options when delete feature is disabled', () => {
+    const { getByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: false }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    const organizeOptions = getByTestId('organize-options')
+    expect(organizeOptions.getAttribute('data-can-delete')).toBe('false')
   })
 })
