@@ -316,3 +316,49 @@ class TestAPIKeySession(QuiltTestCase):
             quilt3.logout()
 
         assert quilt3.session._api_key is None
+
+    def test_headless_auth_no_disk_state(self):
+        """
+        Headless auth requires no disk state (FR-2.4, Scenario 2).
+        """
+        api_key = 'qk_ci_pipeline_key_abc123'
+
+        with (
+            patch('quilt3.session._load_auth', return_value={}),
+            patch('quilt3.session._load_credentials', return_value={}),
+            patch('quilt3.session._save_auth') as mock_save_auth,
+            patch('quilt3.session._save_credentials') as mock_save_creds,
+        ):
+            quilt3.login_with_api_key(api_key)
+            session = quilt3.session.get_session()
+            assert session.headers['Authorization'] == f'Bearer {api_key}'
+
+            # Simulate restart - clear session, API key still in memory
+            quilt3.session.clear_session()
+            session2 = quilt3.session.get_session()
+            assert session2.headers['Authorization'] == f'Bearer {api_key}'
+
+            # No disk writes
+            mock_save_auth.assert_not_called()
+            mock_save_creds.assert_not_called()
+
+    @patch('quilt3.session._create_auth')
+    def test_session_coexistence(self, mock_create_auth):
+        """
+        API key and interactive session coexist (FR-2.5, FR-2.6).
+        """
+        mock_create_auth.return_value = {'access_token': 'interactive_token'}
+
+        # Start with interactive
+        session1 = quilt3.session.get_session()
+        assert session1.headers['Authorization'] == 'Bearer interactive_token'
+
+        # Override with API key
+        quilt3.login_with_api_key('qk_temp_key')
+        session2 = quilt3.session.get_session()
+        assert session2.headers['Authorization'] == 'Bearer qk_temp_key'
+
+        # Clear API key, fall back to interactive
+        quilt3.clear_api_key()
+        session3 = quilt3.session.get_session()
+        assert session3.headers['Authorization'] == 'Bearer interactive_token'
