@@ -18,9 +18,9 @@ vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: ({ canDelete }: { canDelete?: boolean }) => (
-    <div data-testid="organize-options" data-can-delete={canDelete}>
-      "Organize" popover
+  Options: ({ features }: { features?: { delete: boolean } }) => (
+    <div>
+      "Organize" popover {features?.delete && <div data-testid="delete-button" />}
     </div>
   ),
 }))
@@ -201,7 +201,7 @@ describe('Toolbar', () => {
       />,
     )
     expect(getByTitle('Get file').textContent).toBe('"Get" popover')
-    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover ')
     expect(getByText('Assist')).toBeTruthy()
   })
 
@@ -247,7 +247,7 @@ describe('Toolbar', () => {
     expect((container.firstChild as HTMLElement).children).toHaveLength(0)
   })
 
-  it('should pass canDelete=true to Organize.Options when delete feature is enabled', () => {
+  it('should show delete button in Organize.Options when delete feature is enabled', () => {
     const { getByTestId } = render(
       <FileToolbar.Toolbar
         features={{ get: false, organize: { delete: true }, qurator: false }}
@@ -257,12 +257,11 @@ describe('Toolbar', () => {
         editorState={editorState}
       />,
     )
-    const organizeOptions = getByTestId('organize-options')
-    expect(organizeOptions.getAttribute('data-can-delete')).toBe('true')
+    expect(getByTestId('delete-button')).toBeTruthy()
   })
 
-  it('should pass canDelete=false to Organize.Options when delete feature is disabled', () => {
-    const { getByTestId } = render(
+  it('should hide delete button in Organize.Options when delete feature is disabled', () => {
+    const { queryByTestId } = render(
       <FileToolbar.Toolbar
         features={{ get: false, organize: { delete: false }, qurator: false }}
         handle={handle}
@@ -271,7 +270,6 @@ describe('Toolbar', () => {
         editorState={editorState}
       />,
     )
-    const organizeOptions = getByTestId('organize-options')
-    expect(organizeOptions.getAttribute('data-can-delete')).toBe('false')
+    expect(queryByTestId('delete-button')).toBeFalsy()
   })
 })

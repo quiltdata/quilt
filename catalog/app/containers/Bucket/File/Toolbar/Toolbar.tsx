@@ -6,40 +6,14 @@ import * as Lab from '@material-ui/lab'
 import type { EditorState } from 'components/FileEditor'
 import * as Toolbar from 'containers/Bucket/Toolbar'
 import type { ViewModes } from 'containers/Bucket/viewModes'
-import cfg from 'constants/config'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
 import * as Get from './Get'
 import * as Organize from './Organize'
+import { useFeatures, type Features } from './useFeatures'
 
 export { FileHandleCreate as CreateHandle } from 'containers/Bucket/Toolbar'
-export { Get, Organize }
-
-interface Features {
-  get: false | { code: boolean } | null
-  organize: false | { delete: boolean } | null
-  qurator: boolean | null
-}
-
-export function useFeatures(notAvailable?: boolean): Features | null {
-  const { prefs } = BucketPreferences.use()
-  if (typeof notAvailable === 'undefined') return null
-  return BucketPreferences.Result.match(
-    {
-      Ok: ({ ui: { actions, blocks } }) => ({
-        get:
-          !notAvailable && !cfg.noDownload && actions.downloadObject
-            ? { code: blocks.code }
-            : false,
-        organize: !notAvailable ? { delete: actions.deleteObject } : false,
-        qurator: blocks.qurator,
-      }),
-      _: () => null,
-    },
-    prefs,
-  )
-}
+export { Get, Organize, useFeatures, type Features }
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -109,10 +83,7 @@ export function FileToolbar({
             onReload={onReload}
           >
             <Toolbar.Organize>
-              <Organize.Options
-                viewModes={viewModes}
-                canDelete={features.organize.delete}
-              />
+              <Organize.Options viewModes={viewModes} features={features.organize} />
             </Toolbar.Organize>
           </Organize.Context.Provider>
         )}
