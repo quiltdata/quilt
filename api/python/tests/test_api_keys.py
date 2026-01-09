@@ -9,7 +9,6 @@ import pytest
 import quilt3
 from quilt3 import _graphql_client, api_keys
 
-
 API_KEY = {
     "id": "key-123",
     "name": "my-key",
