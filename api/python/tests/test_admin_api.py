@@ -4,8 +4,7 @@ from unittest import mock
 
 import pytest
 
-from quilt3 import admin
-from quilt3.admin import _graphql_client
+from quilt3 import _graphql_client, admin
 
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -101,9 +100,9 @@ def _make_nested_dict(path: str, value) -> dict:
 def mock_client(data, operation_name, variables=None):
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
         with mock.patch(
-            "quilt3.admin._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE
+            "quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE
         ) as execute_mock:
-            with mock.patch("quilt3.admin._graphql_client.Client.get_data", return_value=data) as get_data_mock:
+            with mock.patch("quilt3._graphql_client.Client.get_data", return_value=data) as get_data_mock:
                 yield
 
     execute_mock.assert_called_once_with(query=mock.ANY, operation_name=operation_name, variables=variables or {})
