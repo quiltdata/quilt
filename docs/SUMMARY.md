@@ -81,3 +81,4 @@
 * [Benchling Packager](examples/benchling.md)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
+* [QuiltSync Desktop Application](examples/quiltsync.md)
