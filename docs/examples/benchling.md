@@ -23,7 +23,7 @@ stack via the `@quiltdata/benchling-webhook`
 
 ### Auto-Packaging
 
-![Packaged Notebook](imgs/benchling-package.png)
+![Packaged Notebook](../imgs/benchling-package.png)
 
 When scientists create notebook entries in Benchling, this webhook
 automatically:
@@ -38,7 +38,7 @@ automatically:
 
 ### Package Linking
 
-![experiment_id](imgs/benchling-link.png)
+![experiment_id](../imgs/benchling-link.png)
 
 In addition, Quilt users can 'tag' additional packages by setting the
 `experiment_id` (or a custom metadata key) to the display ID of a Benchling
@@ -55,7 +55,7 @@ From inside the Quilt Catalog:
 
 ### Benchling App Canvas
 
-![App Canvas - Home](imgs/benchling-canvas.png)
+![App Canvas - Home](../imgs/benchling-canvas.png)
 
 The webhook includes a Benchling App Canvas, which allows Benchling users to
 view, browse, and sync the associated Quilt packages.
@@ -68,11 +68,11 @@ view, browse, and sync the associated Quilt packages.
 
 The canvas also allows you to browse package contents:
 
-![App Canvas - Browse](imgs/benchling-browse.png)
+![App Canvas - Browse](../imgs/benchling-browse.png)
 
 and view package metadata:
 
-![App Canvas - Metadata](imgs/benchling-metadata.png)
+![App Canvas - Metadata](../imgs/benchling-metadata.png)
 
 #### Inserting a Canvas
 
@@ -84,7 +84,7 @@ Benchling users can add it themselves:
 3. Choose "Quilt Package"
 4. After it is inserted, click the "Create" button
 
-![App Canvas - Insert](imgs/benchling-insert.png)
+![App Canvas - Insert](../imgs/benchling-insert.png)
 
 ## Installation
 
