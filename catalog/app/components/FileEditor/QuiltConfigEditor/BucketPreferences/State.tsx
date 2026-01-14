@@ -16,7 +16,10 @@ export interface TypedValue<V extends KeyedValue['value']> {
 
 export type KeyedValue<K extends Key = Key> = TypedValue<NonNullable<Defaults[K]>>
 
-function childOfBool<T>(parent: undefined | boolean | Record<string, T>, key: string) {
+function childOfBool<T, K extends string>(
+  parent: undefined | boolean | Partial<Record<K, T>>,
+  key: K,
+) {
   return typeof parent === 'boolean' ? parent : parent?.[key]
 }
 
@@ -33,6 +36,7 @@ function parseUser(config: string) {
   return {
     'ui.actions.copyPackage': childOfBool(json?.ui?.actions, 'copyPackage'),
     'ui.actions.createPackage': childOfBool(json?.ui?.actions, 'createPackage'),
+    'ui.actions.deleteObject': childOfBool(json?.ui?.actions, 'deleteObject'),
     'ui.actions.deleteRevision': childOfBool(json?.ui?.actions, 'deleteRevision'),
     'ui.actions.downloadObject': childOfBool(json?.ui?.actions, 'downloadObject'),
     'ui.actions.downloadPackage': childOfBool(json?.ui?.actions, 'downloadPackage'),
@@ -78,6 +82,7 @@ type Defaults = Required<ReturnType<typeof parseUser>>
 const sys: Defaults = {
   'ui.actions.copyPackage': true,
   'ui.actions.createPackage': true,
+  'ui.actions.deleteObject': false,
   'ui.actions.deleteRevision': false,
   'ui.actions.downloadObject': true,
   'ui.actions.downloadPackage': true,
@@ -137,6 +142,7 @@ export function parse(config: string, ext: Partial<Defaults>) {
   return {
     'ui.actions.copyPackage': val('ui.actions.copyPackage', user, ext),
     'ui.actions.createPackage': val('ui.actions.createPackage', user, ext),
+    'ui.actions.deleteObject': val('ui.actions.deleteObject', user, ext),
     'ui.actions.deleteRevision': val('ui.actions.deleteRevision', user, ext),
     'ui.actions.downloadObject': val('ui.actions.downloadObject', user, ext),
     'ui.actions.downloadPackage': val('ui.actions.downloadPackage', user, ext),

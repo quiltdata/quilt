@@ -78,6 +78,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <div
             id="checkbox"
           >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Buttons to delete files and directories under the "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
             true
           </div>
           <span
@@ -765,6 +783,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             "CREATE PACKAGE" on the package list and bucket listing pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Buttons to delete files and directories under the "BUCKET" tab
           </span>
         </label>
       </div>
