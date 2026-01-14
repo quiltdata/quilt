@@ -16,7 +16,10 @@ export interface TypedValue<V extends KeyedValue['value']> {
 
 export type KeyedValue<K extends Key = Key> = TypedValue<NonNullable<Defaults[K]>>
 
-function childOfBool<T>(parent: undefined | boolean | Record<string, T>, key: string) {
+function childOfBool<T, K extends string>(
+  parent: undefined | boolean | Partial<Record<K, T>>,
+  key: K,
+) {
   return typeof parent === 'boolean' ? parent : parent?.[key]
 }
 
