@@ -145,7 +145,7 @@ const defaultGallery: GalleryPreferences = {
 
 function getDefaultPreferences(bucket?: string): BucketPreferences {
   // NOTE: if you add values here,
-  //       then you must update UI values for editor
+  //       also update UI values for editor
   //       in app/components/FileEditor/QuiltConfigEditor/BucketPreferences/State.tsx
   return {
     ui: {
