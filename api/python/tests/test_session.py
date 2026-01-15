@@ -199,3 +199,180 @@ class TestSession(QuiltTestCase):
         with patch('quilt3.session._load_auth', return_value={other_registry_url: mock_auth}) as mocked_load_auth:
             assert quilt3.logged_in() is None
             mocked_load_auth.assert_called_once()
+
+
+@pytest.fixture
+def api_key_session(request):
+    """Fixture that clears API key state before and after each test."""
+    quilt3.clear_api_key()
+    quilt3.session.clear_session()
+    yield
+    quilt3.clear_api_key()
+
+
+def test_login_with_api_key_sets_auth_header(api_key_session):
+    """Test that login_with_api_key sets the correct Authorization header."""
+    api_key = 'qk_test_api_key_12345'
+    quilt3.login_with_api_key(api_key)
+
+    session = quilt3.session.get_session()
+    assert session.headers['Authorization'] == f'Bearer {api_key}'
+
+
+def test_login_with_api_key_no_disk_persistence(api_key_session):
+    """Test that API key auth doesn't write to disk."""
+    api_key = 'qk_test_api_key_12345'
+
+    with (
+        patch('quilt3.session._save_auth') as mock_save_auth,
+        patch('quilt3.session._save_credentials') as mock_save_creds,
+    ):
+        quilt3.login_with_api_key(api_key)
+        quilt3.session.get_session()
+
+        mock_save_auth.assert_not_called()
+        mock_save_creds.assert_not_called()
+
+
+def test_clear_api_key_removes_override(api_key_session):
+    """Test that clear_api_key removes the API key."""
+    api_key = 'qk_test_api_key_12345'
+    quilt3.login_with_api_key(api_key)
+
+    session = quilt3.session.get_session()
+    assert session.headers['Authorization'] == f'Bearer {api_key}'
+
+    quilt3.clear_api_key()
+    assert quilt3.session._api_key is None
+
+
+def test_clear_api_key_falls_back_to_interactive(api_key_session):
+    """Test that clear_api_key falls back to interactive session."""
+    api_key = 'qk_test_api_key_12345'
+
+    with patch('quilt3.session._create_auth') as mock_create_auth:
+        # Login with API key
+        quilt3.login_with_api_key(api_key)
+        session1 = quilt3.session.get_session()
+        assert session1.headers['Authorization'] == f'Bearer {api_key}'
+        mock_create_auth.assert_not_called()
+
+        # Clear API key - should attempt interactive auth
+        mock_create_auth.return_value = {'access_token': 'interactive_token'}
+        quilt3.clear_api_key()
+        session2 = quilt3.session.get_session()
+
+        mock_create_auth.assert_called_once()
+        assert session2.headers['Authorization'] == 'Bearer interactive_token'
+
+
+def test_api_key_overrides_interactive_session(api_key_session):
+    """Test that API key overrides interactive session."""
+    with patch('quilt3.session._create_auth') as mock_create_auth:
+        # Set up interactive session first
+        mock_create_auth.return_value = {'access_token': 'interactive_token'}
+        session1 = quilt3.session.get_session()
+        assert session1.headers['Authorization'] == 'Bearer interactive_token'
+        mock_create_auth.assert_called_once()
+
+        # Login with API key - should override
+        api_key = 'qk_test_api_key_12345'
+        quilt3.login_with_api_key(api_key)
+        session2 = quilt3.session.get_session()
+
+        assert session2.headers['Authorization'] == f'Bearer {api_key}'
+
+
+def test_api_key_skips_refresh_logic(api_key_session):
+    """Test that API key auth doesn't use refresh token logic."""
+    api_key = 'qk_test_api_key_12345'
+
+    with patch('quilt3.session._update_auth') as mock_update_auth:
+        quilt3.login_with_api_key(api_key)
+        quilt3.session.get_session()
+
+        mock_update_auth.assert_not_called()
+
+
+def test_logged_in_with_api_key(api_key_session):
+    """Test that logged_in() returns URL when API key is set."""
+    api_key = 'qk_test_api_key_12345'
+
+    with patch('quilt3.session.get_from_config', return_value='https://example.com'):
+        # Not logged in initially
+        with patch('quilt3.session._load_auth', return_value={}):
+            assert quilt3.logged_in() is None
+
+        # Login with API key
+        quilt3.login_with_api_key(api_key)
+        assert quilt3.logged_in() == 'https://example.com'
+
+
+def test_logout_clears_api_key(api_key_session):
+    """Test that logout() clears the API key."""
+    api_key = 'qk_test_api_key_12345'
+    quilt3.login_with_api_key(api_key)
+
+    assert quilt3.session._api_key == api_key
+
+    with patch('quilt3.session._save_auth'), patch('quilt3.session._save_credentials'):
+        quilt3.logout()
+
+    assert quilt3.session._api_key is None
+
+
+def test_headless_auth_no_disk_state(api_key_session):
+    """Headless auth requires no disk state."""
+    api_key = 'qk_ci_pipeline_key_abc123'
+
+    with (
+        patch('quilt3.session._load_auth', return_value={}),
+        patch('quilt3.session._load_credentials', return_value={}),
+        patch('quilt3.session._save_auth') as mock_save_auth,
+        patch('quilt3.session._save_credentials') as mock_save_creds,
+    ):
+        quilt3.login_with_api_key(api_key)
+        session = quilt3.session.get_session()
+        assert session.headers['Authorization'] == f'Bearer {api_key}'
+
+        # Simulate restart - clear session, API key still in memory
+        quilt3.session.clear_session()
+        session2 = quilt3.session.get_session()
+        assert session2.headers['Authorization'] == f'Bearer {api_key}'
+
+        # No disk writes
+        mock_save_auth.assert_not_called()
+        mock_save_creds.assert_not_called()
+
+
+def test_session_coexistence(api_key_session):
+    """API key and interactive session coexist."""
+    with patch('quilt3.session._create_auth') as mock_create_auth:
+        mock_create_auth.return_value = {'access_token': 'interactive_token'}
+
+        # Start with interactive
+        session1 = quilt3.session.get_session()
+        assert session1.headers['Authorization'] == 'Bearer interactive_token'
+
+        # Override with API key
+        quilt3.login_with_api_key('qk_temp_key')
+        session2 = quilt3.session.get_session()
+        assert session2.headers['Authorization'] == 'Bearer qk_temp_key'
+
+        # Clear API key, fall back to interactive
+        quilt3.clear_api_key()
+        session3 = quilt3.session.get_session()
+        assert session3.headers['Authorization'] == 'Bearer interactive_token'
+
+
+def test_login_with_api_key_validates_prefix(api_key_session):
+    """Test that login_with_api_key rejects keys without qk_ prefix."""
+    with pytest.raises(ValueError, match="must start with 'qk_' prefix"):
+        quilt3.login_with_api_key('invalid_key_without_prefix')
+
+    with pytest.raises(ValueError, match="must start with 'qk_' prefix"):
+        quilt3.login_with_api_key('')
+
+    # Valid prefix should work
+    quilt3.login_with_api_key('qk_valid_key')
+    assert quilt3.session._api_key == 'qk_valid_key'

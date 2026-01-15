@@ -2,6 +2,14 @@
 # quilt3
 Quilt API
 
+## clear\_api\_key()  {#clear\_api\_key}
+
+Clear the API key and fall back to interactive session.
+
+After calling this, authentication will use the interactive
+session (refresh token from ~/.quilt/auth.json) if available.
+
+
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
 Set or read the QUILT configuration.
 
@@ -86,8 +94,7 @@ An iterable of strings containing the names of the packages
 
 ## logged\_in()  {#logged\_in}
 
-Return catalog URL if Quilt client is authenticated. Otherwise
-return `None`.
+Return catalog URL if Quilt client is authenticated, `None` otherwise.
 
 
 ## login()  {#login}
@@ -96,6 +103,23 @@ Authenticate to your Quilt stack and assume the role assigned to you by
 your stack administrator. Not required if you have existing AWS credentials.
 
 Launches a web browser and asks the user for a token.
+
+
+## login\_with\_api\_key(key: str)  {#login\_with\_api\_key}
+
+Authenticate using an API key.
+
+The API key is stored in memory only (no disk persistence).
+While set, the API key overrides any interactive session.
+Use clear_api_key() to revert to interactive session.
+
+__Arguments__
+
+* __key__:  API key string (starts with 'qk_')
+
+__Raises__
+
+* `ValueError`:  If the key doesn't start with 'qk_' prefix.
 
 
 ## logout()  {#logout}
@@ -123,4 +147,74 @@ Index schemas and search examples can be found in the
 __Returns__
 
 search results
+
+
+# quilt3.api_keys
+API for managing your own API keys.
+
+## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], created\_by\_email: Optional[str], status: str) -> None  {#APIKey}
+An API key for programmatic access.
+
+## APIKeyError(result)  {#APIKeyError}
+Error during API key operation.
+
+## list(name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+
+List your API keys. Optionally filter by name, fingerprint, or status.
+
+__Arguments__
+
+* __name__:  Filter by key name.
+* __fingerprint__:  Filter by key fingerprint.
+* __status__:  Filter by "ACTIVE" or "EXPIRED". None returns all.
+
+__Returns__
+
+List of your API keys matching the filters.
+
+
+## get(id: str) -> Optional[quilt3.api\_keys.APIKey]  {#get}
+
+Get a specific API key by ID.
+
+__Arguments__
+
+* __id__:  The API key ID.
+
+__Returns__
+
+The API key, or None if not found.
+
+
+## create(name: str, expires\_in\_days: int = 90) -> Tuple[quilt3.api\_keys.APIKey, str]  {#create}
+
+Create a new API key for yourself.
+
+__Arguments__
+
+* __name__:  Name for the API key.
+* __expires_in_days__:  Days until expiration (30-365, default 90).
+
+__Returns__
+
+Tuple of (APIKey, secret). The secret is only returned once - save it securely!
+
+__Raises__
+
+* `APIKeyError`:  If the operation fails.
+
+
+## revoke(id: Optional[str] = None, secret: Optional[str] = None) -> None  {#revoke}
+
+Revoke an API key. Provide either the key ID or the secret.
+
+__Arguments__
+
+* __id__:  The API key ID to revoke.
+* __secret__:  The API key secret to revoke.
+
+__Raises__
+
+* `ValueError`:  If neither id nor secret is provided.
+* `APIKeyError`:  If the operation fails.
 
