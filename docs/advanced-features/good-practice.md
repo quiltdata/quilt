@@ -236,6 +236,28 @@ Represents an authenticated Quilt User.
 - `lastLogin: datetime`
 - `dateJoined: datetime`
 - `roleId: str` (optional) - An ID of the associated Quilt Role.
+- `sessionContext: SessionContext` (optional, since Platform version 1.67) - Authentication context for the session.
+
+###### `SessionContext`
+
+Contains information about how the user authenticated.
+
+**Attributes**:
+
+- `auth: AuthContext` - Authentication method details.
+
+###### `AuthContext`
+
+Discriminated union with `type` field:
+
+- **`InteractiveAuth`**: User authenticated via SSO/OAuth.
+  - `type: "interactive"`
+
+- **`APIKeyAuth`**: User authenticated via API key.
+  - `type: "api_key"`
+  - `keyId: str` - The API key ID.
+  - `keyName: str` - User-provided name of the key.
+  - `keyFingerprint: str` - Display fingerprint (e.g., `qk_abc...xyz`).
 
 ##### `Unidentified`
 
