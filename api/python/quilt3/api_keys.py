@@ -1,14 +1,13 @@
 """API for managing your own API keys."""
 
+import typing as T
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
 
 import pydantic
 
 from . import _graphql_client
-from ._graphql_client.enums import APIKeyStatus as Status
 
-__all__ = ["APIKey", "APIKeyError", "Status", "list", "get", "create", "revoke"]
+APIKeyStatus = T.Literal["ACTIVE", "EXPIRED"]
 
 
 @pydantic.dataclasses.dataclass
@@ -20,8 +19,8 @@ class APIKey:
     fingerprint: str
     created_at: datetime
     expires_at: datetime
-    last_used_at: Optional[datetime]
-    created_by_email: Optional[str]
+    last_used_at: T.Optional[datetime]
+    created_by_email: T.Optional[str]
     status: str
 
 
@@ -46,17 +45,17 @@ def _handle_errors(result):
 
 
 def list(
-    name: Optional[str] = None,
-    fingerprint: Optional[str] = None,
-    status: Optional[Union[Status, str]] = None,
-) -> List[APIKey]:
+    name: T.Optional[str] = None,
+    fingerprint: T.Optional[str] = None,
+    status: T.Optional[APIKeyStatus] = None,
+) -> T.List[APIKey]:
     """
     List your API keys. Optionally filter by name, fingerprint, or status.
 
     Args:
         name: Filter by key name.
         fingerprint: Filter by key fingerprint.
-        status: Filter by Status.ACTIVE or Status.EXPIRED. None returns all.
+        status: Filter by "ACTIVE" or "EXPIRED". None returns all.
 
     Returns:
         List of your API keys matching the filters.
@@ -64,14 +63,14 @@ def list(
     result = _graphql_client.Client().api_keys_list(
         name=name,
         fingerprint=fingerprint,
-        status=Status(status) if status else None,
+        status=_graphql_client.APIKeyStatus(status) if status else None,
     )
     if result is None:
         return []
     return [APIKey(**k.model_dump()) for k in result.api_keys]
 
 
-def get(id: str) -> Optional[APIKey]:
+def get(id: str) -> T.Optional[APIKey]:
     """
     Get a specific API key by ID.
 
@@ -90,7 +89,7 @@ def get(id: str) -> Optional[APIKey]:
 def create(
     name: str,
     expires_in_days: int = 90,
-) -> Tuple[APIKey, str]:
+) -> T.Tuple[APIKey, str]:
     """
     Create a new API key for yourself.
 
@@ -111,7 +110,7 @@ def create(
     return APIKey(**result.api_key.model_dump()), result.secret
 
 
-def revoke(id: Optional[str] = None, secret: Optional[str] = None) -> None:
+def revoke(id: T.Optional[str] = None, secret: T.Optional[str] = None) -> None:
     """
     Revoke an API key. Provide either the key ID or the secret.
 

@@ -1,18 +1,18 @@
 """Admin API for managing API keys."""
 
-from typing import List, Optional, Tuple, Union
+import typing as T
 
 from .. import _graphql_client
-from ..api_keys import APIKey, Status
+from ..api_keys import APIKey, APIKeyStatus
 from . import util
 
 
 def list(
-    email: Optional[str] = None,
-    key_name: Optional[str] = None,
-    fingerprint: Optional[str] = None,
-    status: Optional[Union[Status, str]] = None,
-) -> List[APIKey]:
+    email: T.Optional[str] = None,
+    key_name: T.Optional[str] = None,
+    fingerprint: T.Optional[str] = None,
+    status: T.Optional[APIKeyStatus] = None,
+) -> T.List[APIKey]:
     """
     List API keys. Optionally filter by user email, key name, fingerprint, or status.
 
@@ -20,7 +20,7 @@ def list(
         email: Filter by user email.
         key_name: Filter by key name.
         fingerprint: Filter by key fingerprint.
-        status: Filter by Status.ACTIVE or Status.EXPIRED. None returns all.
+        status: Filter by "ACTIVE" or "EXPIRED". None returns all.
 
     Returns:
         List of API keys matching the filters.
@@ -29,12 +29,12 @@ def list(
         email=email,
         name=key_name,
         fingerprint=fingerprint,
-        status=Status(status) if status else None,
+        status=_graphql_client.APIKeyStatus(status) if status else None,
     )
     return [APIKey(**k.model_dump()) for k in result]
 
 
-def get(id: str) -> Optional[APIKey]:
+def get(id: str) -> T.Optional[APIKey]:
     """
     Get a specific API key by ID.
 
@@ -68,7 +68,7 @@ def create_for_user(
     email: str,
     name: str,
     expires_in_days: int = 90,
-) -> Tuple[APIKey, str]:
+) -> T.Tuple[APIKey, str]:
     """
     Create an API key for a user.
 
