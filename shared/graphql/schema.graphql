@@ -42,9 +42,9 @@ input APIKeyCreateInput {
   expiresInDays: Int! = 90
 }
 
-union APIKeyCreateResult = APIKeyCreated | InvalidInput | OperationError
+union APIKeyCreateResult = APIKeyCreated | InvalidInput
 
-union APIKeyRevokeResult = Ok | InvalidInput | OperationError
+union APIKeyRevokeResult = Ok | InvalidInput
 
 type OperationError {
   message: String!

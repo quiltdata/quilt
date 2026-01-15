@@ -369,7 +369,6 @@ mutation apiKeyCreate($input: APIKeyCreateInput!) {
       secret
     }
     ...InvalidInputSelection
-    ...OperationErrorSelection
   }
 }
 
@@ -377,7 +376,6 @@ mutation apiKeyRevoke($id: ID, $secret: String) {
   apiKeyRevoke(id: $id, secret: $secret) {
     __typename
     ...InvalidInputSelection
-    ...OperationErrorSelection
   }
 }
 
@@ -409,7 +407,6 @@ mutation adminApiKeyRevoke($id: ID!) {
       revoke(id: $id) {
         __typename
         ...InvalidInputSelection
-        ...OperationErrorSelection
       }
     }
   }
@@ -427,7 +424,6 @@ mutation adminApiKeyCreateForUser($email: String!, $input: APIKeyCreateInput!) {
           secret
         }
         ...InvalidInputSelection
-        ...OperationErrorSelection
       }
     }
   }

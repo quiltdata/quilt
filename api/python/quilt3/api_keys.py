@@ -39,7 +39,7 @@ class APIKeyError(Exception):
 
 def _handle_errors(result):
     """Raise APIKeyError if result is an error type."""
-    if isinstance(result, (_graphql_client.InvalidInputSelection, _graphql_client.OperationErrorSelection)):
+    if isinstance(result, _graphql_client.InvalidInputSelection):
         raise APIKeyError(result)
     return result
 

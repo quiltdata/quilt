@@ -7,28 +7,24 @@ from .admin_api_key_create_for_user import (
     AdminApiKeyCreateForUser,
     AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated,
     AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput,
-    AdminApiKeyCreateForUserAdminApiKeysCreateForUserOperationError,
 )
 from .admin_api_key_get import AdminApiKeyGet, AdminApiKeyGetAdminApiKeysGet
 from .admin_api_key_revoke import (
     AdminApiKeyRevoke,
     AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput,
     AdminApiKeyRevokeAdminApiKeysRevokeOk,
-    AdminApiKeyRevokeAdminApiKeysRevokeOperationError,
 )
 from .admin_api_keys_list import AdminApiKeysList, AdminApiKeysListAdminApiKeysList
 from .api_key_create import (
     ApiKeyCreate,
     ApiKeyCreateApiKeyCreateAPIKeyCreated,
     ApiKeyCreateApiKeyCreateInvalidInput,
-    ApiKeyCreateApiKeyCreateOperationError,
 )
 from .api_key_get import ApiKeyGet, ApiKeyGetMe
 from .api_key_revoke import (
     ApiKeyRevoke,
     ApiKeyRevokeApiKeyRevokeInvalidInput,
     ApiKeyRevokeApiKeyRevokeOk,
-    ApiKeyRevokeApiKeyRevokeOperationError,
 )
 from .api_keys_list import ApiKeysList, ApiKeysListMe
 from .base_client import BaseClient
@@ -1458,11 +1454,7 @@ class Client(BaseClient):
 
     def api_key_create(
         self, input: APIKeyCreateInput, **kwargs: Any
-    ) -> Union[
-        ApiKeyCreateApiKeyCreateAPIKeyCreated,
-        ApiKeyCreateApiKeyCreateInvalidInput,
-        ApiKeyCreateApiKeyCreateOperationError,
-    ]:
+    ) -> Union[ApiKeyCreateApiKeyCreateAPIKeyCreated, ApiKeyCreateApiKeyCreateInvalidInput]:
         query = gql(
             """
             mutation apiKeyCreate($input: APIKeyCreateInput!) {
@@ -1475,7 +1467,6 @@ class Client(BaseClient):
                   secret
                 }
                 ...InvalidInputSelection
-                ...OperationErrorSelection
               }
             }
 
@@ -1498,12 +1489,6 @@ class Client(BaseClient):
                 context
               }
             }
-
-            fragment OperationErrorSelection on OperationError {
-              message
-              name
-              context
-            }
             """
         )
         variables: Dict[str, object] = {"input": input}
@@ -1516,18 +1501,13 @@ class Client(BaseClient):
         id: Union[Optional[str], UnsetType] = UNSET,
         secret: Union[Optional[str], UnsetType] = UNSET,
         **kwargs: Any,
-    ) -> Union[
-        ApiKeyRevokeApiKeyRevokeOk,
-        ApiKeyRevokeApiKeyRevokeInvalidInput,
-        ApiKeyRevokeApiKeyRevokeOperationError,
-    ]:
+    ) -> Union[ApiKeyRevokeApiKeyRevokeOk, ApiKeyRevokeApiKeyRevokeInvalidInput]:
         query = gql(
             """
             mutation apiKeyRevoke($id: ID, $secret: String) {
               apiKeyRevoke(id: $id, secret: $secret) {
                 __typename
                 ...InvalidInputSelection
-                ...OperationErrorSelection
               }
             }
 
@@ -1538,12 +1518,6 @@ class Client(BaseClient):
                 name
                 context
               }
-            }
-
-            fragment OperationErrorSelection on OperationError {
-              message
-              name
-              context
             }
             """
         )
@@ -1629,7 +1603,6 @@ class Client(BaseClient):
     ) -> Union[
         AdminApiKeyRevokeAdminApiKeysRevokeOk,
         AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput,
-        AdminApiKeyRevokeAdminApiKeysRevokeOperationError,
     ]:
         query = gql(
             """
@@ -1639,7 +1612,6 @@ class Client(BaseClient):
                   revoke(id: $id) {
                     __typename
                     ...InvalidInputSelection
-                    ...OperationErrorSelection
                   }
                 }
               }
@@ -1653,12 +1625,6 @@ class Client(BaseClient):
                 context
               }
             }
-
-            fragment OperationErrorSelection on OperationError {
-              message
-              name
-              context
-            }
             """
         )
         variables: Dict[str, object] = {"id": id}
@@ -1671,7 +1637,6 @@ class Client(BaseClient):
     ) -> Union[
         AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated,
         AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput,
-        AdminApiKeyCreateForUserAdminApiKeysCreateForUserOperationError,
     ]:
         query = gql(
             """
@@ -1687,7 +1652,6 @@ class Client(BaseClient):
                       secret
                     }
                     ...InvalidInputSelection
-                    ...OperationErrorSelection
                   }
                 }
               }
@@ -1711,12 +1675,6 @@ class Client(BaseClient):
                 name
                 context
               }
-            }
-
-            fragment OperationErrorSelection on OperationError {
-              message
-              name
-              context
             }
             """
         )

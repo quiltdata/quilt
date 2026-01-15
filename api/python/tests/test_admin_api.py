@@ -68,6 +68,9 @@ MUTATION_ERRORS = (
         admin.Quilt3AdminError,
     ),
 )
+
+# API key operations don't return OperationError
+API_KEY_MUTATION_ERRORS = (MUTATION_ERRORS[0],)
 USER_MUTATION_ERRORS = (
     *MUTATION_ERRORS,
     (None, admin.UserNotFoundError),
@@ -658,7 +661,7 @@ def test_api_keys_revoke_success():
         assert admin.api_keys.revoke("key-123") is None
 
 
-@pytest.mark.parametrize("data,error_type", MUTATION_ERRORS)
+@pytest.mark.parametrize("data,error_type", API_KEY_MUTATION_ERRORS)
 def test_api_keys_revoke_errors(data, error_type):
     with mock_client(
         _make_nested_dict("admin.api_keys.revoke", data),
@@ -690,7 +693,7 @@ def test_api_keys_create_for_user_success():
         assert api_key == admin.APIKey(**as_dataclass_kwargs(API_KEY))
 
 
-@pytest.mark.parametrize("data,error_type", MUTATION_ERRORS)
+@pytest.mark.parametrize("data,error_type", API_KEY_MUTATION_ERRORS)
 def test_api_keys_create_for_user_errors(data, error_type):
     with mock_client(
         _make_nested_dict("admin.api_keys.create_for_user", data),

@@ -6,7 +6,7 @@ from typing import Literal, Union
 from pydantic import Field
 
 from .base_model import BaseModel
-from .fragments import APIKeySelection, InvalidInputSelection, OperationErrorSelection
+from .fragments import APIKeySelection, InvalidInputSelection
 
 
 class AdminApiKeyCreateForUser(BaseModel):
@@ -21,7 +21,6 @@ class AdminApiKeyCreateForUserAdminApiKeys(BaseModel):
     create_for_user: Union[
         "AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated",
         "AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput",
-        "AdminApiKeyCreateForUserAdminApiKeysCreateForUserOperationError",
     ] = Field(alias="createForUser", discriminator="typename__")
 
 
@@ -37,10 +36,6 @@ class AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreatedApiKey(APIKe
 
 class AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput(InvalidInputSelection):
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
-
-
-class AdminApiKeyCreateForUserAdminApiKeysCreateForUserOperationError(OperationErrorSelection):
-    typename__: Literal["OperationError"] = Field(alias="__typename")
 
 
 AdminApiKeyCreateForUser.model_rebuild()

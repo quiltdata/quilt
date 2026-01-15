@@ -7,7 +7,6 @@ from .admin_api_key_create_for_user import (
     AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated,
     AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreatedApiKey,
     AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput,
-    AdminApiKeyCreateForUserAdminApiKeysCreateForUserOperationError,
 )
 from .admin_api_key_get import (
     AdminApiKeyGet,
@@ -21,7 +20,6 @@ from .admin_api_key_revoke import (
     AdminApiKeyRevokeAdminApiKeys,
     AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput,
     AdminApiKeyRevokeAdminApiKeysRevokeOk,
-    AdminApiKeyRevokeAdminApiKeysRevokeOperationError,
 )
 from .admin_api_keys_list import (
     AdminApiKeysList,
@@ -34,14 +32,12 @@ from .api_key_create import (
     ApiKeyCreateApiKeyCreateAPIKeyCreated,
     ApiKeyCreateApiKeyCreateAPIKeyCreatedApiKey,
     ApiKeyCreateApiKeyCreateInvalidInput,
-    ApiKeyCreateApiKeyCreateOperationError,
 )
 from .api_key_get import ApiKeyGet, ApiKeyGetMe, ApiKeyGetMeApiKey
 from .api_key_revoke import (
     ApiKeyRevoke,
     ApiKeyRevokeApiKeyRevokeInvalidInput,
     ApiKeyRevokeApiKeyRevokeOk,
-    ApiKeyRevokeApiKeyRevokeOperationError,
 )
 from .api_keys_list import ApiKeysList, ApiKeysListMe, ApiKeysListMeApiKeys
 from .base_client import BaseClient
@@ -235,7 +231,6 @@ __all__ = [
     "AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated",
     "AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreatedApiKey",
     "AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput",
-    "AdminApiKeyCreateForUserAdminApiKeysCreateForUserOperationError",
     "AdminApiKeyGet",
     "AdminApiKeyGetAdmin",
     "AdminApiKeyGetAdminApiKeys",
@@ -245,7 +240,6 @@ __all__ = [
     "AdminApiKeyRevokeAdminApiKeys",
     "AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput",
     "AdminApiKeyRevokeAdminApiKeysRevokeOk",
-    "AdminApiKeyRevokeAdminApiKeysRevokeOperationError",
     "AdminApiKeysList",
     "AdminApiKeysListAdmin",
     "AdminApiKeysListAdminApiKeys",
@@ -254,14 +248,12 @@ __all__ = [
     "ApiKeyCreateApiKeyCreateAPIKeyCreated",
     "ApiKeyCreateApiKeyCreateAPIKeyCreatedApiKey",
     "ApiKeyCreateApiKeyCreateInvalidInput",
-    "ApiKeyCreateApiKeyCreateOperationError",
     "ApiKeyGet",
     "ApiKeyGetMe",
     "ApiKeyGetMeApiKey",
     "ApiKeyRevoke",
     "ApiKeyRevokeApiKeyRevokeInvalidInput",
     "ApiKeyRevokeApiKeyRevokeOk",
-    "ApiKeyRevokeApiKeyRevokeOperationError",
     "ApiKeysList",
     "ApiKeysListMe",
     "ApiKeysListMeApiKeys",

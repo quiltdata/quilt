@@ -6,15 +6,13 @@ from typing import Literal, Union
 from pydantic import Field
 
 from .base_model import BaseModel
-from .fragments import APIKeySelection, InvalidInputSelection, OperationErrorSelection
+from .fragments import APIKeySelection, InvalidInputSelection
 
 
 class ApiKeyCreate(BaseModel):
-    api_key_create: Union[
-        "ApiKeyCreateApiKeyCreateAPIKeyCreated",
-        "ApiKeyCreateApiKeyCreateInvalidInput",
-        "ApiKeyCreateApiKeyCreateOperationError",
-    ] = Field(alias="apiKeyCreate", discriminator="typename__")
+    api_key_create: Union["ApiKeyCreateApiKeyCreateAPIKeyCreated", "ApiKeyCreateApiKeyCreateInvalidInput"] = Field(
+        alias="apiKeyCreate", discriminator="typename__"
+    )
 
 
 class ApiKeyCreateApiKeyCreateAPIKeyCreated(BaseModel):
@@ -29,10 +27,6 @@ class ApiKeyCreateApiKeyCreateAPIKeyCreatedApiKey(APIKeySelection):
 
 class ApiKeyCreateApiKeyCreateInvalidInput(InvalidInputSelection):
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
-
-
-class ApiKeyCreateApiKeyCreateOperationError(OperationErrorSelection):
-    typename__: Literal["OperationError"] = Field(alias="__typename")
 
 
 ApiKeyCreate.model_rebuild()

@@ -6,7 +6,7 @@ from typing import Literal, Union
 from pydantic import Field
 
 from .base_model import BaseModel
-from .fragments import InvalidInputSelection, OperationErrorSelection
+from .fragments import InvalidInputSelection
 
 
 class AdminApiKeyRevoke(BaseModel):
@@ -21,7 +21,6 @@ class AdminApiKeyRevokeAdminApiKeys(BaseModel):
     revoke: Union[
         "AdminApiKeyRevokeAdminApiKeysRevokeOk",
         "AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput",
-        "AdminApiKeyRevokeAdminApiKeysRevokeOperationError",
     ] = Field(discriminator="typename__")
 
 
@@ -31,10 +30,6 @@ class AdminApiKeyRevokeAdminApiKeysRevokeOk(BaseModel):
 
 class AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput(InvalidInputSelection):
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
-
-
-class AdminApiKeyRevokeAdminApiKeysRevokeOperationError(OperationErrorSelection):
-    typename__: Literal["OperationError"] = Field(alias="__typename")
 
 
 AdminApiKeyRevoke.model_rebuild()

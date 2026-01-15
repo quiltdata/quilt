@@ -28,10 +28,6 @@ MUTATION_ERRORS = (
         },
         api_keys.APIKeyError,
     ),
-    (
-        {"__typename": "OperationError", "message": "error", "name": "error", "context": {}},
-        api_keys.APIKeyError,
-    ),
 )
 
 
