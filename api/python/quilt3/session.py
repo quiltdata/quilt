@@ -299,13 +299,9 @@ def _refresh_credentials():
 
 def logged_in():
     """
-    Return catalog URL if Quilt client is authenticated. Otherwise
-    return `None`.
+    Return catalog URL if Quilt client is authenticated, `None` otherwise.
     """
-    if _api_key is not None:
-        return get_from_config('navigator_url')
-    url = get_registry_url()
-    if url in _load_auth():
+    if _api_key is not None or get_registry_url() in _load_auth():
         return get_from_config('navigator_url')
 
 

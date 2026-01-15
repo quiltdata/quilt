@@ -1,5 +1,3 @@
-"""Tests for quilt3.api_keys (user API key management)."""
-
 import contextlib
 import datetime
 from unittest import mock
@@ -8,6 +6,8 @@ import pytest
 
 import quilt3
 from quilt3 import _graphql_client, api_keys
+
+from .utils import as_dataclass_kwargs
 
 API_KEY = {
     "id": "key-123",
@@ -35,23 +35,6 @@ MUTATION_ERRORS = (
 )
 
 
-def _camel_to_snake(name: str) -> str:
-    return "".join("_" + c.lower() if c.isupper() else c for c in name).lstrip("_")
-
-
-def _as_dataclass_kwargs(data: dict) -> dict:
-    return {
-        _camel_to_snake(k): (
-            _as_dataclass_kwargs(v)
-            if isinstance(v, dict)
-            else [_as_dataclass_kwargs(x) if isinstance(x, dict) else x for x in v]
-            if isinstance(v, list)
-            else v
-        )
-        for k, v in data.items()
-    }
-
-
 @contextlib.contextmanager
 def mock_client(data, operation_name, variables=None):
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
@@ -71,7 +54,7 @@ def test_api_keys_list():
     ):
         result = quilt3.api_keys.list()
         assert len(result) == 1
-        assert result[0] == api_keys.APIKey(**_as_dataclass_kwargs(API_KEY))
+        assert result[0] == api_keys.APIKey(**as_dataclass_kwargs(API_KEY))
 
 
 def test_api_keys_list_with_filters():
@@ -91,7 +74,7 @@ def test_api_keys_get_found():
         variables={"id": "key-123"},
     ):
         result = quilt3.api_keys.get("key-123")
-        assert result == api_keys.APIKey(**_as_dataclass_kwargs(API_KEY))
+        assert result == api_keys.APIKey(**as_dataclass_kwargs(API_KEY))
 
 
 def test_api_keys_get_not_found():
@@ -115,9 +98,9 @@ def test_api_keys_create_success():
         "apiKeyCreate",
         variables={"input": _graphql_client.APIKeyCreateInput(name="my-key", expires_in_days=90)},
     ):
-        result = quilt3.api_keys.create("my-key", expires_in_days=90)
-        assert result.secret == "qk_secret_token"
-        assert result.api_key == api_keys.APIKey(**_as_dataclass_kwargs(API_KEY))
+        api_key, secret = quilt3.api_keys.create("my-key", expires_in_days=90)
+        assert secret == "qk_secret_token"
+        assert api_key == api_keys.APIKey(**as_dataclass_kwargs(API_KEY))
 
 
 @pytest.mark.parametrize("data,error_type", MUTATION_ERRORS)

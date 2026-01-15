@@ -1,35 +1,35 @@
 """Admin API for managing API keys."""
 
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 from .. import _graphql_client
-from ..api_keys import APIKey, APIKeyCreated
+from ..api_keys import APIKey, Status
 from . import util
 
 
 def list(
     email: Optional[str] = None,
-    name: Optional[str] = None,
+    key_name: Optional[str] = None,
     fingerprint: Optional[str] = None,
-    status: Optional[str] = None,
+    status: Optional[Union[Status, str]] = None,
 ) -> List[APIKey]:
     """
-    List API keys. Optionally filter by user email, name, fingerprint, or status.
+    List API keys. Optionally filter by user email, key name, fingerprint, or status.
 
     Args:
         email: Filter by user email.
-        name: Filter by key name.
+        key_name: Filter by key name.
         fingerprint: Filter by key fingerprint.
-        status: Filter by status ("ACTIVE" or "EXPIRED"). None returns all.
+        status: Filter by Status.ACTIVE or Status.EXPIRED. None returns all.
 
     Returns:
         List of API keys matching the filters.
     """
     result = util.get_client().admin_api_keys_list(
         email=email,
-        name=name,
+        name=key_name,
         fingerprint=fingerprint,
-        status=_graphql_client.APIKeyStatus(status) if status else None,
+        status=Status(status) if status else None,
     )
     return [APIKey(**k.model_dump()) for k in result]
 
@@ -68,7 +68,7 @@ def create_for_user(
     email: str,
     name: str,
     expires_in_days: int = 90,
-) -> APIKeyCreated:
+) -> Tuple[APIKey, str]:
     """
     Create an API key for a user.
 
@@ -78,8 +78,7 @@ def create_for_user(
         expires_in_days: Days until expiration (30-365, default 90).
 
     Returns:
-        APIKeyCreated containing the API key and secret.
-        The secret is only returned once at creation.
+        Tuple of (APIKey, secret). The secret is only returned once - save it securely!
 
     Raises:
         Quilt3AdminError: If the operation fails (e.g., user not found).
@@ -89,7 +88,4 @@ def create_for_user(
         input=_graphql_client.APIKeyCreateInput(name=name, expires_in_days=expires_in_days),
     )
     result = util.handle_errors(result)
-    return APIKeyCreated(
-        api_key=APIKey(**result.api_key.model_dump()),
-        secret=result.secret,
-    )
+    return APIKey(**result.api_key.model_dump()), result.secret

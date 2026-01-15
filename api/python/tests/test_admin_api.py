@@ -6,6 +6,8 @@ import pytest
 
 from quilt3 import _graphql_client, admin
 
+from .utils import as_dataclass_kwargs
+
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
     "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
@@ -72,23 +74,6 @@ USER_MUTATION_ERRORS = (
 )
 
 
-def _camel_to_snake(name: str) -> str:
-    return "".join("_" + c.lower() if c.isupper() else c for c in name).lstrip("_")
-
-
-def _as_dataclass_kwargs(data: dict) -> dict:
-    return {
-        "typename__" if k == "__typename" else _camel_to_snake(k): (
-            _as_dataclass_kwargs(v)
-            if isinstance(v, dict)
-            else [_as_dataclass_kwargs(x) if isinstance(x, dict) else x for x in v]
-            if isinstance(v, list)
-            else v
-        )
-        for k, v in data.items()
-    }
-
-
 def _make_nested_dict(path: str, value) -> dict:
     if "." in path:
         key, rest = path.split(".", 1)
@@ -110,15 +95,15 @@ def mock_client(data, operation_name, variables=None):
 def test_get_roles():
     with mock_client({"roles": [UNMANAGED_ROLE, MANAGED_ROLE]}, "rolesList"):
         assert admin.roles.list() == [
-            admin.UnmanagedRole(**_as_dataclass_kwargs(UNMANAGED_ROLE)),
-            admin.ManagedRole(**_as_dataclass_kwargs(MANAGED_ROLE)),
+            admin.UnmanagedRole(**as_dataclass_kwargs(UNMANAGED_ROLE)),
+            admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE)),
         ]
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         (None, None),
     ],
 )
@@ -129,13 +114,13 @@ def test_get_user(data, result):
 
 def test_get_users():
     with mock_client(_make_nested_dict("admin.user.list", [USER]), "usersList"):
-        assert admin.users.list() == [admin.User(**_as_dataclass_kwargs(USER))]
+        assert admin.users.list() == [admin.User(**as_dataclass_kwargs(USER))]
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *MUTATION_ERRORS,
     ],
 )
@@ -173,7 +158,7 @@ def test_delete_user(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -197,7 +182,7 @@ def test_set_user_email(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -221,7 +206,7 @@ def test_set_user_admin(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -266,7 +251,7 @@ def test_reset_user_password(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -290,7 +275,7 @@ def test_set_role(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -314,7 +299,7 @@ def test_add_roles(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, admin.User(**as_dataclass_kwargs(USER))),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -338,7 +323,7 @@ def test_remove_roles(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (SSO_CONFIG, admin.SSOConfig(**as_dataclass_kwargs(SSO_CONFIG))),
         (None, None),
     ],
 )
@@ -350,7 +335,7 @@ def test_sso_config_get(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (SSO_CONFIG, admin.SSOConfig(**as_dataclass_kwargs(SSO_CONFIG))),
         (None, None),
         *MUTATION_ERRORS,
     ],
@@ -498,7 +483,7 @@ BUCKET_REMOVE_ERRORS = (
 @pytest.mark.parametrize(
     "data,result",
     [
-        (BUCKET_CONFIG, admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))),
+        (BUCKET_CONFIG, admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))),
         (None, None),
     ],
 )
@@ -509,7 +494,7 @@ def test_bucket_get(data, result):
 
 def test_bucket_list():
     with mock_client({"bucket_configs": [BUCKET_CONFIG]}, "bucketsList"):
-        assert admin.buckets.list() == [admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))]
+        assert admin.buckets.list() == [admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))]
 
 
 def test_bucket_add_success():
@@ -529,7 +514,7 @@ def test_bucket_add_success():
         },
     ):
         result = admin.buckets.add("test-bucket", "Test Bucket")
-        assert result == admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))
+        assert result == admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))
 
 
 @pytest.mark.parametrize("data,error_type,error_msg", BUCKET_ADD_ERRORS)
@@ -567,7 +552,7 @@ def test_bucket_update_success():
         },
     ):
         result = admin.buckets.update("test-bucket", "Test Bucket")
-        assert result == admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))
+        assert result == admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))
 
 
 @pytest.mark.parametrize("data,error_type,error_msg", BUCKET_UPDATE_ERRORS)
@@ -610,8 +595,6 @@ def test_bucket_remove_errors(data, error_type, error_msg):
             assert str(exc_info.value) == error_msg
 
 
-# API Keys tests
-
 API_KEY = {
     "id": "key-123",
     "name": "test-key",
@@ -632,7 +615,7 @@ def test_api_keys_list():
     ):
         result = admin.api_keys.list()
         assert len(result) == 1
-        assert result[0] == admin.APIKey(**_as_dataclass_kwargs(API_KEY))
+        assert result[0] == admin.APIKey(**as_dataclass_kwargs(API_KEY))
 
 
 def test_api_keys_list_with_filters():
@@ -646,14 +629,14 @@ def test_api_keys_list_with_filters():
             "status": _graphql_client.APIKeyStatus.ACTIVE,
         },
     ):
-        result = admin.api_keys.list(email="user@example.com", name="test", status="ACTIVE")
+        result = admin.api_keys.list(email="user@example.com", key_name="test", status="ACTIVE")
         assert len(result) == 1
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (API_KEY, admin.APIKey(**_as_dataclass_kwargs(API_KEY))),
+        (API_KEY, admin.APIKey(**as_dataclass_kwargs(API_KEY))),
         (None, None),
     ],
 )
@@ -702,9 +685,9 @@ def test_api_keys_create_for_user_success():
             "input": _graphql_client.APIKeyCreateInput(name="new-key", expires_in_days=90),
         },
     ):
-        result = admin.api_keys.create_for_user("user@example.com", "new-key", expires_in_days=90)
-        assert result.secret == "qk_secret_token_here"
-        assert result.api_key == admin.APIKey(**_as_dataclass_kwargs(API_KEY))
+        api_key, secret = admin.api_keys.create_for_user("user@example.com", "new-key", expires_in_days=90)
+        assert secret == "qk_secret_token_here"
+        assert api_key == admin.APIKey(**as_dataclass_kwargs(API_KEY))
 
 
 @pytest.mark.parametrize("data,error_type", MUTATION_ERRORS)

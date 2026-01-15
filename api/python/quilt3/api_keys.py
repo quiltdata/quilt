@@ -1,13 +1,14 @@
 """API for managing your own API keys."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 import pydantic
 
 from . import _graphql_client
+from ._graphql_client.enums import APIKeyStatus as Status
 
-# Types
+__all__ = ["APIKey", "APIKeyError", "Status", "list", "get", "create", "revoke"]
 
 
 @pydantic.dataclasses.dataclass
@@ -21,18 +22,7 @@ class APIKey:
     expires_at: datetime
     last_used_at: Optional[datetime]
     created_by_email: Optional[str]
-    status: str  # "ACTIVE" or "EXPIRED"
-
-
-@pydantic.dataclasses.dataclass
-class APIKeyCreated:
-    """Result of creating an API key. Contains the secret (shown only once)."""
-
-    api_key: APIKey
-    secret: str
-
-
-# Exceptions
+    status: str
 
 
 class APIKeyError(Exception):
@@ -48,9 +38,6 @@ class APIKeyError(Exception):
             super().__init__(str(result))
 
 
-# Internal utilities
-
-
 def _handle_errors(result):
     """Raise APIKeyError if result is an error type."""
     if isinstance(result, (_graphql_client.InvalidInputSelection, _graphql_client.OperationErrorSelection)):
@@ -58,13 +45,10 @@ def _handle_errors(result):
     return result
 
 
-# Public API
-
-
 def list(
     name: Optional[str] = None,
     fingerprint: Optional[str] = None,
-    status: Optional[str] = None,
+    status: Optional[Union[Status, str]] = None,
 ) -> List[APIKey]:
     """
     List your API keys. Optionally filter by name, fingerprint, or status.
@@ -72,7 +56,7 @@ def list(
     Args:
         name: Filter by key name.
         fingerprint: Filter by key fingerprint.
-        status: Filter by status ("ACTIVE" or "EXPIRED"). None returns all.
+        status: Filter by Status.ACTIVE or Status.EXPIRED. None returns all.
 
     Returns:
         List of your API keys matching the filters.
@@ -80,7 +64,7 @@ def list(
     result = _graphql_client.Client().api_keys_list(
         name=name,
         fingerprint=fingerprint,
-        status=_graphql_client.APIKeyStatus(status) if status else None,
+        status=Status(status) if status else None,
     )
     if result is None:
         return []
@@ -106,7 +90,7 @@ def get(id: str) -> Optional[APIKey]:
 def create(
     name: str,
     expires_in_days: int = 90,
-) -> APIKeyCreated:
+) -> Tuple[APIKey, str]:
     """
     Create a new API key for yourself.
 
@@ -115,8 +99,7 @@ def create(
         expires_in_days: Days until expiration (30-365, default 90).
 
     Returns:
-        APIKeyCreated containing the API key and secret.
-        The secret is only returned once at creation - save it securely!
+        Tuple of (APIKey, secret). The secret is only returned once - save it securely!
 
     Raises:
         APIKeyError: If the operation fails.
@@ -125,10 +108,7 @@ def create(
         input=_graphql_client.APIKeyCreateInput(name=name, expires_in_days=expires_in_days),
     )
     result = _handle_errors(result)
-    return APIKeyCreated(
-        api_key=APIKey(**result.api_key.model_dump()),
-        secret=result.secret,
-    )
+    return APIKey(**result.api_key.model_dump()), result.secret
 
 
 def revoke(id: Optional[str] = None, secret: Optional[str] = None) -> None:
