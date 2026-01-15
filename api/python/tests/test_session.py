@@ -298,13 +298,14 @@ def test_logged_in_with_api_key(api_key_session):
     """Test that logged_in() returns URL when API key is set."""
     api_key = 'qk_test_api_key_12345'
 
-    # Not logged in initially
-    with patch('quilt3.session._load_auth', return_value={}):
-        assert quilt3.logged_in() is None
+    with patch('quilt3.session.get_from_config', return_value='https://example.com'):
+        # Not logged in initially
+        with patch('quilt3.session._load_auth', return_value={}):
+            assert quilt3.logged_in() is None
 
-    # Login with API key
-    quilt3.login_with_api_key(api_key)
-    assert quilt3.logged_in() == 'https://example.com'
+        # Login with API key
+        quilt3.login_with_api_key(api_key)
+        assert quilt3.logged_in() == 'https://example.com'
 
 
 def test_logout_clears_api_key(api_key_session):
@@ -362,3 +363,16 @@ def test_session_coexistence(api_key_session):
         quilt3.clear_api_key()
         session3 = quilt3.session.get_session()
         assert session3.headers['Authorization'] == 'Bearer interactive_token'
+
+
+def test_login_with_api_key_validates_prefix(api_key_session):
+    """Test that login_with_api_key rejects keys without qk_ prefix."""
+    with pytest.raises(ValueError, match="must start with 'qk_' prefix"):
+        quilt3.login_with_api_key('invalid_key_without_prefix')
+
+    with pytest.raises(ValueError, match="must start with 'qk_' prefix"):
+        quilt3.login_with_api_key('')
+
+    # Valid prefix should work
+    quilt3.login_with_api_key('qk_valid_key')
+    assert quilt3.session._api_key == 'qk_valid_key'

@@ -190,7 +190,12 @@ def login_with_api_key(key: str):
 
     Args:
         key: API key string (starts with 'qk_')
+
+    Raises:
+        ValueError: If the key doesn't start with 'qk_' prefix.
     """
+    if not key.startswith("qk_"):
+        raise ValueError("API key must start with 'qk_' prefix")
     global _api_key
     _api_key = key
     clear_session()  # Force session recreation with new auth
