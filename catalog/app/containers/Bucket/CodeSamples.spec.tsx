@@ -1,20 +1,21 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import { CliFetch } from './CodeSamples'
 
-jest.mock(
-  'containers/Bucket/Download/Code',
-  () =>
-    ({ label, help, lines }: { label: string; help: string; lines: string[] }) => (
-      <dl key={label} data-help={help}>
-        <dt>{label}:</dt>
-        {lines.map((l, i) => (
-          <dd key={`${l}_${i}`}>{l}</dd>
-        ))}
-      </dl>
-    ),
-)
+vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('containers/Bucket/Download/Code', () => ({
+  default: ({ label, help, lines }: { label: string; help: string; lines: string[] }) => (
+    <dl key={label} data-help={help}>
+      <dt>{label}:</dt>
+      {lines.map((l, i) => (
+        <dd key={`${l}_${i}`}>{l}</dd>
+      ))}
+    </dl>
+  ),
+}))
 
 describe('containers/Bucket/CodeSamples', () => {
   describe('CliFetch', () => {

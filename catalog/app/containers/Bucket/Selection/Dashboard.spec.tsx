@@ -1,15 +1,17 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import { bucketDir, bucketFile, bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import noop from 'utils/noop'
 
 import Dashboard from './Dashboard'
 import { Provider, useSelection } from './Provider'
 import type { merge } from './utils'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
 interface SelectionSetupProps {
   mergeWith: Parameters<typeof merge>
@@ -50,7 +52,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
   it('should render empty state when no selection', () => {
     const { getByText } = render(
       <TestWrapper>
-        <Dashboard onClose={jest.fn()} />
+        <Dashboard onClose={noop} />
       </TestWrapper>,
     )
 
@@ -63,7 +65,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
 
     const { getByText } = render(
       <TestWrapper mergeWith={[items, bucket, path]}>
-        <Dashboard onClose={jest.fn()} />
+        <Dashboard onClose={noop} />
       </TestWrapper>,
     )
 
@@ -79,7 +81,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
 
     const { getByText, queryByText } = render(
       <TestWrapper mergeWith={[items, bucket, path]}>
-        <Dashboard onClose={jest.fn()} />
+        <Dashboard onClose={noop} />
       </TestWrapper>,
     )
 

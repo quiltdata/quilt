@@ -1,13 +1,12 @@
+import { describe, it, expect, test, vi } from 'vitest'
+
 import * as legacyBucketPreferences from 'utils/BucketPreferences/BucketPreferences'
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
 import { assocPath, parse, stringify } from './State'
 import type { Config } from './State'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 function getValueByPath(obj: Record<string, any>, path: string[]) {
   return path.reduce((memo, key) => memo[key], obj)
@@ -122,6 +121,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
   actions:
     copyPackage: false
     createPackage: false
+    deleteObject: false
     deleteRevision: true
     downloadObject: false
     downloadPackage: false
@@ -231,6 +231,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
   actions:
     copyPackage: false
     createPackage: false
+    deleteObject: false
     deleteRevision: true
     downloadObject: false
     downloadPackage: false
@@ -285,6 +286,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       ).toStrictEqual({
         'ui.actions.copyPackage': false,
         'ui.actions.createPackage': false,
+        'ui.actions.deleteObject': false,
         'ui.actions.deleteRevision': true,
         'ui.actions.downloadObject': false,
         'ui.actions.downloadPackage': false,

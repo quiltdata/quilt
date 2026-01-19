@@ -1,84 +1,75 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
 import AsyncResult from 'utils/AsyncResult'
+import noop from 'utils/noop'
 
 import { useState } from './State'
 import { Editor } from './FileEditor'
 
-jest.mock('utils/AWS', () => ({ S3: { use: () => {} } }))
+vi.mock('utils/AWS', () => ({ S3: { use: noop } }))
 
-jest.mock('./Skeleton', () => () => <div id="Skeleton" />)
+vi.mock('./Skeleton', () => ({ default: () => <div data-testid="Skeleton" /> }))
 
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: jest.fn(() => ({ urls: {} })),
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: vi.fn(() => ({ urls: {} })),
 }))
 
-jest.mock(
-  'react-router-dom',
-  jest.fn(() => ({
-    ...jest.requireActual('react-router-dom'),
-    useParams: jest.fn(() => ({ bucket: 'b', key: 'k' })),
-    useLocation: jest.fn(() => ({ search: '?edit=true' })),
-  })),
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: () => ({ bucket: 'b', key: 'k' }),
+  useLocation: () => ({ search: '?edit=true' }),
+}))
+
+vi.mock('components/Preview/Display', () => ({
+  default: () => <div data-testid="error" />,
+}))
+
+const getObjectData = vi.fn((cases: any) =>
+  AsyncResult.case(cases, AsyncResult.Ok({ Body: 'file text content body' })),
 )
 
-jest.mock(
-  'components/Preview/Display',
-  jest.fn(() => () => <div id="error" />),
-)
+vi.mock('components/Preview/loaders/utils', async () => ({
+  ...(await vi.importActual('components/Preview/loaders/utils')),
+  useObjectGetter: () => ({
+    case: getObjectData,
+  }),
+}))
 
-const getObjectData = jest.fn((cases: any) =>
-  AsyncResult.case(cases, AsyncResult.Ok({ Body: 'body' })),
-)
-
-jest.mock(
-  'components/Preview/loaders/utils',
-  jest.fn(() => ({
-    ...jest.requireActual('components/Preview/loaders/utils'),
-    useObjectGetter: () => ({
-      case: getObjectData,
-    }),
-  })),
-)
-
-jest.mock(
-  './TextEditor',
-  jest.fn(() => ({ initialValue }: { initialValue: string }) => (
-    <div id="Text Editor">
-      <span id="initialValue">{initialValue}</span>
+vi.mock('./TextEditor', () => ({
+  default: ({ initialValue }: { initialValue: string }) => (
+    <div data-testid="Text Editor">
+      <span data-testid="initialValue">{initialValue}</span>
     </div>
-  )),
-)
+  ),
+}))
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-const loadMode = jest.fn(() => 'fulfilled')
+const loadMode = vi.fn(() => 'fulfilled')
 
-jest.mock(
-  './loader',
-  jest.fn(() => ({
-    loadMode: jest.fn(() => loadMode()),
-    detect: () => 'text',
-    useWriteData: () => {},
-  })),
-)
+vi.mock('./loader', () => ({
+  loadMode: () => loadMode(),
+  detect: () => 'text',
+  useWriteData: noop,
+}))
 
 describe('components/FileEditor/FileEditor', () => {
+  afterEach(cleanup)
+
   describe('Editor', () => {
     const handle = { bucket: 'b', key: 'k' }
     const hookData = renderHook(() => useState(handle))
     const state = hookData.result.current
+
     it('shows skeleton when loadMode is not resolved yet', () => {
       loadMode.mockImplementationOnce(() => {
         throw Promise.resolve(null)
       })
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...state}
           className="root"
@@ -86,11 +77,11 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Skeleton')).toBeTruthy()
     })
 
     it('shows TextEditor', () => {
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...state}
           className="root"
@@ -98,11 +89,11 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Text Editor').textContent).toBe('file text content body')
     })
 
     it('shows an empty TextEditor', () => {
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...state}
           empty
@@ -111,7 +102,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Text Editor').textContent).toBe('')
     })
 
     it('shows Skeleton while loading data', () => {
@@ -119,7 +110,7 @@ describe('components/FileEditor/FileEditor', () => {
         AsyncResult.case(cases, AsyncResult.Pending()),
       )
       const { result } = renderHook(() => useState(handle))
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...result.current}
           className="root"
@@ -127,7 +118,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('Skeleton')).toBeTruthy()
     })
 
     it('shows Error when loading failed', () => {
@@ -135,7 +126,7 @@ describe('components/FileEditor/FileEditor', () => {
         AsyncResult.case(cases, AsyncResult.Err(new Error('Fail'))),
       )
       const { result } = renderHook(() => useState(handle))
-      const { container } = render(
+      const { getByTestId } = render(
         <Editor
           {...result.current}
           className="root"
@@ -143,7 +134,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByTestId('error')).toBeTruthy()
     })
   })
 })

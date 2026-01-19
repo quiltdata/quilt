@@ -1,4 +1,5 @@
 import type { S3 } from 'aws-sdk'
+import { describe, it, expect, vi } from 'vitest'
 
 import { FileNotFound } from '../errors'
 
@@ -13,10 +14,7 @@ class AWSError extends Error {
   }
 }
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('app/containers/Bucket/requests/object', () => {
   describe('objectVersions', () => {
@@ -137,7 +135,7 @@ describe('app/containers/Bucket/requests/object', () => {
 
   describe('deleteObject', () => {
     it('should call S3 deleteObject with correct parameters', async () => {
-      const mockDeleteObject = jest.fn(() => ({
+      const mockDeleteObject = vi.fn(() => ({
         promise: () => Promise.resolve(),
       }))
 

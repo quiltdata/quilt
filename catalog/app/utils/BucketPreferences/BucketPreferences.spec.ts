@@ -1,4 +1,5 @@
 import dedent from 'dedent'
+import { describe, expect, it } from 'vitest'
 
 import { extendDefaults, parse } from './BucketPreferences'
 
@@ -7,6 +8,7 @@ const expectedDefaults = {
     actions: {
       copyPackage: true,
       createPackage: true,
+      deleteObject: false,
       deleteRevision: false,
       downloadObject: true,
       downloadPackage: true,
@@ -124,7 +126,17 @@ describe('utils/BucketPreferences', () => {
             ui:
                 actions: False
       `
-      expect(parse(config, 'test-bucket').ui.actions).toMatchSnapshot()
+      expect(parse(config, 'test-bucket').ui.actions).toEqual({
+        copyPackage: false,
+        createPackage: false,
+        deleteObject: false,
+        deleteRevision: false,
+        downloadObject: false,
+        downloadPackage: false,
+        openInDesktop: false,
+        revisePackage: false,
+        writeFile: false,
+      })
     })
 
     it('Empty sourceBuckets object returns empty list', () => {

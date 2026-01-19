@@ -1,111 +1,19 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
-import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
-import { JsonRecord } from 'utils/types'
 
-import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
+import type {
+  ParquetMetadata,
+  H5adMetadata,
+  PackageMetadata,
+} from '../../loaders/Tabular'
 
-const useParquetMetaStyles = M.makeStyles((t) => ({
-  table: {
-    margin: t.spacing(1, 0, 1, 3),
-  },
-  mono: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-  metaName: {
-    paddingRight: t.spacing(1),
-    textAlign: 'left',
-    verticalAlign: 'top',
-  },
-  metaValue: {
-    paddingLeft: t.spacing(1),
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-  },
-  headerIcon: {
-    fontSize: '1.1rem',
-    transform: 'rotate(-90deg)',
-    marginRight: t.spacing(0.5),
-    transition: 'transform 0.3s ease',
-  },
-  headerIconExpanded: {
-    transform: 'rotate(0deg)',
-  },
-}))
-
-interface ParquetMetaProps extends ParquetMetadata {
-  className: string
-}
-
-function ParquetMeta({
-  className,
-  createdBy,
-  formatVersion,
-  numRowGroups,
-  schema, // { names }
-  serializedSize,
-  shape, // { rows, columns }
-  ...props
-}: ParquetMetaProps) {
-  const classes = useParquetMetaStyles()
-  const [show, setShow] = React.useState(false)
-  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
-  const renderMeta = (
-    name: string,
-    value: ParquetMetadata[keyof ParquetMetadata],
-    render: (v: $TSFixMe) => JSX.Element = R.identity,
-  ) =>
-    !!value && (
-      <tr>
-        <th className={classes.metaName}>{name}</th>
-        <td className={classes.metaValue}>{render(value)}</td>
-      </tr>
-    )
-
-  return (
-    <div className={className} {...props}>
-      <M.Typography className={classes.header} onClick={toggleShow}>
-        <M.Icon
-          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
-        >
-          expand_more
-        </M.Icon>
-        Parquet metadata
-      </M.Typography>
-      <M.Collapse in={show}>
-        <table className={classes.table}>
-          <tbody>
-            {renderMeta('Created by:', createdBy, (c: string) => (
-              <span className={classes.mono}>{c}</span>
-            ))}
-            {renderMeta('Format version:', formatVersion, (v: string) => (
-              <span className={classes.mono}>{v}</span>
-            ))}
-            {renderMeta('# row groups:', numRowGroups)}
-            {renderMeta('Serialized size:', serializedSize)}
-            {renderMeta('Shape:', shape, ({ rows, columns }) => (
-              <span>
-                {rows} rows &times; {columns} columns
-              </span>
-            ))}
-            {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-              <JsonDisplay value={s} />
-            ))}
-          </tbody>
-        </table>
-      </M.Collapse>
-    </div>
-  )
-}
+import Metadata from './Metadata'
 
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
@@ -188,11 +96,14 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    minHeight: t.spacing(80),
+    minHeight: t.spacing(60),
     overflow: 'hidden',
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 8px',
     resize: 'vertical',
+  },
+  fullHeight: {
+    minHeight: t.spacing(120),
   },
   meta: {
     marginBottom: t.spacing(1),
@@ -204,14 +115,16 @@ const useStyles = M.makeStyles((t) => ({
   toolbar: {
     marginBottom: t.spacing(1),
   },
+  warning: {
+    marginTop: t.spacing(2),
+  },
 }))
 
 export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
   data: perspective.PerspectiveInput
-  packageMeta?: JsonRecord
-  parquetMeta?: ParquetMetadata
+  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
@@ -221,8 +134,7 @@ export default function Perspective({
   children,
   className,
   data,
-  parquetMeta,
-  packageMeta,
+  meta,
   onLoadMore,
   onRender,
   truncated,
@@ -236,16 +148,30 @@ export default function Perspective({
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
   const state = perspective.use(root, data, attrs, config, onRender)
 
+  if (state instanceof Error) {
+    return (
+      <div className={cx(className, classes.root)} {...props}>
+        {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+        <Lab.Alert className={classes.warning} severity="info" icon={false}>
+          Could not render tabular data
+        </Lab.Alert>
+      </div>
+    )
+  }
+
   return (
-    <div className={cx(className, classes.root)} ref={setRoot} {...props}>
+    <div
+      className={cx(className, classes.root, classes.fullHeight)}
+      ref={setRoot}
+      {...props}
+    >
       <Toolbar
         className={classes.toolbar}
         state={state}
         onLoadMore={onLoadMore}
         truncated={truncated}
       />
-      {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
-      {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
+      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
       {children}
     </div>
   )

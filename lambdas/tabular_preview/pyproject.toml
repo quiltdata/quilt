@@ -1,0 +1,36 @@
+[project]
+name = "t4_lambda_tabular_preview"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "pyarrow ~= 18.0",
+    "pandas ~= 2.2",
+    "xlrd >=2,< 3",
+    "openpyxl >=3,<4 ",
+    "fsspec[http]>=2022.1.0",
+    "anndata[lazy]>=0.8.0",
+    "scanpy >= 1.8.0",
+    "numpy ~= 2.3",
+    "t4-lambda-shared",
+]
+
+[build-system]
+requires = ["uv_build==0.9.*"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = [
+    "pytest~=8.4",
+    "pytest-cov~=7.0",
+    "pytest-env~=1.1",
+    "pytest-mock~=3.15",
+]
+prod = [
+    "awslambdaric~=3.1",
+]
+
+[tool.uv]
+default-groups = ["test"]
+
+[tool.uv.sources]
+t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }

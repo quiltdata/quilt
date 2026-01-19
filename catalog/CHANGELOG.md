@@ -18,6 +18,17 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Add missing `deleteObject` property to GUI config editor to enable/disable delete buttons for files and directories ([#4692](https://github.com/quiltdata/quilt/pull/4692))
+- [Changed] Hide file and directory delete buttons in Bucket tab by default; enable with `ui.actions.deleteObject` ([#4689](https://github.com/quiltdata/quilt/pull/4689))
+- [Added] Display detailed permission error messages when bucket add/update fails due to insufficient S3 permissions ([#4670](https://github.com/quiltdata/quilt/pull/4670))
+- [Added] Support `prefixes` field in bucket configuration for prefix-scoped bucket access ([#4670](https://github.com/quiltdata/quilt/pull/4670))
+- [Fixed] Catch error and don't show Perspective table if Perspective failed to render ([#4669](https://github.com/quiltdata/quilt/pull/4669))
+- [Changed] Enable strict test isolation with `globals: false` in Vitest configuration ([#4660](https://github.com/quiltdata/quilt/pull/4660))
+- [Added] H5AD file preview ([#4665](https://github.com/quiltdata/quilt/pull/4665))
+- [Changed] Unified metadata table design for H5AD, Parquet, and Quilt package previews ([#4665](https://github.com/quiltdata/quilt/pull/4665))
+- [Changed] Migrate test framework from Jest to Vitest with improved performance ([#4657](https://github.com/quiltdata/quilt/pull/4657))
+- [Changed] Add `crc64Checksums` config property indicating CRC64/NVMe checksums are enabled ([#4632](https://github.com/quiltdata/quilt/pull/4632))
+- [Changed] Remove outdated `chunkedChecksums` config property, and remove related dead code ([#4632](https://github.com/quiltdata/quilt/pull/4632))
 - [Fixed] Prevent package download form from being prematurely removed from DOM ([#4634](https://github.com/quiltdata/quilt/pull/4634))
 - [Fixed] Remove leading slash when creating a file from the root directory ([#4631](https://github.com/quiltdata/quilt/pull/4631))
 - [Fixed] Remove leading slash from code samples for downloading an S3 directory ([#4631](https://github.com/quiltdata/quilt/pull/4631))

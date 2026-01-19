@@ -1,8 +1,20 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as packageHandle from './packageHandle'
 
-/* eslint-disable no-console */
-
 describe('utils/packageHandle', () => {
+  let consoleLog: ReturnType<typeof vi.spyOn>
+  let consoleError: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleLog.mockRestore()
+    consoleError.mockRestore()
+  })
+
   describe('convertItem', () => {
     it('should return static string when no template', () => {
       expect(packageHandle.execTemplateItem('fgsfds')).toBe('fgsfds')
@@ -34,8 +46,6 @@ describe('utils/packageHandle', () => {
     })
 
     it('should return null when no value for directory', () => {
-      console.log = jest.fn()
-      console.error = jest.fn()
       expect(
         packageHandle.execTemplateItem(
           'what-<%= username %>-do/make-<%= directory %>-update',
@@ -44,26 +54,24 @@ describe('utils/packageHandle', () => {
           },
         ),
       ).toBe(null)
-      expect(console.log).toHaveBeenCalledWith(
+      expect(consoleLog).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
-      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+      expect(consoleError.mock.calls[0][0]).toMatchObject({
         message: 'directory is not defined',
       })
     })
 
     it('should return null when no value for username', () => {
-      console.log = jest.fn()
-      console.error = jest.fn()
       expect(
         packageHandle.execTemplateItem('<%= username %>/<%= directory %>', {
           directory: 'staging',
         }),
       ).toBe(null)
-      expect(console.log).toHaveBeenCalledWith(
+      expect(consoleLog).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
-      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+      expect(consoleError.mock.calls[0][0]).toMatchObject({
         message: 'username is not defined',
       })
     })
@@ -100,8 +108,6 @@ describe('utils/packageHandle', () => {
     })
 
     it('should return empty string if not enough values', () => {
-      console.log = jest.fn()
-      console.error = jest.fn()
       expect(
         packageHandle.execTemplate(
           { files: '<%= username %>/<%= directory %>' },
@@ -111,10 +117,10 @@ describe('utils/packageHandle', () => {
           },
         ),
       ).toBe(null)
-      expect(console.log).toHaveBeenCalledWith(
+      expect(consoleLog).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
-      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+      expect(consoleError.mock.calls[0][0]).toMatchObject({
         message: 'directory is not defined',
       })
     })

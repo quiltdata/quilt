@@ -82,7 +82,7 @@ def _as_dataclass_kwargs(data: dict) -> dict:
         "typename__" if k == "__typename" else _camel_to_snake(k): (
             _as_dataclass_kwargs(v)
             if isinstance(v, dict)
-            else [_as_dataclass_kwargs(x) for x in v]
+            else [_as_dataclass_kwargs(x) if isinstance(x, dict) else x for x in v]
             if isinstance(v, list)
             else v
         )
@@ -442,3 +442,172 @@ def test_tabulator_set_open_query():
         variables={"enabled": True},
     ):
         assert admin.tabulator.set_open_query(True) is None
+
+
+BUCKET_CONFIG = {
+    "name": "test-bucket",
+    "title": "Test Bucket",
+    "iconUrl": None,
+    "description": "A test bucket",
+    "overviewUrl": None,
+    "tags": ["test"],
+    "relevanceScore": 0,
+    "lastIndexed": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "snsNotificationArn": None,
+    "scannerParallelShardsDepth": None,
+    "skipMetaDataIndexing": None,
+    "fileExtensionsToIndex": None,
+    "indexContentBytes": None,
+    "prefixes": [""],
+}
+BUCKET_ADD_ERRORS = (
+    ({"__typename": "BucketAlreadyAdded"}, admin.Quilt3AdminError, "Bucket already added"),
+    ({"__typename": "BucketDoesNotExist"}, admin.Quilt3AdminError, "Bucket does not exist in S3"),
+    (
+        {"__typename": "InsufficientPermissions", "message": "Permission denied for prefix"},
+        admin.Quilt3AdminError,
+        "Permission denied for prefix",
+    ),
+    ({"__typename": "SnsInvalid"}, admin.Quilt3AdminError, "Invalid SNS notification ARN"),
+    ({"__typename": "NotificationConfigurationError"}, admin.Quilt3AdminError, "Notification configuration error"),
+    ({"__typename": "NotificationTopicNotFound"}, admin.Quilt3AdminError, "Notification topic not found"),
+    ({"__typename": "BucketFileExtensionsToIndexInvalid"}, admin.Quilt3AdminError, "Invalid file extensions to index"),
+    ({"__typename": "BucketIndexContentBytesInvalid"}, admin.Quilt3AdminError, "Invalid index content bytes"),
+    ({"__typename": "SubscriptionInvalid"}, admin.Quilt3AdminError, "Invalid subscription"),
+)
+BUCKET_UPDATE_ERRORS = (
+    ({"__typename": "BucketNotFound"}, admin.BucketNotFoundError, None),
+    (
+        {"__typename": "InsufficientPermissions", "message": "Permission denied for prefix"},
+        admin.Quilt3AdminError,
+        "Permission denied for prefix",
+    ),
+    ({"__typename": "SnsInvalid"}, admin.Quilt3AdminError, "Invalid SNS notification ARN"),
+    ({"__typename": "NotificationConfigurationError"}, admin.Quilt3AdminError, "Notification configuration error"),
+    ({"__typename": "NotificationTopicNotFound"}, admin.Quilt3AdminError, "Notification topic not found"),
+    ({"__typename": "BucketFileExtensionsToIndexInvalid"}, admin.Quilt3AdminError, "Invalid file extensions to index"),
+    ({"__typename": "BucketIndexContentBytesInvalid"}, admin.Quilt3AdminError, "Invalid index content bytes"),
+)
+BUCKET_REMOVE_ERRORS = (
+    ({"__typename": "BucketNotFound"}, admin.BucketNotFoundError, None),
+    (
+        {"__typename": "IndexingInProgress"},
+        admin.Quilt3AdminError,
+        "Cannot remove bucket while indexing is in progress",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (BUCKET_CONFIG, admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))),
+        (None, None),
+    ],
+)
+def test_bucket_get(data, result):
+    with mock_client({"bucket_config": data}, "bucketGet", variables={"name": "test-bucket"}):
+        assert admin.buckets.get("test-bucket") == result
+
+
+def test_bucket_list():
+    with mock_client({"bucket_configs": [BUCKET_CONFIG]}, "bucketsList"):
+        assert admin.buckets.list() == [admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))]
+
+
+def test_bucket_add_success():
+    with mock_client(
+        {
+            "bucket_add": {
+                "__typename": "BucketAddSuccess",
+                "bucketConfig": BUCKET_CONFIG,
+            }
+        },
+        "bucketAdd",
+        variables={
+            "input": _graphql_client.BucketAddInput(
+                name="test-bucket",
+                title="Test Bucket",
+            )
+        },
+    ):
+        result = admin.buckets.add("test-bucket", "Test Bucket")
+        assert result == admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))
+
+
+@pytest.mark.parametrize("data,error_type,error_msg", BUCKET_ADD_ERRORS)
+def test_bucket_add_errors(data, error_type, error_msg):
+    with mock_client(
+        {"bucket_add": data},
+        "bucketAdd",
+        variables={
+            "input": _graphql_client.BucketAddInput(
+                name="test-bucket",
+                title="Test Bucket",
+            )
+        },
+    ):
+        with pytest.raises(error_type) as exc_info:
+            admin.buckets.add("test-bucket", "Test Bucket")
+        if error_msg:
+            assert str(exc_info.value) == error_msg
+
+
+def test_bucket_update_success():
+    with mock_client(
+        {
+            "bucket_update": {
+                "__typename": "BucketUpdateSuccess",
+                "bucketConfig": BUCKET_CONFIG,
+            }
+        },
+        "bucketUpdate",
+        variables={
+            "name": "test-bucket",
+            "input": _graphql_client.BucketUpdateInput(
+                title="Test Bucket",
+            ),
+        },
+    ):
+        result = admin.buckets.update("test-bucket", "Test Bucket")
+        assert result == admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))
+
+
+@pytest.mark.parametrize("data,error_type,error_msg", BUCKET_UPDATE_ERRORS)
+def test_bucket_update_errors(data, error_type, error_msg):
+    with mock_client(
+        {"bucket_update": data},
+        "bucketUpdate",
+        variables={
+            "name": "test-bucket",
+            "input": _graphql_client.BucketUpdateInput(
+                title="Test Bucket",
+            ),
+        },
+    ):
+        with pytest.raises(error_type) as exc_info:
+            admin.buckets.update("test-bucket", "Test Bucket")
+        if error_msg:
+            assert str(exc_info.value) == error_msg
+
+
+def test_bucket_remove_success():
+    with mock_client(
+        {"bucket_remove": {"__typename": "BucketRemoveSuccess"}},
+        "bucketRemove",
+        variables={"name": "test-bucket"},
+    ):
+        assert admin.buckets.remove("test-bucket") is None
+
+
+@pytest.mark.parametrize("data,error_type,error_msg", BUCKET_REMOVE_ERRORS)
+def test_bucket_remove_errors(data, error_type, error_msg):
+    with mock_client(
+        {"bucket_remove": data},
+        "bucketRemove",
+        variables={"name": "test-bucket"},
+    ):
+        with pytest.raises(error_type) as exc_info:
+            admin.buckets.remove("test-bucket")
+        if error_msg:
+            assert str(exc_info.value) == error_msg

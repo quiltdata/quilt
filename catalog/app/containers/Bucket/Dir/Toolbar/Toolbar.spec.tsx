@@ -1,51 +1,59 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { renderHook } from '@testing-library/react-hooks'
+import { describe, it, expect, vi, afterEach, type Mock } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
+import noop from 'utils/noop'
 
 import * as DirToolbar from './Toolbar'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock('./Add', () => ({
+vi.mock('./Add', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   },
   Options: () => <>"Add" popover</>,
 }))
 
-jest.mock('./Get', () => ({
-  Options: () => <div>"Get" popover</div>,
+vi.mock('./Get', () => ({
+  Options: ({ features }: { features?: { code: boolean } }) => (
+    <div>
+      "Get" popover
+      {features?.code && <div data-testid="code-samples" />}
+    </div>
+  ),
 }))
 
-jest.mock('./Organize', () => ({
+vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: () => <>"Organize" popover</>,
+  Options: ({ features }: { features?: { delete: boolean } }) => (
+    <div>
+      "Organize" popover
+      {features?.delete && <div data-testid="delete-button" />}
+    </div>
+  ),
 }))
 
-jest.mock('./CreatePackage', () => ({
+vi.mock('./CreatePackage', () => ({
   Options: () => <>"Create package" popover</>,
-  useSuccessors: () => {},
+  useSuccessors: noop,
 }))
 
-jest.mock('containers/Bucket/PackageDialog', () => ({
+vi.mock('containers/Bucket/PackageDialog', () => ({
   useCreateDialog: () => ({
-    open: jest.fn(),
-    render: jest.fn(),
+    open: vi.fn(),
+    render: vi.fn(),
   }),
 }))
 
-jest.mock('@material-ui/lab', () => ({
-  ...jest.requireActual('@material-ui/lab'),
+vi.mock('@material-ui/lab', () => ({
   Skeleton: () => <i>⌛</i>,
 }))
 
-jest.mock('components/Buttons', () => ({
-  ...jest.requireActual('components/Buttons'),
+vi.mock('components/Buttons', () => ({
   WithPopover: ({
     label,
     children,
@@ -61,131 +69,109 @@ jest.mock('components/Buttons', () => ({
   ),
 }))
 
-const prefsHook: jest.Mock<{ prefs: BucketPreferences.Result }> = jest.fn(() => ({
+const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 
-jest.mock('utils/BucketPreferences', () => ({
-  ...jest.requireActual('utils/BucketPreferences'),
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual('utils/BucketPreferences')),
   use: () => prefsHook(),
 }))
-
-describe('useFeatures', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
-  it('should return null when preferences are loading', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Pending(),
-    }))
-
-    const { result } = renderHook(() => DirToolbar.useFeatures())
-
-    expect(result.current).toBeNull()
-  })
-
-  it('should return all features disabled when all permissions are false', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              writeFile: false,
-              downloadObject: false,
-              createPackage: false,
-            },
-            blocks: {
-              code: false,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => DirToolbar.useFeatures())
-
-    expect(result.current).toEqual({
-      add: false,
-      get: false,
-      organize: true, // Always true in the implementation
-      createPackage: false,
-    })
-  })
-
-  it('should return all features enabled when all permissions are true', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              writeFile: true,
-              downloadObject: true,
-              createPackage: true,
-            },
-            blocks: {
-              code: true,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => DirToolbar.useFeatures())
-
-    expect(result.current).toEqual({
-      add: true,
-      get: { code: true },
-      organize: true,
-      createPackage: true,
-    })
-  })
-})
 
 const handle = DirToolbar.CreateHandle('test-bucket', 'test/path')
 
 describe('Toolbar', () => {
-  it('should render skeleton buttons when features is null', () => {
-    const { container } = render(
-      <DirToolbar.Toolbar features={null} handle={handle} onReload={jest.fn()} />,
-    )
+  afterEach(cleanup)
 
-    expect(container.firstChild).toMatchSnapshot()
+  it('should render skeleton buttons when features is null', () => {
+    const { getAllByText } = render(
+      <DirToolbar.Toolbar features={null} handle={handle} onReload={vi.fn()} />,
+    )
+    const skeletonTexts = getAllByText('⌛')
+    expect(skeletonTexts.length).toBeGreaterThan(0)
   })
 
   it('should render all buttons when all features are enabled', () => {
-    const { container } = render(
+    const { getByTitle } = render(
       <DirToolbar.Toolbar
-        features={{ add: true, get: { code: true }, organize: true, createPackage: true }}
+        features={{
+          add: true,
+          get: { code: true },
+          organize: { delete: true },
+          createPackage: true,
+        }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Add files').textContent).toBe('"Add" popover')
+    expect(getByTitle('Get files').textContent).toBe('"Get" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(getByTitle('Create package').textContent).toBe('"Create package" popover')
   })
 
   it('should render nothing when all features are disabled', () => {
-    const { container } = render(
+    const { queryByTitle } = render(
       <DirToolbar.Toolbar
         features={{ add: false, get: false, organize: false, createPackage: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(queryByTitle('Add files')).toBeFalsy()
+    expect(queryByTitle('Get files')).toBeFalsy()
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(queryByTitle('Create package')).toBeFalsy()
   })
 
   it('should render buttons for enabled features: add, organize', () => {
-    const { container } = render(
+    const { getByTitle, queryByTitle } = render(
       <DirToolbar.Toolbar
-        features={{ add: true, get: false, organize: true, createPackage: false }}
+        features={{
+          add: true,
+          get: false,
+          organize: { delete: true },
+          createPackage: false,
+        }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
       />,
     )
+    expect(getByTitle('Add files').textContent).toBe('"Add" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(queryByTitle('Get files')).toBeFalsy()
+    expect(queryByTitle('Create package')).toBeFalsy()
+  })
 
-    expect(container.firstChild).toMatchSnapshot()
+  it('should show delete button in Organize.Options when delete feature is enabled', () => {
+    const { getByTestId } = render(
+      <DirToolbar.Toolbar
+        features={{
+          add: false,
+          get: false,
+          organize: { delete: true },
+          createPackage: false,
+        }}
+        handle={handle}
+        onReload={vi.fn()}
+      />,
+    )
+    expect(getByTestId('delete-button')).toBeTruthy()
+  })
+
+  it('should hide delete button in Organize.Options when delete feature is disabled', () => {
+    const { queryByTestId } = render(
+      <DirToolbar.Toolbar
+        features={{
+          add: false,
+          get: false,
+          organize: { delete: false },
+          createPackage: false,
+        }}
+        handle={handle}
+        onReload={vi.fn()}
+      />,
+    )
+    expect(queryByTestId('delete-button')).toBeFalsy()
   })
 })

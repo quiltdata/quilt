@@ -170,6 +170,8 @@ const I18N_FIELDS = {
   'ui.actions.copyPackage': '"PUSH TO BUCKET" on the package page',
   'ui.actions.createPackage':
     '"CREATE PACKAGE" on the package list and bucket listing pages',
+  'ui.actions.deleteObject':
+    'Buttons to delete files and directories under the "BUCKET" tab',
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
   'ui.actions.downloadObject': 'Download buttons under the "BUCKET" tab',
   'ui.actions.downloadPackage': 'Download buttons under the "PACKAGES" tab',

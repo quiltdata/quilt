@@ -17,6 +17,84 @@
 ## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
 
 
+## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[List[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[List[str]], index\_content\_bytes: Optional[int], prefixes: List[str]) -> None  {#Bucket}
+
+
+# quilt3.admin.buckets
+
+
+## get(name: str) -> Optional[quilt3.admin.types.Bucket]  {#get}
+
+Get a specific bucket configuration from the registry.
+Returns `None` if the bucket does not exist.
+
+__Arguments__
+
+* __name__:  Name of the bucket to get.
+
+
+## list() -> list[quilt3.admin.types.Bucket]  {#list}
+
+List all bucket configurations in the registry.
+
+
+## add(name: str, title: str, \*, description: Optional[str] = None, icon\_url: Optional[str] = None, overview\_url: Optional[str] = None, tags: Optional[List[str]] = None, relevance\_score: Optional[int] = None, sns\_notification\_arn: Optional[str] = None, scanner\_parallel\_shards\_depth: Optional[int] = None, skip\_meta\_data\_indexing: Optional[bool] = None, file\_extensions\_to\_index: Optional[List[str]] = None, index\_content\_bytes: Optional[int] = None, delay\_scan: Optional[bool] = None, browsable: Optional[bool] = None, prefixes: Optional[List[str]] = None) -> quilt3.admin.types.Bucket  {#add}
+
+Add a new bucket to the registry.
+
+__Arguments__
+
+* __name__:  S3 bucket name.
+* __title__:  Display title for the bucket.
+* __description__:  Optional description.
+* __icon_url__:  Optional URL for bucket icon.
+* __overview_url__:  Optional URL for bucket overview page.
+* __tags__:  Optional list of tags.
+* __relevance_score__:  Optional relevance score for bucket ordering.
+* __sns_notification_arn__:  Optional SNS topic ARN for notifications.
+* __scanner_parallel_shards_depth__:  Optional depth for parallel scanning.
+* __skip_meta_data_indexing__:  If True, skip metadata indexing.
+* __file_extensions_to_index__:  Optional list of file extensions to index content.
+* __index_content_bytes__:  Optional max bytes of content to index.
+* __delay_scan__:  If True, delay initial bucket scan.
+* __browsable__:  If True, bucket is browsable.
+* __prefixes__:  Optional list of S3 prefixes to scope bucket access to.
+    If provided, only these prefixes will be indexed and verified for access.
+
+
+## update(name: str, title: str, \*, description: Optional[str] = None, icon\_url: Optional[str] = None, overview\_url: Optional[str] = None, tags: Optional[List[str]] = None, relevance\_score: Optional[int] = None, sns\_notification\_arn: Optional[str] = None, scanner\_parallel\_shards\_depth: Optional[int] = None, skip\_meta\_data\_indexing: Optional[bool] = None, file\_extensions\_to\_index: Optional[List[str]] = None, index\_content\_bytes: Optional[int] = None, browsable: Optional[bool] = None, prefixes: Optional[List[str]] = None) -> quilt3.admin.types.Bucket  {#update}
+
+Update an existing bucket configuration.
+
+__Arguments__
+
+* __name__:  S3 bucket name.
+* __title__:  Display title for the bucket.
+* __description__:  Optional description.
+* __icon_url__:  Optional URL for bucket icon.
+* __overview_url__:  Optional URL for bucket overview page.
+* __tags__:  Optional list of tags.
+* __relevance_score__:  Optional relevance score for bucket ordering.
+* __sns_notification_arn__:  Optional SNS topic ARN for notifications.
+* __scanner_parallel_shards_depth__:  Optional depth for parallel scanning.
+* __skip_meta_data_indexing__:  If True, skip metadata indexing.
+* __file_extensions_to_index__:  Optional list of file extensions to index content.
+* __index_content_bytes__:  Optional max bytes of content to index.
+* __browsable__:  If True, bucket is browsable.
+* __prefixes__:  Optional list of S3 prefixes to scope bucket access to.
+    If provided, only these prefixes will be indexed and verified for access.
+    Changing prefixes will trigger permission re-verification.
+
+
+## remove(name: str) -> None  {#remove}
+
+Remove a bucket from the registry.
+
+__Arguments__
+
+* __name__:  Name of the bucket to remove.
+
+
 # quilt3.admin.roles
 
 

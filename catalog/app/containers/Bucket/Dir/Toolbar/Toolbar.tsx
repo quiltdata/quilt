@@ -3,9 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import cfg from 'constants/config'
-import * as BucketPreferences from 'utils/BucketPreferences'
-
 import * as Toolbar from 'containers/Bucket/Toolbar'
 import { FromHandles, useCreateDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
@@ -15,9 +12,10 @@ import * as Add from './Add'
 import * as CreatePackage from './CreatePackage'
 import * as Get from './Get'
 import * as Organize from './Organize'
+import { useFeatures, type Features } from './useFeatures'
 
 export { DirHandleCreate as CreateHandle } from 'containers/Bucket/Toolbar'
-export { Add, CreatePackage, Get, Organize }
+export { Add, CreatePackage, Get, Organize, useFeatures, type Features }
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -26,34 +24,6 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
   },
 }))
-
-interface Features {
-  add: boolean | null
-  get: false | { code: boolean } | null
-  organize: boolean | null
-  createPackage: boolean | null
-}
-
-export function useFeatures(): Features | null {
-  const { prefs } = BucketPreferences.use()
-  return React.useMemo(
-    () =>
-      BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { actions, blocks } }) => ({
-            add: actions.writeFile,
-            get:
-              !cfg.noDownload && actions.downloadObject ? { code: blocks.code } : false,
-            organize: true,
-            createPackage: actions.createPackage,
-          }),
-          _: () => null,
-        },
-        prefs,
-      ),
-    [prefs],
-  )
-}
 
 interface DirToolbarProps {
   className?: string
@@ -123,14 +93,14 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
         {features.get && (
           <Toolbar.Get>
-            <Get.Options handle={handle} hideCode={!features.get.code} />
+            <Get.Options handle={handle} features={features.get} />
           </Toolbar.Get>
         )}
 
         {features.organize && (
           <Organize.Context.Provider onReload={onReload}>
             <Toolbar.Organize>
-              <Organize.Options />
+              <Organize.Options features={features.organize} />
             </Toolbar.Organize>
           </Organize.Context.Provider>
         )}
