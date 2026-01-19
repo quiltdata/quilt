@@ -280,7 +280,9 @@ export default function ListingRowActions({
       <div className={classes.root}>
         <div className={classes.wrapper}>
           <div className={classes.container}>
-            <Delete className={classes.item} location={location} onDelete={onReload} />
+            {prefs.deleteObject && (
+              <Delete className={classes.item} location={location} onDelete={onReload} />
+            )}
             <Bookmark className={classes.item} location={location} />
             {prefs.downloadObject && (
               <DownloadButton className={classes.item} location={location} />

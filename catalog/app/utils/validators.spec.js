@@ -1,4 +1,5 @@
 import { Map } from 'immutable'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 
 import validate, * as validators from './validators'
 
@@ -18,7 +19,7 @@ describe('utils/validators', () => {
       let validator
 
       beforeEach(() => {
-        test = jest.fn((v) => v === 'test')
+        test = vi.fn((v) => v === 'test')
         validator = validate('test', test)
       })
 

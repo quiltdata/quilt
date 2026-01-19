@@ -23,7 +23,6 @@ jobs:
           - s3hash
           - status_reports
           - manifest_indexer
-          - tabular_preview
           - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
@@ -31,15 +30,10 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
-      - name: Export requirements.txt from uv.lock
-        if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
-        run: |
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
+      - uses: actions/checkout@v6
       - name: Build zip
         run: |
-          BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
+          BUILDER_IMAGE=amazon/aws-lambda-python:$(cat lambdas/${{ matrix.path }}/.python-version)
 
           touch ./out.zip
 
@@ -75,13 +69,14 @@ jobs:
         path:
           - indexer
           - thumbnail
+          - tabular_preview
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
         run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .

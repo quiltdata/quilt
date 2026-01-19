@@ -1,6 +1,7 @@
 import * as React from 'react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { render } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
 
 import { bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -9,8 +10,9 @@ import type { SearchHitPackage } from '../model'
 
 import { Package } from './Hit'
 
-jest.mock('constants/config', () => ({}))
-jest.mock('components/Preview', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('components/Preview', () => ({}))
 
 const hitBase = {
   id: 'unique-id',
@@ -22,6 +24,8 @@ const hitBase = {
 } as Omit<SearchHitPackage, 'pointer'>
 
 describe('containers/Search/List/Hit/Package', () => {
+  afterEach(cleanup)
+
   it('renders with pointer "latest"', () => {
     const hit = { ...hitBase, pointer: 'latest' }
 

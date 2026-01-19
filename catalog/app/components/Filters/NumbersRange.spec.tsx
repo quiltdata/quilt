@@ -1,54 +1,50 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+import noop from 'utils/noop'
 
 import NumbersRange from './NumbersRange'
 
-jest.mock(
-  './Slider',
-  jest.fn(() => ({ min, max }: { min: number; max: number }) => (
+vi.mock('./Slider', () => ({
+  default: ({ min, max }: { min: number; max: number }) => (
     <div data-min={min} data-max={max} />
-  )),
-)
-
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    TextField: jest.fn(
-      ({
-        helperText,
-        inputProps: { min, max } = {},
-        onChange,
-        value,
-      }: {
-        helperText?: string
-        inputProps?: { min?: string; max?: string }
-        onChange: () => void
-        value: string
-      }) => (
-        <input
-          data-error={helperText}
-          max={max}
-          min={min}
-          onChange={onChange}
-          value={value}
-        />
-      ),
-    ),
-  })),
-)
-
-jest.mock('utils/Logging', () => ({
-  __esModule: true,
-  default: { error: jest.fn() },
+  ),
 }))
 
-const onChange = jest.fn()
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  TextField: ({
+    helperText,
+    inputProps: { min, max } = {},
+    onChange,
+    value,
+  }: {
+    helperText?: string
+    inputProps?: { min?: string; max?: string }
+    onChange: () => void
+    value: string
+  }) => (
+    <input
+      data-error={helperText}
+      max={max}
+      min={min}
+      onChange={onChange}
+      value={value}
+    />
+  ),
+}))
+
+vi.mock('utils/Logging', () => ({
+  default: { error: noop },
+}))
+
+const onChange = vi.fn()
 const findGteInput = (container: HTMLElement) => container.querySelector('input')!
 
 describe('components/Filters/NumbersRange', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders with a valid number', () => {

@@ -1,0 +1,43 @@
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config'
+import path from 'path'
+
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        url: 'https://quilt-test',
+      },
+    },
+
+    setupFiles: ['./setup-vitest.ts'],
+
+    include: ['app/**/*.spec.{js,ts,tsx}'],
+
+    exclude: ['node_modules/**'],
+
+    coverage: {
+      provider: 'v8',
+      include: ['app/**/*.{j,t}s{,x}'],
+      exclude: ['app/**/*.spec.{js,ts,tsx}', 'app/**/mocks/*.{j,t}s{,x}'],
+      thresholds: {
+        statements: 4,
+        branches: 3,
+        functions: 2,
+        lines: 4,
+      },
+    },
+  },
+
+  resolve: {
+    alias: {
+      utils: path.resolve(__dirname, './app/utils'),
+      components: path.resolve(__dirname, './app/components'),
+      containers: path.resolve(__dirname, './app/containers'),
+      constants: path.resolve(__dirname, './app/constants'),
+      schemas: path.resolve(__dirname, '../shared/schemas'),
+      model: path.resolve(__dirname, './app/model'),
+    },
+  },
+})

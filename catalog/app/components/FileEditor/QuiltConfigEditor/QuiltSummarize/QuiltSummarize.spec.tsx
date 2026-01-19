@@ -1,62 +1,50 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
+import { describe, it, expect, vi } from 'vitest'
+
+import noop from 'utils/noop'
 
 import QuiltSummarize from './QuiltSummarize'
 
 const theme = createMuiTheme()
-const noop = () => {}
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  'react-router-dom',
-  jest.fn(() => ({
-    ...jest.requireActual('react-router-dom'),
-    useParams: jest.fn(() => ({ bucket: 'b', key: 'k' })),
-    useLocation: jest.fn(() => ({ search: '?edit=true' })),
-  })),
-)
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: () => ({ bucket: 'b', key: 'k' }),
+  useLocation: () => ({ search: '?edit=true' }),
+}))
 
-jest.mock(
-  'utils/GlobalDialogs',
-  jest.fn(() => ({
-    use: () => noop,
-  })),
-)
+vi.mock('utils/GlobalDialogs', () => ({
+  use: () => noop,
+}))
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Divider: jest.fn(() => <div id="divider" />),
-    Button: jest.fn(({ children }: { children: React.ReactNode }) => (
-      <div id="button">{children}</div>
-    )),
-    IconButton: jest.fn(({ children }: { children: React.ReactNode }) => (
-      <div id="icon-button">{children}</div>
-    )),
-    Icon: jest.fn(({ children }: { children: React.ReactNode }) => (
-      <div id="icon">{children}</div>
-    )),
-    TextField: jest.fn(({ value }: { value: React.ReactNode }) => (
-      <div id="text-field">{value}</div>
-    )),
-    makeStyles: jest.fn((cb: any) => () => {
-      const classes = typeof cb === 'function' ? cb(theme) : cb
-      return Object.keys(classes).reduce(
-        (acc, key) => ({
-          [key]: key,
-          ...acc,
-        }),
-        {},
-      )
-    }),
-  })),
-)
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Divider: () => <div id="divider" />,
+  Button: ({ children }: { children: React.ReactNode }) => (
+    <div id="button">{children}</div>
+  ),
+  IconButton: ({ children }: { children: React.ReactNode }) => (
+    <div id="icon-button">{children}</div>
+  ),
+  Icon: ({ children }: { children: React.ReactNode }) => <div id="icon">{children}</div>,
+  TextField: ({ value }: { value: React.ReactNode }) => (
+    <div id="text-field">{value}</div>
+  ),
+  makeStyles: (cb: any) => () => {
+    const classes = typeof cb === 'function' ? cb(theme) : cb
+    return Object.keys(classes).reduce(
+      (acc, key) => ({
+        [key]: key,
+        ...acc,
+      }),
+      {},
+    )
+  },
+}))
 
 describe('QuiltSummarize', () => {
   it('Render empty placeholders', () => {

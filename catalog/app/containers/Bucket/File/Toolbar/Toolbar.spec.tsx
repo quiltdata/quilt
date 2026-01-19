@@ -1,32 +1,41 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { renderHook } from '@testing-library/react-hooks'
+import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach, Mock } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as FileToolbar from './Toolbar'
 
-jest.mock('constants/config', () => ({}))
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock('./Get', () => ({
-  Options: () => <div>"Get" popover</div>,
+vi.mock('./Get', () => ({
+  Options: ({ features }: { features?: { code: boolean } }) => (
+    <div>
+      "Get" popover
+      {features?.code && <div data-testid="code-samples" />}
+    </div>
+  ),
 }))
 
-jest.mock('./Organize', () => ({
+vi.mock('./Organize', () => ({
   Context: {
     Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
-  Options: () => <>"Organize" popover</>,
+  Options: ({ features }: { features?: { delete: boolean } }) => (
+    <div>
+      "Organize" popover
+      {features?.delete && <div data-testid="delete-button" />}
+    </div>
+  ),
 }))
 
-jest.mock('@material-ui/lab', () => ({
-  ...jest.requireActual('@material-ui/lab'),
+vi.mock('@material-ui/lab', async () => ({
+  ...(await vi.importActual('@material-ui/lab')),
   Skeleton: () => <i>⌛</i>,
 }))
 
-jest.mock('components/Buttons', () => ({
-  ...jest.requireActual('components/Buttons'),
+vi.mock('components/Buttons', async () => ({
+  ...(await vi.importActual('components/Buttons')),
   WithPopover: ({
     label,
     children,
@@ -42,196 +51,134 @@ jest.mock('components/Buttons', () => ({
   ),
 }))
 
-jest.mock('containers/Bucket/Toolbar', () => ({
-  ...jest.requireActual('containers/Bucket/Toolbar'),
+vi.mock('containers/Bucket/Toolbar', async () => ({
+  ...(await vi.importActual('containers/Bucket/Toolbar')),
   Assist: () => <button>Assist</button>,
 }))
 
-const prefsHook: jest.Mock<{ prefs: BucketPreferences.Result }> = jest.fn(() => ({
+const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
 }))
 
-jest.mock('utils/BucketPreferences', () => ({
-  ...jest.requireActual('utils/BucketPreferences'),
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual('utils/BucketPreferences')),
   use: () => prefsHook(),
 }))
 
-const viewModes = { modes: [], mode: null, handlePreviewResult: jest.fn() }
+const viewModes = { modes: [], mode: null, handlePreviewResult: vi.fn() }
 
 const editorState = {
   editing: null,
   error: null,
-  onCancel: jest.fn(),
-  onChange: jest.fn(),
-  onEdit: jest.fn(),
-  onPreview: jest.fn(),
-  onSave: jest.fn(),
+  onCancel: vi.fn(),
+  onChange: vi.fn(),
+  onEdit: vi.fn(),
+  onPreview: vi.fn(),
+  onSave: vi.fn(),
   preview: false,
   saving: false,
   types: [],
   value: 'test content',
 }
 
-describe('useFeatures', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
-  it('should return null when preferences are loading', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Pending(),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures())
-
-    expect(result.current).toBeNull()
-  })
-
-  it('should return all features disabled when all permissions are false', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: false,
-            },
-            blocks: {
-              code: false,
-              qurator: false,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures(false))
-
-    expect(result.current).toEqual({
-      get: false,
-      organize: true, // Always true in the implementation
-      qurator: false,
-    })
-  })
-
-  it('should return all features enabled when all permissions are true', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: true,
-            },
-            blocks: {
-              code: true,
-              qurator: true,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures(false))
-
-    expect(result.current).toEqual({
-      get: { code: true },
-      organize: true,
-      qurator: true,
-    })
-  })
-
-  it('should return get as false when file is deleted', () => {
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: true,
-            },
-            blocks: {
-              code: true,
-              qurator: true,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => FileToolbar.useFeatures(true))
-
-    expect(result.current).toEqual({
-      get: false,
-      organize: false,
-      qurator: true,
-    })
-  })
-})
-
 const handle = FileToolbar.CreateHandle('test-bucket', 'test/file.txt')
 
 describe('Toolbar', () => {
+  afterEach(cleanup)
+
   it('should render skeleton buttons when features is null', () => {
-    const { container } = render(
+    const { getAllByText } = render(
       <FileToolbar.Toolbar
         features={null}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    const skeletonTexts = getAllByText('⌛')
+    expect(skeletonTexts.length).toBeGreaterThan(0)
   })
 
   it('should render all buttons when all features are enabled', () => {
-    const { container } = render(
+    const { getByTitle, getByText } = render(
       <FileToolbar.Toolbar
-        features={{ get: { code: true }, organize: true, qurator: true }}
+        features={{ get: { code: true }, organize: { delete: true }, qurator: true }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
         editorState={editorState}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Get file').textContent).toBe('"Get" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(getByText('Assist')).toBeTruthy()
   })
 
   it('should render nothing when all features are disabled', () => {
-    const { container } = render(
+    const { container, queryByTitle, queryByText } = render(
       <FileToolbar.Toolbar
         features={{ get: false, organize: false, qurator: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(queryByTitle('Get file')).toBeFalsy()
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(queryByText('Assist')).toBeFalsy()
+    expect((container.firstChild as HTMLElement).children).toHaveLength(0)
   })
 
   it('should render buttons for enabled features: get, qurator', () => {
-    const { container } = render(
+    const { getByTitle, queryByTitle, getByText } = render(
       <FileToolbar.Toolbar
         features={{ get: { code: true }, organize: false, qurator: true }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
-
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByTitle('Get file').textContent).toBe('"Get" popover')
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(getByText('Assist')).toBeTruthy()
   })
 
   it('should not render organize button when editorState is not provided', () => {
-    const { container } = render(
+    const { container, queryByTitle } = render(
       <FileToolbar.Toolbar
-        features={{ get: false, organize: true, qurator: false }}
+        features={{ get: false, organize: { delete: true }, qurator: false }}
         handle={handle}
-        onReload={jest.fn()}
+        onReload={vi.fn()}
         viewModes={viewModes}
       />,
     )
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect((container.firstChild as HTMLElement).children).toHaveLength(0)
+  })
 
-    expect(container.firstChild).toMatchSnapshot()
+  it('should show delete button in Organize.Options when delete feature is enabled', () => {
+    const { getByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: true }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(getByTestId('delete-button')).toBeTruthy()
+  })
+
+  it('should hide delete button in Organize.Options when delete feature is disabled', () => {
+    const { queryByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: false }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(queryByTestId('delete-button')).toBeFalsy()
   })
 })

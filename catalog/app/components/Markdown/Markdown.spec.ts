@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom'
+import { describe, it, expect } from 'vitest'
 
 import { getRenderer } from './Markdown'
 
@@ -53,6 +54,24 @@ describe('components/Markdown', () => {
         win: win as $TSFixMe,
       })
       expect(hack('<a href="anything">l</a>')).toBe('<p><a rel="nofollow">l</a></p>\n')
+    })
+
+    it('should strip invalid attributes', () => {
+      const withInvalidAttributes = getRenderer({
+        processImg: () => {
+          throw new Error('processImg error')
+        },
+        processLink: () => {
+          throw new Error('processLink error')
+        },
+        win: win as $TSFixMe,
+      })
+
+      const input = `[title](link-url) ![](img-url)`
+      expect(() => withInvalidAttributes(input)).not.toThrow()
+
+      const output = `<p><a rel="nofollow">title</a> <img alt=""></p>\n`
+      expect(withInvalidAttributes(input)).toBe(output)
     })
   })
 })

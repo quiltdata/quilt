@@ -8,6 +8,7 @@ import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 
 import type * as Toolbar from 'containers/Bucket/Toolbar'
+import type { Features } from '../useFeatures'
 
 const useFileCodeSamplesStyles = M.makeStyles((t) => ({
   code: {
@@ -36,14 +37,14 @@ export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProp
 
 interface OptionsProps {
   handle: Toolbar.FileHandle
-  hideCode?: boolean
+  features: Exclude<Features['get'], false>
 }
 
-export default function Options({ handle, hideCode }: OptionsProps) {
+export default function Options({ handle, features }: OptionsProps) {
   const download = <Buttons.DownloadFile fileHandle={handle} />
-  const code = hideCode ? undefined : (
+  const code = features.code ? (
     <FileCodeSamples bucket={handle.bucket} path={handle.key} />
-  )
+  ) : undefined
 
   return <GetOptions download={download} code={code} />
 }

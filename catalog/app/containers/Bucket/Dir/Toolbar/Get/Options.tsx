@@ -7,6 +7,7 @@ import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
+import type { Features } from '../useFeatures'
 
 const useCodeSamplesStyles = M.makeStyles((t) => ({
   code: {
@@ -52,7 +53,7 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
         event.stopPropagation()
         setDownloading(true)
       }}
-      startIcon={downloading ? <M.CircularProgress size={20} /> : undefined}
+      {...(downloading ? { startIcon: <M.CircularProgress size={20} /> } : null)}
     >
       Download ZIP (directory)
     </Buttons.DownloadDir>
@@ -61,14 +62,14 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
 
 interface OptionsProps {
   handle: Toolbar.DirHandle
-  hideCode?: boolean
+  features: Exclude<Features['get'], false>
 }
 
-export default function Options({ handle, hideCode }: OptionsProps) {
+export default function Options({ handle, features }: OptionsProps) {
   const download = <DownloadDir dirHandle={handle} />
-  const code = hideCode ? undefined : (
+  const code = features.code ? (
     <DirCodeSamples bucket={handle.bucket} path={handle.path} />
-  )
+  ) : undefined
 
   return <GetOptions download={download} code={code} />
 }

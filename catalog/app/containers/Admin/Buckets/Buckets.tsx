@@ -428,6 +428,8 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
+  // NOTE: prefixes are managed via quilt3.admin SDK for now
+  prefixes: () => null,
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
@@ -1263,7 +1265,7 @@ function parseResponseError(
         [FF.FORM_ERROR]: 'notificationConfigurationError',
       }
     case 'InsufficientPermissions':
-      return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+      return { [FF.FORM_ERROR]: r.message }
     case 'SubscriptionInvalid':
       return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
     case 'BucketIndexContentBytesInvalid':
@@ -1364,7 +1366,6 @@ function Add({ back, settings, submit }: AddProps) {
                 errors={{
                   unexpected: 'Something went wrong',
                   notificationConfigurationError: 'Notification configuration error',
-                  insufficientPermissions: 'Insufficient permissions',
                   subscriptionInvalid: 'Subscription invalid',
                 }}
                 margin="none"

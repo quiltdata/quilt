@@ -10,5 +10,5 @@ uv run poe gql-gen
 uv run poe gql-check
 ```
 
-This will generate GraphQL client in `api/python/quilt3/admin/_graphql_client/` using
-GraphQL queries from `queries.graphql`.
+This will generate GraphQL client in `api/python/quilt3/admin/_graphql_client/`
+using GraphQL queries from `queries.graphql`.

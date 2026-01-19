@@ -56,8 +56,8 @@ Service Catalog).
     1. Refer to this [example service role](../cfn-service-role.yaml)
     and modify as needed to fit your use case.
 
-    > Ensure that your service role is up-to-date with the example before every stack
-    update so as to prevent installation failures.
+    > Ensure that your service role is up-to-date with the example before every
+    stack update so as to prevent installation failures.
 
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
@@ -138,6 +138,11 @@ you see in Service Catalog.
 You can perform stack update and creation with the AWS Console, AWS CLI,
 Terraform, or other means.
 
+> **Important:** Use Quilt-provided CloudFormation templates without modification.
+> Customizing templates may result in deployment issues and can affect your service
+> agreement coverage. If you require specific customizations, please contact your
+> Quilt account manager to discuss supported options.
+
 In all cases it is **highly recommended** that you set the `--on-failure` policy
 to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
 In the AWS Console this option appears under the phrase "Stack failure options."
@@ -184,6 +189,12 @@ Terraform users **must** request a compatible CloudFormation template from Quilt
 
 > Contact your account manager to obtain a template that works with Terraform and
 includes necessary variables.
+
+> **Important:** Use Quilt-provided Terraform modules and CloudFormation templates
+> without modification. Customizing these resources may result in deployment issues
+> and can affect your service agreement coverage. If you require specific
+> customizations, please contact your Quilt account manager to discuss supported
+> options.
 
 1. Set up your project directory as follows:
 
@@ -232,9 +243,9 @@ of your stack.
 
 | CNAME | Value |
 | ------ | ------- |
-| `<QuiltWebHost>` Key  | `LoadBalancerDNSName` |
-| `<RegistryHostName>` Key  | `LoadBalancerDNSName` |
-| `<S3ProxyHost>` Key  | `LoadBalancerDNSName` |
+| `<QuiltWebHost>` Key | `LoadBalancerDNSName` |
+| `<RegistryHostName>` Key | `LoadBalancerDNSName` |
+| `<S3ProxyHost>` Key | `LoadBalancerDNSName` |
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
@@ -304,5 +315,6 @@ to your new template and provide the snapshot identifier to the
     > existing search domain, and existing vpc in order for the terraform modules
     > to function properly.
 
-1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
+1. You now have a new Quilt stack
+with a configuration equivalent to your prior stack.
 Verify that the new stack is working as desired. Delete the old stack.

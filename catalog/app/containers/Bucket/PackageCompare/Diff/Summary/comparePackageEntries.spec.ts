@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 import * as Model from 'model'
 
 import comparePackageEntries from './comparePackageEntries'

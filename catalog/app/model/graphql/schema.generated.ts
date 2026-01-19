@@ -747,6 +747,24 @@ export default {
             args: [],
           },
           {
+            name: 'prefixes',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
             name: 'associatedPolicies',
             type: {
               kind: 'NON_NULL',
@@ -996,6 +1014,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'BucketNotFound',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InsufficientPermissions',
           },
           {
             kind: 'OBJECT',
@@ -1466,11 +1488,14 @@ export default {
         name: 'InsufficientPermissions',
         fields: [
           {
-            name: '_',
+            name: 'message',
             type: {
-              kind: 'SCALAR',
-              name: 'Boolean',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },

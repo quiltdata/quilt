@@ -5,6 +5,26 @@ from typing import Any, Dict, List, Optional, Union
 
 from .base_client import BaseClient
 from .base_model import UNSET, UnsetType
+from .bucket_add import (
+    BucketAdd,
+    BucketAddBucketAddBucketAddSuccess,
+    BucketAddBucketAddBucketAlreadyAdded,
+    BucketAddBucketAddBucketDoesNotExist,
+    BucketAddBucketAddBucketFileExtensionsToIndexInvalid,
+    BucketAddBucketAddBucketIndexContentBytesInvalid,
+    BucketAddBucketAddInsufficientPermissions,
+    BucketAddBucketAddNotificationConfigurationError,
+    BucketAddBucketAddNotificationTopicNotFound,
+    BucketAddBucketAddSnsInvalid,
+    BucketAddBucketAddSubscriptionInvalid,
+)
+from .bucket_get import BucketGet, BucketGetBucketConfig
+from .bucket_remove import (
+    BucketRemove,
+    BucketRemoveBucketRemoveBucketNotFound,
+    BucketRemoveBucketRemoveBucketRemoveSuccess,
+    BucketRemoveBucketRemoveIndexingInProgress,
+)
 from .bucket_tabulator_table_rename import (
     BucketTabulatorTableRename,
     BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig,
@@ -21,7 +41,19 @@ from .bucket_tabulator_tables_list import (
     BucketTabulatorTablesList,
     BucketTabulatorTablesListBucketConfig,
 )
-from .input_types import UserInput
+from .bucket_update import (
+    BucketUpdate,
+    BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid,
+    BucketUpdateBucketUpdateBucketIndexContentBytesInvalid,
+    BucketUpdateBucketUpdateBucketNotFound,
+    BucketUpdateBucketUpdateBucketUpdateSuccess,
+    BucketUpdateBucketUpdateInsufficientPermissions,
+    BucketUpdateBucketUpdateNotificationConfigurationError,
+    BucketUpdateBucketUpdateNotificationTopicNotFound,
+    BucketUpdateBucketUpdateSnsInvalid,
+)
+from .buckets_list import BucketsList, BucketsListBucketConfigs
+from .input_types import BucketAddInput, BucketUpdateInput, UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
@@ -1127,3 +1159,204 @@ class Client(BaseClient):
         response = self.execute(query=query, operation_name="tabulatorSetOpenQuery", variables=variables, **kwargs)
         data = self.get_data(response)
         return TabulatorSetOpenQuery.model_validate(data).admin.set_tabulator_open_query.tabulator_open_query
+
+    def bucket_get(self, name: str, **kwargs: Any) -> Optional[BucketGetBucketConfig]:
+        query = gql(
+            """
+            query bucketGet($name: String!) {
+              bucketConfig(name: $name) {
+                ...BucketConfigSelection
+              }
+            }
+
+            fragment BucketConfigSelection on BucketConfig {
+              name
+              title
+              iconUrl
+              description
+              overviewUrl
+              tags
+              relevanceScore
+              lastIndexed
+              snsNotificationArn
+              scannerParallelShardsDepth
+              skipMetaDataIndexing
+              fileExtensionsToIndex
+              indexContentBytes
+              prefixes
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name}
+        response = self.execute(query=query, operation_name="bucketGet", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return BucketGet.model_validate(data).bucket_config
+
+    def buckets_list(self, **kwargs: Any) -> List[BucketsListBucketConfigs]:
+        query = gql(
+            """
+            query bucketsList {
+              bucketConfigs {
+                ...BucketConfigSelection
+              }
+            }
+
+            fragment BucketConfigSelection on BucketConfig {
+              name
+              title
+              iconUrl
+              description
+              overviewUrl
+              tags
+              relevanceScore
+              lastIndexed
+              snsNotificationArn
+              scannerParallelShardsDepth
+              skipMetaDataIndexing
+              fileExtensionsToIndex
+              indexContentBytes
+              prefixes
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(query=query, operation_name="bucketsList", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return BucketsList.model_validate(data).bucket_configs
+
+    def bucket_add(
+        self, input: BucketAddInput, **kwargs: Any
+    ) -> Union[
+        BucketAddBucketAddBucketAddSuccess,
+        BucketAddBucketAddBucketAlreadyAdded,
+        BucketAddBucketAddBucketDoesNotExist,
+        BucketAddBucketAddBucketFileExtensionsToIndexInvalid,
+        BucketAddBucketAddBucketIndexContentBytesInvalid,
+        BucketAddBucketAddInsufficientPermissions,
+        BucketAddBucketAddNotificationConfigurationError,
+        BucketAddBucketAddNotificationTopicNotFound,
+        BucketAddBucketAddSnsInvalid,
+        BucketAddBucketAddSubscriptionInvalid,
+    ]:
+        query = gql(
+            """
+            mutation bucketAdd($input: BucketAddInput!) {
+              bucketAdd(input: $input) {
+                ...BucketAddResultSelection
+              }
+            }
+
+            fragment BucketAddResultSelection on BucketAddResult {
+              __typename
+              ... on BucketAddSuccess {
+                bucketConfig {
+                  ...BucketConfigSelection
+                }
+              }
+              ... on InsufficientPermissions {
+                message
+              }
+            }
+
+            fragment BucketConfigSelection on BucketConfig {
+              name
+              title
+              iconUrl
+              description
+              overviewUrl
+              tags
+              relevanceScore
+              lastIndexed
+              snsNotificationArn
+              scannerParallelShardsDepth
+              skipMetaDataIndexing
+              fileExtensionsToIndex
+              indexContentBytes
+              prefixes
+            }
+            """
+        )
+        variables: Dict[str, object] = {"input": input}
+        response = self.execute(query=query, operation_name="bucketAdd", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return BucketAdd.model_validate(data).bucket_add
+
+    def bucket_update(
+        self, name: str, input: BucketUpdateInput, **kwargs: Any
+    ) -> Union[
+        BucketUpdateBucketUpdateBucketUpdateSuccess,
+        BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid,
+        BucketUpdateBucketUpdateBucketIndexContentBytesInvalid,
+        BucketUpdateBucketUpdateBucketNotFound,
+        BucketUpdateBucketUpdateInsufficientPermissions,
+        BucketUpdateBucketUpdateNotificationConfigurationError,
+        BucketUpdateBucketUpdateNotificationTopicNotFound,
+        BucketUpdateBucketUpdateSnsInvalid,
+    ]:
+        query = gql(
+            """
+            mutation bucketUpdate($name: String!, $input: BucketUpdateInput!) {
+              bucketUpdate(name: $name, input: $input) {
+                ...BucketUpdateResultSelection
+              }
+            }
+
+            fragment BucketConfigSelection on BucketConfig {
+              name
+              title
+              iconUrl
+              description
+              overviewUrl
+              tags
+              relevanceScore
+              lastIndexed
+              snsNotificationArn
+              scannerParallelShardsDepth
+              skipMetaDataIndexing
+              fileExtensionsToIndex
+              indexContentBytes
+              prefixes
+            }
+
+            fragment BucketUpdateResultSelection on BucketUpdateResult {
+              __typename
+              ... on BucketUpdateSuccess {
+                bucketConfig {
+                  ...BucketConfigSelection
+                }
+              }
+              ... on InsufficientPermissions {
+                message
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name, "input": input}
+        response = self.execute(query=query, operation_name="bucketUpdate", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return BucketUpdate.model_validate(data).bucket_update
+
+    def bucket_remove(
+        self, name: str, **kwargs: Any
+    ) -> Union[
+        BucketRemoveBucketRemoveBucketRemoveSuccess,
+        BucketRemoveBucketRemoveBucketNotFound,
+        BucketRemoveBucketRemoveIndexingInProgress,
+    ]:
+        query = gql(
+            """
+            mutation bucketRemove($name: String!) {
+              bucketRemove(name: $name) {
+                ...BucketRemoveResultSelection
+              }
+            }
+
+            fragment BucketRemoveResultSelection on BucketRemoveResult {
+              __typename
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name}
+        response = self.execute(query=query, operation_name="bucketRemove", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return BucketRemove.model_validate(data).bucket_remove
