@@ -73,7 +73,7 @@ __Arguments__
 
 * __email__:  Email of the user to create the key for.
 * __name__:  Name for the API key.
-* __expires_in_days__:  Days until expiration (30-365, default 90).
+* __expires_in_days__:  Days until expiration (1-365, default 90).
 
 __Returns__
 

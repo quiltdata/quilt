@@ -75,7 +75,7 @@ def create_for_user(
     Args:
         email: Email of the user to create the key for.
         name: Name for the API key.
-        expires_in_days: Days until expiration (30-365, default 90).
+        expires_in_days: Days until expiration (1-365, default 90).
 
     Returns:
         Tuple of (APIKey, secret). The secret is only returned once - save it securely!

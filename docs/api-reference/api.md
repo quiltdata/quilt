@@ -190,7 +190,7 @@ Create a new API key for yourself.
 __Arguments__
 
 * __name__:  Name for the API key.
-* __expires_in_days__:  Days until expiration (30-365, default 90).
+* __expires_in_days__:  Days until expiration (1-365, default 90).
 
 __Returns__
 
