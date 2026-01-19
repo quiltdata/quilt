@@ -4,10 +4,7 @@ Quilt API
 
 ## clear\_api\_key()  {#clear\_api\_key}
 
-Clear the API key and fall back to interactive session.
-
-After calling this, authentication will use the interactive
-session (refresh token from ~/.quilt/auth.json) if available.
+Clear the API key and fall back to interactive session (if available).
 
 
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
@@ -152,7 +149,7 @@ search results
 # quilt3.api_keys
 API for managing your own API keys.
 
-## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], created\_by\_email: Optional[str], status: str) -> None  {#APIKey}
+## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], created\_by\_email: Optional[str], status: Literal['ACTIVE', 'EXPIRED']) -> None  {#APIKey}
 An API key for programmatic access.
 
 ## APIKeyError(result)  {#APIKeyError}

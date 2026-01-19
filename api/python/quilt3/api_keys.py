@@ -21,7 +21,7 @@ class APIKey:
     expires_at: datetime
     last_used_at: T.Optional[datetime]
     created_by_email: T.Optional[str]
-    status: str
+    status: APIKeyStatus
 
 
 class APIKeyError(Exception):

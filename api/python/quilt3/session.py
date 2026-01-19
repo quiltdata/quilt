@@ -203,10 +203,7 @@ def login_with_api_key(key: str):
 
 def clear_api_key():
     """
-    Clear the API key and fall back to interactive session.
-
-    After calling this, authentication will use the interactive
-    session (refresh token from ~/.quilt/auth.json) if available.
+    Clear the API key and fall back to interactive session (if available).
     """
     global _api_key
     _api_key = None
