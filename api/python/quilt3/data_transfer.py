@@ -987,20 +987,20 @@ def get_size_and_version(src: PhysicalKey):
 class MultiPartChecksumCalculator(abc.ABC):
     @abc.abstractmethod
     def __init__(self):
-        pass
+        ...
 
     @abc.abstractmethod
     def update(self, data: bytes):
-        pass
+        ...
 
     @abc.abstractmethod
     def digest(self) -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abc.abstractmethod
     def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
-        pass
+        ...
 
 
 class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator):
