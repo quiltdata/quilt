@@ -540,15 +540,74 @@ def _copy_remote_file(
             ctx.run(upload_part, i, start, end)
 
 
-def _calculate_local_checksum(path: str, size: int):
+class MultiPartChecksumCalculator(abc.ABC):
+    @abc.abstractmethod
+    def __init__(self): ...
+
+    @abc.abstractmethod
+    def update(self, data: bytes): ...
+
+    @abc.abstractmethod
+    def digest(self) -> bytes: ...
+
+    @staticmethod
+    @abc.abstractmethod
+    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str: ...
+
+
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator):
+    def __init__(self):
+        self._hash_obj = hashlib.sha256()
+
+    def update(self, data: bytes):
+        self._hash_obj.update(data)
+
+    def digest(self) -> bytes:
+        return self._hash_obj.digest()
+
+    @staticmethod
+    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
+        return binascii.b2a_base64(hashlib.sha256(b"".join(part_digests)).digest(), newline=False).decode()
+
+
+class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator):
+    def __init__(self):
+        self._crc = 0
+
+    def update(self, data: bytes):
+        self._crc = awscrt.checksums.crc64nvme(data, self._crc)
+
+    def digest(self) -> bytes:
+        return self._crc.to_bytes(8, byteorder="big")
+
+    @staticmethod
+    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
+        return binascii.b2a_base64(crc64.combine_crc64nvme(part_digests, part_sizes), newline=False).decode()
+
+
+def _calculate_local_checksum(
+    path: str,
+    size: int,
+    *,
+    checksum_calculator_cls: type[MultiPartChecksumCalculator],
+) -> str:
     chunksize = get_checksum_chunksize(size)
 
     part_hashes = []
+    part_sizes = []
     for start in range(0, size, chunksize):
         end = min(start + chunksize, size)
-        part_hashes.append(_calculate_local_part_checksum(path, start, end - start))
+        part_hashes.append(
+            _calculate_local_part_checksum(
+                path,
+                start,
+                end - start,
+                checksum_calculator_cls=checksum_calculator_cls,
+            )
+        )
+        part_sizes.append(end - start)
 
-    return _make_checksum_from_parts(part_hashes)
+    return checksum_calculator_cls.combine_parts(part_hashes, part_sizes)
 
 
 def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str):
@@ -581,10 +640,14 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
                 checksum = _simple_s3_to_quilt_checksum(s3_checksum)
                 num_parts = None
             expected_num_parts = math.ceil(size / get_checksum_chunksize(size)) if is_mpu(size) else None
-            if num_parts == expected_num_parts and checksum == _calculate_local_checksum(src_path, size):
+            if num_parts == expected_num_parts and checksum == _calculate_local_checksum(
+                src_path, size, checksum_calculator_cls=SHA256MultiPartChecksumCalculator
+            ):
                 return resp.get("VersionId"), checksum
         elif resp.get("ServerSideEncryption") != "aws:kms" and resp["ETag"] == _calculate_etag(src_path):
-            return resp.get("VersionId"), _calculate_local_checksum(src_path, size)
+            return resp.get("VersionId"), _calculate_local_checksum(
+                src_path, size, checksum_calculator_cls=SHA256MultiPartChecksumCalculator
+            )
 
     return None
 
@@ -984,55 +1047,6 @@ def get_size_and_version(src: PhysicalKey):
     return size, version
 
 
-class MultiPartChecksumCalculator(abc.ABC):
-    @abc.abstractmethod
-    def __init__(self):
-        ...
-
-    @abc.abstractmethod
-    def update(self, data: bytes):
-        ...
-
-    @abc.abstractmethod
-    def digest(self) -> bytes:
-        ...
-
-    @staticmethod
-    @abc.abstractmethod
-    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
-        ...
-
-
-class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator):
-    def __init__(self):
-        self._hash_obj = hashlib.sha256()
-
-    def update(self, data: bytes):
-        self._hash_obj.update(data)
-
-    def digest(self) -> bytes:
-        return self._hash_obj.digest()
-
-    @staticmethod
-    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
-        return _make_checksum_from_parts(part_digests)
-
-
-class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator):
-    def __init__(self):
-        self._crc = 0
-
-    def update(self, data: bytes):
-        self._crc = awscrt.checksums.crc64nvme(data, self._crc)
-
-    def digest(self) -> bytes:
-        return self._crc.to_bytes(8, byteorder="big")
-
-    @staticmethod
-    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
-        return binascii.b2a_base64(crc64.combine_crc64nvme(part_digests, part_sizes), newline=False).decode()
-
-
 def calculate_checksum_crc64nvme(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
     assert len(src_list) == len(sizes)
 
@@ -1070,8 +1084,15 @@ def with_lock(f):
     return wrapper
 
 
-def _calculate_local_part_checksum(src: str, offset: int, length: int, callback=None) -> bytes:
-    hash_obj = hashlib.sha256()
+def _calculate_local_part_checksum(
+    src: str,
+    offset: int,
+    length: int,
+    callback=None,
+    *,
+    checksum_calculator_cls: type[MultiPartChecksumCalculator],
+) -> bytes:
+    checksum_calculator = checksum_calculator_cls()
     bytes_remaining = length
     with open(src, "rb") as fd:
         fd.seek(offset)
@@ -1080,16 +1101,12 @@ def _calculate_local_part_checksum(src: str, offset: int, length: int, callback=
             if not chunk:
                 # Should not happen, but let's not get stuck in an infinite loop.
                 raise QuiltException("Unexpected end of file")
-            hash_obj.update(chunk)
+            checksum_calculator.update(chunk)
             if callback is not None:
                 callback(len(chunk))
             bytes_remaining -= len(chunk)
 
-    return hash_obj.digest()
-
-
-def _make_checksum_from_parts(parts: List[bytes]) -> str:
-    return binascii.b2a_base64(hashlib.sha256(b"".join(parts)).digest(), newline=False).decode()
+    return checksum_calculator.digest()
 
 
 @retry(
@@ -1117,7 +1134,13 @@ def _calculate_checksum_internal(
 
         def _process_url_part(src: PhysicalKey, offset: int, length: int):
             if src.is_local():
-                return _calculate_local_part_checksum(src.path, offset, length, progress_update)
+                return _calculate_local_part_checksum(
+                    src.path,
+                    offset,
+                    length,
+                    progress_update,
+                    checksum_calculator_cls=checksum_calculator_cls,
+                )
             else:
                 checksum_calculator = checksum_calculator_cls()
                 end = offset + length - 1
