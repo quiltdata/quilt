@@ -407,6 +407,75 @@ AWS credentials issued for a Quilt user.
   - `SecretKey: "***"`
   - `SessionToken: "***"`
 
+###### `Auth.APIKey`
+
+API key authentication attempt (logged on failure only).
+
+- `requestParameters`
+  - `fingerprint: str` - Truncated key fingerprint (e.g., `qk_abc...xyz`), never the full secret
+
+- `errorCode`
+  - `INVALID` - Key not found or invalid format
+  - `EXPIRED` - Key has expired
+  - `USER_INACTIVE` - Key owner is inactive
+
+##### `APIKeys` namespace
+
+API key management operations.
+Available to all authenticated users for their own keys.
+
+###### `APIKeys.Create` (GraphQL: `Mutation.apiKeyCreate`)
+
+API key created.
+
+- `requestParameters`
+  - `input`
+    - `name: str`
+    - `expiresInDays: int`
+
+- `responseElements`
+  - `apiKey`
+    - `id: str`
+    - `name: str`
+    - `fingerprint: str`
+    - `status: str`
+    - `createdAt: datetime`
+    - `expiresAt: datetime`
+  - `secret: "***"` - Always redacted in audit logs
+
+###### `APIKeys.Revoke` (GraphQL: `Mutation.apiKeyRevoke`)
+
+API key revoked (deleted).
+
+- `requestParameters`
+  - `id: str` (when revoking by ID)
+  - `secret: "***"` (when revoking by secret, always redacted)
+
+###### `APIKeys.Admin.CreateForUser` (GraphQL: `Mutation.admin.apiKeys.createForUser`)
+
+Admin created an API key for another user.
+
+- `requestParameters`
+  - `email: str` - Target user's email
+  - `input`
+    - `name: str`
+    - `expiresInDays: int`
+
+- `responseElements`
+  - `apiKey`
+    - `id: str`
+    - `name: str`
+    - `fingerprint: str`
+    - `createdByEmail: str` - Admin's email
+  - `secret: "***"` - Always redacted in audit logs
+
+###### `APIKeys.Admin.Revoke` (GraphQL: `Mutation.admin.apiKeys.revoke`)
+
+Admin revoked another user's API key.
+
+- `requestParameters`
+  - `id: str`
+
 ##### `Users` namespace
 
 User management operations.
