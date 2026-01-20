@@ -1820,7 +1820,7 @@ class Package:
         legacy_url_list = []
         legacy_size_list = []
 
-        crc64nvme_expected_size_list = []
+        crc64nvme_expected_hash_list = []
         crc64nvme_url_list = []
         crc64nvme_size_list = []
 
@@ -1840,7 +1840,7 @@ class Package:
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
             elif hash_type == CRC64NVME_HASH_NAME:
-                crc64nvme_expected_size_list.append(hash_value)
+                crc64nvme_expected_hash_list.append(hash_value)
                 crc64nvme_url_list.append(entry_url)
                 crc64nvme_size_list.append(src_size)
             else:
@@ -1857,7 +1857,7 @@ class Package:
                 return False
 
         crc64nvme_hash_list = calculate_checksum_crc64nvme(crc64nvme_url_list, crc64nvme_size_list)
-        for expected_hash, url_hash in zip(crc64nvme_expected_size_list, crc64nvme_hash_list):
+        for expected_hash, url_hash in zip(crc64nvme_expected_hash_list, crc64nvme_hash_list):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:
