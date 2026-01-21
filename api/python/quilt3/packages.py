@@ -27,7 +27,7 @@ from .backends import get_package_registry
 from .data_transfer import (
     calculate_checksum,
     calculate_checksum_bytes,
-    calculate_checksum_crc64nvme,
+    calculate_checksum_mp,
     calculate_checksum_crc64nvme_bytes,
     copy_file,
     copy_file_list,
@@ -39,6 +39,7 @@ from .data_transfer import (
     list_objects,
     list_url,
     put_bytes,
+    FileChecksumTask,
 )
 from .exceptions import PackageException
 from .formats import CompressionRegistry, FormatRegistry
@@ -1812,17 +1813,12 @@ class Package:
         src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
 
+        checksum_tasks = []
         expected_hash_list = []
-        url_list = []
-        size_list = []
 
         legacy_expected_hash_list = []
         legacy_url_list = []
         legacy_size_list = []
-
-        crc64nvme_expected_hash_list = []
-        crc64nvme_url_list = []
-        crc64nvme_size_list = []
 
         for logical_key, entry in self.walk():
             src_size = src_dict.pop(logical_key, None)
@@ -1831,33 +1827,21 @@ class Package:
             entry_url = src.join(logical_key)
             hash_type = entry.hash['type']
             hash_value = entry.hash['value']
-            if hash_type == SHA256_CHUNKED_HASH_NAME:
-                expected_hash_list.append(hash_value)
-                url_list.append(entry_url)
-                size_list.append(src_size)
-            elif hash_type == SHA256_HASH_NAME:
+            if hash_type == SHA256_HASH_NAME:
                 legacy_expected_hash_list.append(hash_value)
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
-            elif hash_type == CRC64NVME_HASH_NAME:
-                crc64nvme_expected_hash_list.append(hash_value)
-                crc64nvme_url_list.append(entry_url)
-                crc64nvme_size_list.append(src_size)
+            elif hash_type in (SHA256_CHUNKED_HASH_NAME, CRC64NVME_HASH_NAME):
+                expected_hash_list.append(hash_value)
+                checksum_tasks.append(FileChecksumTask.create(entry_url, src_size, hash_type))
             else:
                 assert False, f"Unsupported hash type: {hash_type}"
 
         if src_dict and not extra_files_ok:
             return False
 
-        hash_list = calculate_checksum(url_list, size_list)
+        hash_list = calculate_checksum_mp(checksum_tasks)
         for expected_hash, url_hash in zip(expected_hash_list, hash_list):
-            if isinstance(url_hash, Exception):
-                raise url_hash
-            if expected_hash != url_hash:
-                return False
-
-        crc64nvme_hash_list = calculate_checksum_crc64nvme(crc64nvme_url_list, crc64nvme_size_list)
-        for expected_hash, url_hash in zip(crc64nvme_expected_hash_list, crc64nvme_hash_list):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:

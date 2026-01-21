@@ -569,7 +569,7 @@ class MultiPartChecksumCalculator(abc.ABC):
     def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str: ...
 
 
-class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="SHA256_CHUNKED_HASH_NAME"):
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="sha2-256-chunked"):
     def __init__(self):
         self._hash_obj = hashlib.sha256()
 
@@ -1076,10 +1076,6 @@ def get_size_and_version(src: PhysicalKey):
         size = resp['ContentLength']
         version = resp.get('VersionId')
     return size, version
-
-
-def calculate_checksum_crc64nvme(src_list: list[PhysicalKey], sizes: list[int]) -> list[bytes]:
-    return calculate_checksum(src_list, sizes, checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator)
 
 
 # FIXME: keep this for now, remove before merging
