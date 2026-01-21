@@ -1149,11 +1149,7 @@ def _calculate_checksum_internal(
     *,
     checksum_calculator_cls: type[MultiPartChecksumCalculator],
 ) -> list[bytes]:
-    # Extract src_list and sizes from tasks
-    src_list = [t.physical_key for t in tasks]
-    sizes = [t.size for t in tasks]
-
-    total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
+    total_size = sum(task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception))
     stopped = False
 
     with (
@@ -1199,15 +1195,15 @@ def _calculate_checksum_internal(
 
         futures: list[tuple[int, list[int], list[Future]]] = []
 
-        for idx, (src, size, result) in enumerate(zip(src_list, sizes, results)):
+        for idx, (task, result) in enumerate(zip(tasks, results)):
             if result is None or isinstance(result, Exception):
-                chunksize = get_checksum_chunksize(size)
+                chunksize = get_checksum_chunksize(task.size)
 
                 src_future_list = []
                 part_sizes = []
-                for start in range(0, size, chunksize):
-                    end = min(start + chunksize, size)
-                    future = executor.submit(_process_url_part, src, start, end - start)
+                for start in range(0, task.size, chunksize):
+                    end = min(start + chunksize, task.size)
+                    future = executor.submit(_process_url_part, task.physical_key, start, end - start)
                     src_future_list.append(future)
                     part_sizes.append(end - start)
 
