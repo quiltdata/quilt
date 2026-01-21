@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import binascii
 import concurrent
@@ -541,6 +543,18 @@ def _copy_remote_file(
 
 
 class MultiPartChecksumCalculator(abc.ABC):
+    _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
+
+    def __init_subclass__(cls, checksum_type: str, **kwargs):
+        super().__init_subclass__(**kwargs)
+        MultiPartChecksumCalculator._registry[checksum_type] = cls
+
+    @classmethod
+    def get_calculator_cls(cls, checksum_type: str) -> type[MultiPartChecksumCalculator]:
+        if checksum_type not in cls._registry:
+            raise KeyError(f"Checksum type '{checksum_type}' is not registered.")
+        return cls._registry[checksum_type]
+
     @abc.abstractmethod
     def __init__(self): ...
 
@@ -555,7 +569,7 @@ class MultiPartChecksumCalculator(abc.ABC):
     def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str: ...
 
 
-class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator):
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="SHA256_CHUNKED_HASH_NAME"):
     def __init__(self):
         self._hash_obj = hashlib.sha256()
 
@@ -570,7 +584,7 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator):
         return binascii.b2a_base64(hashlib.sha256(b"".join(part_digests)).digest(), newline=False).decode()
 
 
-class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator):
+class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="CRC64NVME"):
     def __init__(self):
         self._crc = 0
 
@@ -591,6 +605,15 @@ class FileChecksumTask:
     physical_key: PhysicalKey
     size: int
     checksum_calculator_cls: type[MultiPartChecksumCalculator]
+
+    @classmethod
+    def create(
+        cls,
+        physical_key: PhysicalKey,
+        size: int,
+        hash_type: str,
+    ) -> FileChecksumTask:
+        return cls(physical_key, size, MultiPartChecksumCalculator.get_calculator_cls(hash_type))
 
 
 def _calculate_local_checksum(
@@ -1055,47 +1078,32 @@ def get_size_and_version(src: PhysicalKey):
     return size, version
 
 
-def calculate_checksum_crc64nvme(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
+def calculate_checksum_crc64nvme(src_list: list[PhysicalKey], sizes: list[int]) -> list[bytes]:
+    return calculate_checksum(src_list, sizes, checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator)
+
+
+# FIXME: keep this for now, remove before merging
+def calculate_checksum(
+    src_list: list[PhysicalKey],
+    sizes: list[int],
+    *,
+    checksum_calculator_cls: type[MultiPartChecksumCalculator] = SHA256MultiPartChecksumCalculator,
+) -> list[bytes]:
     assert len(src_list) == len(sizes)
 
-    if not src_list:
-        return []
-
-    # Convert to tasks internally
-    tasks = [
-        FileChecksumTask(
-            physical_key=src,
-            size=size,
-            checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator
-        )
-        for src, size in zip(src_list, sizes)
-    ]
-
-    return _calculate_checksum_internal(
-        tasks=tasks,
-        results=[None] * len(tasks),
+    return calculate_checksum_mp(
+        [FileChecksumTask(src, size, checksum_calculator_cls) for src, size in zip(src_list, sizes)],
     )
 
 
-def calculate_checksum(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
-    assert len(src_list) == len(sizes)
-
-    if not src_list:
+def calculate_checksum_mp(tasks: list[FileChecksumTask]) -> list[bytes]:
+    if not tasks:
         return []
 
-    # Convert to tasks internally
-    tasks = [
-        FileChecksumTask(
-            physical_key=src,
-            size=size,
-            checksum_calculator_cls=SHA256MultiPartChecksumCalculator
-        )
-        for src, size in zip(src_list, sizes)
-    ]
-
+    results = [None] * len(tasks)
     return _calculate_checksum_internal(
         tasks=tasks,
-        results=[None] * len(tasks),
+        results=results,
     )
 
 
