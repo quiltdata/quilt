@@ -1074,7 +1074,6 @@ def calculate_checksum_crc64nvme(src_list: List[PhysicalKey], sizes: List[int]) 
     return _calculate_checksum_internal(
         tasks=tasks,
         results=[None] * len(tasks),
-        checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator,
     )
 
 
@@ -1097,7 +1096,6 @@ def calculate_checksum(src_list: List[PhysicalKey], sizes: List[int]) -> List[by
     return _calculate_checksum_internal(
         tasks=tasks,
         results=[None] * len(tasks),
-        checksum_calculator_cls=SHA256MultiPartChecksumCalculator,
     )
 
 
@@ -1144,10 +1142,8 @@ def _calculate_local_part_checksum(
     retry_error_callback=lambda retry_state: retry_state.outcome.result(),
 )
 def _calculate_checksum_internal(
-    tasks: List[FileChecksumTask],
+    tasks: list[FileChecksumTask],
     results: list,
-    *,
-    checksum_calculator_cls: type[MultiPartChecksumCalculator],
 ) -> list[bytes]:
     total_size = sum(task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception))
     stopped = False
@@ -1159,7 +1155,12 @@ def _calculate_checksum_internal(
         find_correct_client = with_lock(S3ClientProvider().find_correct_client)
         progress_update = with_lock(progress.update)
 
-        def _process_url_part(src: PhysicalKey, offset: int, length: int):
+        def _process_url_part(
+            src: PhysicalKey,
+            offset: int,
+            length: int,
+            checksum_calculator_cls: type[MultiPartChecksumCalculator],
+        ):
             if src.is_local():
                 return _calculate_local_part_checksum(
                     src.path,
@@ -1193,7 +1194,7 @@ def _calculate_checksum_internal(
 
                 return checksum_calculator.digest()
 
-        futures: list[tuple[int, list[int], list[Future]]] = []
+        futures: list[tuple[int, list[int], type[MultiPartChecksumCalculator], list[Future]]] = []
 
         for idx, (task, result) in enumerate(zip(tasks, results)):
             if result is None or isinstance(result, Exception):
@@ -1203,14 +1204,20 @@ def _calculate_checksum_internal(
                 part_sizes = []
                 for start in range(0, task.size, chunksize):
                     end = min(start + chunksize, task.size)
-                    future = executor.submit(_process_url_part, task.physical_key, start, end - start)
+                    future = executor.submit(
+                        _process_url_part,
+                        task.physical_key,
+                        start,
+                        end - start,
+                        task.checksum_calculator_cls,
+                    )
                     src_future_list.append(future)
                     part_sizes.append(end - start)
 
-                futures.append((idx, part_sizes, src_future_list))
+                futures.append((idx, part_sizes, task.checksum_calculator_cls, src_future_list))
 
         try:
-            for idx, part_sizes, future_list in futures:
+            for idx, part_sizes, checksum_calculator_cls, future_list in futures:
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
                 results[idx] = (
@@ -1218,7 +1225,7 @@ def _calculate_checksum_internal(
                 )
         finally:
             stopped = True
-            for _, _, future_list in futures:
+            for _, _, _, future_list in futures:
                 for future in future_list:
                     future.cancel()
 
