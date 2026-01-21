@@ -585,6 +585,14 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator):
         return binascii.b2a_base64(crc64.combine_crc64nvme(part_digests, part_sizes), newline=False).decode()
 
 
+@dataclass(frozen=True)
+class FileChecksumTask:
+    """A file that needs checksum calculation."""
+    physical_key: PhysicalKey
+    size: int
+    checksum_calculator_cls: type[MultiPartChecksumCalculator]
+
+
 def _calculate_local_checksum(
     path: str,
     size: int,
@@ -1052,10 +1060,20 @@ def calculate_checksum_crc64nvme(src_list: List[PhysicalKey], sizes: List[int]) 
 
     if not src_list:
         return []
+
+    # Convert to tasks internally
+    tasks = [
+        FileChecksumTask(
+            physical_key=src,
+            size=size,
+            checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator
+        )
+        for src, size in zip(src_list, sizes)
+    ]
+
     return _calculate_checksum_internal(
-        src_list,
-        sizes,
-        [None] * len(src_list),
+        tasks=tasks,
+        results=[None] * len(tasks),
         checksum_calculator_cls=CRC64NVMEMultiPartChecksumCalculator,
     )
 
@@ -1065,10 +1083,20 @@ def calculate_checksum(src_list: List[PhysicalKey], sizes: List[int]) -> List[by
 
     if not src_list:
         return []
+
+    # Convert to tasks internally
+    tasks = [
+        FileChecksumTask(
+            physical_key=src,
+            size=size,
+            checksum_calculator_cls=SHA256MultiPartChecksumCalculator
+        )
+        for src, size in zip(src_list, sizes)
+    ]
+
     return _calculate_checksum_internal(
-        src_list,
-        sizes,
-        [None] * len(src_list),
+        tasks=tasks,
+        results=[None] * len(tasks),
         checksum_calculator_cls=SHA256MultiPartChecksumCalculator,
     )
 
@@ -1116,12 +1144,15 @@ def _calculate_local_part_checksum(
     retry_error_callback=lambda retry_state: retry_state.outcome.result(),
 )
 def _calculate_checksum_internal(
-    src_list,
-    sizes,
-    results,
+    tasks: List[FileChecksumTask],
+    results: list,
     *,
     checksum_calculator_cls: type[MultiPartChecksumCalculator],
 ) -> list[bytes]:
+    # Extract src_list and sizes from tasks
+    src_list = [t.physical_key for t in tasks]
+    sizes = [t.size for t in tasks]
+
     total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
     stopped = False
 
