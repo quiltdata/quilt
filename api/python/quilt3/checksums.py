@@ -99,9 +99,10 @@ class MultiPartChecksumCalculator(abc.ABC):
 
     @classmethod
     def get_calculator_cls(cls, checksum_type: str) -> type[MultiPartChecksumCalculator]:
-        if checksum_type not in cls._registry:
-            raise KeyError(f"Checksum type '{checksum_type}' is not registered.")
-        return cls._registry[checksum_type]
+        try:
+            return cls._registry[checksum_type]
+        except KeyError:
+            raise ValueError(f"Unsupported checksum type: {checksum_type}. Supported types: {list(cls._registry)}")
 
     @abc.abstractmethod
     def __init__(self): ...
