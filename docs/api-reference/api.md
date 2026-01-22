@@ -149,7 +149,7 @@ search results
 # quilt3.api_keys
 API for managing your own API keys.
 
-## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], created\_by\_email: Optional[str], status: Literal['ACTIVE', 'EXPIRED']) -> None  {#APIKey}
+## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], status: Literal['ACTIVE', 'EXPIRED']) -> None  {#APIKey}
 An API key for programmatic access.
 
 ## APIKeyError(result)  {#APIKeyError}

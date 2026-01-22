@@ -65,25 +65,6 @@ __Raises__
 * `Quilt3AdminError`:  If the operation fails.
 
 
-## create\_for\_user(email: str, name: str, expires\_in\_days: int = 90) -> Tuple[quilt3.api\_keys.APIKey, str]  {#create\_for\_user}
-
-Create an API key for a user.
-
-__Arguments__
-
-* __email__:  Email of the user to create the key for.
-* __name__:  Name for the API key.
-* __expires_in_days__:  Days until expiration (1-365, default 90).
-
-__Returns__
-
-Tuple of (APIKey, secret). The secret is only returned once - save it securely!
-
-__Raises__
-
-* `Quilt3AdminError`:  If the operation fails (e.g., user not found).
-
-
 # quilt3.admin.buckets
 
 
