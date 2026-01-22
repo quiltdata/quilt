@@ -98,6 +98,8 @@ class ChecksumPart(T.Generic[ChecksumT]):
     size: int
 
 
+# XXX: currently combine_parts() allows parts produced by *any* "compatible" calculator.
+# Should we do something about it?
 class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
 
