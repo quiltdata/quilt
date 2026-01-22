@@ -46,11 +46,6 @@ def crc64nvme_to_bytes(crc: int) -> bytes:
     return crc.to_bytes(CRC64_BYTES, byteorder=CRC64_BYTEORDER)
 
 
-def crc64nvme_from_bytes(data: bytes) -> int:
-    assert len(data) == CRC64_BYTES, f"Expected {CRC64_BYTES} bytes, got {len(data)} bytes"
-    return int.from_bytes(data, byteorder=CRC64_BYTEORDER)
-
-
 def get_checksum_chunksize(file_size: int) -> int:
     """
     Calculate the chunk size to be used for the checksum. It is normally 8 MiB,
