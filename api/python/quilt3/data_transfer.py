@@ -490,7 +490,6 @@ def _copy_remote_file(
 
 @dataclass(frozen=True)
 class FileChecksumTask:
-    """A file that needs checksum calculation."""
     physical_key: PhysicalKey
     size: int
     checksum_calculator_cls: type[checksums.MultiPartChecksumCalculator]
