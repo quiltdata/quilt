@@ -137,7 +137,7 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator[bytes], chec
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart[bytes]]) -> str:
-        combined_hash = hashlib.sha256(b"".join(p.checksum for p in checksum_parts)).digest()
+        combined_hash = hashlib.sha256(b"".join([p.checksum for p in checksum_parts])).digest()
         return _encode_checksum_bytes(combined_hash)
 
 
