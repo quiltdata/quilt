@@ -633,7 +633,7 @@ def _calculate_local_checksum(
                 path,
                 start,
                 end - start,
-                checksum_calculator_cls=checksum_calculator_cls,
+                checksum_calculator=checksum_calculator_cls(),
             )
         )
         part_sizes.append(end - start)
@@ -1078,7 +1078,7 @@ def get_size_and_version(src: PhysicalKey):
     return size, version
 
 
-# FIXME: keep this for now, remove before merging
+# FIXME: keep this for now, remove before merging?
 def calculate_checksum(
     src_list: list[PhysicalKey],
     sizes: list[int],
@@ -1088,7 +1088,7 @@ def calculate_checksum(
     assert len(src_list) == len(sizes)
 
     return calculate_checksum_mp(
-        [FileChecksumTask(src, size, checksum_calculator_cls) for src, size in zip(src_list, sizes)],
+        [FileChecksumTask(src, size, checksum_calculator_cls) for src, size in zip(src_list, sizes)]
     )
 
 
@@ -1120,9 +1120,8 @@ def _calculate_local_part_checksum(
     length: int,
     callback=None,
     *,
-    checksum_calculator_cls: type[MultiPartChecksumCalculator],
+    checksum_calculator: MultiPartChecksumCalculator,
 ) -> bytes:
-    checksum_calculator = checksum_calculator_cls()
     bytes_remaining = length
     with open(src, "rb") as fd:
         fd.seek(offset)
@@ -1163,7 +1162,7 @@ def _calculate_checksum_internal(
             src: PhysicalKey,
             offset: int,
             length: int,
-            checksum_calculator_cls: type[MultiPartChecksumCalculator],
+            checksum_calculator: MultiPartChecksumCalculator,
         ):
             if src.is_local():
                 return _calculate_local_part_checksum(
@@ -1171,10 +1170,9 @@ def _calculate_checksum_internal(
                     offset,
                     length,
                     progress_update,
-                    checksum_calculator_cls=checksum_calculator_cls,
+                    checksum_calculator=checksum_calculator,
                 )
             else:
-                checksum_calculator = checksum_calculator_cls()
                 end = offset + length - 1
                 params = dict(
                     Bucket=src.bucket,
@@ -1213,7 +1211,7 @@ def _calculate_checksum_internal(
                         task.physical_key,
                         start,
                         end - start,
-                        task.checksum_calculator_cls,
+                        task.checksum_calculator_cls(),
                     )
                     src_future_list.append(future)
                     part_sizes.append(end - start)
