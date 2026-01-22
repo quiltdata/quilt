@@ -605,7 +605,6 @@ API_KEY = {
     "createdAt": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "expiresAt": datetime.datetime(2024, 9, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "lastUsedAt": None,
-    "createdByEmail": "admin@example.com",
     "status": "ACTIVE",
 }
 
@@ -670,38 +669,3 @@ def test_api_keys_revoke_errors(data, error_type):
     ):
         with pytest.raises(error_type):
             admin.api_keys.revoke("key-123")
-
-
-def test_api_keys_create_for_user_success():
-    with mock_client(
-        _make_nested_dict(
-            "admin.api_keys.create_for_user",
-            {
-                "__typename": "APIKeyCreated",
-                "apiKey": API_KEY,
-                "secret": "qk_secret_token_here",
-            },
-        ),
-        "adminApiKeyCreateForUser",
-        variables={
-            "email": "user@example.com",
-            "input": _graphql_client.APIKeyCreateInput(name="new-key", expires_in_days=90),
-        },
-    ):
-        api_key, secret = admin.api_keys.create_for_user("user@example.com", "new-key", expires_in_days=90)
-        assert secret == "qk_secret_token_here"
-        assert api_key == admin.APIKey(**as_dataclass_kwargs(API_KEY))
-
-
-@pytest.mark.parametrize("data,error_type", API_KEY_MUTATION_ERRORS)
-def test_api_keys_create_for_user_errors(data, error_type):
-    with mock_client(
-        _make_nested_dict("admin.api_keys.create_for_user", data),
-        "adminApiKeyCreateForUser",
-        variables={
-            "email": "user@example.com",
-            "input": _graphql_client.APIKeyCreateInput(name="new-key", expires_in_days=90),
-        },
-    ):
-        with pytest.raises(error_type):
-            admin.api_keys.create_for_user("user@example.com", "new-key", expires_in_days=90)

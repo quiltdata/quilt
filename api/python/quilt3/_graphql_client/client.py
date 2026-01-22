@@ -3,11 +3,6 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from .admin_api_key_create_for_user import (
-    AdminApiKeyCreateForUser,
-    AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated,
-    AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput,
-)
 from .admin_api_key_get import AdminApiKeyGet, AdminApiKeyGetAdminApiKeysGet
 from .admin_api_key_revoke import (
     AdminApiKeyRevoke,
@@ -1410,7 +1405,6 @@ class Client(BaseClient):
               createdAt
               expiresAt
               lastUsedAt
-              createdByEmail
               status
             }
             """
@@ -1442,7 +1436,6 @@ class Client(BaseClient):
               createdAt
               expiresAt
               lastUsedAt
-              createdByEmail
               status
             }
             """
@@ -1477,7 +1470,6 @@ class Client(BaseClient):
               createdAt
               expiresAt
               lastUsedAt
-              createdByEmail
               status
             }
 
@@ -1553,7 +1545,6 @@ class Client(BaseClient):
               createdAt
               expiresAt
               lastUsedAt
-              createdByEmail
               status
             }
             """
@@ -1588,7 +1579,6 @@ class Client(BaseClient):
               createdAt
               expiresAt
               lastUsedAt
-              createdByEmail
               status
             }
             """
@@ -1631,54 +1621,3 @@ class Client(BaseClient):
         response = self.execute(query=query, operation_name="adminApiKeyRevoke", variables=variables, **kwargs)
         data = self.get_data(response)
         return AdminApiKeyRevoke.model_validate(data).admin.api_keys.revoke
-
-    def admin_api_key_create_for_user(
-        self, email: str, input: APIKeyCreateInput, **kwargs: Any
-    ) -> Union[
-        AdminApiKeyCreateForUserAdminApiKeysCreateForUserAPIKeyCreated,
-        AdminApiKeyCreateForUserAdminApiKeysCreateForUserInvalidInput,
-    ]:
-        query = gql(
-            """
-            mutation adminApiKeyCreateForUser($email: String!, $input: APIKeyCreateInput!) {
-              admin {
-                apiKeys {
-                  createForUser(email: $email, input: $input) {
-                    __typename
-                    ... on APIKeyCreated {
-                      apiKey {
-                        ...APIKeySelection
-                      }
-                      secret
-                    }
-                    ...InvalidInputSelection
-                  }
-                }
-              }
-            }
-
-            fragment APIKeySelection on APIKey {
-              id
-              name
-              fingerprint
-              createdAt
-              expiresAt
-              lastUsedAt
-              createdByEmail
-              status
-            }
-
-            fragment InvalidInputSelection on InvalidInput {
-              errors {
-                path
-                message
-                name
-                context
-              }
-            }
-            """
-        )
-        variables: Dict[str, object] = {"email": email, "input": input}
-        response = self.execute(query=query, operation_name="adminApiKeyCreateForUser", variables=variables, **kwargs)
-        data = self.get_data(response)
-        return AdminApiKeyCreateForUser.model_validate(data).admin.api_keys.create_for_user

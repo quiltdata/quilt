@@ -20,7 +20,6 @@ class APIKey:
     created_at: datetime
     expires_at: datetime
     last_used_at: T.Optional[datetime]
-    created_by_email: T.Optional[str]
     status: APIKeyStatus
 
 

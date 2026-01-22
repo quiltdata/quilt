@@ -17,7 +17,6 @@ class APIKeySelection(BaseModel):
     created_at: datetime = Field(alias="createdAt")
     expires_at: datetime = Field(alias="expiresAt")
     last_used_at: Optional[datetime] = Field(alias="lastUsedAt")
-    created_by_email: Optional[str] = Field(alias="createdByEmail")
     status: APIKeyStatus
 
 

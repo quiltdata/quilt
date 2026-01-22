@@ -54,7 +54,6 @@ fragment APIKeySelection on APIKey {
   createdAt
   expiresAt
   lastUsedAt
-  createdByEmail
   status
 }
 fragment SsoConfigSelection on SsoConfig {
@@ -406,23 +405,6 @@ mutation adminApiKeyRevoke($id: ID!) {
     apiKeys {
       revoke(id: $id) {
         __typename
-        ...InvalidInputSelection
-      }
-    }
-  }
-}
-
-mutation adminApiKeyCreateForUser($email: String!, $input: APIKeyCreateInput!) {
-  admin {
-    apiKeys {
-      createForUser(email: $email, input: $input) {
-        __typename
-        ... on APIKeyCreated {
-          apiKey {
-            ...APIKeySelection
-          }
-          secret
-        }
         ...InvalidInputSelection
       }
     }

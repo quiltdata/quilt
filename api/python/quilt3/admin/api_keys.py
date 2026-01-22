@@ -62,30 +62,3 @@ def revoke(id: str) -> None:
     """
     result = util.get_client().admin_api_key_revoke(id=id)
     util.handle_errors(result)
-
-
-def create_for_user(
-    email: str,
-    name: str,
-    expires_in_days: int = 90,
-) -> T.Tuple[APIKey, str]:
-    """
-    Create an API key for a user.
-
-    Args:
-        email: Email of the user to create the key for.
-        name: Name for the API key.
-        expires_in_days: Days until expiration (1-365, default 90).
-
-    Returns:
-        Tuple of (APIKey, secret). The secret is only returned once - save it securely!
-
-    Raises:
-        Quilt3AdminError: If the operation fails (e.g., user not found).
-    """
-    result = util.get_client().admin_api_key_create_for_user(
-        email=email,
-        input=_graphql_client.APIKeyCreateInput(name=name, expires_in_days=expires_in_days),
-    )
-    result = util.handle_errors(result)
-    return APIKey(**result.api_key.model_dump()), result.secret
