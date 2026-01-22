@@ -17,7 +17,6 @@ import typing as T
 
 import awscrt.checksums
 
-
 ChecksumT = T.TypeVar("ChecksumT", int, bytes)
 
 

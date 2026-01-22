@@ -25,6 +25,7 @@ from tqdm import tqdm
 from . import checksums, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
+    FileChecksumTask,
     calculate_checksum,
     calculate_multipart_checksum,
     copy_file,
@@ -36,7 +37,6 @@ from .data_transfer import (
     list_objects,
     list_url,
     put_bytes,
-    FileChecksumTask,
 )
 from .exceptions import PackageException
 from .formats import CompressionRegistry, FormatRegistry
