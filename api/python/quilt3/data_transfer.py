@@ -13,6 +13,7 @@ import shutil
 import stat
 import threading
 import types
+import typing as T
 import warnings
 from codecs import iterdecode
 from collections import defaultdict, deque
@@ -972,7 +973,7 @@ def calculate_checksum(
     sizes: list[int],
     *,
     checksum_calculator_cls: type[checksums.MultiPartChecksumCalculator] = checksums.SHA256MultiPartChecksumCalculator,
-) -> list[bytes]:
+) -> list[str]:
     assert len(src_list) == len(sizes)
 
     return calculate_multipart_checksum(
@@ -980,11 +981,11 @@ def calculate_checksum(
     )
 
 
-def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[bytes]:
+def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[str]:
     if not tasks:
         return []
 
-    results = [None] * len(tasks)
+    results: list[T.Any] = [None] * len(tasks)
     return _calculate_checksum_internal(
         tasks=tasks,
         results=results,
@@ -1034,8 +1035,8 @@ def _calculate_local_part_checksum(
 )
 def _calculate_checksum_internal(
     tasks: list[FileChecksumTask],
-    results: list,
-) -> list[bytes]:
+    results: list[T.Optional[T.Union[str, Exception]]],
+) -> list[str]:
     total_size = sum(
         task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception)
     )
