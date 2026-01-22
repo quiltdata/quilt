@@ -119,7 +119,7 @@ class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     def update(self, data: bytes): ...
 
     @abc.abstractmethod
-    def digest(self) -> ChecksumT: ...
+    def digest(self, size: int) -> ChecksumPart[ChecksumT]: ...
 
     @staticmethod
     @abc.abstractmethod
@@ -133,8 +133,8 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator[bytes], chec
     def update(self, data: bytes):
         self._hash_obj.update(data)
 
-    def digest(self) -> bytes:
-        return self._hash_obj.digest()
+    def digest(self, size: int) -> ChecksumPart[bytes]:
+        return ChecksumPart(self._hash_obj.digest(), size)
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart[bytes]]) -> str:
@@ -149,8 +149,8 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator[int], che
     def update(self, data: bytes):
         self._crc = awscrt.checksums.crc64nvme(data, self._crc)
 
-    def digest(self) -> int:
-        return self._crc
+    def digest(self, size: int) -> ChecksumPart[int]:
+        return ChecksumPart(self._crc, size)
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart[int]]) -> str:
@@ -159,9 +159,7 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator[int], che
         else:
             combined_crc = checksum_parts[0].checksum
             for part in checksum_parts[1:]:
-                combined_crc = awscrt.checksums.combine_crc64nvme(
-                    combined_crc, part.checksum, part.size
-                )
+                combined_crc = awscrt.checksums.combine_crc64nvme(combined_crc, part.checksum, part.size)
         return _encode_checksum_bytes(crc64nvme_to_bytes(combined_crc))
 
 
@@ -176,7 +174,7 @@ def calculate_checksum_bytes_mp(data: bytes, *, checksum_type: str) -> str:
         end = min(start + chunksize, size)
         calculator = calculator_cls()
         calculator.update(data[start:end])
-        checksum_parts.append(ChecksumPart(calculator.digest(), end - start))
+        checksum_parts.append(calculator.digest(end - start))
 
     return calculator_cls.combine_parts(checksum_parts)
 

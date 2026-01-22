@@ -516,14 +516,11 @@ def _calculate_local_checksum(
     for start in range(0, size, chunksize):
         end = min(start + chunksize, size)
         checksum_parts.append(
-            checksums.ChecksumPart(
-                checksum=_calculate_local_part_checksum(
-                    path,
-                    start,
-                    end - start,
-                    checksum_calculator=checksum_calculator_cls(),
-                ),
-                size=end - start,
+            _calculate_local_part_checksum(
+                path,
+                start,
+                end - start,
+                checksum_calculator=checksum_calculator_cls(),
             )
         )
 
@@ -1010,7 +1007,7 @@ def _calculate_local_part_checksum(
     callback=None,
     *,
     checksum_calculator: checksums.MultiPartChecksumCalculator,
-) -> int | bytes:
+) -> checksums.ChecksumPart:
     bytes_remaining = length
     with open(src, "rb") as fd:
         fd.seek(offset)
@@ -1024,7 +1021,7 @@ def _calculate_local_part_checksum(
                 callback(len(chunk))
             bytes_remaining -= len(chunk)
 
-    return checksum_calculator.digest()
+    return checksum_calculator.digest(length)
 
 
 @retry(
@@ -1083,16 +1080,15 @@ def _calculate_checksum_internal(
                 except (ConnectionError, HTTPClientError, ReadTimeoutError) as ex:
                     return ex
 
-                return checksum_calculator.digest()
+                return checksum_calculator.digest(length)
 
-        futures: list[tuple[int, list[int], type[checksums.MultiPartChecksumCalculator], list[Future]]] = []
+        futures: list[tuple[int, type[checksums.MultiPartChecksumCalculator], list[Future]]] = []
 
         for idx, (task, result) in enumerate(zip(tasks, results)):
             if result is None or isinstance(result, Exception):
                 chunksize = checksums.get_checksum_chunksize(task.size)
 
                 src_future_list = []
-                part_sizes = []
                 for start in range(0, task.size, chunksize):
                     end = min(start + chunksize, task.size)
                     future = executor.submit(
@@ -1103,24 +1099,21 @@ def _calculate_checksum_internal(
                         task.checksum_calculator_cls(),
                     )
                     src_future_list.append(future)
-                    part_sizes.append(end - start)
 
-                futures.append((idx, part_sizes, task.checksum_calculator_cls, src_future_list))
+                futures.append((idx, task.checksum_calculator_cls, src_future_list))
 
         try:
-            for idx, part_sizes, checksum_calculator_cls, future_list in futures:
+            for idx, checksum_calculator_cls, future_list in futures:
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
                 results[idx] = (
                     exceptions[0]
                     if exceptions
-                    else checksum_calculator_cls.combine_parts(
-                        [checksums.ChecksumPart(checksum, size) for checksum, size in zip(future_results, part_sizes)]
-                    )
+                    else checksum_calculator_cls.combine_parts(future_results)
                 )
         finally:
             stopped = True
-            for _, _, _, future_list in futures:
+            for _, _, future_list in futures:
                 for future in future_list:
                     future.cancel()
 
