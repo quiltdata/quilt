@@ -30,6 +30,18 @@ CHECKSUM_MAX_PARTS = 10_000
 
 _EMPTY_STRING_SHA256 = hashlib.sha256(b"").digest()
 
+CRC64_BYTES = 8
+CRC64_BYTEORDER = "big"
+
+
+def crc64nvme_to_bytes(crc: int) -> bytes:
+    return crc.to_bytes(CRC64_BYTES, byteorder=CRC64_BYTEORDER)
+
+
+def crc64nvme_from_bytes(data: bytes) -> int:
+    assert len(data) == CRC64_BYTES, f"Expected {CRC64_BYTES} bytes, got {len(data)} bytes"
+    return int.from_bytes(data, byteorder=CRC64_BYTEORDER)
+
 
 def get_checksum_chunksize(file_size: int) -> int:
     """
@@ -130,23 +142,23 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum
         self._crc = awscrt.checksums.crc64nvme(data, self._crc)
 
     def digest(self) -> bytes:
-        return self._crc.to_bytes(8, byteorder="big")
+        return crc64nvme_to_bytes(self._crc)
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
         if not checksum_parts:
             combined_crc = 0
         else:
-            combined_crc = int.from_bytes(checksum_parts[0].checksum, byteorder="big")
+            combined_crc = crc64nvme_from_bytes(checksum_parts[0].checksum)
             for part in checksum_parts[1:]:
                 combined_crc = awscrt.checksums.combine_crc64nvme(
-                    combined_crc, int.from_bytes(part.checksum, byteorder="big"), part.size
+                    combined_crc, crc64nvme_from_bytes(part.checksum), part.size
                 )
-        return binascii.b2a_base64(combined_crc.to_bytes(8, byteorder="big"), newline=False).decode()
+        return binascii.b2a_base64(crc64nvme_to_bytes(combined_crc), newline=False).decode()
 
 
 def _encode_crc64nvme(data: int) -> str:
-    return binascii.b2a_base64(data.to_bytes(8, byteorder="big"), newline=False).decode()
+    return binascii.b2a_base64(crc64nvme_to_bytes(data), newline=False).decode()
 
 
 def calculate_checksum_crc64nvme_bytes(data: bytes) -> str:
