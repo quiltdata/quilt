@@ -17,6 +17,11 @@ from dataclasses import dataclass
 import awscrt.checksums
 
 
+SHA256_HASH_NAME = "SHA256"
+SHA256_CHUNKED_HASH_NAME = "sha2-256-chunked"
+CRC64NVME_HASH_NAME = "CRC64NVME"
+
+
 # 8 MiB - same as TransferConfig().multipart_threshold - but hard-coded to guarantee it won't change.
 CHECKSUM_MULTIPART_THRESHOLD = 8 * 1024 * 1024
 
@@ -100,7 +105,7 @@ class MultiPartChecksumCalculator(abc.ABC):
     def combine_parts(checksum_parts: list[ChecksumPart]) -> str: ...
 
 
-class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="sha2-256-chunked"):
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type=SHA256_CHUNKED_HASH_NAME):
     def __init__(self):
         self._hash_obj = hashlib.sha256()
 
@@ -117,7 +122,7 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_ty
         ).decode()
 
 
-class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="CRC64NVME"):
+class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type=CRC64NVME_HASH_NAME):
     def __init__(self):
         self._crc = 0
 
