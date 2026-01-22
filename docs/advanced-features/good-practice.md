@@ -451,24 +451,6 @@ API key revoked (deleted).
   - `id: str` (when revoking by ID)
   - `secret: "***"` (when revoking by secret, always redacted)
 
-###### `APIKeys.Admin.CreateForUser` (GraphQL: `Mutation.admin.apiKeys.createForUser`)
-
-Admin created an API key for another user.
-
-- `requestParameters`
-  - `email: str` - Target user's email
-  - `input`
-    - `name: str`
-    - `expiresInDays: int`
-
-- `responseElements`
-  - `apiKey`
-    - `id: str`
-    - `name: str`
-    - `fingerprint: str`
-    - `createdByEmail: str` - Admin's email
-  - `secret: "***"` - Always redacted in audit logs
-
 ###### `APIKeys.Admin.Revoke` (GraphQL: `Mutation.admin.apiKeys.revoke`)
 
 Admin revoked another user's API key.
