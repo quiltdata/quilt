@@ -45,7 +45,7 @@ from tenacity import (
 )
 from tqdm import tqdm
 
-from . import crc64, hooks, util
+from . import hooks, util
 from .session import get_boto3_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
@@ -542,6 +542,12 @@ def _copy_remote_file(
             ctx.run(upload_part, i, start, end)
 
 
+@dataclass(frozen=True)
+class ChecksumPart:
+    checksum: bytes
+    size: int
+
+
 class MultiPartChecksumCalculator(abc.ABC):
     _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
 
@@ -566,7 +572,7 @@ class MultiPartChecksumCalculator(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str: ...
+    def combine_parts(checksum_parts: list[ChecksumPart]) -> str: ...
 
 
 class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="sha2-256-chunked"):
@@ -580,8 +586,10 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_ty
         return self._hash_obj.digest()
 
     @staticmethod
-    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
-        return binascii.b2a_base64(hashlib.sha256(b"".join(part_digests)).digest(), newline=False).decode()
+    def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
+        return binascii.b2a_base64(
+            hashlib.sha256(b"".join(map(lambda p: p.checksum, checksum_parts))).digest(), newline=False
+        ).decode()
 
 
 class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="CRC64NVME"):
@@ -595,9 +603,16 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum
         return self._crc.to_bytes(8, byteorder="big")
 
     @staticmethod
-    def combine_parts(part_digests: list[bytes], part_sizes: list[int]) -> str:
-        return binascii.b2a_base64(crc64.combine_crc64nvme(part_digests, part_sizes), newline=False).decode()
-
+    def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
+        if not checksum_parts:
+            combined_crc = 0
+        else:
+            combined_crc = int.from_bytes(checksum_parts[0].checksum, byteorder="big")
+            for part in checksum_parts[1:]:
+                combined_crc = awscrt.checksums.combine_crc64nvme(
+                    combined_crc, int.from_bytes(part.checksum, byteorder="big"), part.size
+                )
+        return binascii.b2a_base64(combined_crc.to_bytes(8, byteorder="big"), newline=False).decode()
 
 @dataclass(frozen=True)
 class FileChecksumTask:
@@ -624,21 +639,22 @@ def _calculate_local_checksum(
 ) -> str:
     chunksize = get_checksum_chunksize(size)
 
-    part_hashes = []
-    part_sizes = []
+    checksum_parts = []
     for start in range(0, size, chunksize):
         end = min(start + chunksize, size)
-        part_hashes.append(
-            _calculate_local_part_checksum(
-                path,
-                start,
-                end - start,
-                checksum_calculator=checksum_calculator_cls(),
+        checksum_parts.append(
+            ChecksumPart(
+                checksum=_calculate_local_part_checksum(
+                    path,
+                    start,
+                    end - start,
+                    checksum_calculator=checksum_calculator_cls(),
+                ),
+                size=end - start,
             )
         )
-        part_sizes.append(end - start)
 
-    return checksum_calculator_cls.combine_parts(part_hashes, part_sizes)
+    return checksum_calculator_cls.combine_parts(checksum_parts)
 
 
 def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str):
@@ -1223,7 +1239,11 @@ def _calculate_checksum_internal(
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
                 results[idx] = (
-                    exceptions[0] if exceptions else checksum_calculator_cls.combine_parts(future_results, part_sizes)
+                    exceptions[0]
+                    if exceptions
+                    else checksum_calculator_cls.combine_parts(
+                        [ChecksumPart(checksum, size) for checksum, size in zip(future_results, part_sizes)]
+                    )
                 )
         finally:
             stopped = True
