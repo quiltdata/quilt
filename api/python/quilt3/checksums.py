@@ -119,7 +119,10 @@ class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     def update(self, data: bytes): ...
 
     @abc.abstractmethod
-    def digest(self, size: int) -> ChecksumPart[ChecksumT]: ...
+    def _get_checksum(self) -> ChecksumT: ...
+
+    def digest(self, size: int) -> ChecksumPart[ChecksumT]:
+        return ChecksumPart(self._get_checksum(), size)
 
     @staticmethod
     @abc.abstractmethod
@@ -133,8 +136,8 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator[bytes], chec
     def update(self, data: bytes):
         self._hash_obj.update(data)
 
-    def digest(self, size: int) -> ChecksumPart[bytes]:
-        return ChecksumPart(self._hash_obj.digest(), size)
+    def _get_checksum(self) -> bytes:
+        return self._hash_obj.digest()
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart[bytes]]) -> str:
@@ -149,8 +152,8 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator[int], che
     def update(self, data: bytes):
         self._crc = awscrt.checksums.crc64nvme(data, self._crc)
 
-    def digest(self, size: int) -> ChecksumPart[int]:
-        return ChecksumPart(self._crc, size)
+    def _get_checksum(self) -> int:
+        return self._crc
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart[int]]) -> str:
