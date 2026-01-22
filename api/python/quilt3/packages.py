@@ -22,19 +22,16 @@ import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
-from . import util, workflows
+from . import checksums, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     calculate_checksum,
-    calculate_checksum_bytes,
     calculate_checksum_mp,
-    calculate_checksum_crc64nvme_bytes,
     copy_file,
     copy_file_list,
     get_bytes,
     get_size_and_version,
     legacy_calculate_checksum,
-    legacy_calculate_checksum_bytes,
     list_object_versions,
     list_objects,
     list_url,
@@ -238,11 +235,11 @@ class PackageEntry:
         _check_hash_type_support(hash_type)
 
         if hash_type == SHA256_CHUNKED_HASH_NAME:
-            expected_value = calculate_checksum_bytes(read_bytes)
+            expected_value = checksums.calculate_checksum_bytes(read_bytes)
         elif hash_type == SHA256_HASH_NAME:
-            expected_value = legacy_calculate_checksum_bytes(read_bytes)
+            expected_value = checksums.legacy_calculate_checksum_bytes(read_bytes)
         elif hash_type == CRC64NVME_HASH_NAME:
-            expected_value = calculate_checksum_crc64nvme_bytes(read_bytes)
+            expected_value = checksums.calculate_checksum_crc64nvme_bytes(read_bytes)
         else:
             assert False, f"Unsupported hash type: {hash_type}"
 

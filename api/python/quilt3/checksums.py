@@ -1,0 +1,165 @@
+"""
+Pure checksum calculation algorithms for Quilt packages.
+
+This module contains self-contained checksum implementations with no dependencies
+on S3 operations or file transfer logic. For orchestration and S3-coupled checksum
+operations, see data_transfer.py.
+"""
+
+from __future__ import annotations
+
+import abc
+import binascii
+import hashlib
+import math
+from dataclasses import dataclass
+
+import awscrt.checksums
+
+
+# 8 MiB - same as TransferConfig().multipart_threshold - but hard-coded to guarantee it won't change.
+CHECKSUM_MULTIPART_THRESHOLD = 8 * 1024 * 1024
+
+# Maximum number of parts supported by S3
+CHECKSUM_MAX_PARTS = 10_000
+
+_EMPTY_STRING_SHA256 = hashlib.sha256(b"").digest()
+
+
+def get_checksum_chunksize(file_size: int) -> int:
+    """
+    Calculate the chunk size to be used for the checksum. It is normally 8 MiB,
+    but gets doubled as long as the number of parts exceeds the maximum of 10,000.
+
+    It is the same as
+    `ChunksizeAdjuster().adjust_chunksize(s3_transfer_config.multipart_chunksize, file_size)`,
+    but hard-coded to guarantee it won't change and make the current behavior a part of the API.
+    """
+    chunksize = 8 * 1024 * 1024
+    num_parts = math.ceil(file_size / chunksize)
+
+    while num_parts > CHECKSUM_MAX_PARTS:
+        chunksize *= 2
+        num_parts = math.ceil(file_size / chunksize)
+
+    return chunksize
+
+
+def is_mpu(file_size: int) -> bool:
+    return file_size >= CHECKSUM_MULTIPART_THRESHOLD
+
+
+def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
+    """
+    Converts a SHA256 hash from a regular (non-multipart) S3 upload into a multipart hash,
+    i.e., base64(sha256(bytes)) -> base64(sha256([sha256(bytes)])).
+
+    Edge case: a 0-byte upload is treated as an empty list of chunks, rather than a list of a 0-byte chunk.
+    Its checksum is sha256(''), NOT sha256(sha256('')).
+    """
+    s3_checksum_bytes = binascii.a2b_base64(s3_checksum)
+
+    if s3_checksum_bytes == _EMPTY_STRING_SHA256:
+        # Do not hash it again.
+        return s3_checksum
+
+    quilt_checksum_bytes = hashlib.sha256(s3_checksum_bytes).digest()
+    return binascii.b2a_base64(quilt_checksum_bytes, newline=False).decode()
+
+
+@dataclass(frozen=True)
+class ChecksumPart:
+    checksum: bytes
+    size: int
+
+
+class MultiPartChecksumCalculator(abc.ABC):
+    _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
+
+    def __init_subclass__(cls, checksum_type: str, **kwargs):
+        super().__init_subclass__(**kwargs)
+        MultiPartChecksumCalculator._registry[checksum_type] = cls
+
+    @classmethod
+    def get_calculator_cls(cls, checksum_type: str) -> type[MultiPartChecksumCalculator]:
+        if checksum_type not in cls._registry:
+            raise KeyError(f"Checksum type '{checksum_type}' is not registered.")
+        return cls._registry[checksum_type]
+
+    @abc.abstractmethod
+    def __init__(self): ...
+
+    @abc.abstractmethod
+    def update(self, data: bytes): ...
+
+    @abc.abstractmethod
+    def digest(self) -> bytes: ...
+
+    @staticmethod
+    @abc.abstractmethod
+    def combine_parts(checksum_parts: list[ChecksumPart]) -> str: ...
+
+
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="sha2-256-chunked"):
+    def __init__(self):
+        self._hash_obj = hashlib.sha256()
+
+    def update(self, data: bytes):
+        self._hash_obj.update(data)
+
+    def digest(self) -> bytes:
+        return self._hash_obj.digest()
+
+    @staticmethod
+    def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
+        return binascii.b2a_base64(
+            hashlib.sha256(b"".join(map(lambda p: p.checksum, checksum_parts))).digest(), newline=False
+        ).decode()
+
+
+class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type="CRC64NVME"):
+    def __init__(self):
+        self._crc = 0
+
+    def update(self, data: bytes):
+        self._crc = awscrt.checksums.crc64nvme(data, self._crc)
+
+    def digest(self) -> bytes:
+        return self._crc.to_bytes(8, byteorder="big")
+
+    @staticmethod
+    def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
+        if not checksum_parts:
+            combined_crc = 0
+        else:
+            combined_crc = int.from_bytes(checksum_parts[0].checksum, byteorder="big")
+            for part in checksum_parts[1:]:
+                combined_crc = awscrt.checksums.combine_crc64nvme(
+                    combined_crc, int.from_bytes(part.checksum, byteorder="big"), part.size
+                )
+        return binascii.b2a_base64(combined_crc.to_bytes(8, byteorder="big"), newline=False).decode()
+
+
+def _encode_crc64nvme(data: int) -> str:
+    return binascii.b2a_base64(data.to_bytes(8, byteorder="big"), newline=False).decode()
+
+
+def calculate_checksum_crc64nvme_bytes(data: bytes) -> str:
+    return _encode_crc64nvme(awscrt.checksums.crc64nvme(data))
+
+
+def calculate_checksum_bytes(data: bytes) -> str:
+    size = len(data)
+    chunksize = get_checksum_chunksize(size)
+
+    hashes = []
+    for start in range(0, size, chunksize):
+        end = min(start + chunksize, size)
+        hashes.append(hashlib.sha256(data[start:end]).digest())
+
+    hashes_hash = hashlib.sha256(b"".join(hashes)).digest()
+    return binascii.b2a_base64(hashes_hash, newline=False).decode()
+
+
+def legacy_calculate_checksum_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()

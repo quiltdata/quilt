@@ -16,7 +16,7 @@ import pytest
 from botocore.exceptions import ClientError, ConnectionError, ReadTimeoutError
 from botocore.stub import ANY
 
-from quilt3 import data_transfer
+from quilt3 import checksums, data_transfer
 from quilt3.util import PhysicalKey
 
 from .utils import QuiltTestCase
@@ -365,7 +365,7 @@ class DataTransferTest(QuiltTestCase):
 
     def test_upload_file_checksum_match(self):
         path = DATA_DIR / 'large_file.npy'
-        assert path.stat().st_size < data_transfer.CHECKSUM_MULTIPART_THRESHOLD
+        assert path.stat().st_size < checksums.CHECKSUM_MULTIPART_THRESHOLD
 
         self.s3_stubber.add_response(
             method='head_object',
@@ -398,7 +398,7 @@ class DataTransferTest(QuiltTestCase):
 
     def test_upload_file_checksum_match_unexpected_parts(self):
         path = DATA_DIR / 'large_file.npy'
-        assert path.stat().st_size < data_transfer.CHECKSUM_MULTIPART_THRESHOLD
+        assert path.stat().st_size < checksums.CHECKSUM_MULTIPART_THRESHOLD
 
         self.s3_stubber.add_response(
             method='head_object',
@@ -446,7 +446,7 @@ class DataTransferTest(QuiltTestCase):
 
     def test_upload_file_checksum_multipart_match(self):
         path = pathlib.Path("test-file")
-        path.write_bytes(bytes(data_transfer.CHECKSUM_MULTIPART_THRESHOLD))
+        path.write_bytes(bytes(checksums.CHECKSUM_MULTIPART_THRESHOLD))
 
         self.s3_stubber.add_response(
             method='head_object',
@@ -479,7 +479,7 @@ class DataTransferTest(QuiltTestCase):
 
     def test_upload_file_checksum_multipart_match_unexpected_parts(self):
         path = pathlib.Path("test-file")
-        path.write_bytes(bytes(data_transfer.CHECKSUM_MULTIPART_THRESHOLD))
+        path.write_bytes(bytes(checksums.CHECKSUM_MULTIPART_THRESHOLD))
 
         self.s3_stubber.add_response(
             method='head_object',
@@ -1038,13 +1038,13 @@ class S3HashingTest(QuiltTestCase):
         default = 8 * 1024 * 1024
 
         # "Normal" file sizes
-        assert data_transfer.get_checksum_chunksize(8 * 1024 * 1024) == default
-        assert data_transfer.get_checksum_chunksize(1024 * 1024 * 1024) == default
-        assert data_transfer.get_checksum_chunksize(10_000 * default) == default
+        assert checksums.get_checksum_chunksize(8 * 1024 * 1024) == default
+        assert checksums.get_checksum_chunksize(1024 * 1024 * 1024) == default
+        assert checksums.get_checksum_chunksize(10_000 * default) == default
 
         # Big file: exceeds 10,000 parts
-        assert data_transfer.get_checksum_chunksize(10_000 * default + 1) == default * 2
-        assert data_transfer.get_checksum_chunksize(2 * 10_000 * default + 1) == default * 4
+        assert checksums.get_checksum_chunksize(10_000 * default + 1) == default * 2
+        assert checksums.get_checksum_chunksize(2 * 10_000 * default + 1) == default * 4
 
     def test_single(self):
         data = b'0123456789abcdef'
@@ -1064,7 +1064,7 @@ class S3HashingTest(QuiltTestCase):
             chunksize=chunksize,
         ):
             hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
-            hash2 = data_transfer.calculate_checksum_bytes(data)
+            hash2 = checksums.calculate_checksum_bytes(data)
             assert hash1 == hash2
             assert hash1 == 'Xb1PbjJeWof4zD7zuHc9PI7sLiz/Ykj4gphlaZEt3xA='
 
@@ -1088,7 +1088,7 @@ class S3HashingTest(QuiltTestCase):
             chunksize=chunksize,
         ):
             hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
-            hash2 = data_transfer.calculate_checksum_bytes(data)
+            hash2 = checksums.calculate_checksum_bytes(data)
             assert hash1 == hash2
             assert hash1 == 'T+rt/HKRJOiAkEGXKvc+DhCwRcrZiDrFkjKonDT1zgs='
 
@@ -1111,7 +1111,7 @@ class S3HashingTest(QuiltTestCase):
             chunksize=chunksize,
         ):
             hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
-            hash2 = data_transfer.calculate_checksum_bytes(data)
+            hash2 = checksums.calculate_checksum_bytes(data)
             assert hash1 == hash2
             assert hash1 == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg='
 
@@ -1120,6 +1120,6 @@ class S3HashingTest(QuiltTestCase):
         size = len(data)
 
         hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
-        hash2 = data_transfer.calculate_checksum_bytes(data)
+        hash2 = checksums.calculate_checksum_bytes(data)
         assert hash1 == hash2
         assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='
