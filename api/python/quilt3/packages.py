@@ -231,12 +231,10 @@ class PackageEntry:
         hash_type = self.hash.get('type')
         _check_hash_type_support(hash_type)
 
-        if hash_type == checksums.SHA256_CHUNKED_HASH_NAME:
-            expected_value = checksums.calculate_checksum_bytes(read_bytes)
-        elif hash_type == checksums.SHA256_HASH_NAME:
+        if hash_type == checksums.SHA256_HASH_NAME:
             expected_value = checksums.legacy_calculate_checksum_bytes(read_bytes)
-        elif hash_type == checksums.CRC64NVME_HASH_NAME:
-            expected_value = checksums.calculate_checksum_crc64nvme_bytes(read_bytes)
+        elif hash_type in (checksums.CRC64NVME_HASH_NAME, checksums.SHA256_CHUNKED_HASH_NAME):
+            expected_value = checksums.calculate_checksum_bytes_mp(read_bytes, checksum_type=hash_type)
         else:
             assert False, f"Unsupported hash type: {hash_type}"
 

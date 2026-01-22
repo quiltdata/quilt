@@ -157,25 +157,25 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum
         return binascii.b2a_base64(crc64nvme_to_bytes(combined_crc), newline=False).decode()
 
 
-def _encode_crc64nvme(data: int) -> str:
-    return binascii.b2a_base64(crc64nvme_to_bytes(data), newline=False).decode()
+def calculate_checksum_bytes_mp(data: bytes, *, checksum_type: str) -> str:
+    calculator_cls = MultiPartChecksumCalculator.get_calculator_cls(checksum_type)
 
-
-def calculate_checksum_crc64nvme_bytes(data: bytes) -> str:
-    return _encode_crc64nvme(awscrt.checksums.crc64nvme(data))
-
-
-def calculate_checksum_bytes(data: bytes) -> str:
     size = len(data)
     chunksize = get_checksum_chunksize(size)
 
-    hashes = []
+    checksum_parts = []
     for start in range(0, size, chunksize):
         end = min(start + chunksize, size)
-        hashes.append(hashlib.sha256(data[start:end]).digest())
+        calculator = calculator_cls()
+        calculator.update(data[start:end])
+        checksum_parts.append(ChecksumPart(calculator.digest(), end - start))
 
-    hashes_hash = hashlib.sha256(b"".join(hashes)).digest()
-    return binascii.b2a_base64(hashes_hash, newline=False).decode()
+    return calculator_cls.combine_parts(checksum_parts)
+
+
+def calculate_checksum_bytes(data: bytes) -> str:
+    # FIXME: leave for now, but remove later
+    return calculate_checksum_bytes_mp(data, checksum_type=SHA256_CHUNKED_HASH_NAME)
 
 
 def legacy_calculate_checksum_bytes(data: bytes) -> str:
