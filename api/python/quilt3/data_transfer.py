@@ -985,7 +985,7 @@ def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[str]:
     if not tasks:
         return []
 
-    results: list[T.Any] = [None] * len(tasks)
+    results: list = [None] * len(tasks)
     return _calculate_checksum_internal(
         tasks=tasks,
         results=results,
