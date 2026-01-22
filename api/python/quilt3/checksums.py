@@ -34,6 +34,10 @@ CRC64_BYTES = 8
 CRC64_BYTEORDER = "big"
 
 
+def _encode_checksum_bytes(data: bytes) -> str:
+    return binascii.b2a_base64(data, newline=False).decode()
+
+
 def crc64nvme_to_bytes(crc: int) -> bytes:
     return crc.to_bytes(CRC64_BYTES, byteorder=CRC64_BYTEORDER)
 
@@ -81,7 +85,7 @@ def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
         return s3_checksum
 
     quilt_checksum_bytes = hashlib.sha256(s3_checksum_bytes).digest()
-    return binascii.b2a_base64(quilt_checksum_bytes, newline=False).decode()
+    return _encode_checksum_bytes(quilt_checksum_bytes)
 
 
 @dataclass(frozen=True)
@@ -130,9 +134,8 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_ty
 
     @staticmethod
     def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
-        return binascii.b2a_base64(
-            hashlib.sha256(b"".join(map(lambda p: p.checksum, checksum_parts))).digest(), newline=False
-        ).decode()
+        combined_hash = hashlib.sha256(b"".join(map(lambda p: p.checksum, checksum_parts))).digest()
+        return _encode_checksum_bytes(combined_hash)
 
 
 class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type=CRC64NVME_HASH_NAME):
@@ -155,7 +158,7 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum
                 combined_crc = awscrt.checksums.combine_crc64nvme(
                     combined_crc, crc64nvme_from_bytes(part.checksum), part.size
                 )
-        return binascii.b2a_base64(crc64nvme_to_bytes(combined_crc), newline=False).decode()
+        return _encode_checksum_bytes(crc64nvme_to_bytes(combined_crc))
 
 
 def calculate_checksum_bytes_mp(data: bytes, *, checksum_type: str) -> str:
