@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import abc
 import binascii
+import dataclasses
 import hashlib
 import math
 import typing as T
-from dataclasses import dataclass
 
 import awscrt.checksums
 
@@ -92,7 +92,7 @@ def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
     return _encode_checksum_bytes(quilt_checksum_bytes)
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class ChecksumPart(T.Generic[ChecksumT]):
     checksum: ChecksumT
     size: int
