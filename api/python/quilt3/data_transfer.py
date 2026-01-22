@@ -973,12 +973,12 @@ def calculate_checksum(
 ) -> list[bytes]:
     assert len(src_list) == len(sizes)
 
-    return calculate_checksum_mp(
+    return calculate_multipart_checksum(
         [FileChecksumTask(src, size, checksum_calculator_cls) for src, size in zip(src_list, sizes)]
     )
 
 
-def calculate_checksum_mp(tasks: list[FileChecksumTask]) -> list[bytes]:
+def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[bytes]:
     if not tasks:
         return []
 

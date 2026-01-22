@@ -163,7 +163,7 @@ class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator[int], che
         return _encode_checksum_bytes(crc64nvme_to_bytes(combined_crc))
 
 
-def calculate_checksum_bytes_mp(data: bytes, *, checksum_type: str) -> str:
+def calculate_multipart_checksum_bytes(data: bytes, *, checksum_type: str) -> str:
     calculator_cls = MultiPartChecksumCalculator.get_calculator_cls(checksum_type)
 
     size = len(data)
@@ -181,7 +181,7 @@ def calculate_checksum_bytes_mp(data: bytes, *, checksum_type: str) -> str:
 
 def calculate_checksum_bytes(data: bytes) -> str:
     # FIXME: leave for now, but remove later
-    return calculate_checksum_bytes_mp(data, checksum_type=SHA256_CHUNKED_HASH_NAME)
+    return calculate_multipart_checksum_bytes(data, checksum_type=SHA256_CHUNKED_HASH_NAME)
 
 
 def legacy_calculate_checksum_bytes(data: bytes) -> str:

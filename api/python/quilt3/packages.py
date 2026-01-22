@@ -26,7 +26,7 @@ from . import checksums, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     calculate_checksum,
-    calculate_checksum_mp,
+    calculate_multipart_checksum,
     copy_file,
     copy_file_list,
     get_bytes,
@@ -234,7 +234,7 @@ class PackageEntry:
         if hash_type == checksums.SHA256_HASH_NAME:
             expected_value = checksums.legacy_calculate_checksum_bytes(read_bytes)
         elif hash_type in (checksums.CRC64NVME_HASH_NAME, checksums.SHA256_CHUNKED_HASH_NAME):
-            expected_value = checksums.calculate_checksum_bytes_mp(read_bytes, checksum_type=hash_type)
+            expected_value = checksums.calculate_multipart_checksum_bytes(read_bytes, checksum_type=hash_type)
         else:
             assert False, f"Unsupported hash type: {hash_type}"
 
@@ -1832,7 +1832,7 @@ class Package:
         if src_dict and not extra_files_ok:
             return False
 
-        hash_list = calculate_checksum_mp(checksum_tasks)
+        hash_list = calculate_multipart_checksum(checksum_tasks)
         for expected_hash, url_hash in zip(expected_hash_list, hash_list):
             if isinstance(url_hash, Exception):
                 raise url_hash
