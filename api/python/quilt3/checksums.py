@@ -12,9 +12,13 @@ import abc
 import binascii
 import hashlib
 import math
+import typing as T
 from dataclasses import dataclass
 
 import awscrt.checksums
+
+
+ChecksumT = T.TypeVar("ChecksumT", int, bytes)
 
 
 SHA256_HASH_NAME = "SHA256"
@@ -89,12 +93,12 @@ def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
 
 
 @dataclass(frozen=True)
-class ChecksumPart:
-    checksum: bytes
+class ChecksumPart(T.Generic[ChecksumT]):
+    checksum: ChecksumT
     size: int
 
 
-class MultiPartChecksumCalculator(abc.ABC):
+class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
 
     def __init_subclass__(cls, checksum_type: str, **kwargs):
@@ -115,14 +119,14 @@ class MultiPartChecksumCalculator(abc.ABC):
     def update(self, data: bytes): ...
 
     @abc.abstractmethod
-    def digest(self) -> bytes: ...
+    def digest(self) -> ChecksumT: ...
 
     @staticmethod
     @abc.abstractmethod
-    def combine_parts(checksum_parts: list[ChecksumPart]) -> str: ...
+    def combine_parts(checksum_parts: list[ChecksumPart[ChecksumT]]) -> str: ...
 
 
-class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type=SHA256_CHUNKED_HASH_NAME):
+class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator[bytes], checksum_type=SHA256_CHUNKED_HASH_NAME):
     def __init__(self):
         self._hash_obj = hashlib.sha256()
 
@@ -133,30 +137,30 @@ class SHA256MultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_ty
         return self._hash_obj.digest()
 
     @staticmethod
-    def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
-        combined_hash = hashlib.sha256(b"".join(map(lambda p: p.checksum, checksum_parts))).digest()
+    def combine_parts(checksum_parts: list[ChecksumPart[bytes]]) -> str:
+        combined_hash = hashlib.sha256(b"".join(p.checksum for p in checksum_parts)).digest()
         return _encode_checksum_bytes(combined_hash)
 
 
-class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator, checksum_type=CRC64NVME_HASH_NAME):
+class CRC64NVMEMultiPartChecksumCalculator(MultiPartChecksumCalculator[int], checksum_type=CRC64NVME_HASH_NAME):
     def __init__(self):
         self._crc = 0
 
     def update(self, data: bytes):
         self._crc = awscrt.checksums.crc64nvme(data, self._crc)
 
-    def digest(self) -> bytes:
-        return crc64nvme_to_bytes(self._crc)
+    def digest(self) -> int:
+        return self._crc
 
     @staticmethod
-    def combine_parts(checksum_parts: list[ChecksumPart]) -> str:
+    def combine_parts(checksum_parts: list[ChecksumPart[int]]) -> str:
         if not checksum_parts:
             combined_crc = 0
         else:
-            combined_crc = crc64nvme_from_bytes(checksum_parts[0].checksum)
+            combined_crc = checksum_parts[0].checksum
             for part in checksum_parts[1:]:
                 combined_crc = awscrt.checksums.combine_crc64nvme(
-                    combined_crc, crc64nvme_from_bytes(part.checksum), part.size
+                    combined_crc, part.checksum, part.size
                 )
         return _encode_checksum_bytes(crc64nvme_to_bytes(combined_crc))
 

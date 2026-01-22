@@ -1010,7 +1010,7 @@ def _calculate_local_part_checksum(
     callback=None,
     *,
     checksum_calculator: checksums.MultiPartChecksumCalculator,
-) -> bytes:
+) -> int | bytes:
     bytes_remaining = length
     with open(src, "rb") as fd:
         fd.seek(offset)
