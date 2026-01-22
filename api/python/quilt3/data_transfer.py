@@ -556,7 +556,9 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
             else:
                 checksum = checksums._simple_s3_to_quilt_checksum(s3_checksum)
                 num_parts = None
-            expected_num_parts = math.ceil(size / checksums.get_checksum_chunksize(size)) if checksums.is_mpu(size) else None
+            expected_num_parts = (
+                math.ceil(size / checksums.get_checksum_chunksize(size)) if checksums.is_mpu(size) else None
+            )
             if num_parts == expected_num_parts and checksum == _calculate_local_checksum(
                 src_path, size, checksum_calculator_cls=checksums.SHA256MultiPartChecksumCalculator
             ):
@@ -1034,7 +1036,9 @@ def _calculate_checksum_internal(
     tasks: list[FileChecksumTask],
     results: list,
 ) -> list[bytes]:
-    total_size = sum(task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception))
+    total_size = sum(
+        task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception)
+    )
     stopped = False
 
     with (
@@ -1106,11 +1110,7 @@ def _calculate_checksum_internal(
             for idx, checksum_calculator_cls, future_list in futures:
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
-                results[idx] = (
-                    exceptions[0]
-                    if exceptions
-                    else checksum_calculator_cls.combine_parts(future_results)
-                )
+                results[idx] = exceptions[0] if exceptions else checksum_calculator_cls.combine_parts(future_results)
         finally:
             stopped = True
             for _, _, future_list in futures:
