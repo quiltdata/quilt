@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased
+
+### Python API
+
+* [Added] API key support (`quilt3.api_keys`, `quilt3.admin.api_keys`, `login_with_api_key()`) ([#4690](https://github.com/quiltdata/quilt/pull/4690))
+
 ## 7.1.0 - 2025-12-22
 
 ### Python API
