@@ -21,7 +21,7 @@ ChecksumT = T.TypeVar("ChecksumT", int, bytes)
 
 
 SHA256_HASH_NAME = "SHA256"
-SHA256_CHUNKED_HASH_NAME = "sha2-256-chunked"
+DEFAULT_HASH = SHA256_CHUNKED_HASH_NAME = "sha2-256-chunked"
 CRC64NVME_HASH_NAME = "CRC64NVME"
 
 
@@ -96,9 +96,11 @@ class ChecksumPart(T.Generic[ChecksumT]):
 # Should we do something about it?
 class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
+    checksum_type: T.ClassVar[str]
 
     def __init_subclass__(cls, checksum_type: str, **kwargs):
         super().__init_subclass__(**kwargs)
+        cls.checksum_type = checksum_type
         MultiPartChecksumCalculator._registry[checksum_type] = cls
 
     @classmethod

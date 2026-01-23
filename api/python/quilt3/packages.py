@@ -26,7 +26,6 @@ from . import checksums, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     FileChecksumTask,
-    calculate_checksum,
     calculate_multipart_checksum,
     copy_file,
     copy_file_list,
@@ -1002,13 +1001,19 @@ class Package:
             physical_keys.append(entry.physical_key)
             sizes.append(entry.size)
 
-        results = calculate_checksum(physical_keys, sizes)
+        hash_type = checksums.DEFAULT_HASH
+        results = calculate_multipart_checksum(
+            [
+                FileChecksumTask.create(physical_key, size, hash_type)
+                for physical_key, size in zip(physical_keys, sizes)
+            ]
+        )
         exc = None
         for entry, result in zip(self._incomplete_entries, results):
             if isinstance(result, Exception):
                 exc = result
             else:
-                entry.hash = dict(type=checksums.SHA256_CHUNKED_HASH_NAME, value=result)
+                entry.hash = dict(type=hash_type, value=result)
         if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
@@ -1617,7 +1622,7 @@ class Package:
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
             if checksum is not None:
-                new_entry.hash = dict(type=checksums.SHA256_CHUNKED_HASH_NAME, value=checksum)
+                new_entry.hash = dict(type=checksums.DEFAULT_HASH, value=checksum)
             pkg._set(logical_key, new_entry)
 
         # Some entries may miss hash values (e.g because of selector_fn), so we need
