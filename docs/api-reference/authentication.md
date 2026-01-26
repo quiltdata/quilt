@@ -55,12 +55,12 @@ API keys provide programmatic access to Quilt without requiring browser-based au
 
 **✅ Use API keys for:**
 
-- CI/CD pipelines (GitHub Actions, GitLab CI, Jenkins)
+- Automated scripts and data pipelines
 - Server-side applications and microservices
-- Docker containers and Kubernetes pods
-- AWS Lambda functions and cloud services
-- Scheduled jobs and cron tasks
-- Automated data pipelines
+- Containerized applications (Docker, Kubernetes)
+- Cloud functions and serverless workloads
+- CI/CD pipelines and automated workflows
+- Scheduled jobs and batch processing
 
 **❌ Don't use API keys for:**
 
@@ -103,34 +103,40 @@ print(f"Expires: {key.expires_at}")
 
 #### Step 3: Store the Secret Securely
 
-Choose one of these secure storage methods:
+Choose a secure storage method based on your environment:
 
-**Environment Variable** (recommended for local development):
+**Local Development** (.env file):
 
-```bash
-export QUILT_API_KEY="qk_your_secret_here"
-```
-
-**AWS Secrets Manager** (recommended for production):
+Create a `.env` file in your project directory:
 
 ```bash
-aws secretsmanager create-secret \
-    --name quilt-api-key \
-    --secret-string "qk_your_secret_here"
+# .env
+QUILT_API_KEY=qk_your_secret_here
 ```
 
-**GitHub Secrets** (for GitHub Actions):
+Load it in your Python code:
 
-1. Go to your repository Settings → Secrets → Actions
-2. Add a new secret named `QUILT_API_KEY`
-3. Paste your API key as the value
+```python
+from dotenv import load_dotenv
+import os
 
-**Other options**:
+load_dotenv()  # Load .env file
+api_key = os.environ["QUILT_API_KEY"]
+```
 
-- Azure Key Vault
-- Google Secret Manager
-- HashiCorp Vault
-- 1Password, LastPass (for personal use)
+**IMPORTANT**: Add `.env` to your `.gitignore` to prevent committing secrets.
+
+**Production/CI/CD Environments**:
+
+Use a secrets manager appropriate for your platform:
+
+- **AWS Secrets Manager**: For AWS Lambda, ECS, EC2
+- **Environment variables**: For containerized apps, CI/CD pipelines
+- **Azure Key Vault**: For Azure deployments
+- **Google Secret Manager**: For GCP deployments
+- **HashiCorp Vault**: For multi-cloud or on-premise
+
+Refer to your platform's documentation for configuration details.
 
 #### Step 4: Use the API Key
 
@@ -232,300 +238,6 @@ quilt3.api_keys.revoke(secret="qk_your_secret")
 - 🔐 **Use separate keys per environment**
   - Different keys for dev, staging, production
   - Limits blast radius if a key is compromised
-
-## Common Use Cases
-
-### CI/CD Pipelines
-
-#### GitHub Actions
-
-**.github/workflows/data-pipeline.yml**:
-
-```yaml
-name: Data Pipeline
-on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install quilt3
-
-      - name: Sync data
-        run: python sync_data.py
-        env:
-          QUILT_API_KEY: ${{ secrets.QUILT_API_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-```
-
-**sync_data.py**:
-
-```python
-import os
-import quilt3
-
-# Authenticate with API key
-api_key = os.environ.get("QUILT_API_KEY")
-if not api_key:
-    raise ValueError("QUILT_API_KEY environment variable not set")
-
-quilt3.login_with_api_key(api_key)
-
-# Use Quilt
-pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
-print(f"Package has {len(pkg)} files")
-
-# Process data...
-```
-
-#### GitLab CI
-
-**.gitlab-ci.yml**:
-
-```yaml
-stages:
-  - sync
-
-sync_data:
-  stage: sync
-  image: python:3.11
-  script:
-    - pip install quilt3
-    - python sync_data.py
-  variables:
-    QUILT_API_KEY: $QUILT_API_KEY
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    - if: '$CI_COMMIT_BRANCH == "main"'
-```
-
-### Docker Containers
-
-**Dockerfile**:
-
-```dockerfile
-FROM python:3.11-slim
-
-# Install Quilt
-RUN pip install quilt3
-
-# Copy application
-COPY app.py /app/app.py
-WORKDIR /app
-
-# API key passed at runtime
-ENV QUILT_API_KEY=""
-
-CMD ["python", "app.py"]
-```
-
-**docker-compose.yml**:
-
-```yaml
-version: '3.8'
-services:
-  data-processor:
-    build: .
-    environment:
-      - QUILT_API_KEY=${QUILT_API_KEY}
-    env_file:
-      - .env  # Contains QUILT_API_KEY=qk_...
-```
-
-**app.py**:
-
-```python
-import os
-import quilt3
-
-def main():
-    # Authenticate
-    api_key = os.environ.get("QUILT_API_KEY")
-    if not api_key:
-        raise ValueError("QUILT_API_KEY not set")
-
-    quilt3.login_with_api_key(api_key)
-
-    # Use Quilt
-    pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
-    # Process data...
-
-if __name__ == "__main__":
-    main()
-```
-
-Run with:
-
-```bash
-docker run -e QUILT_API_KEY="qk_..." data-processor
-```
-
-### AWS Lambda
-
-**lambda_function.py**:
-
-```python
-import os
-import quilt3
-
-# Initialize outside handler for connection reuse
-def get_authenticated_session():
-    """Authenticate once per Lambda container lifecycle"""
-    if not quilt3.logged_in():
-        api_key = os.environ["QUILT_API_KEY"]
-        quilt3.login_with_api_key(api_key)
-
-def lambda_handler(event, context):
-    # Ensure authenticated
-    get_authenticated_session()
-
-    # Use Quilt
-    pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
-
-    # Process data
-    result = process_package(pkg)
-
-    return {
-        "statusCode": 200,
-        "body": result
-    }
-
-def process_package(pkg):
-    # Your processing logic
-    return {"files": len(pkg)}
-```
-
-**Deploy with AWS SAM** (template.yaml):
-
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
-
-Resources:
-  DataProcessorFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: lambda_function.lambda_handler
-      Runtime: python3.11
-      Environment:
-        Variables:
-          QUILT_API_KEY: '{{resolve:secretsmanager:quilt-api-key:SecretString}}'
-      Policies:
-        - S3ReadPolicy:
-            BucketName: mybucket
-```
-
-### Kubernetes Deployments
-
-**Create secret**:
-
-```bash
-kubectl create secret generic quilt-credentials \
-  --from-literal=api-key="qk_your_secret_here"
-```
-
-**deployment.yaml**:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: data-processor
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: data-processor
-  template:
-    metadata:
-      labels:
-        app: data-processor
-    spec:
-      containers:
-      - name: processor
-        image: myregistry/data-processor:latest
-        env:
-        - name: QUILT_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: quilt-credentials
-              key: api-key
-```
-
-### Cron Jobs
-
-**crontab**:
-
-```bash
-# Daily data sync at 2 AM
-0 2 * * * /usr/bin/python3 /home/user/sync_data.py >> /var/log/quilt-sync.log 2>&1
-```
-
-**/home/user/sync_data.py**:
-
-```python
-#!/usr/bin/env python3
-import os
-import sys
-import logging
-import quilt3
-
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-def main():
-    try:
-        # Load API key from environment
-        api_key = os.environ.get("QUILT_API_KEY")
-        if not api_key:
-            # Try loading from .env file
-            env_file = os.path.expanduser("~/.quilt/api_key")
-            with open(env_file) as f:
-                api_key = f.read().strip()
-
-        logging.info("Authenticating to Quilt...")
-        quilt3.login_with_api_key(api_key)
-
-        logging.info("Fetching package...")
-        pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
-
-        logging.info(f"Processing {len(pkg)} files...")
-        # Your processing logic here
-
-        logging.info("Sync completed successfully")
-        return 0
-
-    except Exception as e:
-        logging.error(f"Sync failed: {e}", exc_info=True)
-        return 1
-
-if __name__ == "__main__":
-    sys.exit(main())
-```
-
-Make executable:
-
-```bash
-chmod +x /home/user/sync_data.py
-```
 
 ## Administrator Guide
 
@@ -746,41 +458,17 @@ quilt3.api_keys.revoke(id=keys[0].id)
    source ~/.bashrc
    ```
 
-### Docker Environment Variables
+4. **Use .env file** (recommended):
 
-**Issue**: Key not available in container
+   ```bash
+   echo 'QUILT_API_KEY="qk_..."' >> .env
+   ```
 
-**Solution**: Verify the variable is passed:
-
-```bash
-# Test that variable is available
-docker run -e QUILT_API_KEY="$QUILT_API_KEY" myimage \
-  python -c "import os; print('Key set:', bool(os.environ.get('QUILT_API_KEY')))"
-```
-
-### Lambda Function Errors
-
-**Issue**: Lambda can't find API key
-
-**Solutions**:
-
-1. **Verify environment variable**:
-   - AWS Console → Lambda → Configuration → Environment variables
-   - Should see `QUILT_API_KEY` in the list
-
-2. **Use Secrets Manager**:
+   Then load it in Python:
 
    ```python
-   import boto3
-   import json
-
-   def get_secret():
-       client = boto3.client('secretsmanager')
-       response = client.get_secret_value(SecretId='quilt-api-key')
-       return response['SecretString']
-
-   api_key = get_secret()
-   quilt3.login_with_api_key(api_key)
+   from dotenv import load_dotenv
+   load_dotenv()
    ```
 
 ## Migration from Interactive to API Key
