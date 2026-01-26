@@ -103,6 +103,7 @@ class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     Each instance computes one part's checksum. Use combine_parts() to get
     the final checksum from all parts.
     """
+
     _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
     checksum_type: T.ClassVar[str]
 
