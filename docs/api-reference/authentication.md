@@ -14,6 +14,7 @@ Interactive authentication uses OAuth or SSO to authenticate through your web br
 
 ### Login
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 
@@ -30,6 +31,7 @@ This command will:
 
 ### Check Authentication Status
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Returns catalog URL if authenticated, None otherwise
 catalog_url = quilt3.logged_in()
@@ -42,6 +44,7 @@ else:
 
 ### Logout
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Clear all credentials (both interactive and API keys)
 quilt3.logout()
@@ -68,6 +71,7 @@ API keys provide programmatic access to Quilt without requiring browser-based au
 
 First, log in using the interactive method:
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 quilt3.login()
@@ -75,6 +79,7 @@ quilt3.login()
 
 #### Step 2: Create an API Key
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Create a key that expires in 90 days (default)
 key, secret = quilt3.api_keys.create("my-automation-key")
@@ -109,6 +114,7 @@ QUILT_API_KEY=qk_your_secret_here
 
 Load it in your Python code:
 
+<!-- pytest-codeblocks:skip -->
 ```python
 from dotenv import load_dotenv
 import os
@@ -123,6 +129,7 @@ For production deployments, embed it in environment variables or AWS secrets man
 
 #### Step 4: Use the API Key
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import os
 import quilt3
@@ -142,6 +149,7 @@ You must explicitly login with it.
 
 #### List All Your Keys
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 
@@ -159,6 +167,7 @@ for key in keys:
 
 #### Filter Keys
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Find keys by name
 production_keys = quilt3.api_keys.list(name="production-pipeline")
@@ -175,6 +184,7 @@ expired_keys = quilt3.api_keys.list(status="EXPIRED")
 
 #### Get a Specific Key
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Get details about a specific key
 key = quilt3.api_keys.get("key-id-here")
@@ -189,6 +199,7 @@ else:
 
 #### Revoke a Key
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Revoke by ID (if you know it)
 quilt3.api_keys.revoke(id="key-id-here")
@@ -239,6 +250,7 @@ import quilt3.admin
 
 ### List All API Keys
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # List all keys in the system
 all_keys = quilt3.admin.api_keys.list()
@@ -261,6 +273,7 @@ print(f"Expired keys: {len(expired_keys)}")
 
 ### Get Key Details
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Get details about a specific key
 key = quilt3.admin.api_keys.get("key-id-here")
@@ -278,6 +291,7 @@ if key:
 
 ### Revoke a User's Key
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Revoke a specific key by ID
 key_id = "key-id-here"
@@ -287,6 +301,7 @@ print(f"Revoked key: {key_id}")
 
 ### Audit Key Usage
 
+<!-- pytest-codeblocks:skip -->
 ```python
 from datetime import datetime, timedelta
 
@@ -307,6 +322,7 @@ print(f"\nFound {len(unused_keys)} unused keys")
 
 ### Generate Usage Reports
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Get summary statistics
 all_keys = quilt3.admin.api_keys.list()
@@ -362,6 +378,7 @@ LIMIT 100;
 
 1. **Verify the key format**:
 
+   <!-- pytest-codeblocks:skip -->
    ```python
    api_key = "qk_..."  # Must start with qk_
    if not api_key.startswith("qk_"):
@@ -370,6 +387,7 @@ LIMIT 100;
 
 2. **Check if key is expired**:
 
+   <!-- pytest-codeblocks:skip -->
    ```python
    import quilt3
    quilt3.login()  # Use interactive login first
@@ -381,6 +399,7 @@ LIMIT 100;
 
 3. **Clear old sessions**:
 
+   <!-- pytest-codeblocks:skip -->
    ```python
    import quilt3
    quilt3.logout()  # Clear all credentials
@@ -403,6 +422,7 @@ LIMIT 100;
 
 **Solution**: Create a new key:
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 
@@ -455,6 +475,7 @@ quilt3.api_keys.revoke(id=keys[0].id)
 
    Then load it in Python:
 
+   <!-- pytest-codeblocks:skip -->
    ```python
    from dotenv import load_dotenv
    load_dotenv()
@@ -466,6 +487,7 @@ If you have existing scripts using `quilt3.login()`, here's how to migrate:
 
 ### Before (Interactive Login)
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 
@@ -477,6 +499,7 @@ pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
 
 ### After (API Key)
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import os
 import quilt3

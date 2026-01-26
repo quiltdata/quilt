@@ -23,9 +23,6 @@
 # quilt3.admin.api_keys
 Admin API for managing API keys.
 
-See the [Authentication Guide](authentication.md#administrator-guide)
-for detailed usage examples and best practices for administrators.
-
 ## list(email: Optional[str] = None, key\_name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
 
 List API keys. Optionally filter by user email, key name, fingerprint, or status.
@@ -81,7 +78,7 @@ __Arguments__
 * __name__:  Name of the bucket to get.
 
 
-## list() -> list[quilt3.admin.types.Bucket]  {#list}
+## list() -> list  {#list}
 
 List all bucket configurations in the registry.
 
@@ -277,7 +274,7 @@ Set the SSO configuration. Pass `None` to remove SSO configuration.
 # quilt3.admin.tabulator
 
 
-## list\_tables(bucket\_name: str) -> list[quilt3.admin.types.TabulatorTable]  {#list\_tables}
+## list\_tables(bucket\_name: str) -> list  {#list\_tables}
 
 List all tabulator tables in a bucket.
 

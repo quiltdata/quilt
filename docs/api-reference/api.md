@@ -93,15 +93,13 @@ An iterable of strings containing the names of the packages
 
 Return catalog URL if Quilt client is authenticated, `None` otherwise.
 
+
 ## login()  {#login}
 
 Authenticate to your Quilt stack and assume the role assigned to you by
 your stack administrator. Not required if you have existing AWS credentials.
 
 Launches a web browser and asks the user for a token.
-
-See the [Authentication Guide](authentication.md) for detailed
-usage examples and best practices.
 
 
 ## login\_with\_api\_key(key: str)  {#login\_with\_api\_key}
@@ -150,9 +148,6 @@ search results
 
 # quilt3.api_keys
 API for managing your own API keys.
-
-See the [Authentication Guide](authentication.md) for detailed usage examples
-and best practices.
 
 ## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], status: Literal['ACTIVE', 'EXPIRED']) -> None  {#APIKey}
 An API key for programmatic access.
