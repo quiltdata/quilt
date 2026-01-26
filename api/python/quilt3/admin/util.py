@@ -1,4 +1,5 @@
-from . import _graphql_client, exceptions, types
+from .. import _graphql_client
+from . import exceptions, types
 
 
 def handle_errors(result: _graphql_client.BaseModel) -> _graphql_client.BaseModel:

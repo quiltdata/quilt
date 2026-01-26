@@ -9,6 +9,11 @@ from pydantic import Field, PlainSerializer
 from .base_model import BaseModel, Upload
 
 
+class APIKeyCreateInput(BaseModel):
+    name: str
+    expires_in_days: int = Field(alias="expiresInDays", default=90)
+
+
 class BucketAddInput(BaseModel):
     name: str
     title: str

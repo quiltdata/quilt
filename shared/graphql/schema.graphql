@@ -16,6 +16,36 @@ enum SortDirection {
   DESC
 }
 
+enum APIKeyStatus {
+  ACTIVE
+  EXPIRED
+}
+
+type APIKey {
+  id: ID!
+  name: String!
+  fingerprint: String!
+  createdAt: Datetime!
+  expiresAt: Datetime!
+  lastUsedAt: Datetime
+  createdByEmail: String
+  status: APIKeyStatus!
+}
+
+type APIKeyCreated {
+  apiKey: APIKey!
+  secret: String!
+}
+
+input APIKeyCreateInput {
+  name: String!
+  expiresInDays: Int! = 90
+}
+
+union APIKeyCreateResult = APIKeyCreated | InvalidInput
+
+union APIKeyRevokeResult = Ok | InvalidInput
+
 type OperationError {
   message: String!
   name: String!
@@ -567,12 +597,18 @@ type PackagerAdminQueries {
   eventRule(name: String!): PackagerEventRule
 }
 
+type APIKeyAdminQueries {
+  list(email: String, name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
+  get(id: ID!): APIKey
+}
+
 type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
+  apiKeys: APIKeyAdminQueries!
 }
 
 type MyRole {
@@ -585,6 +621,8 @@ type Me {
   isAdmin: Boolean!
   role: MyRole!
   roles: [MyRole!]!
+  apiKeys(name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
+  apiKey(id: ID!): APIKey
 }
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
@@ -965,6 +1003,11 @@ type PackagerAdminMutations {
   toggleEventRule(name: String!, enabled: Boolean!): PackagerEventRuleToggleResult!
 }
 
+type APIKeyAdminMutations {
+  revoke(id: ID!): APIKeyRevokeResult!
+  createForUser(email: String!, input: APIKeyCreateInput!): APIKeyCreateResult!
+}
+
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
@@ -972,10 +1015,14 @@ type AdminMutations {
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult! @deprecated
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
+  apiKeys: APIKeyAdminMutations!
 }
 
 type Mutation {
   switchRole(roleName: String!): SwitchRoleResult!
+
+  apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
+  apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
 
   packageConstruct(
     params: PackagePushParams!

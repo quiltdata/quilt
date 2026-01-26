@@ -3,6 +3,25 @@
 
 from typing import Any, Dict, List, Optional, Union
 
+from .admin_api_key_get import AdminApiKeyGet, AdminApiKeyGetAdminApiKeysGet
+from .admin_api_key_revoke import (
+    AdminApiKeyRevoke,
+    AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput,
+    AdminApiKeyRevokeAdminApiKeysRevokeOk,
+)
+from .admin_api_keys_list import AdminApiKeysList, AdminApiKeysListAdminApiKeysList
+from .api_key_create import (
+    ApiKeyCreate,
+    ApiKeyCreateApiKeyCreateAPIKeyCreated,
+    ApiKeyCreateApiKeyCreateInvalidInput,
+)
+from .api_key_get import ApiKeyGet, ApiKeyGetMe
+from .api_key_revoke import (
+    ApiKeyRevoke,
+    ApiKeyRevokeApiKeyRevokeInvalidInput,
+    ApiKeyRevokeApiKeyRevokeOk,
+)
+from .api_keys_list import ApiKeysList, ApiKeysListMe
 from .base_client import BaseClient
 from .base_model import UNSET, UnsetType
 from .bucket_add import (
@@ -53,7 +72,8 @@ from .bucket_update import (
     BucketUpdateBucketUpdateSnsInvalid,
 )
 from .buckets_list import BucketsList, BucketsListBucketConfigs
-from .input_types import BucketAddInput, BucketUpdateInput, UserInput
+from .enums import APIKeyStatus
+from .input_types import APIKeyCreateInput, BucketAddInput, BucketUpdateInput, UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
@@ -1360,3 +1380,244 @@ class Client(BaseClient):
         response = self.execute(query=query, operation_name="bucketRemove", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketRemove.model_validate(data).bucket_remove
+
+    def api_keys_list(
+        self,
+        name: Union[Optional[str], UnsetType] = UNSET,
+        fingerprint: Union[Optional[str], UnsetType] = UNSET,
+        status: Union[Optional[APIKeyStatus], UnsetType] = UNSET,
+        **kwargs: Any,
+    ) -> Optional[ApiKeysListMe]:
+        query = gql(
+            """
+            query apiKeysList($name: String, $fingerprint: String, $status: APIKeyStatus) {
+              me {
+                apiKeys(name: $name, fingerprint: $fingerprint, status: $status) {
+                  ...APIKeySelection
+                }
+              }
+            }
+
+            fragment APIKeySelection on APIKey {
+              id
+              name
+              fingerprint
+              createdAt
+              expiresAt
+              lastUsedAt
+              status
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "name": name,
+            "fingerprint": fingerprint,
+            "status": status,
+        }
+        response = self.execute(query=query, operation_name="apiKeysList", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return ApiKeysList.model_validate(data).me
+
+    def api_key_get(self, id: str, **kwargs: Any) -> Optional[ApiKeyGetMe]:
+        query = gql(
+            """
+            query apiKeyGet($id: ID!) {
+              me {
+                apiKey(id: $id) {
+                  ...APIKeySelection
+                }
+              }
+            }
+
+            fragment APIKeySelection on APIKey {
+              id
+              name
+              fingerprint
+              createdAt
+              expiresAt
+              lastUsedAt
+              status
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="apiKeyGet", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return ApiKeyGet.model_validate(data).me
+
+    def api_key_create(
+        self, input: APIKeyCreateInput, **kwargs: Any
+    ) -> Union[ApiKeyCreateApiKeyCreateAPIKeyCreated, ApiKeyCreateApiKeyCreateInvalidInput]:
+        query = gql(
+            """
+            mutation apiKeyCreate($input: APIKeyCreateInput!) {
+              apiKeyCreate(input: $input) {
+                __typename
+                ... on APIKeyCreated {
+                  apiKey {
+                    ...APIKeySelection
+                  }
+                  secret
+                }
+                ...InvalidInputSelection
+              }
+            }
+
+            fragment APIKeySelection on APIKey {
+              id
+              name
+              fingerprint
+              createdAt
+              expiresAt
+              lastUsedAt
+              status
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"input": input}
+        response = self.execute(query=query, operation_name="apiKeyCreate", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return ApiKeyCreate.model_validate(data).api_key_create
+
+    def api_key_revoke(
+        self,
+        id: Union[Optional[str], UnsetType] = UNSET,
+        secret: Union[Optional[str], UnsetType] = UNSET,
+        **kwargs: Any,
+    ) -> Union[ApiKeyRevokeApiKeyRevokeOk, ApiKeyRevokeApiKeyRevokeInvalidInput]:
+        query = gql(
+            """
+            mutation apiKeyRevoke($id: ID, $secret: String) {
+              apiKeyRevoke(id: $id, secret: $secret) {
+                __typename
+                ...InvalidInputSelection
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id, "secret": secret}
+        response = self.execute(query=query, operation_name="apiKeyRevoke", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return ApiKeyRevoke.model_validate(data).api_key_revoke
+
+    def admin_api_keys_list(
+        self,
+        email: Union[Optional[str], UnsetType] = UNSET,
+        name: Union[Optional[str], UnsetType] = UNSET,
+        fingerprint: Union[Optional[str], UnsetType] = UNSET,
+        status: Union[Optional[APIKeyStatus], UnsetType] = UNSET,
+        **kwargs: Any,
+    ) -> List[AdminApiKeysListAdminApiKeysList]:
+        query = gql(
+            """
+            query adminApiKeysList($email: String, $name: String, $fingerprint: String, $status: APIKeyStatus) {
+              admin {
+                apiKeys {
+                  list(email: $email, name: $name, fingerprint: $fingerprint, status: $status) {
+                    ...APIKeySelection
+                  }
+                }
+              }
+            }
+
+            fragment APIKeySelection on APIKey {
+              id
+              name
+              fingerprint
+              createdAt
+              expiresAt
+              lastUsedAt
+              status
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "email": email,
+            "name": name,
+            "fingerprint": fingerprint,
+            "status": status,
+        }
+        response = self.execute(query=query, operation_name="adminApiKeysList", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return AdminApiKeysList.model_validate(data).admin.api_keys.list
+
+    def admin_api_key_get(self, id: str, **kwargs: Any) -> Optional[AdminApiKeyGetAdminApiKeysGet]:
+        query = gql(
+            """
+            query adminApiKeyGet($id: ID!) {
+              admin {
+                apiKeys {
+                  get(id: $id) {
+                    ...APIKeySelection
+                  }
+                }
+              }
+            }
+
+            fragment APIKeySelection on APIKey {
+              id
+              name
+              fingerprint
+              createdAt
+              expiresAt
+              lastUsedAt
+              status
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="adminApiKeyGet", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return AdminApiKeyGet.model_validate(data).admin.api_keys.get
+
+    def admin_api_key_revoke(
+        self, id: str, **kwargs: Any
+    ) -> Union[
+        AdminApiKeyRevokeAdminApiKeysRevokeOk,
+        AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput,
+    ]:
+        query = gql(
+            """
+            mutation adminApiKeyRevoke($id: ID!) {
+              admin {
+                apiKeys {
+                  revoke(id: $id) {
+                    __typename
+                    ...InvalidInputSelection
+                  }
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="adminApiKeyRevoke", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return AdminApiKeyRevoke.model_validate(data).admin.api_keys.revoke

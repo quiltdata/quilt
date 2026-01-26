@@ -24,6 +24,70 @@ export interface Scalars {
   S3ObjectLocation: S3ObjectLocation
 }
 
+export interface APIKey {
+  readonly __typename: 'APIKey'
+  readonly id: Scalars['ID']
+  readonly name: Scalars['String']
+  readonly fingerprint: Scalars['String']
+  readonly createdAt: Scalars['Datetime']
+  readonly expiresAt: Scalars['Datetime']
+  readonly lastUsedAt: Maybe<Scalars['Datetime']>
+  readonly createdByEmail: Maybe<Scalars['String']>
+  readonly status: APIKeyStatus
+}
+
+export interface APIKeyAdminMutations {
+  readonly __typename: 'APIKeyAdminMutations'
+  readonly revoke: APIKeyRevokeResult
+  readonly createForUser: APIKeyCreateResult
+}
+
+export interface APIKeyAdminMutationsrevokeArgs {
+  id: Scalars['ID']
+}
+
+export interface APIKeyAdminMutationscreateForUserArgs {
+  email: Scalars['String']
+  input: APIKeyCreateInput
+}
+
+export interface APIKeyAdminQueries {
+  readonly __typename: 'APIKeyAdminQueries'
+  readonly list: ReadonlyArray<APIKey>
+  readonly get: Maybe<APIKey>
+}
+
+export interface APIKeyAdminQuerieslistArgs {
+  email: Maybe<Scalars['String']>
+  name: Maybe<Scalars['String']>
+  fingerprint: Maybe<Scalars['String']>
+  status: Maybe<APIKeyStatus>
+}
+
+export interface APIKeyAdminQueriesgetArgs {
+  id: Scalars['ID']
+}
+
+export interface APIKeyCreateInput {
+  readonly name: Scalars['String']
+  readonly expiresInDays: Scalars['Int']
+}
+
+export type APIKeyCreateResult = APIKeyCreated | InvalidInput
+
+export interface APIKeyCreated {
+  readonly __typename: 'APIKeyCreated'
+  readonly apiKey: APIKey
+  readonly secret: Scalars['String']
+}
+
+export type APIKeyRevokeResult = Ok | InvalidInput
+
+export enum APIKeyStatus {
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+}
+
 export interface AccessCountForDate {
   readonly __typename: 'AccessCountForDate'
   readonly date: Scalars['Datetime']
@@ -52,6 +116,7 @@ export interface AdminMutations {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
   readonly packager: PackagerAdminMutations
+  readonly apiKeys: APIKeyAdminMutations
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -81,6 +146,7 @@ export interface AdminQueries {
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
   readonly tabulatorOpenQuery: Scalars['Boolean']
   readonly packager: PackagerAdminQueries
+  readonly apiKeys: APIKeyAdminQueries
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -380,6 +446,18 @@ export interface Me {
   readonly isAdmin: Scalars['Boolean']
   readonly role: MyRole
   readonly roles: ReadonlyArray<MyRole>
+  readonly apiKeys: ReadonlyArray<APIKey>
+  readonly apiKey: Maybe<APIKey>
+}
+
+export interface MeapiKeysArgs {
+  name: Maybe<Scalars['String']>
+  fingerprint: Maybe<Scalars['String']>
+  status: Maybe<APIKeyStatus>
+}
+
+export interface MeapiKeyArgs {
+  id: Scalars['ID']
 }
 
 export interface MutateUserAdminMutations {
@@ -424,6 +502,8 @@ export interface MutateUserAdminMutationssetActiveArgs {
 export interface Mutation {
   readonly __typename: 'Mutation'
   readonly switchRole: SwitchRoleResult
+  readonly apiKeyCreate: APIKeyCreateResult
+  readonly apiKeyRevoke: APIKeyRevokeResult
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
@@ -451,6 +531,15 @@ export interface Mutation {
 
 export interface MutationswitchRoleArgs {
   roleName: Scalars['String']
+}
+
+export interface MutationapiKeyCreateArgs {
+  input: APIKeyCreateInput
+}
+
+export interface MutationapiKeyRevokeArgs {
+  id: Maybe<Scalars['ID']>
+  secret: Maybe<Scalars['String']>
 }
 
 export interface MutationpackageConstructArgs {
