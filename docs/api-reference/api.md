@@ -6,6 +6,9 @@ Quilt API
 
 Clear the API key and fall back to interactive session (if available).
 
+See the [Authentication Guide](../walkthrough/authentication.md) for detailed
+usage examples and best practices.
+
 
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
 Set or read the QUILT configuration.
@@ -93,6 +96,9 @@ An iterable of strings containing the names of the packages
 
 Return catalog URL if Quilt client is authenticated, `None` otherwise.
 
+See the [Authentication Guide](../walkthrough/authentication.md) for more
+information about authentication methods.
+
 
 ## login()  {#login}
 
@@ -100,6 +106,9 @@ Authenticate to your Quilt stack and assume the role assigned to you by
 your stack administrator. Not required if you have existing AWS credentials.
 
 Launches a web browser and asks the user for a token.
+
+See the [Authentication Guide](../walkthrough/authentication.md) for detailed
+usage examples and best practices.
 
 
 ## login\_with\_api\_key(key: str)  {#login\_with\_api\_key}
@@ -117,6 +126,9 @@ __Arguments__
 __Raises__
 
 * `ValueError`:  If the key doesn't start with 'qk_' prefix.
+
+See the [Authentication Guide](../walkthrough/authentication.md) for detailed
+usage examples, best practices, and common use cases (CI/CD, Docker, Lambda).
 
 
 ## logout()  {#logout}
@@ -148,6 +160,9 @@ search results
 
 # quilt3.api_keys
 API for managing your own API keys.
+
+See the [Authentication Guide](../walkthrough/authentication.md) for detailed
+usage examples, best practices, and common use cases.
 
 ## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], status: Literal['ACTIVE', 'EXPIRED']) -> None  {#APIKey}
 An API key for programmatic access.

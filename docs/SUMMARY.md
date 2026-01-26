@@ -49,6 +49,7 @@
 
 * [Installation](Installation.md)
 * [Quick Start](Quickstart.md)
+* [Authentication Guide](walkthrough/authentication.md)
 * [Editing a Package](walkthrough/editing-a-package.md)
 * [Uploading a Package](walkthrough/uploading-a-package.md)
 * [Installing a Package](walkthrough/installing-a-package.md)

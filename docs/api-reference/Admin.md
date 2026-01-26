@@ -23,6 +23,9 @@
 # quilt3.admin.api_keys
 Admin API for managing API keys.
 
+See the [Authentication Guide](../walkthrough/authentication.md#administrator-guide)
+for detailed usage examples and best practices for administrators.
+
 ## list(email: Optional[str] = None, key\_name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
 
 List API keys. Optionally filter by user email, key name, fingerprint, or status.
