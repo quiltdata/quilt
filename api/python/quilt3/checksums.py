@@ -108,6 +108,11 @@ class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
 
     def __init_subclass__(cls, checksum_type: str, **kwargs):
         super().__init_subclass__(**kwargs)
+        if checksum_type in MultiPartChecksumCalculator._registry:
+            raise ValueError(
+                f"Checksum type '{checksum_type}' is already registered by "
+                f"{MultiPartChecksumCalculator._registry[checksum_type].__name__}"
+            )
         cls.checksum_type = checksum_type
         MultiPartChecksumCalculator._registry[checksum_type] = cls
 
