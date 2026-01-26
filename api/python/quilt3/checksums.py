@@ -21,8 +21,10 @@ ChecksumT = T.TypeVar("ChecksumT", int, bytes)
 
 
 SHA256_HASH_NAME = "SHA256"
-DEFAULT_HASH = SHA256_CHUNKED_HASH_NAME = "sha2-256-chunked"
+SHA256_CHUNKED_HASH_NAME = "sha2-256-chunked"
 CRC64NVME_HASH_NAME = "CRC64NVME"
+
+DEFAULT_HASH = SHA256_CHUNKED_HASH_NAME
 
 
 # 8 MiB - same as TransferConfig().multipart_threshold - but hard-coded to guarantee it won't change.
@@ -95,6 +97,12 @@ class ChecksumPart(T.Generic[ChecksumT]):
 # XXX: currently combine_parts() allows parts produced by *any* calculator with "compatible" checksum type.
 # Should we do something about it?
 class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
+    """
+    Checksum algorithm where final result is derived from per-part checksums.
+
+    Each instance computes one part's checksum. Use combine_parts() to get
+    the final checksum from all parts.
+    """
     _registry: dict[str, type[MultiPartChecksumCalculator]] = {}
     checksum_type: T.ClassVar[str]
 
