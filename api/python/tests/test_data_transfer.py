@@ -1123,3 +1123,19 @@ class S3HashingTest(QuiltTestCase):
         hash2 = checksums.calculate_checksum_bytes(data)
         assert hash1 == hash2
         assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='
+
+
+def test_crc64nvme_local_file(tmp_path):
+    """Test CRC64NVME checksum calculation via calculate_multipart_checksum with local file."""
+    data = b'Hello, World!'
+
+    path = tmp_path / "test-crc64-file"
+    path.write_bytes(data)
+
+    src = PhysicalKey.from_path(str(path))
+    task = data_transfer.FileChecksumTask.create(src, len(data), checksums.CRC64NVME_HASH_NAME)
+
+    result = data_transfer.calculate_multipart_checksum([task])
+
+    assert result[0] == '1Km+Qyat0k0='  # Known CRC64NVME of "Hello, World!"
+    assert result[0] == checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.CRC64NVME_HASH_NAME)
