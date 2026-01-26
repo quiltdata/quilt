@@ -967,20 +967,6 @@ def get_size_and_version(src: PhysicalKey):
     return size, version
 
 
-# FIXME: keep this for now, remove before merging?
-def calculate_checksum(
-    src_list: list[PhysicalKey],
-    sizes: list[int],
-    *,
-    checksum_calculator_cls: type[checksums.MultiPartChecksumCalculator] = checksums.SHA256MultiPartChecksumCalculator,
-) -> list[str | Exception]:
-    assert len(src_list) == len(sizes)
-
-    return calculate_multipart_checksum(
-        [FileChecksumTask(src, size, checksum_calculator_cls) for src, size in zip(src_list, sizes)]
-    )
-
-
 def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[str | Exception]:
     if not tasks:
         return []

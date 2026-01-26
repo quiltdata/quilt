@@ -4,7 +4,6 @@ import pytest
 
 from quilt3 import checksums
 
-
 # --- Utility functions ---
 
 
