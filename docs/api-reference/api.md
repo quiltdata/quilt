@@ -1,14 +1,13 @@
 
 # quilt3
-
 Quilt API
 
 ## clear\_api\_key()  {#clear\_api\_key}
 
 Clear the API key and fall back to interactive session (if available).
 
-## config(\*catalog\_url, \*\*config\_values)  {#config}
 
+## config(\*catalog\_url, \*\*config\_values)  {#config}
 Set or read the QUILT configuration.
 
 To retrieve the current config, call directly, without arguments:
@@ -31,11 +30,12 @@ Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
 __Arguments__
 
 * __catalog_url__:  A (single) URL indicating a location to configure from
-* __config_values__:  `key=value` pairs to set in the config
+* __**config_values__:  `key=value` pairs to set in the config
 
 __Returns__
 
 `QuiltConfig`: (an ordered Mapping)
+
 
 ## delete\_package(name, registry=None, top\_hash=None)  {#delete\_package}
 
@@ -47,6 +47,7 @@ __Arguments__
 * __registry (str)__:  The registry the package will be removed from
 * __top_hash (str)__:  Optional. A package hash to delete, instead of the whole package.
 
+
 ## get\_boto3\_session(\*, fallback: bool = True) -> boto3.session.Session  {#get\_boto3\_session}
 
 Return a Boto3 session with Quilt stack credentials and AWS region.
@@ -56,8 +57,8 @@ otherwise raise a `QuiltException`.
 > Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
 if you previously called it in quilt3 < 6.1.0.
 
-## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
 
+## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
 Lists versions of a given package.
 
 Returns an iterable of (latest_or_unix_ts, hash) of package revisions.
@@ -72,8 +73,8 @@ __Returns__
 
 An iterable of tuples containing the version and hash for the package.
 
-## list\_packages(registry=None)  {#list\_packages}
 
+## list\_packages(registry=None)  {#list\_packages}
 Lists Packages in the registry.
 
 Returns an iterable of all named packages in a registry.
@@ -86,6 +87,7 @@ __Arguments__
 __Returns__
 
 An iterable of strings containing the names of the packages
+
 
 ## logged\_in()  {#logged\_in}
 
@@ -100,6 +102,7 @@ Launches a web browser and asks the user for a token.
 
 See the [Authentication Guide](authentication.md) for detailed
 usage examples and best practices.
+
 
 ## login\_with\_api\_key(key: str)  {#login\_with\_api\_key}
 
@@ -117,9 +120,11 @@ __Raises__
 
 * `ValueError`:  If the key doesn't start with 'qk_' prefix.
 
+
 ## logout()  {#logout}
 
 Do not use Quilt credentials. Useful if you have existing AWS credentials.
+
 
 ## search(query: Union[str, dict], limit: int = 10) -> List[dict]  {#search}
 
@@ -142,18 +147,17 @@ __Returns__
 
 search results
 
-# quilt3.api_keys
 
+# quilt3.api_keys
 API for managing your own API keys.
 
-See the [Authentication Guide](authentication.md) for detailed usage examples and best practices.
+See the [Authentication Guide](authentication.md) for detailed usage examples
+and best practices.
 
 ## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], status: Literal['ACTIVE', 'EXPIRED']) -> None  {#APIKey}
-
 An API key for programmatic access.
 
 ## APIKeyError(result)  {#APIKeyError}
-
 Error during API key operation.
 
 ## list(name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
@@ -170,6 +174,7 @@ __Returns__
 
 List of your API keys matching the filters.
 
+
 ## get(id: str) -> Optional[quilt3.api\_keys.APIKey]  {#get}
 
 Get a specific API key by ID.
@@ -181,6 +186,7 @@ __Arguments__
 __Returns__
 
 The API key, or None if not found.
+
 
 ## create(name: str, expires\_in\_days: int = 90) -> Tuple[quilt3.api\_keys.APIKey, str]  {#create}
 
@@ -199,6 +205,7 @@ __Raises__
 
 * `APIKeyError`:  If the operation fails.
 
+
 ## revoke(id: Optional[str] = None, secret: Optional[str] = None) -> None  {#revoke}
 
 Revoke an API key. Provide either the key ID or the secret.
@@ -212,3 +219,4 @@ __Raises__
 
 * `ValueError`:  If neither id nor secret is provided.
 * `APIKeyError`:  If the operation fails.
+
