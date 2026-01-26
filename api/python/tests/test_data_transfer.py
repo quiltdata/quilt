@@ -1073,7 +1073,7 @@ class S3HashingTest(QuiltTestCase):
             hash1 = data_transfer.calculate_multipart_checksum([
                 data_transfer.FileChecksumTask(self.src, size, checksums.SHA256MultiPartChecksumCalculator)
             ])[0]
-            hash2 = checksums.calculate_checksum_bytes(data)
+            hash2 = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.SHA256_CHUNKED_HASH_NAME)
             assert hash1 == hash2
             assert hash1 == 'Xb1PbjJeWof4zD7zuHc9PI7sLiz/Ykj4gphlaZEt3xA='
 
@@ -1099,7 +1099,7 @@ class S3HashingTest(QuiltTestCase):
             hash1 = data_transfer.calculate_multipart_checksum([
                 data_transfer.FileChecksumTask(self.src, size, checksums.SHA256MultiPartChecksumCalculator)
             ])[0]
-            hash2 = checksums.calculate_checksum_bytes(data)
+            hash2 = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.SHA256_CHUNKED_HASH_NAME)
             assert hash1 == hash2
             assert hash1 == 'T+rt/HKRJOiAkEGXKvc+DhCwRcrZiDrFkjKonDT1zgs='
 
@@ -1124,7 +1124,7 @@ class S3HashingTest(QuiltTestCase):
             hash1 = data_transfer.calculate_multipart_checksum([
                 data_transfer.FileChecksumTask(self.src, size, checksums.SHA256MultiPartChecksumCalculator)
             ])[0]
-            hash2 = checksums.calculate_checksum_bytes(data)
+            hash2 = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.SHA256_CHUNKED_HASH_NAME)
             assert hash1 == hash2
             assert hash1 == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg='
 
@@ -1135,7 +1135,7 @@ class S3HashingTest(QuiltTestCase):
         hash1 = data_transfer.calculate_multipart_checksum([
             data_transfer.FileChecksumTask(self.src, size, checksums.SHA256MultiPartChecksumCalculator)
         ])[0]
-        hash2 = checksums.calculate_checksum_bytes(data)
+        hash2 = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.SHA256_CHUNKED_HASH_NAME)
         assert hash1 == hash2
         assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='
 

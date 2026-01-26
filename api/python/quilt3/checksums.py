@@ -193,10 +193,5 @@ def calculate_multipart_checksum_bytes(data: bytes, *, checksum_type: str) -> st
     return calculator_cls.combine_parts(checksum_parts)
 
 
-def calculate_checksum_bytes(data: bytes) -> str:
-    # FIXME: leave for now, but remove later
-    return calculate_multipart_checksum_bytes(data, checksum_type=SHA256_CHUNKED_HASH_NAME)
-
-
 def legacy_calculate_checksum_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()

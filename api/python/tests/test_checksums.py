@@ -199,14 +199,6 @@ def test_calculate_multipart_checksum_bytes_crc64nvme_empty():
     assert result == "AAAAAAAAAAA="
 
 
-def test_calculate_checksum_bytes():
-    # This is a wrapper that uses SHA256_CHUNKED_HASH_NAME
-    data = b"Hello, World!"
-    result = checksums.calculate_checksum_bytes(data)
-    expected = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.SHA256_CHUNKED_HASH_NAME)
-    assert result == expected
-
-
 def test_calculate_multipart_checksum_bytes_crc64nvme_multipart():
     """Test CRC64NVME with data spanning multiple chunks (18MB = 3 chunks of 8MB)."""
     data = b"1234567890abcdefgh" * 1024 * 1024  # 18MB
