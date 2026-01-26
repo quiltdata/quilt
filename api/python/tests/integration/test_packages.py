@@ -21,12 +21,13 @@ import pandas as pd
 import pytest
 
 import quilt3
-from quilt3 import Package
+from quilt3 import Package, checksums
 from quilt3.backends.local import (
     LocalPackageRegistryV1,
     LocalPackageRegistryV2,
 )
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
+from quilt3.data_transfer import FileChecksumTask
 from quilt3.exceptions import PackageException
 from quilt3.packages import PackageEntry
 from quilt3.util import (
@@ -1811,7 +1812,7 @@ class PackageTest(QuiltTestCase):
         Path('test/foo').write_text('Bonjour monde')  # Same 13 bytes as 'Hello, World!'
         assert not pkg.verify('test')
 
-    @patch('quilt3.packages.calculate_checksum')
+    @patch('quilt3.packages.calculate_multipart_checksum')
     def test_calculate_missing_hashes_fail(self, mocked_calculate_checksum):
         data = b'Hello, World!'
         pkg = Package()
@@ -1822,11 +1823,13 @@ class PackageTest(QuiltTestCase):
         mocked_calculate_checksum.return_value = [exc]
         with pytest.raises(quilt3.exceptions.PackageException) as excinfo:
             pkg._calculate_missing_hashes()
-        mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
+        mocked_calculate_checksum.assert_called_once_with(
+            [FileChecksumTask.create(entry.physical_key, len(data), checksums.DEFAULT_HASH)]
+        )
         assert entry.hash is None
         assert excinfo.value.__cause__ == exc
 
-    @patch('quilt3.packages.calculate_checksum')
+    @patch('quilt3.packages.calculate_multipart_checksum')
     def test_calculate_missing_hashes(self, mocked_calculate_checksum):
         data = b'Hello, World!'
         pkg = Package()
@@ -1836,7 +1839,9 @@ class PackageTest(QuiltTestCase):
         hash_ = object()
         mocked_calculate_checksum.return_value = [(hash_)]
         pkg._calculate_missing_hashes()
-        mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
+        mocked_calculate_checksum.assert_called_once_with(
+            [FileChecksumTask.create(entry.physical_key, len(data), checksums.DEFAULT_HASH)]
+        )
         assert entry.hash == {'type': 'sha2-256-chunked', 'value': hash_}
 
     def test_resolve_hash_invalid_pkg_name(self):
@@ -2037,11 +2042,13 @@ class PackageTest(QuiltTestCase):
         selector_fn = mock.MagicMock(return_value=False)
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_checksum', return_value=["a" * 64]) as calculate_checksum_mock:
+        with patch('quilt3.packages.calculate_multipart_checksum', return_value=["a" * 64]) as calculate_checksum_mock:
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
-        calculate_checksum_mock.assert_called_once_with([PhysicalKey(src_bucket, src_key, src_version)], [0])
+        calculate_checksum_mock.assert_called_once_with(
+            [FileChecksumTask.create(PhysicalKey(src_bucket, src_key, src_version), 0, checksums.DEFAULT_HASH)]
+        )
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(BytesIO(push_manifest_mock.call_args[0][2]))[lk].physical_key == PhysicalKey(
             src_bucket, src_key, src_version
@@ -2084,11 +2091,11 @@ class PackageTest(QuiltTestCase):
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_checksum', return_value=[]) as calculate_checksum_mock:
+        with patch('quilt3.packages.calculate_multipart_checksum', return_value=[]) as calculate_checksum_mock:
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
-        calculate_checksum_mock.assert_called_once_with([], [])
+        calculate_checksum_mock.assert_called_once_with([])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(BytesIO(push_manifest_mock.call_args[0][2]))[lk].physical_key == PhysicalKey(
             dst_bucket, dst_key, dst_version
@@ -2096,13 +2103,13 @@ class PackageTest(QuiltTestCase):
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._push_manifest', mock.MagicMock())
-    @patch('quilt3.packages.calculate_checksum')
+    @patch('quilt3.packages.calculate_multipart_checksum')
     @patch('quilt3.packages.copy_file_list')
     def test_push_selector_functions(self, copy_file_list_mock, calculate_checksum_mock):
         """Test that selector functions on push work as expected."""
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         copy_file_list_mock.side_effect = _mock_copy_file_list
-        calculate_checksum_mock.side_effect = lambda keys, _: ['dummy_hash'] * len(keys)
+        calculate_checksum_mock.side_effect = lambda tasks: ['dummy_hash'] * len(tasks)
 
         pkg = Package()
 
