@@ -973,7 +973,7 @@ def calculate_checksum(
     sizes: list[int],
     *,
     checksum_calculator_cls: type[checksums.MultiPartChecksumCalculator] = checksums.SHA256MultiPartChecksumCalculator,
-) -> list[T.Union[str, Exception]]:
+) -> list[str | Exception]:
     assert len(src_list) == len(sizes)
 
     return calculate_multipart_checksum(
@@ -981,7 +981,7 @@ def calculate_checksum(
     )
 
 
-def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[T.Union[str, Exception]]:
+def calculate_multipart_checksum(tasks: list[FileChecksumTask]) -> list[str | Exception]:
     if not tasks:
         return []
 
@@ -1035,8 +1035,8 @@ def _calculate_local_part_checksum(
 )
 def _calculate_checksum_internal(
     tasks: list[FileChecksumTask],
-    results: list[T.Optional[T.Union[str, Exception]]],
-) -> list[T.Union[str, Exception]]:
+    results: list[T.Optional[str | Exception]],
+) -> list[str | Exception]:
     total_size = sum(
         task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception)
     )
@@ -1121,7 +1121,7 @@ def _calculate_checksum_internal(
     return results
 
 
-def legacy_calculate_checksum(src_list: list[PhysicalKey], sizes: list[int]) -> list[T.Union[str, Exception]]:
+def legacy_calculate_checksum(src_list: list[PhysicalKey], sizes: list[int]) -> list[str | Exception]:
     assert len(src_list) == len(sizes)
 
     if not src_list:
@@ -1202,7 +1202,7 @@ def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
     retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
     retry_error_callback=lambda retry_state: retry_state.outcome.result(),
 )
-def _legacy_calculate_checksum_internal(src_list, sizes, results) -> list[T.Union[str, Exception]]:
+def _legacy_calculate_checksum_internal(src_list, sizes, results) -> list[str | Exception]:
     total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
     # This controls how many parts can be stored in the memory.
     # This includes the ones that are being downloaded or hashed.
