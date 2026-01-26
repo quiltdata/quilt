@@ -62,13 +62,6 @@ API keys provide programmatic access to Quilt without requiring browser-based au
 - CI/CD pipelines and automated workflows
 - Scheduled jobs and batch processing
 
-**❌ Don't use API keys for:**
-
-- Personal laptops and workstations (use interactive login)
-- Shared development environments
-- Jupyter notebooks on your local machine
-- Any situation where browser-based login works
-
 ### Creating Your First API Key
 
 #### Step 1: Authenticate Interactively
@@ -126,17 +119,7 @@ api_key = os.environ["QUILT_API_KEY"]
 
 **IMPORTANT**: Add `.env` to your `.gitignore` to prevent committing secrets.
 
-**Production/CI/CD Environments**:
-
-Use a secrets manager appropriate for your platform:
-
-- **AWS Secrets Manager**: For AWS Lambda, ECS, EC2
-- **Environment variables**: For containerized apps, CI/CD pipelines
-- **Azure Key Vault**: For Azure deployments
-- **Google Secret Manager**: For GCP deployments
-- **HashiCorp Vault**: For multi-cloud or on-premise
-
-Refer to your platform's documentation for configuration details.
+For production deployments, embed it in environment variables or AWS secrets manager.
 
 #### Step 4: Use the API Key
 
@@ -151,6 +134,9 @@ quilt3.login_with_api_key(api_key)
 # Now use Quilt normally
 pkg = quilt3.Package.browse("mypackage", "s3://mybucket")
 ```
+
+NOTE: quilt3 will **not** automatically detect and use the QUILT_API_KEY.
+You must explicitly login with it.
 
 ### Managing Your API Keys
 
@@ -254,8 +240,6 @@ import quilt3.admin
 ### List All API Keys
 
 ```python
-import quilt3.admin
-
 # List all keys in the system
 all_keys = quilt3.admin.api_keys.list()
 print(f"Total keys: {len(all_keys)}")
@@ -283,12 +267,14 @@ key = quilt3.admin.api_keys.get("key-id-here")
 
 if key:
     print(f"Key: {key.name}")
-    print(f"Owner: {key.created_by_email}")
+    print(f"ID: {key.id}")
     print(f"Status: {key.status}")
     print(f"Created: {key.created_at}")
     print(f"Expires: {key.expires_at}")
     print(f"Last used: {key.last_used_at or 'Never'}")
 ```
+
+**Note**: The current API does not provide user ownership information for admin key queries.
 
 ### Revoke a User's Key
 
@@ -302,7 +288,6 @@ print(f"Revoked key: {key_id}")
 ### Audit Key Usage
 
 ```python
-import quilt3.admin
 from datetime import datetime, timedelta
 
 # Find keys that haven't been used in 90 days
@@ -313,7 +298,8 @@ unused_keys = []
 for key in all_keys:
     if key.last_used_at is None or key.last_used_at < threshold:
         unused_keys.append(key)
-        print(f"⚠️  Unused key: {key.name} (owner: {key.created_by_email})")
+        print(f"⚠️  Unused key: {key.name}")
+        print(f"   ID: {key.id}")
         print(f"   Last used: {key.last_used_at or 'Never'}")
 
 print(f"\nFound {len(unused_keys)} unused keys")
@@ -322,25 +308,28 @@ print(f"\nFound {len(unused_keys)} unused keys")
 ### Generate Usage Reports
 
 ```python
-import quilt3.admin
-from collections import defaultdict
-
-# Keys by user
-keys_by_user = defaultdict(list)
+# Get summary statistics
 all_keys = quilt3.admin.api_keys.list()
 
-for key in all_keys:
-    keys_by_user[key.created_by_email].append(key)
+active = sum(1 for k in all_keys if k.status == "ACTIVE")
+expired = sum(1 for k in all_keys if k.status == "EXPIRED")
 
-# Report
 print("API Key Usage Report")
 print("=" * 60)
-for email, keys in sorted(keys_by_user.items()):
-    active = sum(1 for k in keys if k.status == "ACTIVE")
-    expired = sum(1 for k in keys if k.status == "EXPIRED")
-    print(f"{email}:")
-    print(f"  Active: {active}, Expired: {expired}, Total: {len(keys)}")
+print(f"Total keys: {len(all_keys)}")
+print(f"Active: {active}")
+print(f"Expired: {expired}")
+
+# Show recent keys
+print("\nRecently created keys:")
+sorted_keys = sorted(all_keys, key=lambda k: k.created_at, reverse=True)
+for key in sorted_keys[:10]:
+    print(f"  {key.name}")
+    print(f"    Created: {key.created_at}")
+    print(f"    Status: {key.status}")
 ```
+
+**Note**: User-based reporting is not currently available.
 
 ### Athena Query for Audit Trail
 
