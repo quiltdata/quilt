@@ -38,7 +38,6 @@ def test_crc64nvme_to_bytes_zero():
 def test_simple_s3_to_quilt_checksum():
     # S3 returns base64(sha256(data))
     # Quilt wants base64(sha256(sha256(data)))
-    data = b"Hello, World!"
     s3_checksum = "3/1gIbsr1bCvZ2KQgJ7DpTGR3YHH9wpLKGiKNiGCmG8="
     expected_quilt = "BCp9ZKWB7y7pg/IQWIAcw1ZjtwXmxV9i+o4PGOzHCYk="
 
