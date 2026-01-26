@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Added] Verification of packages with crc64nvme hashes ([#4696](https://github.com/quiltdata/quilt/pull/4696))
+
 ## 7.1.0 - 2025-12-22
 
 ### Python API
