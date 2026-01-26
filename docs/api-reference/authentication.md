@@ -22,6 +22,7 @@ quilt3.login()
 ```
 
 This command will:
+
 1. Open your default web browser
 2. Redirect you to your Quilt catalog's login page
 3. After successful authentication, save credentials locally
@@ -53,6 +54,7 @@ API keys provide programmatic access to Quilt without requiring browser-based au
 ### When to Use API Keys
 
 **✅ Use API keys for:**
+
 - CI/CD pipelines (GitHub Actions, GitLab CI, Jenkins)
 - Server-side applications and microservices
 - Docker containers and Kubernetes pods
@@ -61,6 +63,7 @@ API keys provide programmatic access to Quilt without requiring browser-based au
 - Automated data pipelines
 
 **❌ Don't use API keys for:**
+
 - Personal laptops and workstations (use interactive login)
 - Shared development environments
 - Jupyter notebooks on your local machine
@@ -103,11 +106,13 @@ print(f"Expires: {key.expires_at}")
 Choose one of these secure storage methods:
 
 **Environment Variable** (recommended for local development):
+
 ```bash
 export QUILT_API_KEY="qk_your_secret_here"
 ```
 
 **AWS Secrets Manager** (recommended for production):
+
 ```bash
 aws secretsmanager create-secret \
     --name quilt-api-key \
@@ -115,11 +120,13 @@ aws secretsmanager create-secret \
 ```
 
 **GitHub Secrets** (for GitHub Actions):
+
 1. Go to your repository Settings → Secrets → Actions
 2. Add a new secret named `QUILT_API_KEY`
 3. Paste your API key as the value
 
 **Other options**:
+
 - Azure Key Vault
 - Google Secret Manager
 - HashiCorp Vault
@@ -226,75 +233,6 @@ quilt3.api_keys.revoke(secret="qk_your_secret")
   - Different keys for dev, staging, production
   - Limits blast radius if a key is compromised
 
-### Key Lifecycle Management
-
-#### 1. Initial Setup
-
-```python
-import quilt3
-
-# Create key with descriptive name including date/purpose
-key, secret = quilt3.api_keys.create(
-    name="ci-github-actions-2026q1",
-    expires_in_days=90
-)
-
-print(f"Created: {key.name}")
-print(f"Secret: {secret}")  # Save this immediately!
-print(f"Expires: {key.expires_at}")
-```
-
-#### 2. Regular Key Rotation
-
-Rotate keys every 60-90 days (before expiration):
-
-```python
-import quilt3
-from datetime import datetime, timedelta
-
-# Check which keys are expiring soon
-keys = quilt3.api_keys.list(status="ACTIVE")
-for key in keys:
-    days_until_expiry = (key.expires_at - datetime.now(key.expires_at.tzinfo)).days
-
-    if days_until_expiry < 14:
-        print(f"⚠️  Key '{key.name}' expires in {days_until_expiry} days!")
-        print(f"   Create a replacement key now")
-
-# Create new key
-new_key, new_secret = quilt3.api_keys.create("ci-github-actions-2026q2")
-print(f"New secret: {new_secret}")
-
-# After deploying the new key to your systems:
-# 1. Update environment variables/secrets in CI/CD
-# 2. Deploy changes
-# 3. Verify new key works
-# 4. Then revoke old key
-
-old_keys = quilt3.api_keys.list(name="ci-github-actions-2026q1")
-for key in old_keys:
-    print(f"Revoking old key: {key.id}")
-    quilt3.api_keys.revoke(id=key.id)
-```
-
-#### 3. Emergency Revocation
-
-If a key is compromised:
-
-```python
-import quilt3
-
-# Immediate revocation by secret
-quilt3.api_keys.revoke(secret="qk_compromised_key")
-
-# Or by ID if you know it
-quilt3.api_keys.revoke(id="key-id")
-
-# Create replacement immediately
-new_key, new_secret = quilt3.api_keys.create("replacement-key")
-print(f"Emergency replacement: {new_secret}")
-```
-
 ## Common Use Cases
 
 ### CI/CD Pipelines
@@ -302,6 +240,7 @@ print(f"Emergency replacement: {new_secret}")
 #### GitHub Actions
 
 **.github/workflows/data-pipeline.yml**:
+
 ```yaml
 name: Data Pipeline
 on:
@@ -335,6 +274,7 @@ jobs:
 ```
 
 **sync_data.py**:
+
 ```python
 import os
 import quilt3
@@ -356,6 +296,7 @@ print(f"Package has {len(pkg)} files")
 #### GitLab CI
 
 **.gitlab-ci.yml**:
+
 ```yaml
 stages:
   - sync
@@ -376,6 +317,7 @@ sync_data:
 ### Docker Containers
 
 **Dockerfile**:
+
 ```dockerfile
 FROM python:3.11-slim
 
@@ -393,6 +335,7 @@ CMD ["python", "app.py"]
 ```
 
 **docker-compose.yml**:
+
 ```yaml
 version: '3.8'
 services:
@@ -405,6 +348,7 @@ services:
 ```
 
 **app.py**:
+
 ```python
 import os
 import quilt3
@@ -426,6 +370,7 @@ if __name__ == "__main__":
 ```
 
 Run with:
+
 ```bash
 docker run -e QUILT_API_KEY="qk_..." data-processor
 ```
@@ -433,6 +378,7 @@ docker run -e QUILT_API_KEY="qk_..." data-processor
 ### AWS Lambda
 
 **lambda_function.py**:
+
 ```python
 import os
 import quilt3
@@ -465,6 +411,7 @@ def process_package(pkg):
 ```
 
 **Deploy with AWS SAM** (template.yaml):
+
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -486,12 +433,14 @@ Resources:
 ### Kubernetes Deployments
 
 **Create secret**:
+
 ```bash
 kubectl create secret generic quilt-credentials \
   --from-literal=api-key="qk_your_secret_here"
 ```
 
 **deployment.yaml**:
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -521,12 +470,14 @@ spec:
 ### Cron Jobs
 
 **crontab**:
+
 ```bash
 # Daily data sync at 2 AM
 0 2 * * * /usr/bin/python3 /home/user/sync_data.py >> /var/log/quilt-sync.log 2>&1
 ```
 
 **/home/user/sync_data.py**:
+
 ```python
 #!/usr/bin/env python3
 import os
@@ -571,6 +522,7 @@ if __name__ == "__main__":
 ```
 
 Make executable:
+
 ```bash
 chmod +x /home/user/sync_data.py
 ```
@@ -708,6 +660,7 @@ LIMIT 100;
 **Solutions**:
 
 1. **Verify the key format**:
+
    ```python
    api_key = "qk_..."  # Must start with qk_
    if not api_key.startswith("qk_"):
@@ -715,6 +668,7 @@ LIMIT 100;
    ```
 
 2. **Check if key is expired**:
+
    ```python
    import quilt3
    quilt3.login()  # Use interactive login first
@@ -725,6 +679,7 @@ LIMIT 100;
    ```
 
 3. **Clear old sessions**:
+
    ```python
    import quilt3
    quilt3.logout()  # Clear all credentials
@@ -736,6 +691,7 @@ LIMIT 100;
 **Error**: `API key must start with 'qk_' prefix`
 
 **Solutions**:
+
 - Verify you copied the complete secret
 - Check for whitespace: `api_key = api_key.strip()`
 - Regenerate the key if needed
@@ -771,17 +727,20 @@ quilt3.api_keys.revoke(id=keys[0].id)
 **Solutions**:
 
 1. **Check if variable is set**:
+
    ```python
    import os
    print(os.environ.get("QUILT_API_KEY"))  # Should show qk_...
    ```
 
 2. **Set in current session**:
+
    ```bash
    export QUILT_API_KEY="qk_your_secret"
    ```
 
 3. **Add to shell profile** (~/.bashrc, ~/.zshrc):
+
    ```bash
    echo 'export QUILT_API_KEY="qk_..."' >> ~/.bashrc
    source ~/.bashrc
@@ -810,6 +769,7 @@ docker run -e QUILT_API_KEY="$QUILT_API_KEY" myimage \
    - Should see `QUILT_API_KEY` in the list
 
 2. **Use Secrets Manager**:
+
    ```python
    import boto3
    import json
@@ -874,8 +834,9 @@ pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
 ## API Reference
 
 For detailed API documentation, see:
-- [quilt3.api_keys](../api-reference/api.md#api-keys) - User API
-- [quilt3.admin.api_keys](../api-reference/Admin.md#api-keys) - Admin API
+
+- [quilt3.api_keys](api.md#api-keys) - User API
+- [quilt3.admin.api_keys](Admin.md#api-keys) - Admin API
 - [Audit Trail Events](../advanced-features/good-practice.md#api-key-audit-events) - Security & Compliance
 
 ## Additional Resources

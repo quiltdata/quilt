@@ -49,7 +49,6 @@
 
 * [Installation](Installation.md)
 * [Quick Start](Quickstart.md)
-* [Authentication Guide](walkthrough/authentication.md)
 * [Editing a Package](walkthrough/editing-a-package.md)
 * [Uploading a Package](walkthrough/uploading-a-package.md)
 * [Installing a Package](walkthrough/installing-a-package.md)
@@ -63,6 +62,7 @@
   * [Local Catalog](Catalog/LocalMode.md)
   * [CLI, Environment](api-reference/cli.md)
   * [Known Limitations](api-reference/limitations.md)
+  * [Authentication Guide](api-reference/authentication.md)
   * [Custom SSL Certificates](api-reference/custom-ssl-certificates.md)
 * **Advanced**
   * [Browsing Buckets](walkthrough/working-with-a-bucket.md)

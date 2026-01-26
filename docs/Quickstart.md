@@ -43,7 +43,7 @@ import os
 quilt3.login_with_api_key(os.environ["QUILT_API_KEY"])
 ```
 
-**📚 Learn more**: See the [Authentication Guide](walkthrough/authentication.md) for detailed setup instructions, best practices, and use cases.
+**📚 Learn more**: See the [Authentication Guide](api-reference/authentication.md) for detailed setup instructions, best practices, and use cases.
 
 ### 3. **Browse Public Data**
 ```python
