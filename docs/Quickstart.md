@@ -32,6 +32,7 @@ pip install quilt3
 
 For public datasets like `s3://quilt-example`, no authentication is needed. For private buckets or catalogs, choose your authentication method:
 
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 

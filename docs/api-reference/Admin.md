@@ -78,7 +78,7 @@ __Arguments__
 * __name__:  Name of the bucket to get.
 
 
-## list() -> list  {#list}
+## list() -> list[quilt3.admin.types.Bucket]  {#list}
 
 List all bucket configurations in the registry.
 
@@ -274,7 +274,7 @@ Set the SSO configuration. Pass `None` to remove SSO configuration.
 # quilt3.admin.tabulator
 
 
-## list\_tables(bucket\_name: str) -> list  {#list\_tables}
+## list\_tables(bucket\_name: str) -> list[quilt3.admin.types.TabulatorTable]  {#list\_tables}
 
 List all tabulator tables in a bucket.
 
