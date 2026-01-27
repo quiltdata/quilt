@@ -28,7 +28,7 @@ type APIKey {
   createdAt: Datetime!
   expiresAt: Datetime!
   lastUsedAt: Datetime
-  createdByEmail: String
+  userEmail: String!
   status: APIKeyStatus!
 }
 
@@ -1005,7 +1005,6 @@ type PackagerAdminMutations {
 
 type APIKeyAdminMutations {
   revoke(id: ID!): APIKeyRevokeResult!
-  createForUser(email: String!, input: APIKeyCreateInput!): APIKeyCreateResult!
 }
 
 type AdminMutations {
