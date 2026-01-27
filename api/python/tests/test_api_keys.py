@@ -16,8 +16,8 @@ API_KEY = {
     "createdAt": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "expiresAt": datetime.datetime(2024, 9, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "lastUsedAt": None,
-    "createdByEmail": None,
     "status": "ACTIVE",
+    "userEmail": "user@example.com",
 }
 
 MUTATION_ERRORS = (
