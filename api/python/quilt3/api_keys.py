@@ -21,6 +21,7 @@ class APIKey:
     expires_at: datetime
     last_used_at: T.Optional[datetime]
     status: APIKeyStatus
+    user_email: str
 
 
 class APIKeyError(Exception):
