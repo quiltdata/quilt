@@ -94,8 +94,9 @@ class ChecksumPart(T.Generic[ChecksumT]):
     size: int
 
 
-# XXX: currently combine_parts() allows parts produced by *any* calculator with "compatible" checksum type.
-# Should we do something about it?
+# Note: combine_parts() should only be called with parts produced by the same calculator class.
+# Type hints don't enforce this - e.g. if another int-based calculator is added, its parts would be
+# type-compatible with CRC64NVME parts but combining them would produce incorrect results.
 class MultiPartChecksumCalculator(abc.ABC, T.Generic[ChecksumT]):
     """
     Checksum algorithm where final result is derived from per-part checksums.
