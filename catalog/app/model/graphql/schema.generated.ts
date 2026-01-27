@@ -84,11 +84,14 @@ export default {
             args: [],
           },
           {
-            name: 'createdByEmail',
+            name: 'userEmail',
             type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -137,40 +140,6 @@ export default {
                     kind: 'SCALAR',
                     name: 'ID',
                     ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'createForUser',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'APIKeyCreateResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'email',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'input',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
                   },
                 },
               },

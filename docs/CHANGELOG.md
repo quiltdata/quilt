@@ -20,7 +20,7 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
-* [Added] API key support (`quilt3.api_keys`, `quilt3.admin.api_keys`, `login_with_api_key()`) ([#4690](https://github.com/quiltdata/quilt/pull/4690))
+* [Added] API key support (`quilt3.api_keys`, `quilt3.admin.api_keys`, `login_with_api_key()`) ([#4690](https://github.com/quiltdata/quilt/pull/4690), [#4705](https://github.com/quiltdata/quilt/pull/4705))
 
 ## 7.1.0 - 2025-12-22
 

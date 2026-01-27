@@ -55,6 +55,7 @@ fragment APIKeySelection on APIKey {
   expiresAt
   lastUsedAt
   status
+  userEmail
 }
 fragment SsoConfigSelection on SsoConfig {
   text

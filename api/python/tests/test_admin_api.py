@@ -606,6 +606,7 @@ API_KEY = {
     "expiresAt": datetime.datetime(2024, 9, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "lastUsedAt": None,
     "status": "ACTIVE",
+    "userEmail": "user@example.com",
 }
 
 
