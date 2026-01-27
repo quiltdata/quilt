@@ -18,6 +18,7 @@ class APIKeySelection(BaseModel):
     expires_at: datetime = Field(alias="expiresAt")
     last_used_at: Optional[datetime] = Field(alias="lastUsedAt")
     status: APIKeyStatus
+    user_email: str = Field(alias="userEmail")
 
 
 class BucketConfigSelection(BaseModel):

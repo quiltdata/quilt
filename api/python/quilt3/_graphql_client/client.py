@@ -1406,6 +1406,7 @@ class Client(BaseClient):
               expiresAt
               lastUsedAt
               status
+              userEmail
             }
             """
         )
@@ -1437,6 +1438,7 @@ class Client(BaseClient):
               expiresAt
               lastUsedAt
               status
+              userEmail
             }
             """
         )
@@ -1471,6 +1473,7 @@ class Client(BaseClient):
               expiresAt
               lastUsedAt
               status
+              userEmail
             }
 
             fragment InvalidInputSelection on InvalidInput {
@@ -1546,6 +1549,7 @@ class Client(BaseClient):
               expiresAt
               lastUsedAt
               status
+              userEmail
             }
             """
         )
@@ -1580,6 +1584,7 @@ class Client(BaseClient):
               expiresAt
               lastUsedAt
               status
+              userEmail
             }
             """
         )
