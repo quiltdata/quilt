@@ -32,23 +32,17 @@ export interface APIKey {
   readonly createdAt: Scalars['Datetime']
   readonly expiresAt: Scalars['Datetime']
   readonly lastUsedAt: Maybe<Scalars['Datetime']>
-  readonly createdByEmail: Maybe<Scalars['String']>
+  readonly userEmail: Scalars['String']
   readonly status: APIKeyStatus
 }
 
 export interface APIKeyAdminMutations {
   readonly __typename: 'APIKeyAdminMutations'
   readonly revoke: APIKeyRevokeResult
-  readonly createForUser: APIKeyCreateResult
 }
 
 export interface APIKeyAdminMutationsrevokeArgs {
   id: Scalars['ID']
-}
-
-export interface APIKeyAdminMutationscreateForUserArgs {
-  email: Scalars['String']
-  input: APIKeyCreateInput
 }
 
 export interface APIKeyAdminQueries {
