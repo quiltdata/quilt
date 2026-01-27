@@ -7,19 +7,19 @@ from quilt3 import checksums
 # --- Utility functions ---
 
 
-def test_is_mpu_below_threshold():
-    assert checksums.is_mpu(0) is False
-    assert checksums.is_mpu(1024) is False
-    assert checksums.is_mpu(checksums.CHECKSUM_MULTIPART_THRESHOLD - 1) is False
-
-
-def test_is_mpu_at_threshold():
-    assert checksums.is_mpu(checksums.CHECKSUM_MULTIPART_THRESHOLD) is True
-
-
-def test_is_mpu_above_threshold():
-    assert checksums.is_mpu(checksums.CHECKSUM_MULTIPART_THRESHOLD + 1) is True
-    assert checksums.is_mpu(100 * 1024 * 1024) is True
+@pytest.mark.parametrize(
+    "size, expected",
+    [
+        (0, False),
+        (1024, False),
+        (checksums.CHECKSUM_MULTIPART_THRESHOLD - 1, False),
+        (checksums.CHECKSUM_MULTIPART_THRESHOLD, True),
+        (checksums.CHECKSUM_MULTIPART_THRESHOLD + 1, True),
+        (100 * 1024 * 1024, True),
+    ],
+)
+def test_is_mpu(size, expected):
+    assert checksums.is_mpu(size) is expected
 
 
 def test_crc64nvme_to_bytes():
@@ -70,14 +70,16 @@ def test_legacy_calculate_checksum_bytes_empty():
 # --- Calculator registry ---
 
 
-def test_get_calculator_cls_sha256():
-    cls = checksums.MultiPartChecksumCalculator.get_calculator_cls(checksums.SHA256_CHUNKED_HASH_NAME)
-    assert cls is checksums.SHA256MultiPartChecksumCalculator
-
-
-def test_get_calculator_cls_crc64nvme():
-    cls = checksums.MultiPartChecksumCalculator.get_calculator_cls(checksums.CRC64NVME_HASH_NAME)
-    assert cls is checksums.CRC64NVMEMultiPartChecksumCalculator
+@pytest.mark.parametrize(
+    "hash_type, expected_cls",
+    [
+        (checksums.SHA256_CHUNKED_HASH_NAME, checksums.SHA256MultiPartChecksumCalculator),
+        (checksums.CRC64NVME_HASH_NAME, checksums.CRC64NVMEMultiPartChecksumCalculator),
+    ],
+)
+def test_get_calculator_cls(hash_type, expected_cls):
+    cls = checksums.MultiPartChecksumCalculator.get_calculator_cls(hash_type)
+    assert cls is expected_cls
 
 
 def test_get_calculator_cls_invalid():
@@ -204,18 +206,7 @@ def test_calculate_multipart_checksum_bytes_crc64nvme_multipart():
     assert len(data) > checksums.CHECKSUM_MULTIPART_THRESHOLD
 
     result = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.CRC64NVME_HASH_NAME)
-
-    # Verify by computing manually with per-chunk CRCs combined
-    chunksize = checksums.get_checksum_chunksize(len(data))
-    parts = []
-    for start in range(0, len(data), chunksize):
-        end = min(start + chunksize, len(data))
-        calc = checksums.CRC64NVMEMultiPartChecksumCalculator()
-        calc.update(data[start:end])
-        parts.append(calc.digest(end - start))
-
-    expected = checksums.CRC64NVMEMultiPartChecksumCalculator.combine_parts(parts)
-    assert result == expected
+    assert result == "kpoJFZYSwt4="
 
 
 def test_calculate_multipart_checksum_bytes_crc64nvme_one_part():
@@ -224,10 +215,4 @@ def test_calculate_multipart_checksum_bytes_crc64nvme_one_part():
     assert len(data) == checksums.CHECKSUM_MULTIPART_THRESHOLD
 
     result = checksums.calculate_multipart_checksum_bytes(data, checksum_type=checksums.CRC64NVME_HASH_NAME)
-
-    # Single part: result should equal CRC of entire data
-    calc = checksums.CRC64NVMEMultiPartChecksumCalculator()
-    calc.update(data)
-    part = calc.digest(len(data))
-    expected = checksums.CRC64NVMEMultiPartChecksumCalculator.combine_parts([part])
-    assert result == expected
+    assert result == "rGEwZFw0JFo="
