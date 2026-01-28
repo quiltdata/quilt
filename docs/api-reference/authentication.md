@@ -540,7 +540,7 @@ For detailed API documentation, see:
 
 - [quilt3.api_keys](api.md#api-keys) - User API
 - [quilt3.admin.api_keys](Admin.md#api-keys) - Admin API
-- [Audit Trail Events](../advanced-features/good-practice.md#api-key-audit-events) - Security & Compliance
+- [Audit Trail Events](../advanced-features/good-practice.md#apikeys-namespace) - Security & Compliance
 
 ## Additional Resources
 
