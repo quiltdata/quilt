@@ -21,6 +21,37 @@ wheels = [
 ]
 
 [[package]]
+name = "awscrt"
+version = "0.31.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/c9/8e397a679f43c53cb51b338bda2645e8a474c9a4dd5606d0ee365b7b5fbc/awscrt-0.31.1.tar.gz", hash = "sha256:abb64768d25bf563da8e2165d477a491cba18bc22c4ec8db7acbdae94e59ebc4", size = 38080944, upload-time = "2026-01-15T02:21:26.262Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/98/b487f027ac4a40cda5f97fdc699779026ad53c7729af327b1b618b7178a8/awscrt-0.31.1-cp311-abi3-macosx_10_15_universal2.whl", hash = "sha256:bd9a96973fe85ff031a1b5fffa07ea5056aa77fedec1965bb001d3a540f90a03", size = 3429907, upload-time = "2026-01-15T02:20:37.092Z" },
+    { url = "https://files.pythonhosted.org/packages/27/ce/36bbbae991fadc9b5be270ba1a53022eb945c492ffd3d084cd7e5c3fca92/awscrt-0.31.1-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5f242521759d3fe9a8b672d98445ea241086e7804cd3bb1c8f92ac5d8b6d4715", size = 3843427, upload-time = "2026-01-15T02:20:38.615Z" },
+    { url = "https://files.pythonhosted.org/packages/84/b8/728395a4859d2ea7a4e808e94e739af7e65b24a6be9479ddd57dcb7f93ad/awscrt-0.31.1-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:da699831647845751eb752fed0c75ed9a78a9198552241192bc3ec40e7091e88", size = 4113751, upload-time = "2026-01-15T02:20:40.279Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/5f/c1bb284e7ea47c19934b648f49416c98b1ea8a7d6f6c533c8290c61aff5b/awscrt-0.31.1-cp311-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:0655ec232742506bd71b58f3cd270cf1a90607cc693b828d6815d7da7e8bddb3", size = 3746373, upload-time = "2026-01-15T02:20:41.635Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/f2/3e0058ca7f4156559b732bb833bbdc2ce19e055fe57020cd5e8288009d82/awscrt-0.31.1-cp311-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:701fcd7c3e0f15750f888a85cb8589f249c5c0373973992976e6af0ac8dfd9fd", size = 3972798, upload-time = "2026-01-15T02:20:42.847Z" },
+    { url = "https://files.pythonhosted.org/packages/05/cf/b0349a29ba0b9618702af2a734f67fbda48de72e3cfff863bab3c5b29b9c/awscrt-0.31.1-cp311-abi3-win32.whl", hash = "sha256:5f36793f14f45b191ff664058a499f6bf42280a7404aa572f556a1beeb973b5b", size = 3975033, upload-time = "2026-01-15T02:20:44.202Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/93/4154a5e00e49a129527dfb7e0a5130607cd4b2b99099fb29c8548d6fe529/awscrt-0.31.1-cp311-abi3-win_amd64.whl", hash = "sha256:c23c8d45e7c045a9e8903bd861d0aef488652081f2ff63c462ecfc67d327b394", size = 4104620, upload-time = "2026-01-15T02:20:46.2Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/22/9ff88901591d75015a5c042cc72c7b98d0fadee52812f2f20dc835f0c30c/awscrt-0.31.1-cp313-abi3-macosx_10_15_universal2.whl", hash = "sha256:3fffbdfd747ae7c975177300dc201193e7c678334016dd33b5b4a407cc572eb3", size = 3428026, upload-time = "2026-01-15T02:20:47.764Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/ea/d7f1f7a495497fbfb2f312a703b98ebd62a73e39b57b96b5b710901ae408/awscrt-0.31.1-cp313-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:bed5cc3a3aa3ced33b57516194813d931f78f78cb6d5d4e9e2f1de8aafd1a2dd", size = 3834972, upload-time = "2026-01-15T02:20:49.016Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/7b/55dbefae59e4240f04f0fb811c8ea7b7c89486cbb9356933866f459a6121/awscrt-0.31.1-cp313-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:1aa053334a6929bb346f15bab0fdf36d2d5bf4c8452cc833501a8b95efc69913", size = 4107951, upload-time = "2026-01-15T02:20:50.271Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/7e/014ba88e91083f29b7fdb9c1a97e4028f09be395dd82b5ccb2233d4563c5/awscrt-0.31.1-cp313-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:9269062d0156d77863ecf4787a9d0e0c5bfc233fb8293191edf63c926145007e", size = 3737045, upload-time = "2026-01-15T02:20:51.463Z" },
+    { url = "https://files.pythonhosted.org/packages/43/bd/a5ba0e297f3ebbe6855d73e7d271fa662075ce07ebdf4437ad184a87834a/awscrt-0.31.1-cp313-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:1e18d875ef4ab0410a51e6fc8d845e1236a40553ca2d037b9c20337a81780c60", size = 3966434, upload-time = "2026-01-15T02:20:52.698Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/f2/0150adb95b2fe9b5aea36f60550949358e887a7347a40685d732bc7ed38c/awscrt-0.31.1-cp313-abi3-win32.whl", hash = "sha256:d03cf21d81c0b533b11b105a0f7fa6a78c064d999a5dac9ffa7eb0ca00dd37c0", size = 3971129, upload-time = "2026-01-15T02:20:53.914Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/ec/7d30699f97af9f91b72b5aa4465980bb583190b4d3dcf463f12a6999fa45/awscrt-0.31.1-cp313-abi3-win_amd64.whl", hash = "sha256:86bd07696233d84080a0432e3db043dd6eccd94753ebcfb4efd94c87564c5f28", size = 4098826, upload-time = "2026-01-15T02:20:55.808Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/42/3a7f720800065bf3dfcfc60341406abaf3f2ab3517b62eef4efb7e8dfaff/awscrt-0.31.1-cp39-cp39-macosx_10_15_universal2.whl", hash = "sha256:de69209fa92446bbe31d9948dccdda7163074e2cb2cbea2543d57669171fbb99", size = 3429761, upload-time = "2026-01-15T02:21:11.522Z" },
+    { url = "https://files.pythonhosted.org/packages/78/ff/7fae310339fbf6bac4b8995cabce9749beacf87a1577baff838da87161ec/awscrt-0.31.1-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:7df4eee62f7e5606a8864f76867f9f0cec01dd636eb1bb50af54d51477b9fe89", size = 3879623, upload-time = "2026-01-15T02:21:13.235Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/d4/8a5ad95000f421b1a65e5f00f63aeb42563cf3a5f2d6db0638c900e43ae6/awscrt-0.31.1-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:9015638f719d9c027d001357fd7730c2e20537b09d35e827c9496e1fde528058", size = 4147584, upload-time = "2026-01-15T02:21:14.907Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/99/b215dce8075761638995194f44306507248c0047a58266e77aff27bd632c/awscrt-0.31.1-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:0f3920e53720d98c2edff460549dbbdeea3eb43b4df77ec684deff334cff1f16", size = 2768058, upload-time = "2026-01-15T02:21:16.338Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/97/620e0b1a6ebaa8ba1241fbdfbad714a644c76d8d02b584a3dcd689c58d53/awscrt-0.31.1-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:1170ba8fb1ea90d4238f10bbe36dabd5db9fd87e2015e0f787e952f177a7cfd2", size = 2940522, upload-time = "2026-01-15T02:21:18.231Z" },
+    { url = "https://files.pythonhosted.org/packages/14/5b/72cbd04ff8e120f73537af22a50507a0531c3ddd85ccae4b757107541da2/awscrt-0.31.1-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:e14ece8d02c0618f9362b7056a8a44ac99f74721e41cb0112fc42d9bb4e4014b", size = 3801554, upload-time = "2026-01-15T02:21:19.76Z" },
+    { url = "https://files.pythonhosted.org/packages/99/6e/c820da609832680427c8bb9ddacf3d74a2edf99048aeaa5dd59667ddb68d/awscrt-0.31.1-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:c06c813db742e25681a0fe942b54094ffdc65d8b005616349e7090ae25f7d19e", size = 4028961, upload-time = "2026-01-15T02:21:21.562Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/06/faf0d9b36b7162e7fdb89f0de37f57781c0b67677aae76528fdade6d4bfc/awscrt-0.31.1-cp39-cp39-win32.whl", hash = "sha256:67793db0af94dbfa7b3ceb777c4b553519e757ca4459f2660b0b9d66f98e33e7", size = 3974210, upload-time = "2026-01-15T02:21:23.179Z" },
+    { url = "https://files.pythonhosted.org/packages/27/6c/0f88e25d3b368e280fe2fc3016f66f89d44ea6d2e93325f16fccb99bffe3/awscrt-0.31.1-cp39-cp39-win_amd64.whl", hash = "sha256:cc5cab9ceb8caeb82c524db92389ac74799522617485c75f4aa862a9b5ed75fb", size = 4102037, upload-time = "2026-01-15T02:21:24.402Z" },
+]
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.13.5"
 source = { registry = "https://pypi.org/simple" }
@@ -651,9 +682,10 @@ wheels = [
 
 [[package]]
 name = "quilt3"
-version = "7.1.0"
+version = "7.2.0"
 source = { editable = "../api/python" }
 dependencies = [
+    { name = "awscrt" },
     { name = "boto3" },
     { name = "jsonlines" },
     { name = "jsonschema" },
@@ -670,6 +702,7 @@ dependencies = [
 requires-dist = [
     { name = "aiobotocore", extras = ["boto3"], marker = "extra == 'catalog'", specifier = ">=2" },
     { name = "anndata", marker = "extra == 'anndata'", specifier = ">=0.8.0" },
+    { name = "awscrt", specifier = ">=0.31.0" },
     { name = "boto3", specifier = ">=1.21.7" },
     { name = "jsonlines", specifier = "==1.2.0" },
     { name = "jsonschema", specifier = ">=3,<5" },
