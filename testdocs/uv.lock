@@ -438,7 +438,7 @@ wheels = [
 
 [[package]]
 name = "quilt3"
-version = "7.1.0"
+version = "7.2.0"
 source = { editable = "../api/python" }
 dependencies = [
     { name = "awscrt" },
