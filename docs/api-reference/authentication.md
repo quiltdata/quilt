@@ -56,7 +56,7 @@ API keys provide programmatic access to Quilt without requiring browser-based au
 
 ### When to Use API Keys
 
-**✅ Use API keys for:**
+#### Use API Keys For
 
 - Automated scripts and data pipelines
 - Server-side applications and microservices
@@ -104,7 +104,7 @@ print(f"Expires: {key.expires_at}")
 
 Choose a secure storage method based on your environment:
 
-**Local Development** (.env file):
+##### Local Development
 
 Create a `.env` file in your project directory:
 
@@ -377,43 +377,43 @@ LIMIT 100;
 
 **Error**: `Authentication failed. Check your credentials or API key.`
 
-**Solutions**:
+#### Solutions
 
-1. **Verify the key format**:
+##### Verify the Key Format
 
-   <!-- pytest-codeblocks:skip -->
-   ```python
-   api_key = "qk_..."  # Must start with qk_
-   if not api_key.startswith("qk_"):
-       print("Invalid key format!")
-   ```
+<!-- pytest-codeblocks:skip -->
+```python
+api_key = "qk_..."  # Must start with qk_
+if not api_key.startswith("qk_"):
+    print("Invalid key format!")
+```
 
-2. **Check if key is expired**:
+##### Check if Key is Expired
 
-   <!-- pytest-codeblocks:skip -->
-   ```python
-   import quilt3
-   quilt3.login()  # Use interactive login first
+<!-- pytest-codeblocks:skip -->
+```python
+import quilt3
+quilt3.login()  # Use interactive login first
 
-   keys = quilt3.api_keys.list()
-   for key in keys:
-       print(f"{key.name}: {key.status}")
-   ```
+keys = quilt3.api_keys.list()
+for key in keys:
+    print(f"{key.name}: {key.status}")
+```
 
-3. **Clear old sessions**:
+##### Clear Old Sessions
 
-   <!-- pytest-codeblocks:skip -->
-   ```python
-   import quilt3
-   quilt3.logout()  # Clear all credentials
-   quilt3.login_with_api_key(api_key)  # Try again
-   ```
+<!-- pytest-codeblocks:skip -->
+```python
+import quilt3
+quilt3.logout()  # Clear all credentials
+quilt3.login_with_api_key(api_key)  # Try again
+```
 
 ### API Key Prefix Error
 
 **Error**: `API key must start with 'qk_' prefix`
 
-**Solutions**:
+#### Solutions
 
 - Verify you copied the complete secret
 - Check for whitespace: `api_key = api_key.strip()`
@@ -423,7 +423,9 @@ LIMIT 100;
 
 **Error**: Key shows `status: EXPIRED`
 
-**Solution**: Create a new key:
+#### Solution
+
+Create a new key:
 
 <!-- pytest-codeblocks:skip -->
 ```python
@@ -448,41 +450,43 @@ quilt3.api_keys.revoke(id=keys[0].id)
 
 **Error**: `QUILT_API_KEY environment variable not set`
 
-**Solutions**:
+#### Solutions
 
-1. **Check if variable is set**:
+##### Check if Variable is Set
 
-   ```python
-   import os
-   print(os.environ.get("QUILT_API_KEY"))  # Should show qk_...
-   ```
+```python
+import os
+print(os.environ.get("QUILT_API_KEY"))  # Should show qk_...
+```
 
-2. **Set in current session**:
+##### Set in Current Session
 
-   ```bash
-   export QUILT_API_KEY="qk_your_secret"
-   ```
+```bash
+export QUILT_API_KEY="qk_your_secret"
+```
 
-3. **Add to shell profile** (~/.bashrc, ~/.zshrc):
+##### Add to Shell Profile
 
-   ```bash
-   echo 'export QUILT_API_KEY="qk_..."' >> ~/.bashrc
-   source ~/.bashrc
-   ```
+For ~/.bashrc or ~/.zshrc:
 
-4. **Use .env file** (recommended):
+```bash
+echo 'export QUILT_API_KEY="qk_..."' >> ~/.bashrc
+source ~/.bashrc
+```
 
-   ```bash
-   echo 'QUILT_API_KEY="qk_..."' >> .env
-   ```
+##### Use .env File (Recommended)
 
-   Then load it in Python:
+```bash
+echo 'QUILT_API_KEY="qk_..."' >> .env
+```
 
-   <!-- pytest-codeblocks:skip -->
-   ```python
-   from dotenv import load_dotenv
-   load_dotenv()
-   ```
+Then load it in Python:
+
+<!-- pytest-codeblocks:skip -->
+```python
+from dotenv import load_dotenv
+load_dotenv()
+```
 
 ## Migration from Interactive to API Key
 
