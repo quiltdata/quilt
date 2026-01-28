@@ -89,6 +89,7 @@ key, secret = quilt3.api_keys.create("my-key", expires_in_days=180)
 
 # IMPORTANT: Save the secret - it's only shown once!
 print(f"Key ID: {key.id}")
+print(f"Owner: {key.email}")
 print(f"Secret: {secret}")
 print(f"Fingerprint: {key.fingerprint}")
 print(f"Expires: {key.expires_at}")
@@ -157,6 +158,7 @@ import quilt3
 keys = quilt3.api_keys.list()
 for key in keys:
     print(f"\n{key.name}")
+    print(f"  Owner: {key.email}")
     print(f"  ID: {key.id}")
     print(f"  Fingerprint: {key.fingerprint}")
     print(f"  Status: {key.status}")
@@ -190,6 +192,8 @@ expired_keys = quilt3.api_keys.list(status="EXPIRED")
 key = quilt3.api_keys.get("key-id-here")
 
 if key:
+    print(f"Name: {key.name}")
+    print(f"Owner: {key.email}")
     print(f"Status: {key.status}")
     if key.status == "EXPIRED":
         print("This key has expired and needs to be rotated")
