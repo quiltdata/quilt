@@ -290,6 +290,7 @@ if key:
     print(f"Created: {key.created_at}")
     print(f"Expires: {key.expires_at}")
     print(f"Last used: {key.last_used_at or 'Never'}")
+```
 
 ### Revoke a User's Key
 
@@ -347,10 +348,11 @@ for key in sorted_keys[:10]:
     print(f"    Created: {key.created_at}")
     print(f"    Status: {key.status}")
     print(f"    Owner: {key.user_email}")
+```
 
 ### Athena Query for Audit Trail
 
-For detailed audit trail queries, see the [GxP documentation](../advanced-features/good-practice.md#api-key-audit-events).
+For detailed audit trail queries, see the [GxP documentation](../advanced-features/good-practice.md#querying-with-athena).
 
 Example query to find all API key usage in the last 30 days:
 
