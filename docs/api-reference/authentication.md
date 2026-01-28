@@ -280,14 +280,12 @@ key = quilt3.admin.api_keys.get("key-id-here")
 
 if key:
     print(f"Key: {key.name}")
+    print(f"Owner: {key.user_email}")
     print(f"ID: {key.id}")
     print(f"Status: {key.status}")
     print(f"Created: {key.created_at}")
     print(f"Expires: {key.expires_at}")
     print(f"Last used: {key.last_used_at or 'Never'}")
-```
-
-**Note**: The current API does not provide user ownership information for admin key queries.
 
 ### Revoke a User's Key
 
@@ -314,6 +312,7 @@ for key in all_keys:
     if key.last_used_at is None or key.last_used_at < threshold:
         unused_keys.append(key)
         print(f"⚠️  Unused key: {key.name}")
+        print(f"   Owner: {key.user_email}")
         print(f"   ID: {key.id}")
         print(f"   Last used: {key.last_used_at or 'Never'}")
 
@@ -343,9 +342,7 @@ for key in sorted_keys[:10]:
     print(f"  {key.name}")
     print(f"    Created: {key.created_at}")
     print(f"    Status: {key.status}")
-```
-
-**Note**: User-based reporting is not currently available.
+    print(f"    Owner: {key.user_email}")
 
 ### Athena Query for Audit Trail
 
