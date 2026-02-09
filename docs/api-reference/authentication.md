@@ -52,6 +52,8 @@ quilt3.logout()
 
 ## API Key Authentication
 
+> NOTE: This feature requires Quilt Platform version 1.67 or higher
+
 API keys provide programmatic access to Quilt without requiring browser-based authentication. Keys are created through the Python API and can be used for automated workflows.
 
 ### When to Use API Keys
