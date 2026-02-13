@@ -22,17 +22,16 @@ import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
-from . import util, workflows
+from . import checksums, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
-    calculate_checksum,
-    calculate_checksum_bytes,
+    FileChecksumTask,
+    calculate_multipart_checksum,
     copy_file,
     copy_file_list,
     get_bytes,
     get_size_and_version,
     legacy_calculate_checksum,
-    legacy_calculate_checksum_bytes,
     list_object_versions,
     list_objects,
     list_url,
@@ -72,12 +71,11 @@ MANIFEST_MAX_RECORD_SIZE = util.get_pos_int_from_env('QUILT_MANIFEST_MAX_RECORD_
 if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
 
-SHA256_HASH_NAME = 'SHA256'
-SHA256_CHUNKED_HASH_NAME = 'sha2-256-chunked'
 
 SUPPORTED_HASH_TYPES = (
-    SHA256_HASH_NAME,
-    SHA256_CHUNKED_HASH_NAME,
+    checksums.SHA256_HASH_NAME,
+    checksums.SHA256_CHUNKED_HASH_NAME,
+    checksums.CRC64NVME_HASH_NAME,
 )
 
 
@@ -225,19 +223,19 @@ class PackageEntry:
 
     def _verify_hash(self, read_bytes):
         """
-        Verifies hash of bytes
+        Verifies hash of bytes.
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
         hash_type = self.hash.get('type')
         _check_hash_type_support(hash_type)
 
-        if hash_type == SHA256_CHUNKED_HASH_NAME:
-            expected_value = calculate_checksum_bytes(read_bytes)
-        elif hash_type == SHA256_HASH_NAME:
-            expected_value = legacy_calculate_checksum_bytes(read_bytes)
+        if hash_type == checksums.SHA256_HASH_NAME:
+            expected_value = checksums.legacy_calculate_checksum_bytes(read_bytes)
+        elif hash_type in (checksums.CRC64NVME_HASH_NAME, checksums.SHA256_CHUNKED_HASH_NAME):
+            expected_value = checksums.calculate_multipart_checksum_bytes(read_bytes, checksum_type=hash_type)
         else:
-            assert False
+            assert False, f"Unsupported hash type: {hash_type}"
 
         if expected_value != self.hash.get('value'):
             raise QuiltException("Hash validation failed")
@@ -1003,13 +1001,19 @@ class Package:
             physical_keys.append(entry.physical_key)
             sizes.append(entry.size)
 
-        results = calculate_checksum(physical_keys, sizes)
+        hash_type = checksums.DEFAULT_HASH
+        results = calculate_multipart_checksum(
+            [
+                FileChecksumTask.create(physical_key, size, hash_type)
+                for physical_key, size in zip(physical_keys, sizes)
+            ]
+        )
         exc = None
         for entry, result in zip(self._incomplete_entries, results):
             if isinstance(result, Exception):
                 exc = result
             else:
-                entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=result)
+                entry.hash = dict(type=hash_type, value=result)
         if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
@@ -1618,7 +1622,7 @@ class Package:
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
             if checksum is not None:
-                new_entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=checksum)
+                new_entry.hash = dict(type=checksums.DEFAULT_HASH, value=checksum)
             pkg._set(logical_key, new_entry)
 
         # Some entries may miss hash values (e.g because of selector_fn), so we need
@@ -1806,9 +1810,8 @@ class Package:
         src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
 
+        checksum_tasks = []
         expected_hash_list = []
-        url_list = []
-        size_list = []
 
         legacy_expected_hash_list = []
         legacy_url_list = []
@@ -1821,21 +1824,20 @@ class Package:
             entry_url = src.join(logical_key)
             hash_type = entry.hash['type']
             hash_value = entry.hash['value']
-            if hash_type == SHA256_CHUNKED_HASH_NAME:
-                expected_hash_list.append(hash_value)
-                url_list.append(entry_url)
-                size_list.append(src_size)
-            elif hash_type == SHA256_HASH_NAME:
+            if hash_type == checksums.SHA256_HASH_NAME:
                 legacy_expected_hash_list.append(hash_value)
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
+            elif hash_type in (checksums.SHA256_CHUNKED_HASH_NAME, checksums.CRC64NVME_HASH_NAME):
+                expected_hash_list.append(hash_value)
+                checksum_tasks.append(FileChecksumTask.create(entry_url, src_size, hash_type))
             else:
-                assert False, hash_type
+                assert False, f"Unsupported hash type: {hash_type}"
 
         if src_dict and not extra_files_ok:
             return False
 
-        hash_list = calculate_checksum(url_list, size_list)
+        hash_list = calculate_multipart_checksum(checksum_tasks)
         for expected_hash, url_hash in zip(expected_hash_list, hash_list):
             if isinstance(url_hash, Exception):
                 raise url_hash

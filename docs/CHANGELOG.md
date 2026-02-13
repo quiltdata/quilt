@@ -16,6 +16,13 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## 7.2.0 - 2026-01-28
+
+### Python API
+
+* [Added] Verification of packages with crc64nvme hashes ([#4696](https://github.com/quiltdata/quilt/pull/4696))
+* [Added] API key support (`quilt3.api_keys`, `quilt3.admin.api_keys`, `login_with_api_key()`) ([#4690](https://github.com/quiltdata/quilt/pull/4690), [#4705](https://github.com/quiltdata/quilt/pull/4705))
+
 ## 7.1.0 - 2025-12-22
 
 ### Python API

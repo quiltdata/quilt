@@ -1,4 +1,4 @@
-# quilt3.admin GraphQL code generation
+# quilt3 GraphQL code generation
 
 From the parent directory (`api/python`):
 
@@ -10,5 +10,5 @@ uv run poe gql-gen
 uv run poe gql-check
 ```
 
-This will generate GraphQL client in `api/python/quilt3/admin/_graphql_client/`
+This will generate GraphQL client in `api/python/quilt3/_graphql_client/`
 using GraphQL queries from `queries.graphql`.

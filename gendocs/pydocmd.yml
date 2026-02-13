@@ -11,6 +11,7 @@ generate:
     # If we end up wanting to include Bucket and Package inline in api.md, we
     # might just want to specify "__all__" in quilt3.__init__ and use 'quilt3+' on the
     # line above this comment.  Specified explicitly for this example.
+    - quilt3.clear_api_key
     - quilt3.config
     - quilt3.delete_package
     - quilt3.get_boto3_session
@@ -18,8 +19,10 @@ generate:
     - quilt3.list_packages
     - quilt3.logged_in
     - quilt3.login
+    - quilt3.login_with_api_key
     - quilt3.logout
     - quilt3.search
+  - quilt3.api_keys+
 # Uncomment the following two lines in include these classes directly in api.md
 #    - Bucket+
 #    - Package+
@@ -33,6 +36,7 @@ generate:
 
 - Admin.md:
   - quilt3.admin.types+
+  - quilt3.admin.api_keys+
   - quilt3.admin.buckets+
   - quilt3.admin.roles+
   - quilt3.admin.users+
