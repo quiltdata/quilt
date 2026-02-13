@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "quilt3"
-version = "7.1.0"
+version = "7.2.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -35,6 +35,7 @@ dependencies = [
     "requests_futures==1.0.0",
     "jsonschema>=3,<5",
     "pydantic>=2.0.0,<3.0.0",
+    "awscrt>=0.31.0",
 ]
 
 [project.optional-dependencies]
@@ -111,14 +112,14 @@ fmt.cmd = "ruff format"
 clean.help = "Remove build artifacts and cache files"
 clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage* coverage.* && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
 
-_gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
+_gql-clean.shell = "rm -rf quilt3/_graphql_client"
 
 _gql-gen.cmd = "uv run ariadne-codegen client"
-_gql-gen.cwd = "quilt3-admin"
+_gql-gen.cwd = "quilt3-graphql"
 
-_gql-fmt.cmd = "ruff format quilt3/admin/_graphql_client"
+_gql-fmt.cmd = "ruff format quilt3/_graphql_client"
 
-gql-gen.help = "Generate GraphQL client code for quilt3.admin"
+gql-gen.help = "Generate GraphQL client code for quilt3"
 gql-gen.sequence = [
     "_gql-clean",
     "_gql-gen",

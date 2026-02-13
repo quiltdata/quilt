@@ -20,6 +20,51 @@
 ## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[List[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[List[str]], index\_content\_bytes: Optional[int], prefixes: List[str]) -> None  {#Bucket}
 
 
+# quilt3.admin.api_keys
+Admin API for managing API keys.
+
+## list(email: Optional[str] = None, key\_name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+
+List API keys. Optionally filter by user email, key name, fingerprint, or status.
+
+__Arguments__
+
+* __email__:  Filter by user email.
+* __key_name__:  Filter by key name.
+* __fingerprint__:  Filter by key fingerprint.
+* __status__:  Filter by "ACTIVE" or "EXPIRED". None returns all.
+
+__Returns__
+
+List of API keys matching the filters.
+
+
+## get(id: str) -> Optional[quilt3.api\_keys.APIKey]  {#get}
+
+Get a specific API key by ID.
+
+__Arguments__
+
+* __id__:  The API key ID.
+
+__Returns__
+
+The API key, or None if not found.
+
+
+## revoke(id: str) -> None  {#revoke}
+
+Revoke an API key.
+
+__Arguments__
+
+* __id__:  The API key ID to revoke.
+
+__Raises__
+
+* `Quilt3AdminError`:  If the operation fails.
+
+
 # quilt3.admin.buckets
 
 
