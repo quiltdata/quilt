@@ -3,6 +3,8 @@ import { describe, it, expect, vi } from 'vitest'
 import dedent from 'dedent'
 
 import { FileNotFound } from 'containers/Bucket/errors'
+import Log from 'utils/Logging'
+import * as Request from 'utils/useRequest'
 import type { Successor } from 'utils/workflows'
 
 import useSuccessors from './useSuccessors'
@@ -37,7 +39,36 @@ describe('useSuccessors integration tests', () => {
     })
   }
 
-  // TODO: Add loading state tests later (ignore for now)
+  describe('useRequest states', () => {
+    it('should return Loading while request is in progress', async () => {
+      s3.getObject.mockReturnValue({
+        promise: () => new Promise((resolve) => setTimeout(() => resolve(null), 1000)),
+      })
+
+      const { result } = renderHook(() => useSuccessors(CURRENT_BUCKET))
+
+      expect(result.current).toBe(Request.Loading)
+    })
+
+    it('should return Error when request fails', async () => {
+      const loglevel = Log.getLevel()
+      Log.setLevel('silent')
+
+      const testError = new Error('Network error')
+      s3.getObject.mockReturnValue({
+        promise: () => Promise.reject(testError),
+      })
+
+      const { result, waitForValueToChange } = renderHook(() =>
+        useSuccessors(CURRENT_BUCKET),
+      )
+
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
+      expect(result.current).toBe(testError)
+
+      Log.setLevel(loglevel)
+    })
+  })
 
   describe('when no successors are defined in workflow config', () => {
     it('should include current bucket as default successor', async () => {
