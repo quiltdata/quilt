@@ -1,6 +1,7 @@
 import type { S3 } from 'aws-sdk'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
+import Log from 'utils/Logging'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
@@ -219,10 +220,8 @@ export const workflowsConfig = async ({ s3, bucket }: WorkflowsConfigArgs) => {
     if (e instanceof FileNotFound || e instanceof VersionNotFound)
       return workflows.emptyConfig
 
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    Log.info('Unable to fetch')
+    Log.error(e)
     throw e
   }
 }
