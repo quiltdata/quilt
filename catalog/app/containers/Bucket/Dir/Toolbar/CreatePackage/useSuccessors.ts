@@ -15,7 +15,7 @@ export default function useSuccessors(bucket: string): Request.Result<Successor[
     return data
   }
 
-  return data.successors.find(({ slug }) => slug === bucket)
-    ? data.successors
-    : [bucketToSuccessor(bucket), ...data.successors]
+  // If successors are defined in config, use them as-is (don't auto-add current bucket)
+  // If no successors defined, add current bucket as default
+  return data.successors.length > 0 ? data.successors : [bucketToSuccessor(bucket)]
 }
