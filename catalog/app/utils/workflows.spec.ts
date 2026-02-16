@@ -242,5 +242,17 @@ describe('utils/workflows', () => {
         ])
       })
     })
+
+    describe('strict mode', () => {
+      it('should return nullConfig when no config input and strict is true', () => {
+        const config = workflows.parse('', 'foo', { strict: true })
+        expect(config).toEqual(workflows.nullConfig)
+      })
+
+      it('should return emptyConfig when no config input and strict is false', () => {
+        const config = workflows.parse('', 'foo', { strict: false })
+        expect(config).toEqual(workflows.emptyConfig('foo'))
+      })
+    })
   })
 })
