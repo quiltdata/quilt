@@ -257,7 +257,7 @@ function prepareData(data: unknown): WorkflowsYaml {
 export function parse(
   workflowsYaml: string,
   bucket: string,
-  { strict }: { strict?: boolean } = { strict: false },
+  { strict = false }: { strict?: boolean } = {},
 ): WorkflowsConfig {
   const rawData = YAML.parse(workflowsYaml)
   if (!rawData) return strict ? nullConfig : emptyConfig(bucket)
