@@ -7,10 +7,10 @@ import * as workflows from './workflows'
 describe('utils/workflows', () => {
   describe('parse', () => {
     describe('no config input', () => {
-      const config = workflows.parse('')
+      const config = workflows.parse('', 'foo')
 
       it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
+        expect(config).toEqual(workflows.emptyConfig('foo'))
       })
 
       it('should return data with special `notAvailable` workflow', () => {
@@ -24,7 +24,7 @@ describe('utils/workflows', () => {
         version: "1"
       `
       it('should throw errors.WorkflowsConfigInvalid', () => {
-        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
+        expect(() => workflows.parse(data, 'foo')).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -34,7 +34,7 @@ describe('utils/workflows', () => {
         workflows: []
       `
       it('should throw errors.WorkflowsConfigInvalid', () => {
-        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
+        expect(() => workflows.parse(data, 'foo')).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -46,7 +46,7 @@ describe('utils/workflows', () => {
           workflow_1:
             name: Workflow №1
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it('should require workflow', () => {
         expect(config.isWorkflowRequired).toBe(true)
@@ -74,7 +74,7 @@ describe('utils/workflows', () => {
           workflow_1:
             name: Workflow №1
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it('should not require workflow', () => {
         expect(config.isWorkflowRequired).toBe(false)
@@ -101,7 +101,7 @@ describe('utils/workflows', () => {
           workflow_1:
             name: Workflow №1
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it('should require workflow', () => {
         expect(config.isWorkflowRequired).toBe(true)
@@ -137,7 +137,7 @@ describe('utils/workflows', () => {
           schema_2:
             url: https://bar
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it('should return workflow with matched url', () => {
         expect(config.workflows[1].schema!.url).toBe('https://foo')
@@ -157,7 +157,7 @@ describe('utils/workflows', () => {
           workflow_3:
             name: Workflow №3
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it("should return workflows' list, one of which is default", () => {
         expect(config.workflows).toMatchObject([
@@ -182,7 +182,7 @@ describe('utils/workflows', () => {
           workflow_1:
             name: Workflow №1
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it('should return successors list', () => {
         expect(config.successors).toMatchObject([
@@ -217,7 +217,7 @@ describe('utils/workflows', () => {
           workflow_1:
             name: Workflow №1
       `
-      const config = workflows.parse(data)
+      const config = workflows.parse(data, 'foo')
 
       it('should return copyData params', () => {
         expect(config.successors).toMatchObject([

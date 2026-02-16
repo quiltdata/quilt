@@ -71,7 +71,7 @@ describe('useSuccessors integration tests', () => {
   })
 
   describe('when no successors are defined in workflow config', () => {
-    it('should include current bucket as default successor', async () => {
+    it('should return empty successors (respect explicit config)', async () => {
       mockS3ConfigYaml(dedent`
         version: "1"
         workflows:
@@ -84,13 +84,24 @@ describe('useSuccessors integration tests', () => {
       )
       await waitForValueToChange(() => result.current, { timeout: 5000 })
 
-      expect(result.current).toEqual([SUCCESSOR_FOR_CURRENT_BUCKET])
+      expect(result.current).toEqual([])
     })
 
     it('should handle empty workflow config when file not found', async () => {
       s3.getObject.mockReturnValue({
         promise: () => Promise.reject(new FileNotFound('Object not found')),
       })
+
+      const { result, waitForValueToChange } = renderHook(() =>
+        useSuccessors(CURRENT_BUCKET),
+      )
+
+      await waitForValueToChange(() => result.current, { timeout: 5000 })
+      expect(result.current).toEqual([SUCCESSOR_FOR_CURRENT_BUCKET])
+    })
+
+    it('should handle empty workflow config when file exists but is empty', async () => {
+      mockS3ConfigYaml('')
 
       const { result, waitForValueToChange } = renderHook(() =>
         useSuccessors(CURRENT_BUCKET),

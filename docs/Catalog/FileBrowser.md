@@ -11,13 +11,11 @@ that displays all files in the bucket.
 You can create packages directly from files already stored in S3 buckets
 without downloading and re-uploading them.
 
-By default, this functionality is available for all files in the current bucket.
-To customize which buckets are available as package destinations,
-administrators can configure a `successors` section
-in the bucket's [workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog).
-When successors are explicitly defined, only the specified buckets
-will be available - the current bucket will not be automatically included
-unless explicitly listed.
+Package creation uses the current bucket by default.
+With workflow configuration,
+only explicit `successors` are available as destinations. See
+[workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog)
+for details.
 
 ![Create package](../imgs/catalog-filesbrowser-create-package.png)
 
