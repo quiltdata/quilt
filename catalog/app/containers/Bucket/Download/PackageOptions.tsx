@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
-import { CloseOnClick } from 'components/Buttons'
+import { usePopoverClose } from 'components/Buttons'
 import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -25,6 +25,7 @@ interface DownloadDirProps {
 }
 
 function DownloadDir({ selection, uri }: DownloadDirProps) {
+  const closePopover = usePopoverClose()
   const isSelectionEmpty = typeof selection === 'undefined'
   const downloadLabel = !isSelectionEmpty // eslint-disable-line no-nested-ternary
     ? 'Download ZIP (selected files)'
@@ -42,8 +43,11 @@ function DownloadDir({ selection, uri }: DownloadDirProps) {
   const [downloading, setDownloading] = React.useState(false)
   React.useEffect(() => {
     if (!downloading) return
-    setTimeout(() => setDownloading(false), 1000)
-  }, [downloading])
+    setTimeout(() => {
+      setDownloading(false)
+      closePopover()
+    }, 1000)
+  }, [downloading, closePopover])
   return (
     <Buttons.DownloadDir
       suffix={downloadPath}
@@ -167,9 +171,7 @@ export default function Options({
   uri,
 }: OptionsProps) {
   const download = (
-    <CloseOnClick>
-      <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
-    </CloseOnClick>
+    <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
   )
   const code = hideCode ? undefined : <CodePanel hashOrTag={hashOrTag} uri={uri} />
 

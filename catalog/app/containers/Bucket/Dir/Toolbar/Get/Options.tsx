@@ -3,7 +3,7 @@ import { basename } from 'path'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { CloseOnClick } from 'components/Buttons'
+import { usePopoverClose } from 'components/Buttons'
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -42,11 +42,15 @@ interface DownloadDirProps {
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
   // TODO: pass selection to Buttons.DownloadDir
+  const closePopover = usePopoverClose()
   const [downloading, setDownloading] = React.useState(false)
   React.useEffect(() => {
     if (!downloading) return
-    setTimeout(() => setDownloading(false), 1000)
-  }, [downloading])
+    setTimeout(() => {
+      setDownloading(false)
+      closePopover()
+    }, 1000)
+  }, [downloading, closePopover])
   return (
     <Buttons.DownloadDir
       suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
@@ -64,11 +68,7 @@ interface OptionsProps {
 }
 
 export default function Options({ handle, features }: OptionsProps) {
-  const download = (
-    <CloseOnClick>
-      <DownloadDir dirHandle={handle} />
-    </CloseOnClick>
-  )
+  const download = <DownloadDir dirHandle={handle} />
   const code = features.code ? (
     <DirCodeSamples bucket={handle.bucket} path={handle.path} />
   ) : undefined

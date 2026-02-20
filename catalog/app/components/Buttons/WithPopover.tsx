@@ -51,7 +51,7 @@ export type WithPopoverProps = WithPopoverPropsOwn &
 
 const CloseContext = React.createContext<() => void>(() => {})
 
-const useClose = () => React.useContext(CloseContext)
+export const useClose = () => React.useContext(CloseContext)
 
 interface CloseOnClickProps {
   children: React.ReactNode
