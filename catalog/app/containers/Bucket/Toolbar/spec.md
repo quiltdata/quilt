@@ -147,9 +147,9 @@ export default function Options() {
 ```
 
 **Closing the popover:** Wrap actionable content with
-`<CloseOnClick>` — it closes the popover on any click bubbling
-through it. For standalone buttons, use `usePopoverClose()`
-to get a stable close callback (no-op outside a `WithPopover`).
+`<CloseOnClick>` — it closes the popover on any click
+bubbling through it. For standalone buttons,
+call `usePopoverClose()` directly.
 
 ### 5. Add to Features Type
 
