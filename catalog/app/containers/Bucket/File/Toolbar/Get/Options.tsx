@@ -41,7 +41,8 @@ interface OptionsProps {
 }
 
 export default function Options({ handle, features }: OptionsProps) {
-  const download = <Buttons.DownloadFile fileHandle={handle} />
+  const feedback = Buttons.useDownloadFeedback()
+  const download = <Buttons.DownloadFile fileHandle={handle} {...feedback} />
   const code = features.code ? (
     <FileCodeSamples bucket={handle.bucket} path={handle.key} />
   ) : undefined

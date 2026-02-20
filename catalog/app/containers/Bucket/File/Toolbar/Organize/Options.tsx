@@ -3,6 +3,7 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { CloseOnClick } from 'components/Buttons'
 import { viewModeToSelectOption } from 'containers/Bucket/viewModes'
 import type { ViewModes } from 'containers/Bucket/viewModes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -82,7 +83,7 @@ export default function OrganizeOptions({ viewModes, features }: OrganizeOptions
   )
 
   return (
-    <>
+    <CloseOnClick>
       <M.List dense className={classes.subList}>
         <MenuItem
           icon={isBookmarked ? <Icons.TurnedInOutlined /> : <Icons.TurnedInNotOutlined />}
@@ -140,6 +141,6 @@ export default function OrganizeOptions({ viewModes, features }: OrganizeOptions
           </MenuItem>
         </M.List>
       )}
-    </>
+    </CloseOnClick>
   )
 }
