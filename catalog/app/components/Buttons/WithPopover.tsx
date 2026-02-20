@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import log from 'utils/Logging'
+
 import Iconized from './Iconized'
 import type { StrIcon, SvgIcon } from './Iconized'
 
@@ -49,7 +51,9 @@ interface WithPopoverPropsOwn {
 export type WithPopoverProps = WithPopoverPropsOwn &
   Omit<Parameters<typeof Iconized>[0], 'icon'>
 
-const CloseContext = React.createContext<() => void>(() => {})
+const CloseContext = React.createContext<() => void>(() =>
+  log.warn('usePopoverClose() called outside of a WithPopover'),
+)
 
 export const useClose = () => React.useContext(CloseContext)
 
