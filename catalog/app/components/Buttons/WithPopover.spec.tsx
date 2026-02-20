@@ -96,11 +96,9 @@ describe('components/Buttons/WithPopover', () => {
 
     const button = screen.getByRole('button', { name: /test button/i })
     fireEvent.click(button)
-
     expect(screen.getByTestId('popup-content')).toBeTruthy()
 
     fireEvent.click(screen.getByTestId('popup-content'))
-
     expect(screen.getByTestId('popup-content')).toBeTruthy()
   })
 
@@ -115,11 +113,9 @@ describe('components/Buttons/WithPopover', () => {
 
     const trigger = screen.getByRole('button', { name: /test button/i })
     fireEvent.click(trigger)
-
     expect(screen.getByTestId('action-button')).toBeTruthy()
 
     fireEvent.click(screen.getByTestId('action-button'))
-
     expect(screen.queryByTestId('action-button')).toBeNull()
   })
 
