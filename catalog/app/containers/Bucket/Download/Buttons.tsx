@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
-import * as Buttons from 'components/Buttons'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 
@@ -23,13 +22,11 @@ interface DownloadFileProps {
 export function DownloadFile({ fileHandle }: DownloadFileProps) {
   const url = AWS.Signer.useDownloadUrl(fileHandle)
   const classes = useDownloadButtonStyles()
-  const closePopover = Buttons.usePopoverClose()
   return (
     <M.Button
       className={classes.root}
       download
       href={url}
-      onClick={closePopover}
       startIcon={<Icons.ArrowDownwardOutlined />}
     >
       Download file
@@ -49,21 +46,12 @@ export function DownloadDir({
   fileHandles,
   className,
   suffix,
-  onClick,
   ...props
 }: DownloadDirProps & M.ButtonProps) {
   const classes = useDownloadButtonStyles()
-  const closePopover = Buttons.usePopoverClose()
   const files = React.useMemo(
     () => fileHandles && fileHandles.map(({ key }) => key),
     [fileHandles],
-  )
-  const handleClick = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      closePopover()
-      onClick?.(e)
-    },
-    [closePopover, onClick],
   )
   return (
     <ZipDownloadForm className={className} files={files} suffix={suffix}>
@@ -71,7 +59,6 @@ export function DownloadDir({
         className={classes.root}
         startIcon={<Icons.ArchiveOutlined />}
         type="submit"
-        onClick={handleClick}
         {...props}
       >
         <span>{children}</span>

@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { CloseOnClick } from 'components/Buttons'
 import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -166,7 +167,9 @@ export default function Options({
   uri,
 }: OptionsProps) {
   const download = (
-    <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
+    <CloseOnClick>
+      <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
+    </CloseOnClick>
   )
   const code = hideCode ? undefined : <CodePanel hashOrTag={hashOrTag} uri={uri} />
 
