@@ -51,7 +51,7 @@ export type WithPopoverProps = WithPopoverPropsOwn &
 
 const CloseContext = React.createContext<() => void>(() => {})
 
-export function useClose(): () => void {
+function useClose(): () => void {
   return React.useContext(CloseContext)
 }
 
