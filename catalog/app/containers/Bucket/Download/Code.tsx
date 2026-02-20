@@ -78,14 +78,10 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
   const classes = useStyles()
   const { push } = Notifications.use()
 
-  const handleCopy = React.useCallback(
-    (e) => {
-      e.stopPropagation()
-      copyToClipboard(lines.join('\n'))
-      push('Code has been copied to clipboard')
-    },
-    [lines, push],
-  )
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(lines.join('\n'))
+    push('Code has been copied to clipboard')
+  }, [lines, push])
 
   return (
     <div className={className}>

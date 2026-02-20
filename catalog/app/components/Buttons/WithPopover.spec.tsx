@@ -87,8 +87,8 @@ describe('components/Buttons/WithPopover', () => {
     expect(screen.queryByTestId('popup-content')).toBeNull()
   })
 
-  it('should close popup when paper is clicked', () => {
-    const { container } = render(
+  it('should keep popup open when content inside it is clicked', () => {
+    render(
       <WithPopover label="Test Button">
         <div data-testid="popup-content">Popup Content</div>
       </WithPopover>,
@@ -99,12 +99,9 @@ describe('components/Buttons/WithPopover', () => {
 
     expect(screen.getByTestId('popup-content')).toBeTruthy()
 
-    const paper = container.querySelector('.MuiPaper-root')
-    if (paper) {
-      fireEvent.click(paper)
-    }
+    fireEvent.click(screen.getByTestId('popup-content'))
 
-    expect(screen.queryByTestId('popup-content')).toBeNull()
+    expect(screen.getByTestId('popup-content')).toBeTruthy()
   })
 
   it('should toggle popup state on button click', () => {

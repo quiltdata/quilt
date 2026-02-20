@@ -49,10 +49,7 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   return (
     <Buttons.DownloadDir
       suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
-      onClick={(event) => {
-        event.stopPropagation()
-        setDownloading(true)
-      }}
+      onClick={() => setDownloading(true)}
       {...(downloading ? { startIcon: <M.CircularProgress size={20} /> } : null)}
     >
       Download ZIP (directory)

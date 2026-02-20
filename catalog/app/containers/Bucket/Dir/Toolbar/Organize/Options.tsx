@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { CloseOnClick } from 'components/Buttons'
 import * as Format from 'utils/format'
 import assertNever from 'utils/assertNever'
 
@@ -77,50 +78,56 @@ export default function OrganizeOptions({ features }: OrganizeOptionsProps) {
   }, [bookmarkStatus])
 
   return (
-    <>
-      <M.ListSubheader inset component="div" disableSticky>
-        <Format.Plural
-          value={selectionCount}
-          one="One selected item"
-          other={(n) => `${n} selected items`}
-        />
-      </M.ListSubheader>
+    <CloseOnClick>
+      <>
+        <M.ListSubheader inset component="div" disableSticky>
+          <Format.Plural
+            value={selectionCount}
+            one="One selected item"
+            other={(n) => `${n} selected items`}
+          />
+        </M.ListSubheader>
 
-      <M.Divider />
+        <M.Divider />
 
-      <M.List dense>
-        <MenuItem icon={bookmarkIcon} onClick={toggleBookmarks} primary={bookmarkText} />
-      </M.List>
+        <M.List dense>
+          <MenuItem
+            icon={bookmarkIcon}
+            onClick={toggleBookmarks}
+            primary={bookmarkText}
+          />
+        </M.List>
 
-      <M.Divider />
+        <M.Divider />
 
-      <M.List dense>
-        <MenuItem
-          icon={<Icons.EditOutlined />}
-          onClick={openSelectionPopup}
-          primary="Manage selection"
-        />
-        <MenuItem
-          icon={<Icons.ClearOutlined />}
-          onClick={clearSelection}
-          primary="Clear selection"
-        />
-      </M.List>
+        <M.List dense>
+          <MenuItem
+            icon={<Icons.EditOutlined />}
+            onClick={openSelectionPopup}
+            primary="Manage selection"
+          />
+          <MenuItem
+            icon={<Icons.ClearOutlined />}
+            onClick={clearSelection}
+            primary="Clear selection"
+          />
+        </M.List>
 
-      {features.delete && (
-        <>
-          <M.Divider />
+        {features.delete && (
+          <>
+            <M.Divider />
 
-          <M.List dense>
-            <MenuItem
-              className={classes.error}
-              icon={<Icons.DeleteOutlined color="error" />}
-              onClick={confirmDeleteSelected}
-              primary="Delete selected items"
-            />
-          </M.List>
-        </>
-      )}
-    </>
+            <M.List dense>
+              <MenuItem
+                className={classes.error}
+                icon={<Icons.DeleteOutlined color="error" />}
+                onClick={confirmDeleteSelected}
+                primary="Delete selected items"
+              />
+            </M.List>
+          </>
+        )}
+      </>
+    </CloseOnClick>
   )
 }

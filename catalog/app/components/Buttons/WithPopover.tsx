@@ -49,6 +49,21 @@ interface WithPopoverPropsOwn {
 export type WithPopoverProps = WithPopoverPropsOwn &
   Omit<Parameters<typeof Iconized>[0], 'icon'>
 
+const CloseContext = React.createContext<() => void>(() => {})
+
+export function useClose(): () => void {
+  return React.useContext(CloseContext)
+}
+
+interface CloseOnClickProps {
+  children: React.ReactNode
+}
+
+export function CloseOnClick({ children }: CloseOnClickProps) {
+  const close = useClose()
+  return <div onClick={close}>{children}</div>
+}
+
 export default function WithPopover({
   children,
   icon,
@@ -86,9 +101,11 @@ export default function WithPopover({
 
       <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
       {opened && (
-        <M.Paper className={classes.popup} elevation={4} onClick={handleClose}>
-          {children}
-        </M.Paper>
+        <CloseContext.Provider value={handleClose}>
+          <M.Paper className={classes.popup} elevation={4}>
+            {children}
+          </M.Paper>
+        </CloseContext.Provider>
       )}
     </div>
   )
