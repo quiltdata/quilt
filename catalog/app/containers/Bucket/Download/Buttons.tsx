@@ -16,10 +16,11 @@ export function useDownloadFeedback(): {
   const [downloading, setDownloading] = React.useState(false)
   React.useEffect(() => {
     if (!downloading) return
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setDownloading(false)
       closePopover()
     }, 1000)
+    return () => clearTimeout(timer)
   }, [downloading, closePopover])
   return React.useMemo(
     () => ({
