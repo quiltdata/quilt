@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
-import { usePopoverClose } from 'components/Buttons'
 import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -25,7 +24,6 @@ interface DownloadDirProps {
 }
 
 function DownloadDir({ selection, uri }: DownloadDirProps) {
-  const closePopover = usePopoverClose()
   const isSelectionEmpty = typeof selection === 'undefined'
   const downloadLabel = !isSelectionEmpty // eslint-disable-line no-nested-ternary
     ? 'Download ZIP (selected files)'
@@ -40,21 +38,9 @@ function DownloadDir({ selection, uri }: DownloadDirProps) {
     () => selection && Selection.toHandlesList(selection),
     [selection],
   )
-  const [downloading, setDownloading] = React.useState(false)
-  React.useEffect(() => {
-    if (!downloading) return
-    setTimeout(() => {
-      setDownloading(false)
-      closePopover()
-    }, 1000)
-  }, [downloading, closePopover])
+  const feedback = Buttons.useDownloadFeedback()
   return (
-    <Buttons.DownloadDir
-      suffix={downloadPath}
-      fileHandles={fileHandles}
-      onClick={() => setDownloading(true)}
-      {...(downloading ? { startIcon: <M.CircularProgress size={20} /> } : null)}
-    >
+    <Buttons.DownloadDir suffix={downloadPath} fileHandles={fileHandles} {...feedback}>
       {downloadLabel}
     </Buttons.DownloadDir>
   )

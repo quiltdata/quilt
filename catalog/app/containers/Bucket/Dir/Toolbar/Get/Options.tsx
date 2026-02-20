@@ -3,7 +3,6 @@ import { basename } from 'path'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { usePopoverClose } from 'components/Buttons'
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -42,20 +41,11 @@ interface DownloadDirProps {
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
   // TODO: pass selection to Buttons.DownloadDir
-  const closePopover = usePopoverClose()
-  const [downloading, setDownloading] = React.useState(false)
-  React.useEffect(() => {
-    if (!downloading) return
-    setTimeout(() => {
-      setDownloading(false)
-      closePopover()
-    }, 1000)
-  }, [downloading, closePopover])
+  const feedback = Buttons.useDownloadFeedback()
   return (
     <Buttons.DownloadDir
       suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
-      onClick={() => setDownloading(true)}
-      {...(downloading ? { startIcon: <M.CircularProgress size={20} /> } : null)}
+      {...feedback}
     >
       Download ZIP (directory)
     </Buttons.DownloadDir>

@@ -3,7 +3,6 @@ import { basename } from 'path'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { CloseOnClick } from 'components/Buttons'
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -42,11 +41,8 @@ interface OptionsProps {
 }
 
 export default function Options({ handle, features }: OptionsProps) {
-  const download = (
-    <CloseOnClick>
-      <Buttons.DownloadFile fileHandle={handle} />
-    </CloseOnClick>
-  )
+  const feedback = Buttons.useDownloadFeedback()
+  const download = <Buttons.DownloadFile fileHandle={handle} {...feedback} />
   const code = features.code ? (
     <FileCodeSamples bucket={handle.bucket} path={handle.key} />
   ) : undefined
