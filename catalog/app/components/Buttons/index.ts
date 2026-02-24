@@ -1,6 +1,6 @@
 export { default as Iconized } from './Iconized'
 export { default as Skeleton } from './Skeleton'
-export { default as SplitCopyButton } from './SplitCopyButton'
+export { default as useCopyUri, useStyles as useCopyUriStyles } from './useCopyUri'
 export {
   default as WithPopover,
   useClose as usePopoverClose,

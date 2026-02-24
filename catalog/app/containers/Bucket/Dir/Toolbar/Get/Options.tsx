@@ -3,6 +3,7 @@ import { basename } from 'path'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { useCopyUri, useCopyUriStyles } from 'components/Buttons'
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
@@ -48,16 +49,21 @@ interface DownloadDirProps {
 function DownloadDir({ dirHandle }: DownloadDirProps) {
   // TODO: pass selection to Buttons.DownloadDir
   const classes = useDownloadDirStyles()
+  const copyClasses = useCopyUriStyles()
   const feedback = Buttons.useDownloadFeedback()
+  const copy = useCopyUri(dirHandle)
   return (
-    <Buttons.DownloadDir
-      suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
-      s3Uri={`s3://${dirHandle.bucket}/${dirHandle.path}`}
-      className={classes.root}
-      {...feedback}
-    >
-      Download ZIP (directory)
-    </Buttons.DownloadDir>
+    <M.ButtonGroup variant="outlined" fullWidth className={classes.root}>
+      <Buttons.DownloadDir
+        suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
+        {...feedback}
+      >
+        Download ZIP (directory)
+      </Buttons.DownloadDir>
+      <M.Button className={copyClasses.copy} onClick={copy.onClick}>
+        {copy.icon}
+      </M.Button>
+    </M.ButtonGroup>
   )
 }
 
