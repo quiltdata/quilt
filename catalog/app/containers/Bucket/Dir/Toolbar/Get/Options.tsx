@@ -2,9 +2,11 @@ import { basename } from 'path'
 
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
+import { ZipDownloadForm } from 'containers/Bucket/FileView'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 import type { Features } from '../useFeatures'
@@ -39,6 +41,11 @@ const useDownloadDirStyles = M.makeStyles((t) => ({
   root: {
     marginBottom: t.spacing(1),
   },
+  main: {
+    flexGrow: 1,
+    flexShrink: 0,
+    justifyContent: 'flex-start',
+  },
 }))
 
 interface DownloadDirProps {
@@ -50,14 +57,21 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   const classes = useDownloadDirStyles()
   const feedback = Buttons.useDownloadFeedback()
   return (
-    <Buttons.DownloadDir
-      suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
-      s3Uri={`s3://${dirHandle.bucket}/${dirHandle.path}`}
+    <ZipDownloadForm
       className={classes.root}
-      {...feedback}
+      suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
     >
-      Download ZIP (directory)
-    </Buttons.DownloadDir>
+      <Buttons.SplitCopyButton copyUri={`s3://${dirHandle.bucket}/${dirHandle.path}`}>
+        <M.Button
+          className={classes.main}
+          startIcon={<Icons.ArchiveOutlined />}
+          type="submit"
+          {...feedback}
+        >
+          Download ZIP (directory)
+        </M.Button>
+      </Buttons.SplitCopyButton>
+    </ZipDownloadForm>
   )
 }
 

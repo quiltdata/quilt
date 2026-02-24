@@ -48,6 +48,10 @@ const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
     marginBottom: t.spacing(1),
   },
+  open: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+  },
 }))
 
 interface QuiltSyncProps {
@@ -61,13 +65,10 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
 
   return (
     <div className={className}>
-      <Buttons.SplitCopyButton
-        copyUri={uriString}
-        className={classes.link}
-        icon={<Icons.GetApp />}
-        href={uriString}
-      >
-        Open in QuiltSync
+      <Buttons.SplitCopyButton copyUri={uriString} className={classes.link}>
+        <M.Button startIcon={<Icons.GetApp />} href={uriString} className={classes.open}>
+          Open in QuiltSync
+        </M.Button>
       </Buttons.SplitCopyButton>
       <M.Typography variant="caption" component="p">
         Don't have QuiltSync?{' '}
