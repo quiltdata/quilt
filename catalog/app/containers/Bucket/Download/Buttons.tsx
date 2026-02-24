@@ -29,42 +29,32 @@ export function useDownloadFeedback(): {
   )
 }
 
-const useSplitCopyButtonStyles = M.makeStyles((t) => ({
+const useCopyButtonStyles = M.makeStyles((t) => ({
   root: {
-    whiteSpace: 'nowrap',
-    width: '100%',
-  },
-  copy: {
     fontSize: t.typography.body1.fontSize,
     width: 'auto',
   },
 }))
 
-interface SplitCopyButtonProps {
-  children: React.ReactNode
-  className?: string
-  copyUri: string
+interface CopyButtonProps {
+  uri: string
   notification?: string
 }
 
-export function SplitCopyButton({
-  children,
-  className,
-  copyUri,
+export function CopyButton({
+  uri,
   notification = 'URI has been copied to clipboard',
-}: SplitCopyButtonProps) {
-  const classes = useSplitCopyButtonStyles()
+  ...props
+}: CopyButtonProps & M.ButtonProps) {
+  const classes = useCopyButtonStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
-    copyToClipboard(copyUri)
+    copyToClipboard(uri)
     push(notification)
-  }, [copyUri, notification, push])
+  }, [uri, notification, push])
   return (
-    <M.ButtonGroup variant="outlined" className={`${classes.root} ${className || ''}`}>
-      {children}
-      <M.Button type="button" className={classes.copy} onClick={handleCopy}>
-        <Icons.FileCopy fontSize="inherit" />
-      </M.Button>
-    </M.ButtonGroup>
+    <M.Button className={classes.root} onClick={handleCopy} {...props}>
+      <Icons.FileCopy fontSize="inherit" />
+    </M.Button>
   )
 }

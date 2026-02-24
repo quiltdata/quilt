@@ -40,6 +40,8 @@ export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProp
 const useStyles = M.makeStyles((t) => ({
   download: {
     marginBottom: t.spacing(1),
+    whiteSpace: 'nowrap',
+    width: '100%',
   },
   main: {
     flexGrow: 1,
@@ -57,10 +59,7 @@ export default function Options({ handle, features }: OptionsProps) {
   const feedback = Buttons.useDownloadFeedback()
   const url = AWS.Signer.useDownloadUrl(handle)
   const download = (
-    <Buttons.SplitCopyButton
-      copyUri={`s3://${handle.bucket}/${handle.key}`}
-      className={classes.download}
-    >
+    <M.ButtonGroup variant="outlined" className={classes.download}>
       <M.Button
         className={classes.main}
         download
@@ -70,7 +69,8 @@ export default function Options({ handle, features }: OptionsProps) {
       >
         Download file
       </M.Button>
-    </Buttons.SplitCopyButton>
+      <Buttons.CopyButton uri={`s3://${handle.bucket}/${handle.key}`} />
+    </M.ButtonGroup>
   )
   const code = features.code ? (
     <FileCodeSamples bucket={handle.bucket} path={handle.key} />

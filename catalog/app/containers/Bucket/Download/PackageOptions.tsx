@@ -84,6 +84,8 @@ function DownloadFile({ fileHandle }: { fileHandle: Model.S3.S3ObjectLocation })
 const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
     marginBottom: t.spacing(1),
+    whiteSpace: 'nowrap',
+    width: '100%',
   },
   open: {
     flexGrow: 1,
@@ -102,11 +104,12 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
 
   return (
     <div className={className}>
-      <Buttons.SplitCopyButton copyUri={uriString} className={classes.link}>
+      <M.ButtonGroup variant="outlined" className={classes.link}>
         <M.Button startIcon={<Icons.GetApp />} href={uriString} className={classes.open}>
           Open in QuiltSync
         </M.Button>
-      </Buttons.SplitCopyButton>
+        <Buttons.CopyButton uri={uriString} />
+      </M.ButtonGroup>
       <M.Typography variant="caption" component="p">
         Don't have QuiltSync?{' '}
         <StyledLink href={urls.quiltSync} target="_blank">

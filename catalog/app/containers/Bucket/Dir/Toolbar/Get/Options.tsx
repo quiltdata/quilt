@@ -41,6 +41,10 @@ const useDownloadDirStyles = M.makeStyles((t) => ({
   root: {
     marginBottom: t.spacing(1),
   },
+  group: {
+    whiteSpace: 'nowrap',
+    width: '100%',
+  },
   main: {
     flexGrow: 1,
     flexShrink: 0,
@@ -60,7 +64,7 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
       className={classes.root}
       suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
     >
-      <Buttons.SplitCopyButton copyUri={`s3://${dirHandle.bucket}/${dirHandle.path}`}>
+      <M.ButtonGroup variant="outlined" className={classes.group}>
         <M.Button
           className={classes.main}
           startIcon={<Icons.ArchiveOutlined />}
@@ -69,7 +73,8 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
         >
           Download ZIP (directory)
         </M.Button>
-      </Buttons.SplitCopyButton>
+        <Buttons.CopyButton uri={`s3://${dirHandle.bucket}/${dirHandle.path}`} />
+      </M.ButtonGroup>
     </ZipDownloadForm>
   )
 }
