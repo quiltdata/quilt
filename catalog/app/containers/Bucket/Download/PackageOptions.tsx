@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
-import { useCopyUri, useCopyUriStyles } from 'components/Buttons'
 import * as urls from 'constants/urls'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Model from 'model'
@@ -49,9 +48,6 @@ const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
     marginBottom: t.spacing(1),
   },
-  open: {
-    justifyContent: 'flex-start',
-  },
 }))
 
 interface QuiltSyncProps {
@@ -61,20 +57,18 @@ interface QuiltSyncProps {
 
 function QuiltSync({ className, uri }: QuiltSyncProps) {
   const classes = useQuiltSyncStyles()
-  const copyClasses = useCopyUriStyles()
-  const copy = useCopyUri(uri)
   const uriString = PackageUri.stringify(uri)
 
   return (
     <div className={className}>
-      <M.ButtonGroup variant="outlined" fullWidth className={classes.link}>
-        <M.Button startIcon={<Icons.GetApp />} href={uriString} className={classes.open}>
-          Open in QuiltSync
-        </M.Button>
-        <M.Button className={copyClasses.copy} onClick={copy.onClick}>
-          {copy.icon}
-        </M.Button>
-      </M.ButtonGroup>
+      <Buttons.SplitCopyButton
+        copyUri={uriString}
+        className={classes.link}
+        icon={<Icons.GetApp />}
+        href={uriString}
+      >
+        Open in QuiltSync
+      </Buttons.SplitCopyButton>
       <M.Typography variant="caption" component="p">
         Don't have QuiltSync?{' '}
         <StyledLink href={urls.quiltSync} target="_blank">
