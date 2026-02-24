@@ -7,14 +7,24 @@ import * as Icons from '@material-ui/icons'
 import * as urls from 'constants/urls'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Model from 'model'
+import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
 
+import { ZipDownloadForm } from '../FileView'
 import * as Selection from '../Selection'
 
 import * as Buttons from './Buttons'
 import PackageCodeSamples from './PackageCodeSamples'
+
+const useDownloadButtonStyles = M.makeStyles({
+  root: {
+    justifyContent: 'flex-start',
+    lineHeight: '1.25rem',
+    width: '100%',
+  },
+})
 
 interface DownloadDirProps {
   selection?: Selection.ListingSelection
@@ -36,11 +46,38 @@ function DownloadDir({ selection, uri }: DownloadDirProps) {
     () => selection && Selection.toHandlesList(selection),
     [selection],
   )
+  const files = React.useMemo(
+    () => fileHandles && fileHandles.map(({ key }) => key),
+    [fileHandles],
+  )
+  const classes = useDownloadButtonStyles()
   const feedback = Buttons.useDownloadFeedback()
   return (
-    <Buttons.DownloadDir suffix={downloadPath} fileHandles={fileHandles} {...feedback}>
-      {downloadLabel}
-    </Buttons.DownloadDir>
+    <ZipDownloadForm suffix={downloadPath} files={files}>
+      <M.Button
+        className={classes.root}
+        startIcon={<Icons.ArchiveOutlined />}
+        type="submit"
+        {...feedback}
+      >
+        <span>{downloadLabel}</span>
+      </M.Button>
+    </ZipDownloadForm>
+  )
+}
+
+function DownloadFile({ fileHandle }: { fileHandle: Model.S3.S3ObjectLocation }) {
+  const url = AWS.Signer.useDownloadUrl(fileHandle)
+  const classes = useDownloadButtonStyles()
+  return (
+    <M.Button
+      className={classes.root}
+      download
+      href={url}
+      startIcon={<Icons.ArrowDownwardOutlined />}
+    >
+      Download file
+    </M.Button>
   )
 }
 
@@ -110,7 +147,7 @@ function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
         prefs,
       )}
       {fileHandle ? (
-        <Buttons.DownloadFile fileHandle={fileHandle} />
+        <DownloadFile fileHandle={fileHandle} />
       ) : (
         <DownloadDir selection={selection} uri={uri} />
       )}

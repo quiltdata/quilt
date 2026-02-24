@@ -53,7 +53,6 @@ interface DownloadDirProps {
 }
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
-  // TODO: pass selection to Buttons.DownloadDir
   const classes = useDownloadDirStyles()
   const feedback = Buttons.useDownloadFeedback()
   return (
