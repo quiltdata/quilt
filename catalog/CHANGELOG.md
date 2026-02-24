@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Copy S3 URI button to download buttons in the S3 browser ([#4741](https://github.com/quiltdata/quilt/pull/4741))
 - [Fixed] Toolbar popover closing on click inside popup content, preventing text selection in code samples ([#4739](https://github.com/quiltdata/quilt/pull/4739))
 - [Changed] Package creation from S3 files now includes current bucket as default destination when no workflow config exists; cross-bucket push strictly respects workflow successors configuration ([#4734](https://github.com/quiltdata/quilt/pull/4734))
 - [Fixed] Add missing `deleteObject` property to GUI config editor to enable/disable delete buttons for files and directories ([#4692](https://github.com/quiltdata/quilt/pull/4692))
