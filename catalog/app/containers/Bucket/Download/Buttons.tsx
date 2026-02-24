@@ -51,7 +51,20 @@ export function DownloadFile({
 }: DownloadFileProps & M.ButtonProps<'a'>) {
   const url = AWS.Signer.useDownloadUrl(fileHandle)
   const classes = useDownloadButtonStyles()
-  const button = (
+  if (s3Uri) {
+    return (
+      <SplitCopyButton
+        copyUri={s3Uri}
+        icon={<Icons.ArrowDownwardOutlined />}
+        download
+        href={url}
+        {...props}
+      >
+        Download file
+      </SplitCopyButton>
+    )
+  }
+  return (
     <M.Button
       className={classes.root}
       download
@@ -62,10 +75,6 @@ export function DownloadFile({
       Download file
     </M.Button>
   )
-  if (s3Uri) {
-    return <SplitCopyButton copyUri={s3Uri}>{button}</SplitCopyButton>
-  }
-  return button
 }
 
 interface DownloadDirProps {
@@ -89,19 +98,27 @@ export function DownloadDir({
     () => fileHandles && fileHandles.map(({ key }) => key),
     [fileHandles],
   )
-  const button = (
-    <M.Button
-      className={classes.root}
-      startIcon={<Icons.ArchiveOutlined />}
-      type="submit"
-      {...props}
-    >
-      <span>{children}</span>
-    </M.Button>
-  )
   return (
     <ZipDownloadForm className={className} files={files} suffix={suffix}>
-      {s3Uri ? <SplitCopyButton copyUri={s3Uri}>{button}</SplitCopyButton> : button}
+      {s3Uri ? (
+        <SplitCopyButton
+          copyUri={s3Uri}
+          icon={<Icons.ArchiveOutlined />}
+          type="submit"
+          {...props}
+        >
+          <span>{children}</span>
+        </SplitCopyButton>
+      ) : (
+        <M.Button
+          className={classes.root}
+          startIcon={<Icons.ArchiveOutlined />}
+          type="submit"
+          {...props}
+        >
+          <span>{children}</span>
+        </M.Button>
+      )}
     </ZipDownloadForm>
   )
 }
