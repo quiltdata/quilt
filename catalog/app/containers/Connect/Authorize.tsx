@@ -7,6 +7,16 @@ import Spinner from 'components/Spinner'
 import * as APIConnector from 'utils/APIConnector'
 import parseSearch from 'utils/parseSearch'
 
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_client: 'The application is not recognized.',
+  invalid_redirect_uri: 'The application provided an invalid callback URL.',
+  invalid_scope: 'The requested permissions are not valid.',
+  invalid_resource: 'The requested resource is not valid.',
+  invalid_request: 'The authorization request is invalid.',
+  unsupported_response_type: 'The requested response type is not supported.',
+  unexpected: 'Something went wrong. Please try again.',
+}
+
 type State =
   | { status: 'loading' }
   | { status: 'error'; error: string; errorDescription?: string }
@@ -39,11 +49,6 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(4),
     gap: t.spacing(2),
   },
-  error: {
-    color: t.palette.error.main,
-    textAlign: 'center',
-    marginTop: t.spacing(4),
-  },
   loading: {
     display: 'flex',
     justifyContent: 'center',
@@ -57,20 +62,15 @@ export default function Authorize() {
   const req = APIConnector.use()
   const [state, setState] = React.useState<State>({ status: 'loading' })
 
-  // Parse OAuth params from URL
-  const params = React.useMemo(() => parseSearch(search, true), [search])
+  const params = parseSearch(search, true)
   const {
     client_id: clientId,
     redirect_uri: redirectUri,
-    response_type: responseType,
     scope,
     state: oauthState,
-    code_challenge: codeChallenge,
-    code_challenge_method: codeChallengeMethod,
     resource,
   } = params
 
-  // Validate on mount
   React.useEffect(() => {
     let cancelled = false
 
@@ -92,7 +92,7 @@ export default function Authorize() {
       } catch (e) {
         if (cancelled) return
         if (e instanceof APIConnector.HTTPError) {
-          const { error, error_description: errorDescription } = e.json || {}
+          const { error_code: error, message: errorDescription } = e.json || {}
           setState({ status: 'error', error: error || 'unexpected', errorDescription })
         } else {
           setState({ status: 'error', error: 'unexpected' })
@@ -106,7 +106,6 @@ export default function Authorize() {
     }
   }, [req, clientId, redirectUri, scope, resource])
 
-  // Continue handler - authorize and redirect
   const handleContinue = React.useCallback(async () => {
     if (state.status !== 'ready') return
     setState({ status: 'authorizing', clientName: state.clientName })
@@ -115,72 +114,28 @@ export default function Authorize() {
       const result = await req({
         endpoint: '/connect/authorize',
         method: 'POST',
-        body: {
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          response_type: responseType,
-          scope,
-          state: oauthState,
-          code_challenge: codeChallenge,
-          code_challenge_method: codeChallengeMethod,
-          resource,
-        },
+        body: params,
       })
-      // Redirect to the client with the authorization code
       window.location.href = result.redirect_uri
     } catch (e) {
       if (e instanceof APIConnector.HTTPError) {
-        const { error, error_description: errorDescription } = e.json || {}
+        const { error_code: error, message: errorDescription } = e.json || {}
         setState({ status: 'error', error: error || 'unexpected', errorDescription })
       } else {
         setState({ status: 'error', error: 'unexpected' })
       }
     }
-  }, [
-    state,
-    req,
-    clientId,
-    redirectUri,
-    responseType,
-    scope,
-    oauthState,
-    codeChallenge,
-    codeChallengeMethod,
-    resource,
-  ])
+  }, [state, req, params])
 
-  // Cancel handler - redirect with error
   const handleCancel = React.useCallback(() => {
-    if (!redirectUri || !oauthState) {
-      // Can't redirect without valid redirect_uri and state
-      setState({ status: 'error', error: 'invalid_request' })
-      return
-    }
-    try {
-      const url = new URL(redirectUri)
-      url.searchParams.set('error', 'access_denied')
-      url.searchParams.set('state', oauthState)
-      window.location.href = url.toString()
-    } catch {
-      // Invalid redirect_uri
-      setState({ status: 'error', error: 'invalid_redirect_uri' })
-    }
+    const url = new URL(redirectUri)
+    url.searchParams.set('error', 'access_denied')
+    url.searchParams.set('state', oauthState)
+    window.location.href = url.toString()
   }, [redirectUri, oauthState])
 
-  // Error messages
-  const errorMessages: Record<string, string> = {
-    invalid_client: 'The application is not recognized.',
-    invalid_redirect_uri: 'The application provided an invalid callback URL.',
-    invalid_scope: 'The requested permissions are not valid.',
-    invalid_resource: 'The requested resource is not valid.',
-    invalid_request: 'The authorization request is invalid.',
-    unsupported_response_type: 'The requested response type is not supported.',
-    unexpected: 'Something went wrong. Please try again.',
-  }
-
-  // Render error state
   if (state.status === 'error') {
-    const errorMessage = errorMessages[state.error] || errorMessages.unexpected
+    const errorMessage = ERROR_MESSAGES[state.error] || ERROR_MESSAGES.unexpected
     return (
       <Layout>
         <M.Box pt={5} pb={2} className={classes.container}>
@@ -207,7 +162,6 @@ export default function Authorize() {
     )
   }
 
-  // Render loading state
   if (state.status === 'loading') {
     return (
       <Layout>
@@ -223,7 +177,6 @@ export default function Authorize() {
     )
   }
 
-  // Render ready/authorizing state
   const isAuthorizing = state.status === 'authorizing'
 
   return (
