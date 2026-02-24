@@ -34,27 +34,27 @@ const useCopyButtonStyles = M.makeStyles((t) => ({
     fontSize: t.typography.body1.fontSize,
     width: 'auto',
   },
+  mono: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
 }))
 
 interface CopyButtonProps {
   uri: string
-  notification?: string
 }
 
-export function CopyButton({
-  uri,
-  notification = 'URI has been copied to clipboard',
-  ...props
-}: CopyButtonProps & M.ButtonProps) {
+export function CopyButton({ uri, ...props }: CopyButtonProps & M.ButtonProps) {
   const classes = useCopyButtonStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
     copyToClipboard(uri)
-    push(notification)
-  }, [uri, notification, push])
+    push('URI has been copied to clipboard')
+  }, [uri, push])
   return (
-    <M.Button className={classes.root} onClick={handleCopy} {...props}>
-      <Icons.FileCopy fontSize="inherit" />
-    </M.Button>
+    <M.Tooltip title={<span className={classes.mono}>{uri}</span>}>
+      <M.Button className={classes.root} onClick={handleCopy} {...props}>
+        <Icons.FileCopy fontSize="inherit" />
+      </M.Button>
+    </M.Tooltip>
   )
 }
