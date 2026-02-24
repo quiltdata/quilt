@@ -52,13 +52,15 @@ export function DownloadFile({
   const url = AWS.Signer.useDownloadUrl(fileHandle)
   const classes = useDownloadButtonStyles()
   if (s3Uri) {
+    const { onClick, startIcon } = props
     return (
       <SplitCopyButton
         copyUri={s3Uri}
         icon={<Icons.ArrowDownwardOutlined />}
         download
         href={url}
-        {...props}
+        onClick={onClick}
+        startIcon={startIcon}
       >
         Download file
       </SplitCopyButton>
@@ -105,7 +107,8 @@ export function DownloadDir({
           copyUri={s3Uri}
           icon={<Icons.ArchiveOutlined />}
           type="submit"
-          {...props}
+          onClick={props.onClick}
+          startIcon={props.startIcon}
         >
           <span>{children}</span>
         </SplitCopyButton>

@@ -19,11 +19,17 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-type SplitCopyButtonProps = Omit<M.ButtonProps, 'variant'> & {
+interface SplitCopyButtonProps {
+  children?: React.ReactNode
+  className?: string
   copyUri: string
   download?: boolean
+  href?: string
   icon?: React.ReactNode
   notification?: string
+  onClick?: React.MouseEventHandler
+  startIcon?: React.ReactNode
+  type?: 'button' | 'submit' | 'reset'
 }
 
 export default function SplitCopyButton({
