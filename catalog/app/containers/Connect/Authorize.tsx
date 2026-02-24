@@ -49,6 +49,9 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(4),
     gap: t.spacing(2),
   },
+  errorDetail: {
+    marginTop: t.spacing(1),
+  },
   loading: {
     display: 'flex',
     justifyContent: 'center',
@@ -71,6 +74,15 @@ export default function Authorize() {
     resource,
   } = params
 
+  const handleError = (e: unknown) => {
+    if (e instanceof APIConnector.HTTPError) {
+      const { error_code: error, message: errorDescription } = e.json || {}
+      setState({ status: 'error', error: error || 'unexpected', errorDescription })
+    } else {
+      setState({ status: 'error', error: 'unexpected' })
+    }
+  }
+
   React.useEffect(() => {
     let cancelled = false
 
@@ -90,13 +102,7 @@ export default function Authorize() {
           setState({ status: 'ready', clientName: result.client_name })
         }
       } catch (e) {
-        if (cancelled) return
-        if (e instanceof APIConnector.HTTPError) {
-          const { error_code: error, message: errorDescription } = e.json || {}
-          setState({ status: 'error', error: error || 'unexpected', errorDescription })
-        } else {
-          setState({ status: 'error', error: 'unexpected' })
-        }
+        if (!cancelled) handleError(e)
       }
     }
 
@@ -106,7 +112,7 @@ export default function Authorize() {
     }
   }, [req, clientId, redirectUri, scope, resource])
 
-  const handleContinue = React.useCallback(async () => {
+  const handleContinue = async () => {
     if (state.status !== 'ready') return
     setState({ status: 'authorizing', clientName: state.clientName })
 
@@ -118,21 +124,16 @@ export default function Authorize() {
       })
       window.location.href = result.redirect_uri
     } catch (e) {
-      if (e instanceof APIConnector.HTTPError) {
-        const { error_code: error, message: errorDescription } = e.json || {}
-        setState({ status: 'error', error: error || 'unexpected', errorDescription })
-      } else {
-        setState({ status: 'error', error: 'unexpected' })
-      }
+      handleError(e)
     }
-  }, [state, req, params])
+  }
 
-  const handleCancel = React.useCallback(() => {
+  const handleCancel = () => {
     const url = new URL(redirectUri)
     url.searchParams.set('error', 'access_denied')
     url.searchParams.set('state', oauthState)
     window.location.href = url.toString()
-  }, [redirectUri, oauthState])
+  }
 
   if (state.status === 'error') {
     const errorMessage = ERROR_MESSAGES[state.error] || ERROR_MESSAGES.unexpected
@@ -151,7 +152,7 @@ export default function Authorize() {
                 variant="body2"
                 align="center"
                 color="textSecondary"
-                style={{ marginTop: 8 }}
+                className={classes.errorDetail}
               >
                 {state.errorDescription}
               </M.Typography>
