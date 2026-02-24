@@ -129,6 +129,7 @@ export default function Authorize() {
   }
 
   const handleCancel = () => {
+    if (!redirectUri || !oauthState) return
     const url = new URL(redirectUri)
     url.searchParams.set('error', 'access_denied')
     url.searchParams.set('state', oauthState)
