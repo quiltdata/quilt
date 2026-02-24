@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
-import { render, fireEvent } from '@testing-library/react'
+import { cleanup, render, fireEvent } from '@testing-library/react'
 
 import copyToClipboard from 'utils/clipboard'
 
@@ -33,6 +33,8 @@ function renderWithTheme(component: React.ReactElement) {
 }
 
 describe('containers/Bucket/Download/Buttons', () => {
+  afterEach(cleanup)
+
   describe('CopyButton', () => {
     it('should copy URI to clipboard and show notification on click', () => {
       const uri = 's3://test-bucket/path/to/file'
