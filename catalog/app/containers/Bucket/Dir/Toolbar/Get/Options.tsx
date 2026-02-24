@@ -45,6 +45,7 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   return (
     <Buttons.DownloadDir
       suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
+      s3Uri={`s3://${dirHandle.bucket}/${dirHandle.path}`}
       {...feedback}
     >
       Download ZIP (directory)

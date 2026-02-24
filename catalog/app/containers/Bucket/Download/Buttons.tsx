@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
-import { usePopoverClose } from 'components/Buttons'
+import { SplitCopyButton, usePopoverClose } from 'components/Buttons'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 
@@ -41,15 +41,17 @@ const useDownloadButtonStyles = M.makeStyles({
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
+  s3Uri?: string
 }
 
 export function DownloadFile({
   fileHandle,
+  s3Uri,
   ...props
 }: DownloadFileProps & M.ButtonProps<'a'>) {
   const url = AWS.Signer.useDownloadUrl(fileHandle)
   const classes = useDownloadButtonStyles()
-  return (
+  const button = (
     <M.Button
       className={classes.root}
       download
@@ -60,6 +62,10 @@ export function DownloadFile({
       Download file
     </M.Button>
   )
+  if (s3Uri) {
+    return <SplitCopyButton copyUri={s3Uri}>{button}</SplitCopyButton>
+  }
+  return button
 }
 
 interface DownloadDirProps {
@@ -67,6 +73,7 @@ interface DownloadDirProps {
   suffix: string
   fileHandles?: Model.S3.S3ObjectLocation[]
   children: React.ReactNode
+  s3Uri?: string
 }
 
 export function DownloadDir({
@@ -74,6 +81,7 @@ export function DownloadDir({
   fileHandles,
   className,
   suffix,
+  s3Uri,
   ...props
 }: DownloadDirProps & M.ButtonProps) {
   const classes = useDownloadButtonStyles()
@@ -81,16 +89,19 @@ export function DownloadDir({
     () => fileHandles && fileHandles.map(({ key }) => key),
     [fileHandles],
   )
+  const button = (
+    <M.Button
+      className={classes.root}
+      startIcon={<Icons.ArchiveOutlined />}
+      type="submit"
+      {...props}
+    >
+      <span>{children}</span>
+    </M.Button>
+  )
   return (
     <ZipDownloadForm className={className} files={files} suffix={suffix}>
-      <M.Button
-        className={classes.root}
-        startIcon={<Icons.ArchiveOutlined />}
-        type="submit"
-        {...props}
-      >
-        <span>{children}</span>
-      </M.Button>
+      {s3Uri ? <SplitCopyButton copyUri={s3Uri}>{button}</SplitCopyButton> : button}
     </ZipDownloadForm>
   )
 }

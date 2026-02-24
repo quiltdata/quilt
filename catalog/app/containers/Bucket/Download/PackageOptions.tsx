@@ -4,14 +4,13 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { SplitCopyButton } from 'components/Buttons'
 import * as urls from 'constants/urls'
-import * as Notifications from 'containers/Notifications'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
-import copyToClipboard from 'utils/clipboard'
 
 import * as Selection from '../Selection'
 
@@ -53,10 +52,6 @@ const useQuiltSyncStyles = M.makeStyles((t) => ({
   open: {
     justifyContent: 'flex-start',
   },
-  copy: {
-    fontSize: t.typography.body1.fontSize,
-    width: 'auto',
-  },
 }))
 
 interface QuiltSyncProps {
@@ -66,24 +61,15 @@ interface QuiltSyncProps {
 
 function QuiltSync({ className, uri }: QuiltSyncProps) {
   const classes = useQuiltSyncStyles()
-  const { push } = Notifications.use()
   const uriString = PackageUri.stringify(uri)
-
-  const handleCopy = React.useCallback(() => {
-    copyToClipboard(uriString)
-    push('URI has been copied to clipboard')
-  }, [uriString, push])
 
   return (
     <div className={className}>
-      <M.ButtonGroup variant="outlined" fullWidth className={classes.link}>
+      <SplitCopyButton copyUri={uriString} className={classes.link}>
         <M.Button startIcon={<Icons.GetApp />} href={uriString} className={classes.open}>
           Open in QuiltSync
         </M.Button>
-        <M.Button className={classes.copy} onClick={handleCopy}>
-          <Icons.FileCopy fontSize="inherit" />
-        </M.Button>
-      </M.ButtonGroup>
+      </SplitCopyButton>
       <M.Typography variant="caption" component="p">
         Don't have QuiltSync?{' '}
         <StyledLink href={urls.quiltSync} target="_blank">
