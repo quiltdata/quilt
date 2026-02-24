@@ -35,17 +35,25 @@ export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProp
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  download: {
+    marginBottom: t.spacing(1),
+  },
+}))
+
 interface OptionsProps {
   handle: Toolbar.FileHandle
   features: Exclude<Features['get'], false>
 }
 
 export default function Options({ handle, features }: OptionsProps) {
+  const classes = useStyles()
   const feedback = Buttons.useDownloadFeedback()
   const download = (
     <Buttons.DownloadFile
       fileHandle={handle}
       s3Uri={`s3://${handle.bucket}/${handle.key}`}
+      className={classes.download}
       {...feedback}
     />
   )

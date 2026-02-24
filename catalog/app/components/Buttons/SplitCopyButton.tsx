@@ -7,9 +7,11 @@ import copyToClipboard from 'utils/clipboard'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    display: 'inline-flex',
+    width: '100%',
   },
   main: {
+    flexGrow: 1,
+    flexShrink: 0,
     justifyContent: 'flex-start',
     whiteSpace: 'nowrap',
   },
