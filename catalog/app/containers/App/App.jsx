@@ -55,6 +55,9 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
+const ConnectAuthorize = requireAuth()(
+  RT.mkLazy(() => import('containers/Connect'), Placeholder),
+)
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
@@ -129,6 +132,10 @@ export default function App() {
 
       <Route path={paths.activationError} exact>
         <AuthActivationError />
+      </Route>
+
+      <Route path={paths.connectAuthorize} exact>
+        <ConnectAuthorize />
       </Route>
 
       {cfg.mode === 'OPEN' && (

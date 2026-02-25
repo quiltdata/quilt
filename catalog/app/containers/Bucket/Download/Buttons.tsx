@@ -2,10 +2,34 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { usePopoverClose } from 'components/Buttons'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 
 import { ZipDownloadForm } from '../FileView'
+
+export function useDownloadFeedback(): {
+  onClick: () => void
+  startIcon?: React.ReactNode
+} {
+  const closePopover = usePopoverClose()
+  const [downloading, setDownloading] = React.useState(false)
+  React.useEffect(() => {
+    if (!downloading) return
+    const timer = setTimeout(() => {
+      setDownloading(false)
+      closePopover()
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [downloading, closePopover])
+  return React.useMemo(
+    () => ({
+      onClick: () => setDownloading(true),
+      ...(downloading ? { startIcon: <M.CircularProgress size={20} /> } : null),
+    }),
+    [downloading],
+  )
+}
 
 const useDownloadButtonStyles = M.makeStyles({
   root: {
@@ -19,7 +43,10 @@ interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
 }
 
-export function DownloadFile({ fileHandle }: DownloadFileProps) {
+export function DownloadFile({
+  fileHandle,
+  ...props
+}: DownloadFileProps & M.ButtonProps<'a'>) {
   const url = AWS.Signer.useDownloadUrl(fileHandle)
   const classes = useDownloadButtonStyles()
   return (
@@ -28,6 +55,7 @@ export function DownloadFile({ fileHandle }: DownloadFileProps) {
       download
       href={url}
       startIcon={<Icons.ArrowDownwardOutlined />}
+      {...props}
     >
       Download file
     </M.Button>

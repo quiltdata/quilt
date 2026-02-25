@@ -19,6 +19,9 @@ where verb is one of
 ## Changes
 
 - [Fixed] Fix presigned S3 URLs using wrong region for cross-bucket package files, causing download and preview failures ([#4742](https://github.com/quiltdata/quilt/pull/4742))
+- [Added] Connect OAuth authorize UI at `/connect/authorize` for MCP integration ([#4740](https://github.com/quiltdata/quilt/pull/4740))
+- [Fixed] Toolbar popover closing on click inside popup content, preventing text selection in code samples ([#4739](https://github.com/quiltdata/quilt/pull/4739))
+- [Changed] Package creation from S3 files now includes current bucket as default destination when no workflow config exists; cross-bucket push strictly respects workflow successors configuration ([#4734](https://github.com/quiltdata/quilt/pull/4734))
 - [Fixed] Add missing `deleteObject` property to GUI config editor to enable/disable delete buttons for files and directories ([#4692](https://github.com/quiltdata/quilt/pull/4692))
 - [Changed] Hide file and directory delete buttons in Bucket tab by default; enable with `ui.actions.deleteObject` ([#4689](https://github.com/quiltdata/quilt/pull/4689))
 - [Added] Display detailed permission error messages when bucket add/update fails due to insufficient S3 permissions ([#4670](https://github.com/quiltdata/quilt/pull/4670))

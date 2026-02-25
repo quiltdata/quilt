@@ -38,21 +38,9 @@ function DownloadDir({ selection, uri }: DownloadDirProps) {
     () => selection && Selection.toHandlesList(selection),
     [selection],
   )
-  const [downloading, setDownloading] = React.useState(false)
-  React.useEffect(() => {
-    if (!downloading) return
-    setTimeout(() => setDownloading(false), 1000)
-  }, [downloading])
+  const feedback = Buttons.useDownloadFeedback()
   return (
-    <Buttons.DownloadDir
-      suffix={downloadPath}
-      fileHandles={fileHandles}
-      onClick={(event) => {
-        event.stopPropagation()
-        setDownloading(true)
-      }}
-      {...(downloading ? { startIcon: <M.CircularProgress size={20} /> } : null)}
-    >
+    <Buttons.DownloadDir suffix={downloadPath} fileHandles={fileHandles} {...feedback}>
       {downloadLabel}
     </Buttons.DownloadDir>
   )
