@@ -84,3 +84,4 @@
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
 * [Quilt MCP Server](examples/quilt-mcp-server.md)
+* [QuiltSync Desktop Application](examples/quiltsync.md)
