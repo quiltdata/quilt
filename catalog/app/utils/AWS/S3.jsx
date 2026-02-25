@@ -139,11 +139,15 @@ export const Provider = function S3Provider({ children, ...overrides }) {
   return <Ctx.Provider value={clientFactory}>{children}</Ctx.Provider>
 }
 
+// Returns an S3 client for the default region (cfg.region).
+// Use useS3Factory() when you need a client for a specific bucket region.
 export function useS3() {
-  Credentials.use().suspend()
-  return React.useContext(Ctx)()()
+  const factory = useS3Factory()
+  return factory()
 }
 
+// Returns a factory (region?) => S3Client that caches clients per region.
+// Pass a region to get a region-specific client, or omit for the default (cfg.region).
 export function useS3Factory() {
   Credentials.use().suspend()
   return React.useContext(Ctx)()

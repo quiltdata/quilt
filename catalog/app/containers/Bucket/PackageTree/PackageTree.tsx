@@ -769,13 +769,33 @@ function FileDisplay({
 
   const bucketNotReady = fileBucketExistence.case({
     Ok: () => null,
-    Err: () => (
-      <FileDisplayError
-        headline="Bucket Not Found"
-        detail={`Could not access bucket "${handle.bucket}"`}
-        crumbs={crumbs}
-      />
-    ),
+    Err: (e: $TSFixMe) => {
+      if (e instanceof errors.AccessDenied) {
+        return (
+          <FileDisplayError
+            headline="Access Denied"
+            detail={`You don't have access to bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      if (e instanceof errors.NoSuchBucket) {
+        return (
+          <FileDisplayError
+            headline="Bucket Not Found"
+            detail={`Could not find bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      return (
+        <FileDisplayError
+          headline="Error"
+          detail={`Could not access bucket "${handle.bucket}"`}
+          crumbs={crumbs}
+        />
+      )
+    },
     _: () => <FileDisplaySkeleton crumbs={crumbs} />,
   })
   if (bucketNotReady) return bucketNotReady
