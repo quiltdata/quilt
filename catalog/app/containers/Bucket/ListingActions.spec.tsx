@@ -57,6 +57,12 @@ vi.mock('utils/AWS', () => ({
   },
 }))
 
+vi.mock('utils/BucketCache', () => ({
+  useBucketExistence: () => ({
+    case: (cases: Record<string, Function>) => cases.Ok(),
+  }),
+}))
+
 vi.mock('react-redux', () => ({
   useSelector: vi.fn(() => ({ token: 'ABC' })),
 }))

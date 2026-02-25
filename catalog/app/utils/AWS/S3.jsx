@@ -122,15 +122,29 @@ export const Provider = function S3Provider({ children, ...overrides }) {
 
   const SmartS3 = useSmartS3()
 
-  const client = useMemoEqLazy(
+  const clientFactory = useMemoEqLazy(
     { ...awsCfg, ...DEFAULT_OPTS, ...overrides },
-    (opts) => new SmartS3(opts),
+    (opts) => {
+      const clients = {}
+      return (region) => {
+        const r = region || opts.region
+        if (!clients[r]) {
+          clients[r] = new SmartS3({ ...opts, region: r })
+        }
+        return clients[r]
+      }
+    },
   )
 
-  return <Ctx.Provider value={client}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={clientFactory}>{children}</Ctx.Provider>
 }
 
 export function useS3() {
+  Credentials.use().suspend()
+  return React.useContext(Ctx)()()
+}
+
+export function useS3Factory() {
   Credentials.use().suspend()
   return React.useContext(Ctx)()
 }
