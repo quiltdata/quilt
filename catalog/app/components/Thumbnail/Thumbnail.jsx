@@ -108,7 +108,6 @@ function ThumbnailInner({
   handle,
   size = 'sm', // sm | lg
   alt = '',
-  skeletonProps,
   className,
   ...props
 }) {
@@ -147,7 +146,7 @@ function ThumbnailInner({
 
   return pipeThru(state)(
     AsyncResult.case({
-      _: () => <ThumbnailSkeleton {...skeletonProps} {...props} />,
+      _: () => <ThumbnailSkeleton {...props} />,
       Ok: (src) => (
         <M.Box
           className={cx(classes.root, className)}
@@ -176,7 +175,6 @@ function ThumbnailInner({
         return (
           <ThumbnailSkeleton
             icon={icon}
-            {...skeletonProps}
             {...props}
             title={props.title ? `${props.title}: ${title}` : title}
           />
@@ -189,8 +187,9 @@ function ThumbnailInner({
 // Ensure the file bucket's region is cached for correct presigned URLs.
 // For same-bucket files this is instant (already cached by BucketLayout).
 export default function Thumbnail({ handle, ...props }) {
+  // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
   return useBucketExistence(handle.bucket).case({
     Ok: () => <ThumbnailInner handle={handle} {...props} />,
-    _: () => <ThumbnailSkeleton {...props.skeletonProps} {...props} />,
+    _: () => <ThumbnailSkeleton {...props} />,
   })
 }

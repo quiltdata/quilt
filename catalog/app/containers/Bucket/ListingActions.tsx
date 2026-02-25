@@ -149,6 +149,7 @@ function PackageFile({ className, physicalKey }: PackageFileProps) {
   const location = React.useMemo(() => s3paths.parseS3Url(physicalKey), [physicalKey])
   // Ensure the file bucket's region is cached for correct presigned URLs.
   // For same-bucket files this is instant (already cached by BucketLayout).
+  // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
   return useBucketExistence(location.bucket).case({
     Ok: () => <BucketFile className={className} location={location} />,
     _: () => null,
