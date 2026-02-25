@@ -190,6 +190,7 @@ export default function Thumbnail({ handle, ...props }) {
   // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
   return useBucketExistence(handle.bucket).case({
     Ok: () => <ThumbnailInner handle={handle} {...props} />,
+    Err: () => <ThumbnailSkeleton icon="error" {...props} />,
     _: () => <ThumbnailSkeleton {...props} />,
   })
 }
