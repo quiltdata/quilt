@@ -1,10 +1,15 @@
 # Quilt MCP Server
 
-The [Quilt MCP Server](https://github.com/quiltdata/quilt-mcp-server) connects
-AI assistants — including Claude, Claude Code, and any
-[MCP](https://modelcontextprotocol.io)-compatible client — to your Quilt data
-catalog. It exposes 84+ tools for searching, analyzing, and managing Quilt
-packages directly from natural-language conversations.
+The [Quilt MCP Server](https://github.com/quiltdata/quilt-mcp-server) is a
+standalone, open-source MCP server that connects AI assistants — including
+Claude, Claude Code, and any [MCP](https://modelcontextprotocol.io)-compatible
+client — to your Quilt data catalog. It exposes 84+ tools for searching,
+analyzing, and managing Quilt packages directly from natural-language
+conversations.
+
+Quilt Platform v1.68+ also includes a built-in
+[Quilt Connect](../Catalog/Connect.md) MCP server that requires no local
+installation, though it currently exposes fewer tools than quilt-mcp-server.
 
 ## Quick Start
 

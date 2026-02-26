@@ -64,7 +64,7 @@ You do not need to re-authorize the same client unless your session expires.
 
 ## Admin Setup
 
-> Connect Server requires Quilt Platform version 1.69 or later.
+> Connect Server requires Quilt Platform version 1.68 or later.
 
 Connect Server is disabled by default. To enable it, set the `ConnectAllowedHosts`
 CloudFormation parameter to a non-empty value.
