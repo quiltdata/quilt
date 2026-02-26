@@ -94,7 +94,6 @@ for further details.
 
 1. Click the `Next` button.
 1. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
-1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
     1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL. 
@@ -102,18 +101,20 @@ for further details.
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 1. Once you click the `Save` button you will have a new application integration to review.
-    1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
-    1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
+    1. Scroll down to `General Settings` and click Edit
+    1. Update the `Initiate login URI` to your `<QuiltWebHost>` URL.
+    1. Set the `Logo URI` to the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) so users can easily find the app.
+    1. Copy the `Client ID` and `Secret` to a safe place
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
-    to `api://default`, and an `Issuer URI` that looks like the
+    to `api://default`, and an `Issuer URI` (also known as the `Base URL`) that looks like the
     following:
 
         ```
         <MY_COMPANY>.okta.com/oauth2/default
         ```
 
-    1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
+    1. See the [Okta authorization servers documentation](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more information.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ### OneLogin
