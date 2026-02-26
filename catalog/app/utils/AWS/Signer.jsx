@@ -18,26 +18,29 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
-  const s3 = S3.use()
+  const s3Factory = S3.useS3Factory()
   const shouldSign = useShouldSign()
   const getRegion = useGetCachedBucketRegion()
   return React.useCallback(
-    ({ bucket, key, version }, opts) =>
-      shouldSign(bucket)
-        ? s3.getSignedUrl('getObject', {
-            Bucket: bucket,
-            Key: key,
-            VersionId: version,
-            Expires: urlExpiration,
-            forceProxy,
-            ...opts,
-          })
-        : // TODO: handle ResponseContentDisposition for unsigned case
-          handleToHttpsUri(
-            { bucket, key, version },
-            { proxy: forceProxy && cfg.s3Proxy, region: getRegion(bucket) },
-          ),
-    [shouldSign, s3, urlExpiration, forceProxy, getRegion],
+    ({ bucket, key, version }, opts) => {
+      if (shouldSign(bucket)) {
+        const s3 = s3Factory(getRegion(bucket))
+        return s3.getSignedUrl('getObject', {
+          Bucket: bucket,
+          Key: key,
+          VersionId: version,
+          Expires: urlExpiration,
+          forceProxy,
+          ...opts,
+        })
+      }
+      // TODO: handle ResponseContentDisposition for unsigned case
+      return handleToHttpsUri(
+        { bucket, key, version },
+        { proxy: forceProxy && cfg.s3Proxy, region: getRegion(bucket) },
+      )
+    },
+    [shouldSign, s3Factory, urlExpiration, forceProxy, getRegion],
   )
 }
 
