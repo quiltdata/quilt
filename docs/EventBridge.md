@@ -264,9 +264,189 @@ aws sns get-topic-attributes --topic-arn YOUR_SNS_TOPIC_ARN
 
 ## 🔧 Troubleshooting
 
+### Automated Validation Script
+
+A validation script is available to automatically check your EventBridge setup. Contact Quilt support for access to the diagnostic tooling.
+
+### Quick Diagnostic Checklist
+
+Alternatively, manually run this quick diagnostic checklist:
+
+<!-- pytest-codeblocks:skip -->
+```bash
+# 1. Verify EventBridge rule is ENABLED (not just exists)
+aws events describe-rule --name quilt-s3-events-rule --region us-east-1 --query 'State'
+# Expected: "ENABLED"
+
+# 2. Check if rule is triggering
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/Events \
+  --metric-name TriggeredRules \
+  --dimensions Name=RuleName,Value=quilt-s3-events-rule \
+  --start-time $(date -u -d '5 minutes ago' '+%Y-%m-%dT%H:%M:%S') \
+  --end-time $(date -u '+%Y-%m-%dT%H:%M:%S') \
+  --period 300 \
+  --statistics Sum \
+  --region us-east-1
+
+# 3. Verify SNS topic has ALL required queue subscriptions
+aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --region us-east-1 --query 'Subscriptions[*].Endpoint'
+# Expected: Should include IndexerQueue, PackagerQueue, and S3SNSToEventBridgeQueue
+```
+
+### Troubleshooting Flowchart
+
+When events aren't flowing correctly, follow this systematic approach:
+
+```
+Event not flowing? Start here:
+│
+├─ 1. Is EventBridge rule ENABLED?
+│   ├─ Check: aws events describe-rule --name <rule> --query 'State'
+│   ├─ ❌ DISABLED → Enable it: aws events enable-rule --name <rule>
+│   └─ ✅ ENABLED → Continue to step 2
+│
+├─ 2. Is the rule actually triggering?
+│   ├─ Check CloudWatch metrics: TriggeredRules (see command above)
+│   ├─ ❌ Not triggering → Check event pattern and CloudTrail
+│   └─ ✅ Triggering → Continue to step 3
+│
+├─ 3. Are ALL queues subscribed to SNS?
+│   ├─ Check subscriptions (see command above)
+│   ├─ Must include:
+│   │   ├─ IndexerQueue (for file indexing)
+│   │   ├─ PackagerQueue (for package creation) ⚠️ Often missing!
+│   │   └─ S3SNSToEventBridgeQueue (for event routing)
+│   ├─ ❌ Missing queues → Add subscriptions in SNS console
+│   └─ ✅ All subscribed → Continue to step 4
+│
+├─ 4. Is Input Transformer configured correctly?
+│   ├─ Check EventBridge rule → Targets → Input transformer
+│   ├─ ❌ "Matched event" selected → Events in wrong format!
+│   ├─ ❌ Missing transformer → Configure per Step 6 above
+│   └─ ✅ Transformer configured → Continue to step 5
+│
+├─ 5. Files indexing but packages NOT appearing?
+│   ├─ Symptom: Files show in search, packages don't show in UI
+│   ├─ Root cause: PackagerQueue not subscribed to SNS
+│   └─ Solution: Add PackagerQueue to SNS topic subscriptions
+│
+└─ 6. Still not working?
+    └─ See detailed troubleshooting sections below
+```
+
 ### Common Issues and Solutions
 
-#### Issue 1: Events Not Appearing in Quilt
+#### Issue 1: EventBridge Rule is Disabled
+
+**Symptoms:**
+- No events flowing at all
+- CloudWatch metrics show zero TriggeredRules
+- SNS topic receiving no messages
+
+**Root Cause:**
+Someone disabled the EventBridge rule (via Console, CLI, or automation). Rules can be disabled accidentally during troubleshooting or by automation scripts.
+
+**Solution:**
+<!-- pytest-codeblocks:skip -->
+```bash
+# Check rule state
+aws events describe-rule --name quilt-s3-events-rule --region us-east-1 --query 'State'
+
+# If DISABLED, enable it:
+aws events enable-rule --name quilt-s3-events-rule --region us-east-1
+
+# Verify it's now enabled
+aws events describe-rule --name quilt-s3-events-rule --region us-east-1 --query 'State'
+```
+
+**Prevention:**
+- Set up CloudWatch alarm to alert when rule transitions from ENABLED → DISABLED
+- Document the rule as critical infrastructure
+- Review automation scripts that might disable rules
+
+#### Issue 2: Files Index But Packages Don't Appear in UI
+
+**Symptoms:**
+- Files uploaded to S3 appear in Quilt search
+- Can browse directly to package URLs
+- Packages DON'T appear in the Packages homepage
+- EventBridge rule IS firing
+
+**Root Cause:**
+The PackagerQueue is not subscribed to the SNS topic. Quilt requires multiple SQS queues to be subscribed:
+- **IndexerQueue**: Handles file indexing (this works)
+- **PackagerQueue**: Handles package creation events (this is missing)
+- **S3SNSToEventBridgeQueue**: Routes events
+
+**Solution:**
+<!-- pytest-codeblocks:skip -->
+```bash
+# 1. List current subscriptions
+aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --region us-east-1
+
+# 2. Find your PackagerQueue ARN
+aws sqs list-queues --queue-name-prefix "PackagerQueue" --region us-east-1
+
+# 3. Subscribe PackagerQueue to SNS topic
+aws sns subscribe \
+  --topic-arn YOUR_SNS_TOPIC_ARN \
+  --protocol sqs \
+  --notification-endpoint YOUR_PACKAGER_QUEUE_ARN \
+  --region us-east-1
+
+# 4. Update SQS queue policy to allow SNS to send messages
+# (Use AWS Console: SQS → Queue → Access Policy)
+```
+
+**Verification:**
+<!-- pytest-codeblocks:skip -->
+```bash
+# Check that all 3 queues are now subscribed
+aws sns list-subscriptions-by-topic --topic-arn YOUR_SNS_TOPIC_ARN --region us-east-1 \
+  --query 'Subscriptions[*].Endpoint'
+
+# Should show:
+# - ...IndexerQueue...
+# - ...PackagerQueue...  ← Make sure this is present!
+# - ...S3SNSToEventBridgeQueue...
+```
+
+#### Issue 3: Events in Wrong Format (Missing Input Transformer)
+
+**Symptoms:**
+- EventBridge rule fires (metrics show TriggeredRules > 0)
+- SNS receives messages
+- SQS queues receive messages
+- But Quilt doesn't process them correctly
+
+**Root Cause:**
+EventBridge rule is configured with "Matched event" instead of using an Input Transformer. This sends events in CloudTrail/EventBridge format, not the S3 notification format that Quilt expects.
+
+**Solution:**
+1. Go to EventBridge Console → Rules → `quilt-s3-events-rule`
+2. Edit the rule → Targets
+3. **Critical**: Configure Input Transformer as shown in Step 6 above
+4. Save the rule
+
+**Validation:**
+Test the transformation by triggering an event and checking the SQS message format:
+<!-- pytest-codeblocks:skip -->
+```bash
+# Upload a test file
+aws s3 cp test.txt s3://your-bucket/test.txt --region us-east-1
+
+# Wait 30 seconds, then check a message in the queue
+aws sqs receive-message \
+  --queue-url YOUR_INDEXER_QUEUE_URL \
+  --max-number-of-messages 1 \
+  --region us-east-1
+
+# The message should have "Records" array with "s3" object structure
+# NOT a CloudTrail "detail" structure
+```
+
+#### Issue 4: Events Not Appearing in Quilt
 
 **Symptoms:**
 - Files uploaded to S3 don't appear in Quilt catalog
@@ -293,7 +473,7 @@ aws events describe-rule --name quilt-s3-events-rule
    - Test the EventBridge rule with a sample event
    - Check CloudWatch Logs for transformation errors
 
-#### Issue 2: Permission Errors
+#### Issue 5: Permission Errors
 
 **Symptoms:**
 - EventBridge rule shows errors in CloudWatch
@@ -318,7 +498,7 @@ Ensure EventBridge has permission to publish to SNS:
 }
 ```
 
-#### Issue 3: Duplicate Events
+#### Issue 6: Duplicate Events
 
 **Symptoms:**
 - Files appear multiple times in Quilt
