@@ -57,6 +57,14 @@ vi.mock('utils/AWS', () => ({
   },
 }))
 
+const mockUseBucketExistence = vi.fn(() => ({
+  case: (cases: Record<string, Function>) => cases.Ok(),
+}))
+
+vi.mock('utils/BucketCache', () => ({
+  useBucketExistence: () => mockUseBucketExistence(),
+}))
+
 vi.mock('react-redux', () => ({
   useSelector: vi.fn(() => ({ token: 'ABC' })),
 }))
@@ -167,6 +175,40 @@ describe('components/ListingActions', () => {
       expect(downloadLink).toBeTruthy()
       expect(downloadLink.getAttribute('href')).toBe('s3://bucketa/pathB/fileB')
       expect(downloadLink.getAttribute('download')).toBe('')
+    })
+
+    it('should render no download for Package file when bucket region is pending', () => {
+      mockUseBucketExistence.mockReturnValueOnce({
+        case: (cases: Record<string, Function>) => cases._(),
+      })
+      const { queryByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+            physicalKey="s3://bucketA/pathB/fileB"
+            prefs={defaultPrefs}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Download')).toBeFalsy()
+    })
+
+    it('should render no download for Package file when bucket does not exist', () => {
+      mockUseBucketExistence.mockReturnValueOnce({
+        case: (cases: Record<string, Function>) => (cases.Err || cases._)(),
+      })
+      const { queryByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+            physicalKey="s3://bucketA/pathB/fileB"
+            prefs={defaultPrefs}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Download')).toBeFalsy()
     })
 
     it('should render Bucket file without download button', () => {

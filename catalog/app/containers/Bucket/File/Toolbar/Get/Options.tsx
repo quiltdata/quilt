@@ -2,10 +2,12 @@ import { basename } from 'path'
 
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
 import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
+import * as AWS from 'utils/AWS'
 
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 import type { Features } from '../useFeatures'
@@ -35,14 +37,41 @@ export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProp
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  download: {
+    marginBottom: t.spacing(1),
+    whiteSpace: 'nowrap',
+    width: '100%',
+  },
+  main: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+  },
+}))
+
 interface OptionsProps {
   handle: Toolbar.FileHandle
   features: Exclude<Features['get'], false>
 }
 
 export default function Options({ handle, features }: OptionsProps) {
+  const classes = useStyles()
   const feedback = Buttons.useDownloadFeedback()
-  const download = <Buttons.DownloadFile fileHandle={handle} {...feedback} />
+  const url = AWS.Signer.useDownloadUrl(handle)
+  const download = (
+    <M.ButtonGroup variant="outlined" className={classes.download}>
+      <M.Button
+        className={classes.main}
+        download
+        href={url}
+        startIcon={<Icons.ArrowDownwardOutlined />}
+        {...feedback}
+      >
+        Download file
+      </M.Button>
+      <Buttons.CopyButton uri={`s3://${handle.bucket}/${handle.key}`} />
+    </M.ButtonGroup>
+  )
   const code = features.code ? (
     <FileCodeSamples bucket={handle.bucket} path={handle.key} />
   ) : undefined

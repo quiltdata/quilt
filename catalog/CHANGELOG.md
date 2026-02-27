@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Fix presigned S3 URLs using wrong region for cross-bucket package files, causing download and preview failures ([#4742](https://github.com/quiltdata/quilt/pull/4742))
+- [Added] Copy S3 URI button to download buttons in the S3 browser ([#4741](https://github.com/quiltdata/quilt/pull/4741))
 - [Added] Connect OAuth authorize UI at `/connect/authorize` for MCP integration ([#4740](https://github.com/quiltdata/quilt/pull/4740))
 - [Fixed] Toolbar popover closing on click inside popup content, preventing text selection in code samples ([#4739](https://github.com/quiltdata/quilt/pull/4739))
 - [Changed] Package creation from S3 files now includes current bucket as default destination when no workflow config exists; cross-bucket push strictly respects workflow successors configuration ([#4734](https://github.com/quiltdata/quilt/pull/4734))
