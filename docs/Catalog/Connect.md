@@ -10,7 +10,7 @@ actions on behalf of your users. Connect Server:
 - Routes requests to authorized services within your AWS environment
 
 One such service is the **Quilt Platform MCP Server** (below), which lets you use
-web-based AI assistants — like  Claude.ai — to interact with
+web-based AI assistants — like Claude.ai — to interact with
 your Quilt data through natural language and the
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).
 
@@ -76,7 +76,7 @@ will use this URL to add Quilt as an MCP server in your AI assistant. For exampl
 
 Next, each user will need to individually authorize their connection.
 
-1. Login to your Quilt stack as usual (e.g.,  via Okta SSO)
+1. Login to your Quilt stack as usual (e.g., via Okta SSO)
 2. Go to, e.g., Claude.ai [Settings -> Connectors](https://claude.ai/settings/connectors)
 3. Click **Connect**
 
