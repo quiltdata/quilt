@@ -1,3 +1,4 @@
+<!--pytest-codeblocks:skipfile-->
 # Quilt MCP Server
 
 The [Quilt MCP Server](https://github.com/quiltdata/quilt-mcp-server) is a
@@ -75,7 +76,7 @@ quilt3 login
 ### Deployment Modes
 
 | Mode | Backend | Transport | Use case |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `local` (default) | Platform API | stdio | Claude Desktop / Claude Code |
 | `remote` | Platform API | HTTP | Claude.ai / hosted MCP clients |
 | `legacy` | quilt3 library | stdio | Local development without a catalog |
@@ -89,7 +90,7 @@ uvx quilt-mcp --deployment legacy
 ### Environment Variables
 
 | Variable | Description |
-|---|---|
+| --- | --- |
 | `QUILT_CATALOG_URL` | Your Quilt catalog URL |
 | `QUILT_REGISTRY_URL` | Your Quilt registry URL |
 | `QUILT_DEPLOYMENT` | Deployment mode (`local`, `remote`, `legacy`) |
