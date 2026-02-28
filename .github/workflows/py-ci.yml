@@ -158,6 +158,9 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
       PYTHONPATH: deps
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
+    # defaults:
+    #   run:
+    #     working-directory: api/python
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -174,14 +177,16 @@ jobs:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+          python -m pip install --no-deps -e lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
+        working-directory: lambdas/${{ matrix.path }}
         run: |
-          python -m pytest --cov=lambdas lambdas/${{ matrix.path }}
+          python -m pytest --cov=.
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
