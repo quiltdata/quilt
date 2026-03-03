@@ -9,6 +9,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import boto3
+from boto3.s3.transfer import TransferConfig
 
 from t4_lambda_shared.utils import sql_escape
 
@@ -19,6 +20,14 @@ CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
+
+MB = 1024 * 1024
+S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MB']) * MB
+S3_COPY_CONFIG = TransferConfig(
+    multipart_chunksize=S3_COPY_CHUNKSIZE,
+    multipart_threshold=S3_COPY_CHUNKSIZE,
+    max_concurrency=int(os.environ['S3_COPY_MAX_CONCURRENCY']),
+)
 
 # A temporary directory where Athena query results will be written.
 QUERY_TEMP_DIR = 'AthenaQueryResults'
@@ -453,5 +462,6 @@ def handler(event, context):
                 Key=src_key
             ),
             Bucket=QUERY_RESULT_BUCKET,
-            Key=dest_key
+            Key=dest_key,
+            Config=S3_COPY_CONFIG,
         )

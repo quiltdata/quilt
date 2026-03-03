@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - sergey/access-counts-copy-perf-and-lifecycle
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
