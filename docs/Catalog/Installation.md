@@ -99,17 +99,6 @@ following Bucket characteristics:
 
 ## Installation Methods
 
-Quilt supports two deployment paths: **CloudFormation** and **Terraform**.
-In both cases, the Quilt application runs as a CloudFormation stack. With
-CloudFormation alone, all resources are managed within a single stack. With
-Terraform, an outer Terraform layer first provisions the foundational
-infrastructure (VPC, database, search cluster), then deploys the CloudFormation
-stack automatically, wiring in those resources.
-
-Use CloudFormation if you want a straightforward, self-contained deployment.
-Use Terraform if you need infrastructure-as-code control over the underlying
-network, database, and search resources.
-
 ### AWS Marketplace
 
 You can install Quilt via AWS Marketplace. As indicated above, we
@@ -143,6 +132,17 @@ Quilt when a new version is released.)
 1. Continue to the [CloudFormation](#cloudformation) section.
 Note: the following screenshots may differ slightly from what
 you see in Service Catalog.
+
+Quilt supports two deployment paths: **CloudFormation** and **Terraform**.
+In both cases, the Quilt application runs as a CloudFormation stack. With
+CloudFormation alone, all resources are managed within a single stack. With
+Terraform, an outer Terraform layer first provisions the foundational
+infrastructure (VPC, database, search cluster), then deploys the CloudFormation
+stack automatically, wiring in those resources.
+
+Use CloudFormation if you want a straightforward, self-contained deployment.
+Use Terraform if you need infrastructure-as-code control over the underlying
+network, database, and search resources.
 
 ### CloudFormation
 
