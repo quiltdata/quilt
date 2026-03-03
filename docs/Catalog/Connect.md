@@ -21,18 +21,18 @@ CloudFormation parameter to a non-empty value.
 
 ### CloudFormation Parameters
 
-<!-- markdownlint-disable MD013 MD060 -->
+<!-- markdownlint-disable line-length table-column-style -->
 | Parameter               | Default       | Description |
 | ----------------------- | ------------- | --------------------------------------------------- |
 | `ConnectAllowedHosts`   | _(empty)_     | Comma-separated hostnames allowed as OAuth          |
 |                         |               | `redirect_uri`. Empty = disabled. Set to AI         |
 |                         |               | client domains                                      |
-|                         |               | (e.g. `claude.ai, your-tenant.benchling.com`).      |
+|                         |               | (e.g. `claude.ai, claude.com, your-tenant.benchling.com`). |
 | `ConnectSecurityGroup`  | _(empty)_     | Optional EC2 security group ID for Connect ALB      |
 |                         |               | IP allowlisting. Empty = allow all.                 |
 | `CertificateArnConnect` | _(empty)_     | Optional ACM certificate ARN for the Connect ALB.   |
 |                         |               | Empty = reuses main stack TLS certificate.          |
-<!-- markdownlint-enable MD013 MD060 -->
+<!-- markdownlint-enable line-length table-column-style -->
 
 ### DNS Configuration
 
@@ -46,7 +46,7 @@ Connect subdomain (typically `<stack-name>-connect.<your-domain>`):
 | Hosted zone ID  | `ConnectLoadBalancerCanonicalHostedZoneID` output       |
 
 The final Connect Server hostname is available in the `ConnectHost` CloudFormation
-output. Share this URL with your users.
+output.
 
 ### IP Allowlisting (Optional)
 

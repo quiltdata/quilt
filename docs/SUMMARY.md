@@ -83,5 +83,5 @@
 * [Benchling Packager](examples/benchling.md)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
-* [Quilt MCP Server](examples/quilt-mcp-server.md)
+* [Quilt MCP Server](https://github.com/quiltdata/quilt-mcp-server)
 * [QuiltSync Desktop Application](examples/quiltsync.md)
