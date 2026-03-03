@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Added] Make `s3.copy()` chunk size and concurrency configurable via env vars ([#4746](https://github.com/quiltdata/quilt/pull/4746))
+- [Added] Bundle `awscrt` via `boto3[crt]` for improved S3 transfer performance ([#4746](https://github.com/quiltdata/quilt/pull/4746))
 - [Changed] Migrate to proper package structure ([#4618](https://github.com/quiltdata/quilt/pull/4618))
 - [Changed] Switch to uv ([#4618](https://github.com/quiltdata/quilt/pull/4618))
 - [Changed] Upgrade to Python 3.13 ([#4618](https://github.com/quiltdata/quilt/pull/4618))
