@@ -30,14 +30,14 @@ automatically:
 
 - **Creates a dedicated Quilt package** for each notebook entry
 - **Synchronizes metadata** from Benchling into that package, e.g.,
-  - authors (list)
-  - created_at (ISO timestamp)
-  - creator: "First Last <user_id@ent_XXXX>"
-  - display_id: "EXP0000XXXXXX"
-  - entry_id: "etr_XXXXXX"
-  - files (list)
-  - modified_at (ISO timestamp)
-  - web_url
+- `authors` (list)
+- `created_at` (ISO timestamp)
+- `creator` (e.g. `"First Last <user_id@ent_XXXX>"`)
+- `display_id` (e.g. `"EXP0000XXXXXX"`)
+- `entry_id` (e.g. `"etr_XXXXXX"`)
+- `files` (list)
+- `modified_at` (ISO timestamp)
+- `web_url` (URL string)
 - **Copies attachments** from that notebook into Amazon S3 as part of the
   package.
 - **Enables organizational data discovery** by making contents available in
