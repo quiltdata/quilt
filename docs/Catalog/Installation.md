@@ -133,10 +133,21 @@ Quilt when a new version is released.)
 Note: the following screenshots may differ slightly from what
 you see in Service Catalog.
 
+Quilt supports two deployment paths: **CloudFormation** and **Terraform**.
+In both cases, the Quilt application runs as a CloudFormation stack. With
+Terraform, an outer Terraform layer first provisions the foundational
+infrastructure (VPC, database, search cluster), then deploys the CloudFormation
+stack automatically, wiring in those resources. With CloudFormation alone,
+all resources are managed within a single stack.
+
+Use CloudFormation if you want a straightforward, self-contained deployment.
+Use Terraform if you need infrastructure-as-code control over the underlying
+network, database, and search resources.
+
 ### CloudFormation
 
 You can perform stack update and creation with the AWS Console, AWS CLI,
-Terraform, or other means.
+or other means.
 
 > **Important:** Use Quilt-provided CloudFormation templates without modification.
 > Customizing templates may result in deployment issues and can affect your service
@@ -188,8 +199,8 @@ which enables more granular infrastructure-as-code control.
 Terraform users **must** request a compatible CloudFormation template from Quilt:
 
 > Contact your account manager to obtain a template that works with Terraform and
-includes necessary variables.
-
+> includes necessary variables.
+>
 > **Important:** Use Quilt-provided Terraform modules and CloudFormation templates
 > without modification. Customizing these resources may result in deployment issues
 > and can affect your service agreement coverage. If you require specific
