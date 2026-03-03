@@ -7,8 +7,8 @@ find, understand, and file discoveries based on data of any size or in any forma
 
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
-Quilt supports multiple deployment methods including CloudFormation,
-AWS Marketplace, and Terraform.
+Quilt supports multiple deployment methods including AWS Marketplace,
+AWS Service Catalog, CloudFormation, and Terraform.
 
 ## Help and Advice
 
@@ -248,6 +248,8 @@ see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md)
 
 ### CNAMEs
 
+This step applies to both CloudFormation and Terraform deployments.
+
 In order for your users to reach the Quilt catalog you must set three CNAMEs
 that point to the `LoadBalancerDNSName` as shown below and in the Outputs
 of your stack.
@@ -282,7 +284,8 @@ CloudFormation console as follows.
 
 ### Terraform updates
 
-> See above.
+Run `terraform plan -out=tfplan && terraform apply tfplan` with the updated
+module version. See [Terraform](#terraform) for initial setup details.
 
 ## Upgrading from network 1.0 to network 2.0
 
