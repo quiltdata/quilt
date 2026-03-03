@@ -62,7 +62,7 @@ web-based AI assistants like Claude.ai to search packages, browse buckets, and
 retrieve data on your behalf, all within your organization's AWS environment
 and subject to your existing Quilt permissions — no local installation required.
 
-### Administrator Setup
+### MCP Client Setup
 
 Your Quilt administrator will provide a **Connect Server URL** of the form
 `https://<stack-name>-connect.<your-domain>`. Typically, your Organization's administrator
@@ -72,9 +72,10 @@ will use this URL to add Quilt as an MCP server in your AI assistant. For exampl
 2. Click **Add Custom Connector**.
 3. Enter your Connect Server URL: `https://<connect-host>/mcp/platform/mcp`
 
-### User Authorization
+### MCP User Authorization
 
-Next, each user will need to individually authorize their connection.
+Next, each user will need to individually authorize their MCP connection,
+so it runs using their credentials.
 
 1. Login to your Quilt stack as usual (e.g., via Okta SSO)
 2. Go to, e.g., Claude.ai [Settings -> Connectors](https://claude.ai/settings/connectors)
@@ -92,7 +93,8 @@ Click **Continue** to grant access, or **Cancel** to deny it. After
 authorizing, the AI assistant receives a session token scoped to your Quilt
 user — it cannot access data beyond what your assigned Quilt role permits.
 
-You do not need to re-authorize the same client unless your session expires.
+You do not need to re-authorize the same client unless your session expires
+or the Quilt stack is redeployed.
 
 Once authenticated, you may also need to authorize individual tools when used.
 You can pre-authorize them by clicking **Configure** on the connector page.
