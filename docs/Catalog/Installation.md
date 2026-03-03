@@ -129,10 +129,6 @@ Quilt when a new version is released.)
 
     ![Products list page](../imgs/products-list.png)
 
-1. Continue to the [CloudFormation](#cloudformation) section.
-Note: the following screenshots may differ slightly from what
-you see in Service Catalog.
-
 Quilt supports two deployment paths: **CloudFormation** and **Terraform**.
 In both cases, the Quilt application runs as a CloudFormation stack. With
 CloudFormation alone, all resources are managed within a single stack. With
@@ -193,8 +189,7 @@ You can monitor progress under Events. On completion you will see `CREATE_COMPLE
 
 ### Terraform
 
-You can also install Quilt using [Terraform](https://developer.hashicorp.com/terraform),
-which enables more granular infrastructure-as-code control.
+To install Quilt using [Terraform](https://developer.hashicorp.com/terraform):
 
 Terraform users **must** request a compatible CloudFormation template from Quilt:
 
@@ -304,9 +299,8 @@ stack. This is typically useful when upgrading to the 2.0 network.
 > _Configuration_ refers to the Quilt stack buckets, roles, policies,
 > and other administrative settings, all of which are stored in RDS.
 
-Perform the following steps:
-
-1. Contact your Quilt account manager for a template that supports Terraform.
+1. Use the Terraform-compatible template obtained in the
+[Terraform](#terraform) section.
 
 1. Take a manual snapshot of the current Quilt database instance. For an existing
 Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
