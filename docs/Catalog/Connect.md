@@ -98,3 +98,5 @@ or the Quilt stack is redeployed.
 
 Once authenticated, you may also need to authorize individual tools when used.
 You can pre-authorize them by clicking **Configure** on the connector page.
+
+![Quilt MCP Configuration](../imgs/mcp-tools.png)
