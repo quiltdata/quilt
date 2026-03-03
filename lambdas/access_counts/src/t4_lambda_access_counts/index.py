@@ -21,8 +21,8 @@ QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 
-MB = 1024 * 1024
-S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MB']) * MB
+MiB = 1024 * 1024
+S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
 S3_COPY_CONFIG = TransferConfig(
     multipart_chunksize=S3_COPY_CHUNKSIZE,
     multipart_threshold=S3_COPY_CHUNKSIZE,
