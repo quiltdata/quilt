@@ -148,7 +148,7 @@
   },
   "devDependencies": {
     "@finos/perspective-webpack-plugin": "^1.9.4",
-    "@graphql-codegen/cli": "^1.21.8",
+    "@graphql-codegen/cli": "^6.1.2",
     "@graphql-codegen/near-operation-file-preset": "^1.18.6",
     "@graphql-codegen/typed-document-node": "^1.18.10",
     "@graphql-codegen/typescript": "^1.23.0",
@@ -212,7 +212,7 @@
     "html-webpack-plugin": "^5.5.3",
     "husky": "^8.0.3",
     "ip": "^1.1.8",
-    "jsdom": "^22.1.0",
+    "jsdom": "^28.1.0",
     "lint-staged": "^13.2.3",
     "minimist": "^1.2.8",
     "prettier": "^3.4.2",
