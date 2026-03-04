@@ -36,17 +36,11 @@ CloudFormation parameter to a non-empty value.
 
 ### DNS Configuration
 
-After deploying with Connect enabled, create a DNS alias record for your
-Connect subdomain (typically `<stack-name>-connect.<your-domain>`):
-
-| Route 53 Field  | Value                                                   |
-| --------------- | ------------------------------------------------------- |
-| Record type     | `A` (alias)                                             |
-| Alias target    | `ConnectLoadBalancerDNSName` CloudFormation output      |
-| Hosted zone ID  | `ConnectLoadBalancerCanonicalHostedZoneID` output       |
-
-The final Connect Server hostname is available in the `ConnectHost` CloudFormation
-output.
+After deploying with Connect enabled, create a DNS `CNAME` record for your
+Connect subdomain pointing to the `ConnectLoadBalancerDNSName` CloudFormation
+output. The final Connect Server hostname is available in the `ConnectHost`
+CloudFormation output. See [CNAMEs](Installation.md#cnames) for general DNS
+setup instructions.
 
 ### IP Allowlisting (Optional)
 
@@ -78,7 +72,7 @@ Next, each user will need to individually authorize their MCP connection,
 so it runs using their credentials.
 
 1. Login to your Quilt stack as usual (e.g., via Okta SSO)
-2. Go to, e.g., Claude.ai [Settings -> Connectors](https://claude.ai/settings/connectors)
+2. Go to, e.g., Claude.ai [Customize -> Connectors](https://claude.ai/customize/connectors)
 3. Click **Connect**
 
 The first time your AI assistant connects to Quilt, you will be redirected to the
