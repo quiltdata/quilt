@@ -219,18 +219,13 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
                 },
-                (data) => {
-                  if (!data?.roles) return data
-                  return R.evolve({
-                    roles: R.map((role: any) => {
-                      if (!role.policies) return role
-                      return {
-                        ...role,
-                        policies: role.policies.filter((p: any) => p.id !== vars.id),
-                      }
-                    }),
-                  })(data)
-                },
+                (data) =>
+                  data &&
+                  R.evolve({
+                    roles: R.map(
+                      R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
+                    ),
+                  })(data),
               )
             },
             roleCreateManaged: (result, _vars, cache) => {
@@ -285,18 +280,13 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Role from every Policy's roles
               cache.updateQuery(
                 { query: urql.gql`{ policies { id roles { id } } }` },
-                (data) => {
-                  if (!data?.policies) return data
-                  return R.evolve({
-                    policies: R.map((policy: any) => {
-                      if (!policy.roles) return policy
-                      return {
-                        ...policy,
-                        roles: policy.roles.filter((r: any) => r.id !== vars.id),
-                      }
-                    }),
-                  })(data)
-                },
+                (data) =>
+                  data &&
+                  R.evolve({
+                    policies: R.map(
+                      R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
+                    ),
+                  })(data),
               )
 
               // Remove deleted Role from every BucketConfig's associatedRoles
@@ -304,20 +294,15 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ bucketConfigs { name associatedRoles { role { id } bucket { name } } } }`,
                 },
-                (data) => {
-                  if (!data?.bucketConfigs) return data
-                  return R.evolve({
-                    bucketConfigs: R.map((bc: any) => {
-                      if (!bc.associatedRoles) return bc
-                      return {
-                        ...bc,
-                        associatedRoles: bc.associatedRoles.filter(
-                          (ar: any) => ar.role?.id !== vars.id,
-                        ),
-                      }
-                    }),
-                  })(data)
-                },
+                (data) =>
+                  data &&
+                  R.evolve({
+                    bucketConfigs: R.map(
+                      R.evolve({
+                        associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
+                      }),
+                    ),
+                  })(data),
               )
 
               // Remove deleted Role from root roles
