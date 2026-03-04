@@ -5,7 +5,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = require('./webpack.base')({
   // Use PROD_DEBUG=1 npm start to run with production React (same error behavior
-  // as production builds) but without minification for readable stack traces.
+  // as production builds). Stack traces remain readable via eval-source-map.
   mode: process.env.PROD_DEBUG ? 'production' : 'development',
 
   devServer: {
