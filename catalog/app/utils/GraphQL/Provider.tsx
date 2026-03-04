@@ -286,15 +286,16 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ bucketConfigs { name associatedRoles { role { id } bucket { name } } } }`,
                 },
-                (data) =>
-                  data &&
+                R.unless(
+                  R.isNil,
                   R.evolve({
                     bucketConfigs: R.map(
                       R.evolve({
                         associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
                       }),
                     ),
-                  })(data),
+                  }),
+                ),
               )
 
               // Remove deleted Role from root roles
