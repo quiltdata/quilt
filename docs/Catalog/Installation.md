@@ -246,6 +246,7 @@ of your stack.
 | `<QuiltWebHost>` Key | `LoadBalancerDNSName` |
 | `<RegistryHostName>` Key | `LoadBalancerDNSName` |
 | `<S3ProxyHost>` Key | `LoadBalancerDNSName` |
+| `<ConnectHost>` Key _(if Connect enabled)_ | `ConnectLoadBalancerDNSName` |
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
