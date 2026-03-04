@@ -56,14 +56,21 @@ HTTPS clients and a custom scheme (`cursor://`) for desktop clients.
 
 ## DNS Configuration
 
-After deploying with Connect enabled, create a DNS alias record for your
-Connect subdomain (typically `<stack-name>-connect.<your-domain>`):
+After deploying with Connect enabled, create a DNS record for your
+Connect subdomain (typically `<stack-name>-connect.<your-domain>`).
+
+If your hosted zone is in **Route 53**, we recommend an alias record:
 
 | Route 53 Field  | Value                                                   |
 | --------------- | ------------------------------------------------------- |
 | Record type     | `A` (alias)                                             |
 | Alias target    | `ConnectLoadBalancerDNSName` CloudFormation output      |
 | Hosted zone ID  | `ConnectLoadBalancerCanonicalHostedZoneID` output       |
+
+If your DNS is hosted elsewhere, create a `CNAME` record pointing to the
+`ConnectLoadBalancerDNSName` CloudFormation output. See the
+[Installation CNAMEs section](Installation.md#cnames) for the equivalent
+catalog DNS records.
 
 The final Connect Server hostname is available in the `ConnectHost`
 CloudFormation output.
