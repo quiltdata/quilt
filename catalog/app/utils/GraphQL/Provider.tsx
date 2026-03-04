@@ -219,13 +219,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
                 },
-                (data) =>
-                  data &&
-                  R.evolve({
-                    roles: R.map(
-                      R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
-                    ),
-                  })(data),
+                R.evolve({
+                  roles: R.map(R.evolve({ policies: R.reject(R.propEq('id', vars.id)) })),
+                }),
               )
             },
             roleCreateManaged: (result, _vars, cache) => {
@@ -280,13 +276,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Role from every Policy's roles
               cache.updateQuery(
                 { query: urql.gql`{ policies { id roles { id } } }` },
-                (data) =>
-                  data &&
-                  R.evolve({
-                    policies: R.map(
-                      R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
-                    ),
-                  })(data),
+                R.evolve({
+                  policies: R.map(R.evolve({ roles: R.reject(R.propEq('id', vars.id)) })),
+                }),
               )
 
               // Remove deleted Role from every BucketConfig's associatedRoles
