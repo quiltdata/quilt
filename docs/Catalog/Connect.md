@@ -39,7 +39,8 @@ CloudFormation parameter to a non-empty value.
 After deploying with Connect enabled, create a DNS `CNAME` record for your
 Connect subdomain pointing to the `ConnectLoadBalancerDNSName` CloudFormation
 output. The final Connect Server hostname is available in the `ConnectHost`
-CloudFormation output.
+CloudFormation output. See [CNAMEs](Installation.md#cnames) for general DNS
+setup instructions.
 
 ### IP Allowlisting (Optional)
 
