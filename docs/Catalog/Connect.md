@@ -72,7 +72,7 @@ Next, each user will need to individually authorize their MCP connection,
 so it runs using their credentials.
 
 1. Login to your Quilt stack as usual (e.g., via Okta SSO)
-2. Go to, e.g., Claude.ai [Settings -> Connectors](https://claude.ai/settings/connectors)
+2. Go to, e.g., Claude.ai [Customize -> Connectors](https://claude.ai/customize/connectors)
 3. Click **Connect**
 
 The first time your AI assistant connects to Quilt, you will be redirected to the
