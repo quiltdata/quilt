@@ -36,17 +36,10 @@ CloudFormation parameter to a non-empty value.
 
 ### DNS Configuration
 
-After deploying with Connect enabled, create a DNS alias record for your
-Connect subdomain (typically `<stack-name>-connect.<your-domain>`):
-
-| Route 53 Field  | Value                                                   |
-| --------------- | ------------------------------------------------------- |
-| Record type     | `A` (alias)                                             |
-| Alias target    | `ConnectLoadBalancerDNSName` CloudFormation output      |
-| Hosted zone ID  | `ConnectLoadBalancerCanonicalHostedZoneID` output       |
-
-The final Connect Server hostname is available in the `ConnectHost` CloudFormation
-output.
+After deploying with Connect enabled, create a DNS `CNAME` record for your
+Connect subdomain pointing to the `ConnectLoadBalancerDNSName` CloudFormation
+output. The final Connect Server hostname is available in the `ConnectHost`
+CloudFormation output.
 
 ### IP Allowlisting (Optional)
 
