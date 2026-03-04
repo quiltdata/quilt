@@ -4,7 +4,9 @@ const CircularDependencyPlugin = require('circular-dependency-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = require('./webpack.base')({
-  mode: 'development',
+  // Use PROD_DEBUG=1 npm start to run with production React (same error behavior
+  // as production builds) but without minification for readable stack traces.
+  mode: process.env.PROD_DEBUG ? 'production' : 'development',
 
   devServer: {
     compress: true,
