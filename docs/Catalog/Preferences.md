@@ -100,7 +100,7 @@ in the package list view.
 ui:
   sourceBuckets:
     s3://bucket-a: {}
-    s3://bucket-b: {}
+    bucket-b: {}  # "s3://" prefix is optional
     s3://bucket-c: {}
   defaultSourceBucket: s3://bucket-b
 ```
