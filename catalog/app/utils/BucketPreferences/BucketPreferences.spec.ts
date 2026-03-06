@@ -148,6 +148,19 @@ describe('utils/BucketPreferences', () => {
       expect(result.ui.sourceBuckets.list).toEqual([])
       expect(result.ui.sourceBuckets.getDefault()).toBe('')
     })
+
+    it('sourceBuckets treats "bucket" and "s3://bucket" equally', () => {
+      const config = dedent`
+            ui:
+                sourceBuckets:
+                    s3://bucket-a: {}
+                    bucket-b: {}
+                defaultSourceBucket: s3://bucket-b
+      `
+      const result = parse(config, 'test-bucket')
+      expect(result.ui.sourceBuckets.list).toEqual(['bucket-a', 'bucket-b'])
+      expect(result.ui.sourceBuckets.getDefault()).toBe('bucket-b')
+    })
   })
 
   describe('extendDefaults', () => {
