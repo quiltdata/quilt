@@ -9,10 +9,10 @@ actions on behalf of your users. Connect Server:
 - Issues session tokens scoped to individual user permissions
 - Routes requests to authorized services within your AWS environment
 
-One such service is the **Quilt Platform MCP Server** (below), which lets you use
-web-based AI assistants — like Claude.ai — to interact with
-your Quilt data through natural language and the
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/).
+One such service is the **Quilt Platform MCP Server** (below), which lets
+AI assistants — such as Claude.ai, Cursor, and other
+[MCP](https://modelcontextprotocol.io/) clients — interact with
+your Quilt data through natural language.
 
 ## Admin Setup
 
@@ -24,15 +24,33 @@ CloudFormation parameter to a non-empty value.
 <!-- markdownlint-disable line-length table-column-style -->
 | Parameter               | Default       | Description |
 | ----------------------- | ------------- | --------------------------------------------------- |
-| `ConnectAllowedHosts`   | _(empty)_     | Comma-separated hostnames allowed as OAuth          |
-|                         |               | `redirect_uri`. Empty = disabled. Set to AI         |
-|                         |               | client domains                                      |
-|                         |               | (e.g. `claude.ai, claude.com, your-tenant.benchling.com`). |
+| `ConnectAllowedHosts`   | _(empty)_     | Comma-separated list of allowed OAuth redirect origins. Empty = disabled. See [Entry formats](#connectallowedhosts-entry-formats) below. |
 | `ConnectSecurityGroup`  | _(empty)_     | Optional EC2 security group ID for Connect ALB      |
 |                         |               | IP allowlisting. Empty = allow all.                 |
 | `CertificateArnConnect` | _(empty)_     | Optional ACM certificate ARN for the Connect ALB.   |
 |                         |               | Empty = reuses main stack TLS certificate.          |
 <!-- markdownlint-enable line-length table-column-style -->
+
+#### `ConnectAllowedHosts` Entry Formats
+
+Each comma-separated entry can be one of:
+
+| Format | Example | Matches |
+| --- | --- | --- |
+| **Hostname** | `claude.ai` | `https://claude.ai/*` (HTTPS only) |
+| **Custom scheme** | `cursor://` | `cursor://<any-host>/*` (for desktop apps that register a custom URI scheme) |
+| **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; configuring either loopback address enables both) |
+
+Example covering web, desktop, and local clients:
+
+```
+claude.ai, claude.com, cursor://, localhost
+```
+
+Entries are case-insensitive. Trailing dots on hostnames are ignored.
+Network schemes (`http://`, `https://`, etc.) are not valid entries and are
+silently ignored — use a bare hostname for HTTPS clients and a custom scheme
+(`cursor://`) for desktop clients.
 
 ### DNS Configuration
 
@@ -58,31 +76,56 @@ Connect ALB accepts traffic from any IP.
 ## Platform MCP Server
 
 The Platform MCP Server is a service that runs behind Connect Server. It allows
-web-based AI assistants like Claude.ai to search packages, browse buckets, and
-retrieve data on your behalf, all within your organization's AWS environment
-and subject to your existing Quilt permissions — no local installation required.
+AI assistants to search packages, browse buckets, and retrieve data on your
+behalf, all within your organization's AWS environment and subject to your
+existing Quilt permissions.
 
 ### MCP Client Setup
 
 Your Quilt administrator will provide a **Connect Server URL** of the form
-`https://<stack-name>-connect.<your-domain>`. Typically, your Organization's administrator
-will use this URL to add Quilt as an MCP server in your AI assistant. For example:
+`https://<stack-name>-connect.<your-domain>`.
 
-1. Go to Claude.ai's [Organization Settings -> Connectors](https://claude.ai/admin-settings/connectors)
-2. Click **Add Custom Connector**.
+#### Claude.ai (web)
+
+An Organization administrator adds Quilt as a connector:
+
+1. Go to [Organization Settings -> Connectors](https://claude.ai/admin-settings/connectors)
+2. Click **Add Custom Connector**
 3. Enter your Connect Server URL: `https://<connect-host>/mcp/platform/mcp`
+
+#### Cursor and other desktop MCP clients
+
+Add the following to your MCP client configuration
+(in Cursor: **Settings -> MCP -> Add new global MCP server**):
+
+```json
+{
+  "mcpServers": {
+    "quilt": {
+      "url": "https://<connect-host>/mcp/platform/mcp"
+    }
+  }
+}
+```
+
+> Your administrator must include the client's custom scheme (e.g. `cursor://`)
+> in `ConnectAllowedHosts` for the OAuth flow to complete.
 
 ### MCP User Authorization
 
-Next, each user will need to individually authorize their MCP connection,
-so it runs using their credentials.
+Next, each user must authorize their MCP connection.
+
+For web clients (e.g. Claude.ai):
 
 1. Login to your Quilt stack as usual (e.g., via Okta SSO)
-2. Go to, e.g., Claude.ai [Settings -> Connectors](https://claude.ai/settings/connectors)
+2. Go to [Settings -> Connectors](https://claude.ai/settings/connectors)
 3. Click **Connect**
 
-The first time your AI assistant connects to Quilt, you will be redirected to the
-Quilt catalog authorization page at `/connect/authorize`. This page shows:
+For desktop clients (e.g. Cursor), the OAuth flow starts automatically the
+first time the client connects to the MCP server.
+
+In both cases, you will see the Quilt catalog authorization page at
+`/connect/authorize`. This page shows:
 
 - The name of the AI client requesting access
 - What the client is allowed to do (read access, scoped to your Quilt role)
