@@ -35,15 +35,17 @@ CloudFormation parameter to a non-empty value.
 
 Each comma-separated entry can be one of:
 
+<!-- markdownlint-disable line-length -->
 | Format | Example | Matches |
 | --- | --- | --- |
 | **Hostname** | `claude.ai` | `https://claude.ai/*` (HTTPS only) |
-| **Custom scheme** | `cursor://` | `cursor://<any-host>/*` (for desktop apps that register a custom URI scheme) |
-| **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; configuring either loopback address enables both) |
+| **Custom scheme** | `cursor://` | `cursor://<any-host>/*` (for desktop apps with a custom URI scheme) |
+| **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; either loopback enables both) |
+<!-- markdownlint-enable line-length -->
 
 Example covering web, desktop, and local clients:
 
-```
+```text
 claude.ai, claude.com, cursor://, localhost
 ```
 
