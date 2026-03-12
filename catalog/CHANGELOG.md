@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Qurator: Switch to Claude Sonnet 4.5, add `quratorDefaultModel` config field for per-stack model override
 - [Fixed] Fix crash when deleting a role on the admin page ([#4751](https://github.com/quiltdata/quilt/pull/4751))
 - [Fixed] Fix presigned S3 URLs using wrong region for cross-bucket package files, causing download and preview failures ([#4742](https://github.com/quiltdata/quilt/pull/4742))
 - [Added] Copy S3 URI button to download buttons in the S3 browser ([#4741](https://github.com/quiltdata/quilt/pull/4741))
