@@ -36,7 +36,7 @@ To enable Qurator Omni:
      enable the Qurator chatbot.
 
 2. **Configure Claude Model**:
-   - Login to the Amazon Bedrock console.
+   - Log in to the Amazon Bedrock console.
    - Ensure that the Claude Sonnet 4.5
      (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) inference profile is
      available in the same region as your Quilt deployment. Check [Model support
