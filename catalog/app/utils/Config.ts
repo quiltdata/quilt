@@ -48,6 +48,7 @@ export interface ConfigJson {
   crc64Checksums?: boolean
 
   qurator?: boolean
+  quratorDefaultModel?: string
 
   build_version?: string // not sure where this comes from
   stackVersion: string
