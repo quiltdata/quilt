@@ -142,14 +142,16 @@ for further details.
 
 ### Enabling SSO
 
-The parameter names used to configure SSO differ depending on how your Quilt stack was deployed.
+The parameter names used to configure SSO depend on whether your stack was built with single-provider
+or multi-provider SSO. To determine which applies, check your stack's CloudFormation parameters:
+if you see a `SingleSignOnProvider` dropdown, use the single-provider instructions below;
+if you see parameters like `GoogleAuth` and `AzureAuth`, use the multi-provider instructions.
 
-#### CloudFormation Console / AWS Marketplace
+#### Single-provider SSO
 
-In the Quilt template (AWS Console > CloudFormation > *Quilt stack* > Update > Use current
-template > Next > Specify stack details), under `Auth Settings` set
-`PasswordAuth` to `Enabled`, then select your provider from the
-`SingleSignOnProvider` dropdown (Google, Okta, OneLogin, or Azure).
+Set `PasswordAuth` to `Enabled` in the Quilt template (AWS Console > CloudFormation >
+*Quilt stack* > Update > Use current template > Next > Specify stack details), then select
+your provider from the `SingleSignOnProvider` dropdown (Google, Okta, OneLogin, or Azure).
 
 ![](./imgs/auth_settings.png)
 
@@ -163,16 +165,16 @@ Use the following settings for the remaining parameters:
 
 > Be sure to set the [default role](#setting-the-default-role) as indicated above.
 
-#### Terraform (IAC module)
+#### Multi-provider SSO
 
-Stacks deployed via the [Quilt IAC Terraform module](https://github.com/quiltdata/iac) use
-per-provider parameters instead of the shared `SingleSignOnProvider` dropdown.
-Each provider can be independently enabled, allowing multiple providers simultaneously.
-See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
-for full Terraform examples.
+Stacks built with multi-provider SSO use per-provider parameters instead of the shared
+`SingleSignOnProvider` dropdown, allowing multiple providers to be enabled simultaneously.
+The [Quilt IAC Terraform module](https://github.com/quiltdata/iac) always uses this format;
+see [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
+for full examples.
 
 | Function | Google | Okta | OneLogin | Azure |
-| ------------- | ------ | ---- | -------- | ----- |
+| -------- | ------ | ---- | -------- | ----- |
 | Enable | `GoogleAuth` | `OktaAuth` | `OneLoginAuth` | `AzureAuth` |
 | Client ID | `GoogleClientId` | `OktaClientId` | `OneLoginClientId` | `AzureClientId` |
 | Client Secret | `GoogleClientSecret` | `OktaClientSecret` | `OneLoginClientSecret` | `AzureClientSecret` |
