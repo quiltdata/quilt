@@ -78,7 +78,7 @@ for further details.
 1. Click "Save".
 1. Copy the `Application (client) ID`, `Client secret Value`, and
 `AzureBaseUrl` to a safe place.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
+1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
 
@@ -114,7 +114,7 @@ for further details.
         ```
 
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+1. Proceed to [Enabling SSO](#enabling-sso)
 
 ### OneLogin
 
@@ -138,7 +138,7 @@ for further details.
 
     ![](./imgs/one_login_users.png)
 
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
+1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Enabling SSO
 
@@ -171,7 +171,7 @@ Each provider can be independently enabled, allowing multiple providers simultan
 See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
 for full Terraform examples.
 
-| CFT Parameter | Google | Okta | OneLogin | Azure |
+| Function | Google | Okta | OneLogin | Azure |
 | ------------- | ------ | ---- | -------- | ----- |
 | Enable | `GoogleAuth` | `OktaAuth` | `OneLoginAuth` | `AzureAuth` |
 | Client ID | `GoogleClientId` | `OktaClientId` | `OneLoginClientId` | `AzureClientId` |
