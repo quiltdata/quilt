@@ -142,10 +142,12 @@ for further details.
 
 ### Enabling SSO
 
-The parameter names used to configure SSO depend on whether your stack was built with single-provider
-or multi-provider SSO. To determine which applies, check your stack's CloudFormation parameters:
-if you see a `SingleSignOnProvider` dropdown, use the single-provider instructions below;
-if you see parameters like `GoogleAuth` and `AzureAuth`, use the multi-provider instructions.
+The SSO parameter names in your stack depend on how the CloudFormation template was built —
+not on whether you use the Console, CLI, or Terraform to deploy it. To determine which applies,
+look at your stack's parameters in CloudFormation:
+
+- **`SingleSignOnProvider` dropdown present** → your stack uses single-provider SSO; follow the [single-provider instructions](#single-provider-sso) below.
+- **`GoogleAuth`, `AzureAuth`, etc. present** → your stack uses multi-provider SSO; follow the [multi-provider instructions](#multi-provider-sso) below.
 
 #### Single-provider SSO
 
@@ -169,8 +171,9 @@ Use the following settings for the remaining parameters:
 
 Stacks built with multi-provider SSO use per-provider parameters instead of the shared
 `SingleSignOnProvider` dropdown, allowing multiple providers to be enabled simultaneously.
-The [Quilt IAC Terraform module](https://github.com/quiltdata/iac) always uses this format;
-see [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
+These parameters are passed the same way regardless of deployment method — Console, CLI,
+or Terraform (the [Quilt IAC Terraform module](https://github.com/quiltdata/iac) always
+uses this format). See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
 for full examples.
 
 | Function | Google | Okta | OneLogin | Azure |
