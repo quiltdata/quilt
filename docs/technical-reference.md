@@ -172,9 +172,8 @@ Use the following settings for the remaining parameters:
 Stacks built with multi-provider SSO use per-provider parameters instead of the shared
 `SingleSignOnProvider` dropdown, allowing multiple providers to be enabled simultaneously.
 These parameters are passed the same way regardless of deployment method — Console, CLI,
-or Terraform (the [Quilt IAC Terraform module](https://github.com/quiltdata/iac) always
-uses this format). See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
-for full examples.
+or Terraform. See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
+for examples using the [Quilt IAC Terraform module](https://github.com/quiltdata/iac).
 
 | Function | Google | Okta | OneLogin | Azure |
 | -------- | ------ | ---- | -------- | ----- |
