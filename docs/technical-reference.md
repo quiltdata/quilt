@@ -49,35 +49,27 @@ to Google's OAuth 2.0 server.
 Copy the `Client ID` and `Client secret` to a safe place.
 Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
-### Active Directory
+### Microsoft Entra ID (Azure Active Directory)
 
-1. Go to Azure Portal > Active Directory > App Registrations.
-1. Click "New Registration".
-1. Name the app, select the Supported account types.
-1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
-`<QuiltWebHost>/oauth-callback`. Click "Save" at the bottom.
-1. Once the application has been created you will need both its `Application
-(client) ID` and `Directory (tenant) ID`.
-
-    ![](./imgs/azure_console_1.png)
-
-1. Go to "Client credentials" and create a new client secret. Note you will use
-the `Value` (and not the `Secret ID`).
-
-    ![](./imgs/azure_console_2.png)
-
-1. Your `AzureBaseUrl` will be of the form
-`https://ENDPOINT/TENANT_ID`. In most cases `ENDPOINT` is simply
-`login.microsoftonline.com`. Reference
-[Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
-and
-[National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
-for further details. 
-    > **If `AzureBaseUrl` doesn't end in `/v2.0`
-    then append `/v2.0` to it.**
-1. Click "Save".
-1. Copy the `Application (client) ID`, `Client secret Value`, and
-`AzureBaseUrl` to a safe place.
+1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
+1. Name the app, select the supported account types, and click **Register**.
+   Note the **Application (client) ID** and **Directory (tenant) ID**.
+1. Go to **Authentication → Add a platform → Web**. Add the redirect URI
+   `<QuiltWebHost>/oauth-callback`. Under **Implicit grant and hybrid flows**,
+   enable **ID tokens** (required — login will fail without it). Click **Save**.
+1. Go to **Certificates & secrets → New client secret**. Copy the **Value**
+   immediately — it is not shown again. (Do not use the Secret ID.)
+1. Go to **API permissions → Add a permission → Microsoft Graph → Delegated**.
+   Add `openid`, `profile`, `email`, `offline_access`, and `User.Read`, then
+   click **Grant admin consent** (otherwise users see a consent screen on every login).
+1. Your `AzureBaseUrl` is `https://login.microsoftonline.com/{TENANT_ID}/v2.0`.
+   Reference [Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
+   and [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
+   for non-standard endpoints.
+   > **`AzureBaseUrl` must end in `/v2.0`. Append it if missing.**
+1. For SSO role mapping, create groups in Entra, assign users, then use the
+   [Role Mapper script](https://github.com/quiltdata/scripts/tree/role-mapper/role-mapper)
+   to map Entra Group IDs to Quilt roles.
 1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
