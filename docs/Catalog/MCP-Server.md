@@ -20,7 +20,7 @@ leaves your AWS environment.
 | **S3 Objects** | List, read, inspect, download (presigned URL), and upload objects |
 | **Athena** | Run SQL queries against your data lake and retrieve results |
 | **Tabulator** | List, create, rename, and manage tabulator table definitions |
-| **Catalog Links** | Generate shareable Quilt catalog URLs for any resource |
+| **Utilities** | List accessible buckets, generate shareable catalog URLs, and read platform resources |
 
 ---
 
@@ -179,7 +179,8 @@ List objects and common prefixes in an S3 bucket, with pagination support.
 
 Read the contents of an S3 object or a file inside a package. Accepts
 `s3://` or `quilt+s3://` URIs. Auto-detects content type (text, image,
-binary) or use `type` to override.
+binary) or use `type` to override. (Named `object_read` rather than
+`s3_object_read` because it also handles `quilt+s3://` package URIs.)
 
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -286,6 +287,11 @@ Rename an existing tabulator table.
 | `new_name` | string | Yes | — | New table name |
 
 ### Utilities
+
+#### `bucket_list`
+
+List accessible buckets with names, titles, and descriptions. Takes no
+parameters.
 
 #### `catalog_link`
 

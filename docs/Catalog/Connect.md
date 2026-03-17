@@ -1,4 +1,5 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+# Quilt Connect Server
+
 > Connect Server requires Quilt Platform version 1.68 or later.
 
 **Quilt Connect Server** is an identity provider and gateway that enables
