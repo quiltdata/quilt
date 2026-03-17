@@ -67,9 +67,8 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
    and [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
    for non-standard endpoints.
    > **`AzureBaseUrl` must end in `/v2.0`. Append it if missing.**
-1. For SSO role mapping, create groups in Entra, assign users, then use the
-   [Role Mapper script](https://github.com/quiltdata/scripts/tree/role-mapper/role-mapper)
-   to map Entra Group IDs to Quilt roles.
+1. For SSO Permissions Mapping, create groups in Entra, assign users, then create a
+   [configuration file](https://docs.quilt.bio/quilt-platform-administrator/advanced/sso-permissions) to map Entra Group IDs to Quilt roles.
 1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
