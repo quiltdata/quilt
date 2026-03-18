@@ -26,7 +26,7 @@ users
 
 * [Email Quilt](mailto:support@quilt.bio)
 
-[quilt-slack]: https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw
+[quilt-slack]: https://slack.quilt.bio
 
 ## Requirements and Prerequisites
 

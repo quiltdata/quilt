@@ -143,7 +143,7 @@ Discover publicly available datasets:
 ## 🆘 Need Help?
 
 - 📖 **Documentation**: Browse the full [Quilt Documentation](/)
-- 💬 **Community**: Join our [Slack Community](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw)
+- 💬 **Community**: Join our [Slack Community](https://slack.quilt.bio)
 - 🐛 **Issues**: Report bugs on [GitHub](https://github.com/quiltdata/quilt/issues)
 - 📧 **Support**: Contact [support@quilt.bio](mailto:support@quilt.bio)
 

@@ -402,4 +402,4 @@ aws sns get-topic-attributes --topic-arn YOUR_TOPIC_ARN --attribute-names All
 
 ---
 
-**Need help?** Contact Quilt support or join our [Slack community](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw) for assistance with EventBridge integration.
+**Need help?** Contact Quilt support or join our [Slack community](https://slack.quilt.bio) for assistance with EventBridge integration.

@@ -100,4 +100,4 @@ For full setup, testing, and release steps, see [`docs/CONTRIBUTING.md`](docs/CO
 - Case studies and customer stories: [quilt.bio/case-studies](https://www.quilt.bio/case-studies)
 - Slack community: [Join Quilt Slack][quilt-slack]
 
-[quilt-slack]: https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw
+[quilt-slack]: https://slack.quilt.bio

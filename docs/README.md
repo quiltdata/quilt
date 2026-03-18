@@ -27,7 +27,7 @@ Instructions](Installation.md) for setting up your environment.
 If you have any questions or need help, join our [Slack
 community][quilt-slack] or submit a support request to <support@quilt.bio>.
 
-[quilt-slack]: https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw
+[quilt-slack]: https://slack.quilt.bio
 
 ---
 

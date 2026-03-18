@@ -608,7 +608,7 @@ Resources:
 
 **Need Help with Cross-Account Setup?**
 - 📧 **Email**: [support@quilt.bio](mailto:support@quilt.bio)
-- 💬 **Slack**: [Quilt Community](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw)
+- 💬 **Slack**: [Quilt Community](https://slack.quilt.bio)
 - 📖 **Documentation**: [Quilt Docs](https://docs.quilt.bio/)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/quiltdata/quilt/issues)
 

@@ -9,7 +9,7 @@ repository [`README.md`](../README.md).
 
 ## Reporting issues
 
-Unsure about something? To get support, check out our [Slack community](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw).
+Unsure about something? To get support, check out our [Slack community](https://slack.quilt.bio).
 
 Found a bug? File it in our [GitHub issues](https://github.com/quiltdata/quilt/issues).
 
