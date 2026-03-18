@@ -4,23 +4,38 @@
 [![Join Office Hours](https://img.shields.io/badge/Join%20Office%20Hours-Live%20Friday-00875A?style=for-the-badge)](https://riverside.com/webinar/registration/eyJzbHVnIjoic2ltb24ta29obnN0YW1tcy1zdHVkaW8iLCJldmVudElkIjoiNjk5Y2M5MDI4YjVkM2Y2MjFjYTk5MzgzIiwicHJvamVjdElkIjoiNjk5Y2M5MDI1OTE5NDU0YmNlOWEzZDVmIn0=)
 [![Book an Intro](https://img.shields.io/badge/Book%20an%20Intro-Meet%20the%20Team-5E4AE3?style=for-the-badge)](https://www.quilt.bio/meetings/simon-kohnstamm/quilt-introduction)
 
-Quilt is a **Scientific Data Management Platform on AWS** that helps teams and AI find, trust, and reuse data through deeply versioned, context-rich data packages.
+Quilt is a **Scientific Data Management Platform on AWS** that helps teams and
+AI find, trust, and reuse data through deeply versioned, context-rich data
+packages.
 
-Most scientific organizations do not struggle to generate data. They struggle to keep it usable over time. As teams, tools, and workflows evolve, context gets lost, scientists cannot find what they need, data teams get pulled into manual support, and AI projects slow down because data lacks structure, lineage, and trust.
+Most scientific organizations do not struggle to generate data. They struggle
+to keep it usable over time. As teams, tools, and workflows evolve, context
+gets lost, scientists cannot find what they need, data teams get pulled into
+manual support, and AI projects slow down because data lacks structure,
+lineage, and trust.
 
-Quilt solves this by turning cloud data into durable, searchable, reusable packages. Each package captures data plus metadata, documentation, lineage, and version history needed for confident reuse. Built on AWS, Quilt works with data in place, so organizations can improve data management without disruptive migrations or rigid workflows.
+Quilt solves this by turning cloud data into durable, searchable, reusable
+packages. Each package captures data plus metadata, documentation, lineage, and
+version history needed for confident reuse. Built on AWS, Quilt works with data
+in place, so organizations can improve data management without disruptive
+migrations or rigid workflows.
 
 ## Open Source and Enterprise
 
 Quilt includes both open-source software and an enterprise platform deployment model.
 
 - **Open source (this repository):**
-  - Python SDK and CLI for creating Quilt packages, installing packages locally, and uploading packages to S3 using your AWS credentials
-  - Package versioning, reproducibility, and documentation workflows that fit data science and bioinformatics workloads
-  - Does **not** provide the full hosted search and visualization experience for package discovery and collaboration
+  - Python SDK and CLI for creating Quilt packages, installing packages
+    locally, and uploading packages to S3 using your AWS credentials
+  - Package versioning, reproducibility, and documentation workflows that fit
+    data science and bioinformatics workloads
+  - Does **not** provide the full hosted search and visualization experience
+    for package discovery and collaboration
 - **Enterprise platform:**
-  - Dedicated AWS-hosted Quilt platform for teams to search, share, and visualize Quilt packages
-  - Multi-user collaboration and governance features on top of open-source package workflows
+  - Dedicated AWS-hosted Quilt platform for teams to search, share, and
+    visualize Quilt packages
+  - Multi-user collaboration and governance features on top of open-source
+    package workflows
 
 Start with:
 
@@ -83,4 +98,6 @@ For full setup, testing, and release steps, see [`docs/CONTRIBUTING.md`](docs/CO
 - Product docs: [docs.quilt.bio](https://docs.quilt.bio/)
 - Open data demo catalog: [open.quiltdata.com](https://open.quiltdata.com/)
 - Case studies and customer stories: [quilt.bio/case-studies](https://www.quilt.bio/case-studies)
-- Slack community: [Join Quilt Slack](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw)
+- Slack community: [Join Quilt Slack][quilt-slack]
+
+[quilt-slack]: https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw

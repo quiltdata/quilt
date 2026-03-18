@@ -21,10 +21,12 @@ We recommend that all users do one or more of the following:
 * [Schedule a Quilt engineer](https://calendly.com/d/g6f-vnd-qf3/engineering-team)
 to guide you through the installation
 
-* [Join Quilt on Slack](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw) to ask questions and
-connect with other users
+* [Join Quilt on Slack][quilt-slack] to ask questions and connect with other
+users
 
 * [Email Quilt](mailto:support@quilt.bio)
+
+[quilt-slack]: https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw
 
 ## Requirements and Prerequisites
 
