@@ -1,5 +1,5 @@
 FROM amazonlinux:2023.9.20251208.0
-MAINTAINER Quilt Data, Inc. contact@quiltdata.io
+MAINTAINER Quilt Data, Inc. support@quilt.bio
 
 # Based on:
 # - https://hub.docker.com/r/irasnyd/nginx_s3_streaming_zip/dockerfile

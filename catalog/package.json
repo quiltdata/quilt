@@ -10,7 +10,7 @@
     "npm": "10",
     "node": "20"
   },
-  "author": "Quilt Data, Inc. <contact@quiltdata.io> (https://quiltdata.com)",
+  "author": "Quilt Data, Inc. <support@quilt.bio> (https://quilt.bio)",
   "license": "MIT",
   "scripts": {
     "analyze:clean": "rimraf stats.json",
