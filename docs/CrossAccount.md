@@ -597,7 +597,7 @@ Resources:
 ### Quilt-Specific Resources
 - **[Quilt Admin API](api-reference/Admin.md)** - Programmatic bucket management
 - **[EventBridge Integration](EventBridge.md)** - Alternative event routing
-- **[Security Best Practices](security/best-practices.md)** - General Quilt security guidance
+- **[Security Best Practices](advanced-features/good-practice.md)** - General Quilt security guidance
 
 ### Tools and Scripts
 - **[AWS CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/)** - S3 API commands
@@ -607,9 +607,9 @@ Resources:
 ## 📞 Support
 
 **Need Help with Cross-Account Setup?**
-- 📧 **Email**: [support@quiltdata.com](mailto:support@quiltdata.com)
-- 💬 **Slack**: [Quilt Community](https://quiltusers.slack.com/)
-- 📖 **Documentation**: [Quilt Docs](https://docs.quiltdata.com/)
+- 📧 **Email**: [support@quilt.bio](mailto:support@quilt.bio)
+- 💬 **Slack**: [Quilt Community](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw)
+- 📖 **Documentation**: [Quilt Docs](https://docs.quilt.bio/)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/quiltdata/quilt/issues)
 
 ---

@@ -354,8 +354,8 @@ See [Troubleshooting](Troubleshooting.md)
 ## Support
 Support is available to all Quilt customers by:
 * online chat (in the Quilt catalog)
-* email to [support@quiltdata.io](mailto://support@quiltdata.io)
-* [Slack](https://slack.quiltdata.com/)
+* email to [support@quilt.bio](mailto:support@quilt.bio)
+* [Slack](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw)
 
 Quilt guarantees response to support issues according to the following SLAs for Quilt Business and Quilt Enterprise customers.
 

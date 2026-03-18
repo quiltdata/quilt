@@ -4,9 +4,12 @@ Quilt is an open source project, and we welcome contributions from the community
 
 Contributors must adhere to the [Code of Conduct](https://github.com/quiltdata/quilt/blob/master/docs/CODE_OF_CONDUCT.md).
 
+If you are looking for a quick map of where major components live, start with the
+repository [`README.md`](../README.md).
+
 ## Reporting issues
 
-Unsure about something? To get support, check out our [Slack channel](https://quiltusers.slack.com/messages).
+Unsure about something? To get support, check out our [Slack community](https://join.slack.com/t/quiltusers/shared_invite/zt-2k7jszthh-rtAWEIDKgaYva4y9x8isSw).
 
 Found a bug? File it in our [GitHub issues](https://github.com/quiltdata/quilt/issues).
 
@@ -28,6 +31,13 @@ git checkout -B new-branch-name
 
 ## Local package development
 
+Choose your area first:
+
+- Python SDK and CLI work: `api/python`
+- Web catalog work: `catalog`
+- AWS services and background processing: `lambdas`
+- Platform and user docs: `docs`
+
 ### Python Environment
 
 We use [`uv`](https://github.com/astral-sh/uv) for dependency management.
@@ -41,7 +51,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 pip install uv
 ```
 
-`uv` ensures the environemnt is properly set up before executing a command,
+`uv` ensures the environment is properly set up before executing a command,
 so you don't have to do anything else.
 
 Run `uv run poe` to see all configured tasks (or refer to `pyproject.toml`).
@@ -92,7 +102,12 @@ To build a static code bundle, as would be necessary in order to serve the catal
 npm run build
 ```
 
-<!-- TODO: add configuration instructions -->
+To run the catalog locally, create a development config:
+
+```bash
+cp config.js.example static-dev/config.js
+# edit static-dev/config.js for your environment
+```
 
 To run the catalog in developer mode:
 
