@@ -78,7 +78,7 @@ for further details.
 1. Click "Save".
 1. Copy the `Application (client) ID`, `Client secret Value`, and
 `AzureBaseUrl` to a safe place.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
+1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
 
@@ -114,7 +114,7 @@ for further details.
         ```
 
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+1. Proceed to [Enabling SSO](#enabling-sso)
 
 ### OneLogin
 
@@ -138,28 +138,49 @@ for further details.
 
     ![](./imgs/one_login_users.png)
 
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
+1. Proceed to [Enabling SSO](#enabling-sso).
 
-### Enabling SSO in CloudFormation
+### Enabling SSO
 
-Now you can connect Quilt to your SSO provider. In the Quilt template
-(AWS Console > CloudFormation > *Quilt stack* > Update > Use current
-template > Next > Specify stack details), under `Auth Settings` set
-the `PasswordAuth` to `Enabled`.
+The SSO parameter names in your stack depend on how the CloudFormation template was built —
+not on whether you use the Console, CLI, or Terraform to deploy it. To determine which applies,
+look at your stack's parameters in CloudFormation:
 
-Next, select your `SingleSignOnProvider` from the dropdown list (one of Google, Okta, OneLogin, Azure).
+- **`SingleSignOnProvider` dropdown present** → your stack uses single-provider SSO; follow the [single-provider instructions](#single-provider-sso) below.
+- **`GoogleAuth`, `AzureAuth`, etc. present** → your stack uses multi-provider SSO; follow the [multi-provider instructions](#multi-provider-sso) below.
+
+#### Single-provider SSO
+
+Set `PasswordAuth` to `Enabled` in the Quilt template (AWS Console > CloudFormation >
+*Quilt stack* > Update > Use current template > Next > Specify stack details), then select
+your provider from the `SingleSignOnProvider` dropdown (Google, Okta, OneLogin, or Azure).
 
 ![](./imgs/auth_settings.png)
 
-Use the following settings (depending on your SSO provider):
+Use the following settings for the remaining parameters:
 
 | CFT Parameter | Google SSO | Okta SSO | OneLogin SSO | Azure SSO |
 | ------------- | ---------- | -------- | ------------ | --------- |
-| `SingleSignOnClientId` | `Client ID` | `Client ID` | `Client ID` | `Application (client) ID` |
-| `SingleSignOnClientSecret` | `Client secret` | `Secret` | `ClientSecret` | `Client secret Value` |
-| `SingleSignOnBaseUrl` | N/A | `Base URL` | `Issuer URL` | `AzureBaseUrl` |
+| `SingleSignOnClientId` | Client ID | Client ID | Client ID | Application (client) ID |
+| `SingleSignOnClientSecret` | Client secret | Secret | ClientSecret | Client secret Value |
+| `SingleSignOnBaseUrl` | N/A | Base URL | Issuer URL | AzureBaseUrl |
 
 > Be sure to set the [default role](#setting-the-default-role) as indicated above.
+
+#### Multi-provider SSO
+
+Stacks built with multi-provider SSO use per-provider parameters instead of the shared
+`SingleSignOnProvider` dropdown, allowing multiple providers to be enabled simultaneously.
+These parameters are passed the same way regardless of deployment method — Console, CLI,
+or Terraform. See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
+for examples using the [Quilt IAC Terraform module](https://github.com/quiltdata/iac).
+
+| Function | Google | Okta | OneLogin | Azure |
+| -------- | ------ | ---- | -------- | ----- |
+| Enable | `GoogleAuth` | `OktaAuth` | `OneLoginAuth` | `AzureAuth` |
+| Client ID | `GoogleClientId` | `OktaClientId` | `OneLoginClientId` | `AzureClientId` |
+| Client Secret | `GoogleClientSecret` | `OktaClientSecret` | `OneLoginClientSecret` | `AzureClientSecret` |
+| Base URL | N/A | `OktaBaseUrl` | `OneLoginBaseUrl` | `AzureBaseUrl` |
 
 ### Preparing an AWS Role for use with Quilt
 
