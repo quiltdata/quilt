@@ -83,25 +83,25 @@ def add(
             prefixes=prefixes,
         )
     )
-    return _handle_bucket_add_result(result, name)
+    return _handle_bucket_add_result(result, name, sns_notification_arn)
 
 
-def _handle_bucket_add_result(result, name: str) -> types.Bucket:
+def _handle_bucket_add_result(result, name: str, sns_notification_arn: T.Optional[str]) -> types.Bucket:
     """Handle bucket add mutation result."""
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketAddSuccess):
         return types.Bucket(**result.bucket_config.model_dump())
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketAlreadyAdded):
-        raise exceptions.Quilt3AdminError("Bucket already added")
+        raise exceptions.Quilt3AdminError(f"Bucket already added: {name!r}")
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketDoesNotExist):
         raise exceptions.Quilt3AdminError(f"Bucket does not exist in S3: {name!r}")
     if isinstance(result, _graphql_client.BucketAddBucketAddInsufficientPermissions):
         raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketAddBucketAddSnsInvalid):
-        raise exceptions.Quilt3AdminError("Invalid SNS notification ARN")
+        raise exceptions.Quilt3AdminError(f"Invalid SNS notification ARN: {sns_notification_arn!r}")
     if isinstance(result, _graphql_client.BucketAddBucketAddNotificationConfigurationError):
         raise exceptions.Quilt3AdminError("Notification configuration error")
     if isinstance(result, _graphql_client.BucketAddBucketAddNotificationTopicNotFound):
-        raise exceptions.Quilt3AdminError("Notification topic not found")
+        raise exceptions.Quilt3AdminError(f"Notification topic not found: {sns_notification_arn!r}")
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketFileExtensionsToIndexInvalid):
         raise exceptions.Quilt3AdminError("Invalid file extensions to index")
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketIndexContentBytesInvalid):
@@ -167,23 +167,23 @@ def update(
             prefixes=prefixes,
         ),
     )
-    return _handle_bucket_update_result(result)
+    return _handle_bucket_update_result(result, name, sns_notification_arn)
 
 
-def _handle_bucket_update_result(result) -> types.Bucket:
+def _handle_bucket_update_result(result, name: str, sns_notification_arn: T.Optional[str]) -> types.Bucket:
     """Handle bucket update mutation result."""
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketUpdateSuccess):
         return types.Bucket(**result.bucket_config.model_dump())
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketNotFound):
-        raise exceptions.BucketNotFoundError()
+        raise exceptions.BucketNotFoundError(name)
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateInsufficientPermissions):
         raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateSnsInvalid):
-        raise exceptions.Quilt3AdminError("Invalid SNS notification ARN")
+        raise exceptions.Quilt3AdminError(f"Invalid SNS notification ARN: {sns_notification_arn!r}")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateNotificationConfigurationError):
         raise exceptions.Quilt3AdminError("Notification configuration error")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateNotificationTopicNotFound):
-        raise exceptions.Quilt3AdminError("Notification topic not found")
+        raise exceptions.Quilt3AdminError(f"Notification topic not found: {sns_notification_arn!r}")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid):
         raise exceptions.Quilt3AdminError("Invalid file extensions to index")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketIndexContentBytesInvalid):
@@ -199,15 +199,15 @@ def remove(name: str) -> None:
         name: Name of the bucket to remove.
     """
     result = util.get_client().bucket_remove(name=name)
-    _handle_bucket_remove_result(result)
+    _handle_bucket_remove_result(result, name)
 
 
-def _handle_bucket_remove_result(result) -> None:
+def _handle_bucket_remove_result(result, name: str) -> None:
     """Handle bucket remove mutation result."""
     if isinstance(result, _graphql_client.BucketRemoveBucketRemoveBucketRemoveSuccess):
         return
     if isinstance(result, _graphql_client.BucketRemoveBucketRemoveBucketNotFound):
-        raise exceptions.BucketNotFoundError()
+        raise exceptions.BucketNotFoundError(name)
     if isinstance(result, _graphql_client.BucketRemoveBucketRemoveIndexingInProgress):
-        raise exceptions.Quilt3AdminError("Cannot remove bucket while indexing is in progress")
+        raise exceptions.Quilt3AdminError(f"Cannot remove bucket while indexing is in progress: {name!r}")
     raise exceptions.Quilt3AdminError(f"Unknown error: {result}")

@@ -9,7 +9,7 @@ def list_tables(bucket_name: str) -> list[types.TabulatorTable]:
     """
     result = util.get_client().bucket_tabulator_tables_list(bucket_name)
     if result is None:
-        raise exceptions.BucketNotFoundError
+        raise exceptions.BucketNotFoundError(bucket_name)
     return [types.TabulatorTable(**x.model_dump()) for x in result.tabulator_tables]
 
 
