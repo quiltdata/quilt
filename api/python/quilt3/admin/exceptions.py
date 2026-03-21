@@ -10,5 +10,5 @@ class UserNotFoundError(Quilt3AdminError):
 
 
 class BucketNotFoundError(Quilt3AdminError):
-    def __init__(self, name: str = None):
+    def __init__(self, name: str | None = None):
         super().__init__(f"Bucket not found: {name!r}" if name else "Bucket not found")

@@ -20,7 +20,7 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
-* [Fixed] `quilt3.admin.buckets.add/update/remove` now include the bucket name (and SNS ARN where applicable) in error messages, making failures easier to debug ([#4776](https://github.com/quiltdata/quilt/pull/4776))
+* [Fixed] `quilt3.admin.buckets.add/update/remove` now include the bucket name (and SNS ARN where applicable) in error messages, making failures easier to debug ([#4777](https://github.com/quiltdata/quilt/pull/4777))
 
 ## 7.2.0 - 2026-01-28
 

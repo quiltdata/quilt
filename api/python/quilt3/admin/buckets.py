@@ -97,11 +97,13 @@ def _handle_bucket_add_result(result, name: str, sns_notification_arn: T.Optiona
     if isinstance(result, _graphql_client.BucketAddBucketAddInsufficientPermissions):
         raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketAddBucketAddSnsInvalid):
-        raise exceptions.Quilt3AdminError(f"Invalid SNS notification ARN: {sns_notification_arn!r}")
+        arn_info = f": {sns_notification_arn!r}" if sns_notification_arn else ""
+        raise exceptions.Quilt3AdminError(f"Invalid SNS notification ARN{arn_info}")
     if isinstance(result, _graphql_client.BucketAddBucketAddNotificationConfigurationError):
         raise exceptions.Quilt3AdminError("Notification configuration error")
     if isinstance(result, _graphql_client.BucketAddBucketAddNotificationTopicNotFound):
-        raise exceptions.Quilt3AdminError(f"Notification topic not found: {sns_notification_arn!r}")
+        arn_info = f": {sns_notification_arn!r}" if sns_notification_arn else ""
+        raise exceptions.Quilt3AdminError(f"Notification topic not found{arn_info}")
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketFileExtensionsToIndexInvalid):
         raise exceptions.Quilt3AdminError("Invalid file extensions to index")
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketIndexContentBytesInvalid):
@@ -179,11 +181,13 @@ def _handle_bucket_update_result(result, name: str, sns_notification_arn: T.Opti
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateInsufficientPermissions):
         raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateSnsInvalid):
-        raise exceptions.Quilt3AdminError(f"Invalid SNS notification ARN: {sns_notification_arn!r}")
+        arn_info = f": {sns_notification_arn!r}" if sns_notification_arn else ""
+        raise exceptions.Quilt3AdminError(f"Invalid SNS notification ARN{arn_info}")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateNotificationConfigurationError):
         raise exceptions.Quilt3AdminError("Notification configuration error")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateNotificationTopicNotFound):
-        raise exceptions.Quilt3AdminError(f"Notification topic not found: {sns_notification_arn!r}")
+        arn_info = f": {sns_notification_arn!r}" if sns_notification_arn else ""
+        raise exceptions.Quilt3AdminError(f"Notification topic not found{arn_info}")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid):
         raise exceptions.Quilt3AdminError("Invalid file extensions to index")
     if isinstance(result, _graphql_client.BucketUpdateBucketUpdateBucketIndexContentBytesInvalid):
