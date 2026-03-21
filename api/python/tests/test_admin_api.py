@@ -447,7 +447,7 @@ BUCKET_CONFIG = {
 }
 BUCKET_ADD_ERRORS = (
     ({"__typename": "BucketAlreadyAdded"}, admin.Quilt3AdminError, "Bucket already added"),
-    ({"__typename": "BucketDoesNotExist"}, admin.Quilt3AdminError, "Bucket does not exist in S3"),
+    ({"__typename": "BucketDoesNotExist"}, admin.Quilt3AdminError, "Bucket does not exist in S3: 'test-bucket'"),
     (
         {"__typename": "InsufficientPermissions", "message": "Permission denied for prefix"},
         admin.Quilt3AdminError,

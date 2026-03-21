@@ -83,17 +83,17 @@ def add(
             prefixes=prefixes,
         )
     )
-    return _handle_bucket_add_result(result)
+    return _handle_bucket_add_result(result, name)
 
 
-def _handle_bucket_add_result(result) -> types.Bucket:
+def _handle_bucket_add_result(result, name: str) -> types.Bucket:
     """Handle bucket add mutation result."""
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketAddSuccess):
         return types.Bucket(**result.bucket_config.model_dump())
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketAlreadyAdded):
         raise exceptions.Quilt3AdminError("Bucket already added")
     if isinstance(result, _graphql_client.BucketAddBucketAddBucketDoesNotExist):
-        raise exceptions.Quilt3AdminError("Bucket does not exist in S3")
+        raise exceptions.Quilt3AdminError(f"Bucket does not exist in S3: {name!r}")
     if isinstance(result, _graphql_client.BucketAddBucketAddInsufficientPermissions):
         raise exceptions.Quilt3AdminError(result.message)
     if isinstance(result, _graphql_client.BucketAddBucketAddSnsInvalid):
