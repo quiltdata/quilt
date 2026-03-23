@@ -1170,43 +1170,41 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const {
-    fetching,
-    error,
-    data: revisionData,
-  } = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
   const displayError = React.useMemo(() => errors.displayError(), [])
 
-  if (fetching) return <Placeholder color="text.secondary" />
-  if (error) return <>{displayError(error)}</>
-
-  if (!revisionData?.package) {
-    return (
-      <Message headline="No Such Package">
-        Package named{' '}
-        <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box> could
-        not be found in this bucket.
-      </Message>
-    )
-  }
-
-  return (
-    <Selection.Provider>
-      <PackageTree
-        {...{
-          bucket,
-          name,
-          hashOrTag,
-          revision: revisionData.package.revision,
-          path,
-          mode,
-          resolvedFrom,
-          revisionListQuery,
-        }}
-      />
-    </Selection.Provider>
-  )
+  return GQL.fold(revisionQuery, {
+    fetching: () => <Placeholder color="text.secondary" />,
+    error: (error) => <>{displayError(error)}</>,
+    data: (revisionData) => {
+      if (!revisionData.package) {
+        return (
+          <Message headline="No Such Package">
+            Package named{' '}
+            <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box>{' '}
+            could not be found in this bucket.
+          </Message>
+        )
+      }
+      return (
+        <Selection.Provider>
+          <PackageTree
+            {...{
+              bucket,
+              name,
+              hashOrTag,
+              revision: revisionData.package.revision,
+              path,
+              mode,
+              resolvedFrom,
+              revisionListQuery,
+            }}
+          />
+        </Selection.Provider>
+      )
+    },
+  })
 }
 
 interface PackageTreeRouteParams {
