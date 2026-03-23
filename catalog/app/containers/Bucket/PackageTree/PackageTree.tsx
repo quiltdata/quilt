@@ -1170,15 +1170,13 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const {
-    fetching,
-    error,
-    data: revisionData,
-  } = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const { fetching, error, data: revisionData } = revisionQuery
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
   const displayError = React.useMemo(() => errors.displayError(), [])
 
-  if (fetching) return <Placeholder color="text.secondary" />
+  const isPartial = revisionQuery.operation?.context?.meta?.cacheOutcome === 'partial'
+  if (fetching || isPartial) return <Placeholder color="text.secondary" />
   if (error) return <>{displayError(error)}</>
 
   if (!revisionData?.package) {
