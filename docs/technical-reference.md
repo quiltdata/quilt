@@ -61,14 +61,18 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
    immediately — it is not shown again. (Do not use the Secret ID.)
 1. Go to **API permissions → Add a permission → Microsoft Graph → Delegated**.
    Add `openid`, `profile`, `email`, `offline_access`, and `User.Read`, then
-   click **Grant admin consent** (otherwise users see a consent screen on every login).
-1. Your `AzureBaseUrl` is `https://login.microsoftonline.com/{TENANT_ID}/v2.0`.
-   Reference [Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
-   and [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
+   click **Grant admin consent**. Without admin consent, each user is typically
+   prompted to grant these permissions on their first login; granting admin consent
+   approves them tenant-wide (subject to your org's policies) and avoids end-user prompts.
+1. Your `AzureBaseUrl` is `https://login.microsoftonline.com/<TENANT_ID>/v2.0`.
+   Reference [Microsoft identity platform and OpenID Connect protocol](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)
+   and [National clouds](https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud)
    for non-standard endpoints.
    > **`AzureBaseUrl` must end in `/v2.0`. Append it if missing.**
-1. For SSO Permissions Mapping, create groups in Entra, assign users, then create a
-   [configuration file](https://docs.quilt.bio/quilt-platform-administrator/advanced/sso-permissions) to map Entra Group IDs to Quilt roles.
+1. For SSO Permissions Mapping:
+   - Create security groups in Entra and assign users.
+   - In the app registration, go to **Token configuration → Add groups claim** (or **Edit** if it already exists) and configure it to emit **Group IDs** in the **ID token**.
+   - Create a [configuration file](./advanced-features/sso-permissions.md) to map Entra Group IDs to Quilt roles.
 1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
