@@ -63,13 +63,25 @@ function format(settings: CatalogSettings) {
   return JSON.stringify(settings, null, 2)
 }
 
-// FIXME: remove if decide to not use file upload for logo
 export function useUploadFile() {
-  return React.useCallback(async (file: File) => {
-    // eslint-disable-next-line no-console
-    console.log(file)
-    throw new Error('This functionality is not ready yet')
-  }, [])
+  const s3 = AWS.S3.use()
+  return React.useCallback(
+    async (file: File) => {
+      const ext = file.name.includes('.') ? file.name.split('.').pop() : ''
+      const key = ext ? `catalog/logo.${ext}` : 'catalog/logo'
+      const buf = await file.arrayBuffer()
+      await s3
+        .putObject({
+          Bucket: cfg.serviceBucket,
+          Key: key,
+          Body: new Uint8Array(buf),
+          ContentType: file.type || undefined,
+        })
+        .promise()
+      return `s3://${cfg.serviceBucket}/${key}`
+    },
+    [s3],
+  )
 }
 
 export function useWriteSettings() {

@@ -306,8 +306,7 @@ export default function ThemeEditor() {
     [settings, writeSettings, uploadFile],
   )
 
-  // FIXME: remove when file upload would be ready
-  const useThirdPartyDomainForLogo = true
+  const useThirdPartyDomainForLogo = false
 
   return (
     <>
