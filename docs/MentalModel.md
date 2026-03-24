@@ -254,7 +254,7 @@ Now that you understand Quilt's mental model:
 
 1. **Try It**: Follow the [Quick Start](Quickstart.md) to create your first package
 2. **Learn Workflows**: Explore [package workflows](walkthrough/uploading-a-package.md)
-3. **Set Up Team Access**: Configure [collaboration features](Catalog/Collaboration.md)
+3. **Set Up Team Access**: Configure [team access and roles](Catalog/Admin.md)
 4. **Advanced Topics**: Learn about [schemas and validation](advanced-features/workflows.md)
 
 ---

@@ -10,7 +10,7 @@ Quilt has two user-facing components:
 
 ## Python client
 
-Python 3.7 or higher is required.
+Python 3.9 or higher is required.
 
 ```bash
 $ pip install 'quilt3[pyarrow]'
@@ -31,9 +31,11 @@ If you wish to use AWS resources, such as S3 buckets, you will need valid AWS cr
 If this is your first time using the AWS CLI, run the following:
 
 ```bash
-$ pip install awscli
 $ aws configure
 ```
+
+For AWS CLI v2 installation, use the [official AWS CLI install
+guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 
 If you are already using the AWS CLI, you may use your existing profile, or [create a new profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-multiple-profiles.html).
 

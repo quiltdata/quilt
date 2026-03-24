@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Fix "Error resolving revision" flash when navigating to a just-created package ([#4778](https://github.com/quiltdata/quilt/pull/4778))
 - [Changed] Qurator: Switch to Claude Sonnet 4.5, add `quratorDefaultModel` config field for per-stack model override ([#4764](https://github.com/quiltdata/quilt/pull/4764))
 - [Fixed] Fix crash when deleting a role on the admin page ([#4751](https://github.com/quiltdata/quilt/pull/4751))
 - [Fixed] Fix presigned S3 URLs using wrong region for cross-bucket package files, causing download and preview failures ([#4742](https://github.com/quiltdata/quilt/pull/4742))

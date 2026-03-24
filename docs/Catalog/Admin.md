@@ -95,7 +95,7 @@ By default, when you add a bucket to the Quilt stack one of two things will happ
 
 If either of the above conditions fails, Quilt will not add the bucket in question.
 
-See [S3 Events, EventBridge](EventBridge.md) for more.
+See [S3 Events, EventBridge](../EventBridge.md) for more.
 
 ## Settings
 
