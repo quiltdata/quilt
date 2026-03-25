@@ -1,10 +1,136 @@
-from typing import List
+from typing import List, Optional
 
-from . import types, util
+from .. import _graphql_client
+from . import exceptions, types, util
+
+
+def get(id: str) -> Optional[types.Role]:
+    """
+    Get a specific role from the registry. Return `None` if the role does not exist.
+
+    Args:
+        id: Role ID to get.
+    """
+    result = util.get_client().role_get(id=id)
+    if result is None:
+        return None
+    return util.parse_role_result(result)
 
 
 def list() -> List[types.Role]:
     """
     Get a list of all roles in the registry.
     """
-    return [types.role_adapter.validate_python(r.model_dump()) for r in util.get_client().roles_list()]
+    return [util.parse_role_result(role) for role in util.get_client().roles_list()]
+
+
+def create_managed(name: str, policies: List[str]) -> types.ManagedRole:
+    """
+    Create a managed role in the registry.
+
+    Args:
+        name: Role name.
+        policies: Policy IDs to attach to the role.
+    """
+    result = util.get_client().role_create_managed(
+        input=_graphql_client.ManagedRoleInput(name=name, policies=policies)
+    )
+    return _handle_role_mutation_result(result)
+
+
+def create_unmanaged(name: str, arn: str) -> types.UnmanagedRole:
+    """
+    Create an unmanaged role in the registry.
+
+    Args:
+        name: Role name.
+        arn: Existing IAM role ARN.
+    """
+    result = util.get_client().role_create_unmanaged(input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn))
+    return _handle_role_mutation_result(result)
+
+
+def update_managed(id: str, name: str, policies: List[str]) -> types.ManagedRole:
+    """
+    Update a managed role in the registry.
+
+    Args:
+        id: Role ID.
+        name: New role name.
+        policies: Policy IDs to attach to the role.
+    """
+    result = util.get_client().role_update_managed(
+        id=id,
+        input=_graphql_client.ManagedRoleInput(name=name, policies=policies),
+    )
+    return _handle_role_mutation_result(result)
+
+
+def update_unmanaged(id: str, name: str, arn: str) -> types.UnmanagedRole:
+    """
+    Update an unmanaged role in the registry.
+
+    Args:
+        id: Role ID.
+        name: New role name.
+        arn: Existing IAM role ARN.
+    """
+    result = util.get_client().role_update_unmanaged(
+        id=id,
+        input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn),
+    )
+    return _handle_role_mutation_result(result)
+
+
+def delete(id: str) -> None:
+    """
+    Delete a role from the registry.
+
+    Args:
+        id: Role ID.
+    """
+    result = util.get_client().role_delete(id=id)
+    typename = result.typename__
+    if typename == "RoleDeleteSuccess":
+        return None
+    if typename == "RoleDoesNotExist":
+        raise exceptions.RoleNotFoundError()
+    if typename == "RoleNameReserved":
+        raise exceptions.RoleNameReservedError(result)
+    raise exceptions.Quilt3AdminError(result)
+
+
+def set_default(id: str) -> types.Role:
+    """
+    Set the default role in the registry.
+
+    Args:
+        id: Role ID.
+    """
+    result = util.get_client().role_set_default(id=id)
+    typename = result.typename__
+    if typename == "RoleSetDefaultSuccess":
+        return util.parse_role_result(result.role)
+    if typename == "RoleDoesNotExist":
+        raise exceptions.RoleNotFoundError()
+    raise exceptions.Quilt3AdminError(result)
+
+
+def _handle_role_mutation_result(result):
+    typename = result.typename__
+    if typename in {"RoleCreateSuccess", "RoleUpdateSuccess"}:
+        role = util.parse_role_result(result.role)
+        if not isinstance(role, (types.ManagedRole, types.UnmanagedRole)):
+            raise exceptions.Quilt3AdminError(result)
+        return role
+    if typename == "RoleDoesNotExist":
+        raise exceptions.RoleNotFoundError()
+    if typename == "RoleNameReserved":
+        raise exceptions.RoleNameReservedError(result)
+    if typename == "RoleNameExists":
+        raise exceptions.RoleNameExistsError(result)
+    if typename == "RoleNameInvalid":
+        raise exceptions.RoleNameInvalidError(result)
+    if typename == "RoleHasTooManyPoliciesToAttach":
+        raise exceptions.RoleTooManyPoliciesError(result)
+    raise exceptions.Quilt3AdminError(result)
