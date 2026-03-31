@@ -92,13 +92,16 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL. 
-    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked**.
+        > **Important:** `Refresh Token` must be checked. Without it, the Quilt registry cannot complete the sign-in flow and will return a 401 error.
+    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL.
+    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked** unless you need wildcard redirect URIs (e.g., for multiple subdomains). Note that wildcards only match a single subdomain level: `*.example.com` matches `app.example.com` but NOT `app.dev.example.com`.
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
-    1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
+    1. **Uncheck "Enable immediate access"** (also called Federation Broker Mode). This setting is on by default and will cause SSO to fail with `access_denied — Identity Provider: Unknown`. When unchecked, you can assign users directly.
+    1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization. Ensure at least one user or group is assigned to the app.
 1. Once you click the `Save` button you will have a new application integration to review.
     1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
     1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
+1. **Configure the authentication policy.** Go to **Security > Authentication Policies** and check which policy your new app is assigned to. The default policy ("Any two factors") requires MFA, which will block sign-in unless all users have MFA enrolled. Create or use a policy that allows password-only authentication. When creating a new policy, also edit the **Catch-all Rule** — it defaults to 2 factor types.
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
     to `api://default`, and an `Issuer URI` that looks like the
@@ -108,6 +111,7 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
         <MY_COMPANY>.okta.com/oauth2/default
         ```
 
+    1. Click on the `default` authorization server. Go to the **Access Policies** tab and ensure there is at least one **rule** that grants tokens for Authorization Code flow. A policy with no rules will silently deny all token requests, causing sign-in to fail.
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
 1. Proceed to [Enabling SSO](#enabling-sso)
 
