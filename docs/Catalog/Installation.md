@@ -7,8 +7,8 @@ find, understand, and file discoveries based on data of any size or in any forma
 
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
-Quilt supports multiple deployment methods including CloudFormation,
-AWS Marketplace, and Terraform.
+Quilt supports multiple deployment methods including AWS Marketplace,
+AWS Service Catalog, CloudFormation, and Terraform.
 
 ## Help and Advice
 
@@ -131,14 +131,21 @@ Quilt when a new version is released.)
 
     ![Products list page](../imgs/products-list.png)
 
-1. Continue to the [CloudFormation](#cloudformation) section.
-Note: the following screenshots may differ slightly from what
-you see in Service Catalog.
+Quilt supports two deployment paths: **CloudFormation** and **Terraform**.
+In both cases, the Quilt application runs as a CloudFormation stack. With
+CloudFormation alone, all resources are managed within a single stack. With
+Terraform, an outer Terraform layer first provisions the foundational
+infrastructure (VPC, database, search cluster), then deploys the CloudFormation
+stack automatically, wiring in those resources.
+
+Use CloudFormation if you want a straightforward, self-contained deployment.
+Use Terraform if you need infrastructure-as-code control over the underlying
+network, database, and search resources.
 
 ### CloudFormation
 
 You can perform stack update and creation with the AWS Console, AWS CLI,
-Terraform, or other means.
+or other means.
 
 > **Important:** Use Quilt-provided CloudFormation templates without modification.
 > Customizing templates may result in deployment issues and can affect your service
@@ -184,14 +191,13 @@ You can monitor progress under Events. On completion you will see `CREATE_COMPLE
 
 ### Terraform
 
-You can also install Quilt using [Terraform](https://developer.hashicorp.com/terraform),
-which enables more granular infrastructure-as-code control.
+To install Quilt using [Terraform](https://developer.hashicorp.com/terraform):
 
 Terraform users **must** request a compatible CloudFormation template from Quilt:
 
 > Contact your account manager to obtain a template that works with Terraform and
-includes necessary variables.
-
+> includes necessary variables.
+>
 > **Important:** Use Quilt-provided Terraform modules and CloudFormation templates
 > without modification. Customizing these resources may result in deployment issues
 > and can affect your service agreement coverage. If you require specific
@@ -239,6 +245,8 @@ see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md)
 
 ### CNAMEs
 
+This step applies to both CloudFormation and Terraform deployments.
+
 In order for your users to reach the Quilt catalog you must set three CNAMEs
 that point to the `LoadBalancerDNSName` as shown below and in the Outputs
 of your stack.
@@ -273,7 +281,8 @@ CloudFormation console as follows.
 
 ### Terraform updates
 
-> See above.
+Run `terraform plan -out=tfplan && terraform apply tfplan` with the updated
+module version. See [Terraform](#terraform) for initial setup details.
 
 ## Upgrading from network 1.0 to network 2.0
 
@@ -292,9 +301,8 @@ stack. This is typically useful when upgrading to the 2.0 network.
 > _Configuration_ refers to the Quilt stack buckets, roles, policies,
 > and other administrative settings, all of which are stored in RDS.
 
-Perform the following steps:
-
-1. Contact your Quilt account manager for a template that supports Terraform.
+1. Use the Terraform-compatible template obtained in the
+[Terraform](#terraform) section.
 
 1. Take a manual snapshot of the current Quilt database instance. For an existing
 Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
