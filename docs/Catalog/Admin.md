@@ -30,7 +30,7 @@ You can edit existing users' attributes by clicking on underlined cells.
 
 ![](../imgs/admin-users-invite.png)
 
-Users can switch between assigned roles via the drodpwon menu in the navbar
+Users can switch between assigned roles via the dropdown menu in the navbar
 (if assigned more than one).
 
 ![](../imgs/switch-role-menu.png)
