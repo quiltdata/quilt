@@ -446,8 +446,8 @@ BUCKET_CONFIG = {
     "prefixes": [""],
 }
 BUCKET_ADD_ERRORS = (
-    ({"__typename": "BucketAlreadyAdded"}, admin.Quilt3AdminError, "Bucket already added"),
-    ({"__typename": "BucketDoesNotExist"}, admin.Quilt3AdminError, "Bucket does not exist in S3"),
+    ({"__typename": "BucketAlreadyAdded"}, admin.Quilt3AdminError, "Bucket already added: 'test-bucket'"),
+    ({"__typename": "BucketDoesNotExist"}, admin.Quilt3AdminError, "Bucket does not exist in S3: 'test-bucket'"),
     (
         {"__typename": "InsufficientPermissions", "message": "Permission denied for prefix"},
         admin.Quilt3AdminError,
@@ -461,7 +461,7 @@ BUCKET_ADD_ERRORS = (
     ({"__typename": "SubscriptionInvalid"}, admin.Quilt3AdminError, "Invalid subscription"),
 )
 BUCKET_UPDATE_ERRORS = (
-    ({"__typename": "BucketNotFound"}, admin.BucketNotFoundError, None),
+    ({"__typename": "BucketNotFound"}, admin.BucketNotFoundError, "Bucket not found: 'test-bucket'"),
     (
         {"__typename": "InsufficientPermissions", "message": "Permission denied for prefix"},
         admin.Quilt3AdminError,
@@ -474,11 +474,11 @@ BUCKET_UPDATE_ERRORS = (
     ({"__typename": "BucketIndexContentBytesInvalid"}, admin.Quilt3AdminError, "Invalid index content bytes"),
 )
 BUCKET_REMOVE_ERRORS = (
-    ({"__typename": "BucketNotFound"}, admin.BucketNotFoundError, None),
+    ({"__typename": "BucketNotFound"}, admin.BucketNotFoundError, "Bucket not found: 'test-bucket'"),
     (
         {"__typename": "IndexingInProgress"},
         admin.Quilt3AdminError,
-        "Cannot remove bucket while indexing is in progress",
+        "Cannot remove bucket while indexing is in progress: 'test-bucket'",
     ),
 )
 
