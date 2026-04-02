@@ -16,6 +16,13 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - 2026-03-24
+
+### Python API
+
+* [Added] `quilt3.admin.roles` create/update/delete/get/set-default helpers and new `quilt3.admin.policies` helpers for listing, creating, updating, and deleting registry roles and policies
+* [Added] `quilt3.admin` policy and bucket-permission public types plus role/policy-specific admin exceptions
+
 ## 7.2.0 - 2026-01-28
 
 ### Python API
