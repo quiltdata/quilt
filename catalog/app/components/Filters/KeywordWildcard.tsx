@@ -24,8 +24,7 @@ interface KeywordWildcardFilterProps {
 }
 
 interface KeywordWildcardProps
-  extends
-    Omit<M.TextFieldProps, keyof KeywordWildcardFilterProps>,
+  extends Omit<M.TextFieldProps, keyof KeywordWildcardFilterProps>,
     KeywordWildcardFilterProps {}
 
 export default function KeywordWildcard({
