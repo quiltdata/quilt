@@ -92,8 +92,9 @@ aws s3api put-bucket-ownership-controls \
 Configure cross-account bucket policy, SNS notifications, and register the bucket
 in the Quilt catalog — all from the Data Account, under your control.
 
-[`quiltx`](https://pypi.org/project/quiltx/) is a command-line tool that automates
-cross-account bucket setup. It **merges** policies and notifications with any
+[`quiltx`](https://pypi.org/project/quiltx/) is a command-line tool for managing
+Quilt deployments. Its `bucket add` command automates cross-account bucket setup
+and **merges** policies and notifications with any
 existing configuration rather than replacing them, so your existing S3 event
 notifications, Lambda triggers, and bucket policies are preserved.
 
@@ -446,7 +447,7 @@ done
 - **[CloudTrail Cross-Account](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-sharing-logs.html)** - CloudTrail log sharing
 
 ### Quilt-Specific Resources
-- **[quiltx](https://pypi.org/project/quiltx/)** - CLI tool for cross-account bucket setup
+- **[quiltx](https://pypi.org/project/quiltx/)** - CLI tool for managing Quilt deployments
 - **[Quilt Admin API](api-reference/Admin.md)** - Programmatic bucket management
 - **[EventBridge Integration](EventBridge.md)** - Alternative event routing
 - **[Security Best Practices](advanced-features/good-practice.md)** - General Quilt security guidance
