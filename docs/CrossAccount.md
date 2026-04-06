@@ -86,159 +86,77 @@ aws s3api put-bucket-ownership-controls \
 - ✅ Prevents ACL-based access complications
 - ✅ Required for cross-account Quilt operations
 
-### Step 2: Create Cross-Account Bucket Policy
+### Step 2: Register the Bucket with `quiltx`
 
 **Purpose:**
-Grant Quilt infrastructure in Control Account the necessary permissions to manage buckets in Data Account.
+Configure cross-account bucket policy, SNS notifications, and register the bucket
+in the Quilt catalog — all from the Data Account, under your control.
 
-**Create the Bucket Policy:**
+[`quiltx`](https://pypi.org/project/quiltx/) is a command-line tool that automates
+cross-account bucket setup. It **merges** policies and notifications with any
+existing configuration rather than replacing them, so your existing S3 event
+notifications, Lambda triggers, and bucket policies are preserved.
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltCrossAccountAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::CONTROL-ACCOUNT-ID:root"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectAttributes", 
-                "s3:GetObjectTagging",
-                "s3:GetObjectVersion",
-                "s3:GetObjectVersionAttributes",
-                "s3:GetObjectVersionTagging",
-                "s3:ListBucket",
-                "s3:ListBucketVersions",
-                "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "s3:GetBucketNotification",
-                "s3:PutBucketNotification"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ]
-        }
-    ]
-}
-```
+**Install quiltx:**
 
-**Apply the Policy:**
-
-**Console Method:**
-1. Go to **S3 Console** → **Your Bucket** → **Permissions** → **Bucket Policy**
-2. Paste the JSON above (replace `CONTROL-ACCOUNT-ID` and `your-data-bucket`)
-3. Click **Save changes**
-
-**CLI Method:**
 <!-- pytest-codeblocks:skip -->
 ```bash
-# Save policy to file
-cat > bucket-policy.json << 'EOF'
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltCrossAccountAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::123456789012:root"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectAttributes",
-                "s3:GetObjectTagging",
-                "s3:GetObjectVersion", 
-                "s3:GetObjectVersionAttributes",
-                "s3:GetObjectVersionTagging",
-                "s3:ListBucket",
-                "s3:ListBucketVersions",
-                "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "s3:GetBucketNotification",
-                "s3:PutBucketNotification"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ]
-        }
-    ]
-}
-EOF
+# Using uvx (recommended, no install required)
+uvx quiltx bucket add your-data-bucket --profile data-account --dry-run
 
-# Apply the policy
-aws s3api put-bucket-policy \
-    --bucket your-data-bucket \
-    --policy file://bucket-policy.json \
-    --profile data-account
+# Or install with pip
+pip install quiltx
+```
+
+**Preview changes with `--dry-run`:**
+
+<!-- pytest-codeblocks:skip -->
+```bash
+# Review planned bucket policy, SNS topic, and notification changes
+quiltx bucket add your-data-bucket --profile data-account --dry-run
+```
+
+This prints the exact bucket policy, SNS topic policy, and notification
+configuration that will be applied — review them before proceeding.
+
+**Apply changes:**
+
+<!-- pytest-codeblocks:skip -->
+```bash
+# Configure bucket policy, SNS topic, notifications, and register in Quilt
+quiltx bucket add your-data-bucket --profile data-account
+```
+
+`quiltx bucket add` performs the following steps:
+1. **Merges** a cross-account bucket policy statement (by `Sid`) granting the Quilt
+   control account read/write access
+2. **Creates or reuses** an SNS topic in the Data Account for S3 event notifications
+3. **Configures** the SNS topic policy to allow S3 to publish and Quilt to subscribe
+4. **Merges** the SNS notification into the bucket's existing notification configuration
+   (by `Id`), preserving any other notifications already in place
+5. **Registers** the bucket in the Quilt catalog
+
+**Verify the setup:**
+
+<!-- pytest-codeblocks:skip -->
+```bash
+# Verify registration and cross-account read access
+quiltx bucket test your-data-bucket
 ```
 
 **🔒 Security Note:**
-> Quilt admins can still control user access to this bucket through the Quilt Admin Panel's Roles and Policies. The bucket policy only grants access to Quilt infrastructure, not end users.
+> Because `quiltx` runs with **your** AWS credentials in the Data Account, you
+> retain full control over what policies and notifications are applied to your
+> buckets. Quilt's control account never needs `s3:PutBucketNotification`
+> permission. Quilt admins can still control user access through the Quilt Admin
+> Panel's Roles and Policies.
 
-### Step 3: Configure Cross-Account SNS (Optional)
-
-**When You Need This:**
-If you're using [EventBridge integration](EventBridge.md) or have existing SNS topics in the Data Account that Quilt should use for notifications.
-
-**Create SNS Topic Policy:**
-
-Add this statement to your SNS topic's resource policy in the Data Account:
-
-```json
-{
-    "Sid": "QuiltCrossAccountSNSAccess",
-    "Effect": "Allow",
-    "Principal": {
-        "AWS": "arn:aws:iam::CONTROL-ACCOUNT-ID:root"
-    },
-    "Action": [
-        "sns:GetTopicAttributes",
-        "sns:Subscribe",
-        "sns:Unsubscribe"
-    ],
-    "Resource": "arn:aws:sns:region:DATA-ACCOUNT-ID:your-topic-name"
-}
-```
-
-**Apply SNS Policy:**
-
-<!-- pytest-codeblocks:skip -->
-```bash
-# Get current policy
-aws sns get-topic-attributes \
-    --topic-arn arn:aws:sns:region:DATA-ACCOUNT-ID:your-topic-name \
-    --attribute-names Policy \
-    --profile data-account
-
-# Update policy (merge with existing statements)
-aws sns set-topic-attributes \
-    --topic-arn arn:aws:sns:region:DATA-ACCOUNT-ID:your-topic-name \
-    --attribute-name Policy \
-    --attribute-value file://sns-policy.json \
-    --profile data-account
-```
-
-**Configure in Quilt:**
-1. Open **Quilt Admin Panel** → **Buckets**
-2. Add or edit your cross-account bucket
-3. Under **"Indexing and notifications"**, set the SNS Topic ARN
-4. Save the configuration
-
-### Step 4: Set Up CloudTrail (Required)
+### Step 3: Set Up CloudTrail (Required)
 
 **Why CloudTrail is Required:**
-- 🔍 **Security & Auditing**: Track all S3 API calls
-- 📊 **User Analytics**: Quilt uses CloudTrail data for user-facing analytics
-- 🚨 **Compliance**: Many regulatory frameworks require audit trails
+- **Security & Auditing**: Track all S3 API calls
+- **User Analytics**: Quilt uses CloudTrail data for user-facing analytics
+- **Compliance**: Many regulatory frameworks require audit trails
 
 **Implementation Options:**
 
@@ -321,22 +239,21 @@ If CloudTrail is in Data Account but Quilt needs access:
 }
 ```
 
-### Step 5: Add Bucket to Quilt
+### Step 4: Verify Registration
 
-**Final Configuration:**
+If you used `quiltx bucket add` in Step 2, the bucket is already registered in
+Quilt. Verify with:
 
-1. **Open Quilt Admin Panel** in Control Account
-2. Navigate to **Buckets** → **Add Bucket**
-3. **Configure the bucket:**
-   - **Bucket Name**: `your-data-bucket`
-   - **Region**: Same as the bucket
-   - **SNS Topic ARN**: (If using cross-account SNS)
-   - **Event Notifications**: Leave disabled if using EventBridge
+<!-- pytest-codeblocks:skip -->
+```bash
+# List all registered buckets
+quiltx bucket list
 
-4. **Save and Test:**
-   - Click **Save**
-   - Upload a test file to verify indexing works
-   - Check Quilt catalog for the new file
+# Test cross-account access
+quiltx bucket test your-data-bucket
+```
+
+Then upload a test file and check the Quilt catalog to confirm indexing works.
 
 ## 🔧 Testing Your Cross-Account Setup
 
@@ -409,35 +326,14 @@ aws logs filter-log-events \
 
 ### Principle of Least Privilege
 
-**Bucket Policy Refinements:**
-Instead of granting access to the entire Control Account root, consider restricting to specific Quilt roles:
+**Bucket policy and notifications managed by you:**
+`quiltx bucket add` runs with your own AWS credentials in the Data Account.
+The Quilt control account never needs `s3:PutBucketNotification` permission —
+you configure notifications yourself, and `quiltx` merges them safely with any
+existing notification configuration.
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltSpecificRoleAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": [
-                    "arn:aws:iam::CONTROL-ACCOUNT-ID:role/QuiltLambdaRole",
-                    "arn:aws:iam::CONTROL-ACCOUNT-ID:role/QuiltIndexerRole"
-                ]
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:ListBucket",
-                "s3:PutObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ]
-        }
-    ]
-}
-```
+If your stack exposes a `RegistryRoleARN` output, `quiltx` automatically scopes
+the bucket policy principal to that specific role instead of the account root.
 
 ### Network Security
 
@@ -533,58 +429,13 @@ Monitor specific cross-account activities:
 
 ### Multi-Region Setup
 
-For multi-region deployments:
+For multi-region deployments, run `quiltx bucket add` for each bucket:
 
 <!-- pytest-codeblocks:skip -->
 ```bash
-# Replicate bucket policy across regions
-for region in us-east-1 us-west-2 eu-west-1; do
-    aws s3api put-bucket-policy \
-        --bucket "your-data-bucket-${region}" \
-        --policy file://bucket-policy.json \
-        --region $region \
-        --profile data-account
+for bucket in your-data-bucket-us-east-1 your-data-bucket-us-west-2 your-data-bucket-eu-west-1; do
+    quiltx bucket add "$bucket" --profile data-account
 done
-```
-
-### Automated Policy Management
-
-**CloudFormation Template for Bucket Policies:**
-
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Cross-account bucket policies for Quilt'
-
-Parameters:
-  ControlAccountId:
-    Type: String
-    Description: 'Control account ID where Quilt is deployed'
-  
-  DataBucketName:
-    Type: String
-    Description: 'Name of the data bucket'
-
-Resources:
-  CrossAccountBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref DataBucketName
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: QuiltCrossAccountAccess
-            Effect: Allow
-            Principal:
-              AWS: !Sub 'arn:aws:iam::${ControlAccountId}:root'
-            Action:
-              - 's3:GetObject'
-              - 's3:GetObjectAttributes'
-              - 's3:ListBucket'
-              - 's3:PutObject'
-              - 's3:DeleteObject'
-            Resource:
-              - !Sub 'arn:aws:s3:::${DataBucketName}'
-              - !Sub 'arn:aws:s3:::${DataBucketName}/*'
 ```
 
 ## 📚 Additional Resources
@@ -595,13 +446,13 @@ Resources:
 - **[CloudTrail Cross-Account](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-sharing-logs.html)** - CloudTrail log sharing
 
 ### Quilt-Specific Resources
+- **[quiltx](https://pypi.org/project/quiltx/)** - CLI tool for cross-account bucket setup
 - **[Quilt Admin API](api-reference/Admin.md)** - Programmatic bucket management
 - **[EventBridge Integration](EventBridge.md)** - Alternative event routing
 - **[Security Best Practices](advanced-features/good-practice.md)** - General Quilt security guidance
 
 ### Tools and Scripts
 - **[AWS CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/)** - S3 API commands
-- **[Policy Generator](https://awspolicygen.s3.amazonaws.com/policygen.html)** - AWS Policy Generator tool
 - **[IAM Policy Simulator](https://policysim.aws.amazon.com/)** - Test policies before applying
 
 ## 📞 Support
