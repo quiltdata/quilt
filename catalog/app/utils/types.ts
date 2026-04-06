@@ -25,11 +25,8 @@ export const decode = <T>(codec: IO.Type<T, any, any>) =>
     ),
   ) as (i: unknown) => T
 
-export interface NullableC<C extends IO.Mixed> extends IO.Type<
-  IO.TypeOf<C> | null,
-  IO.OutputOf<C> | null,
-  unknown
-> {}
+export interface NullableC<C extends IO.Mixed>
+  extends IO.Type<IO.TypeOf<C> | null, IO.OutputOf<C> | null, unknown> {}
 
 export type Nullable<T> = T | null
 

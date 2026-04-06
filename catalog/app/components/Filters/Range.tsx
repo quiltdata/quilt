@@ -24,10 +24,8 @@ function alignRange<Parsed>({ gte, lte }: Range<Parsed>): Range<Parsed> {
   return gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
 }
 
-export interface FormControlProps<Parsed extends NumberLike> extends Omit<
-  RangeField.Props<Parsed>,
-  'onChange' | 'value'
-> {
+export interface FormControlProps<Parsed extends NumberLike>
+  extends Omit<RangeField.Props<Parsed>, 'onChange' | 'value'> {
   parseNumber: SliderProps<Parsed>['parseNumber']
   formatLabel: SliderProps<Parsed>['formatLabel']
   onChange: (v: Range<Parsed>) => void

@@ -121,7 +121,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export interface PerspectiveProps
-  extends React.HTMLAttributes<HTMLDivElement>, PerspectiveOptions {
+  extends React.HTMLAttributes<HTMLDivElement>,
+    PerspectiveOptions {
   data: perspective.PerspectiveInput
   meta?: ParquetMetadata | H5adMetadata | PackageMetadata
   onLoadMore?: () => void
