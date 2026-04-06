@@ -76,11 +76,10 @@ const useDropdownMenuStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DropdownMenuProps
-  extends Omit<
-    M.MenuProps,
-    'anchorEl' | 'open' | 'onClose' | 'children' | 'MenuListProps'
-  > {
+interface DropdownMenuProps extends Omit<
+  M.MenuProps,
+  'anchorEl' | 'open' | 'onClose' | 'children' | 'MenuListProps'
+> {
   trigger: (
     open: React.EventHandler<React.SyntheticEvent<HTMLElement>>,
   ) => React.ReactNode
