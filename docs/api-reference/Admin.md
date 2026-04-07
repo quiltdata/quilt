@@ -152,13 +152,13 @@ __Arguments__
 # quilt3.admin.roles
 
 
-## get(id: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get}
+## get(id\_or\_name: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get}
 
-Get a specific role from the registry. Return `None` if the role does not exist.
+Get a role by ID or name. Return `None` if the role does not exist.
 
 __Arguments__
 
-* __id__:  Role ID to get.
+* __id_or_name__:  Role ID or name.
 
 
 ## get\_default() -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get\_default}
@@ -171,7 +171,7 @@ Get the default role from the registry. Return `None` if no default role is set.
 Get a list of all roles in the registry.
 
 
-## create\_managed(name: str, policies: List[str]) -> quilt3.admin.types.ManagedRole  {#create\_managed}
+## create\_managed(name: str, policies: List[str] = ()) -> quilt3.admin.types.ManagedRole  {#create\_managed}
 
 Create a managed role in the registry.
 
@@ -191,44 +191,66 @@ __Arguments__
 * __arn__:  Existing IAM role ARN.
 
 
-## update\_managed(id: str, name: str, policies: List[str]) -> quilt3.admin.types.ManagedRole  {#update\_managed}
+## update\_managed(id\_or\_name: str, \*, name: str, policies: List[str]) -> quilt3.admin.types.ManagedRole  {#update\_managed}
 
-Update a managed role in the registry.
+Update a managed role in the registry (full replacement).
 
 __Arguments__
 
-* __id__:  Role ID.
+* __id_or_name__:  Role ID or name.
 * __name__:  New role name.
 * __policies__:  Policy IDs to attach to the role.
 
 
-## update\_unmanaged(id: str, name: str, arn: str) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
+## update\_unmanaged(id\_or\_name: str, \*, name: str, arn: str) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
 
-Update an unmanaged role in the registry.
+Update an unmanaged role in the registry (full replacement).
 
 __Arguments__
 
-* __id__:  Role ID.
+* __id_or_name__:  Role ID or name.
 * __name__:  New role name.
 * __arn__:  Existing IAM role ARN.
 
 
-## delete(id: str) -> None  {#delete}
+## patch\_managed(id\_or\_name: str, \*, name: Optional[str] = None, policies: Optional[List[str]] = None) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
+
+Partially update a managed role — only specified fields are changed.
+
+__Arguments__
+
+* __id_or_name__:  Role ID or name.
+* __name__:  New role name (keeps current if not specified).
+* __policies__:  Policy IDs to attach (keeps current if not specified).
+
+
+## patch\_unmanaged(id\_or\_name: str, \*, name: Optional[str] = None, arn: Optional[str] = None) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
+
+Partially update an unmanaged role — only specified fields are changed.
+
+__Arguments__
+
+* __id_or_name__:  Role ID or name.
+* __name__:  New role name (keeps current if not specified).
+* __arn__:  New IAM role ARN (keeps current if not specified).
+
+
+## delete(id\_or\_name: str) -> None  {#delete}
 
 Delete a role from the registry.
 
 __Arguments__
 
-* __id__:  Role ID.
+* __id_or_name__:  Role ID or name.
 
 
-## set\_default(id: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]  {#set\_default}
+## set\_default(id\_or\_name: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]  {#set\_default}
 
 Set the default role in the registry.
 
 __Arguments__
 
-* __id__:  Role ID.
+* __id_or_name__:  Role ID or name.
 
 
 # quilt3.admin.users

@@ -12,17 +12,33 @@ def _parse_role(gql: _graphql_client.BaseModel) -> types.Role:
     return _role_adapter.validate_python(gql.model_dump())
 
 
-def get(id: str) -> T.Optional[types.Role]:
-    """
-    Get a specific role from the registry. Return `None` if the role does not exist.
-
-    Args:
-        id: Role ID to get.
-    """
+def _get_by_id(id: str) -> T.Optional[types.Role]:
     result = util.get_client().role_get(id=id)
     if result is None:
         return None
     return _parse_role(result)
+
+
+def _get_by_name(name: str) -> T.Optional[types.Role]:
+    return next((r for r in list() if r.name == name), None)
+
+
+def get(id_or_name: str) -> T.Optional[types.Role]:
+    """
+    Get a role by ID or name. Return `None` if the role does not exist.
+
+    Args:
+        id_or_name: Role ID or name.
+    """
+    return _get_by_id(id_or_name) or _get_by_name(id_or_name)
+
+
+def _resolve_role(id_or_name: str) -> types.Role:
+    """Resolve a role by ID or name, raising RoleNotFoundError if not found."""
+    result = get(id_or_name)
+    if result is not None:
+        return result
+    raise exceptions.RoleNotFoundError()
 
 
 def get_default() -> T.Optional[types.Role]:
@@ -42,7 +58,7 @@ def list() -> T.List[types.Role]:
     return [_parse_role(role) for role in util.get_client().roles_list()]
 
 
-def create_managed(name: str, policies: T.List[str]) -> types.ManagedRole:
+def create_managed(name: str, policies: T.List[str] = ()) -> types.ManagedRole:
     """
     Create a managed role in the registry.
 
@@ -68,46 +84,87 @@ def create_unmanaged(name: str, arn: str) -> types.UnmanagedRole:
     return _handle_role_mutation_result(result)
 
 
-def update_managed(id: str, name: str, policies: T.List[str]) -> types.ManagedRole:
+def update_managed(id_or_name: str, *, name: str, policies: T.List[str]) -> types.ManagedRole:
     """
-    Update a managed role in the registry.
+    Update a managed role in the registry (full replacement).
 
     Args:
-        id: Role ID.
+        id_or_name: Role ID or name.
         name: New role name.
         policies: Policy IDs to attach to the role.
     """
+    role = _resolve_role(id_or_name)
     result = util.get_client().role_update_managed(
-        id=id,
+        id=role.id,
         input=_graphql_client.ManagedRoleInput(name=name, policies=policies),
     )
     return _handle_role_mutation_result(result)
 
 
-def update_unmanaged(id: str, name: str, arn: str) -> types.UnmanagedRole:
+def update_unmanaged(id_or_name: str, *, name: str, arn: str) -> types.UnmanagedRole:
     """
-    Update an unmanaged role in the registry.
+    Update an unmanaged role in the registry (full replacement).
 
     Args:
-        id: Role ID.
+        id_or_name: Role ID or name.
         name: New role name.
         arn: Existing IAM role ARN.
     """
+    role = _resolve_role(id_or_name)
     result = util.get_client().role_update_unmanaged(
-        id=id,
+        id=role.id,
         input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn),
     )
     return _handle_role_mutation_result(result)
 
 
-def delete(id: str) -> None:
+def patch_managed(id_or_name: str, *, name: T.Optional[str] = None, policies: T.Optional[T.List[str]] = None) -> types.ManagedRole:
+    """
+    Partially update a managed role — only specified fields are changed.
+
+    Args:
+        id_or_name: Role ID or name.
+        name: New role name (keeps current if not specified).
+        policies: Policy IDs to attach (keeps current if not specified).
+    """
+    current = _resolve_role(id_or_name)
+    if not isinstance(current, types.ManagedRole):
+        raise exceptions.RoleTypeMismatchError(current)
+    return update_managed(
+        current.id,
+        name=name if name is not None else current.name,
+        policies=policies if policies is not None else [p.id for p in current.policies],
+    )
+
+
+def patch_unmanaged(id_or_name: str, *, name: T.Optional[str] = None, arn: T.Optional[str] = None) -> types.UnmanagedRole:
+    """
+    Partially update an unmanaged role — only specified fields are changed.
+
+    Args:
+        id_or_name: Role ID or name.
+        name: New role name (keeps current if not specified).
+        arn: New IAM role ARN (keeps current if not specified).
+    """
+    current = _resolve_role(id_or_name)
+    if not isinstance(current, types.UnmanagedRole):
+        raise exceptions.RoleTypeMismatchError(current)
+    return update_unmanaged(
+        current.id,
+        name=name if name is not None else current.name,
+        arn=arn if arn is not None else current.arn,
+    )
+
+
+def delete(id_or_name: str) -> None:
     """
     Delete a role from the registry.
 
     Args:
-        id: Role ID.
+        id_or_name: Role ID or name.
     """
-    result = util.get_client().role_delete(id=id)
+    role = _resolve_role(id_or_name)
+    result = util.get_client().role_delete(id=role.id)
     typename = result.typename__
     if typename == "RoleDeleteSuccess":
         return None
@@ -122,14 +179,15 @@ def delete(id: str) -> None:
     raise exceptions.Quilt3AdminError(result)
 
 
-def set_default(id: str) -> types.Role:
+def set_default(id_or_name: str) -> types.Role:
     """
     Set the default role in the registry.
 
     Args:
-        id: Role ID.
+        id_or_name: Role ID or name.
     """
-    result = util.get_client().role_set_default(id=id)
+    role = _resolve_role(id_or_name)
+    result = util.get_client().role_set_default(id=role.id)
     typename = result.typename__
     if typename == "RoleSetDefaultSuccess":
         return _parse_role(result.role)

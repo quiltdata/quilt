@@ -18,6 +18,14 @@ class Permission:
     def _extract_bucket_name(cls, v):
         return v["name"] if isinstance(v, dict) else v
 
+    @classmethod
+    def read(cls, bucket: str) -> "Permission":
+        return cls(bucket=bucket, level=BucketPermissionLevel.READ)
+
+    @classmethod
+    def read_write(cls, bucket: str) -> "Permission":
+        return cls(bucket=bucket, level=BucketPermissionLevel.READ_WRITE)
+
 
 @pydantic.dataclasses.dataclass
 class PolicySummary:
