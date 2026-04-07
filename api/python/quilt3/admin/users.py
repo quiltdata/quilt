@@ -14,14 +14,14 @@ def get(name: str) -> T.Optional[types.User]:
     result = util.get_client().users_get(name=name)
     if result is None:
         return None
-    return util.parse_user_result(result)
+    return types.User.from_gql(result)
 
 
 def list() -> T.List[types.User]:
     """
     Get a list of all users in the registry.
     """
-    return [util.parse_user_result(u) for u in util.get_client().users_list()]
+    return [types.User.from_gql(u) for u in util.get_client().users_list()]
 
 
 def create(name: str, email: str, role: str, extra_roles: T.Optional[T.List[str]] = None) -> types.User:

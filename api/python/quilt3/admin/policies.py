@@ -14,14 +14,14 @@ def get(id: str) -> T.Optional[types.Policy]:
     result = util.get_client().policy_get(id=id)
     if result is None:
         return None
-    return util.parse_policy_result(result)
+    return types.Policy.from_gql(result)
 
 
 def list() -> T.List[types.Policy]:
     """
     Get a list of all policies in the registry.
     """
-    return [util.parse_policy_result(policy) for policy in util.get_client().policies_list()]
+    return [types.Policy.from_gql(policy) for policy in util.get_client().policies_list()]
 
 
 def create_managed(title: str, permissions: T.List[types.Permission], roles: T.List[str]) -> types.Policy:
@@ -121,7 +121,7 @@ def _permission_to_input(permission: types.Permission) -> _graphql_client.Permis
 def _handle_policy_result(result) -> types.Policy:
     typename = result.typename__
     if typename == "Policy":
-        return util.parse_policy_result(result)
+        return types.Policy.from_gql(result)
     if typename == "InvalidInput":
         util.raise_invalid_input(result)
     if typename == "OperationError":

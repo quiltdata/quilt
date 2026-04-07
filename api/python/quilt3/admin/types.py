@@ -50,7 +50,6 @@ class UnmanagedRole:
 
 Role = T.Union[ManagedRole, UnmanagedRole]
 AnnotatedRole = T.Annotated[Role, pydantic.Field(discriminator="typename__")]
-role_adapter = pydantic.TypeAdapter(AnnotatedRole)
 
 
 @pydantic.dataclasses.dataclass
@@ -61,6 +60,10 @@ class Policy:
     managed: bool
     permissions: list[Permission]
     roles: list[AnnotatedRole]
+
+    @classmethod
+    def from_gql(cls, gql: _graphql_client.BaseModel) -> "Policy":
+        return cls(**gql.model_dump())
 
 
 @pydantic.dataclasses.dataclass
@@ -76,12 +79,20 @@ class User:
     role: T.Optional[AnnotatedRole]
     extra_roles: list[AnnotatedRole]
 
+    @classmethod
+    def from_gql(cls, gql: _graphql_client.BaseModel) -> "User":
+        return cls(**gql.model_dump())
+
 
 @pydantic.dataclasses.dataclass
 class SSOConfig:
     text: str
     timestamp: datetime
     uploader: User
+
+    @classmethod
+    def from_gql(cls, gql: _graphql_client.BaseModel) -> "SSOConfig":
+        return cls(**gql.model_dump())
 
 
 @pydantic.dataclasses.dataclass
