@@ -25,6 +25,7 @@ export interface ConfigJson {
   registryUrl: string
   s3Proxy: string
 
+  hubspotId?: string
   intercomAppId?: string
   mixpanelToken: string
   sentryDSN?: string
