@@ -58,6 +58,11 @@ class UnmanagedRole:
 
 Role = T.Union[ManagedRole, UnmanagedRole]
 AnnotatedRole = T.Annotated[Role, pydantic.Field(discriminator="typename__")]
+_role_adapter = pydantic.TypeAdapter(AnnotatedRole)
+
+
+def _parse_role(gql: _graphql_client.BaseModel) -> Role:
+    return _role_adapter.validate_python(gql.model_dump())
 
 
 @pydantic.dataclasses.dataclass

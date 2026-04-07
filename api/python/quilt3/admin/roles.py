@@ -1,22 +1,14 @@
 import typing as T
 
-import pydantic
-
 from .. import _graphql_client
 from . import exceptions, types, util
-
-_role_adapter = pydantic.TypeAdapter(types.AnnotatedRole)
-
-
-def _parse_role(gql: _graphql_client.BaseModel) -> types.Role:
-    return _role_adapter.validate_python(gql.model_dump())
 
 
 def _get_by_id(id: str) -> T.Optional[types.Role]:
     result = util.get_client().role_get(id=id)
     if result is None:
         return None
-    return _parse_role(result)
+    return types._parse_role(result)
 
 
 def _get_by_name(name: str) -> T.Optional[types.Role]:
@@ -48,14 +40,14 @@ def get_default() -> T.Optional[types.Role]:
     result = util.get_client().default_role_get()
     if result is None:
         return None
-    return _parse_role(result)
+    return types._parse_role(result)
 
 
 def list() -> T.List[types.Role]:
     """
     Get a list of all roles in the registry.
     """
-    return [_parse_role(role) for role in util.get_client().roles_list()]
+    return [types._parse_role(role) for role in util.get_client().roles_list()]
 
 
 def create_managed(name: str, policies: T.List[str] = ()) -> types.ManagedRole:
@@ -200,7 +192,7 @@ def set_default(id_or_name: str) -> types.Role:
     result = util.get_client().role_set_default(id=role.id)
     typename = result.typename__
     if typename == "RoleSetDefaultSuccess":
-        return _parse_role(result.role)
+        return types._parse_role(result.role)
     if typename == "RoleDoesNotExist":
         raise exceptions.RoleNotFoundError()
     if typename == "SsoConfigConflict":
@@ -211,7 +203,7 @@ def set_default(id_or_name: str) -> types.Role:
 def _handle_role_mutation_result(result):
     typename = result.typename__
     if typename in {"RoleCreateSuccess", "RoleUpdateSuccess"}:
-        return _parse_role(result.role)
+        return types._parse_role(result.role)
     if typename == "RoleDoesNotExist":
         raise exceptions.RoleNotFoundError()
     if typename == "RoleNameReserved":
