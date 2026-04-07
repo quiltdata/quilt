@@ -16,7 +16,7 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
-## unreleased - 2026-04-07
+## unreleased - YYYY-MM-DD
 
 ### Python API
 
