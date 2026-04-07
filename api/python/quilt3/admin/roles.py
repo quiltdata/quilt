@@ -135,10 +135,7 @@ def set_default(id: str) -> types.Role:
 def _handle_role_mutation_result(result):
     typename = result.typename__
     if typename in {"RoleCreateSuccess", "RoleUpdateSuccess"}:
-        role = util.parse_role_result(result.role)
-        if not isinstance(role, (types.ManagedRole, types.UnmanagedRole)):
-            raise exceptions.Quilt3AdminError(result)
-        return role
+        return util.parse_role_result(result.role)
     if typename == "RoleDoesNotExist":
         raise exceptions.RoleNotFoundError()
     if typename == "RoleNameReserved":

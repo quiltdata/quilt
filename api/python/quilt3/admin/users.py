@@ -51,7 +51,7 @@ def delete(name: str) -> None:
     """
     result = util.get_client().users_delete(name=name)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     util.handle_errors(result.delete)
 
 
@@ -65,7 +65,7 @@ def set_email(name: str, email: str) -> types.User:
     """
     result = util.get_client().users_set_email(name=name, email=email)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     return util.handle_user_mutation(result.set_email)
 
 
@@ -79,7 +79,7 @@ def set_admin(name: str, admin: bool) -> types.User:
     """
     result = util.get_client().users_set_admin(name=name, admin=admin)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     return util.handle_user_mutation(result.set_admin)
 
 
@@ -93,7 +93,7 @@ def set_active(name: str, active: bool) -> types.User:
     """
     result = util.get_client().users_set_active(name=name, active=active)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     return util.handle_user_mutation(result.set_active)
 
 
@@ -106,7 +106,7 @@ def reset_password(name: str) -> None:
     """
     result = util.get_client().users_reset_password(name=name)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     util.handle_errors(result.reset_password)
 
 
@@ -128,7 +128,7 @@ def set_role(
     """
     result = util.get_client().users_set_role(name=name, role=role, extra_roles=extra_roles, append=append)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     return util.handle_user_mutation(result.set_role)
 
 
@@ -142,7 +142,7 @@ def add_roles(name: str, roles: T.List[str]) -> types.User:
     """
     result = util.get_client().users_add_roles(name=name, roles=roles)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     return util.handle_user_mutation(result.add_roles)
 
 
@@ -161,5 +161,5 @@ def remove_roles(
     """
     result = util.get_client().users_remove_roles(name=name, roles=roles, fallback=fallback)
     if result is None:
-        raise exceptions.UserNotFoundError
+        raise exceptions.UserNotFoundError()
     return util.handle_user_mutation(result.remove_roles)

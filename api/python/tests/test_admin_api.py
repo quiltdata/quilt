@@ -809,13 +809,13 @@ def test_set_role(data, result):
             else _make_nested_dict("admin.user.mutate.setRole", data)
         ),
         "usersSetRole",
-        variables={"name": "test", "role": "UnamangedRole", "extraRoles": [], "append": True},
+        variables={"name": "test", "role": "UnmanagedRole", "extraRoles": [], "append": True},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.users.set_role("test", "UnamangedRole", [], append=True)
+                admin.users.set_role("test", "UnmanagedRole", [], append=True)
         else:
-            assert admin.users.set_role("test", "UnamangedRole", [], append=True) == result
+            assert admin.users.set_role("test", "UnmanagedRole", [], append=True) == result
 
 
 @pytest.mark.parametrize(
@@ -857,13 +857,13 @@ def test_remove_roles(data, result):
             else _make_nested_dict("admin.user.mutate.removeRoles", data)
         ),
         "usersRemoveRoles",
-        variables={"name": "test", "roles": ["ManagedRole"], "fallback": "UnamanagedRole"},
+        variables={"name": "test", "roles": ["ManagedRole"], "fallback": "UnmanagedRole"},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
+                admin.users.remove_roles("test", ["ManagedRole"], fallback="UnmanagedRole")
         else:
-            assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result
+            assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnmanagedRole") == result
 
 
 @pytest.mark.parametrize(
