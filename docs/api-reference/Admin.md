@@ -14,7 +14,7 @@ Policy without back-references to roles (avoids circular nesting).
 ## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
 
 
-## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#Policy}
+## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[quilt3.admin.types.ManagedRole]) -> None  {#Policy}
 
 
 ## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}

@@ -186,7 +186,7 @@ def delete(id_or_title: str) -> None:
         util.raise_invalid_input(result)
     if typename == "OperationError":
         util.raise_operation_error(result)
-    raise AssertionError(f"Unexpected result: {typename}")
+    assert False, f"Unexpected policy delete result: {typename}"
 
 
 def _permission_to_input(permission: types.Permission) -> _graphql_client.PermissionInput:
@@ -201,4 +201,4 @@ def _handle_policy_result(result) -> types.Policy:
         util.raise_invalid_input(result)
     if typename == "OperationError":
         util.raise_operation_error(result)
-    raise AssertionError(f"Unexpected result: {typename}")
+    assert False, f"Unexpected policy result: {typename}"

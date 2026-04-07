@@ -67,7 +67,7 @@ class Policy:
     arn: str
     managed: bool
     permissions: list[Permission]
-    roles: list[AnnotatedRole]
+    roles: list[ManagedRole]
 
     @classmethod
     def from_gql(cls, gql: _graphql_client.BaseModel) -> "Policy":

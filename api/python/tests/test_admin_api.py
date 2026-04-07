@@ -313,9 +313,16 @@ def test_get_default_role(data, result):
         assert admin.roles.get_default() == result
 
 
-def test_get_role_by_id():
-    with mock_client({"role": MANAGED_ROLE}, "roleGet", variables={"id": MANAGED_ROLE["id"]}):
-        assert admin.roles.get(MANAGED_ROLE["id"]) == EXPECTED_MANAGED_ROLE
+@pytest.mark.parametrize(
+    "role_data,expected",
+    [
+        (MANAGED_ROLE, EXPECTED_MANAGED_ROLE),
+        (UNMANAGED_ROLE, EXPECTED_UNMANAGED_ROLE),
+    ],
+)
+def test_get_role_by_id(role_data, expected):
+    with mock_client({"role": role_data}, "roleGet", variables={"id": role_data["id"]}):
+        assert admin.roles.get(role_data["id"]) == expected
 
 
 def test_get_role_by_name():
