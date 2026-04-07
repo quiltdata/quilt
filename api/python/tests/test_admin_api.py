@@ -287,6 +287,7 @@ def test_get_roles():
     "data,result",
     [
         (MANAGED_ROLE, EXPECTED_MANAGED_ROLE),
+        (UNMANAGED_ROLE, EXPECTED_UNMANAGED_ROLE),
         (None, None),
     ],
 )
