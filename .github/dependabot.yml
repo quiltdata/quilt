@@ -9,3 +9,20 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "security(actions)"
+    labels:
+      - "dependencies"
+      - "security"
+
+  - package-ecosystem: "pip"
+    directory: "/lambdas/manifest_indexer"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "security(pip)"
+    labels:
+      - "dependencies"
+      - "security"

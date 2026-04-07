@@ -16,6 +16,10 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased
+
+* [Changed] Dependabot: only allow security update PRs, prefix titles with `security(...)` for clarity
+
 ## 7.2.0 - 2026-01-28
 
 ### Python API
