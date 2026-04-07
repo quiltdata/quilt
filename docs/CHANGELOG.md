@@ -16,12 +16,13 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
-## unreleased - 2026-03-24
+## unreleased - 2026-04-07
 
 ### Python API
 
-* [Added] `quilt3.admin.roles` create/update/delete/get/set-default helpers and new `quilt3.admin.policies` helpers for listing, creating, updating, and deleting registry roles and policies
-* [Added] `quilt3.admin` policy and bucket-permission public types plus role/policy-specific admin exceptions
+* [Added] Admin role and policy management APIs: `quilt3.admin.roles` (list/get/get-default/create/update/delete/set-default) and `quilt3.admin.policies` (list/get/create/update/delete) ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin.ManagedRole` now exposes `policies` and `permissions` fields ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin` now exports `Policy`, `PolicySummary`, `Permission`, `BucketPermissionLevel` types and `RoleAssignedError`, `RoleSsoConfigConflictError`, `RoleTypeMismatchError` exceptions ([#4805](https://github.com/quiltdata/quilt/pull/4805))
 
 ## 7.2.0 - 2026-01-28
 
