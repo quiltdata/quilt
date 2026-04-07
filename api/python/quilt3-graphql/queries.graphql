@@ -1,12 +1,35 @@
 fragment UnmanagedRoleSelection on UnmanagedRole {
+  __typename
   id
   name
   arn
 }
+fragment PolicySummarySelection on Policy {
+  id
+  title
+  arn
+  managed
+  permissions {
+    ...PermissionSelection
+  }
+}
+fragment RoleBucketPermissionSelection on RoleBucketPermission {
+  bucket {
+    name
+  }
+  level
+}
 fragment ManagedRoleSelection on ManagedRole {
+  __typename
   id
   name
   arn
+  policies {
+    ...PolicySummarySelection
+  }
+  permissions {
+    ...RoleBucketPermissionSelection
+  }
 }
 fragment RoleSelection on Role {
   __typename
@@ -47,6 +70,24 @@ fragment OperationErrorSelection on OperationError {
   name
   context
 }
+fragment PermissionSelection on PolicyBucketPermission {
+  bucket {
+    name
+  }
+  level
+}
+fragment PolicySelection on Policy {
+  id
+  title
+  arn
+  managed
+  permissions {
+    ...PermissionSelection
+  }
+  roles {
+    ...ManagedRoleSelection
+  }
+}
 fragment APIKeySelection on APIKey {
   id
   name
@@ -68,6 +109,135 @@ fragment SsoConfigSelection on SsoConfig {
 query rolesList {
   roles {
     ...RoleSelection
+  }
+}
+
+query roleGet($id: ID!) {
+  role(id: $id) {
+    ...RoleSelection
+  }
+}
+
+query policiesList {
+  policies {
+    ...PolicySelection
+  }
+}
+
+query policyGet($id: ID!) {
+  policy(id: $id) {
+    ...PolicySelection
+  }
+}
+
+query defaultRoleGet {
+  defaultRole {
+    ...RoleSelection
+  }
+}
+
+mutation roleCreateManaged($input: ManagedRoleInput!) {
+  roleCreateManaged(input: $input) {
+    __typename
+    ... on RoleCreateSuccess {
+      role {
+        ...RoleSelection
+      }
+    }
+  }
+}
+
+mutation roleCreateUnmanaged($input: UnmanagedRoleInput!) {
+  roleCreateUnmanaged(input: $input) {
+    __typename
+    ... on RoleCreateSuccess {
+      role {
+        ...RoleSelection
+      }
+    }
+  }
+}
+
+mutation roleUpdateManaged($id: ID!, $input: ManagedRoleInput!) {
+  roleUpdateManaged(id: $id, input: $input) {
+    __typename
+    ... on RoleUpdateSuccess {
+      role {
+        ...RoleSelection
+      }
+    }
+  }
+}
+
+mutation roleUpdateUnmanaged($id: ID!, $input: UnmanagedRoleInput!) {
+  roleUpdateUnmanaged(id: $id, input: $input) {
+    __typename
+    ... on RoleUpdateSuccess {
+      role {
+        ...RoleSelection
+      }
+    }
+  }
+}
+
+mutation roleDelete($id: ID!) {
+  roleDelete(id: $id) {
+    __typename
+  }
+}
+
+mutation roleSetDefault($id: ID!) {
+  roleSetDefault(id: $id) {
+    __typename
+    ... on RoleSetDefaultSuccess {
+      role {
+        ...RoleSelection
+      }
+    }
+  }
+}
+
+mutation policyCreateManaged($input: ManagedPolicyInput!) {
+  policyCreateManaged(input: $input) {
+    __typename
+    ...PolicySelection
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}
+
+mutation policyCreateUnmanaged($input: UnmanagedPolicyInput!) {
+  policyCreateUnmanaged(input: $input) {
+    __typename
+    ...PolicySelection
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}
+
+mutation policyUpdateManaged($id: ID!, $input: ManagedPolicyInput!) {
+  policyUpdateManaged(id: $id, input: $input) {
+    __typename
+    ...PolicySelection
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}
+
+mutation policyUpdateUnmanaged($id: ID!, $input: UnmanagedPolicyInput!) {
+  policyUpdateUnmanaged(id: $id, input: $input) {
+    __typename
+    ...PolicySelection
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}
+
+mutation policyDelete($id: ID!) {
+  policyDelete(id: $id) {
+    __typename
+    ...InvalidInputSelection
+    ...OperationErrorSelection
   }
 }
 

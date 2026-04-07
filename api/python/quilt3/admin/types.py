@@ -1,7 +1,41 @@
+import typing as T
 from datetime import datetime
-from typing import Annotated, List, Literal, Optional, Union
 
 import pydantic
+
+from .. import _graphql_client
+
+BucketPermissionLevel = _graphql_client.BucketPermissionLevel
+
+
+@pydantic.dataclasses.dataclass
+class Permission:
+    bucket: str
+    level: BucketPermissionLevel
+
+    @pydantic.field_validator("bucket", mode="before")
+    @classmethod
+    def _extract_bucket_name(cls, v):
+        return v["name"] if isinstance(v, dict) else v
+
+    @classmethod
+    def read(cls, bucket: str) -> "Permission":
+        return cls(bucket=bucket, level=BucketPermissionLevel.READ)
+
+    @classmethod
+    def read_write(cls, bucket: str) -> "Permission":
+        return cls(bucket=bucket, level=BucketPermissionLevel.READ_WRITE)
+
+
+@pydantic.dataclasses.dataclass
+class PolicySummary:
+    """Policy without back-references to roles (avoids circular nesting)."""
+
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: list[Permission]
 
 
 @pydantic.dataclasses.dataclass
@@ -9,7 +43,9 @@ class ManagedRole:
     id: str
     name: str
     arn: str
-    typename__: Literal["ManagedRole"]
+    policies: list[PolicySummary]
+    permissions: list[Permission]
+    typename__: T.Literal["ManagedRole"]
 
 
 @pydantic.dataclasses.dataclass
@@ -17,12 +53,30 @@ class UnmanagedRole:
     id: str
     name: str
     arn: str
-    typename__: Literal["UnmanagedRole"]
+    typename__: T.Literal["UnmanagedRole"]
 
 
-Role = Union[ManagedRole, UnmanagedRole]
-AnnotatedRole = Annotated[Role, pydantic.Field(discriminator="typename__")]
-role_adapter = pydantic.TypeAdapter(AnnotatedRole)
+Role = T.Union[ManagedRole, UnmanagedRole]
+AnnotatedRole = T.Annotated[Role, pydantic.Field(discriminator="typename__")]
+_role_adapter = pydantic.TypeAdapter(AnnotatedRole)
+
+
+def _parse_role(gql: _graphql_client.BaseModel) -> Role:
+    return _role_adapter.validate_python(gql.model_dump())
+
+
+@pydantic.dataclasses.dataclass
+class Policy:
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: list[Permission]
+    roles: list[ManagedRole]
+
+    @classmethod
+    def from_gql(cls, gql: _graphql_client.BaseModel) -> "Policy":
+        return cls(**gql.model_dump())
 
 
 @pydantic.dataclasses.dataclass
@@ -35,8 +89,12 @@ class User:
     is_admin: bool
     is_sso_only: bool
     is_service: bool
-    role: Optional[AnnotatedRole]
-    extra_roles: List[AnnotatedRole]
+    role: T.Optional[AnnotatedRole]
+    extra_roles: list[AnnotatedRole]
+
+    @classmethod
+    def from_gql(cls, gql: _graphql_client.BaseModel) -> "User":
+        return cls(**gql.model_dump())
 
 
 @pydantic.dataclasses.dataclass
@@ -44,6 +102,10 @@ class SSOConfig:
     text: str
     timestamp: datetime
     uploader: User
+
+    @classmethod
+    def from_gql(cls, gql: _graphql_client.BaseModel) -> "SSOConfig":
+        return cls(**gql.model_dump())
 
 
 @pydantic.dataclasses.dataclass
@@ -56,15 +118,15 @@ class TabulatorTable:
 class Bucket:
     name: str
     title: str
-    icon_url: Optional[str]
-    description: Optional[str]
-    overview_url: Optional[str]
-    tags: Optional[List[str]]
+    icon_url: T.Optional[str]
+    description: T.Optional[str]
+    overview_url: T.Optional[str]
+    tags: T.Optional[list[str]]
     relevance_score: int
-    last_indexed: Optional[datetime]
-    sns_notification_arn: Optional[str]
-    scanner_parallel_shards_depth: Optional[int]
-    skip_meta_data_indexing: Optional[bool]
-    file_extensions_to_index: Optional[List[str]]
-    index_content_bytes: Optional[int]
-    prefixes: List[str]
+    last_indexed: T.Optional[datetime]
+    sns_notification_arn: T.Optional[str]
+    scanner_parallel_shards_depth: T.Optional[int]
+    skip_meta_data_indexing: T.Optional[bool]
+    file_extensions_to_index: T.Optional[list[str]]
+    index_content_bytes: T.Optional[int]
+    prefixes: list[str]
