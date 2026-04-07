@@ -5,7 +5,6 @@ import pydantic
 
 from .. import _graphql_client
 
-
 BucketPermissionLevel = _graphql_client.BucketPermissionLevel
 
 
