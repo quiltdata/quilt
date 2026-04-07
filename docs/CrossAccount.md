@@ -103,17 +103,20 @@ notifications, Lambda triggers, and bucket policies are preserved.
 <!-- pytest-codeblocks:skip -->
 ```bash
 # Using uvx (recommended, no install required)
-uvx quiltx bucket add your-data-bucket --profile data-account --dry-run
-
-# Or install with pip
-pip install quiltx
+# Or install with pip: pip install quiltx
 ```
+
+> `quiltx` discovers your Quilt catalog from the local `quilt3` configuration
+> (set via `quilt3.config('https://your-quilt-catalog.example.com')`).
+> It automatically detects your CloudFormation stack on first use.
 
 **Preview changes with `--dry-run`:**
 
 <!-- pytest-codeblocks:skip -->
 ```bash
 # Review planned bucket policy, SNS topic, and notification changes
+uvx quiltx bucket add your-data-bucket --profile data-account --dry-run
+# or, if installed via pip:
 quiltx bucket add your-data-bucket --profile data-account --dry-run
 ```
 
@@ -125,6 +128,8 @@ configuration that will be applied — review them before proceeding.
 <!-- pytest-codeblocks:skip -->
 ```bash
 # Configure bucket policy, SNS topic, notifications, and register in Quilt
+uvx quiltx bucket add your-data-bucket --profile data-account
+# or, if installed via pip:
 quiltx bucket add your-data-bucket --profile data-account
 ```
 
