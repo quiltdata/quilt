@@ -118,7 +118,9 @@ def update_unmanaged(id_or_name: str, *, name: str, arn: str) -> types.Unmanaged
     return _handle_role_mutation_result(result)
 
 
-def patch_managed(id_or_name: str, *, name: T.Optional[str] = None, policies: T.Optional[T.List[str]] = None) -> types.ManagedRole:
+def patch_managed(
+    id_or_name: str, *, name: T.Optional[str] = None, policies: T.Optional[T.List[str]] = None
+) -> types.ManagedRole:
     """
     Partially update a managed role — only specified fields are changed.
 
@@ -130,14 +132,19 @@ def patch_managed(id_or_name: str, *, name: T.Optional[str] = None, policies: T.
     current = _resolve_role(id_or_name)
     if not isinstance(current, types.ManagedRole):
         raise exceptions.RoleTypeMismatchError(current)
-    return update_managed(
-        current.id,
-        name=name if name is not None else current.name,
-        policies=policies if policies is not None else [p.id for p in current.policies],
+    result = util.get_client().role_update_managed(
+        id=current.id,
+        input=_graphql_client.ManagedRoleInput(
+            name=name if name is not None else current.name,
+            policies=policies if policies is not None else [p.id for p in current.policies],
+        ),
     )
+    return _handle_role_mutation_result(result)
 
 
-def patch_unmanaged(id_or_name: str, *, name: T.Optional[str] = None, arn: T.Optional[str] = None) -> types.UnmanagedRole:
+def patch_unmanaged(
+    id_or_name: str, *, name: T.Optional[str] = None, arn: T.Optional[str] = None
+) -> types.UnmanagedRole:
     """
     Partially update an unmanaged role — only specified fields are changed.
 
@@ -149,11 +156,14 @@ def patch_unmanaged(id_or_name: str, *, name: T.Optional[str] = None, arn: T.Opt
     current = _resolve_role(id_or_name)
     if not isinstance(current, types.UnmanagedRole):
         raise exceptions.RoleTypeMismatchError(current)
-    return update_unmanaged(
-        current.id,
-        name=name if name is not None else current.name,
-        arn=arn if arn is not None else current.arn,
+    result = util.get_client().role_update_unmanaged(
+        id=current.id,
+        input=_graphql_client.UnmanagedRoleInput(
+            name=name if name is not None else current.name,
+            arn=arn if arn is not None else current.arn,
+        ),
     )
+    return _handle_role_mutation_result(result)
 
 
 def delete(id_or_name: str) -> None:

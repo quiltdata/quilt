@@ -40,9 +40,7 @@ def list() -> T.List[types.Policy]:
     return [types.Policy.from_gql(policy) for policy in util.get_client().policies_list()]
 
 
-def create_managed(
-    title: str, *, permissions: T.List[types.Permission], roles: T.List[str] = ()
-) -> types.Policy:
+def create_managed(title: str, *, permissions: T.List[types.Permission], roles: T.List[str] = ()) -> types.Policy:
     """
     Create a managed policy in the registry.
 
@@ -100,9 +98,7 @@ def update_managed(
     return _handle_policy_result(result)
 
 
-def update_unmanaged(
-    id_or_title: str, *, title: str, arn: str, roles: T.List[str]
-) -> types.Policy:
+def update_unmanaged(id_or_title: str, *, title: str, arn: str, roles: T.List[str]) -> types.Policy:
     """
     Update an unmanaged policy in the registry (full replacement).
 
@@ -137,12 +133,19 @@ def patch_managed(
         roles: Role IDs to attach (keeps current if not specified).
     """
     current = _resolve_policy(id_or_title)
-    return update_managed(
-        current.id,
-        title=title if title is not None else current.title,
-        permissions=permissions if permissions is not None else current.permissions,
-        roles=roles if roles is not None else [r.id for r in current.roles],
+    if not current.managed:
+        raise exceptions.Quilt3AdminError("Cannot patch_managed on an unmanaged policy")
+    result = util.get_client().policy_update_managed(
+        id=current.id,
+        input=_graphql_client.ManagedPolicyInput(
+            title=title if title is not None else current.title,
+            permissions=[
+                _permission_to_input(p) for p in (permissions if permissions is not None else current.permissions)
+            ],
+            roles=roles if roles is not None else [r.id for r in current.roles],
+        ),
     )
+    return _handle_policy_result(result)
 
 
 def patch_unmanaged(
@@ -162,12 +165,17 @@ def patch_unmanaged(
         roles: Role IDs to attach (keeps current if not specified).
     """
     current = _resolve_policy(id_or_title)
-    return update_unmanaged(
-        current.id,
-        title=title if title is not None else current.title,
-        arn=arn if arn is not None else current.arn,
-        roles=roles if roles is not None else [r.id for r in current.roles],
+    if current.managed:
+        raise exceptions.Quilt3AdminError("Cannot patch_unmanaged on a managed policy")
+    result = util.get_client().policy_update_unmanaged(
+        id=current.id,
+        input=_graphql_client.UnmanagedPolicyInput(
+            title=title if title is not None else current.title,
+            arn=arn if arn is not None else current.arn,
+            roles=roles if roles is not None else [r.id for r in current.roles],
+        ),
     )
+    return _handle_policy_result(result)
 
 
 def delete(id_or_title: str) -> None:
