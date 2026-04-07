@@ -49,19 +49,6 @@ class InvalidInputSelectionErrors(BaseModel):
     context: Optional[Any]
 
 
-class ManagedRoleSelection(BaseModel):
-    typename__: str = Field(alias="__typename")
-    id: str
-    name: str
-    arn: str
-
-
-class OperationErrorSelection(BaseModel):
-    message: str
-    name: str
-    context: Optional[Any]
-
-
 class PermissionSelection(BaseModel):
     bucket: "PermissionSelectionBucket"
     level: BucketPermissionLevel
@@ -69,6 +56,50 @@ class PermissionSelection(BaseModel):
 
 class PermissionSelectionBucket(BaseModel):
     name: str
+
+
+class PolicySummarySelection(BaseModel):
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: List["PolicySummarySelectionPermissions"]
+
+
+class PolicySummarySelectionPermissions(PermissionSelection):
+    pass
+
+
+class RoleBucketPermissionSelection(BaseModel):
+    bucket: "RoleBucketPermissionSelectionBucket"
+    level: BucketPermissionLevel
+
+
+class RoleBucketPermissionSelectionBucket(BaseModel):
+    name: str
+
+
+class ManagedRoleSelection(BaseModel):
+    typename__: str = Field(alias="__typename")
+    id: str
+    name: str
+    arn: str
+    policies: List["ManagedRoleSelectionPolicies"]
+    permissions: List["ManagedRoleSelectionPermissions"]
+
+
+class ManagedRoleSelectionPolicies(PolicySummarySelection):
+    pass
+
+
+class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
+    pass
+
+
+class OperationErrorSelection(BaseModel):
+    message: str
+    name: str
+    context: Optional[Any]
 
 
 class PolicySelection(BaseModel):
@@ -150,9 +181,11 @@ class SsoConfigSelectionUploader(UserSelection):
 APIKeySelection.model_rebuild()
 BucketConfigSelection.model_rebuild()
 InvalidInputSelection.model_rebuild()
+PermissionSelection.model_rebuild()
+PolicySummarySelection.model_rebuild()
+RoleBucketPermissionSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
-PermissionSelection.model_rebuild()
 PolicySelection.model_rebuild()
 UnmanagedRoleSelection.model_rebuild()
 UserSelection.model_rebuild()

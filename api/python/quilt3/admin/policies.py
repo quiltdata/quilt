@@ -1,10 +1,10 @@
-from typing import List, Optional
+import typing as T
 
 from .. import _graphql_client
 from . import types, util
 
 
-def get(id: str) -> Optional[types.Policy]:
+def get(id: str) -> T.Optional[types.Policy]:
     """
     Get a specific policy from the registry. Return `None` if the policy does not exist.
 
@@ -17,14 +17,14 @@ def get(id: str) -> Optional[types.Policy]:
     return util.parse_policy_result(result)
 
 
-def list() -> List[types.Policy]:
+def list() -> T.List[types.Policy]:
     """
     Get a list of all policies in the registry.
     """
     return [util.parse_policy_result(policy) for policy in util.get_client().policies_list()]
 
 
-def create_managed(title: str, permissions: List[types.Permission], roles: List[str]) -> types.Policy:
+def create_managed(title: str, permissions: T.List[types.Permission], roles: T.List[str]) -> types.Policy:
     """
     Create a managed policy in the registry.
 
@@ -43,7 +43,7 @@ def create_managed(title: str, permissions: List[types.Permission], roles: List[
     return _handle_policy_result(result)
 
 
-def create_unmanaged(title: str, arn: str, roles: List[str]) -> types.Policy:
+def create_unmanaged(title: str, arn: str, roles: T.List[str]) -> types.Policy:
     """
     Create an unmanaged policy in the registry.
 
@@ -58,7 +58,7 @@ def create_unmanaged(title: str, arn: str, roles: List[str]) -> types.Policy:
     return _handle_policy_result(result)
 
 
-def update_managed(id: str, title: str, permissions: List[types.Permission], roles: List[str]) -> types.Policy:
+def update_managed(id: str, title: str, permissions: T.List[types.Permission], roles: T.List[str]) -> types.Policy:
     """
     Update a managed policy in the registry.
 
@@ -79,7 +79,7 @@ def update_managed(id: str, title: str, permissions: List[types.Permission], rol
     return _handle_policy_result(result)
 
 
-def update_unmanaged(id: str, title: str, arn: str, roles: List[str]) -> types.Policy:
+def update_unmanaged(id: str, title: str, arn: str, roles: T.List[str]) -> types.Policy:
     """
     Update an unmanaged policy in the registry.
 
@@ -111,7 +111,7 @@ def delete(id: str) -> None:
         util.raise_invalid_input(result)
     if typename == "OperationError":
         util.raise_operation_error(result)
-    raise AssertionError(f"Unexpected policy delete result: {typename}")
+    raise AssertionError(f"Unexpected result: {typename}")
 
 
 def _permission_to_input(permission: types.Permission) -> _graphql_client.PermissionInput:
@@ -126,4 +126,4 @@ def _handle_policy_result(result) -> types.Policy:
         util.raise_invalid_input(result)
     if typename == "OperationError":
         util.raise_operation_error(result)
-    raise AssertionError(f"Unexpected policy result: {typename}")
+    raise AssertionError(f"Unexpected result: {typename}")

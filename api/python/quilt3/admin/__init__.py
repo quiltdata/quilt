@@ -14,11 +14,14 @@ from .exceptions import (
     PolicyNotFoundError,
     PolicyTitleExistsError,
     Quilt3AdminError,
+    RoleAssignedError,
     RoleNameExistsError,
     RoleNameInvalidError,
     RoleNameReservedError,
     RoleNotFoundError,
+    RoleSsoConfigConflictError,
     RoleTooManyPoliciesError,
+    RoleTypeMismatchError,
     UserNotFoundError,
 )
 from .types import (
@@ -27,6 +30,7 @@ from .types import (
     ManagedRole,
     Permission,
     Policy,
+    PolicySummary,
     SSOConfig,
     TabulatorTable,
     UnmanagedRole,

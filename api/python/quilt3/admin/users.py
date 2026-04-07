@@ -1,10 +1,10 @@
-from typing import List, Optional
+import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
 
 
-def get(name: str) -> Optional[types.User]:
+def get(name: str) -> T.Optional[types.User]:
     """
     Get a specific user from the registry. Return `None` if the user does not exist.
 
@@ -14,17 +14,17 @@ def get(name: str) -> Optional[types.User]:
     result = util.get_client().users_get(name=name)
     if result is None:
         return None
-    return types.User(**result.model_dump())
+    return util.parse_user_result(result)
 
 
-def list() -> List[types.User]:
+def list() -> T.List[types.User]:
     """
     Get a list of all users in the registry.
     """
-    return [types.User(**u.model_dump()) for u in util.get_client().users_list()]
+    return [util.parse_user_result(u) for u in util.get_client().users_list()]
 
 
-def create(name: str, email: str, role: str, extra_roles: Optional[List[str]] = None) -> types.User:
+def create(name: str, email: str, role: str, extra_roles: T.Optional[T.List[str]] = None) -> types.User:
     """
     Create a new user in the registry.
 
@@ -113,7 +113,7 @@ def reset_password(name: str) -> None:
 def set_role(
     name: str,
     role: str,
-    extra_roles: Optional[List[str]] = None,
+    extra_roles: T.Optional[T.List[str]] = None,
     *,
     append: bool = False,
 ) -> types.User:
@@ -132,7 +132,7 @@ def set_role(
     return util.handle_user_mutation(result.set_role)
 
 
-def add_roles(name: str, roles: List[str]) -> types.User:
+def add_roles(name: str, roles: T.List[str]) -> types.User:
     """
     Add roles to a user.
 
@@ -148,8 +148,8 @@ def add_roles(name: str, roles: List[str]) -> types.User:
 
 def remove_roles(
     name: str,
-    roles: List[str],
-    fallback: Optional[str] = None,
+    roles: T.List[str],
+    fallback: T.Optional[str] = None,
 ) -> types.User:
     """
     Remove roles from a user.

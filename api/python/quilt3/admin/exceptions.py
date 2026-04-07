@@ -35,6 +35,18 @@ class RoleTooManyPoliciesError(Quilt3AdminError):
     pass
 
 
+class RoleAssignedError(Quilt3AdminError):
+    pass
+
+
+class RoleSsoConfigConflictError(Quilt3AdminError):
+    pass
+
+
+class RoleTypeMismatchError(Quilt3AdminError):
+    pass
+
+
 class PolicyNotFoundError(Quilt3AdminError):
     def __init__(self):
         super().__init__(None)

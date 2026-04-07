@@ -224,6 +224,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -259,6 +289,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -294,6 +354,12 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -314,6 +380,23 @@ class Client(BaseClient):
               roles {
                 ...ManagedRoleSelection
               }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
             """
         )
@@ -336,6 +419,12 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -356,6 +445,23 @@ class Client(BaseClient):
               roles {
                 ...ManagedRoleSelection
               }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
             """
         )
@@ -380,6 +486,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -428,6 +564,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -476,6 +642,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -527,6 +723,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -578,6 +804,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -647,6 +903,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -700,6 +986,12 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -726,6 +1018,23 @@ class Client(BaseClient):
               roles {
                 ...ManagedRoleSelection
               }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
             """
         )
@@ -766,6 +1075,12 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -792,6 +1107,23 @@ class Client(BaseClient):
               roles {
                 ...ManagedRoleSelection
               }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
             """
         )
@@ -832,6 +1164,12 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -858,6 +1196,23 @@ class Client(BaseClient):
               roles {
                 ...ManagedRoleSelection
               }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
             """
         )
@@ -898,6 +1253,12 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -924,6 +1285,23 @@ class Client(BaseClient):
               roles {
                 ...ManagedRoleSelection
               }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
             """
         )
@@ -988,6 +1366,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1044,6 +1452,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1116,12 +1554,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1234,12 +1702,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1314,12 +1812,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1394,12 +1922,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1521,12 +2079,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1602,12 +2190,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1680,12 +2298,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1744,6 +2392,36 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1826,12 +2504,42 @@ class Client(BaseClient):
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {

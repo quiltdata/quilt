@@ -1,10 +1,10 @@
-from typing import List, Optional
+import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
 
 
-def get(id: str) -> Optional[types.Role]:
+def get(id: str) -> T.Optional[types.Role]:
     """
     Get a specific role from the registry. Return `None` if the role does not exist.
 
@@ -17,14 +17,24 @@ def get(id: str) -> Optional[types.Role]:
     return util.parse_role_result(result)
 
 
-def list() -> List[types.Role]:
+def get_default() -> T.Optional[types.Role]:
+    """
+    Get the default role from the registry. Return `None` if no default role is set.
+    """
+    result = util.get_client().default_role_get()
+    if result is None:
+        return None
+    return util.parse_role_result(result)
+
+
+def list() -> T.List[types.Role]:
     """
     Get a list of all roles in the registry.
     """
     return [util.parse_role_result(role) for role in util.get_client().roles_list()]
 
 
-def create_managed(name: str, policies: List[str]) -> types.ManagedRole:
+def create_managed(name: str, policies: T.List[str]) -> types.ManagedRole:
     """
     Create a managed role in the registry.
 
@@ -50,7 +60,7 @@ def create_unmanaged(name: str, arn: str) -> types.UnmanagedRole:
     return _handle_role_mutation_result(result)
 
 
-def update_managed(id: str, name: str, policies: List[str]) -> types.ManagedRole:
+def update_managed(id: str, name: str, policies: T.List[str]) -> types.ManagedRole:
     """
     Update a managed role in the registry.
 
@@ -97,6 +107,10 @@ def delete(id: str) -> None:
         raise exceptions.RoleNotFoundError()
     if typename == "RoleNameReserved":
         raise exceptions.RoleNameReservedError(result)
+    if typename == "RoleAssigned":
+        raise exceptions.RoleAssignedError(result)
+    if typename == "RoleNameUsedBySsoConfig":
+        raise exceptions.RoleSsoConfigConflictError(result)
     raise exceptions.Quilt3AdminError(result)
 
 
@@ -113,6 +127,8 @@ def set_default(id: str) -> types.Role:
         return util.parse_role_result(result.role)
     if typename == "RoleDoesNotExist":
         raise exceptions.RoleNotFoundError()
+    if typename == "SsoConfigConflict":
+        raise exceptions.RoleSsoConfigConflictError(result)
     raise exceptions.Quilt3AdminError(result)
 
 
@@ -133,4 +149,8 @@ def _handle_role_mutation_result(result):
         raise exceptions.RoleNameInvalidError(result)
     if typename == "RoleHasTooManyPoliciesToAttach":
         raise exceptions.RoleTooManyPoliciesError(result)
+    if typename in {"RoleIsManaged", "RoleIsUnmanaged"}:
+        raise exceptions.RoleTypeMismatchError(result)
+    if typename == "RoleNameUsedBySsoConfig":
+        raise exceptions.RoleSsoConfigConflictError(result)
     raise exceptions.Quilt3AdminError(result)

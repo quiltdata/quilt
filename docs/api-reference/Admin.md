@@ -2,13 +2,22 @@
 # quilt3.admin.types
 
 
-## ManagedRole(id: str, name: str, arn: str, typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
+## Permission(bucket: str, level: quilt3.\_graphql\_client.enums.BucketPermissionLevel) -> None  {#Permission}
+
+
+## PolicySummary(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission]) -> None  {#PolicySummary}
+Policy without back-references to roles (avoids circular nesting).
+
+## ManagedRole(id: str, name: str, arn: str, policies: list[quilt3.admin.types.PolicySummary], permissions: list[quilt3.admin.types.Permission], typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
 
 
 ## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
 
 
-## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
+## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#Policy}
+
+
+## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
 
 ## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
@@ -17,7 +26,7 @@
 ## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
 
 
-## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[List[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[List[str]], index\_content\_bytes: Optional[int], prefixes: List[str]) -> None  {#Bucket}
+## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[list[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[list[str]], index\_content\_bytes: Optional[int], prefixes: list[str]) -> None  {#Bucket}
 
 
 # quilt3.admin.api_keys
@@ -143,9 +152,83 @@ __Arguments__
 # quilt3.admin.roles
 
 
+## get(id: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get}
+
+Get a specific role from the registry. Return `None` if the role does not exist.
+
+__Arguments__
+
+* __id__:  Role ID to get.
+
+
+## get\_default() -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get\_default}
+
+Get the default role from the registry. Return `None` if no default role is set.
+
+
 ## list() -> List[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]]  {#list}
 
 Get a list of all roles in the registry.
+
+
+## create\_managed(name: str, policies: List[str]) -> quilt3.admin.types.ManagedRole  {#create\_managed}
+
+Create a managed role in the registry.
+
+__Arguments__
+
+* __name__:  Role name.
+* __policies__:  Policy IDs to attach to the role.
+
+
+## create\_unmanaged(name: str, arn: str) -> quilt3.admin.types.UnmanagedRole  {#create\_unmanaged}
+
+Create an unmanaged role in the registry.
+
+__Arguments__
+
+* __name__:  Role name.
+* __arn__:  Existing IAM role ARN.
+
+
+## update\_managed(id: str, name: str, policies: List[str]) -> quilt3.admin.types.ManagedRole  {#update\_managed}
+
+Update a managed role in the registry.
+
+__Arguments__
+
+* __id__:  Role ID.
+* __name__:  New role name.
+* __policies__:  Policy IDs to attach to the role.
+
+
+## update\_unmanaged(id: str, name: str, arn: str) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
+
+Update an unmanaged role in the registry.
+
+__Arguments__
+
+* __id__:  Role ID.
+* __name__:  New role name.
+* __arn__:  Existing IAM role ARN.
+
+
+## delete(id: str) -> None  {#delete}
+
+Delete a role from the registry.
+
+__Arguments__
+
+* __id__:  Role ID.
+
+
+## set\_default(id: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]  {#set\_default}
+
+Set the default role in the registry.
+
+__Arguments__
+
+* __id__:  Role ID.
 
 
 # quilt3.admin.users

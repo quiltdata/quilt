@@ -19,6 +19,16 @@ MANAGED_ROLE = {
     "id": "b1bab604-98fd-4b46-a20b-958cf2541c91",
     "name": "ManagedRole",
     "arn": "arn:aws:iam::000000000000:role/ManagedRole",
+    "policies": [
+        {
+            "id": "be8f3af1-8f5b-463a-89ff-373769e6d0d3",
+            "title": "ManagedPolicy",
+            "arn": "arn:aws:iam::000000000000:policy/ManagedPolicy",
+            "managed": True,
+            "permissions": [{"bucket": {"name": "example-bucket"}, "level": "READ"}],
+        }
+    ],
+    "permissions": [{"bucket": {"name": "example-bucket"}, "level": "READ"}],
 }
 PERMISSION = {
     "bucket": {
@@ -26,6 +36,28 @@ PERMISSION = {
     },
     "level": "READ",
 }
+EXPECTED_PERMISSION = admin.Permission(bucket="example-bucket", level=admin.BucketPermissionLevel.READ)
+EXPECTED_POLICY_SUMMARY = admin.PolicySummary(
+    id="be8f3af1-8f5b-463a-89ff-373769e6d0d3",
+    title="ManagedPolicy",
+    arn="arn:aws:iam::000000000000:policy/ManagedPolicy",
+    managed=True,
+    permissions=[EXPECTED_PERMISSION],
+)
+EXPECTED_MANAGED_ROLE = admin.ManagedRole(
+    id="b1bab604-98fd-4b46-a20b-958cf2541c91",
+    name="ManagedRole",
+    arn="arn:aws:iam::000000000000:role/ManagedRole",
+    policies=[EXPECTED_POLICY_SUMMARY],
+    permissions=[EXPECTED_PERMISSION],
+    typename__="ManagedRole",
+)
+EXPECTED_UNMANAGED_ROLE = admin.UnmanagedRole(
+    id="d7d15bef-c482-4086-ae6b-d0372b6145d2",
+    name="UnmanagedRole",
+    arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+    typename__="UnmanagedRole",
+)
 POLICY = {
     "__typename": "Policy",
     "id": "be8f3af1-8f5b-463a-89ff-373769e6d0d3",
@@ -54,12 +86,29 @@ USER = {
     "role": UNMANAGED_ROLE,
     "extraRoles": [MANAGED_ROLE],
 }
+EXPECTED_USER = admin.User(
+    name="test",
+    email="test@example.com",
+    date_joined=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    last_login=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    is_active=True,
+    is_admin=False,
+    is_sso_only=False,
+    is_service=False,
+    role=EXPECTED_UNMANAGED_ROLE,
+    extra_roles=[EXPECTED_MANAGED_ROLE],
+)
 SSO_CONFIG = {
     "__typename": "SsoConfig",
     "text": "",
     "timestamp": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "uploader": USER,
 }
+EXPECTED_SSO_CONFIG = admin.SSOConfig(
+    text="",
+    timestamp=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    uploader=EXPECTED_USER,
+)
 TABULATOR_TABLE = {
     "name": "table",
     "config": "config",
@@ -102,14 +151,21 @@ ROLE_CREATE_ERRORS = (
     ({"__typename": "RoleNameInvalid"}, admin.RoleNameInvalidError),
     ({"__typename": "RoleHasTooManyPoliciesToAttach"}, admin.RoleTooManyPoliciesError),
 )
-ROLE_UPDATE_ERRORS = (*ROLE_CREATE_ERRORS,)
+ROLE_UPDATE_ERRORS = (
+    *ROLE_CREATE_ERRORS,
+    ({"__typename": "RoleIsManaged"}, admin.RoleTypeMismatchError),
+    ({"__typename": "RoleIsUnmanaged"}, admin.RoleTypeMismatchError),
+    ({"__typename": "RoleNameUsedBySsoConfig"}, admin.RoleSsoConfigConflictError),
+)
 ROLE_DELETE_ERRORS = (
     ({"__typename": "RoleDoesNotExist"}, admin.RoleNotFoundError),
     ({"__typename": "RoleNameReserved"}, admin.RoleNameReservedError),
+    ({"__typename": "RoleAssigned"}, admin.RoleAssignedError),
+    ({"__typename": "RoleNameUsedBySsoConfig"}, admin.RoleSsoConfigConflictError),
 )
 ROLE_SET_DEFAULT_ERRORS = (
     ({"__typename": "RoleDoesNotExist"}, admin.RoleNotFoundError),
-    ({"__typename": "SsoConfigConflict"}, admin.Quilt3AdminError),
+    ({"__typename": "SsoConfigConflict"}, admin.RoleSsoConfigConflictError),
 )
 POLICY_INVALID_INPUT_ERRORS = (
     (
@@ -222,15 +278,27 @@ def mock_client(data, operation_name, variables=None):
 def test_get_roles():
     with mock_client({"roles": [UNMANAGED_ROLE, MANAGED_ROLE]}, "rolesList"):
         assert admin.roles.list() == [
-            admin.UnmanagedRole(**as_dataclass_kwargs(UNMANAGED_ROLE)),
-            admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE)),
+            EXPECTED_UNMANAGED_ROLE,
+            EXPECTED_MANAGED_ROLE,
         ]
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (MANAGED_ROLE, admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE))),
+        (MANAGED_ROLE, EXPECTED_MANAGED_ROLE),
+        (None, None),
+    ],
+)
+def test_get_default_role(data, result):
+    with mock_client({"default_role": data}, "defaultRoleGet"):
+        assert admin.roles.get_default() == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (MANAGED_ROLE, EXPECTED_MANAGED_ROLE),
         (None, None),
     ],
 )
@@ -244,7 +312,7 @@ def test_get_role(data, result):
     [
         (
             {"__typename": "RoleCreateSuccess", "role": MANAGED_ROLE},
-            admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE)),
+            EXPECTED_MANAGED_ROLE,
         ),
         *ROLE_CREATE_ERRORS,
     ],
@@ -267,7 +335,7 @@ def test_create_managed_role(data, result):
     [
         (
             {"__typename": "RoleCreateSuccess", "role": UNMANAGED_ROLE},
-            admin.UnmanagedRole(**as_dataclass_kwargs(UNMANAGED_ROLE)),
+            EXPECTED_UNMANAGED_ROLE,
         ),
         *ROLE_CREATE_ERRORS,
     ],
@@ -297,7 +365,7 @@ def test_create_unmanaged_role(data, result):
     [
         (
             {"__typename": "RoleUpdateSuccess", "role": MANAGED_ROLE},
-            admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE)),
+            EXPECTED_MANAGED_ROLE,
         ),
         *ROLE_UPDATE_ERRORS,
     ],
@@ -323,7 +391,7 @@ def test_update_managed_role(data, result):
     [
         (
             {"__typename": "RoleUpdateSuccess", "role": UNMANAGED_ROLE},
-            admin.UnmanagedRole(**as_dataclass_kwargs(UNMANAGED_ROLE)),
+            EXPECTED_UNMANAGED_ROLE,
         ),
         *ROLE_UPDATE_ERRORS,
     ],
@@ -377,7 +445,7 @@ def test_delete_role_errors(data, error_type):
     [
         (
             {"__typename": "RoleSetDefaultSuccess", "role": MANAGED_ROLE},
-            admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE)),
+            EXPECTED_MANAGED_ROLE,
         ),
         *ROLE_SET_DEFAULT_ERRORS,
     ],
@@ -397,8 +465,8 @@ def _expected_policy():
         title=POLICY["title"],
         arn=POLICY["arn"],
         managed=POLICY["managed"],
-        permissions=[admin.Permission(bucket="example-bucket", level=admin.BucketPermissionLevel.READ)],
-        roles=[admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE))],
+        permissions=[EXPECTED_PERMISSION],
+        roles=[EXPECTED_MANAGED_ROLE],
     )
 
 
@@ -408,8 +476,8 @@ def _expected_unmanaged_policy():
         title=UNMANAGED_POLICY["title"],
         arn=UNMANAGED_POLICY["arn"],
         managed=UNMANAGED_POLICY["managed"],
-        permissions=[admin.Permission(bucket="example-bucket", level=admin.BucketPermissionLevel.READ)],
-        roles=[admin.ManagedRole(**as_dataclass_kwargs(MANAGED_ROLE))],
+        permissions=[EXPECTED_PERMISSION],
+        roles=[EXPECTED_MANAGED_ROLE],
     )
 
 
@@ -580,7 +648,7 @@ def test_delete_policy_errors(data, error_type):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         (None, None),
     ],
 )
@@ -591,13 +659,13 @@ def test_get_user(data, result):
 
 def test_get_users():
     with mock_client(_make_nested_dict("admin.user.list", [USER]), "usersList"):
-        assert admin.users.list() == [admin.User(**as_dataclass_kwargs(USER))]
+        assert admin.users.list() == [EXPECTED_USER]
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *MUTATION_ERRORS,
     ],
 )
@@ -635,7 +703,7 @@ def test_delete_user(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -659,7 +727,7 @@ def test_set_user_email(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -683,7 +751,7 @@ def test_set_user_admin(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -728,7 +796,7 @@ def test_reset_user_password(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -752,7 +820,7 @@ def test_set_role(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -776,7 +844,7 @@ def test_add_roles(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -800,7 +868,7 @@ def test_remove_roles(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (SSO_CONFIG, admin.SSOConfig(**as_dataclass_kwargs(SSO_CONFIG))),
+        (SSO_CONFIG, EXPECTED_SSO_CONFIG),
         (None, None),
     ],
 )
@@ -812,7 +880,7 @@ def test_sso_config_get(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (SSO_CONFIG, admin.SSOConfig(**as_dataclass_kwargs(SSO_CONFIG))),
+        (SSO_CONFIG, EXPECTED_SSO_CONFIG),
         (None, None),
         *MUTATION_ERRORS,
     ],
