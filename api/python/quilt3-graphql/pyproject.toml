@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 
 [dependency-groups]
 dev = [
-    "ariadne-codegen ~= 0.13.0",
+    "ariadne-codegen ~= 0.16.0",
 ]
 
 [tool.ariadne-codegen]
