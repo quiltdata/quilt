@@ -49,6 +49,15 @@ class InvalidInputSelectionErrors(BaseModel):
     context: Optional[Any]
 
 
+class RoleBucketPermissionSelection(BaseModel):
+    bucket: "RoleBucketPermissionSelectionBucket"
+    level: BucketPermissionLevel
+
+
+class RoleBucketPermissionSelectionBucket(BaseModel):
+    name: str
+
+
 class PermissionSelection(BaseModel):
     bucket: "PermissionSelectionBucket"
     level: BucketPermissionLevel
@@ -68,15 +77,6 @@ class PolicySummarySelection(BaseModel):
 
 class PolicySummarySelectionPermissions(PermissionSelection):
     pass
-
-
-class RoleBucketPermissionSelection(BaseModel):
-    bucket: "RoleBucketPermissionSelectionBucket"
-    level: BucketPermissionLevel
-
-
-class RoleBucketPermissionSelectionBucket(BaseModel):
-    name: str
 
 
 class ManagedRoleSelection(BaseModel):
@@ -181,9 +181,9 @@ class SsoConfigSelectionUploader(UserSelection):
 APIKeySelection.model_rebuild()
 BucketConfigSelection.model_rebuild()
 InvalidInputSelection.model_rebuild()
+RoleBucketPermissionSelection.model_rebuild()
 PermissionSelection.model_rebuild()
 PolicySummarySelection.model_rebuild()
-RoleBucketPermissionSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
 PolicySelection.model_rebuild()
