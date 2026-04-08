@@ -124,8 +124,8 @@ gql-gen.help = "Generate GraphQL client code for quilt3"
 gql-gen.sequence = [
     "_gql-clean",
     "_gql-gen",
-    "_gql-fmt",
     "_gql-lint-fix",
+    "_gql-fmt",
 ]
 
 gql-check.help = "Check if GraphQL client code is up-to-date"
