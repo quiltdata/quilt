@@ -83,7 +83,7 @@
     "highlight.js": "^11.8.0",
     "history": "^4.10.1",
     "igv": "^2.15.11",
-    "immutable": "^3.8.2",
+    "immutable": "^3.8.3",
     "invariant": "^2.2.4",
     "io-ts": "^2.2.20",
     "io-ts-reporters": "^2.0.1",
