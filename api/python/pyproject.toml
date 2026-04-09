@@ -118,11 +118,13 @@ _gql-gen.cmd = "uv run ariadne-codegen client"
 _gql-gen.cwd = "quilt3-graphql"
 
 _gql-fmt.cmd = "ruff format quilt3/_graphql_client"
+_gql-lint-fix.cmd = "ruff check --fix quilt3/_graphql_client"
 
 gql-gen.help = "Generate GraphQL client code for quilt3"
 gql-gen.sequence = [
     "_gql-clean",
     "_gql-gen",
+    "_gql-lint-fix",
     "_gql-fmt",
 ]
 
