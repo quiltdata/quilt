@@ -60,6 +60,8 @@ new package version:
 
 ![QuiltSync auto-generated commit](../imgs/quiltsync-commit.png)
 
+![QuiltSync push](../imgs/quiltsync-push.png)
+
 ### Settings and Troubleshooting
 
 Access settings via the gear icon in the lower right:
