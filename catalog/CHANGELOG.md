@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] HubSpot tracking ([#4807](https://github.com/quiltdata/quilt/pull/4807))
 - [Changed] Migrate `package-lock.json` from lockfileVersion 2 to 3 ([#4812](https://github.com/quiltdata/quilt/pull/4812))
 - [Changed] Replace `jsonpath` with `jsonpath-plus` for JSONPath evaluation ([#4811](https://github.com/quiltdata/quilt/pull/4811))
 - [Fixed] Fix "Error resolving revision" flash when navigating to a just-created package ([#4778](https://github.com/quiltdata/quilt/pull/4778))
