@@ -7,3 +7,8 @@ from enum import Enum
 class APIKeyStatus(str, Enum):
     ACTIVE = "ACTIVE"
     EXPIRED = "EXPIRED"
+
+
+class BucketPermissionLevel(str, Enum):
+    READ = "READ"
+    READ_WRITE = "READ_WRITE"

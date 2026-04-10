@@ -4,14 +4,14 @@ build-backend = "uv_build"
 
 [project]
 name = "quilt3"
-version = "7.2.0"
+version = "7.3.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.9"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-    { name = "quiltdata", email = "contact@quiltdata.io" },
+    { name = "quiltdata", email = "support@quilt.bio" },
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -118,11 +118,13 @@ _gql-gen.cmd = "uv run ariadne-codegen client"
 _gql-gen.cwd = "quilt3-graphql"
 
 _gql-fmt.cmd = "ruff format quilt3/_graphql_client"
+_gql-lint-fix.cmd = "ruff check --fix quilt3/_graphql_client"
 
 gql-gen.help = "Generate GraphQL client code for quilt3"
 gql-gen.sequence = [
     "_gql-clean",
     "_gql-gen",
+    "_gql-lint-fix",
     "_gql-fmt",
 ]
 

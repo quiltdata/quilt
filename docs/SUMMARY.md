@@ -15,6 +15,7 @@
 * [Packaging Engine](Catalog/Packaging.md)
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
+* [Platform MCP Server](Catalog/MCP-Server.md) AI Assistant Integration
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
 * [Search](Catalog/Search.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
@@ -29,6 +30,7 @@
 * [Catalog Installation](Catalog/Installation.md)
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
+* [Quilt Connect Server](Catalog/Connect.md)
 * [Cross-Account Access](CrossAccount.md)
 * [Enterprise Installs](technical-reference.md)
 * [quilt3.admin Python API](api-reference/Admin.md)
@@ -82,3 +84,5 @@
 * [Benchling Packager](examples/benchling.md)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
+* [Platform MCP Server](Catalog/MCP-Server.md)
+* [QuiltSync Desktop Application](examples/quiltsync.md)

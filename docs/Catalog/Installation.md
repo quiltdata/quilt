@@ -21,10 +21,12 @@ We recommend that all users do one or more of the following:
 * [Schedule a Quilt engineer](https://calendly.com/d/g6f-vnd-qf3/engineering-team)
 to guide you through the installation
 
-* [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
-connect with other users
+* [Join Quilt on Slack][quilt-slack] to ask questions and connect with other
+users
 
-* [Email Quilt](mailto:contact@quiltdata.io)
+* [Email Quilt](mailto:support@quilt.bio)
+
+[quilt-slack]: https://slack.quilt.bio
 
 ## Requirements and Prerequisites
 
@@ -106,7 +108,7 @@ recommend that you [contact us first](#help-and-advice).
 
 ### AWS Service Catalog
 
-1. Email [contact@quiltdata.io](mailto:contact@quiltdata.io)
+1. Email [support@quilt.bio](mailto:support@quilt.bio)
 with your AWS account ID to request access to Quilt through the
 AWS Service Catalog and to obtain a license key.
 1. Click the service catalog link that you received from Quilt.

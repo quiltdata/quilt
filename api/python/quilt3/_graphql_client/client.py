@@ -72,8 +72,107 @@ from .bucket_update import (
     BucketUpdateBucketUpdateSnsInvalid,
 )
 from .buckets_list import BucketsList, BucketsListBucketConfigs
+from .default_role_get import (
+    DefaultRoleGet,
+    DefaultRoleGetDefaultRoleManagedRole,
+    DefaultRoleGetDefaultRoleUnmanagedRole,
+)
 from .enums import APIKeyStatus
-from .input_types import APIKeyCreateInput, BucketAddInput, BucketUpdateInput, UserInput
+from .input_types import (
+    APIKeyCreateInput,
+    BucketAddInput,
+    BucketUpdateInput,
+    ManagedPolicyInput,
+    ManagedRoleInput,
+    UnmanagedPolicyInput,
+    UnmanagedRoleInput,
+    UserInput,
+)
+from .policies_list import PoliciesList, PoliciesListPolicies
+from .policy_create_managed import (
+    PolicyCreateManaged,
+    PolicyCreateManagedPolicyCreateManagedInvalidInput,
+    PolicyCreateManagedPolicyCreateManagedOperationError,
+    PolicyCreateManagedPolicyCreateManagedPolicy,
+)
+from .policy_create_unmanaged import (
+    PolicyCreateUnmanaged,
+    PolicyCreateUnmanagedPolicyCreateUnmanagedInvalidInput,
+    PolicyCreateUnmanagedPolicyCreateUnmanagedOperationError,
+    PolicyCreateUnmanagedPolicyCreateUnmanagedPolicy,
+)
+from .policy_delete import (
+    PolicyDelete,
+    PolicyDeletePolicyDeleteInvalidInput,
+    PolicyDeletePolicyDeleteOk,
+    PolicyDeletePolicyDeleteOperationError,
+)
+from .policy_get import PolicyGet, PolicyGetPolicy
+from .policy_update_managed import (
+    PolicyUpdateManaged,
+    PolicyUpdateManagedPolicyUpdateManagedInvalidInput,
+    PolicyUpdateManagedPolicyUpdateManagedOperationError,
+    PolicyUpdateManagedPolicyUpdateManagedPolicy,
+)
+from .policy_update_unmanaged import (
+    PolicyUpdateUnmanaged,
+    PolicyUpdateUnmanagedPolicyUpdateUnmanagedInvalidInput,
+    PolicyUpdateUnmanagedPolicyUpdateUnmanagedOperationError,
+    PolicyUpdateUnmanagedPolicyUpdateUnmanagedPolicy,
+)
+from .role_create_managed import (
+    RoleCreateManaged,
+    RoleCreateManagedRoleCreateManagedRoleCreateSuccess,
+    RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach,
+    RoleCreateManagedRoleCreateManagedRoleNameExists,
+    RoleCreateManagedRoleCreateManagedRoleNameInvalid,
+    RoleCreateManagedRoleCreateManagedRoleNameReserved,
+)
+from .role_create_unmanaged import (
+    RoleCreateUnmanaged,
+    RoleCreateUnmanagedRoleCreateUnmanagedRoleCreateSuccess,
+    RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach,
+    RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists,
+    RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid,
+    RoleCreateUnmanagedRoleCreateUnmanagedRoleNameReserved,
+)
+from .role_delete import (
+    RoleDelete,
+    RoleDeleteRoleDeleteRoleAssigned,
+    RoleDeleteRoleDeleteRoleDeleteSuccess,
+    RoleDeleteRoleDeleteRoleDoesNotExist,
+    RoleDeleteRoleDeleteRoleNameReserved,
+    RoleDeleteRoleDeleteRoleNameUsedBySsoConfig,
+)
+from .role_get import RoleGet, RoleGetRoleManagedRole, RoleGetRoleUnmanagedRole
+from .role_set_default import (
+    RoleSetDefault,
+    RoleSetDefaultRoleSetDefaultRoleDoesNotExist,
+    RoleSetDefaultRoleSetDefaultRoleSetDefaultSuccess,
+    RoleSetDefaultRoleSetDefaultSsoConfigConflict,
+)
+from .role_update_managed import (
+    RoleUpdateManaged,
+    RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach,
+    RoleUpdateManagedRoleUpdateManagedRoleIsManaged,
+    RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged,
+    RoleUpdateManagedRoleUpdateManagedRoleNameExists,
+    RoleUpdateManagedRoleUpdateManagedRoleNameInvalid,
+    RoleUpdateManagedRoleUpdateManagedRoleNameReserved,
+    RoleUpdateManagedRoleUpdateManagedRoleNameUsedBySsoConfig,
+    RoleUpdateManagedRoleUpdateManagedRoleUpdateSuccess,
+)
+from .role_update_unmanaged import (
+    RoleUpdateUnmanaged,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleHasTooManyPoliciesToAttach,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsManaged,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsUnmanaged,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameExists,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameInvalid,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameReserved,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameUsedBySsoConfig,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleUpdateSuccess,
+)
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
@@ -121,9 +220,40 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -133,6 +263,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -143,6 +274,1079 @@ class Client(BaseClient):
         response = self.execute(query=query, operation_name="rolesList", variables=variables, **kwargs)
         data = self.get_data(response)
         return RolesList.model_validate(data).roles
+
+    def role_get(self, id: str, **kwargs: Any) -> Optional[Union[RoleGetRoleUnmanagedRole, RoleGetRoleManagedRole]]:
+        query = gql(
+            """
+            query roleGet($id: ID!) {
+              role(id: $id) {
+                ...RoleSelection
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="roleGet", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleGet.model_validate(data).role
+
+    def policies_list(self, **kwargs: Any) -> List[PoliciesListPolicies]:
+        query = gql(
+            """
+            query policiesList {
+              policies {
+                ...PolicySelection
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+              roles {
+                ...ManagedRoleSelection
+              }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(query=query, operation_name="policiesList", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PoliciesList.model_validate(data).policies
+
+    def policy_get(self, id: str, **kwargs: Any) -> Optional[PolicyGetPolicy]:
+        query = gql(
+            """
+            query policyGet($id: ID!) {
+              policy(id: $id) {
+                ...PolicySelection
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+              roles {
+                ...ManagedRoleSelection
+              }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="policyGet", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PolicyGet.model_validate(data).policy
+
+    def default_role_get(
+        self, **kwargs: Any
+    ) -> Optional[Union[DefaultRoleGetDefaultRoleUnmanagedRole, DefaultRoleGetDefaultRoleManagedRole]]:
+        query = gql(
+            """
+            query defaultRoleGet {
+              defaultRole {
+                ...RoleSelection
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(query=query, operation_name="defaultRoleGet", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return DefaultRoleGet.model_validate(data).default_role
+
+    def role_create_managed(
+        self, input: ManagedRoleInput, **kwargs: Any
+    ) -> Union[
+        RoleCreateManagedRoleCreateManagedRoleCreateSuccess,
+        RoleCreateManagedRoleCreateManagedRoleNameReserved,
+        RoleCreateManagedRoleCreateManagedRoleNameExists,
+        RoleCreateManagedRoleCreateManagedRoleNameInvalid,
+        RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach,
+    ]:
+        query = gql(
+            """
+            mutation roleCreateManaged($input: ManagedRoleInput!) {
+              roleCreateManaged(input: $input) {
+                __typename
+                ... on RoleCreateSuccess {
+                  role {
+                    ...RoleSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {"input": input}
+        response = self.execute(query=query, operation_name="roleCreateManaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleCreateManaged.model_validate(data).role_create_managed
+
+    def role_create_unmanaged(
+        self, input: UnmanagedRoleInput, **kwargs: Any
+    ) -> Union[
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleCreateSuccess,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleNameReserved,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach,
+    ]:
+        query = gql(
+            """
+            mutation roleCreateUnmanaged($input: UnmanagedRoleInput!) {
+              roleCreateUnmanaged(input: $input) {
+                __typename
+                ... on RoleCreateSuccess {
+                  role {
+                    ...RoleSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {"input": input}
+        response = self.execute(query=query, operation_name="roleCreateUnmanaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleCreateUnmanaged.model_validate(data).role_create_unmanaged
+
+    def role_update_managed(
+        self, id: str, input: ManagedRoleInput, **kwargs: Any
+    ) -> Union[
+        RoleUpdateManagedRoleUpdateManagedRoleUpdateSuccess,
+        RoleUpdateManagedRoleUpdateManagedRoleNameReserved,
+        RoleUpdateManagedRoleUpdateManagedRoleNameExists,
+        RoleUpdateManagedRoleUpdateManagedRoleNameInvalid,
+        RoleUpdateManagedRoleUpdateManagedRoleNameUsedBySsoConfig,
+        RoleUpdateManagedRoleUpdateManagedRoleIsManaged,
+        RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged,
+        RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach,
+    ]:
+        query = gql(
+            """
+            mutation roleUpdateManaged($id: ID!, $input: ManagedRoleInput!) {
+              roleUpdateManaged(id: $id, input: $input) {
+                __typename
+                ... on RoleUpdateSuccess {
+                  role {
+                    ...RoleSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id, "input": input}
+        response = self.execute(query=query, operation_name="roleUpdateManaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleUpdateManaged.model_validate(data).role_update_managed
+
+    def role_update_unmanaged(
+        self, id: str, input: UnmanagedRoleInput, **kwargs: Any
+    ) -> Union[
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleUpdateSuccess,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameReserved,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameExists,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameInvalid,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameUsedBySsoConfig,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsManaged,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsUnmanaged,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleHasTooManyPoliciesToAttach,
+    ]:
+        query = gql(
+            """
+            mutation roleUpdateUnmanaged($id: ID!, $input: UnmanagedRoleInput!) {
+              roleUpdateUnmanaged(id: $id, input: $input) {
+                __typename
+                ... on RoleUpdateSuccess {
+                  role {
+                    ...RoleSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id, "input": input}
+        response = self.execute(query=query, operation_name="roleUpdateUnmanaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleUpdateUnmanaged.model_validate(data).role_update_unmanaged
+
+    def role_delete(
+        self, id: str, **kwargs: Any
+    ) -> Union[
+        RoleDeleteRoleDeleteRoleDeleteSuccess,
+        RoleDeleteRoleDeleteRoleDoesNotExist,
+        RoleDeleteRoleDeleteRoleNameReserved,
+        RoleDeleteRoleDeleteRoleNameUsedBySsoConfig,
+        RoleDeleteRoleDeleteRoleAssigned,
+    ]:
+        query = gql(
+            """
+            mutation roleDelete($id: ID!) {
+              roleDelete(id: $id) {
+                __typename
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="roleDelete", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleDelete.model_validate(data).role_delete
+
+    def role_set_default(
+        self, id: str, **kwargs: Any
+    ) -> Union[
+        RoleSetDefaultRoleSetDefaultRoleSetDefaultSuccess,
+        RoleSetDefaultRoleSetDefaultRoleDoesNotExist,
+        RoleSetDefaultRoleSetDefaultSsoConfigConflict,
+    ]:
+        query = gql(
+            """
+            mutation roleSetDefault($id: ID!) {
+              roleSetDefault(id: $id) {
+                __typename
+                ... on RoleSetDefaultSuccess {
+                  role {
+                    ...RoleSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="roleSetDefault", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return RoleSetDefault.model_validate(data).role_set_default
+
+    def policy_create_managed(
+        self, input: ManagedPolicyInput, **kwargs: Any
+    ) -> Union[
+        PolicyCreateManagedPolicyCreateManagedPolicy,
+        PolicyCreateManagedPolicyCreateManagedInvalidInput,
+        PolicyCreateManagedPolicyCreateManagedOperationError,
+    ]:
+        query = gql(
+            """
+            mutation policyCreateManaged($input: ManagedPolicyInput!) {
+              policyCreateManaged(input: $input) {
+                __typename
+                ...PolicySelection
+                ...InvalidInputSelection
+                ...OperationErrorSelection
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+              roles {
+                ...ManagedRoleSelection
+              }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+            """
+        )
+        variables: Dict[str, object] = {"input": input}
+        response = self.execute(query=query, operation_name="policyCreateManaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PolicyCreateManaged.model_validate(data).policy_create_managed
+
+    def policy_create_unmanaged(
+        self, input: UnmanagedPolicyInput, **kwargs: Any
+    ) -> Union[
+        PolicyCreateUnmanagedPolicyCreateUnmanagedPolicy,
+        PolicyCreateUnmanagedPolicyCreateUnmanagedInvalidInput,
+        PolicyCreateUnmanagedPolicyCreateUnmanagedOperationError,
+    ]:
+        query = gql(
+            """
+            mutation policyCreateUnmanaged($input: UnmanagedPolicyInput!) {
+              policyCreateUnmanaged(input: $input) {
+                __typename
+                ...PolicySelection
+                ...InvalidInputSelection
+                ...OperationErrorSelection
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+              roles {
+                ...ManagedRoleSelection
+              }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+            """
+        )
+        variables: Dict[str, object] = {"input": input}
+        response = self.execute(query=query, operation_name="policyCreateUnmanaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PolicyCreateUnmanaged.model_validate(data).policy_create_unmanaged
+
+    def policy_update_managed(
+        self, id: str, input: ManagedPolicyInput, **kwargs: Any
+    ) -> Union[
+        PolicyUpdateManagedPolicyUpdateManagedPolicy,
+        PolicyUpdateManagedPolicyUpdateManagedInvalidInput,
+        PolicyUpdateManagedPolicyUpdateManagedOperationError,
+    ]:
+        query = gql(
+            """
+            mutation policyUpdateManaged($id: ID!, $input: ManagedPolicyInput!) {
+              policyUpdateManaged(id: $id, input: $input) {
+                __typename
+                ...PolicySelection
+                ...InvalidInputSelection
+                ...OperationErrorSelection
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+              roles {
+                ...ManagedRoleSelection
+              }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id, "input": input}
+        response = self.execute(query=query, operation_name="policyUpdateManaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PolicyUpdateManaged.model_validate(data).policy_update_managed
+
+    def policy_update_unmanaged(
+        self, id: str, input: UnmanagedPolicyInput, **kwargs: Any
+    ) -> Union[
+        PolicyUpdateUnmanagedPolicyUpdateUnmanagedPolicy,
+        PolicyUpdateUnmanagedPolicyUpdateUnmanagedInvalidInput,
+        PolicyUpdateUnmanagedPolicyUpdateUnmanagedOperationError,
+    ]:
+        query = gql(
+            """
+            mutation policyUpdateUnmanaged($id: ID!, $input: UnmanagedPolicyInput!) {
+              policyUpdateUnmanaged(id: $id, input: $input) {
+                __typename
+                ...PolicySelection
+                ...InvalidInputSelection
+                ...OperationErrorSelection
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              __typename
+              id
+              name
+              arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+              roles {
+                ...ManagedRoleSelection
+              }
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id, "input": input}
+        response = self.execute(query=query, operation_name="policyUpdateUnmanaged", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PolicyUpdateUnmanaged.model_validate(data).policy_update_unmanaged
+
+    def policy_delete(
+        self, id: str, **kwargs: Any
+    ) -> Union[
+        PolicyDeletePolicyDeleteOk,
+        PolicyDeletePolicyDeleteInvalidInput,
+        PolicyDeletePolicyDeleteOperationError,
+    ]:
+        query = gql(
+            """
+            mutation policyDelete($id: ID!) {
+              policyDelete(id: $id) {
+                __typename
+                ...InvalidInputSelection
+                ...OperationErrorSelection
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+            """
+        )
+        variables: Dict[str, object] = {"id": id}
+        response = self.execute(query=query, operation_name="policyDelete", variables=variables, **kwargs)
+        data = self.get_data(response)
+        return PolicyDelete.model_validate(data).policy_delete
 
     def users_get(self, name: str, **kwargs: Any) -> Optional[UsersGetAdminUserGet]:
         query = gql(
@@ -158,9 +1362,40 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -170,6 +1405,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -212,9 +1448,40 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -224,6 +1491,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -282,15 +1550,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -300,6 +1599,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -398,15 +1698,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -416,6 +1747,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -476,15 +1808,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -494,6 +1857,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -554,15 +1918,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -572,6 +1967,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -679,15 +2075,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -697,6 +2124,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -758,15 +2186,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -776,6 +2235,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -834,15 +2294,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -852,6 +2343,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -896,9 +2388,40 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -916,6 +2439,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn
@@ -976,15 +2500,46 @@ class Client(BaseClient):
             }
 
             fragment ManagedRoleSelection on ManagedRole {
+              __typename
               id
               name
               arn
+              policies {
+                ...PolicySummarySelection
+              }
+              permissions {
+                ...RoleBucketPermissionSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment PermissionSelection on PolicyBucketPermission {
+              bucket {
+                name
+              }
+              level
+            }
+
+            fragment PolicySummarySelection on Policy {
+              id
+              title
+              arn
+              managed
+              permissions {
+                ...PermissionSelection
+              }
+            }
+
+            fragment RoleBucketPermissionSelection on RoleBucketPermission {
+              bucket {
+                name
+              }
+              level
             }
 
             fragment RoleSelection on Role {
@@ -1002,6 +2557,7 @@ class Client(BaseClient):
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
+              __typename
               id
               name
               arn

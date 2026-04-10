@@ -100,8 +100,8 @@ print(f"Package created with {len(new_pkg)} files")
 4. 📝 Try the [Basic Workflows](walkthrough/uploading-a-package.md)
 
 ### **Intermediate Path**
-1. 🏗️ Set up your [AWS Integration](aws-integration.md)
-2. 👥 Configure [Team Collaboration](Catalog/Collaboration.md)
+1. 🏗️ Set up your [AWS Integration](CrossAccount.md)
+2. 👥 Configure [Team Collaboration](Catalog/Admin.md)
 3. 🔍 Learn [Advanced Search](walkthrough/working-with-elasticsearch.md)
 4. 📊 Explore [Data Visualization](Catalog/VisualizationDashboards.md)
 
@@ -143,9 +143,9 @@ Discover publicly available datasets:
 ## 🆘 Need Help?
 
 - 📖 **Documentation**: Browse the full [Quilt Documentation](/)
-- 💬 **Community**: Join our [Slack Community](https://quiltusers.slack.com/)
+- 💬 **Community**: Join our [Slack Community](https://slack.quilt.bio)
 - 🐛 **Issues**: Report bugs on [GitHub](https://github.com/quiltdata/quilt/issues)
-- 📧 **Support**: Contact [support@quiltdata.com](mailto:support@quiltdata.com)
+- 📧 **Support**: Contact [support@quilt.bio](mailto:support@quilt.bio)
 
 ---
 

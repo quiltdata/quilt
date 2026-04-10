@@ -5,6 +5,7 @@ import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
+import cfg from 'constants/config'
 
 import * as Bedrock from './Bedrock'
 import * as Context from './Context'
@@ -21,7 +22,8 @@ function usePassThru<T>(val: T) {
   return ref
 }
 
-export const DEFAULT_MODEL_ID = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+export const DEFAULT_MODEL_ID =
+  cfg.quratorDefaultModel || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
 
 function useModelIdOverride() {

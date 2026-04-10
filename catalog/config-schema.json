@@ -97,6 +97,10 @@
       "type": "boolean",
       "description": "Enable Qurator AI Assistant (powered by Amazon Bedrock)"
     },
+    "quratorDefaultModel": {
+      "type": "string",
+      "description": "Bedrock model ID for Qurator AI Assistant (overrides built-in default)"
+    },
     "stackVersion": {
       "type": "string",
       "description": "Stack release version"

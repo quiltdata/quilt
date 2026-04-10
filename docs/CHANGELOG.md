@@ -16,6 +16,14 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## 7.3.0 - 2026-04-07
+
+### Python API
+
+* [Added] Admin role and policy management APIs: `quilt3.admin.roles` (list/get/get-default/create/update/patch/delete/set-default) and `quilt3.admin.policies` (list/get/create/update/patch/delete); all lookup and mutation methods accept name/title in addition to ID ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin.ManagedRole` now exposes `policies` and `permissions` fields ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin` now exports `Policy`, `PolicySummary`, `Permission` (with `.read()` / `.read_write()` shorthand constructors), `BucketPermissionLevel` types and `RoleAssignedError`, `RoleSsoConfigConflictError`, `RoleTypeMismatchError` exceptions ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+
 ## 7.2.0 - 2026-01-28
 
 ### Python API
@@ -175,7 +183,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
 * [Fixed] Hide filters in a sidebar drawer on mobile ([#3801](https://github.com/quiltdata/quilt/pull/3801))
 * [Fixed] Fix copying selected text in code samples ([#3803](https://github.com/quiltdata/quilt/pull/3803))
-* [Fixed] Add current bucket as a succesor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
+* [Fixed] Add current bucket as a successor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))

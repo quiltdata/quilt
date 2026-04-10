@@ -36,6 +36,10 @@ Look for failed sign-ins and error codes:
 - **AADSTS50011 (Azure)**: Redirect URI mismatch.
 - **AADSTS50008 (Azure)**: Invalid token signature.
 - **AADSTS50105 (Azure)**: User is not assigned to the app.
+- **`access_denied — Identity Provider: Unknown` (Okta)**: Federation Broker Mode ("Enable immediate access") is enabled on the app. Disable it in the app settings and assign users directly.
+- **`redirect_uri` mismatch (Okta)**: The redirect URI in the app doesn't match. Note that wildcards only match one subdomain level (`*.example.com` does not match `app.dev.example.com`).
+- **"You are not allowed to access this app" (Okta)**: The user is not assigned to the app, or the authorization server's access policy has no rules. Check both the app Assignments tab and Security > API > Authorization Servers > default > Access Policies.
+- **"Unable to sign in with Okta" in the Quilt catalog**: The Okta login succeeded but the registry's token exchange failed. Check that `Refresh Token` is enabled under Grant type in the app's General settings, and that the authorization server's access policy has a rule granting tokens.
 - **403 or 400 errors (Google/Okta)**: Often indicate incorrect redirect URIs or token issues.
 
 ## Step 3: Inspect Browser Network Requests
