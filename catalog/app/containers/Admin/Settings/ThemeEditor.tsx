@@ -84,11 +84,13 @@ function InputColor({
 }
 
 const useInputFileStyles = M.makeStyles((t) => ({
-  root: {
+  root: {},
+  dropzone: {
     alignItems: 'center',
     display: 'flex',
     outline: `2px dashed ${t.palette.primary.light}`,
     padding: '2px',
+    cursor: 'pointer',
   },
   note: {
     flexGrow: 1,
@@ -106,12 +108,17 @@ const useInputFileStyles = M.makeStyles((t) => ({
     height: '50px',
     width: '50px',
   },
+  or: {
+    textAlign: 'center',
+    margin: t.spacing(1, 0),
+    color: t.palette.text.secondary,
+  },
 }))
 
 interface InputFileProps {
   input: {
     value: FileWithPath | string
-    onChange: (value: FileWithPath) => void
+    onChange: (value: FileWithPath | string) => void
   }
 }
 
@@ -131,19 +138,31 @@ function InputFile({ input: { value, onChange } }: InputFileProps) {
     if (!value || typeof value === 'string') return null
     return URL.createObjectURL(value)
   }, [value])
+  const isUrl = typeof value === 'string' && value.length > 0
   return (
-    <div className={classes.root} {...getRootProps()}>
-      <input {...getInputProps()} />
-      {!!value && typeof value === 'string' && (
-        <Logo src={value} height="50px" width="50px" />
-      )}
-      {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
-      {!value && (
-        <div className={classes.placeholder}>
-          <M.Icon>hide_image</M.Icon>
-        </div>
-      )}
-      <p className={classes.note}>Drop logo here</p>
+    <div className={classes.root}>
+      <div className={classes.dropzone} {...getRootProps()}>
+        <input {...getInputProps()} />
+        {isUrl && <Logo src={value} height="50px" width="50px" />}
+        {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
+        {!value && (
+          <div className={classes.placeholder}>
+            <M.Icon>hide_image</M.Icon>
+          </div>
+        )}
+        <p className={classes.note}>Drop logo here</p>
+      </div>
+      <div className={classes.or}>or</div>
+      <M.TextField
+        value={isUrl ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="https://example.com/logo.png"
+        label="Logo URL"
+        fullWidth
+        size="small"
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+      />
     </div>
   )
 }
