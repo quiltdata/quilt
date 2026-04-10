@@ -7,6 +7,18 @@ from typing import Annotated, Any, List, Literal, Optional, Union
 from pydantic import Field
 
 from .base_model import BaseModel
+from .enums import APIKeyStatus, BucketPermissionLevel
+
+
+class APIKeySelection(BaseModel):
+    id: str
+    name: str
+    fingerprint: str
+    created_at: datetime = Field(alias="createdAt")
+    expires_at: datetime = Field(alias="expiresAt")
+    last_used_at: Optional[datetime] = Field(alias="lastUsedAt")
+    status: APIKeyStatus
+    user_email: str = Field(alias="userEmail")
 
 
 class BucketConfigSelection(BaseModel):
@@ -37,10 +49,51 @@ class InvalidInputSelectionErrors(BaseModel):
     context: Optional[Any]
 
 
+class PermissionSelection(BaseModel):
+    bucket: "PermissionSelectionBucket"
+    level: BucketPermissionLevel
+
+
+class PermissionSelectionBucket(BaseModel):
+    name: str
+
+
+class PolicySummarySelection(BaseModel):
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: List["PolicySummarySelectionPermissions"]
+
+
+class PolicySummarySelectionPermissions(PermissionSelection):
+    pass
+
+
+class RoleBucketPermissionSelection(BaseModel):
+    bucket: "RoleBucketPermissionSelectionBucket"
+    level: BucketPermissionLevel
+
+
+class RoleBucketPermissionSelectionBucket(BaseModel):
+    name: str
+
+
 class ManagedRoleSelection(BaseModel):
+    typename__: str = Field(alias="__typename")
     id: str
     name: str
     arn: str
+    policies: List["ManagedRoleSelectionPolicies"]
+    permissions: List["ManagedRoleSelectionPermissions"]
+
+
+class ManagedRoleSelectionPolicies(PolicySummarySelection):
+    pass
+
+
+class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
+    pass
 
 
 class OperationErrorSelection(BaseModel):
@@ -49,7 +102,25 @@ class OperationErrorSelection(BaseModel):
     context: Optional[Any]
 
 
+class PolicySelection(BaseModel):
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: List["PolicySelectionPermissions"]
+    roles: List["PolicySelectionRoles"]
+
+
+class PolicySelectionPermissions(PermissionSelection):
+    pass
+
+
+class PolicySelectionRoles(ManagedRoleSelection):
+    pass
+
+
 class UnmanagedRoleSelection(BaseModel):
+    typename__: str = Field(alias="__typename")
     id: str
     name: str
     arn: str
@@ -107,10 +178,15 @@ class SsoConfigSelectionUploader(UserSelection):
     pass
 
 
+APIKeySelection.model_rebuild()
 BucketConfigSelection.model_rebuild()
 InvalidInputSelection.model_rebuild()
+PermissionSelection.model_rebuild()
+PolicySummarySelection.model_rebuild()
+RoleBucketPermissionSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
+PolicySelection.model_rebuild()
 UnmanagedRoleSelection.model_rebuild()
 UserSelection.model_rebuild()
 SsoConfigSelection.model_rebuild()

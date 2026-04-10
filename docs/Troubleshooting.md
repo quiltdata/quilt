@@ -93,7 +93,7 @@ On rare occasions, Quilt stack deployment updates might fail. This can happen
 for several reasons. To expedite resolution of stack deployment issues, it's
 helpful to have the following data and output from the following [AWS
 CLI](https://aws.amazon.com/cli/) commands when contacting
-<support@quiltdata.io>.
+<support@quilt.bio>.
 
 1. Quilt stack outputs:
     <!--pytest.mark.skip-->

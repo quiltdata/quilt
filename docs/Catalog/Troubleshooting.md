@@ -37,7 +37,7 @@ minutes.
 However, if you have more than 1 million objects in the bucket, re-indexing will
 take much longer and potentially become expensive.  In that case, please try the
 below steps. If those do not work, please contact [Quilt
-support](mailto:support@quiltdata.io).
+support](mailto:support@quilt.bio).
 
 ### Inspect the Elasticsearch domain
 
@@ -61,7 +61,7 @@ OpenSearch or `aws opensearch list-domain-names`. Note the domain name
    sections
 
 1. Send the JSON output file and screenshots to [Quilt
-   support](mailto:support@quiltdata.io).
+   support](mailto:support@quilt.bio).
 
 > As a rule you should **not** reconfigure your Elasticsearch domain directly as
 > this will result in stack drift that will be lost the next time you update

@@ -38,7 +38,6 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
   const dst = React.useMemo(() => ({ bucket: handle.bucket }), [handle.bucket])
   const packageDirectoryDialog = useCreateDialog({
-    currentBucketCanBeSuccessor: true,
     delayHashing: true,
     disableStateDisplay: true,
     dst,

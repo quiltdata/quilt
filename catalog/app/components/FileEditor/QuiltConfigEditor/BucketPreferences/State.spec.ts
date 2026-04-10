@@ -121,6 +121,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
   actions:
     copyPackage: false
     createPackage: false
+    deleteObject: false
     deleteRevision: true
     downloadObject: false
     downloadPackage: false
@@ -230,6 +231,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
   actions:
     copyPackage: false
     createPackage: false
+    deleteObject: false
     deleteRevision: true
     downloadObject: false
     downloadPackage: false
@@ -284,6 +286,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       ).toStrictEqual({
         'ui.actions.copyPackage': false,
         'ui.actions.createPackage': false,
+        'ui.actions.deleteObject': false,
         'ui.actions.deleteRevision': true,
         'ui.actions.downloadObject': false,
         'ui.actions.downloadPackage': false,

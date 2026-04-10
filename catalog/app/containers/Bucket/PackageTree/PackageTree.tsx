@@ -19,6 +19,7 @@ import type * as Routes from 'constants/routes'
 import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
@@ -762,6 +763,43 @@ function FileDisplay({
     [packageHandle, file.path],
   )
 
+  // Ensure the file bucket's region is cached for correct presigned URLs.
+  // For same-bucket files this is instant (already cached by BucketLayout).
+  const fileBucketExistence = useBucketExistence(handle.bucket)
+
+  const bucketNotReady = fileBucketExistence.case({
+    Ok: () => null,
+    Err: (e: $TSFixMe) => {
+      if (e instanceof errors.AccessDenied) {
+        return (
+          <FileDisplayError
+            headline="Access Denied"
+            detail={`You don't have access to bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      if (e instanceof errors.NoSuchBucket) {
+        return (
+          <FileDisplayError
+            headline="Bucket Not Found"
+            detail={`Could not find bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      return (
+        <FileDisplayError
+          headline="Error"
+          detail={`Could not access bucket "${handle.bucket}"`}
+          crumbs={crumbs}
+        />
+      )
+    },
+    _: () => <FileDisplaySkeleton crumbs={crumbs} />,
+  })
+  if (bucketNotReady) return bucketNotReady
+
   return (
     // @ts-expect-error
     <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
@@ -1132,43 +1170,41 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const {
-    fetching,
-    error,
-    data: revisionData,
-  } = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
   const displayError = React.useMemo(() => errors.displayError(), [])
 
-  if (fetching) return <Placeholder color="text.secondary" />
-  if (error) return <>{displayError(error)}</>
-
-  if (!revisionData?.package) {
-    return (
-      <Message headline="No Such Package">
-        Package named{' '}
-        <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box> could
-        not be found in this bucket.
-      </Message>
-    )
-  }
-
-  return (
-    <Selection.Provider>
-      <PackageTree
-        {...{
-          bucket,
-          name,
-          hashOrTag,
-          revision: revisionData.package.revision,
-          path,
-          mode,
-          resolvedFrom,
-          revisionListQuery,
-        }}
-      />
-    </Selection.Provider>
-  )
+  return GQL.fold(revisionQuery, {
+    fetching: () => <Placeholder color="text.secondary" />,
+    error: (error) => <>{displayError(error)}</>,
+    data: (revisionData) => {
+      if (!revisionData.package) {
+        return (
+          <Message headline="No Such Package">
+            Package named{' '}
+            <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box>{' '}
+            could not be found in this bucket.
+          </Message>
+        )
+      }
+      return (
+        <Selection.Provider>
+          <PackageTree
+            {...{
+              bucket,
+              name,
+              hashOrTag,
+              revision: revisionData.package.revision,
+              path,
+              mode,
+              resolvedFrom,
+              revisionListQuery,
+            }}
+          />
+        </Selection.Provider>
+      )
+    },
+  })
 }
 
 interface PackageTreeRouteParams {

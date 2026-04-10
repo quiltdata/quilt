@@ -6,7 +6,7 @@ requires-python = "~=3.13.0"
 dependencies = [
   "numpy~=2.3",
   "pdf2image>=1.13.1,<2",
-  "pillow~=11.3",
+  "pillow~=12.1",
   "python-pptx~=1.0.0",
   "requests>=2.26.0,<3",
   "t4_lambda_shared @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared",

@@ -18,6 +18,17 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Migrate `package-lock.json` from lockfileVersion 2 to 3 ([#4812](https://github.com/quiltdata/quilt/pull/4812))
+- [Changed] Replace `jsonpath` with `jsonpath-plus` for JSONPath evaluation ([#4811](https://github.com/quiltdata/quilt/pull/4811))
+- [Fixed] Fix "Error resolving revision" flash when navigating to a just-created package ([#4778](https://github.com/quiltdata/quilt/pull/4778))
+- [Changed] Qurator: Switch to Claude Sonnet 4.5, add `quratorDefaultModel` config field for per-stack model override ([#4764](https://github.com/quiltdata/quilt/pull/4764))
+- [Fixed] Fix crash when deleting a role on the admin page ([#4751](https://github.com/quiltdata/quilt/pull/4751))
+- [Fixed] Fix presigned S3 URLs using wrong region for cross-bucket package files, causing download and preview failures ([#4742](https://github.com/quiltdata/quilt/pull/4742))
+- [Added] Copy S3 URI button to download buttons in the S3 browser ([#4741](https://github.com/quiltdata/quilt/pull/4741))
+- [Added] Connect OAuth authorize UI at `/connect/authorize` for MCP integration ([#4740](https://github.com/quiltdata/quilt/pull/4740))
+- [Fixed] Toolbar popover closing on click inside popup content, preventing text selection in code samples ([#4739](https://github.com/quiltdata/quilt/pull/4739))
+- [Changed] Package creation from S3 files now includes current bucket as default destination when no workflow config exists; cross-bucket push strictly respects workflow successors configuration ([#4734](https://github.com/quiltdata/quilt/pull/4734))
+- [Fixed] Add missing `deleteObject` property to GUI config editor to enable/disable delete buttons for files and directories ([#4692](https://github.com/quiltdata/quilt/pull/4692))
 - [Changed] Hide file and directory delete buttons in Bucket tab by default; enable with `ui.actions.deleteObject` ([#4689](https://github.com/quiltdata/quilt/pull/4689))
 - [Added] Display detailed permission error messages when bucket add/update fails due to insufficient S3 permissions ([#4670](https://github.com/quiltdata/quilt/pull/4670))
 - [Added] Support `prefixes` field in bucket configuration for prefix-scoped bucket access ([#4670](https://github.com/quiltdata/quilt/pull/4670))

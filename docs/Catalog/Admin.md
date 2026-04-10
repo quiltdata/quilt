@@ -30,7 +30,7 @@ You can edit existing users' attributes by clicking on underlined cells.
 
 ![](../imgs/admin-users-invite.png)
 
-Users can switch between assigned roles via the drodpwon menu in the navbar
+Users can switch between assigned roles via the dropdown menu in the navbar
 (if assigned more than one).
 
 ![](../imgs/switch-role-menu.png)
@@ -95,7 +95,7 @@ By default, when you add a bucket to the Quilt stack one of two things will happ
 
 If either of the above conditions fails, Quilt will not add the bucket in question.
 
-See [S3 Events, EventBridge](EventBridge.md) for more.
+See [S3 Events, EventBridge](../EventBridge.md) for more.
 
 ## Settings
 

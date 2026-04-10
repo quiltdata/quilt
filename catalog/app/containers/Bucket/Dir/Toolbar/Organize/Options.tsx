@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { CloseOnClick } from 'components/Buttons'
 import * as Format from 'utils/format'
 import assertNever from 'utils/assertNever'
 
@@ -77,7 +78,7 @@ export default function OrganizeOptions({ features }: OrganizeOptionsProps) {
   }, [bookmarkStatus])
 
   return (
-    <>
+    <CloseOnClick>
       <M.ListSubheader inset component="div" disableSticky>
         <Format.Plural
           value={selectionCount}
@@ -121,6 +122,6 @@ export default function OrganizeOptions({ features }: OrganizeOptionsProps) {
           </M.List>
         </>
       )}
-    </>
+    </CloseOnClick>
   )
 }

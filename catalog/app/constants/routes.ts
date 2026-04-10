@@ -50,6 +50,9 @@ export const code = route('/code')
 
 export const activationError = route('/activation_error')
 
+// Connect OAuth
+export const connectAuthorize = route('/connect/authorize')
+
 // Profile
 export const profile = route('/profile')
 

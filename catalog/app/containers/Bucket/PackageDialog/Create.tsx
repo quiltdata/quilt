@@ -132,7 +132,6 @@ const useStyles = M.makeStyles((t) => ({
 
 interface PackageCreationFormProps {
   close: () => void
-  currentBucketCanBeSuccessor: boolean
   disableStateDisplay: boolean
   delayHashing: boolean
   state: PDModel.State
@@ -145,7 +144,6 @@ interface PackageCreationFormProps {
 
 function PackageCreationForm({
   close,
-  currentBucketCanBeSuccessor,
   delayHashing,
   state: {
     create,
@@ -196,7 +194,6 @@ function PackageCreationForm({
         {ui.title || 'Create package'} in{' '}
         <Successors.Dropdown
           bucket={dst.bucket || ''}
-          currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           successor={successor}
           onChange={(s) => setDst((d) => ({ ...d, bucket: s.slug }))}
         />{' '}
@@ -274,7 +271,6 @@ interface PackageCreationDialogUIOptions {
 
 interface RenderDialogProps {
   close: () => void
-  currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
   dialogStatus: PDModel.DialogStatus
@@ -284,7 +280,6 @@ interface RenderDialogProps {
 
 function RenderDialog({
   close,
-  currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
   dialogStatus,
@@ -331,7 +326,6 @@ function RenderDialog({
       return (
         <PackageCreationForm
           close={close}
-          currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           delayHashing={delayHashing}
           disableStateDisplay={disableStateDisplay}
           state={formState}
@@ -344,7 +338,6 @@ function RenderDialog({
 }
 
 interface UseCreateDialogOptions {
-  currentBucketCanBeSuccessor?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
   dst: PDModel.PackageDst
@@ -361,7 +354,6 @@ interface UseCreateDialogOptions {
 export function useCreateDialog({
   disableStateDisplay = false,
   delayHashing = false,
-  currentBucketCanBeSuccessor = false,
   dst: initialDst,
   src: initialSrc,
   onClose,
@@ -454,7 +446,6 @@ export function useCreateDialog({
       {!exited && (
         <RenderDialog
           close={close}
-          currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
           disableStateDisplay={disableStateDisplay}
           delayHashing={delayHashing}
           dialogStatus={dialogStatus}

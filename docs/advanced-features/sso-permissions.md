@@ -28,6 +28,10 @@ which includes descriptions of all the fields.
 > Warning: In schemas don't forget to add claims you want to check to `required`,
 because otherwise the schema will match any ID token even if these claims are missing.
 
+> Note: Mappings are evaluated in order, and **only the first matching
+mapping is applied**. To assign multiple roles to a user, include all roles
+in the `roles` array of a single mapping.
+
 ### Example
 
 ```yaml

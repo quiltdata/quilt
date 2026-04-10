@@ -4,8 +4,9 @@ from unittest import mock
 
 import pytest
 
-from quilt3 import admin
-from quilt3.admin import _graphql_client
+from quilt3 import _graphql_client, admin
+
+from .utils import as_dataclass_kwargs
 
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -18,6 +19,59 @@ MANAGED_ROLE = {
     "id": "b1bab604-98fd-4b46-a20b-958cf2541c91",
     "name": "ManagedRole",
     "arn": "arn:aws:iam::000000000000:role/ManagedRole",
+    "policies": [
+        {
+            "id": "be8f3af1-8f5b-463a-89ff-373769e6d0d3",
+            "title": "ManagedPolicy",
+            "arn": "arn:aws:iam::000000000000:policy/ManagedPolicy",
+            "managed": True,
+            "permissions": [{"bucket": {"name": "example-bucket"}, "level": "READ"}],
+        }
+    ],
+    "permissions": [{"bucket": {"name": "example-bucket"}, "level": "READ"}],
+}
+PERMISSION = {
+    "bucket": {
+        "name": "example-bucket",
+    },
+    "level": "READ",
+}
+EXPECTED_PERMISSION = admin.Permission(bucket="example-bucket", level=admin.BucketPermissionLevel.READ)
+EXPECTED_POLICY_SUMMARY = admin.PolicySummary(
+    id="be8f3af1-8f5b-463a-89ff-373769e6d0d3",
+    title="ManagedPolicy",
+    arn="arn:aws:iam::000000000000:policy/ManagedPolicy",
+    managed=True,
+    permissions=[EXPECTED_PERMISSION],
+)
+EXPECTED_MANAGED_ROLE = admin.ManagedRole(
+    id="b1bab604-98fd-4b46-a20b-958cf2541c91",
+    name="ManagedRole",
+    arn="arn:aws:iam::000000000000:role/ManagedRole",
+    policies=[EXPECTED_POLICY_SUMMARY],
+    permissions=[EXPECTED_PERMISSION],
+    typename__="ManagedRole",
+)
+EXPECTED_UNMANAGED_ROLE = admin.UnmanagedRole(
+    id="d7d15bef-c482-4086-ae6b-d0372b6145d2",
+    name="UnmanagedRole",
+    arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+    typename__="UnmanagedRole",
+)
+POLICY = {
+    "__typename": "Policy",
+    "id": "be8f3af1-8f5b-463a-89ff-373769e6d0d3",
+    "title": "ManagedPolicy",
+    "arn": "arn:aws:iam::000000000000:policy/ManagedPolicy",
+    "managed": True,
+    "permissions": [PERMISSION],
+    "roles": [MANAGED_ROLE],
+}
+UNMANAGED_POLICY = {
+    **POLICY,
+    "title": "UnmanagedPolicy",
+    "arn": "arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+    "managed": False,
 }
 USER = {
     "__typename": "User",
@@ -32,12 +86,29 @@ USER = {
     "role": UNMANAGED_ROLE,
     "extraRoles": [MANAGED_ROLE],
 }
+EXPECTED_USER = admin.User(
+    name="test",
+    email="test@example.com",
+    date_joined=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    last_login=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    is_active=True,
+    is_admin=False,
+    is_sso_only=False,
+    is_service=False,
+    role=EXPECTED_UNMANAGED_ROLE,
+    extra_roles=[EXPECTED_MANAGED_ROLE],
+)
 SSO_CONFIG = {
     "__typename": "SsoConfig",
     "text": "",
     "timestamp": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
     "uploader": USER,
 }
+EXPECTED_SSO_CONFIG = admin.SSOConfig(
+    text="",
+    timestamp=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    uploader=EXPECTED_USER,
+)
 TABULATOR_TABLE = {
     "name": "table",
     "config": "config",
@@ -67,27 +138,123 @@ MUTATION_ERRORS = (
         admin.Quilt3AdminError,
     ),
 )
+
+# API key operations don't return OperationError
+API_KEY_MUTATION_ERRORS = (MUTATION_ERRORS[0],)
 USER_MUTATION_ERRORS = (
     *MUTATION_ERRORS,
     (None, admin.UserNotFoundError),
 )
-
-
-def _camel_to_snake(name: str) -> str:
-    return "".join("_" + c.lower() if c.isupper() else c for c in name).lstrip("_")
-
-
-def _as_dataclass_kwargs(data: dict) -> dict:
-    return {
-        "typename__" if k == "__typename" else _camel_to_snake(k): (
-            _as_dataclass_kwargs(v)
-            if isinstance(v, dict)
-            else [_as_dataclass_kwargs(x) if isinstance(x, dict) else x for x in v]
-            if isinstance(v, list)
-            else v
-        )
-        for k, v in data.items()
-    }
+ROLE_CREATE_ERRORS = (
+    ({"__typename": "RoleNameReserved"}, admin.RoleNameReservedError),
+    ({"__typename": "RoleNameExists"}, admin.RoleNameExistsError),
+    ({"__typename": "RoleNameInvalid"}, admin.RoleNameInvalidError),
+    ({"__typename": "RoleHasTooManyPoliciesToAttach"}, admin.RoleTooManyPoliciesError),
+)
+ROLE_UPDATE_ERRORS = (
+    *ROLE_CREATE_ERRORS,
+    ({"__typename": "RoleIsManaged"}, admin.RoleTypeMismatchError),
+    ({"__typename": "RoleIsUnmanaged"}, admin.RoleTypeMismatchError),
+    ({"__typename": "RoleNameUsedBySsoConfig"}, admin.RoleSsoConfigConflictError),
+)
+ROLE_DELETE_ERRORS = (
+    ({"__typename": "RoleDoesNotExist"}, admin.RoleNotFoundError),
+    ({"__typename": "RoleNameReserved"}, admin.RoleNameReservedError),
+    ({"__typename": "RoleAssigned"}, admin.RoleAssignedError),
+    ({"__typename": "RoleNameUsedBySsoConfig"}, admin.RoleSsoConfigConflictError),
+)
+ROLE_SET_DEFAULT_ERRORS = (
+    ({"__typename": "RoleDoesNotExist"}, admin.RoleNotFoundError),
+    ({"__typename": "SsoConfigConflict"}, admin.RoleSsoConfigConflictError),
+)
+POLICY_INVALID_INPUT_ERRORS = (
+    (
+        {
+            "__typename": "InvalidInput",
+            "errors": [
+                {
+                    "path": "id",
+                    "message": "Specified policy does not exist",
+                    "name": "PolicyDoesNotExist",
+                    "context": None,
+                }
+            ],
+        },
+        admin.PolicyNotFoundError,
+    ),
+    (
+        {
+            "__typename": "InvalidInput",
+            "errors": [
+                {
+                    "path": "input.title",
+                    "message": "duplicate title",
+                    "name": "PolicyTitleConflict",
+                    "context": None,
+                }
+            ],
+        },
+        admin.PolicyTitleExistsError,
+    ),
+    (
+        {
+            "__typename": "InvalidInput",
+            "errors": [
+                {
+                    "path": "input.arn",
+                    "message": "duplicate arn",
+                    "name": "PolicyArnConflict",
+                    "context": None,
+                }
+            ],
+        },
+        admin.PolicyArnExistsError,
+    ),
+    (
+        {
+            "__typename": "InvalidInput",
+            "errors": [
+                {
+                    "path": "input.roles",
+                    "message": "Role can have at most 10 policies",
+                    "name": "RoleHasTooManyPoliciesToAttach",
+                    "context": {"max_policies": 10},
+                }
+            ],
+        },
+        admin.RoleTooManyPoliciesError,
+    ),
+    (
+        {
+            "__typename": "InvalidInput",
+            "errors": [
+                {
+                    "path": "input.arn",
+                    "message": "Policy ARN is invalid",
+                    "name": "PolicyArnInvalid",
+                    "context": None,
+                }
+            ],
+        },
+        admin.InvalidInputError,
+    ),
+)
+POLICY_CREATE_UPDATE_ERRORS = (
+    *POLICY_INVALID_INPUT_ERRORS,
+    (
+        {
+            "__typename": "OperationError",
+            "message": "Specified policy is assigned to a role and therefore cannot be deleted",
+            "name": "PolicyAssigned",
+            "context": {},
+        },
+        admin.OperationError,
+    ),
+)
+POLICY_DELETE_ERRORS = (
+    POLICY_INVALID_INPUT_ERRORS[0],
+    POLICY_CREATE_UPDATE_ERRORS[-1],
+)
 
 
 def _make_nested_dict(path: str, value) -> dict:
@@ -100,28 +267,530 @@ def _make_nested_dict(path: str, value) -> dict:
 @contextlib.contextmanager
 def mock_client(data, operation_name, variables=None):
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
-        with mock.patch(
-            "quilt3.admin._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE
-        ) as execute_mock:
-            with mock.patch("quilt3.admin._graphql_client.Client.get_data", return_value=data) as get_data_mock:
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
+            with mock.patch("quilt3._graphql_client.Client.get_data", return_value=data) as get_data_mock:
                 yield
 
     execute_mock.assert_called_once_with(query=mock.ANY, operation_name=operation_name, variables=variables or {})
     get_data_mock.assert_called_once_with(mock.sentinel.RESPONSE)
 
 
+@contextlib.contextmanager
+def mock_client_multi(*calls):
+    """Mock multiple sequential GraphQL calls. Each call is (data, operation_name, variables)."""
+    responses = [c[0] for c in calls]
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
+            with mock.patch("quilt3._graphql_client.Client.get_data", side_effect=responses):
+                yield
+
+    assert execute_mock.call_count == len(calls)
+    for i, (_, op_name, *rest) in enumerate(calls):
+        variables = rest[0] if rest else {}
+        execute_mock.assert_any_call(query=mock.ANY, operation_name=op_name, variables=variables)
+
+
 def test_get_roles():
     with mock_client({"roles": [UNMANAGED_ROLE, MANAGED_ROLE]}, "rolesList"):
         assert admin.roles.list() == [
-            admin.UnmanagedRole(**_as_dataclass_kwargs(UNMANAGED_ROLE)),
-            admin.ManagedRole(**_as_dataclass_kwargs(MANAGED_ROLE)),
+            EXPECTED_UNMANAGED_ROLE,
+            EXPECTED_MANAGED_ROLE,
         ]
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (MANAGED_ROLE, EXPECTED_MANAGED_ROLE),
+        (UNMANAGED_ROLE, EXPECTED_UNMANAGED_ROLE),
+        (None, None),
+    ],
+)
+def test_get_default_role(data, result):
+    with mock_client({"default_role": data}, "defaultRoleGet"):
+        assert admin.roles.get_default() == result
+
+
+@pytest.mark.parametrize(
+    "role_data,expected",
+    [
+        (MANAGED_ROLE, EXPECTED_MANAGED_ROLE),
+        (UNMANAGED_ROLE, EXPECTED_UNMANAGED_ROLE),
+    ],
+)
+def test_get_role_by_id(role_data, expected):
+    with mock_client({"role": role_data}, "roleGet", variables={"id": role_data["id"]}):
+        assert admin.roles.get(role_data["id"]) == expected
+
+
+def test_get_role_by_name():
+    with mock_client_multi(
+        ({"role": None}, "roleGet", {"id": "ManagedRole"}),
+        ({"roles": [MANAGED_ROLE]}, "rolesList"),
+    ):
+        assert admin.roles.get("ManagedRole") == EXPECTED_MANAGED_ROLE
+
+
+def test_get_role_not_found():
+    with mock_client_multi(
+        ({"role": None}, "roleGet", {"id": "nonexistent"}),
+        ({"roles": []}, "rolesList"),
+    ):
+        assert admin.roles.get("nonexistent") is None
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (
+            {"__typename": "RoleCreateSuccess", "role": MANAGED_ROLE},
+            EXPECTED_MANAGED_ROLE,
+        ),
+        *ROLE_CREATE_ERRORS,
+    ],
+)
+def test_create_managed_role(data, result):
+    with mock_client(
+        {"role_create_managed": data},
+        "roleCreateManaged",
+        variables={"input": _graphql_client.ManagedRoleInput(name="ManagedRole", policies=[])},
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.roles.create_managed("ManagedRole", [])
+        else:
+            assert admin.roles.create_managed("ManagedRole", []) == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (
+            {"__typename": "RoleCreateSuccess", "role": UNMANAGED_ROLE},
+            EXPECTED_UNMANAGED_ROLE,
+        ),
+        *ROLE_CREATE_ERRORS,
+    ],
+)
+def test_create_unmanaged_role(data, result):
+    with mock_client(
+        {"role_create_unmanaged": data},
+        "roleCreateUnmanaged",
+        variables={
+            "input": _graphql_client.UnmanagedRoleInput(
+                name="UnmanagedRole",
+                arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+            )
+        },
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.roles.create_unmanaged("UnmanagedRole", "arn:aws:iam::000000000000:role/UnmanagedRole")
+        else:
+            assert (
+                admin.roles.create_unmanaged("UnmanagedRole", "arn:aws:iam::000000000000:role/UnmanagedRole") == result
+            )
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (
+            {"__typename": "RoleUpdateSuccess", "role": MANAGED_ROLE},
+            EXPECTED_MANAGED_ROLE,
+        ),
+        *ROLE_UPDATE_ERRORS,
+    ],
+)
+def test_update_managed_role(data, result):
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        (
+            {"role_update_managed": data},
+            "roleUpdateManaged",
+            {
+                "id": MANAGED_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(name="ManagedRole", policies=[]),
+            },
+        ),
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.roles.update_managed(MANAGED_ROLE["id"], name="ManagedRole", policies=[])
+        else:
+            assert admin.roles.update_managed(MANAGED_ROLE["id"], name="ManagedRole", policies=[]) == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (
+            {"__typename": "RoleUpdateSuccess", "role": UNMANAGED_ROLE},
+            EXPECTED_UNMANAGED_ROLE,
+        ),
+        *ROLE_UPDATE_ERRORS,
+    ],
+)
+def test_update_unmanaged_role(data, result):
+    with mock_client_multi(
+        ({"role": UNMANAGED_ROLE}, "roleGet", {"id": UNMANAGED_ROLE["id"]}),
+        (
+            {"role_update_unmanaged": data},
+            "roleUpdateUnmanaged",
+            {
+                "id": UNMANAGED_ROLE["id"],
+                "input": _graphql_client.UnmanagedRoleInput(
+                    name="UnmanagedRole",
+                    arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+                ),
+            },
+        ),
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.roles.update_unmanaged(
+                    UNMANAGED_ROLE["id"],
+                    name="UnmanagedRole",
+                    arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+                )
+        else:
+            assert (
+                admin.roles.update_unmanaged(
+                    UNMANAGED_ROLE["id"],
+                    name="UnmanagedRole",
+                    arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+                )
+                == result
+            )
+
+
+def test_delete_role_success():
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        ({"role_delete": {"__typename": "RoleDeleteSuccess"}}, "roleDelete", {"id": MANAGED_ROLE["id"]}),
+    ):
+        assert admin.roles.delete(MANAGED_ROLE["id"]) is None
+
+
+@pytest.mark.parametrize("data,error_type", ROLE_DELETE_ERRORS)
+def test_delete_role_errors(data, error_type):
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        ({"role_delete": data}, "roleDelete", {"id": MANAGED_ROLE["id"]}),
+    ):
+        with pytest.raises(error_type):
+            admin.roles.delete(MANAGED_ROLE["id"])
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (
+            {"__typename": "RoleSetDefaultSuccess", "role": MANAGED_ROLE},
+            EXPECTED_MANAGED_ROLE,
+        ),
+        *ROLE_SET_DEFAULT_ERRORS,
+    ],
+)
+def test_set_default_role(data, result):
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        ({"role_set_default": data}, "roleSetDefault", {"id": MANAGED_ROLE["id"]}),
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.roles.set_default(MANAGED_ROLE["id"])
+        else:
+            assert admin.roles.set_default(MANAGED_ROLE["id"]) == result
+
+
+def test_patch_managed_role():
+    updated = {**MANAGED_ROLE, "name": "NewName"}
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        (
+            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": updated}},
+            "roleUpdateManaged",
+            {
+                "id": MANAGED_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(
+                    name="NewName",
+                    policies=[MANAGED_ROLE["policies"][0]["id"]],
+                ),
+            },
+        ),
+    ):
+        result = admin.roles.patch_managed(MANAGED_ROLE["id"], name="NewName")
+        assert result.name == "NewName"
+
+
+def test_patch_managed_role_type_mismatch():
+    with mock_client({"role": UNMANAGED_ROLE}, "roleGet", variables={"id": UNMANAGED_ROLE["id"]}):
+        with pytest.raises(admin.RoleTypeMismatchError):
+            admin.roles.patch_managed(UNMANAGED_ROLE["id"], name="NewName")
+
+
+def test_patch_unmanaged_role():
+    updated = {**UNMANAGED_ROLE, "name": "NewName"}
+    with mock_client_multi(
+        ({"role": UNMANAGED_ROLE}, "roleGet", {"id": UNMANAGED_ROLE["id"]}),
+        (
+            {"role_update_unmanaged": {"__typename": "RoleUpdateSuccess", "role": updated}},
+            "roleUpdateUnmanaged",
+            {
+                "id": UNMANAGED_ROLE["id"],
+                "input": _graphql_client.UnmanagedRoleInput(
+                    name="NewName",
+                    arn=UNMANAGED_ROLE["arn"],
+                ),
+            },
+        ),
+    ):
+        result = admin.roles.patch_unmanaged(UNMANAGED_ROLE["id"], name="NewName")
+        assert result.name == "NewName"
+
+
+EXPECTED_POLICY = admin.Policy(
+    id=POLICY["id"],
+    title=POLICY["title"],
+    arn=POLICY["arn"],
+    managed=POLICY["managed"],
+    permissions=[EXPECTED_PERMISSION],
+    roles=[EXPECTED_MANAGED_ROLE],
+)
+EXPECTED_UNMANAGED_POLICY = admin.Policy(
+    id=UNMANAGED_POLICY["id"],
+    title=UNMANAGED_POLICY["title"],
+    arn=UNMANAGED_POLICY["arn"],
+    managed=UNMANAGED_POLICY["managed"],
+    permissions=[EXPECTED_PERMISSION],
+    roles=[EXPECTED_MANAGED_ROLE],
+)
+
+
+def test_get_policy_by_id():
+    with mock_client({"policy": POLICY}, "policyGet", variables={"id": POLICY["id"]}):
+        assert admin.policies.get(POLICY["id"]) == EXPECTED_POLICY
+
+
+def test_get_policy_by_title():
+    with mock_client_multi(
+        ({"policy": None}, "policyGet", {"id": "ManagedPolicy"}),
+        ({"policies": [POLICY]}, "policiesList"),
+    ):
+        assert admin.policies.get("ManagedPolicy") == EXPECTED_POLICY
+
+
+def test_get_policy_not_found():
+    with mock_client_multi(
+        ({"policy": None}, "policyGet", {"id": "nonexistent"}),
+        ({"policies": []}, "policiesList"),
+    ):
+        assert admin.policies.get("nonexistent") is None
+
+
+def test_list_policies():
+    with mock_client({"policies": [POLICY]}, "policiesList"):
+        assert admin.policies.list() == [EXPECTED_POLICY]
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (POLICY, EXPECTED_POLICY),
+        *POLICY_CREATE_UPDATE_ERRORS,
+    ],
+)
+def test_create_managed_policy(data, result):
+    permission = admin.Permission(bucket="example-bucket", level=admin.BucketPermissionLevel.READ)
+    with mock_client(
+        {"policy_create_managed": data},
+        "policyCreateManaged",
+        variables={
+            "input": _graphql_client.ManagedPolicyInput(
+                title="ManagedPolicy",
+                permissions=[_graphql_client.PermissionInput(bucket="example-bucket", level="READ")],
+                roles=[MANAGED_ROLE["id"]],
+            )
+        },
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.policies.create_managed("ManagedPolicy", permissions=[permission], roles=[MANAGED_ROLE["id"]])
+        else:
+            assert (
+                admin.policies.create_managed("ManagedPolicy", permissions=[permission], roles=[MANAGED_ROLE["id"]])
+                == result
+            )
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (UNMANAGED_POLICY, EXPECTED_UNMANAGED_POLICY),
+        *POLICY_CREATE_UPDATE_ERRORS,
+    ],
+)
+def test_create_unmanaged_policy(data, result):
+    with mock_client(
+        {"policy_create_unmanaged": data},
+        "policyCreateUnmanaged",
+        variables={
+            "input": _graphql_client.UnmanagedPolicyInput(
+                title="UnmanagedPolicy",
+                arn="arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+                roles=[MANAGED_ROLE["id"]],
+            )
+        },
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.policies.create_unmanaged(
+                    "UnmanagedPolicy",
+                    arn="arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+                    roles=[MANAGED_ROLE["id"]],
+                )
+        else:
+            assert (
+                admin.policies.create_unmanaged(
+                    "UnmanagedPolicy",
+                    arn="arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+                    roles=[MANAGED_ROLE["id"]],
+                )
+                == result
+            )
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (POLICY, EXPECTED_POLICY),
+        *POLICY_CREATE_UPDATE_ERRORS,
+    ],
+)
+def test_update_managed_policy(data, result):
+    permission = admin.Permission(bucket="example-bucket", level=admin.BucketPermissionLevel.READ)
+    with mock_client_multi(
+        ({"policy": POLICY}, "policyGet", {"id": POLICY["id"]}),
+        (
+            {"policy_update_managed": data},
+            "policyUpdateManaged",
+            {
+                "id": POLICY["id"],
+                "input": _graphql_client.ManagedPolicyInput(
+                    title="ManagedPolicy",
+                    permissions=[_graphql_client.PermissionInput(bucket="example-bucket", level="READ")],
+                    roles=[MANAGED_ROLE["id"]],
+                ),
+            },
+        ),
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.policies.update_managed(
+                    POLICY["id"], title="ManagedPolicy", permissions=[permission], roles=[MANAGED_ROLE["id"]]
+                )
+        else:
+            assert (
+                admin.policies.update_managed(
+                    POLICY["id"], title="ManagedPolicy", permissions=[permission], roles=[MANAGED_ROLE["id"]]
+                )
+                == result
+            )
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (UNMANAGED_POLICY, EXPECTED_UNMANAGED_POLICY),
+        *POLICY_CREATE_UPDATE_ERRORS,
+    ],
+)
+def test_update_unmanaged_policy(data, result):
+    with mock_client_multi(
+        ({"policy": POLICY}, "policyGet", {"id": POLICY["id"]}),
+        (
+            {"policy_update_unmanaged": data},
+            "policyUpdateUnmanaged",
+            {
+                "id": POLICY["id"],
+                "input": _graphql_client.UnmanagedPolicyInput(
+                    title="UnmanagedPolicy",
+                    arn="arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+                    roles=[MANAGED_ROLE["id"]],
+                ),
+            },
+        ),
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.policies.update_unmanaged(
+                    POLICY["id"],
+                    title="UnmanagedPolicy",
+                    arn="arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+                    roles=[MANAGED_ROLE["id"]],
+                )
+        else:
+            assert (
+                admin.policies.update_unmanaged(
+                    POLICY["id"],
+                    title="UnmanagedPolicy",
+                    arn="arn:aws:iam::000000000000:policy/UnmanagedPolicy",
+                    roles=[MANAGED_ROLE["id"]],
+                )
+                == result
+            )
+
+
+def test_delete_policy_success():
+    with mock_client_multi(
+        ({"policy": POLICY}, "policyGet", {"id": POLICY["id"]}),
+        ({"policy_delete": {"__typename": "Ok"}}, "policyDelete", {"id": POLICY["id"]}),
+    ):
+        assert admin.policies.delete(POLICY["id"]) is None
+
+
+@pytest.mark.parametrize("data,error_type", POLICY_DELETE_ERRORS)
+def test_delete_policy_errors(data, error_type):
+    with mock_client_multi(
+        ({"policy": POLICY}, "policyGet", {"id": POLICY["id"]}),
+        ({"policy_delete": data}, "policyDelete", {"id": POLICY["id"]}),
+    ):
+        with pytest.raises(error_type):
+            admin.policies.delete(POLICY["id"])
+
+
+def test_patch_managed_policy():
+    updated_policy = {**POLICY, "title": "NewTitle"}
+    with mock_client_multi(
+        ({"policy": POLICY}, "policyGet", {"id": POLICY["id"]}),
+        (
+            {"policy_update_managed": updated_policy},
+            "policyUpdateManaged",
+            {
+                "id": POLICY["id"],
+                "input": _graphql_client.ManagedPolicyInput(
+                    title="NewTitle",
+                    permissions=[_graphql_client.PermissionInput(bucket="example-bucket", level="READ")],
+                    roles=[MANAGED_ROLE["id"]],
+                ),
+            },
+        ),
+    ):
+        result = admin.policies.patch_managed(POLICY["id"], title="NewTitle")
+        assert result.title == "NewTitle"
+
+
+def test_patch_managed_policy_type_mismatch():
+    with mock_client({"policy": UNMANAGED_POLICY}, "policyGet", variables={"id": UNMANAGED_POLICY["id"]}):
+        with pytest.raises(admin.Quilt3AdminError, match="Cannot patch_managed"):
+            admin.policies.patch_managed(UNMANAGED_POLICY["id"], title="NewTitle")
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (USER, EXPECTED_USER),
         (None, None),
     ],
 )
@@ -132,13 +801,13 @@ def test_get_user(data, result):
 
 def test_get_users():
     with mock_client(_make_nested_dict("admin.user.list", [USER]), "usersList"):
-        assert admin.users.list() == [admin.User(**_as_dataclass_kwargs(USER))]
+        assert admin.users.list() == [EXPECTED_USER]
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *MUTATION_ERRORS,
     ],
 )
@@ -176,7 +845,7 @@ def test_delete_user(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -200,7 +869,7 @@ def test_set_user_email(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -224,7 +893,7 @@ def test_set_user_admin(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -269,7 +938,7 @@ def test_reset_user_password(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -281,19 +950,19 @@ def test_set_role(data, result):
             else _make_nested_dict("admin.user.mutate.setRole", data)
         ),
         "usersSetRole",
-        variables={"name": "test", "role": "UnamangedRole", "extraRoles": [], "append": True},
+        variables={"name": "test", "role": "UnmanagedRole", "extraRoles": [], "append": True},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.users.set_role("test", "UnamangedRole", [], append=True)
+                admin.users.set_role("test", "UnmanagedRole", [], append=True)
         else:
-            assert admin.users.set_role("test", "UnamangedRole", [], append=True) == result
+            assert admin.users.set_role("test", "UnmanagedRole", [], append=True) == result
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -317,7 +986,7 @@ def test_add_roles(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (USER, admin.User(**_as_dataclass_kwargs(USER))),
+        (USER, EXPECTED_USER),
         *USER_MUTATION_ERRORS,
     ],
 )
@@ -329,19 +998,19 @@ def test_remove_roles(data, result):
             else _make_nested_dict("admin.user.mutate.removeRoles", data)
         ),
         "usersRemoveRoles",
-        variables={"name": "test", "roles": ["ManagedRole"], "fallback": "UnamanagedRole"},
+        variables={"name": "test", "roles": ["ManagedRole"], "fallback": "UnmanagedRole"},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
+                admin.users.remove_roles("test", ["ManagedRole"], fallback="UnmanagedRole")
         else:
-            assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result
+            assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnmanagedRole") == result
 
 
 @pytest.mark.parametrize(
     "data,result",
     [
-        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (SSO_CONFIG, EXPECTED_SSO_CONFIG),
         (None, None),
     ],
 )
@@ -353,7 +1022,7 @@ def test_sso_config_get(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (SSO_CONFIG, EXPECTED_SSO_CONFIG),
         (None, None),
         *MUTATION_ERRORS,
     ],
@@ -501,7 +1170,7 @@ BUCKET_REMOVE_ERRORS = (
 @pytest.mark.parametrize(
     "data,result",
     [
-        (BUCKET_CONFIG, admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))),
+        (BUCKET_CONFIG, admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))),
         (None, None),
     ],
 )
@@ -512,7 +1181,7 @@ def test_bucket_get(data, result):
 
 def test_bucket_list():
     with mock_client({"bucket_configs": [BUCKET_CONFIG]}, "bucketsList"):
-        assert admin.buckets.list() == [admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))]
+        assert admin.buckets.list() == [admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))]
 
 
 def test_bucket_add_success():
@@ -532,7 +1201,7 @@ def test_bucket_add_success():
         },
     ):
         result = admin.buckets.add("test-bucket", "Test Bucket")
-        assert result == admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))
+        assert result == admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))
 
 
 @pytest.mark.parametrize("data,error_type,error_msg", BUCKET_ADD_ERRORS)
@@ -570,7 +1239,7 @@ def test_bucket_update_success():
         },
     ):
         result = admin.buckets.update("test-bucket", "Test Bucket")
-        assert result == admin.Bucket(**_as_dataclass_kwargs(BUCKET_CONFIG))
+        assert result == admin.Bucket(**as_dataclass_kwargs(BUCKET_CONFIG))
 
 
 @pytest.mark.parametrize("data,error_type,error_msg", BUCKET_UPDATE_ERRORS)
@@ -611,3 +1280,77 @@ def test_bucket_remove_errors(data, error_type, error_msg):
             admin.buckets.remove("test-bucket")
         if error_msg:
             assert str(exc_info.value) == error_msg
+
+
+API_KEY = {
+    "id": "key-123",
+    "name": "test-key",
+    "fingerprint": "qk_abc...xyz",
+    "createdAt": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "expiresAt": datetime.datetime(2024, 9, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "lastUsedAt": None,
+    "status": "ACTIVE",
+    "userEmail": "user@example.com",
+}
+
+
+def test_api_keys_list():
+    with mock_client(
+        _make_nested_dict("admin.api_keys.list", [API_KEY]),
+        "adminApiKeysList",
+        variables={"email": None, "name": None, "fingerprint": None, "status": None},
+    ):
+        result = admin.api_keys.list()
+        assert len(result) == 1
+        assert result[0] == admin.APIKey(**as_dataclass_kwargs(API_KEY))
+
+
+def test_api_keys_list_with_filters():
+    with mock_client(
+        _make_nested_dict("admin.api_keys.list", [API_KEY]),
+        "adminApiKeysList",
+        variables={
+            "email": "user@example.com",
+            "name": "test",
+            "fingerprint": None,
+            "status": _graphql_client.APIKeyStatus.ACTIVE,
+        },
+    ):
+        result = admin.api_keys.list(email="user@example.com", key_name="test", status="ACTIVE")
+        assert len(result) == 1
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (API_KEY, admin.APIKey(**as_dataclass_kwargs(API_KEY))),
+        (None, None),
+    ],
+)
+def test_api_keys_get(data, result):
+    with mock_client(
+        _make_nested_dict("admin.api_keys.get", data),
+        "adminApiKeyGet",
+        variables={"id": "key-123"},
+    ):
+        assert admin.api_keys.get("key-123") == result
+
+
+def test_api_keys_revoke_success():
+    with mock_client(
+        _make_nested_dict("admin.api_keys.revoke", {"__typename": "Ok"}),
+        "adminApiKeyRevoke",
+        variables={"id": "key-123"},
+    ):
+        assert admin.api_keys.revoke("key-123") is None
+
+
+@pytest.mark.parametrize("data,error_type", API_KEY_MUTATION_ERRORS)
+def test_api_keys_revoke_errors(data, error_type):
+    with mock_client(
+        _make_nested_dict("admin.api_keys.revoke", data),
+        "adminApiKeyRevoke",
+        variables={"id": "key-123"},
+    ):
+        with pytest.raises(error_type):
+            admin.api_keys.revoke("key-123")
