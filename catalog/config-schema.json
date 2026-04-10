@@ -13,6 +13,10 @@
       "type": "string",
       "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
     },
+    "hubspotId": {
+      "type": "string",
+      "description": "HubSpot tracking ID for marketing analytics. If absent or empty, tracking is disabled."
+    },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
