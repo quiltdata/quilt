@@ -24,13 +24,13 @@ are enabled on the stack). These limits do not apply to the `quilt3` Python API.
 #### Important note about S3 prefix enumeration
 
 When creating a package from an S3 prefix (folder) using the Catalog GUI, the
-interface can only enumerate and package up to approximately 1,000 files due to
-browser performance constraints. If you attempt to create a package from a prefix
-containing more than 1,000 files, the Catalog will display a warning message:
-"Total number of files exceeds recommended maximum of 1000," and only
-approximately 1,000 files will be included in the package. Note that S3 does not
-guarantee a stable ordering of listed objects, so the exact set of files included
-may vary between attempts.
+interface will display a warning if the prefix contains more than 1,000 files
+(the soft limit): "Total number of files exceeds recommended maximum of 1000."
+You can proceed past this warning, but the number of files the Catalog
+enumerates from S3 may vary, and browser performance may degrade with large
+file counts. The hard limit is 5,000 files per push (see table above).
+Additionally, S3 does not guarantee a stable ordering of listed objects, so
+the exact set of files included may differ between attempts.
 
 **Workarounds for large directories:**
 
