@@ -13,6 +13,7 @@
   "author": "Quilt Data, Inc. <support@quilt.bio> (https://quilt.bio)",
   "license": "MIT",
   "scripts": {
+    "preinstall": "node -e \"if(+process.versions.node.split('.')[0]!==20){console.error('\\nERROR: catalog/ requires Node 20 (got '+process.version+'). Use: /opt/homebrew/opt/node@20/bin/npm install — or install fnm/nvm and it will read engines.node.\\n');process.exit(1)}\"",
     "analyze:clean": "rimraf stats.json",
     "preanalyze": "npm run analyze:clean",
     "analyze": "cross-env NODE_ENV=production node ./internals/scripts/analyze.js",
