@@ -239,8 +239,19 @@ type User {
   isService: Boolean!
   role: Role
   extraRoles: [Role!]!
+  lastLoginContext: UserLastLoginContext
   isRoleAssignmentDisabled: Boolean!
   isAdminAssignmentDisabled: Boolean!
+}
+
+type UserLastLoginContext {
+  ssoProvider: String!
+  idTokenPayload: JsonRecord!
+  matchedMappingIndices: [Int!]!
+  assignedRoles: [String!]!
+  activeRole: String!
+  isAdmin: Boolean!
+  loginAt: Datetime!
 }
 
 type AccessCountForDate {

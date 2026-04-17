@@ -126,6 +126,16 @@ class UnmanagedRoleSelection(BaseModel):
     arn: str
 
 
+class UserLastLoginContextSelection(BaseModel):
+    sso_provider: str = Field(alias="ssoProvider")
+    id_token_payload: Any = Field(alias="idTokenPayload")
+    matched_mapping_indices: List[int] = Field(alias="matchedMappingIndices")
+    assigned_roles: List[str] = Field(alias="assignedRoles")
+    active_role: str = Field(alias="activeRole")
+    is_admin: bool = Field(alias="isAdmin")
+    login_at: datetime = Field(alias="loginAt")
+
+
 class UserSelection(BaseModel):
     name: str
     email: str
@@ -150,6 +160,7 @@ class UserSelection(BaseModel):
             Field(discriminator="typename__"),
         ]
     ] = Field(alias="extraRoles")
+    last_login_context: Optional["UserSelectionLastLoginContext"] = Field(alias="lastLoginContext")
 
 
 class UserSelectionRoleUnmanagedRole(UnmanagedRoleSelection):
@@ -166,6 +177,10 @@ class UserSelectionExtraRolesUnmanagedRole(UnmanagedRoleSelection):
 
 class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
     typename__: Literal["ManagedRole"] = Field(alias="__typename")
+
+
+class UserSelectionLastLoginContext(UserLastLoginContextSelection):
+    pass
 
 
 class SsoConfigSelection(BaseModel):
@@ -188,5 +203,6 @@ ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
 PolicySelection.model_rebuild()
 UnmanagedRoleSelection.model_rebuild()
+UserLastLoginContextSelection.model_rebuild()
 UserSelection.model_rebuild()
 SsoConfigSelection.model_rebuild()

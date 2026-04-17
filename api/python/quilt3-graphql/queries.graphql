@@ -36,6 +36,15 @@ fragment RoleSelection on Role {
   ...UnmanagedRoleSelection
   ...ManagedRoleSelection
 }
+fragment UserLastLoginContextSelection on UserLastLoginContext {
+  ssoProvider
+  idTokenPayload
+  matchedMappingIndices
+  assignedRoles
+  activeRole
+  isAdmin
+  loginAt
+}
 fragment UserSelection on User {
   name
   email
@@ -50,6 +59,9 @@ fragment UserSelection on User {
   }
   extraRoles {
     ...RoleSelection
+  }
+  lastLoginContext {
+    ...UserLastLoginContextSelection
   }
 }
 fragment UserMutationSelection on UserResult {
