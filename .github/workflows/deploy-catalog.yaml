@@ -8,6 +8,7 @@ on:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
       - 'shared/**'
+  workflow_dispatch:
 
 jobs:
   deploy-catalog-ecr:
