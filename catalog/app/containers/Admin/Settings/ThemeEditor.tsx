@@ -122,7 +122,7 @@ interface InputFileProps {
   }
 }
 
-function InputFile({ input: { value, onChange } }: InputFileProps) {
+export function InputFile({ input: { value, onChange } }: InputFileProps) {
   const classes = useInputFileStyles()
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
