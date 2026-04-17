@@ -2,7 +2,7 @@
 # Source: queries.graphql
 
 from datetime import datetime
-from typing import Annotated, Any, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -46,7 +46,7 @@ class InvalidInputSelectionErrors(BaseModel):
     path: Optional[str]
     message: str
     name: str
-    context: Optional[Any]
+    context: Optional[dict]
 
 
 class PermissionSelection(BaseModel):
@@ -99,7 +99,7 @@ class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
 class OperationErrorSelection(BaseModel):
     message: str
     name: str
-    context: Optional[Any]
+    context: Optional[dict]
 
 
 class PolicySelection(BaseModel):
@@ -128,7 +128,7 @@ class UnmanagedRoleSelection(BaseModel):
 
 class UserLastLoginContextSelection(BaseModel):
     sso_provider: str = Field(alias="ssoProvider")
-    id_token_payload: Any = Field(alias="idTokenPayload")
+    id_token_payload: dict = Field(alias="idTokenPayload")
     matched_mapping_indices: List[int] = Field(alias="matchedMappingIndices")
     assigned_roles: List[str] = Field(alias="assignedRoles")
     active_role: str = Field(alias="activeRole")

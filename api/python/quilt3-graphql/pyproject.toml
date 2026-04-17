@@ -31,3 +31,6 @@ plugins = [
 
 [tool.ariadne-codegen.scalars.Datetime]
 type = "datetime.datetime"
+
+[tool.ariadne-codegen.scalars.JsonRecord]
+type = "dict"
