@@ -35,4 +35,5 @@ from .types import (
     TabulatorTable,
     UnmanagedRole,
     User,
+    UserLastLoginContext,
 )

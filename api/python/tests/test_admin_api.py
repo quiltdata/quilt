@@ -73,6 +73,25 @@ UNMANAGED_POLICY = {
     "arn": "arn:aws:iam::000000000000:policy/UnmanagedPolicy",
     "managed": False,
 }
+LAST_LOGIN_CONTEXT = {
+    "__typename": "UserLastLoginContext",
+    "ssoProvider": "okta",
+    "idTokenPayload": {"sub": "test", "groups": ["Employees", "Everyone"]},
+    "matchedMappingIndices": [0, 1],
+    "assignedRoles": ["member", "visitor"],
+    "activeRole": "member",
+    "isAdmin": True,
+    "loginAt": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+}
+EXPECTED_LAST_LOGIN_CONTEXT = admin.UserLastLoginContext(
+    sso_provider="okta",
+    id_token_payload={"sub": "test", "groups": ["Employees", "Everyone"]},
+    matched_mapping_indices=[0, 1],
+    assigned_roles=["member", "visitor"],
+    active_role="member",
+    is_admin=True,
+    login_at=datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+)
 USER = {
     "__typename": "User",
     "name": "test",
@@ -85,6 +104,7 @@ USER = {
     "isService": False,
     "role": UNMANAGED_ROLE,
     "extraRoles": [MANAGED_ROLE],
+    "lastLoginContext": LAST_LOGIN_CONTEXT,
 }
 EXPECTED_USER = admin.User(
     name="test",
@@ -97,6 +117,7 @@ EXPECTED_USER = admin.User(
     is_service=False,
     role=EXPECTED_UNMANAGED_ROLE,
     extra_roles=[EXPECTED_MANAGED_ROLE],
+    last_login_context=EXPECTED_LAST_LOGIN_CONTEXT,
 )
 SSO_CONFIG = {
     "__typename": "SsoConfig",
