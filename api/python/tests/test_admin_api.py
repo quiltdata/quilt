@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import datetime
 from unittest import mock
 
@@ -119,6 +120,8 @@ EXPECTED_USER = admin.User(
     extra_roles=[EXPECTED_MANAGED_ROLE],
     last_login_context=EXPECTED_LAST_LOGIN_CONTEXT,
 )
+USER_NO_LOGIN_CTX = {**USER, "lastLoginContext": None}
+EXPECTED_USER_NO_LOGIN_CTX = dataclasses.replace(EXPECTED_USER, last_login_context=None)
 SSO_CONFIG = {
     "__typename": "SsoConfig",
     "text": "",
@@ -812,6 +815,7 @@ def test_patch_managed_policy_type_mismatch():
     "data,result",
     [
         (USER, EXPECTED_USER),
+        (USER_NO_LOGIN_CTX, EXPECTED_USER_NO_LOGIN_CTX),
         (None, None),
     ],
 )

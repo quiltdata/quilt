@@ -88,7 +88,7 @@ class UserLastLoginContext:
     """
 
     sso_provider: str
-    id_token_payload: dict
+    id_token_payload: dict[str, T.Any]
     matched_mapping_indices: list[int]
     assigned_roles: list[str]
     active_role: str
