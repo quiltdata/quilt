@@ -132,11 +132,18 @@ function InputFile({ input: { value, onChange } }: InputFileProps) {
   )
   const { getInputProps, getRootProps } = useDropzone({
     maxFiles: 1,
+    accept: { 'image/*': [] },
     onDrop,
   })
-  const previewUrl = React.useMemo(() => {
-    if (!value || typeof value === 'string') return null
-    return URL.createObjectURL(value)
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+  React.useEffect(() => {
+    if (!value || typeof value === 'string') {
+      setPreviewUrl(null)
+      return undefined
+    }
+    const url = URL.createObjectURL(value)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
   }, [value])
   const isUrl = typeof value === 'string' && value.length > 0
   return (

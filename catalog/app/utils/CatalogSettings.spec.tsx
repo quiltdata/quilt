@@ -6,7 +6,11 @@ vi.mock('constants/config', () => ({
   default: { serviceBucket: 'test-bucket', mode: 'PRODUCT' },
 }))
 
-const putObjectMock = vi.fn(() => ({ promise: () => Promise.resolve({}) }))
+const putObjectMock = vi.fn<
+  (params: { Bucket: string; Key: string; ContentType?: string; Body: unknown }) => {
+    promise: () => Promise<{}>
+  }
+>(() => ({ promise: () => Promise.resolve({}) }))
 const s3Mock = { putObject: putObjectMock }
 
 vi.mock('utils/AWS', () => ({
@@ -27,8 +31,8 @@ function makeFile(name: string, type = 'image/png', body = 'x') {
   const f = new File([body], name, { type })
   // jsdom File lacks arrayBuffer in some envs; polyfill
   if (!f.arrayBuffer) {
-    // @ts-expect-error
-    f.arrayBuffer = async () => new TextEncoder().encode(body).buffer
+    ;(f as { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer = async () =>
+      new TextEncoder().encode(body).buffer as ArrayBuffer
   }
   return f
 }
