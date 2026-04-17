@@ -5,25 +5,25 @@
 ## Permission(bucket: str, level: quilt3.\_graphql\_client.enums.BucketPermissionLevel) -> None  {#Permission}
 
 
-## PolicySummary(id: str, title: str, arn: str, managed: bool, permissions: list) -> None  {#PolicySummary}
+## PolicySummary(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission]) -> None  {#PolicySummary}
 Policy without back-references to roles (avoids circular nesting).
 
-## ManagedRole(id: str, name: str, arn: str, policies: list, permissions: list, typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
+## ManagedRole(id: str, name: str, arn: str, policies: list[quilt3.admin.types.PolicySummary], permissions: list[quilt3.admin.types.Permission], typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
 
 
 ## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
 
 
-## Policy(id: str, title: str, arn: str, managed: bool, permissions: list, roles: list) -> None  {#Policy}
+## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[quilt3.admin.types.ManagedRole]) -> None  {#Policy}
 
 
-## UserLastLoginContext(sso\_provider: str, id\_token\_payload: dict, matched\_mapping\_indices: list, assigned\_roles: list, active\_role: str, is\_admin: bool, login\_at: datetime.datetime) -> None  {#UserLastLoginContext}
+## UserLastLoginContext(sso\_provider: str, id\_token\_payload: dict[str, typing.Any], matched\_mapping\_indices: list[int], assigned\_roles: list[str], active\_role: str, is\_admin: bool, login\_at: datetime.datetime) -> None  {#UserLastLoginContext}
 Details about a user's most recent SSO login.
 
 Populated only when the SSO config has ``store_last_login_context: true``
 and the user has logged in via SSO at least once since it was enabled.
 
-## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list, last\_login\_context: Optional[quilt3.admin.types.UserLastLoginContext] = None) -> None  {#User}
+## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], last\_login\_context: Optional[quilt3.admin.types.UserLastLoginContext] = None) -> None  {#User}
 
 
 ## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
@@ -32,7 +32,7 @@ and the user has logged in via SSO at least once since it was enabled.
 ## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
 
 
-## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[list[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[list[str]], index\_content\_bytes: Optional[int], prefixes: list) -> None  {#Bucket}
+## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[list[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[list[str]], index\_content\_bytes: Optional[int], prefixes: list[str]) -> None  {#Bucket}
 
 
 # quilt3.admin.api_keys
@@ -93,7 +93,7 @@ __Arguments__
 * __name__:  Name of the bucket to get.
 
 
-## list() -> list  {#list}
+## list() -> list[quilt3.admin.types.Bucket]  {#list}
 
 List all bucket configurations in the registry.
 
@@ -385,7 +385,7 @@ Set the SSO configuration. Pass `None` to remove SSO configuration.
 # quilt3.admin.tabulator
 
 
-## list\_tables(bucket\_name: str) -> list  {#list\_tables}
+## list\_tables(bucket\_name: str) -> list[quilt3.admin.types.TabulatorTable]  {#list\_tables}
 
 List all tabulator tables in a bucket.
 
