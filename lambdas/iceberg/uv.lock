@@ -17,30 +17,6 @@ wheels = [
 ]
 
 [[package]]
-name = "boto3-stubs"
-version = "1.40.52"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "botocore-stubs" },
-    { name = "types-s3transfer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/00/7b/92a266747a504c09c40a382364e5f041a58acc2959f2920aa9b4ccf5e9db/boto3_stubs-1.40.52.tar.gz", hash = "sha256:bd20a7bc9122bb1b939195431b9d3f540b1ef050103bc1720d786960907464fd", size = 100895, upload-time = "2025-10-14T20:45:42.254Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/cf/d08cd0df2639896db574490181c363fc491404607b867a1bf04a623c4a19/boto3_stubs-1.40.52-py3-none-any.whl", hash = "sha256:5e2b74b7b5ad71ca2b8c35a8d3bf1e4ef60317b1682b5e7dda9f16a1c0b43844", size = 69709, upload-time = "2025-10-14T20:45:33.777Z" },
-]
-
-[package.optional-dependencies]
-athena = [
-    { name = "mypy-boto3-athena" },
-]
-s3 = [
-    { name = "mypy-boto3-s3" },
-]
-sts = [
-    { name = "mypy-boto3-sts" },
-]
-
-[[package]]
 name = "botocore"
 version = "1.40.52"
 source = { registry = "https://pypi.org/simple" }
@@ -126,33 +102,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/00/2a/e867e8531cf3e36b41201936b7fa7ba7b5702dbef42922193f05c8976cd6/jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe", size = 25843, upload-time = "2022-06-17T18:00:12.224Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/b4/b9b800c45527aadd64d5b442f9b932b00648617eb5d63d2c7a6587b7cafc/jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980", size = 20256, upload-time = "2022-06-17T18:00:10.251Z" },
-]
-
-[[package]]
-name = "mypy-boto3-athena"
-version = "1.40.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/9b/9c/a16a597632e24f5e3ad30fe1e5f570e2bdaf713297013d81d7001bfbfabc/mypy_boto3_athena-1.40.0.tar.gz", hash = "sha256:da8429f556bcd857b2c9fed9133ef0bfecb898e2b74e9679f3aaafcc26702bf1", size = 36614, upload-time = "2025-07-31T19:36:39.469Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/a0/7a10865896ddf356c735b1d8ba5ec509386540e89d552bd0108674cda30f/mypy_boto3_athena-1.40.0-py3-none-any.whl", hash = "sha256:3fc5e4b294248663a6030bb5f13e94f199ebcca4f4f43bfcd30705ce47d28008", size = 40986, upload-time = "2025-07-31T19:36:37.666Z" },
-]
-
-[[package]]
-name = "mypy-boto3-s3"
-version = "1.40.26"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/00/b8/55d21ed9ca479df66d9892212ba7d7977850ef17aa80a83e3f11f31190fd/mypy_boto3_s3-1.40.26.tar.gz", hash = "sha256:8d2bfd1052894d0e84c9fb9358d838ba0eed0265076c7dd7f45622c770275c99", size = 75948, upload-time = "2025-09-08T20:12:21.405Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/85/a5/dba3384423834009bdd41c7021de5c663468a0e7bc4071cb301721e52a99/mypy_boto3_s3-1.40.26-py3-none-any.whl", hash = "sha256:6d055d16ef89a0133ade92f6b4f09603e4acc31a0f5e8f846edf4eb48f17b5a7", size = 82762, upload-time = "2025-09-08T20:12:19.338Z" },
-]
-
-[[package]]
-name = "mypy-boto3-sts"
-version = "1.40.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/39/32/8dce999ed05c797000ce70287f3e82025a98514781c303c7f8fe42f7b327/mypy_boto3_sts-1.40.0.tar.gz", hash = "sha256:eb55e50960ae6194d09488464c302196392df712a6a5f4308b6a0e24244cfd5c", size = 16577, upload-time = "2025-07-31T19:52:23.924Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/f8/38dae2983d72ea4fff75b235d42d3b1ecad407e0136f4951bfd9016ecaea/mypy_boto3_sts-1.40.0-py3-none-any.whl", hash = "sha256:fff731694cab2474bf7e7d3344b049b4ac0272d76b72fc4f7e4ae543ead8a5e6", size = 20192, upload-time = "2025-07-31T19:52:21.353Z" },
 ]
 
 [[package]]
@@ -251,29 +200,37 @@ wheels = [
 [[package]]
 name = "quilt-shared"
 version = "0.1.0"
-source = { url = "https://github.com/quiltdata/quilt/archive/f90584485ba84a9d46fe4c7014f858a4b57738bd.zip", subdirectory = "py-shared" }
-sdist = { hash = "sha256:f7d07fe2710e63e446e6e0c6d052f9856c7747c7ea378a5b3eafe57d7941e11a" }
+source = { directory = "../../py-shared" }
 
 [package.optional-dependencies]
 boto = [
     { name = "boto3" },
-    { name = "boto3-stubs", extra = ["athena", "s3", "sts"] },
     { name = "types-aiobotocore", extra = ["s3"] },
+    { name = "types-boto3", extra = ["athena", "s3", "sts"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aws-requests-auth", marker = "extra == 'es'", specifier = "~=0.4.2" },
     { name = "boto3", marker = "extra == 'boto'", specifier = "~=1.34" },
-    { name = "boto3-stubs", extras = ["athena", "s3", "sts"], marker = "extra == 'boto'", specifier = "~=1.34" },
     { name = "elasticsearch", marker = "extra == 'es'", specifier = "~=6.8" },
     { name = "orjson", marker = "extra == 'es'", specifier = "~=3.10" },
     { name = "pydantic", marker = "extra == 'pydantic'", specifier = "~=2.10" },
-    { name = "quilt3", marker = "extra == 'quilt'", specifier = "~=5.4" },
+    { name = "quilt3", marker = "extra == 'quilt'", specifier = ">=7,<8" },
     { name = "types-aiobotocore", extras = ["s3"], marker = "extra == 'boto'", specifier = "~=2.11" },
+    { name = "types-boto3", extras = ["athena", "s3", "sts"], marker = "extra == 'boto'", specifier = "~=1.34" },
     { name = "typing-extensions", marker = "extra == 'pydantic'", specifier = "~=4.9" },
 ]
 provides-extras = ["pydantic", "boto", "quilt", "es"]
+
+[package.metadata.requires-dev]
+test = [
+    { name = "pytest", specifier = "~=8.4" },
+    { name = "pytest-cov", specifier = "~=6.2" },
+    { name = "pytest-env", specifier = "~=1.1" },
+    { name = "pytest-mock", specifier = "~=3.15" },
+    { name = "quilt-shared", extras = ["pydantic", "boto", "quilt", "es"] },
+]
 
 [[package]]
 name = "s3transfer"
@@ -316,7 +273,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.40.41,<2.0.0" },
-    { name = "quilt-shared", extras = ["boto"], url = "https://github.com/quiltdata/quilt/archive/f90584485ba84a9d46fe4c7014f858a4b57738bd.zip", subdirectory = "py-shared" },
+    { name = "quilt-shared", extras = ["boto"], directory = "../../py-shared" },
 ]
 
 [package.metadata.requires-dev]
@@ -360,6 +317,57 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/60/19/a3a6377c9e2e389c1421c033a1830c29cac08f2e1e05a082ea84eb22c75f/types_awscrt-0.28.1.tar.gz", hash = "sha256:66d77ec283e1dc907526a44511a12624118723a396c36d3f3dd9855cb614ce14", size = 17410, upload-time = "2025-10-11T21:55:07.443Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/c7/0266b797d19b82aebe0e177efe35de7aabdc192bc1605ce3309331f0a505/types_awscrt-0.28.1-py3-none-any.whl", hash = "sha256:d88f43ef779f90b841ba99badb72fe153077225a4e426ae79e943184827b4443", size = 41851, upload-time = "2025-10-11T21:55:06.235Z" },
+]
+
+[[package]]
+name = "types-boto3"
+version = "1.42.91"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore-stubs" },
+    { name = "types-s3transfer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/e3/c6172816bc83a27c58e2f2d9a0854470f22d06856655e3091bcf8be1bd2c/types_boto3-1.42.91.tar.gz", hash = "sha256:f85600f36d876184137df2289189a59792de35a7a5f2e50d3c2224cc150cbea8", size = 102982, upload-time = "2026-04-17T19:33:10.65Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f0/ca/77d844597a5e7476e5fed577a256b2b7f3b9968b52d81f388f3b0b6882a2/types_boto3-1.42.91-py3-none-any.whl", hash = "sha256:4abd8188ba75e53699addc4e547734b3e90b1582941b4e2bd97efd5441cf68f7", size = 70560, upload-time = "2026-04-17T19:33:07.618Z" },
+]
+
+[package.optional-dependencies]
+athena = [
+    { name = "types-boto3-athena" },
+]
+s3 = [
+    { name = "types-boto3-s3" },
+]
+sts = [
+    { name = "types-boto3-sts" },
+]
+
+[[package]]
+name = "types-boto3-athena"
+version = "1.42.43"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/54/66066ff2ec52636d6bbee4cd4eb5ea884555cd3d14871cfa6271f84c234d/types_boto3_athena-1.42.43.tar.gz", hash = "sha256:42173beb0051c90172b0e904d0d96273c08ec8dd4991d4ea0392da60cfcf13e1", size = 37655, upload-time = "2026-02-05T20:51:55.437Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/ab/36cfa86397b7b715f1a17ebd3cb350c036b1659a43172455afcb40979be1/types_boto3_athena-1.42.43-py3-none-any.whl", hash = "sha256:97e9d7168ec6ecf0e90a801dd99e4b96bf1f1a9af33a05878ab3ea887ab264b0", size = 41908, upload-time = "2026-02-05T20:51:54.058Z" },
+]
+
+[[package]]
+name = "types-boto3-s3"
+version = "1.42.85"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/e4/71d77e94edb6d470eba9c4d4b430fc50bb152ac3948d5170623eb1877fd7/types_boto3_s3-1.42.85.tar.gz", hash = "sha256:fb63e169087fe3fe65d7fb3f34c6621711f190aaa7c5a4918b8022a75373c5d7", size = 76410, upload-time = "2026-04-07T19:51:01.798Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/cc/9087f08bb85069a812c9910398de6d395ebe4fd1c0835947b2286c76350b/types_boto3_s3-1.42.85-py3-none-any.whl", hash = "sha256:b9aefc78660d72c2fc54daccede609df5ad70504da3635f898ee290bac174cca", size = 83565, upload-time = "2026-04-07T19:51:00.063Z" },
+]
+
+[[package]]
+name = "types-boto3-sts"
+version = "1.42.91"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/b4/526fde160e4e8fe6938f057d2be8986434fd556d5f79afd6b39de7b5bcd3/types_boto3_sts-1.42.91.tar.gz", hash = "sha256:4961fc5b79dabeb6f0435781769a540e5ee19f066d4738d4e94e7cc77247aad3", size = 16824, upload-time = "2026-04-17T19:33:04.483Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/6b/725bf986aaeefbfe98ba9f3ce67d8b378b63ec670fd6442cc20c45fcc010/types_boto3_sts-1.42.91-py3-none-any.whl", hash = "sha256:e5a862f85049e03ff41e06d639d5fd1c3f77f034a4237ae053f5fc169208ddb5", size = 20847, upload-time = "2026-04-17T19:33:02.557Z" },
 ]
 
 [[package]]

@@ -6,10 +6,11 @@ import boto3
 
 import quilt_shared.const
 from quilt_shared.athena import QueryRunner
+from quilt_shared.cross_account import BucketRoleAwareS3Client
 from quilt_shared.iceberg_queries import QueryMaker
 
 athena = boto3.client("athena")
-s3 = boto3.client("s3")
+s3 = BucketRoleAwareS3Client()
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
