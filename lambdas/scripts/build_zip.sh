@@ -28,7 +28,12 @@ cd out
 
 # install everything into a temporary directory
 uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt --no-default-groups
-uv pip install --no-compile --no-deps --target . -r /lambda/function/requirements.txt /lambda/function/
+sed -i.bak '/^\.\.\/\.\.\/py-shared$/d' requirements.txt
+extra_pkgs=()
+if [ -d /lambda/py-shared ]; then
+    extra_pkgs+=(/lambda/py-shared)
+fi
+uv pip install --no-compile --no-deps --target . -r /lambda/function/requirements.txt "${extra_pkgs[@]}" /lambda/function/
 python3 -m compileall -b .
 
 # add binaries
