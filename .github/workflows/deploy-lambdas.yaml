@@ -32,6 +32,22 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - name: Rewrite local quilt-shared dependency for CI publish
+        working-directory: ./lambdas/${{ matrix.path }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("pyproject.toml")
+          if not path.exists():
+              raise SystemExit(0)
+
+          text = path.read_text()
+          old = 'quilt-shared = { path = "../../py-shared" }'
+          new = 'quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/${{ github.sha }}.zip", subdirectory = "py-shared" }'
+          if old in text:
+              path.write_text(text.replace(old, new))
+          PY
       - name: Build zip
         run: |
           BUILDER_IMAGE=amazon/aws-lambda-python:$(cat lambdas/${{ matrix.path }}/.python-version)
@@ -78,6 +94,22 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - name: Rewrite local quilt-shared dependency for CI publish
+        working-directory: ./lambdas/${{ matrix.path }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("pyproject.toml")
+          if not path.exists():
+              raise SystemExit(0)
+
+          text = path.read_text()
+          old = 'quilt-shared = { path = "../../py-shared" }'
+          new = 'quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/${{ github.sha }}.zip", subdirectory = "py-shared" }'
+          if old in text:
+              path.write_text(text.replace(old, new))
+          PY
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
         run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .

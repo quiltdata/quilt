@@ -29,18 +29,11 @@ cd out
 # install everything into a temporary directory
 uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt --no-default-groups
 python - <<'PY'
-import re
 from pathlib import Path
 
 path = Path("requirements.txt")
 text = path.read_text()
 text = text.replace("../../py-shared", "/lambda/py-shared")
-text = re.sub(
-    r"^quilt-shared @ https://github\.com/quiltdata/quilt/archive/.+#subdirectory=py-shared$",
-    "/lambda/py-shared",
-    text,
-    flags=re.MULTILINE,
-)
 path.write_text(text)
 PY
 uv pip install --no-compile --no-deps --target . -r requirements.txt /lambda/function/
