@@ -21,7 +21,9 @@ import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 const PER_PAGE = 9
 
 function useIsAdmin() {
-  const data = GQL.useQuery(IS_ADMIN_QUERY)
+  const isLocalMode = cfg.mode === 'LOCAL'
+  const data = GQL.useQuery(IS_ADMIN_QUERY, undefined, { pause: isLocalMode })
+  if (isLocalMode) return false
   return GQL.fold(data, {
     data: ({ me: { isAdmin } }) => isAdmin,
     fetching: R.F,

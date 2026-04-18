@@ -14,7 +14,11 @@ export default function Landing() {
     <Layout>
       <MetaTitle />
       {cfg.mode === 'LOCAL' ? (
-        <LocalMode />
+        <>
+          <LocalMode />
+          <Dots style={{ bottom: 0 }} />
+          <Buckets />
+        </>
       ) : (
         <>
           <Dots style={{ bottom: 0 }} />

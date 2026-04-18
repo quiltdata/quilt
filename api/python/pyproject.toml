@@ -49,6 +49,7 @@ anndata = [
 ]
 catalog = [
     "quilt3_local>=2,<3",
+    "asgiproxy>=0.2,<0.3",
     "uvicorn>=0.15,<0.18",
     "aiobotocore[boto3]>=2",
 ]
