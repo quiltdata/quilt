@@ -1,9 +1,11 @@
 import base64
 import asyncio
 import gzip
+import importlib
 import json
+from contextlib import contextmanager
 from io import BytesIO
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import quote, unquote, urlencode, urlparse
 
 from botocore.exceptions import ClientError
 from graphql import graphql
@@ -11,7 +13,7 @@ import pytest
 
 from quilt3_local import buckets
 from quilt3_local.context import QuiltContext
-from tests.preview_fixtures import FIXTURES_BY_NAME, CURATED_PREVIEW_FIXTURES, stage_preview_fixtures
+from tests.preview_fixtures import FIXTURES_BY_NAME, CURATED_PREVIEW_FIXTURES, REPO_ROOT, stage_preview_fixtures
 
 
 class _MockHTTPResponse:
@@ -31,6 +33,20 @@ class _MockHTTPResponse:
     def iter_content(self, chunk_size: int):
         for offset in range(0, len(self.content), chunk_size):
             yield self.content[offset : offset + chunk_size]
+
+
+class _ASGIResponse:
+    def __init__(self, status_code: int, headers: dict[str, str], body: bytes):
+        self.status_code = status_code
+        self.headers = headers
+        self.body = body
+
+    @property
+    def text(self) -> str:
+        return self.body.decode("utf-8", "ignore")
+
+    def json(self):
+        return json.loads(self.body)
 
 
 def _make_lambda_event(name: str, query: dict[str, str]):
@@ -62,8 +78,8 @@ def _read_lambda_json(response: dict) -> dict:
     return json.loads(_read_lambda_body(response))
 
 
-def _fixture_proxy_url(bucket: str, key: str) -> str:
-    return f"http://localhost:3000/__s3proxy/{bucket}/{quote(key, safe='/')}"
+def _fixture_proxy_url(bucket: str, key: str, origin: str = "http://localhost:3000") -> str:
+    return f"{origin}/__s3proxy/{bucket}/{quote(key, safe='/')}"
 
 
 def _bucket_key_from_proxy_url(url: str, bucket: str) -> str:
@@ -89,6 +105,100 @@ def _mock_tabular_urlopen_factory(bucket_root):
         return BytesIO((bucket_root / key).read_bytes())
 
     return _open
+
+
+def _write_demo_package(bucket_root):
+    (bucket_root / "hello.txt").write_text("hello world\n")
+    quilt_dir = bucket_root / ".quilt"
+    (quilt_dir / "named_packages" / "demo").mkdir(parents=True)
+    manifest_hash = "a" * 64
+    (quilt_dir / "named_packages" / "demo" / "latest").write_text(manifest_hash)
+    (quilt_dir / "packages").mkdir(parents=True)
+    (quilt_dir / "packages" / manifest_hash).write_text(
+        '{"message":"demo package","user_meta":{"source":"local-test"}}\n'
+        '{"logical_key":"hello.txt","physical_key":"hello.txt","size":12,"meta":{}}\n'
+    )
+    return manifest_hash
+
+
+def _reload_local_main(monkeypatch, data_dir, *, catalog_url: str | None = None):
+    monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
+    monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("QUILT_LOCAL_ORIGIN", "http://testserver")
+    monkeypatch.setenv("QUILT_CATALOG_BUNDLE", str(REPO_ROOT / "catalog" / "app"))
+    if catalog_url is None:
+        monkeypatch.delenv("QUILT_CATALOG_URL", raising=False)
+    else:
+        monkeypatch.setenv("QUILT_CATALOG_URL", catalog_url)
+
+    import quilt3_local.main as local_main
+
+    return importlib.reload(local_main)
+
+
+@contextmanager
+def _app_lifespan(app):
+    manager = app.router.lifespan_context(app)
+    asyncio.run(manager.__aenter__())
+    try:
+        yield
+    finally:
+        asyncio.run(manager.__aexit__(None, None, None))
+
+
+def _request_app(app, method: str, path: str, *, params: dict[str, str] | None = None, headers: dict[str, str] | None = None, body: bytes | None = None, json_body=None) -> _ASGIResponse:
+    if json_body is not None:
+        body = json.dumps(json_body).encode()
+        request_headers = {"content-type": "application/json", **(headers or {})}
+    else:
+        request_headers = headers or {}
+
+    if body is None:
+        body = b""
+
+    query_string = urlencode(params or {}, doseq=True).encode()
+    header_items = [(key.lower().encode(), value.encode()) for key, value in request_headers.items()]
+    if body:
+        header_items.append((b"content-length", str(len(body)).encode()))
+
+    messages = []
+    sent = False
+
+    async def receive():
+        nonlocal sent
+        if sent:
+            return {"type": "http.disconnect"}
+        sent = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    async def send(message):
+        messages.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": method,
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": query_string,
+        "headers": header_items,
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+        "root_path": "",
+        "app": app,
+    }
+
+    asyncio.run(app(scope, receive, send))
+
+    start = next(message for message in messages if message["type"] == "http.response.start")
+    chunks = [message.get("body", b"") for message in messages if message["type"] == "http.response.body"]
+    response_headers = {
+        key.decode().lower(): value.decode()
+        for key, value in start.get("headers", [])
+    }
+    return _ASGIResponse(start["status"], response_headers, b"".join(chunks))
 
 
 def test_filesystem_bucket_configs_expose_local_bucket_dirs(monkeypatch, tmp_path):
@@ -333,16 +443,7 @@ def test_s3proxy_serializes_object_tags_as_s3_xml(monkeypatch, tmp_path):
 def test_local_graphql_search_and_api_search(monkeypatch, tmp_path):
     bucket = tmp_path / "demo-bucket"
     bucket.mkdir()
-    (bucket / "hello.txt").write_text("hello world\n")
-    quilt_dir = bucket / ".quilt"
-    (quilt_dir / "named_packages" / "demo").mkdir(parents=True)
-    manifest_hash = "a" * 64
-    (quilt_dir / "named_packages" / "demo" / "latest").write_text(manifest_hash)
-    (quilt_dir / "packages").mkdir(parents=True)
-    (quilt_dir / "packages" / manifest_hash).write_text(
-        '{"message":"demo package","user_meta":{"source":"local-test"}}\n'
-        '{"logical_key":"hello.txt","physical_key":"hello.txt","size":12,"meta":{}}\n'
-    )
+    manifest_hash = _write_demo_package(bucket)
 
     monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
     monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(tmp_path))
@@ -409,6 +510,205 @@ def test_local_graphql_search_and_api_search(monkeypatch, tmp_path):
     assert result.data["searchObjects"]["firstPage"]["hits"][0]["key"] == "hello.txt"
     assert stats["hits"]["total"] == 1
     assert stats["aggregations"]["totalBytes"]["value"] == 12.0
+
+
+def test_local_main_exposes_config_registry_and_graphql_routes(monkeypatch, tmp_path):
+    bucket_root = tmp_path / "demo-bucket"
+    bucket_root.mkdir()
+    stage_preview_fixtures(bucket_root)
+    manifest_hash = _write_demo_package(bucket_root)
+    local_main = _reload_local_main(monkeypatch, tmp_path)
+
+    with _app_lifespan(local_main.app):
+        config = _request_app(local_main.app, "GET", "/config.json")
+        creds = _request_app(local_main.app, "GET", "/__reg/api/auth/get_credentials")
+        valid_name = _request_app(local_main.app, "POST", "/__reg/api/package_name_valid", json_body={"name": "local/demo"})
+        invalid_name = _request_app(local_main.app, "POST", "/__reg/api/package_name_valid", json_body={"name": "bad name"})
+        stats = _request_app(local_main.app, "GET", "/__reg/api/search", params={"index": "demo-bucket", "action": "stats"})
+        sample = _request_app(local_main.app, "GET", "/__reg/api/search", params={"index": "demo-bucket", "action": "sample"})
+        images = _request_app(local_main.app, "GET", "/__reg/api/search", params={"index": "demo-bucket", "action": "images"})
+        unsupported = _request_app(local_main.app, "GET", "/__reg/api/search", params={"index": "demo-bucket", "action": "unsupported"})
+        graphql_response = _request_app(
+            local_main.app,
+            "POST",
+            "/__reg/graphql/",
+            json_body={
+                "query": """
+                query Search($buckets: [String!]) {
+                    searchPackages(buckets: $buckets, latestOnly: true) {
+                        __typename
+                        ... on PackagesSearchResultSet {
+                            total
+                            firstPage(order: NEWEST) {
+                                hits {
+                                    name
+                                    bucket
+                                    hash
+                                }
+                            }
+                        }
+                    }
+                    searchObjects(buckets: $buckets) {
+                        __typename
+                        ... on ObjectsSearchResultSet {
+                            total
+                            firstPage(order: NEWEST) {
+                                hits {
+                                    key
+                                }
+                            }
+                        }
+                    }
+                }
+                """,
+                "variables": {"buckets": ["demo-bucket"]},
+            },
+        )
+
+    assert config.status_code == 200
+    assert config.json()["mode"] == "LOCAL"
+    assert config.json()["registryUrl"] == "/__reg"
+    assert config.json()["apiGatewayEndpoint"] == "/__lambda"
+    assert config.json()["s3Proxy"] == "/__s3proxy"
+    assert creds.status_code == 200
+    assert creds.json()["AccessKeyId"] == "LOCALMODEACCESSKEY"
+    assert valid_name.json() == {"valid": True}
+    assert invalid_name.json() == {"valid": False}
+    assert stats.status_code == 200
+    assert stats.json()["hits"]["total"] >= 2
+    assert any(bucket["key"] == ".txt" for bucket in stats.json()["aggregations"]["exts"]["buckets"])
+    sample_keys = [
+        item["latest"]["hits"]["hits"][0]["_source"]["key"]
+        for item in sample.json()["aggregations"]["objects"]["buckets"]
+    ]
+    assert "preview/text/short.txt" in sample_keys
+    image_keys = [
+        item["latest"]["hits"]["hits"][0]["_source"]["key"]
+        for item in images.json()["aggregations"]["objects"]["buckets"]
+    ]
+    assert "preview/images/penguin.jpg" in image_keys
+    assert unsupported.status_code == 404
+    assert graphql_response.status_code == 200
+    assert graphql_response.json()["data"]["searchPackages"]["__typename"] == "PackagesSearchResultSet"
+    assert graphql_response.json()["data"]["searchPackages"]["firstPage"]["hits"][0]["name"] == "local/demo"
+    assert graphql_response.json()["data"]["searchPackages"]["firstPage"]["hits"][0]["hash"] == manifest_hash
+    assert graphql_response.json()["data"]["searchObjects"]["__typename"] == "ObjectsSearchResultSet"
+    assert {
+        hit["key"]
+        for hit in graphql_response.json()["data"]["searchObjects"]["firstPage"]["hits"]
+    } >= {"hello.txt", "preview/text/short.txt"}
+
+
+def test_local_main_exposes_s3proxy_routes(monkeypatch, tmp_path):
+    bucket_root = tmp_path / "demo-bucket"
+    bucket_root.mkdir()
+    stage_preview_fixtures(bucket_root)
+    local_main = _reload_local_main(monkeypatch, tmp_path)
+
+    with _app_lifespan(local_main.app):
+        listing = _request_app(
+            local_main.app,
+            "GET",
+            "/__s3proxy/us-east-1/demo-bucket",
+            params={"list-type": "2", "prefix": "preview/", "delimiter": "/"},
+        )
+        legacy_get = _request_app(local_main.app, "GET", "/__s3proxy/us-east-1/demo-bucket/preview/text/short.txt")
+        host_style_head = _request_app(local_main.app, "HEAD", "/__s3proxy/demo-bucket.s3.amazonaws.com/preview/text/short.txt")
+        tagging = _request_app(local_main.app, "GET", "/__s3proxy/us-east-1/demo-bucket/preview/text/short.txt", params={"tagging": ""})
+        preflight = _request_app(
+            local_main.app,
+            "OPTIONS",
+            "/__s3proxy/us-east-1/demo-bucket/preview/text/short.txt",
+            headers={
+                "access-control-request-method": "GET",
+                "access-control-request-headers": "range",
+            },
+        )
+
+    assert listing.status_code == 200
+    assert listing.headers["content-type"].startswith("application/xml")
+    assert listing.headers["x-amz-bucket-region"] == "us-east-1"
+    assert "<ListBucketResult" in listing.text
+    assert "<Prefix>preview/</Prefix>" in listing.text
+    assert legacy_get.status_code == 200
+    assert legacy_get.text.startswith("Line 1")
+    assert legacy_get.headers["access-control-allow-origin"] == "*"
+    assert host_style_head.status_code == 200
+    assert host_style_head.headers["x-amz-bucket-region"] == "us-east-1"
+    assert tagging.status_code == 200
+    assert "<Tagging" in tagging.text
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-methods"] == "GET"
+    assert preflight.headers["access-control-allow-headers"] == "range"
+
+
+def test_local_main_exposes_lambda_routes(monkeypatch, tmp_path):
+    bucket_root = tmp_path / "demo-bucket"
+    bucket_root.mkdir()
+    stage_preview_fixtures(bucket_root)
+    local_main = _reload_local_main(monkeypatch, tmp_path)
+
+    from quilt3_local.lambdas import preview, tabular_preview
+
+    monkeypatch.setattr(preview.requests, "get", _mock_requests_get_factory(bucket_root))
+    monkeypatch.setattr(tabular_preview, "urlopen", _mock_tabular_urlopen_factory(bucket_root))
+
+    with _app_lifespan(local_main.app):
+        preview_response = _request_app(
+            local_main.app,
+            "POST",
+            "/__lambda/preview",
+            params={
+                "url": _fixture_proxy_url("demo-bucket", FIXTURES_BY_NAME["text"].bucket_key, origin="http://testserver"),
+                "input": "txt",
+            },
+        )
+        tabular_response = _request_app(
+            local_main.app,
+            "POST",
+            "/__lambda/tabular-preview",
+            params={
+                "url": _fixture_proxy_url("demo-bucket", FIXTURES_BY_NAME["jsonl"].bucket_key, origin="http://testserver"),
+                "input": "jsonl",
+            },
+        )
+        missing = _request_app(local_main.app, "POST", "/__lambda/not-a-real-lambda")
+
+    assert preview_response.status_code == 200
+    assert preview_response.json()["info"]["data"]["head"][0] == "Line 1"
+    assert tabular_response.status_code == 200
+    assert tabular_response.headers["content-type"].startswith("text/csv")
+    assert tabular_response.headers["content-encoding"] == "gzip"
+    assert missing.status_code == 404
+
+
+def test_local_main_proxy_mode_exposes_webpack_hmr_stub(monkeypatch, tmp_path):
+    asgiproxy_main = pytest.importorskip("asgiproxy.__main__")
+    bucket_root = tmp_path / "demo-bucket"
+    bucket_root.mkdir()
+    context_closed = False
+
+    class _DummyProxyContext:
+        async def close(self):
+            nonlocal context_closed
+            context_closed = True
+
+    async def _proxy_app(scope, receive, send):
+        from starlette.responses import PlainTextResponse
+
+        await PlainTextResponse("proxied")(scope, receive, send)
+
+    monkeypatch.setattr(asgiproxy_main, "make_app", lambda upstream_base_url: (_proxy_app, _DummyProxyContext()))
+    local_main = _reload_local_main(monkeypatch, tmp_path, catalog_url="http://localhost:3001")
+
+    with _app_lifespan(local_main.app):
+        hmr = _request_app(local_main.app, "GET", "/__webpack_hmr")
+        proxied = _request_app(local_main.app, "GET", "/some/local/path")
+
+    assert hmr.status_code == 404
+    assert proxied.status_code == 200
+    assert proxied.text == "proxied"
+    assert context_closed is True
 
 
 def test_local_text_preview_matches_frontend_contract():
