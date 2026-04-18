@@ -168,8 +168,25 @@ jobs:
         run: |
           uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt --no-default-groups
           uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o test-requirements.txt --only-group test
-          sed -i.bak -E 's#^\.\./\.\./py-shared$#./py-shared#; s#^quilt-shared @ https://github.com/quiltdata/quilt/archive/[^#]+#subdirectory=py-shared$#./py-shared#' lambdas/${{ matrix.path }}/requirements.txt
-          sed -i.bak -E 's#^\.\./\.\./py-shared$#./py-shared#; s#^quilt-shared @ https://github.com/quiltdata/quilt/archive/[^#]+#subdirectory=py-shared$#./py-shared#' lambdas/${{ matrix.path }}/test-requirements.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          files = [
+              Path("lambdas/${{ matrix.path }}/requirements.txt"),
+              Path("lambdas/${{ matrix.path }}/test-requirements.txt"),
+          ]
+          for path in files:
+              text = path.read_text()
+              text = text.replace("../../py-shared", "./py-shared")
+              text = re.sub(
+                  r"^quilt-shared @ https://github\.com/quiltdata/quilt/archive/.+#subdirectory=py-shared$",
+                  "./py-shared",
+                  text,
+                  flags=re.MULTILINE,
+              )
+              path.write_text(text)
+          PY
       - name: Install dependencies
         run: |
           # Try to simulate the lambda .zip file:
