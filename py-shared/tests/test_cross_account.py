@@ -1,6 +1,17 @@
 import datetime
+import types
 
 from quilt_shared import cross_account
+
+
+def test_get_role_map_handles_invalid_values(mocker):
+    mocker.patch("quilt_shared.cross_account.os.getenv", side_effect=["{", '["not-a-dict"]'])
+    cross_account.get_role_map.cache_clear()
+
+    assert cross_account.get_role_map() == {}
+
+    cross_account.get_role_map.cache_clear()
+    assert cross_account.get_role_map() == {}
 
 
 def test_assumed_bucket_client_refreshes_expired_credentials(mocker):
@@ -49,6 +60,36 @@ def test_bucket_role_aware_client_uses_positional_bucket_arg(mocker):
     assert client.get_object("bucket-1", "key-1") == "assumed"
     role_client.get_object.assert_called_once_with("bucket-1", "key-1")
     default_client.get_object.assert_not_called()
+
+
+def test_bucket_role_aware_client_falls_back_to_default_paths(mocker):
+    default_client = mocker.Mock()
+    default_client.meta = types.SimpleNamespace(
+        method_to_api_mapping={
+            "list_buckets": "ListBuckets",
+            "head_bucket": "HeadBucket",
+        },
+        service_model=mocker.Mock(),
+        region_name="us-east-1",
+    )
+    default_client.meta.service_model.operation_model.side_effect = [
+        mocker.Mock(input_shape=None),
+        mocker.Mock(input_shape=mocker.Mock(members={"Bucket": mocker.sentinel.bucket})),
+    ]
+    default_client.list_buckets = mocker.Mock(return_value="listed")
+    default_client.head_bucket = mocker.Mock(return_value="headed")
+    mocker.patch("quilt_shared.cross_account.boto3.client", return_value=default_client)
+    mocker.patch("quilt_shared.cross_account.get_role_map", return_value={})
+    assumed_client = mocker.patch("quilt_shared.cross_account._assumed_bucket_client")
+
+    client = cross_account.BucketRoleAwareS3Client(user_agent_extra="test-agent")
+
+    assert client.meta.region_name == "us-east-1"
+    assert client.list_buckets() == "listed"
+    assert client.head_bucket(Bucket="bucket-1") == "headed"
+    default_client.list_buckets.assert_called_once_with()
+    default_client.head_bucket.assert_called_once_with(Bucket="bucket-1")
+    assumed_client.assert_not_called()
 
 
 def _credentials(expiration):
