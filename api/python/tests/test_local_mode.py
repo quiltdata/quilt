@@ -114,6 +114,97 @@ def test_s3proxy_serializes_filesystem_object_versions_as_s3_xml(monkeypatch, tm
     assert "<IsLatest>true</IsLatest>" in xml
 
 
+def test_filesystem_conventional_defaults_are_available(monkeypatch, tmp_path):
+    bucket = tmp_path / "demo-bucket"
+    bucket.mkdir()
+
+    monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
+    monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(tmp_path))
+
+    from quilt3_local import aws
+
+    with QuiltContext():
+        readme = asyncio.run(aws.fetch_object(Bucket="demo-bucket", Key="README.md"))
+        summarize = asyncio.run(aws.fetch_object(Bucket="demo-bucket", Key="quilt_summarize.json"))
+        workflows = asyncio.run(
+            aws.fetch_object(Bucket="demo-bucket", Key=".quilt/workflows/config.yml"),
+        )
+        prefs = asyncio.run(
+            aws.fetch_object(Bucket="demo-bucket", Key=".quilt/catalog/config.yml"),
+        )
+        queries = asyncio.run(
+            aws.fetch_object(Bucket="demo-bucket", Key=".quilt/queries/config.yaml"),
+        )
+        listing = asyncio.run(
+            aws.list_objects_page(
+                Bucket="demo-bucket",
+                Prefix="",
+                Delimiter="/",
+                MaxKeys=1000,
+            ),
+        )
+
+    assert readme["status"] == 200
+    assert "filesystem-backed LOCAL Quilt bucket" in readme["body"].decode()
+    assert summarize["body"] == b"[]\n"
+    assert b"workflows: {}" in workflows["body"]
+    assert b"sourceBuckets" in prefs["body"]
+    assert b"queries: {}" in queries["body"]
+    assert any(item["Key"] == "README.md" for item in listing["Contents"])
+    assert any(item["Key"] == "quilt_summarize.json" for item in listing["Contents"])
+    assert {"Prefix": ".quilt/"} in listing["CommonPrefixes"]
+
+
+def test_filesystem_conventional_paths_are_case_insensitive(monkeypatch, tmp_path):
+    bucket = tmp_path / "demo-bucket"
+    bucket.mkdir()
+    (bucket / "readme.md").write_text("custom readme")
+    workflows_dir = bucket / ".QuIlT" / "Workflows"
+    workflows_dir.mkdir(parents=True)
+    (workflows_dir / "CONFIG.YAML").write_text('version: "1"\nworkflows: {}\n')
+    prefs_dir = bucket / ".quilt" / "catalog"
+    prefs_dir.mkdir(parents=True)
+    (prefs_dir / "CONFIG.YAML").write_text("ui:\n  sourceBuckets:\n    demo-bucket: {}\n")
+
+    monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
+    monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(tmp_path))
+
+    from quilt3_local import aws
+
+    with QuiltContext():
+        readme = asyncio.run(aws.fetch_object(Bucket="demo-bucket", Key="README.md"))
+        workflows = asyncio.run(
+            aws.fetch_object(Bucket="demo-bucket", Key=".quilt/workflows/config.yml"),
+        )
+        prefs = asyncio.run(
+            aws.fetch_object(Bucket="demo-bucket", Key=".quilt/catalog/config.yml"),
+        )
+
+    assert readme["body"] == b"custom readme"
+    assert workflows["body"] == b'version: "1"\nworkflows: {}\n'
+    assert prefs["body"] == b"ui:\n  sourceBuckets:\n    demo-bucket: {}\n"
+
+
+def test_s3proxy_serializes_object_tags_as_s3_xml(monkeypatch, tmp_path):
+    bucket = tmp_path / "demo-bucket"
+    bucket.mkdir()
+    (bucket / "hello.txt").write_text("hello")
+
+    monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
+    monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(tmp_path))
+
+    from quilt3_local import aws
+    from quilt3_local.s3proxy import _serialize_object_tagging_result
+
+    with QuiltContext():
+        result = asyncio.run(aws.get_object_tagging(Bucket="demo-bucket", Key="hello.txt"))
+
+    xml = _serialize_object_tagging_result(result).decode()
+
+    assert "<Tagging" in xml
+    assert "<TagSet" in xml
+
+
 def test_local_graphql_search_and_api_search(monkeypatch, tmp_path):
         bucket = tmp_path / "demo-bucket"
         bucket.mkdir()

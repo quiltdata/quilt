@@ -120,6 +120,16 @@ def _serialize_list_versions_result(result: dict, encoding_type: str | None) -> 
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
+def _serialize_object_tagging_result(result: dict) -> bytes:
+    root = ET.Element("Tagging", xmlns="http://s3.amazonaws.com/doc/2006-03-01/")
+    tag_set = ET.SubElement(root, "TagSet")
+    for item in result.get("TagSet", []):
+        tag = ET.SubElement(tag_set, "Tag")
+        ET.SubElement(tag, "Key").text = item.get("Key", "")
+        ET.SubElement(tag, "Value").text = item.get("Value", "")
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
 async def _dispatch(request: fastapi.Request, bucket: str, key: str):
     cors_headers = _cors_headers(request)
     if request.method == "OPTIONS":
@@ -153,6 +163,28 @@ async def _dispatch(request: fastapi.Request, bucket: str, key: str):
         headers["x-amz-bucket-region"] = request.path_params.get("s3_region") or "us-east-1"
         return fastapi.Response(
             content=_serialize_list_versions_result(result, request.query_params.get("encoding-type")),
+            status_code=200,
+            headers=headers,
+        )
+
+    if request.method in {"GET", "HEAD"} and _has_flag_param(request, "tagging"):
+        result = await aws.get_object_tagging(
+            Bucket=bucket,
+            Key=key,
+            VersionId=request.query_params.get("versionId"),
+        )
+        if result is None:
+            headers = dict(cors_headers)
+            headers["content-type"] = "text/plain"
+            return fastapi.Response(content=b"Not found", status_code=404, headers=headers)
+
+        headers = dict(cors_headers)
+        headers["content-type"] = "application/xml"
+        headers["x-amz-bucket-region"] = request.path_params.get("s3_region") or "us-east-1"
+        if result.get("VersionId"):
+            headers["x-amz-version-id"] = result["VersionId"]
+        return fastapi.Response(
+            content=b"" if request.method == "HEAD" else _serialize_object_tagging_result(result),
             status_code=200,
             headers=headers,
         )

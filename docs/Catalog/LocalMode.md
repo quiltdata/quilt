@@ -117,14 +117,17 @@ In filesystem mode:
 - each top-level directory under $QUILT_LOCAL_DATA_DIR appears in the Catalog as a browsable bucket
 - object URLs are routed through /__s3proxy on the LOCAL backend
 - object pages now emulate the S3 listObjectVersions call used by the UI, so version-history lookups do not hard-fail in LOCAL mode
+- object tags now return an empty S3 TagSet XML document instead of raw file bytes, so the Object Tags panel does not fail on ordinary files
 - downloads and preview fetches use the same local object proxy path
+- filesystem buckets expose default LOCAL-only bucket files when they are missing: README.md, quilt_summarize.json, .quilt/workflows/config.yml, .quilt/catalog/config.yml, and .quilt/queries/config.yaml
+- real files override those defaults immediately, and the conventional config paths are resolved case-insensitively so README / config case variants still work during local testing
 ```
 
 Expected LOCAL-mode console noise:
 
 ```text
-- HEAD/GET probes for optional files such as README.md, README.txt, README.ipynb, quilt_summarize.json, and .quilt/workflows/config.yml still return 404 when those files do not exist
-- those 404s are expected and are how the Catalog detects whether optional bucket-level content is present
+- LOCAL no longer 404s for the standard bucket scaffolding files listed above because the filesystem backend synthesizes them when absent
+- missing custom files outside that conventional set still return 404 and are still a normal part of bucket browsing
 ```
 
 ## Capability Checklist
