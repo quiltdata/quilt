@@ -3,6 +3,7 @@ import logging
 import os
 
 import boto3
+import botocore.exceptions
 
 import quilt_shared.const
 from quilt_shared.athena import QueryRunner
@@ -34,8 +35,10 @@ def get_first_line(bucket, key) -> bytes | None:
         resp = s3.get_object(Bucket=bucket, Key=key)
         for line in resp["Body"].iter_lines():
             return line
-    except s3.exceptions.NoSuchKey:
-        return None
+    except botocore.exceptions.ClientError as exc:
+        if exc.response["Error"]["Code"] == "NoSuchKey":
+            return None
+        raise
 
 
 def process_s3_event(event):
