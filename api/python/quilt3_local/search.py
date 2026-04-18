@@ -14,6 +14,16 @@ MAX_SAMPLE_OBJECTS = 20
 MAX_IMAGE_OBJECTS = 100
 
 
+class _SearchStatsSize(T.TypedDict):
+    value: float
+
+
+class _SearchStatsBucket(T.TypedDict):
+    key: str
+    doc_count: int
+    size: _SearchStatsSize
+
+
 def _to_datetime(value: T.Any) -> datetime.datetime | None:
     if value is None:
         return None
@@ -193,14 +203,21 @@ async def object_hits(
             if _is_internal_key(key):
                 continue
             ext = _ext(key)
-            modified = obj.get("LastModified") or datetime.datetime.now(datetime.timezone.utc)
+            modified_value = obj.get("LastModified")
+            modified = (
+                modified_value
+                if isinstance(modified_value, datetime.datetime)
+                else datetime.datetime.now(datetime.timezone.utc)
+            )
+            version_value = obj.get("VersionId")
+            size_value = obj.get("Size", 0)
             hit = {
                 "__typename": "SearchHitObject",
                 "id": f"{bucket}:{key}",
                 "bucket": bucket,
                 "key": key,
-                "version": obj.get("VersionId") or "",
-                "size": float(obj.get("Size", 0)),
+                "version": version_value if isinstance(version_value, str) else "",
+                "size": float(size_value) if isinstance(size_value, (int, float)) else 0.0,
                 "modified": modified,
                 "deleted": False,
                 "indexedContent": None,
@@ -439,12 +456,15 @@ async def search_more_objects(after: str, size: int | None = None) -> dict:
 
 async def search_stats(bucket: str) -> dict:
     hits = await object_hits(buckets_filter=[bucket])
-    ext_map: dict[str, dict[str, float | int | str]] = {}
+    ext_map: dict[str, _SearchStatsBucket] = {}
     for hit in hits:
         ext = hit["ext"]
-        data = ext_map.setdefault(ext, {"key": ext, "doc_count": 0, "size": {"value": 0.0}})
+        if ext not in ext_map:
+            ext_map[ext] = {"key": ext, "doc_count": 0, "size": {"value": 0.0}}
+        data = ext_map[ext]
         data["doc_count"] = int(data["doc_count"]) + 1
-        data["size"]["value"] = float(data["size"]["value"]) + float(hit["size"])
+        size_data = data["size"]
+        size_data["value"] = float(size_data["value"]) + float(hit["size"])
     buckets_list = sorted(ext_map.values(), key=lambda item: float(item["size"]["value"]), reverse=True)
     return {
         "hits": {"total": len(hits)},

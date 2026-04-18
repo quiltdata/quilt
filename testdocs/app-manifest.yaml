@@ -1,0 +1,17 @@
+manifestVersion: 1
+info:
+  name: Quilt Integration
+  description: Package Benchling notebook entries as Quilt data packages
+  version: 0.17.2
+features:
+  - name: Quilt Package
+    id: quilt-entry
+    type: CANVAS
+subscriptions:
+  deliveryMethod: WEBHOOK
+  messages:
+    - type: v2.canvas.userInteracted
+    - type: v2.canvas.created
+    - type: v2.entry.created
+    - type: v2.entry.updated.fields
+    - type: v2.entry.updated.reviewRecord

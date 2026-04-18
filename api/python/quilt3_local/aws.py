@@ -7,12 +7,42 @@ import json
 import mimetypes
 from functools import lru_cache
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable, Literal, TypedDict, cast
 
 import boto3
 from botocore.exceptions import ClientError
 
 from . import settings
+
+
+class FilesystemObjectEntry(TypedDict):
+    Key: str
+    Size: int
+    ETag: str
+    LastModified: datetime.datetime
+    StorageClass: str
+
+
+class ObjectListingEntry(TypedDict, total=False):
+    Key: str
+    Size: int
+    ETag: str
+    LastModified: datetime.datetime
+    StorageClass: str
+    VersionId: str
+
+
+class FilesystemObjectMetadata(FilesystemObjectEntry):
+    Body: bytes
+    ContentType: str
+
+
+PageItem = tuple[str, Literal["prefix", "content"], FilesystemObjectEntry | None]
+
+
+CONVENTIONAL_KEY_GROUPS: tuple[tuple[str, ...], ...]
+CONVENTIONAL_KEY_LOOKUP: dict[str, tuple[str, ...]]
+CONVENTIONAL_DEFAULT_FACTORIES: dict[str, Callable[[str], bytes]]
 
 
 def _default_readme(bucket: str) -> bytes:
@@ -36,7 +66,20 @@ def _default_bucket_preferences(bucket: str) -> bytes:
 
 
 def _default_workflows_config(_bucket: str) -> bytes:
-    return b'version: "1"\nis_workflow_required: false\nworkflows: {}\n'
+    return (
+        b'version:\n'
+        b'  base: "1"\n'
+        b'  catalog: "1"\n'
+        b'default_workflow: "experiment"\n'
+        b'is_workflow_required: false\n'
+        b'workflows:\n'
+        b'  experiment:\n'
+        b'    name: Experiment\n'
+        b'    metadata_schema: experiment-universal\n'
+        b'schemas:\n'
+        b'  experiment-universal:\n'
+        b'    url: s3://quilt-dev-metadata/.quilt/workflows/schemas/experiment-universal.json\n'
+    )
 
 
 def _default_queries_config(_bucket: str) -> bytes:
@@ -82,7 +125,10 @@ def _bucket_root(bucket: str) -> Path:
     root = settings.data_dir()
     if root is None:
         raise RuntimeError("QUILT_LOCAL_DATA_DIR must be set for filesystem local mode")
-    return root / bucket
+    candidate = (root / bucket).resolve()
+    if not candidate.is_relative_to(root):
+        raise PermissionError("Bucket name escapes data root")
+    return candidate
 
 
 def _object_path(bucket: str, key: str) -> Path:
@@ -149,7 +195,7 @@ def _find_case_insensitive_path(bucket: str, key: str) -> Path | None:
     return _walk(bucket_root, 0)
 
 
-def _filesystem_object_metadata(bucket: str, key: str) -> dict | None:
+def _filesystem_object_metadata(bucket: str, key: str) -> FilesystemObjectMetadata | None:
     bucket_root = _bucket_root(bucket)
     if not bucket_root.exists():
         return None
@@ -166,6 +212,7 @@ def _filesystem_object_metadata(bucket: str, key: str) -> dict | None:
             "ETag": _etag_for_path(path),
             "LastModified": _mtime(path),
             "Size": len(data),
+            "StorageClass": "STANDARD",
             "ContentType": _content_type_for_key(actual_key),
         }
 
@@ -185,11 +232,12 @@ def _filesystem_object_metadata(bucket: str, key: str) -> dict | None:
         "ETag": _etag_for_bytes(data),
         "LastModified": _mtime(bucket_root),
         "Size": len(data),
+        "StorageClass": "STANDARD",
         "ContentType": _content_type_for_key(canonical_key),
     }
 
 
-def _filesystem_real_objects(bucket: str) -> list[dict]:
+def _filesystem_real_objects(bucket: str) -> list[FilesystemObjectEntry]:
     bucket_root = _bucket_root(bucket)
     if not bucket_root.exists():
         return []
@@ -210,7 +258,7 @@ def _filesystem_real_objects(bucket: str) -> list[dict]:
     return sorted(objects, key=lambda item: item["Key"])
 
 
-def _filesystem_objects(bucket: str) -> list[dict]:
+def _filesystem_objects(bucket: str) -> list[FilesystemObjectEntry]:
     objects = list(_filesystem_real_objects(bucket))
 
     for canonical_key in CONVENTIONAL_DEFAULT_FACTORIES:
@@ -242,7 +290,7 @@ async def bucket_exists(bucket: str) -> bool:
             _sync_s3_client().head_bucket(Bucket=bucket)
             return True
         except ClientError as exc:
-            if exc.response["Error"]["Code"] == "403":
+            if exc.response["Error"]["Code"] in {"403", "404", "NoSuchBucket", "NotFound"}:
                 return False
             raise
 
@@ -314,7 +362,7 @@ async def list_objects_page(
             }
 
         prefixes: set[str] = set()
-        contents: list[dict] = []
+        contents: list[FilesystemObjectEntry] = []
         for item in objects:
             key = item["Key"]
             remainder = key[len(Prefix):]
@@ -324,17 +372,16 @@ async def list_objects_page(
                 continue
             contents.append(item)
 
-        items = sorted(
-            [("prefix", prefix_value) for prefix_value in prefixes]
-            + [("content", content) for content in contents],
-            key=lambda item: item[1] if item[0] == "prefix" else item[1]["Key"],
-        )
+        items: list[PageItem] = []
+        items.extend((prefix_value, "prefix", None) for prefix_value in prefixes)
+        items.extend((content["Key"], "content", content) for content in contents)
+        items.sort(key=lambda item: item[0])
 
         if ContinuationToken:
             items = [
                 item
                 for item in items
-                if (item[1] if item[0] == "prefix" else item[1]["Key"]) > ContinuationToken
+                if item[0] > ContinuationToken
             ]
 
         truncated = len(items) > MaxKeys
@@ -342,7 +389,7 @@ async def list_objects_page(
         next_token = None
         if truncated and page:
             last_item = page[-1]
-            next_token = last_item[1] if last_item[0] == "prefix" else last_item[1]["Key"]
+            next_token = last_item[0]
 
         return {
             "Name": Bucket,
@@ -352,11 +399,11 @@ async def list_objects_page(
             "KeyCount": len(page),
             "IsTruncated": truncated,
             "NextContinuationToken": next_token,
-            "Contents": [item[1] for item in page if item[0] == "content"],
+            "Contents": [item[2] for item in page if item[1] == "content"],
             "CommonPrefixes": [
-                {"Prefix": item[1]}
+                {"Prefix": item[0]}
                 for item in page
-                if item[0] == "prefix"
+                if item[1] == "prefix"
             ],
         }
 
@@ -371,16 +418,16 @@ async def list_objects_page(
     return await asyncio.to_thread(_list_page)
 
 
-async def list_all_objects(*, Bucket: str, Prefix: str = "") -> AsyncIterator[dict]:
+async def list_all_objects(*, Bucket: str, Prefix: str = "") -> AsyncIterator[ObjectListingEntry]:
     if settings.filesystem_mode():
         for item in _filesystem_real_objects(Bucket):
             if item["Key"].startswith(Prefix):
-                yield item
+                yield cast(ObjectListingEntry, item)
         return
 
-    def _collect() -> list[dict]:
+    def _collect() -> list[ObjectListingEntry]:
         paginator = _sync_s3_client().get_paginator("list_objects_v2")
-        out = []
+        out: list[ObjectListingEntry] = []
         for page in paginator.paginate(Bucket=Bucket, Prefix=Prefix):
             out.extend(page.get("Contents", ()))
         return out

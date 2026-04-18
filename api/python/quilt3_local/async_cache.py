@@ -43,7 +43,7 @@ def cached(cache=lambda _: {}, key=cachetools.keys.hashkey):
                 else:
                     return fut.result() if fut.done() else await asyncio.shield(fut)
 
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 fut = loop.create_future()
                 task = loop.create_task(fn(*args, **kwargs))
                 task.add_done_callback(functools.partial(_done_callback, fut))

@@ -27,7 +27,7 @@ def get_credentials():
     if settings.filesystem_mode():
         return settings.fake_credentials()
 
-    session_cred = boto3._get_default_session().get_credentials()
+    session_cred = boto3.Session().get_credentials()
     if session_cred is None:
         raise fastapi.HTTPException(503, "AWS credentials are required for LOCAL mode with the AWS object backend.")
 

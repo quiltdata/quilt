@@ -110,6 +110,29 @@ $ PYTHONPATH=$PWD \
 		uv run --python 3.11 --no-dev --extra catalog quilt3 catalog --host localhost --port 3000 --no-browser
 ```
 
+## Canonical Preview Fixtures
+
+The repo already contains a small, checked-in preview fixture pack. Reuse that pack for LOCAL filesystem demos instead of creating a second set of sample binaries.
+
+To stage the curated pack into a filesystem-backed LOCAL bucket:
+
+```bash
+cd api/python
+python -m tests.preview_fixtures /tmp/quilt-local-data/demo-bucket
+```
+
+This copies the existing canonical samples into `/tmp/quilt-local-data/demo-bucket` from these source locations:
+
+```text
+- lambdas/preview/test/data for text, csv, tsv, vcf, ipynb, and parquet fixtures
+- lambdas/tabular_preview/tests/data/simple for jsonl-focused tabular fixtures
+- lambdas/shared/tests/data/fcs for FCS fixtures
+- lambdas/thumbnail/tests/data for image, pdf, and pptx fixtures
+- catalog/app/components/JsonEditor/object-expand.webm for a tiny video fixture
+```
+
+That fixture registry lives in `api/python/tests/preview_fixtures.py`, and `api/python/tests/test_local_mode.py` reuses it for built-in LOCAL preview coverage. This keeps the local preview workflow aligned with the existing lambda test structure instead of duplicating assets.
+
 In filesystem mode:
 
 ```text
@@ -121,13 +144,6 @@ In filesystem mode:
 - downloads and preview fetches use the same local object proxy path
 - filesystem buckets expose default LOCAL-only bucket files when they are missing: README.md, quilt_summarize.json, .quilt/workflows/config.yml, .quilt/catalog/config.yml, and .quilt/queries/config.yaml
 - real files override those defaults immediately, and the conventional config paths are resolved case-insensitively so README / config case variants still work during local testing
-```
-
-Expected LOCAL-mode console noise:
-
-```text
-- LOCAL no longer 404s for the standard bucket scaffolding files listed above because the filesystem backend synthesizes them when absent
-- missing custom files outside that conventional set still return 404 and are still a normal part of bucket browsing
 ```
 
 ## Capability Checklist
