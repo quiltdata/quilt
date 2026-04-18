@@ -94,6 +94,13 @@ cd catalog
 npm install
 ```
 
+For the repo's filesystem-backed LOCAL catalog workflow, use the documented one-shot setup in [`docs/Catalog/LocalMode.md`](Catalog/LocalMode.md):
+
+```bash
+cd api/python
+uvx --from poethepoet poe catalog-test
+```
+
 ### Build
 
 To build a static code bundle, as would be necessary in order to serve the catalog:

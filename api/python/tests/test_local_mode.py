@@ -1,5 +1,5 @@
-import base64
 import asyncio
+import base64
 import gzip
 import importlib
 import json
@@ -7,13 +7,18 @@ from contextlib import contextmanager
 from io import BytesIO
 from urllib.parse import quote, unquote, urlencode, urlparse
 
+import pytest
 from botocore.exceptions import ClientError
 from graphql import graphql
-import pytest
 
 from quilt3_local import buckets
 from quilt3_local.context import QuiltContext
-from tests.preview_fixtures import FIXTURES_BY_NAME, CURATED_PREVIEW_FIXTURES, REPO_ROOT, stage_preview_fixtures
+from tests.preview_fixtures import (
+    CURATED_PREVIEW_FIXTURES,
+    FIXTURES_BY_NAME,
+    REPO_ROOT,
+    stage_preview_fixtures,
+)
 
 
 class _MockHTTPResponse:
@@ -42,11 +47,17 @@ class _ASGIResponse:
         self.body = body
 
     @property
+    def decoded_body(self) -> bytes:
+        if self.headers.get("content-encoding") == "gzip":
+            return gzip.decompress(self.body)
+        return self.body
+
+    @property
     def text(self) -> str:
-        return self.body.decode("utf-8", "ignore")
+        return self.decoded_body.decode("utf-8", "ignore")
 
     def json(self):
-        return json.loads(self.body)
+        return json.loads(self.decoded_body)
 
 
 def _make_lambda_event(name: str, query: dict[str, str]):
@@ -361,6 +372,12 @@ def test_filesystem_conventional_defaults_are_available(monkeypatch, tmp_path):
         workflows = asyncio.run(
             aws.fetch_object(Bucket="demo-bucket", Key=".quilt/workflows/config.yml"),
         )
+        workflow_schema = asyncio.run(
+            aws.fetch_object(
+                Bucket="demo-bucket",
+                Key=".quilt/workflows/schemas/experiment-universal.json",
+            ),
+        )
         prefs = asyncio.run(
             aws.fetch_object(Bucket="demo-bucket", Key=".quilt/catalog/config.yml"),
         )
@@ -378,14 +395,43 @@ def test_filesystem_conventional_defaults_are_available(monkeypatch, tmp_path):
 
     assert readme["status"] == 200
     assert "filesystem-backed LOCAL Quilt bucket" in readme["body"].decode()
-    assert summarize["body"] == b"[]\n"
+    assert json.loads(summarize["body"]) == []
     assert b'default_workflow: "experiment"' in workflows["body"]
     assert b"experiment-universal" in workflows["body"]
+    assert b"file://" in workflows["body"]
+    assert workflow_schema["status"] == 200
+    assert b'"type": "object"' in workflow_schema["body"]
     assert b"sourceBuckets" in prefs["body"]
     assert b"queries: {}" in queries["body"]
     assert any(item["Key"] == "README.md" for item in listing["Contents"])
     assert any(item["Key"] == "quilt_summarize.json" for item in listing["Contents"])
     assert {"Prefix": ".quilt/"} in listing["CommonPrefixes"]
+
+
+def test_filesystem_default_summarize_expands_preview_fixtures(monkeypatch, tmp_path):
+    bucket = tmp_path / "demo-bucket"
+    bucket.mkdir()
+    stage_preview_fixtures(bucket)
+
+    monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
+    monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(tmp_path))
+
+    from quilt3_local import aws
+
+    with QuiltContext():
+        summarize = asyncio.run(
+            aws.fetch_object(Bucket="demo-bucket", Key="quilt_summarize.json"),
+        )
+
+    body = json.loads(summarize["body"])
+    assert summarize["status"] == 200
+    assert body[0] == [{"path": "preview/text/short.txt", "title": "short.txt", "expand": True}]
+    assert any(
+        item["path"] == "preview/documents/dog_watermark.pdf"
+        for row in body
+        for item in row
+    )
+    assert all(item["expand"] is True for row in body for item in row)
 
 
 def test_filesystem_conventional_paths_are_case_insensitive(monkeypatch, tmp_path):
@@ -683,7 +729,7 @@ def test_local_main_exposes_lambda_routes(monkeypatch, tmp_path):
 
 
 def test_local_main_proxy_mode_exposes_webpack_hmr_stub(monkeypatch, tmp_path):
-    asgiproxy_main = pytest.importorskip("asgiproxy.__main__")
+    asgiproxy_main = pytest.importorskip("asgiproxy.__main__", exc_type=ImportError)
     bucket_root = tmp_path / "demo-bucket"
     bucket_root.mkdir()
     context_closed = False
@@ -733,6 +779,7 @@ def test_curated_preview_fixtures_stage_existing_repo_samples(tmp_path):
     assert all(path.exists() for path in staged)
     assert (bucket_root / FIXTURES_BY_NAME["video"].bucket_key).exists()
     assert (bucket_root / FIXTURES_BY_NAME["pdf"].bucket_key).exists()
+    assert (bucket_root / FIXTURES_BY_NAME["dog_pdf"].bucket_key).exists()
 
 
 @pytest.mark.parametrize(
@@ -749,7 +796,7 @@ def test_curated_preview_fixtures_stage_existing_repo_samples(tmp_path):
 )
 def test_local_preview_lambda_reuses_curated_fixture_pack(monkeypatch, tmp_path, fixture_name, query, required_modules):
     for module in required_modules:
-        pytest.importorskip(module)
+        pytest.importorskip(module, exc_type=ImportError)
 
     from quilt3_local.lambdas import preview
 

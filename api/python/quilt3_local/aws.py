@@ -65,25 +65,85 @@ def _default_bucket_preferences(bucket: str) -> bytes:
     ).encode()
 
 
-def _default_workflows_config(_bucket: str) -> bytes:
+def _default_experiment_universal_schema(_bucket: str) -> bytes:
     return (
-        b'version:\n'
-        b'  base: "1"\n'
-        b'  catalog: "1"\n'
-        b'default_workflow: "experiment"\n'
-        b'is_workflow_required: false\n'
-        b'workflows:\n'
-        b'  experiment:\n'
-        b'    name: Experiment\n'
-        b'    metadata_schema: experiment-universal\n'
-        b'schemas:\n'
-        b'  experiment-universal:\n'
-        b'    url: s3://quilt-dev-metadata/.quilt/workflows/schemas/experiment-universal.json\n'
+        b'{\n'
+        b'  "$schema": "http://json-schema.org/draft-07/schema#",\n'
+        b'  "type": "object"\n'
+        b'}\n'
     )
+
+
+def _default_workflows_config(bucket: str) -> bytes:
+    schema_url = _bucket_root(bucket).joinpath(
+        ".quilt", "workflows", "schemas", "experiment-universal.json"
+    ).as_uri()
+    return b"".join((
+        b'version:\n',
+        b'  base: "1"\n',
+        b'  catalog: "1"\n',
+        b'default_workflow: "experiment"\n',
+        b'is_workflow_required: false\n',
+        b'workflows:\n',
+        b'  experiment:\n',
+        b'    name: Experiment\n',
+        b'    metadata_schema: experiment-universal\n',
+        b'schemas:\n',
+        b'  experiment-universal:\n',
+        f'    url: {schema_url}\n'.encode(),
+    ))
 
 
 def _default_queries_config(_bucket: str) -> bytes:
     return b'version: "1"\nqueries: {}\n'
+
+
+_DEFAULT_SUMMARIZE_GROUP_ORDER = (
+    "text",
+    "tabular",
+    "structured",
+    "notebooks",
+    "scientific",
+    "images",
+    "documents",
+    "media",
+)
+
+
+def _default_quilt_summarize(bucket: str) -> bytes:
+    preview_objects = [
+        item["Key"]
+        for item in _filesystem_real_objects(bucket)
+        if item["Key"].startswith("preview/")
+    ]
+    if not preview_objects:
+        return b"[]\n"
+
+    grouped: dict[str, list[str]] = {}
+    for key in sorted(preview_objects):
+        parts = key.split("/", 2)
+        group = parts[1] if len(parts) > 2 else "misc"
+        grouped.setdefault(group, []).append(key)
+
+    ordered_groups = [
+        group for group in _DEFAULT_SUMMARIZE_GROUP_ORDER if group in grouped
+    ]
+    ordered_groups.extend(
+        sorted(group for group in grouped if group not in _DEFAULT_SUMMARIZE_GROUP_ORDER)
+    )
+
+    summarize = [
+        [
+            {
+                "path": key,
+                "title": Path(key).name,
+                "expand": True,
+            }
+            for key in grouped[group]
+        ]
+        for group in ordered_groups
+    ]
+    return (json.dumps(summarize, indent=2) + "\n").encode()
 
 
 CONVENTIONAL_KEY_GROUPS = (
@@ -92,6 +152,7 @@ CONVENTIONAL_KEY_GROUPS = (
     ("README.ipynb",),
     ("quilt_summarize.json",),
     (".quilt/workflows/config.yml", ".quilt/workflows/config.yaml"),
+    (".quilt/workflows/schemas/experiment-universal.json",),
     (".quilt/catalog/config.yml", ".quilt/catalog/config.yaml"),
     (".quilt/queries/config.yaml", ".quilt/queries/config.yml"),
 )
@@ -104,8 +165,9 @@ CONVENTIONAL_KEY_LOOKUP = {
 
 CONVENTIONAL_DEFAULT_FACTORIES = {
     "README.md": _default_readme,
-    "quilt_summarize.json": lambda _bucket: b"[]\n",
+    "quilt_summarize.json": _default_quilt_summarize,
     ".quilt/workflows/config.yml": _default_workflows_config,
+    ".quilt/workflows/schemas/experiment-universal.json": _default_experiment_universal_schema,
     ".quilt/catalog/config.yml": _default_bucket_preferences,
     ".quilt/queries/config.yaml": _default_queries_config,
 }

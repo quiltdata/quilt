@@ -204,6 +204,7 @@ async def _dispatch(request: fastapi.Request, bucket: str, key: str):
     headers.pop("date", None)
     headers.pop("server", None)
     headers.setdefault("content-type", "application/octet-stream")
+    headers["x-amz-bucket-region"] = request.path_params.get("s3_region") or "us-east-1"
 
     return fastapi.Response(
         content=response["body"],
@@ -215,8 +216,15 @@ async def _dispatch(request: fastapi.Request, bucket: str, key: str):
 @s3proxy.api_route("/{host}", methods=["GET", "HEAD", "PUT", "OPTIONS"])
 @s3proxy.api_route("/{host}/{s3_path:path}", methods=["GET", "HEAD", "PUT", "OPTIONS"])
 async def host_style_proxy(request: fastapi.Request, host: str, s3_path: str = ""):
-    bucket, _region = _parse_host_style(host)
-    return await _dispatch(request, bucket, s3_path)
+    try:
+        bucket, _region = _parse_host_style(host)
+        return await _dispatch(request, bucket, s3_path)
+    except fastapi.HTTPException:
+        if not s3_path:
+            raise
+        bucket, _, key = s3_path.partition("/")
+        request.path_params["s3_region"] = host
+        return await _dispatch(request, bucket, key)
 
 
 @s3proxy.api_route("/{s3_region}/{s3_bucket}", methods=["GET", "HEAD", "PUT", "OPTIONS"])

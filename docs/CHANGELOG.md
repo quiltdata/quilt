@@ -16,6 +16,19 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - 2026-04-18
+
+### Python API
+
+* [Fixed] LOCAL filesystem-backed workflow defaults now point at a bucket-local `file://` schema and catalog installs include `lxml-html-clean` so notebook preview dependencies keep working with newer `lxml`
+
+### Catalog, Lambdas
+
+* [Added] Add a `poe catalog-test` one-shot LOCAL catalog setup command and stage `dog_watermark.pdf` in the curated LOCAL preview fixture pack
+* [Fixed] LOCAL S3 proxy responses now handle legacy and host-style routes consistently and include the expected region headers
+* [Fixed] Default LOCAL `quilt_summarize.json` now expands staged `preview/` fixtures in grouped rows instead of returning an empty summary
+* [Fixed] Spreadsheet metadata import now preserves date-only values without timezone drift in LibreOffice and CSV fixtures
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API

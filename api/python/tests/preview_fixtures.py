@@ -29,6 +29,7 @@ CURATED_PREVIEW_FIXTURES = (
     PreviewFixture("fcs", "scientific", "preview/scientific/normal.fcs", REPO_ROOT / "lambdas/shared/tests/data/fcs/normal.fcs"),
     PreviewFixture("image", "image", "preview/images/penguin.jpg", REPO_ROOT / "lambdas/thumbnail/tests/data/penguin.jpg"),
     PreviewFixture("pdf", "document", "preview/documents/MUMmer.pdf", REPO_ROOT / "lambdas/thumbnail/tests/data/MUMmer.pdf"),
+    PreviewFixture("dog_pdf", "document", "preview/documents/dog_watermark.pdf", REPO_ROOT / "api/python/tests/data/dog_watermark.pdf"),
     PreviewFixture("pptx", "document", "preview/documents/in.pptx", REPO_ROOT / "lambdas/thumbnail/tests/data/pptx/in.pptx"),
     PreviewFixture("video", "media", "preview/media/object-expand.webm", REPO_ROOT / "catalog/app/components/JsonEditor/object-expand.webm"),
 )
