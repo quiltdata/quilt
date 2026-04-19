@@ -50,6 +50,15 @@ If you are changing source files under `catalog/`, run the local Catalog backend
 in front of the webpack dev server so the UI uses the real LOCAL-mode backend
 routes while still hot-reloading your frontend changes.
 
+Current behavior in this repo:
+
+```text
+- the Node webpack dev server should be the only process bound to port 3001
+- the Python LOCAL backend should be the only process bound to port 3000
+- `PYTHONPATH=$PWD` makes the repo-local `api/python/quilt3_local/` package override the published `quilt3_local` package during development
+- the browser should talk to the Python app on port 3000; that app serves LOCAL backend routes directly and proxies static assets to webpack on port 3001
+```
+
 First, point `catalog/static-dev/config.js` at the LOCAL-mode prefixes served by
 the Python app:
 
@@ -94,6 +103,44 @@ xdg-open http://localhost:3000
 ```
 
 `PYTHONPATH=$PWD` is required so the repo-local `api/python/quilt3_local/` implementation overrides the published `quilt3_local` package during local dev.
+
+### Clean Restart
+
+If you have been iterating on LOCAL mode for a while, it is easy to leave old
+webpack or `quilt3 catalog` processes bound to the same ports. Before starting a
+fresh LOCAL session, stop any overlapping services and confirm ports `3000` and
+`3001` are free.
+
+Inspect current listeners:
+
+```bash
+cd quilt
+ss -ltnp | grep -E ':(3000|3001)\b' || true
+```
+
+Stop the usual LOCAL development processes by command pattern:
+
+```bash
+pkill -f 'webpack serve --config internals/webpack/webpack.dev.js' || true
+pkill -f 'quilt3 catalog --host localhost --port 3000' || true
+```
+
+Verify the ports are clear, then restart Node and Python:
+
+```bash
+ss -ltnp | grep -E ':(3000|3001)\b' || true
+cd catalog
+PORT=3001 npm start
+```
+
+```bash
+cd quilt/api/python
+PYTHONPATH=$PWD \
+QUILT_LOCAL_OBJECT_BACKEND=filesystem \
+QUILT_LOCAL_DATA_DIR=/tmp/quilt-local-data \
+QUILT_CATALOG_URL=http://localhost:3001 \
+	uv run --python 3.11 --no-dev --extra catalog quilt3 catalog --host localhost --port 3000 --no-browser
+```
 
 ## Filesystem Object Backend
 
