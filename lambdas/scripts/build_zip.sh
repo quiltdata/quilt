@@ -27,7 +27,7 @@ mkdir out
 cd out
 
 # install everything into a temporary directory
-uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt --no-default-groups
+uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ --no-default-groups > requirements.txt
 python - <<'PY'
 from pathlib import Path
 
