@@ -31,14 +31,17 @@ cd out
 tmp_function_dir=$(mktemp -d)
 cp -a /lambda/function/. "$tmp_function_dir/"
 
-python - "$tmp_function_dir/pyproject.toml" <<'PY'
+python - "$tmp_function_dir/pyproject.toml" "$tmp_function_dir/uv.lock" <<'PY'
 from pathlib import Path
 import sys
 
-path = Path(sys.argv[1])
-text = path.read_text()
-text = text.replace("../../py-shared", "/lambda/py-shared")
-path.write_text(text)
+for raw_path in sys.argv[1:]:
+    path = Path(raw_path)
+    if not path.exists():
+        continue
+    text = path.read_text()
+    text = text.replace("../../py-shared", "/lambda/py-shared")
+    path.write_text(text)
 PY
 
 # install everything into a temporary directory
