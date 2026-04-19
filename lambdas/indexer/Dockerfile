@@ -16,10 +16,11 @@ ENV UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=${FUNCTION_DIR}
 
+COPY py-shared /src/py-shared
+
 RUN --mount=type=cache,target=/root/.cache \
     --mount=type=bind,source=lambdas/indexer/uv.lock,target=/src/lambdas/indexer/uv.lock \
     --mount=type=bind,source=lambdas/indexer/pyproject.toml,target=/src/lambdas/indexer/pyproject.toml \
-    --mount=type=bind,source=py-shared,target=/src/py-shared \
     uv sync \
     --locked \
     --no-dev \
