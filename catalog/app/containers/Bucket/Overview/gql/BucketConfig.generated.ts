@@ -9,11 +9,8 @@ export type containers_Bucket_Overview_gql_BucketConfigQueryVariables = Types.Ex
 export type containers_Bucket_Overview_gql_BucketConfigQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'description' | 'overviewUrl'
-    >
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'description'>
   >
 }
 
@@ -39,7 +36,7 @@ export const containers_Bucket_Overview_gql_BucketConfigDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',
@@ -52,7 +49,6 @@ export const containers_Bucket_Overview_gql_BucketConfigDocument = {
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'description' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'overviewUrl' } },
               ],
             },
           },

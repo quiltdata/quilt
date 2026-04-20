@@ -262,14 +262,11 @@ function IFrameLoader({ handle, children }: IFrameLoaderProps) {
   return GQL.fold(bucketData, {
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
-    data: ({ bucketConfig }) =>
-      bucketConfig?.browsable && inPackage ? (
+    data: ({ bucket }) =>
+      bucket?.browsable && inPackage ? (
         <IFrameLoaderBrowsable {...{ handle, children }} />
       ) : (
-        <IFrameLoaderSigned
-          {...{ handle, children }}
-          browsable={!!bucketConfig?.browsable}
-        />
+        <IFrameLoaderSigned {...{ handle, children }} browsable={!!bucket?.browsable} />
       ),
   })
 }

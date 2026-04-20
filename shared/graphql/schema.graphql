@@ -176,8 +176,20 @@ type BucketConfig {
   prefixes: [String!]! @admin
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
-  collaborators: [CollaboratorBucketConnection!]!
   tabulatorTables: [TabulatorTable!]!
+}
+
+# Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
+# Always filtered through the caller's active role (no admin bypass).
+type Bucket {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  tags: [String!]
+  relevanceScore: Int!
+  browsable: Boolean!
+  collaborators: [CollaboratorBucketConnection!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -633,6 +645,8 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
+  buckets: [Bucket!]!
+  bucket(name: String!): Bucket
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package

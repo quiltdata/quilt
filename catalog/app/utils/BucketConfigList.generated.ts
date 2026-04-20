@@ -7,17 +7,10 @@ export type utils_BucketConfigListQueryVariables = Types.Exact<{
 }>
 
 export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
-  readonly bucketConfigs: ReadonlyArray<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      | 'name'
-      | 'title'
-      | 'iconUrl'
-      | 'description'
-      | 'linkedData'
-      | 'overviewUrl'
-      | 'tags'
-      | 'relevanceScore'
+  readonly buckets: ReadonlyArray<
+    { readonly __typename: 'Bucket' } & Pick<
+      Types.Bucket,
+      'name' | 'title' | 'iconUrl' | 'description' | 'tags' | 'relevanceScore'
     > & {
         readonly collaborators?: Types.Maybe<
           ReadonlyArray<
@@ -62,7 +55,7 @@ export const utils_BucketConfigListDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfigs' },
+            name: { kind: 'Name', value: 'buckets' },
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
@@ -70,8 +63,6 @@ export const utils_BucketConfigListDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'iconUrl' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'description' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'linkedData' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'overviewUrl' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'relevanceScore' } },
                 {

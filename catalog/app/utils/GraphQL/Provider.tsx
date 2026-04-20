@@ -95,6 +95,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           AdminQueries: () => null,
           BooleanPackageUserMetaFacet: () => null,
           BucketAccessCounts: () => null,
+          Bucket: (b) => b.name as string,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
           Collaborator: (c) => c.username as string,
@@ -164,6 +165,18 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
                 }),
               )
+              // `buckets` is role-scoped: a newly-added bucket may or may not be
+              // in the caller's role scope, so invalidate rather than optimistically
+              // append. Next read refetches from the server.
+              cache.invalidate({ __typename: 'Query' }, 'buckets')
+            },
+            bucketUpdate: (result, vars, cache) => {
+              if ((result.bucketUpdate as any)?.__typename !== 'BucketUpdateSuccess')
+                return
+              // urql auto-updates the BucketConfig entity by name key. The Bucket
+              // entity with the same name is a separate __typename and won't
+              // auto-propagate, so invalidate it so subsequent reads refetch.
+              cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             bucketRemove: (result, vars, cache) => {
               if ((result.bucketRemove as any)?.__typename !== 'BucketRemoveSuccess')
@@ -173,6 +186,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
+              cache.invalidate({ __typename: 'Query' }, 'buckets')
+              cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             policyCreateManaged: (result, _vars, cache) => {
               const policy = result.policyCreateManaged as any

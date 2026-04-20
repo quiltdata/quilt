@@ -116,10 +116,14 @@ export default function Overview() {
   const { bucket } = useParams<{ bucket: string }>()
 
   const s3 = AWS.S3.use()
-  const { bucketConfig } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
-  const inStack = !!bucketConfig
-  const overviewUrl = bucketConfig?.overviewUrl
-  const description = bucketConfig?.description
+  const { bucket: bucketData } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
+  const inStack = !!bucketData
+  // overviewUrl: bucket-level precomputed-overview feature is dead across all
+  // deployed stacks (qhq-wxc schedules full removal of the field + its
+  // Readmes/Imgs/Summarize code paths). Stubbed as undefined so those paths
+  // remain dead-when-null until that cleanup.
+  const overviewUrl = undefined
+  const description = bucketData?.description
   const { prefs } = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
@@ -128,7 +132,7 @@ export default function Overview() {
           <LinkedData.BucketData bucket={bucket} />
         </React.Suspense>
       )}
-      {bucketConfig ? (
+      {bucketData ? (
         <Header {...{ s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box

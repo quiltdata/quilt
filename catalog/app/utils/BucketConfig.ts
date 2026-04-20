@@ -8,11 +8,11 @@ import * as AuthSelectors from 'containers/Auth/selectors'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
+import BUCKETS_QUERY from './BucketConfigList.generated'
 
-type BucketConfigs = GQL.DataForDoc<typeof BUCKET_CONFIGS_QUERY>['bucketConfigs']
+type Buckets = GQL.DataForDoc<typeof BUCKETS_QUERY>['buckets']
 
-const EMPTY: BucketConfigs = []
+const EMPTY: Buckets = []
 
 // always suspended
 function useBucketConfigs() {
@@ -22,10 +22,10 @@ function useBucketConfigs() {
 
   try {
     return GQL.useQueryS(
-      BUCKET_CONFIGS_QUERY,
+      BUCKETS_QUERY,
       { includeCollaborators: cfg.mode === 'PRODUCT' },
       { pause: empty },
-    ).bucketConfigs
+    ).buckets
   } catch (e) {
     if (e instanceof GQL.Paused) return EMPTY
     throw e

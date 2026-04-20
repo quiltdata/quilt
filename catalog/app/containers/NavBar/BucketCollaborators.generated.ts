@@ -9,8 +9,8 @@ export type containers_NavBar_BucketCollaboratorsQueryVariables = Types.Exact<{
 export type containers_NavBar_BucketCollaboratorsQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name'> & {
         readonly collaborators: ReadonlyArray<
           { readonly __typename: 'CollaboratorBucketConnection' } & Pick<
             Types.CollaboratorBucketConnection,
@@ -48,7 +48,7 @@ export const containers_NavBar_BucketCollaboratorsDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',

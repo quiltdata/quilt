@@ -1,7 +1,6 @@
 query ($bucket: String!) {
-  bucketConfig(name: $bucket) {
+  bucket(name: $bucket) {
     name
     description
-    overviewUrl
   }
 }

@@ -10,11 +10,8 @@ export type components_Preview_loaders_Html_gql_BrowsableBucketConfigQueryVariab
 export type components_Preview_loaders_Html_gql_BrowsableBucketConfigQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'browsable'
-    >
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'browsable'>
   >
 }
 
@@ -43,7 +40,7 @@ export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument =
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',
