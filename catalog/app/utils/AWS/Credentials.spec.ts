@@ -13,7 +13,7 @@ vi.mock('containers/Auth/selectors', () => ({
   authenticated: () => authenticatedMock(),
 }))
 
-const reqMock = vi.fn(() => new Promise(() => {}))
+const reqMock: ReturnType<typeof vi.fn> = vi.fn(() => new Promise(() => {}))
 
 vi.mock('utils/APIConnector', () => ({
   use: () => reqMock,
@@ -42,7 +42,7 @@ describe('utils/AWS/Credentials', () => {
 
       // Trigger a credential refresh; this must hit the Athena-scoped endpoint,
       // not the default /auth/get_credentials one.
-      result.current.refresh(() => {})
+      result.current!.refresh(() => {})
 
       expect(reqMock).toHaveBeenCalledTimes(1)
       const callArg = reqMock.mock.calls[0][0] as { endpoint: string }
@@ -51,7 +51,7 @@ describe('utils/AWS/Credentials', () => {
 
     it('does not fall back to the default (unscoped) credentials endpoint', () => {
       const { result } = renderHook(() => useAthenaCredentials())
-      result.current.refresh(() => {})
+      result.current!.refresh(() => {})
 
       expect(reqMock).toHaveBeenCalledTimes(1)
       const callArg = reqMock.mock.calls[0][0] as { endpoint: string }

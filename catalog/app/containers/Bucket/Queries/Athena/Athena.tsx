@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import Code from 'components/Code'
 import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
+import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
