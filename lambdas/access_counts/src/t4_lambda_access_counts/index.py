@@ -10,8 +10,8 @@ from datetime import datetime, timedelta, timezone
 
 import boto3
 from boto3.s3.transfer import TransferConfig
-from quilt_shared.athena import get_assumed_athena_client
 
+from quilt_shared.athena import get_assumed_athena_client
 from t4_lambda_shared.utils import sql_escape
 
 ATHENA_DATABASE = os.environ['ATHENA_DATABASE']

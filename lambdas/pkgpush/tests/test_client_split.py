@@ -11,9 +11,7 @@ import json
 from unittest import mock
 
 import quilt3
-
 import t4_lambda_pkgpush
-
 
 # ---------------------------------------------------------------------------
 # Helpers

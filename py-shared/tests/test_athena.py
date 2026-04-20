@@ -1,15 +1,15 @@
-import logging
 import datetime
+import logging
 
 import boto3
 import pytest
 from botocore.stub import Stubber
 
 from quilt_shared.athena import (
+    _ASSUMED_ATHENA_CLIENT_CACHE,
     AthenaQueryCancelledException,
     AthenaQueryFailedException,
     QueryRunner,
-    _ASSUMED_ATHENA_CLIENT_CACHE,
     get_assumed_athena_client,
 )
 
