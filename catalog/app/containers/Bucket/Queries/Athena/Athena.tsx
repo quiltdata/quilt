@@ -366,12 +366,15 @@ function AthenaContainer() {
 
 export default function Wrapper() {
   const { prefs } = BucketPreferences.use()
+  const athenaCredentials = AWS.Credentials.useAthenaCredentials()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui }) => (
-        <Model.Provider preferences={ui.athena}>
-          <AthenaContainer />
-        </Model.Provider>
+        <AWS.Athena.Provider credentials={athenaCredentials || undefined}>
+          <Model.Provider preferences={ui.athena}>
+            <AthenaContainer />
+          </Model.Provider>
+        </AWS.Athena.Provider>
       ),
       _: () => <Placeholder color="inherit" />,
     },

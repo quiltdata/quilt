@@ -6,27 +6,21 @@ import boto3
 import botocore.exceptions
 
 import quilt_shared.const
-from quilt_shared.athena import QueryRunner
+from quilt_shared.athena import QueryRunner, get_assumed_athena_client
 from quilt_shared.cross_account import BucketRoleAwareS3Client
 from quilt_shared.iceberg_queries import QueryMaker
 
-athena = boto3.client("athena")
 s3 = BucketRoleAwareS3Client()
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
+AWS_REGION = os.environ["AWS_REGION"]
+QUILT_ATHENA_ACCESS_ROLE_ARN = os.getenv("QUILT_ATHENA_ACCESS_ROLE_ARN")
 QUILT_USER_ATHENA_DATABASE = os.environ["QUILT_USER_ATHENA_DATABASE"]
 QUILT_ICEBERG_GLUE_DB = os.environ["QUILT_ICEBERG_GLUE_DB"]
 QUILT_ICEBERG_BUCKET = os.environ["QUILT_ICEBERG_BUCKET"]
 QUILT_ICEBERG_WORKGROUP = os.environ["QUILT_ICEBERG_WORKGROUP"]
 
-
-query_runner = QueryRunner(
-    logger=logger,
-    athena=athena,
-    database=QUILT_ICEBERG_GLUE_DB,
-    workgroup=QUILT_ICEBERG_WORKGROUP,
-)
 query_maker = QueryMaker(user_athena_db=QUILT_USER_ATHENA_DATABASE)
 
 
@@ -93,5 +87,19 @@ def handler(event, context):
     bucket, key = process_s3_event(event)
     first_line = get_first_line(bucket, key)
     queries = generate_queries(bucket, key, first_line)
-
+    athena = (
+        get_assumed_athena_client(
+            role_arn=QUILT_ATHENA_ACCESS_ROLE_ARN,
+            role_session_name="quilt-iceberg-athena",
+            region_name=AWS_REGION,
+        )
+        if QUILT_ATHENA_ACCESS_ROLE_ARN
+        else boto3.client("athena")
+    )
+    query_runner = QueryRunner(
+        logger=logger,
+        athena=athena,
+        database=QUILT_ICEBERG_GLUE_DB,
+        workgroup=QUILT_ICEBERG_WORKGROUP,
+    )
     query_runner.run_multiple_queries(queries)

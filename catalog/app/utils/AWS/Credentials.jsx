@@ -78,15 +78,16 @@ class EmptyCredentials extends AWS.Credentials {
   }
 }
 
+export function createRegistryCredentials(req, reqOpts) {
+  return new RegistryCredentials({ req, reqOpts })
+}
+
 function useCredentialsMemo() {
   const authenticated = redux.useSelector(authSelectors.authenticated)
   const empty = React.useMemo(() => new EmptyCredentials(), [])
   const req = APIConnector.use()
-  const reg = React.useMemo(() => new RegistryCredentials({ req }), [req])
-  const anon = React.useMemo(
-    () => new RegistryCredentials({ req, reqOpts: { auth: false } }),
-    [req],
-  )
+  const reg = React.useMemo(() => createRegistryCredentials(req), [req])
+  const anon = React.useMemo(() => createRegistryCredentials(req, { auth: false }), [req])
 
   if (authenticated) return reg
   if (cfg.mode === 'LOCAL') return anon
@@ -109,6 +110,17 @@ export function useCredentials() {
     logout()
   }
   return React.useContext(Ctx)
+}
+
+export function useAthenaCredentials() {
+  const authenticated = redux.useSelector(authSelectors.authenticated)
+  const req = APIConnector.use()
+  return React.useMemo(() => {
+    if (!authenticated) return null
+    return createRegistryCredentials(req, {
+      endpoint: '/auth/get_credentials?service=athena',
+    })
+  }, [authenticated, req])
 }
 
 export { AWSCredentialsProvider as Provider, useCredentials as use }
