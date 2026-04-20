@@ -101,6 +101,9 @@ def test_handler(mocker):
     event = {"Records": [{"body": "irrelevant"}]}
     context = mocker.Mock()
 
+    # Route through the named Athena role path
+    mocker.patch.object(t4_lambda_iceberg, "QUILT_ATHENA_ACCESS_ROLE_ARN", "arn:aws:iam::111122223333:role/QuiltAthenaAccessRole-test")
+
     # Patch dependencies to return mocks
     mock_bucket = mocker.Mock(name="bucket")
     mock_key = mocker.Mock(name="key")

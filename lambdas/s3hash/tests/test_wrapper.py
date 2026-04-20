@@ -58,6 +58,8 @@ def test_timeout(mocker: MockerFixture):
     async def sleep(*_):
         await asyncio.sleep(1)
 
+    mocker.patch("t4_lambda_s3hash.aio_context")
+    mocker.patch("t4_lambda_s3hash.aio_target_context")
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", side_effect=sleep)
 
     res = s3hash.lambda_handler(
