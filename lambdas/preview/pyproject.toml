@@ -3,7 +3,7 @@ name = "t4_lambda_preview"
 version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
-    "nbconvert ~= 7.16",
+    "nbconvert~=7.17",
     "nbformat ~= 5.10",
     "pandas ~= 2.2",
     "requests ~= 2.32",
