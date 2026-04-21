@@ -33,8 +33,8 @@ The search page in the catalog, accessible from the search button in the top men
 way for searching objects and packages in an Amazon S3
 bucket.
 
-NOTE: Quilt uses Elasticsearch 6.8 [query string
-syntax](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html#query-string-syntax).
+NOTE: Quilt uses Elasticsearch 7.10 [query string
+syntax](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html#query-string-syntax).
 
 The following are all valid search parameters:
 
@@ -121,18 +121,18 @@ and query parameters.
 Quilt Elasticsearch queries support the following keys:
 
 * `index` — comma-separated list of indexes to search ([learn
-more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/multi-index.html))
+more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/multi-index.html))
 * `filter_path` — to reducing response nesting, ([learn
-more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/common-options.html#common-options-response-filtering))
+more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/common-options.html#common-options-response-filtering))
 * `_source` — boolean that adds or removes the `_source` field, or
 a list of fields to return ([learn
-more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-source-filtering.html))
+more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/search-request-source-filtering.html))
 * `size` — limits the number of hits ([learn
-more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
+more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/search-uri-request.html))
 * `from` — starting offset for pagination ([learn
-more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
+more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/search-uri-request.html))
 * `body` — the search query body as a JSON dictionary ([learn
-more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html))
+more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/search-request-body.html))
 
 ### Secure Search
 
