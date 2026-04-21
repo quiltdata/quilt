@@ -12,6 +12,7 @@ import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
+import * as PlatformMcpContext from './PlatformMcpContext'
 import useIsEnabled from './enabled'
 
 export const DISABLED = Symbol('DISABLED')
@@ -98,6 +99,7 @@ function useConstructAssistantAPI() {
   )
 
   GlobalContext.use()
+  const mcpStatus = PlatformMcpContext.use()
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
@@ -119,6 +121,7 @@ function useConstructAssistantAPI() {
     assist,
     state,
     dispatch,
+    mcpStatus,
     devTools: { recording, modelIdOverride },
   }
 }
