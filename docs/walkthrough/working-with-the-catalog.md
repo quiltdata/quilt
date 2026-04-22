@@ -29,7 +29,7 @@ You can also browse the underlying S3 objects using the "Bucket" tab.
 
 Catalogs also enable you to search the contents of your bucket. We support both
 unstructured (e.g. "`San Francisco`") and structured with
-[Query String Queries](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax)
+[Query String Queries](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html#query-string-syntax)
 (e.g. "`metadata_key: metadata_value`") search. Hits are previewed right in the
 search results.
 
