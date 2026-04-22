@@ -18,7 +18,7 @@ import * as Summarize from '../Summarize'
 import * as requests from '../requests'
 
 import Header from './Header'
-import BUCKET_CONFIG_QUERY from './gql/BucketConfig.generated'
+import BUCKET_QUERY from './gql/Bucket.generated'
 
 interface BucketReadmes {
   forced?: Model.S3.S3ObjectLocation
@@ -116,10 +116,12 @@ export default function Overview() {
   const { bucket } = useParams<{ bucket: string }>()
 
   const s3 = AWS.S3.use()
-  const { bucketConfig } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
-  const inStack = !!bucketConfig
-  const overviewUrl = bucketConfig?.overviewUrl
-  const description = bucketConfig?.description
+  const { bucket: bucketData } = GQL.useQueryS(BUCKET_QUERY, { bucket })
+  const inStack = !!bucketData
+  // overviewUrl is dead; stubbed until the field + its Readmes/Imgs/
+  // Summarize code paths are removed.
+  const overviewUrl = undefined
+  const description = bucketData?.description
   const { prefs } = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
@@ -128,7 +130,7 @@ export default function Overview() {
           <LinkedData.BucketData bucket={bucket} />
         </React.Suspense>
       )}
-      {bucketConfig ? (
+      {bucketData ? (
         <Header {...{ s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box

@@ -165,6 +165,18 @@ export type BrowsingSessionDisposeResult = Ok | OperationError
 
 export type BrowsingSessionRefreshResult = BrowsingSession | InvalidInput | OperationError
 
+export interface Bucket {
+  readonly __typename: 'Bucket'
+  readonly name: Scalars['String']
+  readonly title: Scalars['String']
+  readonly iconUrl: Maybe<Scalars['String']>
+  readonly description: Maybe<Scalars['String']>
+  readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly relevanceScore: Scalars['Int']
+  readonly browsable: Scalars['Boolean']
+  readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
+}
+
 export interface BucketAccessCounts {
   readonly __typename: 'BucketAccessCounts'
   readonly byExt: ReadonlyArray<AccessCountsGroup>
@@ -236,7 +248,6 @@ export interface BucketConfig {
   readonly prefixes: ReadonlyArray<Scalars['String']>
   readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
-  readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
   readonly tabulatorTables: ReadonlyArray<TabulatorTable>
 }
 
@@ -1023,6 +1034,8 @@ export interface Query {
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
+  readonly buckets: ReadonlyArray<Bucket>
+  readonly bucket: Maybe<Bucket>
   readonly potentialCollaborators: ReadonlyArray<Collaborator>
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
@@ -1043,6 +1056,10 @@ export interface Query {
 }
 
 export interface QuerybucketConfigArgs {
+  name: Scalars['String']
+}
+
+export interface QuerybucketArgs {
   name: Scalars['String']
 }
 

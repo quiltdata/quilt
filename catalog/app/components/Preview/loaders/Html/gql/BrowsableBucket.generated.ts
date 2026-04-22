@@ -2,23 +2,20 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../../model/graphql/types.generated'
 
-export type components_Preview_loaders_Html_gql_BrowsableBucketConfigQueryVariables =
+export type components_Preview_loaders_Html_gql_BrowsableBucketQueryVariables =
   Types.Exact<{
     bucket: Types.Scalars['String']
   }>
 
-export type components_Preview_loaders_Html_gql_BrowsableBucketConfigQuery = {
+export type components_Preview_loaders_Html_gql_BrowsableBucketQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'browsable'
-    >
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'browsable'>
   >
 }
 
-export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument = {
+export const components_Preview_loaders_Html_gql_BrowsableBucketDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -26,7 +23,7 @@ export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument =
       operation: 'query',
       name: {
         kind: 'Name',
-        value: 'components_Preview_loaders_Html_gql_BrowsableBucketConfig',
+        value: 'components_Preview_loaders_Html_gql_BrowsableBucket',
       },
       variableDefinitions: [
         {
@@ -43,7 +40,7 @@ export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument =
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',
@@ -64,8 +61,8 @@ export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument =
     },
   ],
 } as unknown as DocumentNode<
-  components_Preview_loaders_Html_gql_BrowsableBucketConfigQuery,
-  components_Preview_loaders_Html_gql_BrowsableBucketConfigQueryVariables
+  components_Preview_loaders_Html_gql_BrowsableBucketQuery,
+  components_Preview_loaders_Html_gql_BrowsableBucketQueryVariables
 >
 
-export { components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument as default }
+export { components_Preview_loaders_Html_gql_BrowsableBucketDocument as default }

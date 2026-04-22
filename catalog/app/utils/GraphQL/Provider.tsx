@@ -14,19 +14,47 @@ import schema from 'model/graphql/schema.generated'
 const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExchange] : []
 
 const BUCKET_CONFIGS_QUERY = urql.gql`{ bucketConfigs { name } }`
+const BUCKETS_QUERY = urql.gql`{ buckets { name } }`
 const POLICIES_QUERY = urql.gql`{ policies { id } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
 const USERS_QUERY = urql.gql`{ admin { user { list { name } } } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
+
+// Invalidate all cached variants of a root Query field (args-aware).
+function invalidateRootField(cache: GraphCache.Cache, fieldName: string) {
+  for (const f of cache.inspectFields('Query')) {
+    if (f.fieldName === fieldName) {
+      cache.invalidate('Query', f.fieldName, f.arguments || undefined)
+    }
+  }
+}
+
+type RootQueryDoc = urql.TypedDocumentNode<unknown, Record<string, never>>
+
+// Force a fresh fetch of a root-level query through the supplied client
+// and let urql propagate the new data to all active subscribers. Use
+// when the post-mutation result can't be predicted client-side (e.g. a
+// role-policy edit that shifts which buckets fall into the caller's
+// scope). `cache.invalidate` on a root field is unreliable at notifying
+// active subscribers in urql 2.x + @urql/exchange-graphcache 4.x; a
+// `network-only` query reliably writes back through the cache exchange
+// and fans out. The microtask defer lets the current mutation's cache
+// write commit first.
+function refetchRootField(clientRef: React.RefObject<urql.Client>, query: RootQueryDoc) {
+  Promise.resolve().then(() => {
+    clientRef.current
+      ?.query(query, {}, { requestPolicy: 'network-only' })
+      .toPromise()
+      .catch(() => {}) // fire-and-forget: urql surfaces errors via result.error, not rejection
+  })
+}
 
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
   const revList = cache.resolve({ __typename: 'Package', bucket, name }, 'revisions')
   for (let f of cache.inspectFields(revList as GraphCache.Entity)) {
-    // Invalidate all the outdated cached pages.
-    // Fresh data for pages 1-5 and 1-30 are contained in the mutation result,
-    // so we're keeping them.
+    // Fresh data for pages 1–5 and 1–30 is in the mutation result; keep those.
     if (
       f.fieldName == 'page' &&
       (f.arguments?.number !== 1 ||
@@ -41,12 +69,7 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
     { bucket, name },
     { __typename: 'Package', bucket, name },
   )
-  for (let f of cache.inspectFields('Query')) {
-    // Invalidate all package lists.
-    if (f.fieldName == 'packages') {
-      cache.invalidate('Query', f.fieldKey)
-    }
-  }
+  invalidateRootField(cache, 'packages')
 }
 
 function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
@@ -83,9 +106,16 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
     [],
   )
 
+  // Forward-reference to the urql client so mutation `updates` handlers
+  // below can reach it without threading it through Graphcache's API.
+  // Assigned after `createClient` further down; reads are deferred to
+  // a microtask inside `refetchRootField`, so it's populated by then.
+  const clientRef = React.useRef<urql.Client | null>(null)
+
   const cacheExchange = React.useMemo(
-    () =>
-      GraphCache.cacheExchange({
+    () => {
+      const refetchBuckets = () => refetchRootField(clientRef, BUCKETS_QUERY)
+      return GraphCache.cacheExchange({
         schema,
         keys: {
           AccessCountForDate: () => null,
@@ -95,6 +125,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           AdminQueries: () => null,
           BooleanPackageUserMetaFacet: () => null,
           BucketAccessCounts: () => null,
+          Bucket: (b) => b.name as string,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
           Collaborator: (c) => c.username as string,
@@ -154,9 +185,13 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
         },
         updates: {
           Mutation: {
+            // Admin UI reads `bucketConfigs` (all buckets); user-facing
+            // code reads `buckets` (role-scoped). The two lists coexist —
+            // Bucket and BucketConfig are separate __typenames keyed by
+            // name — so each bucketAdd/Remove updates the admin list and
+            // nudges the role-scoped list.
             bucketAdd: (result, _vars, cache) => {
               if ((result.bucketAdd as any)?.__typename !== 'BucketAddSuccess') return
-              cache.invalidate({ __typename: 'Query' }, 'roles')
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 // XXX: sort?
@@ -164,15 +199,28 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
                 }),
               )
+              // Query.buckets unchanged: a new bucket has no policy
+              // attachments yet, so no managed-role user's set changes.
+            },
+            bucketUpdate: (result, vars, cache) => {
+              if ((result.bucketUpdate as any)?.__typename !== 'BucketUpdateSuccess')
+                return
+              // The mutation result updates BucketConfig; Bucket (same
+              // name, different __typename) won't auto-propagate.
+              cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             bucketRemove: (result, vars, cache) => {
               if ((result.bucketRemove as any)?.__typename !== 'BucketRemoveSuccess')
                 return
-              cache.invalidate({ __typename: 'Query' }, 'roles')
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
+              cache.updateQuery(
+                { query: BUCKETS_QUERY },
+                R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
+              )
+              cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             policyCreateManaged: (result, _vars, cache) => {
               const policy = result.policyCreateManaged as any
@@ -182,6 +230,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // XXX: sort?
                 R.evolve({ policies: R.append(policy) }),
               )
+              refetchBuckets()
             },
             policyCreateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyCreateUnmanaged as any
@@ -196,7 +245,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               const policy = result.policyUpdateManaged as any
               if (policy?.__typename !== 'Policy') return
               invalidateAffectedRoles(policy, cache)
-              // XXX: same with BucketConfigs?
+              refetchBuckets()
             },
             policyUpdateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyUpdateUnmanaged as any
@@ -223,6 +272,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   roles: R.map(R.evolve({ policies: R.reject(R.propEq('id', vars.id)) })),
                 }),
               )
+
+              refetchBuckets()
             },
             roleCreateManaged: (result, _vars, cache) => {
               const create = result.roleCreateManaged as any
@@ -267,6 +318,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   }),
                 }),
               )
+              refetchBuckets()
             },
             roleDelete: (result, vars, cache) => {
               const typename = (result.roleDelete as any)?.__typename
@@ -308,6 +360,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
                 data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
               )
+
+              refetchBuckets()
             },
             roleSetDefault: (result, _vars, cache) => {
               const typename = (result.roleSetDefault as any)?.__typename
@@ -356,6 +410,12 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
               }
+              if (result.admin?.user?.mutate?.setRole?.__typename === 'User') {
+                // Over-invalidates when the edit targets another user;
+                // acceptable for a rare admin op, avoids a self-check
+                // against the current session user.
+                refetchBuckets()
+              }
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(
                   { query: urql.gql`{ admin { tabulatorOpenQuery } }` },
@@ -380,7 +440,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             role: { __typename: 'ManagedRole', id },
           }),
         },
-      }),
+      })
+    },
     [sessionId], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
@@ -400,6 +461,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
       }),
     [authExchange, cacheExchange, scalarsExchange],
   )
+  clientRef.current = client
   return <urql.Provider value={client}>{children}</urql.Provider>
 }
 

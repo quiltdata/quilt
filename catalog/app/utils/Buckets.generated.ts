@@ -2,22 +2,15 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../model/graphql/types.generated'
 
-export type utils_BucketConfigListQueryVariables = Types.Exact<{
+export type utils_BucketsQueryVariables = Types.Exact<{
   includeCollaborators?: Types.Scalars['Boolean']
 }>
 
-export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
-  readonly bucketConfigs: ReadonlyArray<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      | 'name'
-      | 'title'
-      | 'iconUrl'
-      | 'description'
-      | 'linkedData'
-      | 'overviewUrl'
-      | 'tags'
-      | 'relevanceScore'
+export type utils_BucketsQuery = { readonly __typename: 'Query' } & {
+  readonly buckets: ReadonlyArray<
+    { readonly __typename: 'Bucket' } & Pick<
+      Types.Bucket,
+      'name' | 'title' | 'iconUrl' | 'description' | 'tags' | 'relevanceScore'
     > & {
         readonly collaborators?: Types.Maybe<
           ReadonlyArray<
@@ -36,13 +29,13 @@ export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
   >
 }
 
-export const utils_BucketConfigListDocument = {
+export const utils_BucketsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'utils_BucketConfigList' },
+      name: { kind: 'Name', value: 'utils_Buckets' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -62,7 +55,7 @@ export const utils_BucketConfigListDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfigs' },
+            name: { kind: 'Name', value: 'buckets' },
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
@@ -70,8 +63,6 @@ export const utils_BucketConfigListDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'iconUrl' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'description' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'linkedData' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'overviewUrl' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'relevanceScore' } },
                 {
@@ -118,9 +109,6 @@ export const utils_BucketConfigListDocument = {
       },
     },
   ],
-} as unknown as DocumentNode<
-  utils_BucketConfigListQuery,
-  utils_BucketConfigListQueryVariables
->
+} as unknown as DocumentNode<utils_BucketsQuery, utils_BucketsQueryVariables>
 
-export { utils_BucketConfigListDocument as default }
+export { utils_BucketsDocument as default }
