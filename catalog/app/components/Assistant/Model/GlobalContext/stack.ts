@@ -4,14 +4,14 @@ import * as Buckets from 'utils/Buckets'
 import * as XML from 'utils/XML'
 
 export function useStackInfo() {
-  const bucketList = Buckets.useRelevantBuckets()
+  const buckets = Buckets.useRelevantBuckets()
 
   return React.useMemo(() => {
-    const buckets = XML.tag(
+    const bucketsXml = XML.tag(
       'buckets',
       {},
       'Buckets attached to this stack:',
-      ...bucketList.map((b) =>
+      ...buckets.map((b) =>
         XML.tag(
           'bucket',
           {},
@@ -28,6 +28,6 @@ export function useStackInfo() {
         ),
       ),
     )
-    return XML.tag('quilt-stack-info', {}, buckets).toString()
-  }, [bucketList])
+    return XML.tag('quilt-stack-info', {}, bucketsXml).toString()
+  }, [buckets])
 }

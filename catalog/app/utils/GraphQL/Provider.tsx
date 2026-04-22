@@ -19,14 +19,24 @@ const ROLES_QUERY = urql.gql`{ roles { id } }`
 const USERS_QUERY = urql.gql`{ admin { user { list { name } } } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
+// Invalidate every cached variant of a root Query field. The plain
+// cache.invalidate({__typename:'Query'}, field) form silently no-ops in
+// this cacheExchange setup; iterating inspectFields + invalidating by
+// fieldKey is reliable.
+function invalidateRootField(cache: GraphCache.Cache, fieldName: string) {
+  for (const f of cache.inspectFields('Query')) {
+    if (f.fieldName === fieldName) {
+      cache.invalidate('Query', f.fieldKey)
+    }
+  }
+}
+
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
   const revList = cache.resolve({ __typename: 'Package', bucket, name }, 'revisions')
   for (let f of cache.inspectFields(revList as GraphCache.Entity)) {
-    // Invalidate all the outdated cached pages.
-    // Fresh data for pages 1-5 and 1-30 are contained in the mutation result,
-    // so we're keeping them.
+    // Fresh data for pages 1–5 and 1–30 is in the mutation result; keep those.
     if (
       f.fieldName == 'page' &&
       (f.arguments?.number !== 1 ||
@@ -41,25 +51,7 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
     { bucket, name },
     { __typename: 'Package', bucket, name },
   )
-  for (let f of cache.inspectFields('Query')) {
-    // Invalidate all package lists.
-    if (f.fieldName == 'packages') {
-      cache.invalidate('Query', f.fieldKey)
-    }
-  }
-}
-
-// Invalidate every cached entry of Query.buckets so subscribers refetch.
-// The plain cache.invalidate({__typename:'Query'}, 'buckets') form is
-// unreliable in this cacheExchange setup — iterating inspectFields and
-// invalidating by fieldKey is the known-working pattern (see
-// handlePackageCreation for Query.packages).
-function invalidateRoleScopedBuckets(cache: GraphCache.Cache) {
-  for (const f of cache.inspectFields('Query')) {
-    if (f.fieldName === 'buckets') {
-      cache.invalidate('Query', f.fieldKey)
-    }
-  }
+  invalidateRootField(cache, 'packages')
 }
 
 function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
@@ -168,6 +160,11 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
         },
         updates: {
           Mutation: {
+            // Admin UI reads `bucketConfigs` (all buckets); user-facing
+            // code reads `buckets` (role-scoped). The two lists coexist —
+            // Bucket and BucketConfig are separate __typenames keyed by
+            // name — so each bucketAdd/Remove updates the admin list and
+            // nudges the role-scoped list.
             bucketAdd: (result, _vars, cache) => {
               if ((result.bucketAdd as any)?.__typename !== 'BucketAddSuccess') return
               cache.updateQuery(
@@ -177,18 +174,14 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
                 }),
               )
-              // Intentional no-op on Query.buckets: a newly-added bucket is
-              // not attached to any managed policy by default, so managed-role
-              // users' effective set is unchanged. Unmanaged-role users (who
-              // see all buckets) pick it up on the next natural refetch —
-              // acceptable trade-off vs. unconditional cache churn.
+              // Query.buckets unchanged: a new bucket has no policy
+              // attachments yet, so no managed-role user's set changes.
             },
             bucketUpdate: (result, vars, cache) => {
               if ((result.bucketUpdate as any)?.__typename !== 'BucketUpdateSuccess')
                 return
-              // urql auto-updates the BucketConfig entity by name key. The Bucket
-              // entity with the same name is a separate __typename and won't
-              // auto-propagate, so invalidate it so subsequent reads refetch.
+              // The mutation result updates BucketConfig; Bucket (same
+              // name, different __typename) won't auto-propagate.
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             bucketRemove: (result, vars, cache) => {
@@ -198,7 +191,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
-              invalidateRoleScopedBuckets(cache)
+              invalidateRootField(cache, 'buckets')
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             policyCreateManaged: (result, _vars, cache) => {
@@ -209,9 +202,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // XXX: sort?
                 R.evolve({ policies: R.append(policy) }),
               )
-              // A managed policy created with `roles: [<current-user's-role>]`
-              // immediately changes the user's effective bucket set.
-              invalidateRoleScopedBuckets(cache)
+              invalidateRootField(cache, 'buckets')
             },
             policyCreateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyCreateUnmanaged as any
@@ -226,8 +217,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               const policy = result.policyUpdateManaged as any
               if (policy?.__typename !== 'Policy') return
               invalidateAffectedRoles(policy, cache)
-              // Managed policy perms / role attachments may have changed.
-              invalidateRoleScopedBuckets(cache)
+              invalidateRootField(cache, 'buckets')
             },
             policyUpdateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyUpdateUnmanaged as any
@@ -255,9 +245,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 }),
               )
 
-              // If the deleted policy was attached to the user's active
-              // managed role, their effective bucket set shrank.
-              invalidateRoleScopedBuckets(cache)
+              invalidateRootField(cache, 'buckets')
             },
             roleCreateManaged: (result, _vars, cache) => {
               const create = result.roleCreateManaged as any
@@ -302,9 +290,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   }),
                 }),
               )
-              // If the edited role is the user's active managed role, its
-              // policy set may have changed → bucket set may have changed.
-              invalidateRoleScopedBuckets(cache)
+              invalidateRootField(cache, 'buckets')
             },
             roleDelete: (result, vars, cache) => {
               const typename = (result.roleDelete as any)?.__typename
@@ -347,9 +333,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
               )
 
-              // If the deleted role was the user's active managed role,
-              // user.role becomes null and their effective set empties.
-              invalidateRoleScopedBuckets(cache)
+              invalidateRootField(cache, 'buckets')
             },
             roleSetDefault: (result, _vars, cache) => {
               const typename = (result.roleSetDefault as any)?.__typename
@@ -399,12 +383,10 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 cache.invalidate({ __typename: 'Query' }, 'roles')
               }
               if (result.admin?.user?.mutate?.setRole?.__typename === 'User') {
-                // If the edited user is the current user, their default/extra
-                // roles just changed — their effective bucket set may too.
-                // Invalidate unconditionally; an edit targeting a different
-                // user refetches the current session's list once for no net
-                // change, which is acceptable for a rarely-invoked admin op.
-                invalidateRoleScopedBuckets(cache)
+                // Over-invalidates when the edit targets another user;
+                // acceptable for a rare admin op, avoids a self-check
+                // against the current session user.
+                invalidateRootField(cache, 'buckets')
               }
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(

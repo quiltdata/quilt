@@ -18,7 +18,7 @@ import * as Summarize from '../Summarize'
 import * as requests from '../requests'
 
 import Header from './Header'
-import BUCKET_CONFIG_QUERY from './gql/BucketConfig.generated'
+import BUCKET_QUERY from './gql/Bucket.generated'
 
 interface BucketReadmes {
   forced?: Model.S3.S3ObjectLocation
@@ -116,12 +116,10 @@ export default function Overview() {
   const { bucket } = useParams<{ bucket: string }>()
 
   const s3 = AWS.S3.use()
-  const { bucket: bucketData } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
+  const { bucket: bucketData } = GQL.useQueryS(BUCKET_QUERY, { bucket })
   const inStack = !!bucketData
-  // overviewUrl: bucket-level precomputed-overview feature is dead across all
-  // deployed stacks (qhq-wxc schedules full removal of the field + its
-  // Readmes/Imgs/Summarize code paths). Stubbed as undefined so those paths
-  // remain dead-when-null until that cleanup.
+  // overviewUrl is dead; stubbed until the field + its Readmes/Imgs/
+  // Summarize code paths are removed.
   const overviewUrl = undefined
   const description = bucketData?.description
   const { prefs } = BucketPreferences.use()

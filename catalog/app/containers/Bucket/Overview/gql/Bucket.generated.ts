@@ -1,30 +1,26 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../../../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type components_Preview_loaders_Html_gql_BrowsableBucketConfigQueryVariables =
-  Types.Exact<{
-    bucket: Types.Scalars['String']
-  }>
+export type containers_Bucket_Overview_gql_BucketQueryVariables = Types.Exact<{
+  bucket: Types.Scalars['String']
+}>
 
-export type components_Preview_loaders_Html_gql_BrowsableBucketConfigQuery = {
+export type containers_Bucket_Overview_gql_BucketQuery = {
   readonly __typename: 'Query'
 } & {
   readonly bucket: Types.Maybe<
-    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'browsable'>
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'description'>
   >
 }
 
-export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument = {
+export const containers_Bucket_Overview_gql_BucketDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: {
-        kind: 'Name',
-        value: 'components_Preview_loaders_Html_gql_BrowsableBucketConfig',
-      },
+      name: { kind: 'Name', value: 'containers_Bucket_Overview_gql_Bucket' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -52,7 +48,7 @@ export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument =
               kind: 'SelectionSet',
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
               ],
             },
           },
@@ -61,8 +57,8 @@ export const components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument =
     },
   ],
 } as unknown as DocumentNode<
-  components_Preview_loaders_Html_gql_BrowsableBucketConfigQuery,
-  components_Preview_loaders_Html_gql_BrowsableBucketConfigQueryVariables
+  containers_Bucket_Overview_gql_BucketQuery,
+  containers_Bucket_Overview_gql_BucketQueryVariables
 >
 
-export { components_Preview_loaders_Html_gql_BrowsableBucketConfigDocument as default }
+export { containers_Bucket_Overview_gql_BucketDocument as default }
