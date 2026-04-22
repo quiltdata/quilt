@@ -49,17 +49,11 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   }
 }
 
-// Blunt invalidation of the role-scoped Query.buckets list: iterate every
-// cached field entry on Query matching `buckets` and mark it missing so
-// next read refetches from the server. Used for mutations that can change
-// a user's effective managed-role bucket set (policy perms, role-policy
-// attachments, bucket removal). Unmanaged-role users see all buckets via
-// get_buckets_readable_by, so unmanaged policy/role mutations are skipped.
-//
-// The simpler cache.invalidate({__typename:'Query'}, 'buckets') form is
-// unreliable in this cacheExchange config (doesn't propagate to live
-// useQueryS subscribers); iterating fieldKeys is the known-working
-// pattern (see handlePackageCreation for Query.packages).
+// Invalidate every cached entry of Query.buckets so subscribers refetch.
+// The plain cache.invalidate({__typename:'Query'}, 'buckets') form is
+// unreliable in this cacheExchange setup — iterating inspectFields and
+// invalidating by fieldKey is the known-working pattern (see
+// handlePackageCreation for Query.packages).
 function invalidateRoleScopedBuckets(cache: GraphCache.Cache) {
   for (const f of cache.inspectFields('Query')) {
     if (f.fieldName === 'buckets') {
@@ -403,6 +397,14 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               ) {
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
+              }
+              if (result.admin?.user?.mutate?.setRole?.__typename === 'User') {
+                // If the edited user is the current user, their default/extra
+                // roles just changed — their effective bucket set may too.
+                // Invalidate unconditionally; an edit targeting a different
+                // user refetches the current session's list once for no net
+                // change, which is acceptable for a rarely-invoked admin op.
+                invalidateRoleScopedBuckets(cache)
               }
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(
