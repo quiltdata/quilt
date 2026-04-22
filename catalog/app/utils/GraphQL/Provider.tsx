@@ -49,6 +49,25 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   }
 }
 
+// Blunt invalidation of the role-scoped Query.buckets list: iterate every
+// cached field entry on Query matching `buckets` and mark it missing so
+// next read refetches from the server. Used for mutations that can change
+// a user's effective managed-role bucket set (policy perms, role-policy
+// attachments, bucket removal). Unmanaged-role users see all buckets via
+// get_buckets_readable_by, so unmanaged policy/role mutations are skipped.
+//
+// The simpler cache.invalidate({__typename:'Query'}, 'buckets') form is
+// unreliable in this cacheExchange config (doesn't propagate to live
+// useQueryS subscribers); iterating fieldKeys is the known-working
+// pattern (see handlePackageCreation for Query.packages).
+function invalidateRoleScopedBuckets(cache: GraphCache.Cache) {
+  for (const f of cache.inspectFields('Query')) {
+    if (f.fieldName === 'buckets') {
+      cache.invalidate('Query', f.fieldKey)
+    }
+  }
+}
+
 function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
   if (!policy.roles) return
   const roleIds = R.pluck('id', policy.roles as { id: string }[])
@@ -164,17 +183,11 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
                 }),
               )
-              // Invalidate every cached entry of Query.buckets and Query.roles
-              // (across all argument variants) so the navbar bucket selector
-              // and role permission views refetch. The { __typename:'Query' }
-              // entity form of cache.invalidate silently no-ops in this setup
-              // — iterate inspectFields instead, matching the handlePackageCreation
-              // pattern used for Query.packages.
-              for (const f of cache.inspectFields('Query')) {
-                if (f.fieldName === 'buckets' || f.fieldName === 'roles') {
-                  cache.invalidate('Query', f.fieldKey)
-                }
-              }
+              // Intentional no-op on Query.buckets: a newly-added bucket is
+              // not attached to any managed policy by default, so managed-role
+              // users' effective set is unchanged. Unmanaged-role users (who
+              // see all buckets) pick it up on the next natural refetch —
+              // acceptable trade-off vs. unconditional cache churn.
             },
             bucketUpdate: (result, vars, cache) => {
               if ((result.bucketUpdate as any)?.__typename !== 'BucketUpdateSuccess')
@@ -191,11 +204,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
-              for (const f of cache.inspectFields('Query')) {
-                if (f.fieldName === 'buckets' || f.fieldName === 'roles') {
-                  cache.invalidate('Query', f.fieldKey)
-                }
-              }
+              invalidateRoleScopedBuckets(cache)
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             policyCreateManaged: (result, _vars, cache) => {
@@ -206,6 +215,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // XXX: sort?
                 R.evolve({ policies: R.append(policy) }),
               )
+              // A managed policy created with `roles: [<current-user's-role>]`
+              // immediately changes the user's effective bucket set.
+              invalidateRoleScopedBuckets(cache)
             },
             policyCreateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyCreateUnmanaged as any
@@ -220,7 +232,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               const policy = result.policyUpdateManaged as any
               if (policy?.__typename !== 'Policy') return
               invalidateAffectedRoles(policy, cache)
-              // XXX: same with BucketConfigs?
+              // Managed policy perms / role attachments may have changed.
+              invalidateRoleScopedBuckets(cache)
             },
             policyUpdateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyUpdateUnmanaged as any
@@ -247,6 +260,10 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   roles: R.map(R.evolve({ policies: R.reject(R.propEq('id', vars.id)) })),
                 }),
               )
+
+              // If the deleted policy was attached to the user's active
+              // managed role, their effective bucket set shrank.
+              invalidateRoleScopedBuckets(cache)
             },
             roleCreateManaged: (result, _vars, cache) => {
               const create = result.roleCreateManaged as any
@@ -291,6 +308,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   }),
                 }),
               )
+              // If the edited role is the user's active managed role, its
+              // policy set may have changed → bucket set may have changed.
+              invalidateRoleScopedBuckets(cache)
             },
             roleDelete: (result, vars, cache) => {
               const typename = (result.roleDelete as any)?.__typename
@@ -332,6 +352,10 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
                 data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
               )
+
+              // If the deleted role was the user's active managed role,
+              // user.role becomes null and their effective set empties.
+              invalidateRoleScopedBuckets(cache)
             },
             roleSetDefault: (result, _vars, cache) => {
               const typename = (result.roleSetDefault as any)?.__typename
