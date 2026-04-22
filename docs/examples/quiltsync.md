@@ -9,11 +9,12 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
 - Browse and sync packages via graphical interface
 - Selective file sync to manage disk space
 - Version control for data packages
-- Browser-based authentication
+- Browser-based OAuth 2.1 login (with legacy code-based fallback)
 - Auto-generated commit messages
 - Automatic detection of local and remote changes, with context-aware actions
   (e.g., **Commit** when local edits exist, **Pull** when the remote is ahead)
 - Create local-only packages and set a remote later
+- `.quiltignore` support with junk-file detection
 - Unified Settings pane for status, login management, and diagnostics
 
 ## Getting Started
@@ -35,13 +36,24 @@ From the Quilt web catalog:
 
 ### Authentication
 
-On first use, QuiltSync prompts for authentication via your web browser:
+On first use, QuiltSync authenticates you through your web browser. It prefers
+OAuth 2.1 Authorization Code flow with PKCE, and falls back to the legacy
+code-based flow for catalogs that do not yet support OAuth.
+
+**OAuth (default):**
 
 1. QuiltSync opens your browser to the Quilt Catalog login page
 2. Sign in to your catalog
-3. Copy access token to QuiltSync
+3. The browser returns to QuiltSync automatically via a `quilt://` deep link
 
-The token is tied to your catalog session. No AWS credentials required.
+**Legacy (fallback):**
+
+1. QuiltSync opens your browser to the Quilt Catalog login page
+2. Sign in to your catalog
+3. Copy the access token from the browser back into QuiltSync
+
+Either way the session is tied to your catalog login — no AWS credentials
+required.
 
 ![QuiltSync auth token](../imgs/quiltsync-auth.png)
 
@@ -76,6 +88,22 @@ new package version:
 ![QuiltSync auto-generated commit](../imgs/quiltsync-commit.png)
 
 ![QuiltSync push](../imgs/quiltsync-push.png)
+
+### Ignoring Junk Files
+
+QuiltSync honors `.quiltignore` files to keep build artifacts, OS metadata, and
+other noise out of your packages:
+
+- Files matching a `.quiltignore` pattern are flagged with a "junk" badge in
+  the entry list
+- Per-entry popups let you **ignore** a file (adds a pattern to
+  `.quiltignore`) or **un-ignore** one already covered by a pattern
+- Ignore patterns can also be applied server-side via URL fragment parameters
+  when opening a package, so the same filter applies before entries are
+  listed
+
+Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `.DS_Store`,
+`node_modules/`) that shouldn't end up in committed revisions.
 
 ### Creating Local Packages
 
