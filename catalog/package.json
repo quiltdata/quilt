@@ -188,7 +188,7 @@
     "@typescript-eslint/parser": "^6.3.0",
     "@vitest/coverage-v8": "^4.0.15",
     "blob-polyfill": "^7.0.20220408",
-    "bundlewatch": "^0.4.1",
+    "bundlewatch": "^0.4.2",
     "chalk": "^4.1.2",
     "circular-dependency-plugin": "^5.2.2",
     "compression": "^1.7.4",
