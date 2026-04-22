@@ -42,7 +42,10 @@ type RootQueryDoc = urql.TypedDocumentNode<unknown, Record<string, never>>
 // write commit first.
 function refetchRootField(clientRef: React.RefObject<urql.Client>, query: RootQueryDoc) {
   Promise.resolve().then(() => {
-    clientRef.current?.query(query, {}, { requestPolicy: 'network-only' }).toPromise()
+    clientRef.current
+      ?.query(query, {}, { requestPolicy: 'network-only' })
+      .toPromise()
+      .catch(() => {}) // fire-and-forget: urql surfaces errors via result.error, not rejection
   })
 }
 
@@ -110,8 +113,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
   const clientRef = React.useRef<urql.Client | null>(null)
 
   const cacheExchange = React.useMemo(
-    () =>
-      GraphCache.cacheExchange({
+    () => {
+      const refetchBuckets = () => refetchRootField(clientRef, BUCKETS_QUERY)
+      return GraphCache.cacheExchange({
         schema,
         keys: {
           AccessCountForDate: () => null,
@@ -226,7 +230,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // XXX: sort?
                 R.evolve({ policies: R.append(policy) }),
               )
-              refetchRootField(clientRef, BUCKETS_QUERY)
+              refetchBuckets()
             },
             policyCreateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyCreateUnmanaged as any
@@ -241,7 +245,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               const policy = result.policyUpdateManaged as any
               if (policy?.__typename !== 'Policy') return
               invalidateAffectedRoles(policy, cache)
-              refetchRootField(clientRef, BUCKETS_QUERY)
+              refetchBuckets()
             },
             policyUpdateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyUpdateUnmanaged as any
@@ -269,7 +273,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 }),
               )
 
-              refetchRootField(clientRef, BUCKETS_QUERY)
+              refetchBuckets()
             },
             roleCreateManaged: (result, _vars, cache) => {
               const create = result.roleCreateManaged as any
@@ -314,7 +318,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   }),
                 }),
               )
-              refetchRootField(clientRef, BUCKETS_QUERY)
+              refetchBuckets()
             },
             roleDelete: (result, vars, cache) => {
               const typename = (result.roleDelete as any)?.__typename
@@ -357,7 +361,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
               )
 
-              refetchRootField(clientRef, BUCKETS_QUERY)
+              refetchBuckets()
             },
             roleSetDefault: (result, _vars, cache) => {
               const typename = (result.roleSetDefault as any)?.__typename
@@ -410,7 +414,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // Over-invalidates when the edit targets another user;
                 // acceptable for a rare admin op, avoids a self-check
                 // against the current session user.
-                refetchRootField(clientRef, BUCKETS_QUERY)
+                refetchBuckets()
               }
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(
@@ -436,7 +440,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             role: { __typename: 'ManagedRole', id },
           }),
         },
-      }),
+      })
+    },
     [sessionId], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
