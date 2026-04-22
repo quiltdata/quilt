@@ -48,8 +48,8 @@ class Bucket:
 
         Query Syntax:
             [Query String Query](
-                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
-            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
+                https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html)
+            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl.html)
 
         Index schemas and search examples can be found in the
         [Quilt Search documentation](https://docs.quilt.bio/quilt-platform-catalog-user/search).
