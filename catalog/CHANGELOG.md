@@ -18,8 +18,8 @@ where verb is one of
 
 ## Changes
 
-- [Changed] User-facing bucket queries are now role-scoped (`buckets` / `bucket` GraphQL type); admins in a scoped managed role see only role-permitted buckets in navbar / listings / deep-links (admin panel unchanged). urql cache invalidation (`invalidateRootField`) is wired to every mutation that can change a user's effective bucket set ([#4839](https://github.com/quiltdata/quilt/pull/4839))
-- [Fixed] Navbar bucket selector now refreshes after bucket add / edit / delete and after role-policy edits ([#4839](https://github.com/quiltdata/quilt/pull/4839))
+- [Changed] Migrate user-facing bucket queries to the new role-scoped `buckets` / `bucket` GraphQL type; admins in a scoped managed role now see only role-permitted buckets in navbar / listings / deep-links (admin panel unchanged). Wire urql cache invalidation (`invalidateRootField`) to every mutation that can change a user's effective bucket set ([#4839](https://github.com/quiltdata/quilt/pull/4839))
+- [Fixed] Refresh navbar bucket selector after bucket add / edit / delete and after role-policy edits ([#4839](https://github.com/quiltdata/quilt/pull/4839))
 - [Added] HubSpot tracking ([#4807](https://github.com/quiltdata/quilt/pull/4807))
 - [Changed] Migrate `package-lock.json` from lockfileVersion 2 to 3 ([#4812](https://github.com/quiltdata/quilt/pull/4812))
 - [Changed] Replace `jsonpath` with `jsonpath-plus` for JSONPath evaluation ([#4811](https://github.com/quiltdata/quilt/pull/4811))
