@@ -157,7 +157,6 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Mutation: {
             bucketAdd: (result, _vars, cache) => {
               if ((result.bucketAdd as any)?.__typename !== 'BucketAddSuccess') return
-              cache.invalidate({ __typename: 'Query' }, 'roles')
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 // XXX: sort?
@@ -165,10 +164,17 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
                 }),
               )
-              // `buckets` is role-scoped: a newly-added bucket may or may not be
-              // in the caller's role scope, so invalidate rather than optimistically
-              // append. Next read refetches from the server.
-              cache.invalidate({ __typename: 'Query' }, 'buckets')
+              // Invalidate every cached entry of Query.buckets and Query.roles
+              // (across all argument variants) so the navbar bucket selector
+              // and role permission views refetch. The { __typename:'Query' }
+              // entity form of cache.invalidate silently no-ops in this setup
+              // — iterate inspectFields instead, matching the handlePackageCreation
+              // pattern used for Query.packages.
+              for (const f of cache.inspectFields('Query')) {
+                if (f.fieldName === 'buckets' || f.fieldName === 'roles') {
+                  cache.invalidate('Query', f.fieldKey)
+                }
+              }
             },
             bucketUpdate: (result, vars, cache) => {
               if ((result.bucketUpdate as any)?.__typename !== 'BucketUpdateSuccess')
@@ -181,12 +187,15 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             bucketRemove: (result, vars, cache) => {
               if ((result.bucketRemove as any)?.__typename !== 'BucketRemoveSuccess')
                 return
-              cache.invalidate({ __typename: 'Query' }, 'roles')
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
-              cache.invalidate({ __typename: 'Query' }, 'buckets')
+              for (const f of cache.inspectFields('Query')) {
+                if (f.fieldName === 'buckets' || f.fieldName === 'roles') {
+                  cache.invalidate('Query', f.fieldKey)
+                }
+              }
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
             },
             policyCreateManaged: (result, _vars, cache) => {
