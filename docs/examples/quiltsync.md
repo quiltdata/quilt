@@ -15,7 +15,7 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
   (e.g., **Commit** when local edits exist, **Pull** when the remote is ahead)
 - Create local-only packages and set a remote later
 - `.quiltignore` support with junk-file detection
-- Unified Settings pane for status, login management, and diagnostics
+- Unified Settings pane for general info, auth management, and diagnostics
 
 ## Getting Started
 
@@ -110,7 +110,7 @@ Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `.DS_Store`,
 You can start a package entirely on your machine and wire it to a remote later:
 
 1. Click **+ Create Local Package** in the Packages header
-2. Enter a namespace (`owner/package-name`)
+2. Enter a package name as `owner/package-name` (labeled **Namespace** in the dialog)
 3. Optionally **Browse** to select a source directory to seed the package
 4. Click **Create**
 
