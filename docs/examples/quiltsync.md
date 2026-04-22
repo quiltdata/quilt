@@ -110,7 +110,7 @@ Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `.DS_Store`,
 You can start a package entirely on your machine and wire it to a remote later:
 
 1. Click **+ Create Local Package** in the Packages header
-2. Enter a package name as `owner/package-name` (labeled **Namespace** in the dialog)
+2. Enter a package name `pkg_prefix/pkg_prefix` (labeled **Namespace** in the dialog)
 3. Optionally **Browse** to select a source directory to seed the package
 4. Click **Create**
 
