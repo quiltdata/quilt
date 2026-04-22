@@ -11,8 +11,8 @@ const theme = createMuiTheme()
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-vi.mock('utils/BucketConfig', () => ({
-  useRelevantBucketConfigs: () => [],
+vi.mock('utils/Buckets', () => ({
+  useRelevantBuckets: () => [],
 }))
 
 vi.mock('@material-ui/core', async () => ({

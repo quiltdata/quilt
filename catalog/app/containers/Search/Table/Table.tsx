@@ -8,7 +8,7 @@ import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
 import { docs } from 'constants/urls'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
@@ -620,8 +620,8 @@ function BucketsFilter({ onChange, value }: BucketsFilterProps) {
   const initialValue = model.state.buckets
   invariant(initialValue, 'Filter not active')
 
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const buckets = Buckets.useRelevantBuckets()
+  const extents = React.useMemo(() => buckets.map((b) => b.name), [buckets])
   return <List extents={extents} value={value || initialValue} onChange={onChange} />
 }
 

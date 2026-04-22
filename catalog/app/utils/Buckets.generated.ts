@@ -2,11 +2,11 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../model/graphql/types.generated'
 
-export type utils_BucketConfigListQueryVariables = Types.Exact<{
+export type utils_BucketsQueryVariables = Types.Exact<{
   includeCollaborators?: Types.Scalars['Boolean']
 }>
 
-export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
+export type utils_BucketsQuery = { readonly __typename: 'Query' } & {
   readonly buckets: ReadonlyArray<
     { readonly __typename: 'Bucket' } & Pick<
       Types.Bucket,
@@ -29,13 +29,13 @@ export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
   >
 }
 
-export const utils_BucketConfigListDocument = {
+export const utils_BucketsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'utils_BucketConfigList' },
+      name: { kind: 'Name', value: 'utils_Buckets' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -109,9 +109,6 @@ export const utils_BucketConfigListDocument = {
       },
     },
   ],
-} as unknown as DocumentNode<
-  utils_BucketConfigListQuery,
-  utils_BucketConfigListQueryVariables
->
+} as unknown as DocumentNode<utils_BucketsQuery, utils_BucketsQueryVariables>
 
-export { utils_BucketConfigListDocument as default }
+export { utils_BucketsDocument as default }

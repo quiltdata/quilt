@@ -4,7 +4,7 @@ import * as urql from 'urql'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
 import cfg from 'constants/config'
-import { useRelevantBucketConfigs } from 'utils/BucketConfig'
+import { useRelevantBuckets } from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BUCKET_CONFIGS_QUERY from './LinkedDataBuckets.generated'
@@ -161,7 +161,7 @@ const renderJsonLd = (ld: object) => (
 
 export function CatalogData() {
   const { linkedData } = cfg
-  const buckets = useRelevantBucketConfigs()
+  const buckets = useRelevantBuckets()
   const { urls } = NamedRoutes.use<BucketRootRoutes>()
   if (!linkedData) return null
   const { name, description } = linkedData
