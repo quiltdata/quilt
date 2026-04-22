@@ -10,7 +10,11 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
 - Selective file sync to manage disk space
 - Version control for data packages
 - Browser-based authentication
-- Auto-generated commit messages (v0.14+)
+- Auto-generated commit messages
+- Automatic detection of local and remote changes, with context-aware actions
+  (e.g., **Commit** when local edits exist, **Pull** when the remote is ahead)
+- Create local-only packages and set a remote later
+- Unified Settings pane for status, login management, and diagnostics
 
 ## Getting Started
 
@@ -47,6 +51,17 @@ When the package is opened, it shows a list of all files (pre-selected for downl
 
 ![QuiltSync download selected paths](../imgs/quiltsync-download.png)
 
+### Status-Aware Actions
+
+QuiltSync continuously compares each package's local working copy against its
+remote revision and highlights only the actions that apply:
+
+- **Commit** activates when the local copy has uncommitted changes
+- **Pull** activates when the remote has new revisions not yet synced locally
+- **Set Remote** appears on local-only packages that have no remote yet
+
+![QuiltSync package list with status-aware actions](../imgs/quiltsync-status.png)
+
 ### Committing Changes
 
 After modifying synced files locally, you can commit changes back to Quilt as a
@@ -62,19 +77,36 @@ new package version:
 
 ![QuiltSync push](../imgs/quiltsync-push.png)
 
+### Creating Local Packages
+
+You can start a package entirely on your machine and wire it to a remote later:
+
+1. Click **+ Create Local Package** in the Packages header
+2. Enter a namespace (`owner/package-name`)
+3. Optionally **Browse** to select a source directory to seed the package
+4. Click **Create**
+
+![QuiltSync create local package dialog](../imgs/quiltsync-create.png)
+
+The new package appears in the list with a **Set Remote** action. Use it when
+you're ready to associate the package with an S3 bucket and push your first
+revision.
+
 ### Settings and Troubleshooting
 
-Access settings via the gear icon in the lower right:
+Access settings via **SETTINGS** in the top-right header.
 
 ![QuiltSync Settings](../imgs/quiltsync-settings.png)
 
-- **Version**: Current version and release notes
-- **Lineage and cache files**: Opens `.quilt/` directory with package metadata
-- **Logs directory**: Application logs for debugging
-- **Reset state**: "RELOAD PAGE" refreshes UI, "RE-LOGIN" clears authentication
+- **General**: Version (with release notes), home directory, and data directory
+- **Auth**: List of authenticated catalogs with per-host **Re-Login** and
+  **Logout** controls
+- **Diagnostics**: Log level, logs directory, **Collect Logs**, then **Send to
+  Sentry** or **Email Support** to share diagnostics (app version, OS,
+  directory paths, authenticated host names, log files, and OAuth client IDs)
 
-If QuiltSync fails to start after an upgrade, use **RE-LOGIN** or clear the
-`.quilt/` cache directory. Older cached manifests in Parquet format are
+If QuiltSync fails to start after an upgrade, use **Re-Login** for the affected
+host or clear the data directory. Older cached manifests in Parquet format are
 automatically re-fetched from remote storage.
 
 ### Integration with Benchling
