@@ -180,7 +180,9 @@ type BucketConfig {
 }
 
 # Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
-# Always filtered through the caller's active role (no admin bypass).
+# Subject to the caller's active role — no admin bypass (unlike
+# `bucketConfigs` / `bucketConfig`). `ALLOW_ANONYMOUS_ACCESS` stacks and
+# unmanaged roles see every in-stack bucket, same as the admin-bypass path.
 type Bucket {
   name: String!
   title: String!
