@@ -1,7 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
@@ -21,9 +20,6 @@ export default function OpenLanding() {
   return (
     <Layout>
       <MetaTitle />
-      <React.Suspense fallback={null}>
-        <LinkedData.CatalogData />
-      </React.Suspense>
       <Search />
       <div className={classes.buckets}>
         <M.Divider />

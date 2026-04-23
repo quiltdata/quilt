@@ -11,9 +11,7 @@ export type BucketConfigSelectionFragment = {
   | 'iconUrl'
   | 'description'
   | 'relevanceScore'
-  | 'overviewUrl'
   | 'tags'
-  | 'linkedData'
   | 'fileExtensionsToIndex'
   | 'indexContentBytes'
   | 'scannerParallelShardsDepth'
@@ -38,9 +36,7 @@ export const BucketConfigSelectionFragmentDoc = {
           { kind: 'Field', name: { kind: 'Name', value: 'iconUrl' } },
           { kind: 'Field', name: { kind: 'Name', value: 'description' } },
           { kind: 'Field', name: { kind: 'Name', value: 'relevanceScore' } },
-          { kind: 'Field', name: { kind: 'Name', value: 'overviewUrl' } },
           { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
-          { kind: 'Field', name: { kind: 'Name', value: 'linkedData' } },
           { kind: 'Field', name: { kind: 'Name', value: 'fileExtensionsToIndex' } },
           { kind: 'Field', name: { kind: 'Name', value: 'indexContentBytes' } },
           { kind: 'Field', name: { kind: 'Name', value: 'scannerParallelShardsDepth' } },
