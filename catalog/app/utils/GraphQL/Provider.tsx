@@ -225,12 +225,12 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
               )
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
-              // Registry cascade-deletes the RolePolicyBucketPermission rows
-              // for the removed bucket, but the cached PolicyBucketPermission
-              // / RoleBucketPermission entries (keyed {bucketName}/{id}) are
-              // not reachable via the Bucket-entity invalidation above —
-              // strip them from every cached Policy.permissions and
-              // ManagedRole.permissions array.
+              // Server cascade-deletes the PolicyBucketPermission /
+              // RoleBucketPermission rows for the removed bucket, but the
+              // cached entries (keyed {bucketName}/{id}) are not reachable
+              // via the Bucket-entity invalidation above — strip them from
+              // every cached Policy.permissions and ManagedRole.permissions
+              // array.
               const stripBucket = R.reject(R.pathEq(['bucket', 'name'], vars.name))
               cache.updateQuery(
                 {
