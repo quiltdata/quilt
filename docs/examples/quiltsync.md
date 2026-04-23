@@ -12,10 +12,14 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
 - Browser-based OAuth 2.1 login (with legacy code-based fallback)
 - Auto-generated commit messages
 - Automatic detection of local and remote changes, with context-aware actions
-  (e.g., **Commit** when local edits exist, **Pull** when the remote is ahead)
+  (e.g., **Commit and Push** when local edits exist, **Pull** when the remote
+  is ahead, **Merge** when both sides diverged)
+- One-click **Commit and Push** with per-user defaults (message template,
+  workflow, metadata) configured in Settings
 - Create local-only packages and set a remote later
 - `.quiltignore` support with junk-file detection
-- Unified Settings pane for general info, auth management, and diagnostics
+- Unified Settings pane for general info, publish defaults, auth management,
+  and diagnostics
 
 ## Getting Started
 
@@ -68,8 +72,12 @@ When the package is opened, it shows a list of all files (pre-selected for downl
 QuiltSync continuously compares each package's local working copy against its
 remote revision and highlights only the actions that apply:
 
-- **Commit** activates when the local copy has uncommitted changes
+- **Commit and Push** activates when the package has a remote and something to
+  ship — uncommitted changes, a pending local commit, or both. It uses the
+  defaults configured in Settings → Commit and Push.
 - **Pull** activates when the remote has new revisions not yet synced locally
+  (disabled with a tooltip hint if the package has uncommitted local changes)
+- **Merge** activates when local and remote have diverged
 - **Set Remote** appears on local-only packages that have no remote yet
 
 ![QuiltSync package list with status-aware actions](../imgs/quiltsync-status.png)
@@ -98,9 +106,8 @@ other noise out of your packages:
   the entry list
 - Per-entry popups let you **ignore** a file (adds a pattern to
   `.quiltignore`) or **un-ignore** one already covered by a pattern
-- Ignore patterns can also be applied server-side via URL fragment parameters
-  when opening a package, so the same filter applies before entries are
-  listed
+- The package view also lets you toggle visibility of unmodified and ignored
+  entries so only the files relevant to your next commit stay on screen
 
 Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `.DS_Store`,
 `node_modules/`) that shouldn't end up in committed revisions.
@@ -127,6 +134,10 @@ Access settings via **SETTINGS** in the top-right header.
 ![QuiltSync Settings](../imgs/quiltsync-settings.png)
 
 - **General**: Version (with release notes), home directory, and data directory
+- **Commit and Push**: Defaults used by the one-click **Commit and Push**
+  action — message template (with placeholders like `{date}`, `{namespace}`,
+  `{changes}`), default workflow (bucket default or an override), and default
+  metadata. **Edit** opens the defaults popup with a live message preview.
 - **Auth**: List of authenticated catalogs with per-host **Re-Login** and
   **Logout** controls
 - **Diagnostics**: Log level, logs directory, **Collect Logs**, then **Send to
