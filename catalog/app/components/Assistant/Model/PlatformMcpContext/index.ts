@@ -11,33 +11,31 @@
  *
  * The MCP server runs stateless HTTP, so there's no persistent connection to
  * manage. Every tool call is an independent POST with the current session
- * token. If `initialize` / `tools/list` fails, we still render the chat — MCP
- * tools just won't appear.
+ * token. Bootstrap runs as an Effect on the shared runtime; fiber interruption
+ * aborts in-flight fetches when the Provider unmounts.
  *
  * URL defaults to `${registryUrl}/mcp/platform/mcp`. Override for local dev
  * via `localStorage.setItem('QUILT_MCP_URL', '…')` (same pattern as
  * `QUILT_BEDROCK_MODEL_ID`).
  */
 
+import * as Eff from 'effect'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
+import { runtime } from 'utils/Effect'
 import * as Log from 'utils/Logging'
-import * as XML from 'utils/XML'
 
 import * as Context from '../Context'
-import * as Tool from '../Tool'
 
-import * as Bridge from './bridge'
-import * as Client from './client'
+import * as Mcp from './Mcp'
 
 const MODULE = 'PlatformMcpContext'
 const LOGGER = Log.default.getLogger(MODULE)
 
 const MCP_URL_KEY = 'QUILT_MCP_URL'
-const TOOL_PREFIX = 'mcp__platform__'
 
 function getMcpUrl(): string {
   if (typeof localStorage !== 'undefined') {
@@ -45,56 +43,6 @@ function getMcpUrl(): string {
     if (override) return override
   }
   return `${cfg.registryUrl}/mcp/platform/mcp`
-}
-
-interface McpContextState {
-  status: 'loading' | 'ready' | 'error'
-  error?: Error
-  tools: Tool.Collection
-  messages: string[]
-}
-
-const INITIAL_STATE: McpContextState = {
-  status: 'loading',
-  tools: {},
-  messages: [],
-}
-
-/**
- * Fetch tools and optional resource context from PMS once per client.
- * Never throws — captures errors in state for the UI to surface.
- */
-async function loadContext(client: Client.McpClient): Promise<McpContextState> {
-  try {
-    await client.initialize()
-    const mcpTools = await client.listTools()
-    const tools: Tool.Collection = {}
-    for (const t of mcpTools) {
-      tools[`${TOOL_PREFIX}${t.name}`] = Bridge.buildTool(client, t)
-    }
-
-    const messages: string[] = []
-    try {
-      const syntax = await client.readResource('quilt-platform://search_syntax')
-      const text = syntax.contents
-        .map((c) => c.text ?? '')
-        .join('\n')
-        .trim()
-      if (text) messages.push(XML.tag('platform-mcp-search-syntax', {}, text).toString())
-    } catch (e) {
-      LOGGER.debug('search_syntax resource unavailable:', e)
-    }
-
-    return { status: 'ready', tools, messages }
-  } catch (e) {
-    LOGGER.warn('mcp: initialize/listTools failed:', e)
-    return {
-      status: 'error',
-      error: e instanceof Error ? e : new Error(String(e)),
-      tools: {},
-      messages: [],
-    }
-  }
 }
 
 /**
@@ -106,21 +54,28 @@ export function usePlatformMcpContext() {
   const tokenRef = React.useRef<string | null>(null)
   tokenRef.current = (tokens && (tokens as { token?: string }).token) || null
 
-  const [state, setState] = React.useState<McpContextState>(INITIAL_STATE)
+  const [state, setState] = React.useState<Mcp.McpContextState>(Mcp.INITIAL_STATE)
 
   const url = React.useMemo(getMcpUrl, [])
   const client = React.useMemo(
-    () => new Client.McpClient({ url, getToken: () => tokenRef.current }),
+    () => Mcp.make({ url, getToken: () => tokenRef.current }),
     [url],
   )
 
   React.useEffect(() => {
-    let cancelled = false
-    loadContext(client).then((next) => {
-      if (!cancelled) setState(next)
+    const fiber = runtime.runFork(Mcp.loadContext(client))
+    fiber.addObserver((exit) => {
+      if (Eff.Exit.isSuccess(exit)) {
+        setState(exit.value)
+        if (exit.value.status === 'error') {
+          LOGGER.warn('mcp: bootstrap failed:', exit.value.error)
+        }
+      }
+      // On interrupt/failure (fiber killed during unmount) we let the state
+      // stay in `loading` — the component is going away.
     })
     return () => {
-      cancelled = true
+      runtime.runFork(Eff.Fiber.interrupt(fiber))
     }
   }, [client])
 
