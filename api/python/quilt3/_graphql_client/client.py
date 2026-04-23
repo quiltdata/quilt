@@ -1411,6 +1411,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -1425,6 +1435,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -1497,6 +1510,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -1511,6 +1534,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -1605,6 +1631,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserMutationSelection on UserResult {
               ...UserSelection
               ...InvalidInputSelection
@@ -1625,6 +1661,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -1753,6 +1792,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserMutationSelection on UserResult {
               ...UserSelection
               ...InvalidInputSelection
@@ -1773,6 +1822,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -1863,6 +1915,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserMutationSelection on UserResult {
               ...UserSelection
               ...InvalidInputSelection
@@ -1883,6 +1945,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -1973,6 +2038,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserMutationSelection on UserResult {
               ...UserSelection
               ...InvalidInputSelection
@@ -1993,6 +2068,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -2130,6 +2208,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -2144,6 +2232,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -2241,6 +2332,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -2255,6 +2356,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -2349,6 +2453,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -2363,6 +2477,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -2445,6 +2562,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -2459,6 +2586,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """
@@ -2563,6 +2693,16 @@ class Client(BaseClient):
               arn
             }
 
+            fragment UserLastLoginContextSelection on UserLastLoginContext {
+              ssoProvider
+              idTokenPayload
+              matchedMappingIndices
+              assignedRoles
+              activeRole
+              isAdmin
+              loginAt
+            }
+
             fragment UserSelection on User {
               name
               email
@@ -2577,6 +2717,9 @@ class Client(BaseClient):
               }
               extraRoles {
                 ...RoleSelection
+              }
+              lastLoginContext {
+                ...UserLastLoginContextSelection
               }
             }
             """

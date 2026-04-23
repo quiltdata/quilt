@@ -80,6 +80,23 @@ class Policy:
 
 
 @pydantic.dataclasses.dataclass
+class UserLastLoginContext:
+    """Details about a user's most recent SSO login.
+
+    Populated only when the SSO config has ``store_last_login_context: true``
+    and the user has logged in via SSO at least once since it was enabled.
+    """
+
+    sso_provider: str
+    id_token_payload: dict[str, T.Any]
+    matched_mapping_indices: list[int]
+    assigned_roles: list[str]
+    active_role: str
+    is_admin: bool
+    login_at: datetime
+
+
+@pydantic.dataclasses.dataclass
 class User:
     name: str
     email: str
@@ -91,6 +108,7 @@ class User:
     is_service: bool
     role: T.Optional[AnnotatedRole]
     extra_roles: list[AnnotatedRole]
+    last_login_context: T.Optional[UserLastLoginContext] = None
 
     @classmethod
     def from_gql(cls, gql: _graphql_client.BaseModel) -> "User":

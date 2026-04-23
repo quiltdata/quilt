@@ -17,7 +17,13 @@ Policy without back-references to roles (avoids circular nesting).
 ## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[quilt3.admin.types.ManagedRole]) -> None  {#Policy}
 
 
-## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
+## UserLastLoginContext(sso\_provider: str, id\_token\_payload: dict[str, typing.Any], matched\_mapping\_indices: list[int], assigned\_roles: list[str], active\_role: str, is\_admin: bool, login\_at: datetime.datetime) -> None  {#UserLastLoginContext}
+Details about a user's most recent SSO login.
+
+Populated only when the SSO config has ``store_last_login_context: true``
+and the user has logged in via SSO at least once since it was enabled.
+
+## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], last\_login\_context: Optional[quilt3.admin.types.UserLastLoginContext] = None) -> None  {#User}
 
 
 ## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}

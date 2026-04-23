@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - 2026-04-17
+
+### Python API
+
+* [Added] `quilt3.admin.User.last_login_context` exposes the most recent SSO login context (provider, id-token payload, matched mapping indices, assigned/active roles, admin flag, login timestamp); populated when SSO config has `store_last_login_context: true`
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API

@@ -2,7 +2,7 @@
 # Source: queries.graphql
 
 from datetime import datetime
-from typing import Annotated, Any, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -46,7 +46,7 @@ class InvalidInputSelectionErrors(BaseModel):
     path: Optional[str]
     message: str
     name: str
-    context: Optional[Any]
+    context: Optional[dict]
 
 
 class PermissionSelection(BaseModel):
@@ -99,7 +99,7 @@ class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
 class OperationErrorSelection(BaseModel):
     message: str
     name: str
-    context: Optional[Any]
+    context: Optional[dict]
 
 
 class PolicySelection(BaseModel):
@@ -126,6 +126,16 @@ class UnmanagedRoleSelection(BaseModel):
     arn: str
 
 
+class UserLastLoginContextSelection(BaseModel):
+    sso_provider: str = Field(alias="ssoProvider")
+    id_token_payload: dict = Field(alias="idTokenPayload")
+    matched_mapping_indices: List[int] = Field(alias="matchedMappingIndices")
+    assigned_roles: List[str] = Field(alias="assignedRoles")
+    active_role: str = Field(alias="activeRole")
+    is_admin: bool = Field(alias="isAdmin")
+    login_at: datetime = Field(alias="loginAt")
+
+
 class UserSelection(BaseModel):
     name: str
     email: str
@@ -150,6 +160,7 @@ class UserSelection(BaseModel):
             Field(discriminator="typename__"),
         ]
     ] = Field(alias="extraRoles")
+    last_login_context: Optional["UserSelectionLastLoginContext"] = Field(alias="lastLoginContext")
 
 
 class UserSelectionRoleUnmanagedRole(UnmanagedRoleSelection):
@@ -166,6 +177,10 @@ class UserSelectionExtraRolesUnmanagedRole(UnmanagedRoleSelection):
 
 class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
     typename__: Literal["ManagedRole"] = Field(alias="__typename")
+
+
+class UserSelectionLastLoginContext(UserLastLoginContextSelection):
+    pass
 
 
 class SsoConfigSelection(BaseModel):
@@ -188,5 +203,6 @@ ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
 PolicySelection.model_rebuild()
 UnmanagedRoleSelection.model_rebuild()
+UserLastLoginContextSelection.model_rebuild()
 UserSelection.model_rebuild()
 SsoConfigSelection.model_rebuild()
