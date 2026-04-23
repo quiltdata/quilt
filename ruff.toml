@@ -24,7 +24,6 @@ select = [
 
 # Ignore rules that were disabled in pylint or would cause too many changes
 ignore = [
-    "E501",  # line-too-long (already handled by line-length setting)
     "E731",  # lambda assignment
     "B008",  # function calls in argument defaults
     "B904",  # raise without from
