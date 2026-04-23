@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Removed] Drop unused `linkedData` (JSON-LD) and `overviewUrl` (precomputed summary/readme/image fetches) code paths from the catalog; the stack-level `cfg.linkedData` config flag and the `overviewUrl` / `linkedData` admin form fields are gone. GraphQL schema fields and quilt3.admin SDK kwargs remain for now; they will be deprecated and removed in a follow-up
+- [Removed] Drop unused `linkedData` (JSON-LD) and `overviewUrl` (precomputed summary/readme/image fetches) code paths from the catalog; the stack-level `cfg.linkedData` config flag and the `overviewUrl` / `linkedData` admin form fields are gone. GraphQL schema fields and quilt3.admin SDK kwargs remain for now; they will be deprecated and removed in a follow-up ([#4856](https://github.com/quiltdata/quilt/pull/4856))
 - [Fixed] Admin Users / Policies panels: drop phantom permission rows referencing a just-removed bucket (cache was not cascading the removal through `Policy.permissions` / `ManagedRole.permissions`) ([#4855](https://github.com/quiltdata/quilt/pull/4855))
 - [Changed] Migrate user-facing bucket queries to the new role-scoped `buckets` / `bucket` GraphQL type; admins in a scoped managed role now see only role-permitted buckets in navbar / listings / deep-links (admin panel unchanged) ([#4839](https://github.com/quiltdata/quilt/pull/4839))
 - [Fixed] Refresh navbar bucket selector after bucket removal and after policy / role / user-role edits that change the caller's managed-role bucket set ([#4839](https://github.com/quiltdata/quilt/pull/4839))
