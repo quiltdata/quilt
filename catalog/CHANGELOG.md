@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Qurator: call 25 Platform MCP Server tools (packages, search, S3, Athena, tabulator) from the catalog chat, namespaced `mcp__platform__*`; drops `catalog_global_getObject` in favor of MCP's `object_read` ([#4840](https://github.com/quiltdata/quilt/pull/4840))
 - [Changed] Migrate user-facing bucket queries to the new role-scoped `buckets` / `bucket` GraphQL type; admins in a scoped managed role now see only role-permitted buckets in navbar / listings / deep-links (admin panel unchanged) ([#4839](https://github.com/quiltdata/quilt/pull/4839))
 - [Fixed] Refresh navbar bucket selector after bucket removal and after policy / role / user-role edits that change the caller's managed-role bucket set ([#4839](https://github.com/quiltdata/quilt/pull/4839))
 - [Added] HubSpot tracking ([#4807](https://github.com/quiltdata/quilt/pull/4807))
