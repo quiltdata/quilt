@@ -21,6 +21,10 @@ const USERS_QUERY = urql.gql`{ admin { user { list { name } } } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
 // Invalidate all cached variants of a root Query field (args-aware).
+// Marks cached variants stale so the next read refetches; does NOT
+// reliably notify active subscribers on urql 2.x + graphcache 4.x.
+// Use refetchRootField when a subscriber must see the new data
+// without re-navigation.
 function invalidateRootField(cache: GraphCache.Cache, fieldName: string) {
   for (const f of cache.inspectFields('Query')) {
     if (f.fieldName === fieldName) {
@@ -221,6 +225,29 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
               )
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
+              // Server cascade-deletes the PolicyBucketPermission /
+              // RoleBucketPermission rows for the removed bucket, but the
+              // cached entries (keyed {bucketName}/{id}) are not reachable
+              // via the Bucket-entity invalidation above — strip them from
+              // every cached Policy.permissions and ManagedRole.permissions
+              // array.
+              const stripBucket = R.reject(R.pathEq(['bucket', 'name'], vars.name))
+              cache.updateQuery(
+                {
+                  query: urql.gql`{ policies { id permissions { bucket { name } } } }`,
+                },
+                R.evolve({
+                  policies: R.map(R.evolve({ permissions: stripBucket })),
+                }),
+              )
+              cache.updateQuery(
+                {
+                  query: urql.gql`{ roles { id ... on ManagedRole { permissions { bucket { name } } } } }`,
+                },
+                R.evolve({
+                  roles: R.map(R.evolve({ permissions: stripBucket })),
+                }),
+              )
             },
             policyCreateManaged: (result, _vars, cache) => {
               const policy = result.policyCreateManaged as any
