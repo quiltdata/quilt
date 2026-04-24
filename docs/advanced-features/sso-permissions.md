@@ -69,3 +69,32 @@ to false (except the user with `admin@example.com` email)
 
 > Note: Unrecognized users will have their role set to the `default_role`, but
 their admin flag will be unchanged.
+
+## Configuring your IdP to emit the required claims
+
+Mappings only match against claims that actually appear in the user's ID token.
+If your mapping checks `groups` but the IdP doesn't include a `groups` claim,
+**no mapping will match** and users will silently fall through to the
+`default_role` — which (per the note above) leaves their admin flag unchanged
+from whatever it was before.
+
+A common symptom is users receiving the `default_role` even though they belong
+to the groups referenced in the mappings. Verify by pasting their ID token into
+[jwt.io](https://jwt.io/) and confirming the expected claims are present.
+
+### Okta
+
+Okta does **not** emit a `groups` claim by default. The claim name `groups` is
+also reserved, so it cannot be added via **Token claims → Add expression** on
+the application's **Sign On** tab. Use the legacy configuration instead:
+
+1. Open **Applications → [Your App] → Sign On** tab.
+2. Under **OpenID Connect ID Token**, click **Show legacy configuration**.
+3. Set **Groups claim type** to `Filter`.
+4. Set **Groups claim filter** to `groups` | **Matches regex** | `.*`
+   (or a narrower expression that includes every group your mappings reference).
+5. Save.
+
+After saving, affected users must log out and back in for the new ID token to
+include the `groups` claim. Confirm with jwt.io that the token now contains
+something like `"groups": ["Everyone", "Employees", ...]`.
