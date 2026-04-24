@@ -135,9 +135,10 @@ Access settings via **SETTINGS** in the top-right header.
 
 - **General**: Version (with release notes), home directory, and data directory
 - **Commit and Push**: Defaults used by the one-click **Commit and Push**
-  action — message template (with placeholders like `{date}`, `{namespace}`,
-  `{changes}`), default workflow (bucket default or an override), and default
-  metadata. **Edit** opens the defaults popup with a live message preview.
+  action — message template (with `{date}`, `{time}`, `{datetime}`,
+  `{namespace}`, and `{changes}` placeholders), default workflow (bucket
+  default or an override), and default metadata. **Edit** opens the defaults
+  popup with a live message preview.
 - **Auth**: List of authenticated catalogs with per-host **Re-Login** and
   **Logout** controls
 - **Diagnostics**: Log level, logs directory, **Collect Logs**, then **Send to
