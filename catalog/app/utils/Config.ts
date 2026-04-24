@@ -32,11 +32,6 @@ export interface ConfigJson {
 
   legacyPackagesRedirect?: string
 
-  linkedData?: {
-    name?: string
-    description?: string
-  }
-
   noDownload?: boolean
   noOverviewImages?: boolean
 

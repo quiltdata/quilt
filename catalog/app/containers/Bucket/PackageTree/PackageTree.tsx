@@ -1080,15 +1080,6 @@ function PackageTree({
   return (
     <FileView.Root>
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
-      {/* TODO: bring back linked data after re-implementing it using graphql
-      {!!bucketCfg &&
-        revisionData.case({
-          Ok: ({ hash, modified }) => (
-            <ExposeLinkedData {...{ bucketCfg, bucket, name, hash, modified }} />
-          ),
-          _: () => null,
-        })}
-      */}
       {!!resolvedFrom && (
         <M.Box mb={2}>
           <Lab.Alert
