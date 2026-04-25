@@ -23,6 +23,7 @@ import 'sanitize.css'
 
 // Import the rest of our modules
 import * as Assistant from 'components/Assistant'
+import HubSpot from 'components/HubSpot'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
@@ -114,6 +115,7 @@ const render = () => {
         },
       ],
       [Tracking.Provider, { userSelector: Auth.selectors.username }],
+      HubSpot,
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,

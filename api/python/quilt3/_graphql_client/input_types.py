@@ -82,3 +82,6 @@ class UserInput(BaseModel):
     email: str
     role: str
     extra_roles: Optional[List[str]] = Field(alias="extraRoles", default=None)
+
+
+ManagedPolicyInput.model_rebuild()
