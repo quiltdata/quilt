@@ -138,23 +138,6 @@ class TestIndex:
         body = json.loads(read_body(resp))
         assert 'S3' in body['title'], 'Expected 400 explanation'
 
-    @responses.activate
-    def test_local_proxy_url(self):
-        url = f'{MOCK_ORIGIN}/__s3proxy/example-bucket/sample.csv'
-        csv = BASE_DIR / 'sample.csv'
-        responses.add(
-            responses.GET,
-            url,
-            body=csv.read_bytes(),
-            status=200,
-        )
-        event = self._make_event({'url': url, 'input': 'csv'}, {'origin': MOCK_ORIGIN})
-        resp = t4_lambda_preview.lambda_handler(event, None)
-        body = json.loads(read_body(resp))
-
-        assert resp['statusCode'] == 200
-        assert '<table' in body['html']
-
     def test_bad_line_count(self):
         """send a known bad line_count parameter"""
         garbage = '-1'

@@ -211,19 +211,17 @@ def test_preview_simple_parquet():
         )
 
 
-def test_is_s3_url_allows_local_proxy_url(monkeypatch):
-    monkeypatch.setenv("QUILT_LOCAL_ORIGIN", "http://localhost:3000")
-
-    assert t4_lambda_tabular_preview.is_s3_url(
+def test_is_s3_url_rejects_local_proxy_url():
+    assert not t4_lambda_tabular_preview.is_s3_url(
         "http://localhost:3000/__s3proxy/example-bucket/sample.csv"
     )
 
 
-def test_lambda_handler_rejects_non_proxy_local_url():
+def test_lambda_handler_rejects_local_url():
     response = t4_lambda_tabular_preview.lambda_handler(
         _make_event({"url": "http://localhost:3000/not-a-proxy/sample.csv", "input": "csv"}),
         None,
     )
 
     assert response["statusCode"] == 400
-    assert "local object proxy URL" in json.loads(response["body"])["title"]
+    assert "S3 virtual-host URL" in json.loads(response["body"])["title"]

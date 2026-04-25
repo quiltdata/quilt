@@ -80,18 +80,7 @@ SCHEMA = {
 pandas.set_option('min_rows', 50)
 
 
-def _is_local_proxy_url(url: str) -> bool:
-    parsed = urlparse(url, allow_fragments=False)
-    if parsed.scheme not in {'http', 'https'}:
-        return False
-    local_origin = os.getenv('QUILT_LOCAL_ORIGIN', 'http://localhost:3000')
-    local_netloc = urlparse(local_origin).netloc
-    return parsed.netloc == local_netloc and parsed.path.startswith('/__s3proxy/')
-
-
 def _is_valid_source_url(url: str) -> bool:
-    if _is_local_proxy_url(url):
-        return True
     parsed_url = urlparse(url, allow_fragments=False)
     return (
         parsed_url.scheme == 'https' and
@@ -126,7 +115,7 @@ def lambda_handler(request):
 
     if not _is_valid_source_url(url):
         return make_json_response(400, {
-            'title': 'Invalid url=. Expected S3 virtual-host URL or local object proxy URL.'
+            'title': 'Invalid url=. Expected S3 virtual-host URL.'
         })
 
     try:
