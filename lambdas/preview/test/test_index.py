@@ -107,6 +107,8 @@ class TestIndex:
                 assert body['html'].startswith('<div>')
                 assert body['html'].endswith('</div>')
                 assert body['info']['metadata'].keys()
+                if 'vegaLite' in body['info']:
+                    assert body['info']['vegaLite']['title']['text']
             else:
                 assert not body['html']
                 if 'metadata' not in body['info']:
@@ -115,7 +117,10 @@ class TestIndex:
                         assert name == 'bad.fcs'
                 else:
                     if not extended:
-                        assert name == 'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs'
+                        assert name in (
+                            '3215apc 100004.fcs',
+                            'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs',
+                        )
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""
@@ -132,6 +137,23 @@ class TestIndex:
         assert resp['statusCode'] == 400, 'Expected 400 on event with a non-S3 URL'
         body = json.loads(read_body(resp))
         assert 'S3' in body['title'], 'Expected 400 explanation'
+
+    @responses.activate
+    def test_local_proxy_url(self):
+        url = f'{MOCK_ORIGIN}/__s3proxy/example-bucket/sample.csv'
+        csv = BASE_DIR / 'sample.csv'
+        responses.add(
+            responses.GET,
+            url,
+            body=csv.read_bytes(),
+            status=200,
+        )
+        event = self._make_event({'url': url, 'input': 'csv'}, {'origin': MOCK_ORIGIN})
+        resp = t4_lambda_preview.lambda_handler(event, None)
+        body = json.loads(read_body(resp))
+
+        assert resp['statusCode'] == 200
+        assert '<table' in body['html']
 
     def test_bad_line_count(self):
         """send a known bad line_count parameter"""

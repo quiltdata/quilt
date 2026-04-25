@@ -1,7 +1,7 @@
 [project]
 name = "t4_lambda_shared"
 version = "0.0.3"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "jsonschema>=2.6.0",
 ]
@@ -12,7 +12,7 @@ mem = [
 ]
 preview = [
     "flowio~=1.4",
-    "numpy>=2,<3",
+    "numpy>=1.26,<3",
     "openpyxl~=3.1",
     "pandas~=2.2",
     "pyarrow~=18.0",

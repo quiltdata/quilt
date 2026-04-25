@@ -30,6 +30,9 @@ import requests
 from bioio import BioImage
 from PIL import Image
 
+from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
+from t4_lambda_shared.utils import get_default_origins, make_json_response
+
 from .pdf_thumbnail import (
     PDFThumbError,
     count_pdf_pages,
@@ -37,8 +40,6 @@ from .pdf_thumbnail import (
     render_pdf_page,
     resize_pdf_page,
 )
-from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
-from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # See https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open.
 # Use 0 to disable the limit.

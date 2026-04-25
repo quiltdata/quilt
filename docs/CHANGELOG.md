@@ -16,6 +16,13 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - 2026-04-25
+
+### Catalog, Lambdas
+
+* [Added] FCS previews now use `flowio` parsing and include Vega scatter plot visualizations in Catalog.
+* [Fixed] Improve preview reliability for FCS, PDF thumbnails, and Excel tabular previews.
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API
