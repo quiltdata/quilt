@@ -342,6 +342,12 @@ SCHEMA = {
 
 def is_s3_url(url: str) -> bool:
     parsed_url = urlparse(url, allow_fragments=False)
+    if parsed_url.scheme in {"http", "https"}:
+        local_origin = os.getenv("QUILT_LOCAL_ORIGIN", "http://localhost:3000")
+        local_netloc = urlparse(local_origin).netloc
+        if parsed_url.netloc == local_netloc and parsed_url.path.startswith("/__s3proxy/"):
+            return True
+
     return (
         parsed_url.scheme == "https"
         and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
@@ -359,7 +365,7 @@ def lambda_handler(request):
     compression = request.args.get("compression")
 
     if not is_s3_url(url):
-        return make_json_response(400, {"title": "Invalid url=. Expected S3 virtual-host URL."})
+        return make_json_response(400, {"title": "Invalid url=. Expected S3 virtual-host URL or local object proxy URL."})
 
     handler = handlers[input_type]
     return handler(url, compression, OUTPUT_SIZES[output_size])
