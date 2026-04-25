@@ -169,6 +169,40 @@ describe('utils/workflows', () => {
       })
     })
 
+    describe('doc-style catalog workflow config', () => {
+      const data = dedent`
+        version:
+          base: "1"
+          catalog: "1"
+        default_workflow: "experiment"
+        is_workflow_required: False
+        workflows:
+          experiment:
+            name: Experiment
+            metadata_schema: experiment-universal
+        schemas:
+          experiment-universal:
+            url: s3://quilt-dev-metadata/.quilt/workflows/schemas/experiment-universal.json
+      `
+      const config = workflows.parse(data, 'foo')
+
+      it('should parse a valid catalog workflow without throwing', () => {
+        expect(config.isWorkflowRequired).toBe(false)
+        expect(config.workflows).toHaveLength(2)
+      })
+
+      it('should expose the experiment workflow as default', () => {
+        expect(config.workflows[1]).toMatchObject({
+          slug: 'experiment',
+          isDefault: true,
+          name: 'Experiment',
+        })
+        expect(config.workflows[1].schema?.url).toBe(
+          's3://quilt-dev-metadata/.quilt/workflows/schemas/experiment-universal.json',
+        )
+      })
+    })
+
     describe('config with successors', () => {
       const data = dedent`
         version: "1"

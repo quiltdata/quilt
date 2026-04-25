@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "quilt3"
-version = "7.3.0"
+version = "7.3.1"
 description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -49,8 +49,10 @@ anndata = [
 ]
 catalog = [
     "quilt3_local>=2,<3",
+    "asgiproxy>=0.2,<0.3",
     "uvicorn>=0.15,<0.18",
     "aiobotocore[boto3]>=2",
+    "lxml-html-clean>=0.4",
 ]
 
 [project.urls]
@@ -76,6 +78,7 @@ dev = [
     "pytest~=8.4",
     "responses",
     "ruff>=0.12.11",
+    "lxml-html-clean>=0.4",
     "quilt3[pyarrow,anndata]",
 ]
 
@@ -158,3 +161,57 @@ gendocs-check.sequence = [
 testdocs.help = "Test documentation code blocks"
 testdocs.cmd = "uv run --locked pytest --codeblocks ../docs"
 testdocs.cwd = "../../testdocs"
+
+_catalog-test-config.help = "Write LOCAL frontend config for filesystem catalog testing"
+_catalog-test-config.shell = """
+mkdir -p ../../catalog/static-dev
+cat > ../../catalog/static-dev/config.js <<'EOF'
+window.QUILT_CATALOG_CONFIG = {
+  region: 'us-east-1',
+  registryUrl: '/__reg',
+  alwaysRequiresAuth: false,
+  apiGatewayEndpoint: '/__lambda',
+  s3Proxy: '/__s3proxy',
+  passwordAuth: 'DISABLED',
+  ssoAuth: 'DISABLED',
+  ssoProviders: '',
+  stackVersion: 'local-dev',
+  mode: 'LOCAL',
+  mixpanelToken: '',
+  serviceBucket: '',
+  noDownload: false,
+}
+EOF
+"""
+
+_catalog-test-python.help = "Sync api/python with catalog dependencies"
+_catalog-test-python.cmd = "uv sync --python 3.11 --no-dev --extra catalog"
+
+_catalog-test-frontend.help = "Install catalog frontend dependencies"
+_catalog-test-frontend.cmd = "npm install"
+_catalog-test-frontend.cwd = "../../catalog"
+
+_catalog-test-stage.help = "Reset LOCAL fixture bucket and stage preview fixtures"
+_catalog-test-stage.shell = """
+rm -rf /tmp/quilt-local-data
+mkdir -p /tmp/quilt-local-data/demo-bucket
+uv run --python 3.11 --no-dev --extra catalog python -m tests.preview_fixtures /tmp/quilt-local-data/demo-bucket
+"""
+
+_catalog-test-print.help = "Print next-step commands for LOCAL catalog testing"
+_catalog-test-print.shell = """
+printf '%s\n' \
+  '' \
+  'Prepared LOCAL catalog test state.' \
+  'Frontend: cd ../../catalog && PORT=3001 npm start' \
+  'Backend: cd . && PYTHONPATH=$PWD QUILT_LOCAL_OBJECT_BACKEND=filesystem QUILT_LOCAL_DATA_DIR=/tmp/quilt-local-data QUILT_CATALOG_URL=http://localhost:3001 uv run --python 3.11 --no-dev --extra catalog quilt3 catalog --host localhost --port 3000 --no-browser'
+"""
+
+catalog-test.help = "Prepare the LOCAL catalog filesystem test state"
+catalog-test.sequence = [
+    "_catalog-test-config",
+    "_catalog-test-python",
+    "_catalog-test-frontend",
+    "_catalog-test-stage",
+    "_catalog-test-print",
+]

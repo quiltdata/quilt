@@ -23,6 +23,13 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const getRegion = useGetCachedBucketRegion()
   return React.useCallback(
     ({ bucket, key, version }, opts) => {
+      if (cfg.mode === 'LOCAL') {
+        return handleToHttpsUri(
+          { bucket, key, version },
+          { proxy: cfg.s3Proxy, region: getRegion(bucket) },
+        )
+      }
+
       if (shouldSign(bucket)) {
         const s3 = s3Factory(getRegion(bucket))
         return s3.getSignedUrl('getObject', {
