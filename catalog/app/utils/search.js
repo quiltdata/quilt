@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as APIConnector from 'utils/APIConnector'
-import * as BucketConfig from 'utils/BucketConfig'
+import { useRelevantBuckets } from 'utils/Buckets'
 import { BaseError } from 'utils/error'
 import mkSearch from 'utils/mkSearch'
 
@@ -85,11 +85,8 @@ const unescape = (s) => s.replace(/\\n/g, '\n')
 
 export default function useSearch() {
   const req = APIConnector.use()
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const allBuckets = React.useMemo(
-    () => bucketConfigs.map((b) => b.name),
-    [bucketConfigs],
-  )
+  const bucketList = useRelevantBuckets()
+  const allBuckets = React.useMemo(() => bucketList.map((b) => b.name), [bucketList])
 
   return React.useCallback(
     async ({ query, buckets = [], retry }) => {

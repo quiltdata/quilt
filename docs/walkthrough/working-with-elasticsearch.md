@@ -34,8 +34,8 @@ select, edit, and execute.
 ## Managing Elasticsearch
 
 <!-- markdownlint-disable-next-line MD013 -->
-Quilt uses Amazon Elasticsearch 6.7
-([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
+Quilt uses Amazon Elasticsearch 7.10
+([docs](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/index.html)).
 
 1. If your Quilt stack uses private endpoints for Elasticsearch you will need to
    connect to the cluster from a machine in the same VPC as the cluster.

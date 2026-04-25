@@ -6,7 +6,7 @@ import * as Lab from '@material-ui/lab'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import { docs } from 'constants/urls'
 import type * as Model from 'model'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import StyledLink from 'utils/StyledLink'
 import { JsonInvalidAgainstSchema } from 'utils/error'
 
@@ -121,13 +121,10 @@ function InputSourceBuckets({
   onChange,
   ...props
 }: FieldProps<TypedValue<string[]>>) {
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const options = React.useMemo(
-    () => bucketConfigs.map((b) => `s3://${b.name}`),
-    [bucketConfigs],
-  )
+  const buckets = Buckets.useRelevantBuckets()
+  const options = React.useMemo(() => buckets.map((b) => `s3://${b.name}`), [buckets])
   const handleChange = React.useCallback(
-    (_e, buckets: string[]) => onChange({ isDefault: false, key, value: buckets }),
+    (_e, selected: string[]) => onChange({ isDefault: false, key, value: selected }),
     [key, onChange],
   )
   return (

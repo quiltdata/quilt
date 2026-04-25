@@ -1,11 +1,9 @@
 query ($includeCollaborators: Boolean! = false) {
-  bucketConfigs {
+  buckets {
     name
     title
     iconUrl
     description
-    linkedData
-    overviewUrl
     tags
     relevanceScore
     collaborators @include(if: $includeCollaborators) {

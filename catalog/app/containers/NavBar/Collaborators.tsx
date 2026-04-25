@@ -34,7 +34,7 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const data = useQueryS(BUCKET_COLLABORATORS, { bucket })
-  const collaborators = data.bucketConfig?.collaborators || NO_COLLABORATORS
+  const collaborators = data.bucket?.collaborators || NO_COLLABORATORS
   const potentialCollaborators = usePotentialCollaborators()
   const allCollaborators: Model.Collaborators = React.useMemo(
     () => [

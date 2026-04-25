@@ -2,28 +2,25 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_Overview_gql_BucketConfigQueryVariables = Types.Exact<{
+export type containers_Bucket_Overview_gql_BucketQueryVariables = Types.Exact<{
   bucket: Types.Scalars['String']
 }>
 
-export type containers_Bucket_Overview_gql_BucketConfigQuery = {
+export type containers_Bucket_Overview_gql_BucketQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'description' | 'overviewUrl'
-    >
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'description'>
   >
 }
 
-export const containers_Bucket_Overview_gql_BucketConfigDocument = {
+export const containers_Bucket_Overview_gql_BucketDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Bucket_Overview_gql_BucketConfig' },
+      name: { kind: 'Name', value: 'containers_Bucket_Overview_gql_Bucket' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -39,7 +36,7 @@ export const containers_Bucket_Overview_gql_BucketConfigDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',
@@ -52,7 +49,6 @@ export const containers_Bucket_Overview_gql_BucketConfigDocument = {
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'description' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'overviewUrl' } },
               ],
             },
           },
@@ -61,8 +57,8 @@ export const containers_Bucket_Overview_gql_BucketConfigDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Bucket_Overview_gql_BucketConfigQuery,
-  containers_Bucket_Overview_gql_BucketConfigQueryVariables
+  containers_Bucket_Overview_gql_BucketQuery,
+  containers_Bucket_Overview_gql_BucketQueryVariables
 >
 
-export { containers_Bucket_Overview_gql_BucketConfigDocument as default }
+export { containers_Bucket_Overview_gql_BucketDocument as default }

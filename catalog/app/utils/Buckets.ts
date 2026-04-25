@@ -8,24 +8,24 @@ import * as AuthSelectors from 'containers/Auth/selectors'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
+import BUCKETS_QUERY from './Buckets.generated'
 
-type BucketConfigs = GQL.DataForDoc<typeof BUCKET_CONFIGS_QUERY>['bucketConfigs']
+type Buckets = GQL.DataForDoc<typeof BUCKETS_QUERY>['buckets']
 
-const EMPTY: BucketConfigs = []
+const EMPTY: Buckets = []
 
 // always suspended
-function useBucketConfigs() {
+function useBuckets() {
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   // XXX: consider moving this logic to gql resolver
   const empty = cfg.alwaysRequiresAuth && !authenticated
 
   try {
     return GQL.useQueryS(
-      BUCKET_CONFIGS_QUERY,
+      BUCKETS_QUERY,
       { includeCollaborators: cfg.mode === 'PRODUCT' },
       { pause: empty },
-    ).bucketConfigs
+    ).buckets
   } catch (e) {
     if (e instanceof GQL.Paused) return EMPTY
     throw e
@@ -33,8 +33,8 @@ function useBucketConfigs() {
 }
 
 // XXX: consider deprecating this in favor of direct graphql usage
-export const useRelevantBucketConfigs = () => {
-  const bs = useBucketConfigs()
+export const useRelevantBuckets = () => {
+  const bs = useBuckets()
   return React.useMemo(() => {
     const filtered = bs.filter((b) => b.relevanceScore >= 0)
     const sorted = R.sortWith(
@@ -51,9 +51,9 @@ export const useCurrentBucket = () => {
 }
 
 export function useIsInStack() {
-  const bucketConfigs = useBucketConfigs()
+  const buckets = useBuckets()
   return React.useCallback(
-    (bucket: string) => bucketConfigs.some((bc) => bc.name === bucket),
-    [bucketConfigs],
+    (bucket: string) => buckets.some((b) => b.name === bucket),
+    [buckets],
   )
 }

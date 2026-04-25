@@ -1,27 +1,30 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../model/graphql/types.generated'
+import * as Types from '../../../../../model/graphql/types.generated'
 
-export type utils_LinkedDataBucketsQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
-}>
+export type components_Preview_loaders_Html_gql_BrowsableBucketQueryVariables =
+  Types.Exact<{
+    bucket: Types.Scalars['String']
+  }>
 
-export type utils_LinkedDataBucketsQuery = { readonly __typename: 'Query' } & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'title' | 'description' | 'tags' | 'linkedData'
-    >
+export type components_Preview_loaders_Html_gql_BrowsableBucketQuery = {
+  readonly __typename: 'Query'
+} & {
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'browsable'>
   >
 }
 
-export const utils_LinkedDataBucketsDocument = {
+export const components_Preview_loaders_Html_gql_BrowsableBucketDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'utils_LinkedDataBuckets' },
+      name: {
+        kind: 'Name',
+        value: 'components_Preview_loaders_Html_gql_BrowsableBucket',
+      },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -37,7 +40,7 @@ export const utils_LinkedDataBucketsDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',
@@ -49,10 +52,7 @@ export const utils_LinkedDataBucketsDocument = {
               kind: 'SelectionSet',
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'title' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'linkedData' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
               ],
             },
           },
@@ -61,8 +61,8 @@ export const utils_LinkedDataBucketsDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  utils_LinkedDataBucketsQuery,
-  utils_LinkedDataBucketsQueryVariables
+  components_Preview_loaders_Html_gql_BrowsableBucketQuery,
+  components_Preview_loaders_Html_gql_BrowsableBucketQueryVariables
 >
 
-export { utils_LinkedDataBucketsDocument as default }
+export { components_Preview_loaders_Html_gql_BrowsableBucketDocument as default }

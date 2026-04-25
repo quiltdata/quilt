@@ -9,8 +9,17 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
 - Browse and sync packages via graphical interface
 - Selective file sync to manage disk space
 - Version control for data packages
-- Browser-based authentication
-- Auto-generated commit messages (v0.14+)
+- Browser-based OAuth 2.1 login (with legacy code-based fallback)
+- Auto-generated commit messages
+- Automatic detection of local and remote changes, with context-aware actions
+  (e.g., **Commit and Push** when local edits exist, **Pull** when the remote
+  is ahead, **Merge** when both sides diverged)
+- One-click **Commit and Push** with per-user defaults (message template,
+  workflow, metadata) configured in Settings
+- Create local-only packages and set a remote later
+- `.quiltignore` support with junk-file detection
+- Unified Settings pane for general info, publish defaults, auth management,
+  and diagnostics
 
 ## Getting Started
 
@@ -31,13 +40,24 @@ From the Quilt web catalog:
 
 ### Authentication
 
-On first use, QuiltSync prompts for authentication via your web browser:
+On first use, QuiltSync authenticates you through your web browser. It prefers
+OAuth 2.1 Authorization Code flow with PKCE, and falls back to the legacy
+code-based flow for catalogs that do not yet support OAuth.
+
+**OAuth (default):**
 
 1. QuiltSync opens your browser to the Quilt Catalog login page
 2. Sign in to your catalog
-3. Copy access token to QuiltSync
+3. The browser returns to QuiltSync automatically via a `quilt://` deep link
 
-The token is tied to your catalog session. No AWS credentials required.
+**Legacy (fallback):**
+
+1. QuiltSync opens your browser to the Quilt Catalog login page
+2. Sign in to your catalog
+3. Copy the access token from the browser back into QuiltSync
+
+Either way the session is tied to your catalog login — no AWS credentials
+required.
 
 ![QuiltSync auth token](../imgs/quiltsync-auth.png)
 
@@ -46,6 +66,21 @@ The token is tied to your catalog session. No AWS credentials required.
 When the package is opened, it shows a list of all files (pre-selected for download).
 
 ![QuiltSync download selected paths](../imgs/quiltsync-download.png)
+
+### Status-Aware Actions
+
+QuiltSync continuously compares each package's local working copy against its
+remote revision and highlights only the actions that apply:
+
+- **Commit and Push** activates when the package has a remote and something to
+  ship — uncommitted changes, a pending local commit, or both. It uses the
+  defaults configured in Settings → Commit and Push.
+- **Pull** activates when the remote has new revisions not yet synced locally
+  (disabled with a tooltip hint if the package has uncommitted local changes)
+- **Merge** activates when local and remote have diverged
+- **Set Remote** appears on local-only packages that have no remote yet
+
+![QuiltSync package list with status-aware actions](../imgs/quiltsync-status.png)
 
 ### Committing Changes
 
@@ -62,19 +97,56 @@ new package version:
 
 ![QuiltSync push](../imgs/quiltsync-push.png)
 
+### Ignoring Junk Files
+
+QuiltSync honors `.quiltignore` files to keep build artifacts, OS metadata, and
+other noise out of your packages:
+
+- Files matching a `.quiltignore` pattern are flagged with a "junk" badge in
+  the entry list
+- Per-entry popups let you **ignore** a file (adds a pattern to
+  `.quiltignore`) or **un-ignore** one already covered by a pattern
+- The package view also lets you toggle visibility of unmodified and ignored
+  entries so only the files relevant to your next commit stay on screen
+
+Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `.DS_Store`,
+`node_modules/`) that shouldn't end up in committed revisions.
+
+### Creating Local Packages
+
+You can start a package entirely on your machine and wire it to a remote later:
+
+1. Click **+ Create Local Package** in the Packages header
+2. Enter a package name `pkg_prefix/pkg_prefix` (labeled **Namespace** in the dialog)
+3. Optionally **Browse** to select a source directory to seed the package
+4. Click **Create**
+
+![QuiltSync create local package dialog](../imgs/quiltsync-create.png)
+
+The new package appears in the list with a **Set Remote** action. Use it when
+you're ready to associate the package with an S3 bucket and push your first
+revision.
+
 ### Settings and Troubleshooting
 
-Access settings via the gear icon in the lower right:
+Access settings via **SETTINGS** in the top-right header.
 
 ![QuiltSync Settings](../imgs/quiltsync-settings.png)
 
-- **Version**: Current version and release notes
-- **Lineage and cache files**: Opens `.quilt/` directory with package metadata
-- **Logs directory**: Application logs for debugging
-- **Reset state**: "RELOAD PAGE" refreshes UI, "RE-LOGIN" clears authentication
+- **General**: Version (with release notes), home directory, and data directory
+- **Commit and Push**: Defaults used by the one-click **Commit and Push**
+  action — message template (with `{date}`, `{time}`, `{datetime}`,
+  `{namespace}`, and `{changes}` placeholders), default workflow (bucket
+  default or an override), and default metadata. **Edit** opens the defaults
+  popup with a live message preview.
+- **Auth**: List of authenticated catalogs with per-host **Re-Login** and
+  **Logout** controls
+- **Diagnostics**: Log level, logs directory, **Collect Logs**, then **Send to
+  Sentry** or **Email Support** to share diagnostics (app version, OS,
+  directory paths, authenticated host names, log files, and OAuth client IDs)
 
-If QuiltSync fails to start after an upgrade, use **RE-LOGIN** or clear the
-`.quilt/` cache directory. Older cached manifests in Parquet format are
+If QuiltSync fails to start after an upgrade, use **Re-Login** for the affected
+host or clear the data directory. Older cached manifests in Parquet format are
 automatically re-fetched from remote storage.
 
 ### Integration with Benchling
