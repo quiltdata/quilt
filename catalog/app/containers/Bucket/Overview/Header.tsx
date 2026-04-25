@@ -39,8 +39,6 @@ interface ExtData {
   objects: number
 }
 
-const RODA_LINK = 'https://registry.opendata.aws'
-const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
 const COLOR_MAP = [
@@ -276,10 +274,10 @@ function StatsItemSkeleton() {
   )
 }
 
-function useStats(bucket: string, overviewUrl?: string | null) {
+function useStats(bucket: string) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
-  const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
+  const statsData = useData(requests.bucketStats, { req, s3, bucket })
   const countQuery = GQL.useQuery(STAT_COUNTS_QUERY, { buckets: [bucket] })
   const totalBytes: string | null = React.useMemo(
     () =>
@@ -349,12 +347,11 @@ const useStatsStyles = M.makeStyles((t) => ({
 interface StatsProps {
   className: string
   bucket: string
-  overviewUrl?: string | null
 }
 
-function Stats({ className, bucket, overviewUrl }: StatsProps) {
+function Stats({ className, bucket }: StatsProps) {
   const classes = useStatsStyles()
-  const { totalBytes, totalObjects, pkgCount } = useStats(bucket, overviewUrl)
+  const { totalBytes, totalObjects, pkgCount } = useStats(bucket)
   return (
     <div className={cx(classes.root, className)}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
@@ -418,16 +415,14 @@ const useStyles = M.makeStyles((t) => ({
 interface HeaderProps {
   s3: AWSSDK.S3
   bucket: string
-  overviewUrl: string | null | undefined
   description: string | null | undefined
 }
 
-export default function Header({ s3, overviewUrl, bucket, description }: HeaderProps) {
+export default function Header({ s3, bucket, description }: HeaderProps) {
   const classes = useStyles()
   const req = APIConnector.use()
-  const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => makeColorPool(COLOR_MAP))
-  const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
+  const statsData = useData(requests.bucketStats, { req, s3, bucket })
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
@@ -439,24 +434,7 @@ export default function Header({ s3, overviewUrl, bucket, description }: HeaderP
             <M.Typography variant="body1">{description}</M.Typography>
           </M.Box>
         )}
-        {isRODA && (
-          <M.Box
-            mt={1}
-            position={{ md: 'absolute' }}
-            right={{ md: 32 }}
-            bottom={{ md: 31 }}
-            color="grey.300"
-            textAlign={{ md: 'right' }}
-          >
-            <M.Typography variant="body2">
-              From the{' '}
-              <M.Link href={RODA_LINK} color="inherit" underline="always">
-                Registry of Open Data on AWS
-              </M.Link>
-            </M.Typography>
-          </M.Box>
-        )}
-        <Stats className={classes.stats} bucket={bucket} overviewUrl={overviewUrl} />
+        <Stats className={classes.stats} bucket={bucket} />
         {isAdmin && (
           <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
             <M.IconButton color="inherit">

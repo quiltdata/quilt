@@ -50,9 +50,7 @@ const bucketToPrimaryValues = (bucket: BucketConfig) => ({
 
 const bucketToMetadataValues = (bucket: BucketConfig) => ({
   relevanceScore: bucket.relevanceScore.toString(),
-  overviewUrl: bucket.overviewUrl || '',
   tags: (bucket.tags || []).join(', '),
-  linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
 })
 
 const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
@@ -369,12 +367,10 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     (s) => s || null,
     Types.decode(Types.nullable(Types.IntFromString)),
   ),
-  overviewUrl: R.pipe(
-    R.prop('overviewUrl'),
-    Types.decode(Types.fromNullable(IO.string, '')),
-    R.trim,
-    (s) => (s ? (s as Types.NonEmptyString) : null),
-  ),
+  // overviewUrl and linkedData are deprecated unused fields (see CHANGELOG).
+  // Kept as null-producing entries to satisfy BucketUpdateInput / BucketAddInput
+  // until the server-side schema drops them.
+  overviewUrl: () => null,
   tags: R.pipe(
     R.prop('tags'),
     Types.decode(Types.fromNullable(IO.string, '')),
@@ -385,12 +381,7 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     (tags) =>
       tags.length ? (tags as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
   ),
-  linkedData: R.pipe(
-    R.prop('linkedData'),
-    Types.decode(Types.fromNullable(IO.string, '')),
-    (s) => s.trim() || 'null',
-    Types.decode(Types.withFallback(Types.JsonFromString, null)),
-  ),
+  linkedData: () => null,
   fileExtensionsToIndex: (values) =>
     !values.enableDeepIndexing
       ? []
@@ -829,28 +820,6 @@ function MetadataForm() {
         multiline
         rows={1}
         rowsMax={3}
-      />
-      <RF.Field
-        component={Form.Field}
-        name="overviewUrl"
-        label="Overview URL"
-        parse={R.trim}
-        fullWidth
-        margin="normal"
-      />
-      <RF.Field
-        component={Form.Field}
-        name="linkedData"
-        label="Structured data (JSON-LD)"
-        validate={validators.jsonObject as FF.FieldValidator<any>}
-        errors={{
-          jsonObject: 'Must be a valid JSON object',
-        }}
-        fullWidth
-        multiline
-        rows={1}
-        rowsMax={10}
-        margin="normal"
       />
     </>
   )

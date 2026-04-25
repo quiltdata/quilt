@@ -11,7 +11,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
-import * as LinkedData from 'utils/LinkedData'
 
 import * as Gallery from '../Gallery'
 import * as Summarize from '../Summarize'
@@ -20,37 +19,24 @@ import * as requests from '../requests'
 import Header from './Header'
 import BUCKET_QUERY from './gql/Bucket.generated'
 
-interface BucketReadmes {
-  forced?: Model.S3.S3ObjectLocation
-  discovered: Model.S3.S3ObjectLocation[]
-}
-
 interface ReadmesProps {
   s3: AWSSDK.S3
   bucket: string
-  overviewUrl: string | undefined | null
 }
 
-function Readmes({ s3, overviewUrl, bucket }: ReadmesProps) {
+function Readmes({ s3, bucket }: ReadmesProps) {
   return (
     // @ts-expect-error
-    <Data fetch={requests.bucketReadmes} params={{ s3, overviewUrl, bucket }}>
+    <Data fetch={requests.bucketReadmes} params={{ s3, bucket }}>
       {AsyncResult.case({
-        Ok: (rs: BucketReadmes) =>
-          (rs.discovered.length > 0 || !!rs.forced) && (
-            <>
-              {!!rs.forced && (
-                <Summarize.FilePreview key="readme:forced" handle={rs.forced} expanded />
-              )}
-              {rs.discovered.map((h) => (
-                <Summarize.FilePreview
-                  key={`readme:${h.bucket}/${h.key}`}
-                  handle={h}
-                  expanded
-                />
-              ))}
-            </>
-          ),
+        Ok: (readmes: Model.S3.S3ObjectLocation[]) =>
+          readmes.map((h) => (
+            <Summarize.FilePreview
+              key={`readme:${h.bucket}/${h.key}`}
+              handle={h}
+              expanded
+            />
+          )),
         _: () => <Summarize.FilePreviewSkel key="readme:skeleton" />,
       })}
     </Data>
@@ -60,15 +46,14 @@ function Readmes({ s3, overviewUrl, bucket }: ReadmesProps) {
 interface ImgsProps {
   s3: AWSSDK.S3
   bucket: string
-  overviewUrl: string | undefined | null
   inStack: boolean
 }
 
-function Imgs({ s3, overviewUrl, inStack, bucket }: ImgsProps) {
+function Imgs({ s3, inStack, bucket }: ImgsProps) {
   const req = APIConnector.use()
   return (
     // @ts-expect-error
-    <Data fetch={requests.bucketImgs} params={{ req, s3, overviewUrl, inStack, bucket }}>
+    <Data fetch={requests.bucketImgs} params={{ req, s3, inStack, bucket }}>
       {AsyncResult.case({
         Ok: (images: Model.S3.S3ObjectLocation[]) =>
           images.length ? <Gallery.Thumbnails images={images} /> : null,
@@ -89,7 +74,6 @@ interface ThumbnailsWrapperProps extends ImgsProps {
 
 function ThumbnailsWrapper({
   s3,
-  overviewUrl,
   inStack,
   bucket,
   preferences: galleryPrefs,
@@ -101,10 +85,8 @@ function ThumbnailsWrapper({
     <Data fetch={requests.ensureQuiltSummarizeIsPresent} params={{ s3, bucket }}>
       {AsyncResult.case({
         Ok: (h?: Model.S3.S3ObjectLocation) =>
-          (!h || galleryPrefs.summarize) && (
-            <Imgs {...{ s3, bucket, inStack, overviewUrl }} />
-          ),
-        Err: () => <Imgs {...{ s3, bucket, inStack, overviewUrl }} />,
+          (!h || galleryPrefs.summarize) && <Imgs {...{ s3, bucket, inStack }} />,
+        Err: () => <Imgs {...{ s3, bucket, inStack }} />,
         Pending: () => <Gallery.Skeleton />,
         _: () => null,
       })}
@@ -118,20 +100,12 @@ export default function Overview() {
   const s3 = AWS.S3.use()
   const { bucket: bucketData } = GQL.useQueryS(BUCKET_QUERY, { bucket })
   const inStack = !!bucketData
-  // overviewUrl is dead; stubbed until the field + its Readmes/Imgs/
-  // Summarize code paths are removed.
-  const overviewUrl = undefined
   const description = bucketData?.description
   const { prefs } = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
-      {inStack && (
-        <React.Suspense fallback={null}>
-          <LinkedData.BucketData bucket={bucket} />
-        </React.Suspense>
-      )}
       {bucketData ? (
-        <Header {...{ s3, bucket, overviewUrl, description }} />
+        <Header {...{ s3, bucket, description }} />
       ) : (
         <M.Box
           pt={2}
@@ -142,12 +116,12 @@ export default function Overview() {
           <M.Typography variant="h5">{bucket}</M.Typography>
         </M.Box>
       )}
-      <Readmes {...{ s3, bucket, overviewUrl }} />
+      <Readmes {...{ s3, bucket }} />
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { blocks } }) => (
             <ThumbnailsWrapper
-              {...{ s3, bucket, inStack, overviewUrl, preferences: blocks.gallery }}
+              {...{ s3, bucket, inStack, preferences: blocks.gallery }}
             />
           ),
           Pending: () => <Gallery.Skeleton />,
@@ -155,7 +129,7 @@ export default function Overview() {
         },
         prefs,
       )}
-      <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
+      <Summarize.SummaryRoot {...{ s3, bucket, inStack }} />
     </M.Box>
   )
 }
