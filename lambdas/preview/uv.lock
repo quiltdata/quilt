@@ -765,7 +765,7 @@ requires-dist = [
     { name = "nbformat", specifier = "~=5.10" },
     { name = "pandas", specifier = "~=2.2" },
     { name = "requests", specifier = "~=2.32" },
-    { name = "t4-lambda-shared", extras = ["mem", "preview"], url = "https://github.com/quiltdata/quilt/archive/55d446ec6c435e11a0cf535c5323cc22e5071399.zip", subdirectory = "lambdas/shared" },
+    { name = "t4-lambda-shared", extras = ["mem", "preview"], url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "lambdas/shared" },
 ]
 
 [package.metadata.requires-dev]
@@ -780,11 +780,11 @@ test = [
 [[package]]
 name = "t4-lambda-shared"
 version = "0.0.3"
-source = { url = "https://github.com/quiltdata/quilt/archive/55d446ec6c435e11a0cf535c5323cc22e5071399.zip", subdirectory = "lambdas/shared" }
+source = { url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "lambdas/shared" }
 dependencies = [
     { name = "jsonschema" },
 ]
-sdist = { hash = "sha256:35f4f28cf7512caa521afa4fb1968d42b69a3c0aee5564eefc6e02d17362333b" }
+sdist = { hash = "sha256:17dae922f271ff098a9a1de047426c7644d314863b3257a86ac2f5b4559b7153" }
 
 [package.optional-dependencies]
 mem = [
@@ -805,7 +805,7 @@ requires-dist = [
     { name = "awslambdaric", marker = "extra == 'lambda'", specifier = ">=2,<3" },
     { name = "flowio", marker = "extra == 'preview'", specifier = "~=1.4" },
     { name = "jsonschema", specifier = ">=2.6.0" },
-    { name = "numpy", marker = "extra == 'preview'", specifier = ">=2,<3" },
+    { name = "numpy", marker = "extra == 'preview'", specifier = ">=1.26,<3" },
     { name = "openpyxl", marker = "extra == 'preview'", specifier = "~=3.1" },
     { name = "pandas", marker = "extra == 'preview'", specifier = "~=2.2" },
     { name = "psutil", marker = "extra == 'mem'", specifier = "~=6.1" },
