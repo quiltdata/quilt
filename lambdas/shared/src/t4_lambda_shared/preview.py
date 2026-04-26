@@ -5,7 +5,7 @@ import re
 import tempfile
 import zlib
 from io import BytesIO
-from math import ceil
+from math import isfinite
 from typing import Tuple
 
 import pandas
@@ -22,7 +22,8 @@ CATALOG_LIMIT_BYTES = 1024*1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_LINES = 100_000
 READ_CHUNK = 1024
-FCS_SCATTER_LIMIT = 4096
+FCS_SCATTER_LIMIT = 50_000
+FCS_SCATTER_RANDOM_SEED = 0
 SKIPPED = "Skipped rows; insufficient memory"
 # common string used to explain truncation to user
 TRUNCATED = (
@@ -139,9 +140,6 @@ def extract_fcs(file_, as_html=True):
 
 
 def _parse_fcs_flowio_full(path):
-    if FlowData is None:
-        raise ImportError('flowio is not installed')
-
     fd = FlowData(path, ignore_offset_discrepancy=True, ignore_offset_error=True)
     channel_names = []
     for idx in range(1, fd.channel_count + 1):
@@ -166,9 +164,6 @@ def _parse_fcs_flowio_full(path):
 
 
 def _parse_fcs_flowio_meta(path):
-    if FlowData is None:
-        raise ImportError('flowio is not installed')
-
     try:
         fd = FlowData(
             path,
@@ -261,11 +256,20 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
         return None
 
     x_axis, y_axis = _select_fcs_scatter_axes(list(data.columns))
-    sampled = data[[x_axis, y_axis]]
+    sampled = data[[x_axis, y_axis]].copy()
+    sampled[x_axis] = pandas.to_numeric(sampled[x_axis], errors='coerce')
+    sampled[y_axis] = pandas.to_numeric(sampled[y_axis], errors='coerce')
+    sampled = sampled[sampled[x_axis].notna() & sampled[y_axis].notna()]
+    sampled = sampled[
+        sampled[x_axis].map(isfinite) & sampled[y_axis].map(isfinite)
+    ]
 
-    if len(sampled) > limit:
-        step = ceil(len(sampled) / limit)
-        sampled = sampled.iloc[::step].head(limit)
+    if sampled.empty:
+        return None
+
+    downsampled = len(sampled) > limit
+    if downsampled:
+        sampled = sampled.sample(n=limit, random_state=FCS_SCATTER_RANDOM_SEED)
 
     values = [
         {'x': x_value, 'y': y_value}
@@ -274,10 +278,14 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
 
     return {
         '$schema': 'https://vega.github.io/schema/vega-lite/v5.json',
-        'description': 'Downsampled FCS scatter plot preview',
+        'description': 'FCS scatter plot preview',
         'title': {
             'text': f'{x_axis} vs {y_axis}',
-            'subtitle': f'Downsampled to {len(values)} events',
+            'subtitle': (
+                f'Downsampled to {len(values)} events'
+                if downsampled else
+                f'Showing {len(values)} events'
+            ),
         },
         'width': 'container',
         'height': 320,
