@@ -15,6 +15,18 @@ def patch_urlopen(data: bytes):
     return mock.patch("t4_lambda_tabular_preview.urlopen", return_value=io.BytesIO(data))
 
 
+def _make_event(query, headers=None):
+    return {
+        "httpMethod": "POST",
+        "path": "/foo",
+        "pathParameters": {},
+        "queryStringParameters": query or None,
+        "headers": headers or None,
+        "body": None,
+        "isBase64Encoded": False,
+    }
+
+
 @pytest.mark.parametrize(
     "data, handler_name",
     [
@@ -197,3 +209,19 @@ def test_preview_simple_parquet():
             b"1,2\n"
             b"x,y\n"
         )
+
+
+def test_is_s3_url_rejects_local_proxy_url():
+    assert not t4_lambda_tabular_preview.is_s3_url(
+        "http://localhost:3000/__s3proxy/example-bucket/sample.csv"
+    )
+
+
+def test_lambda_handler_rejects_local_url():
+    response = t4_lambda_tabular_preview.lambda_handler(
+        _make_event({"url": "http://localhost:3000/not-a-proxy/sample.csv", "input": "csv"}),
+        None,
+    )
+
+    assert response["statusCode"] == 400
+    assert "S3 virtual-host URL" in json.loads(response["body"])["title"]

@@ -27,4 +27,4 @@ test = [
 default-groups = ["test"]
 
 [tool.uv.sources]
-t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
+t4-lambda-shared = { url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "lambdas/shared" }
