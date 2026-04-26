@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
+  workflow_dispatch:
 
 jobs:
   deploy-lambda-s3:
@@ -40,6 +41,7 @@ jobs:
           docker run --rm \
             --entrypoint /build_zip.sh \
             -v "$PWD/lambdas/${{ matrix.path }}":/lambda/function:z \
+            -v "$PWD/py-shared":/lambda/py-shared:z \
             -v "$PWD/out.zip":/out.zip:z \
             -v "$PWD/lambdas/scripts/build_zip.sh":/build_zip.sh:z \
             "$BUILDER_IMAGE"
@@ -78,8 +80,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Build Docker image
-        working-directory: ./lambdas/${{ matrix.path }}
-        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .
+        run: |
+          if [[ "${{ matrix.path }}" == "indexer" ]]; then
+            docker buildx build \
+              -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" \
+              -f "lambdas/${{ matrix.path }}/Dockerfile" \
+              .
+          else
+            docker buildx build \
+              -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" \
+              -f "lambdas/${{ matrix.path }}/Dockerfile" \
+              "./lambdas/${{ matrix.path }}"
+          fi
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v6
         with:

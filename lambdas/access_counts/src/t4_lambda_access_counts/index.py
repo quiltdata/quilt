@@ -11,15 +11,18 @@ from datetime import datetime, timedelta, timezone
 import boto3
 from boto3.s3.transfer import TransferConfig
 
+from quilt_shared.athena import get_assumed_athena_client
 from t4_lambda_shared.utils import sql_escape
 
 ATHENA_DATABASE = os.environ['ATHENA_DATABASE']
+AWS_REGION = os.environ['AWS_REGION']
 # Bucket where CloudTrail logs are located.
 CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 # Bucket where query results will be stored.
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
+QUILT_ATHENA_ACCESS_ROLE_ARN = os.getenv('QUILT_ATHENA_ACCESS_ROLE_ARN')
 
 MiB = 1024 * 1024
 S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
@@ -282,12 +285,22 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
 """)
 
 
-athena = boto3.client('athena')
 s3 = boto3.client('s3')
+
+
+def get_athena():
+    if not QUILT_ATHENA_ACCESS_ROLE_ARN:
+        return boto3.client('athena')
+    return get_assumed_athena_client(
+        role_arn=QUILT_ATHENA_ACCESS_ROLE_ARN,
+        role_session_name='quilt-access-counts-athena',
+        region_name=AWS_REGION,
+    )
 
 
 def start_query(query_string):
     output = 's3://%s/%s/' % (QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
+    athena = get_athena()
 
     response = athena.start_query_execution(
         QueryString=query_string,
@@ -302,6 +315,7 @@ def start_query(query_string):
 
 
 def query_finished(execution_id):
+    athena = get_athena()
     response = athena.get_query_execution(QueryExecutionId=execution_id)
     print("Query status:", response)
     state = response['QueryExecution']['Status']['State']

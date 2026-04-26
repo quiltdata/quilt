@@ -1,13 +1,56 @@
 from __future__ import annotations
 
+import datetime
+import functools
 import time
 import typing as T
+
+import boto3
+
+from .aws import AWSCredentials
 
 if T.TYPE_CHECKING:
     import logging
 
     from types_boto3_athena.client import AthenaClient
     from types_boto3_athena.type_defs import QueryExecutionTypeDef
+
+
+_REFRESH_MARGIN = datetime.timedelta(minutes=5)
+_ASSUMED_ATHENA_CLIENT_CACHE: dict[
+    tuple[str, str, str | None],
+    tuple[datetime.datetime, AthenaClient],
+] = {}
+
+
+def _utcnow() -> datetime.datetime:
+    return datetime.datetime.now(tz=datetime.timezone.utc)
+
+
+@functools.cache
+def _sts_client():
+    return boto3.client("sts")
+
+
+def get_assumed_athena_client(
+    *,
+    role_arn: str,
+    role_session_name: str,
+    region_name: str | None = None,
+) -> AthenaClient:
+    cache_key = (role_arn, role_session_name, region_name)
+    cached = _ASSUMED_ATHENA_CLIENT_CACHE.get(cache_key)
+    if cached and cached[0] - _REFRESH_MARGIN > _utcnow():
+        return cached[1]
+
+    creds = _sts_client().assume_role(
+        RoleArn=role_arn,
+        RoleSessionName=role_session_name,
+    )["Credentials"]
+    session = boto3.session.Session(**AWSCredentials.from_sts_response(creds).boto_args)
+    client = session.client("athena", region_name=region_name)
+    _ASSUMED_ATHENA_CLIENT_CACHE[cache_key] = (creds["Expiration"], client)
+    return client
 
 
 class AthenaQueryBaseException(Exception):

@@ -2,6 +2,7 @@ import datetime
 import os
 import urllib.parse
 
+import botocore.exceptions
 import jsonpointer
 import orjson
 
@@ -159,7 +160,9 @@ def index_manifest(
     def get_pkg_data():
         try:
             resp = s3_client.get_object(Bucket=bucket, Key=key)
-        except s3_client.exceptions.NoSuchKey:
+        except botocore.exceptions.ClientError as exc:
+            if exc.response["Error"]["Code"] != "NoSuchKey":
+                raise
             logger.debug("No manifest found: s3://%s/%s.", bucket, key)
             return
         manifest_entries = map(orjson.loads, resp["Body"].iter_lines())

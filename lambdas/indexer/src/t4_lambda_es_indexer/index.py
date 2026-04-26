@@ -315,7 +315,9 @@ def index_if_pointer(
             Bucket=bucket,
             Key=key,
         )
-    except (s3_client.exceptions.NoSuchKey, s3_client.exceptions.NoSuchBucket):
+    except botocore.exceptions.ClientError as exc:
+        if exc.response["Error"]["Code"] not in {"NoSuchKey", "NoSuchBucket"}:
+            raise
         logger_.info("No pointer found: s3://%s/%s. Removing.", bucket, key)
         data = None
     else:

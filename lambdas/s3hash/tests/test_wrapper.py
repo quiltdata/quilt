@@ -58,6 +58,8 @@ def test_timeout(mocker: MockerFixture):
     async def sleep(*_):
         await asyncio.sleep(1)
 
+    mocker.patch("t4_lambda_s3hash.aio_context")
+    mocker.patch("t4_lambda_s3hash.aio_target_context")
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", side_effect=sleep)
 
     res = s3hash.lambda_handler(
@@ -93,6 +95,7 @@ def test_aws_wiring(mocker: MockerFixture):
             return result
 
     aio_context_mock = mocker.patch("t4_lambda_s3hash.aio_context")
+    aio_target_context_mock = mocker.patch("t4_lambda_s3hash.aio_target_context")
 
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", return_value=FakeResponse())
 
@@ -119,6 +122,7 @@ def test_aws_wiring(mocker: MockerFixture):
     )
 
     aio_context_mock.assert_called_once_with(s3hash.AWSCredentials.parse_obj(AWS_CREDENTIALS))
+    aio_target_context_mock.assert_called_once_with()
 
 
 @pytest.mark.asyncio

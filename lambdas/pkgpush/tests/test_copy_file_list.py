@@ -35,7 +35,10 @@ def test_copy_file_list():
     # Setup boto session
     session_mock = boto3.Session(**CREDENTIALS.boto_args)
 
-    with mock.patch("t4_lambda_pkgpush.invoke_copy_lambda", return_value=VERSION_ID) as invoke_copy_lambda_mock:
+    with (
+        mock.patch("t4_lambda_pkgpush.invoke_copy_lambda", return_value=VERSION_ID) as invoke_copy_lambda_mock,
+        mock.patch("t4_lambda_pkgpush.get_service_s3_client") as get_service_s3_client_mock,
+    ):
         with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
             # copy_file_list now takes checksum_algorithm and returns a function
             copy_fn = t4_lambda_pkgpush.copy_file_list(CHECKSUM_ALGORITHM)
@@ -55,3 +58,6 @@ def test_copy_file_list():
                 )
                 for e in map(ENTRIES.__getitem__, ["b", "a", "c"])
             ]
+            # Promote copies must stay on user credentials and must not read via the
+            # service client on the source side.
+            get_service_s3_client_mock.assert_not_called()

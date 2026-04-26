@@ -124,6 +124,10 @@ def get_user_s3_client():
     )
 
 
+def get_service_s3_client():
+    return s3
+
+
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
 quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(_get_user_boto_session)
 
@@ -306,8 +310,9 @@ def get_bucket_region(bucket: str) -> str:
     """
     Lookup the region for a given bucket.
     """
+    user_s3_client = get_user_s3_client()
     try:
-        resp = s3.head_bucket(Bucket=bucket)
+        resp = user_s3_client.head_bucket(Bucket=bucket)
     except botocore.exceptions.ClientError as e:
         resp = e.response
         if resp.get("Error", {}).get("Code") == "404":
@@ -994,7 +999,9 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
 
 
 def get_scratch_buckets() -> dict[str, str]:
-    return json.load(s3.get_object(Bucket=SERVICE_BUCKET, Key="scratch-buckets.json")["Body"])
+    # Under the chosen cross-account package-mutation model, source-bucket reads stay
+    # user-scoped while scratch-bucket discovery remains stack-owned service state.
+    return json.load(get_service_s3_client().get_object(Bucket=SERVICE_BUCKET, Key="scratch-buckets.json")["Body"])
 
 
 def package_prefix_sqs(event, context):
@@ -1017,7 +1024,7 @@ def package_prefix_sqs(event, context):
 
 
 def list_prefix_latest_versions(bucket: str, prefix: str):
-    paginator = s3.get_paginator("list_object_versions")
+    paginator = get_user_s3_client().get_paginator("list_object_versions")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Versions", []):
             if not obj.get("IsLatest"):
@@ -1047,7 +1054,9 @@ def package_prefix(event, context):
 
     metadata = params.metadata
     if metadata_uri_pk := params.get_metadata_uri_pk():
-        metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+        # Metadata is sourced from the user-visible source bucket, so this intentionally
+        # stays on the user client even though scratch/service access uses service creds.
+        metadata = json.load(get_user_s3_client().get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
         if not isinstance(metadata, dict):
             raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
 

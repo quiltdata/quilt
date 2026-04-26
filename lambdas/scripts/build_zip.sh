@@ -26,9 +26,27 @@ pip install uv
 mkdir out
 cd out
 
+# Copy the lambda source into a writable temp dir so local path dependencies
+# can be rewritten without mutating the checked-out workspace mount.
+tmp_function_dir=$(mktemp -d)
+cp -a /lambda/function/. "$tmp_function_dir/"
+
+python - "$tmp_function_dir/pyproject.toml" "$tmp_function_dir/uv.lock" <<'PY'
+from pathlib import Path
+import sys
+
+for raw_path in sys.argv[1:]:
+    path = Path(raw_path)
+    if not path.exists():
+        continue
+    text = path.read_text()
+    text = text.replace("../../py-shared", "/lambda/py-shared")
+    path.write_text(text)
+PY
+
 # install everything into a temporary directory
-uv export --locked --no-emit-project --no-hashes --directory /lambda/function/ -o requirements.txt --no-default-groups
-uv pip install --no-compile --no-deps --target . -r /lambda/function/requirements.txt /lambda/function/
+uv export --locked --no-emit-project --no-hashes --directory "$tmp_function_dir" --no-default-groups > requirements.txt
+uv pip install --no-compile --no-deps --target . -r requirements.txt "$tmp_function_dir"
 python3 -m compileall -b .
 
 # add binaries
