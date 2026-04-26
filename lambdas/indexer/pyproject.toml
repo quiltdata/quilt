@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
-requires-python = "==3.12.*"
+requires-python = "==3.13.*"
 dependencies = [
     "boto3~=1.34",
     "jsonschema~=3.2",
@@ -22,8 +22,8 @@ requires = ["uv_build==0.9.*"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/df53c9ce125ea051e0d1ac41d58796336e202256.zip", subdirectory = "py-shared" }
+t4-lambda-shared = { url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "lambdas/shared" }
+quilt-shared = { url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "py-shared" }
 
 [dependency-groups]
 test = [
