@@ -25,20 +25,21 @@ import bioio_ome_tiff
 import bioio_tifffile
 import dask.array as da
 import numpy as np
-import pdf2image
 import pptx
 import requests
 from bioio import BioImage
-from pdf2image.exceptions import (
-    PDFInfoNotInstalledError,
-    PDFPageCountError,
-    PDFSyntaxError,
-    PopplerNotInstalledError,
-)
 from PIL import Image
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
+
+from .pdf_thumbnail import (
+    PDFThumbError,
+    count_pdf_pages,
+    get_pdf_render_dpi,
+    render_pdf_page,
+    resize_pdf_page,
+)
 
 # See https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open.
 # Use 0 to disable the limit.
@@ -272,22 +273,25 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
 def pptx_to_pdf(*, path: str, page: int):
     with tempfile.TemporaryDirectory() as out_dir:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            subprocess.run(
-                (
-                    "libreoffice",
-                    "--convert-to",
-                    'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"%s-%s"}}' % (page, page),
-                    "--outdir",
-                    out_dir,
-                    path,
-                ),
-                check=True,
-                env={
-                    **os.environ,
-                    # This is needed because LibreOffice writes some stuff to $HOME/.config.
-                    "HOME": tmp_dir,
-                },
-            )
+            try:
+                subprocess.run(
+                    (
+                        "libreoffice",
+                        "--convert-to",
+                        'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"%s-%s"}}' % (page, page),
+                        "--outdir",
+                        out_dir,
+                        path,
+                    ),
+                    check=True,
+                    env={
+                        **os.environ,
+                        # This is needed because LibreOffice writes some stuff to $HOME/.config.
+                        "HOME": tmp_dir,
+                    },
+                )
+            except FileNotFoundError as exc:
+                raise PDFThumbError("Missing required command: libreoffice") from exc
         yield os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ".pdf")
 
 
@@ -305,40 +309,23 @@ def handle_exceptions(*exception_types):
     return decorator
 
 
-class PDFThumbError(Exception):
-    pass
-
-
 def pdf_thumb(*, path: str, page: int, size: int):
-    try:
-        pages = pdf2image.convert_from_path(
-            path,
-            # respect width but not necessarily height to preserve aspect ratio
-            size=(size, None),
-            fmt="JPEG",
-            first_page=page,
-            last_page=page,
-        )
-        return pages[0]
-    except (
-        IndexError,
-        PDFInfoNotInstalledError,
-        PDFPageCountError,
-        PDFSyntaxError,
-        PopplerNotInstalledError
-    ) as e:
-        raise PDFThumbError(str(e))
+    render_dpi = get_pdf_render_dpi()
+    page_image = render_pdf_page(path=path, page=page, dpi=render_dpi)
+    return resize_pdf_page(page_image, size=size), render_dpi
 
 
 def handle_pdf(*, path: str, page: int, size: int, count_pages: bool):
     fmt = "JPEG"
-    thumb = pdf_thumb(path=path, page=page, size=size)
+    thumb, render_dpi = pdf_thumb(path=path, page=page, size=size)
     info = {
         "thumbnail_format": fmt,
         "thumbnail_size": thumb.size,
+        "pdf_render_dpi": render_dpi,
+        "pdf_resize_filter": "LANCZOS",
     }
     if count_pages:
-        info["page_count"] = pdf2image.pdfinfo_from_path(path)["Pages"]
+        info["page_count"] = count_pdf_pages(path)
 
     thumbnail_bytes = BytesIO()
     thumb.save(thumbnail_bytes, fmt)
