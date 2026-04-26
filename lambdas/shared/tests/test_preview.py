@@ -3,13 +3,19 @@ Preview helper functions
 """
 import os
 import pathlib
+import tempfile
 from unittest import TestCase
 from unittest.mock import patch
 
+import pandas
 import pyarrow.parquet as pq
 from py_w3c.validators.html.validator import HTMLValidator
 
 from t4_lambda_shared.preview import (
+    FCS_SCATTER_LIMIT,
+    _build_fcs_scatter_spec,
+    _extract_fcs_channel_names,
+    _parse_fcs_text_segment,
     extract_excel,
     extract_fcs,
     extract_parquet,
@@ -151,10 +157,16 @@ class TestPreview(TestCase):
                 if body != "":
                     assert expected_data['in_body'] in body
                     assert not expected_data.get('has_warnings')
+                    assert info['vegaLite']['title']['text'] == 'FSC-A vs SSC-A'
+                    assert info['vegaLite']['encoding']['x']['title'] == 'FSC-A'
+                    assert info['vegaLite']['encoding']['y']['title'] == 'SSC-A'
                 else:
                     assert expected_data['has_warnings']
                     assert info['warnings']
-                assert expected_data['in_meta_keys'] in info['metadata'].keys()
+                    assert 'vegaLite' not in info
+                assert expected_data['in_meta_keys'].lower() in {
+                    key.lower() for key in info['metadata'].keys()
+                }
                 assert expected_data['in_meta_values'] in info['metadata'].values()
                 # when there's a body, check if columns only works
                 if expected_data.get('in_body'):
@@ -162,6 +174,41 @@ class TestPreview(TestCase):
                     fcs.seek(0)
                     body, info = extract_fcs(fcs, as_html=False)
                     assert body == expected_data['columns_string']
+
+    def test_fcs_scatter_spec_downsamples(self):
+        data = pandas.DataFrame(
+            {
+                'alpha': range(FCS_SCATTER_LIMIT * 2),
+                'beta': range(FCS_SCATTER_LIMIT * 2, FCS_SCATTER_LIMIT * 4),
+            }
+        )
+
+        spec = _build_fcs_scatter_spec(data)
+
+        assert spec['title']['text'] == 'alpha vs beta'
+        assert spec['encoding']['x']['title'] == 'alpha'
+        assert spec['encoding']['y']['title'] == 'beta'
+        assert len(spec['data']['values']) == FCS_SCATTER_LIMIT
+
+    def test_parse_fcs_text_segment(self):
+        text_segment = b'|$PAR|2|$P1N|FSC-A|$P2S|SSC||A|'
+        text_start = 58
+        text_end = text_start + len(text_segment) - 1
+        header = bytearray(b' ' * 58)
+        header[:6] = b'FCS3.0'
+        header[10:18] = f'{text_start:>8}'.encode('ascii')
+        header[18:26] = f'{text_end:>8}'.encode('ascii')
+
+        with tempfile.NamedTemporaryFile() as fcs:
+            fcs.write(header)
+            fcs.write(text_segment)
+            fcs.flush()
+
+            metadata = _parse_fcs_text_segment(fcs.name)
+
+        assert metadata['$P1N'] == 'FSC-A'
+        assert metadata['$P2S'] == 'SSC|A'
+        assert _extract_fcs_channel_names(metadata) == 'FSC-A,SSC|A'
 
     def test_long(self):
         """test a text file with lots of lines"""
