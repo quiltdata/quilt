@@ -78,6 +78,36 @@ def test_403():
     assert "error" in body
 
 
+def test_handle_pdf_reports_render_details(mocker):
+    thumb = Image.new("RGB", (80, 120))
+    pdf_thumb_mock = mocker.patch("t4_lambda_thumbnail.pdf_thumb", return_value=(thumb, 180))
+    count_pages_mock = mocker.patch("t4_lambda_thumbnail.count_pdf_pages", return_value=8)
+
+    info, data = t4_lambda_thumbnail.handle_pdf(
+        path="report.pdf",
+        page=2,
+        size=80,
+        count_pages=True,
+    )
+
+    pdf_thumb_mock.assert_called_once_with(path="report.pdf", page=2, size=80)
+    count_pages_mock.assert_called_once_with("report.pdf")
+    assert info["thumbnail_format"] == "JPEG"
+    assert info["thumbnail_size"] == (80, 120)
+    assert info["pdf_render_dpi"] == 180
+    assert info["pdf_resize_filter"] == "LANCZOS"
+    assert info["page_count"] == 8
+    assert data
+
+
+def test_pptx_to_pdf_surfaces_missing_libreoffice(mocker):
+    mocker.patch("t4_lambda_thumbnail.subprocess.run", side_effect=FileNotFoundError())
+
+    with pytest.raises(t4_lambda_thumbnail.PDFThumbError, match="Missing required command: libreoffice"):
+        with t4_lambda_thumbnail.pptx_to_pdf(path="slides.pptx", page=1):
+            pass
+
+
 @responses.activate
 @pytest.mark.parametrize(
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",

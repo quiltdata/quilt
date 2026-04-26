@@ -205,7 +205,7 @@ def preview_jsonl(url, compression, max_out_size):
 def preview_excel(url, compression, max_out_size):
     with urlopen(url, compression=compression) as src:
         data = src.read()
-    df = pandas.read_excel(data)
+    df = pandas.read_excel(io.BytesIO(data))
     output_data, output_truncated = write_pandas_as_csv(df, max_out_size)
 
     return 200, output_data, {

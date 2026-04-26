@@ -80,6 +80,16 @@ SCHEMA = {
 pandas.set_option('min_rows', 50)
 
 
+def _is_valid_source_url(url: str) -> bool:
+    parsed_url = urlparse(url, allow_fragments=False)
+    return (
+        parsed_url.scheme == 'https' and
+        parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
+        parsed_url.username is None and
+        parsed_url.password is None
+    )
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -103,11 +113,7 @@ def lambda_handler(request):
             'detail': str(error)
         })
 
-    parsed_url = urlparse(url, allow_fragments=False)
-    if not (parsed_url.scheme == 'https' and
-            parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-            parsed_url.username is None and
-            parsed_url.password is None):
+    if not _is_valid_source_url(url):
         return make_json_response(400, {
             'title': 'Invalid url=. Expected S3 virtual-host URL.'
         })

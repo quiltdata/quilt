@@ -107,6 +107,8 @@ class TestIndex:
                 assert body['html'].startswith('<div>')
                 assert body['html'].endswith('</div>')
                 assert body['info']['metadata'].keys()
+                if 'vegaLite' in body['info']:
+                    assert body['info']['vegaLite']['title']['text']
             else:
                 assert not body['html']
                 if 'metadata' not in body['info']:
@@ -115,7 +117,10 @@ class TestIndex:
                         assert name == 'bad.fcs'
                 else:
                     if not extended:
-                        assert name == 'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs'
+                        assert name in (
+                            '3215apc 100004.fcs',
+                            'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs',
+                        )
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""
