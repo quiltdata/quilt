@@ -169,7 +169,7 @@ describe('PlatformContext/Mcp', () => {
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
       expect(state._tag).toBe('Ready')
       if (state._tag !== 'Ready') throw new Error('expected Ready')
-      expect(Object.keys(state.tools)).toEqual(['mcp__platform__search_packages'])
+      expect(Object.keys(state.tools)).toEqual([`${Mcp.TOOL_PREFIX}search_packages`])
       expect(state.messages).toHaveLength(1)
       expect(state.messages[0]).toContain('platform-mcp-search-syntax')
       expect(state.messages[0]).toContain('QUERY SYNTAX')
@@ -189,7 +189,7 @@ describe('PlatformContext/Mcp', () => {
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
       expect(state._tag).toBe('Ready')
       if (state._tag !== 'Ready') throw new Error('expected Ready')
-      expect(Object.keys(state.tools)).toEqual(['mcp__platform__x'])
+      expect(Object.keys(state.tools)).toEqual([`${Mcp.TOOL_PREFIX}x`])
       expect(state.messages).toEqual([])
     })
 

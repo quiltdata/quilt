@@ -579,6 +579,13 @@ export const PlatformContextState = {
 const SEARCH_SYNTAX_URI = 'quilt-platform://search_syntax'
 
 /**
+ * Namespace prefix for MCP-discovered tools in the catalog `Tool.Collection`.
+ * MCP itself is a transport detail and shouldn't show in user-visible tool
+ * names. Future MCP servers would namespace as e.g. `catalog__<name>`.
+ */
+export const TOOL_PREFIX = 'platform__'
+
+/**
  * Fetch tools and optional resource context from PMS. Never fails — surfaces
  * errors through the returned state so the UI can render regardless.
  */
@@ -601,7 +608,7 @@ export function loadContext(
     const mcpTools = yield* client.listTools()
     const tools: Tool.Collection = {}
     for (const t of mcpTools) {
-      tools[`mcp__platform__${t.name}`] = buildTool(client, t)
+      tools[`${TOOL_PREFIX}${t.name}`] = buildTool(client, t)
     }
     const messages = yield* searchSyntaxMessages
     return PlatformContextState.Ready({ tools, messages })
