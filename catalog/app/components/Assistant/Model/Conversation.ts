@@ -5,6 +5,7 @@ import * as Actor from 'utils/Actor'
 import * as Log from 'utils/Logging'
 import * as XML from 'utils/XML'
 
+import * as Connectors from './Connectors'
 import * as Content from './Content'
 import * as Context from './Context'
 import * as LLM from './LLM'
@@ -83,6 +84,17 @@ export type State = Eff.Data.TaggedEnum<{
     readonly calls: Record<string, ToolCall>
     // readonly retries: number
   }
+
+  /**
+   * One or more connectors are blocked (transient or needs-ack); the
+   * conversation pauses before the next LLM round-trip. The waiter fiber
+   * dispatches `ConnectorReady` once `connectors.awaitUnblocked` resolves.
+   * UI gates input and renders connector status independently — this state
+   * carries no per-connector snapshot (D26).
+   */
+  AwaitingConnector: StateBase & {
+    readonly waiter: Eff.Fiber.RuntimeFiber<void>
+  }
 }>
 
 const idle = (events: Event[], error?: ConversationError) =>
@@ -116,6 +128,7 @@ export type Action = Eff.Data.TaggedEnum<{
   Abort: {}
   Clear: {}
   Discard: { readonly id: string }
+  ConnectorReady: {}
 }>
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -137,7 +150,10 @@ const llmRequest = (events: Event[]) =>
     Eff.Effect.gen(function* () {
       const llm = yield* LLM.LLM
       const ctxService = yield* Context.ConversationContext
-      const ctx = yield* ctxService.context
+      const reactCtx = yield* ctxService.context
+      const connectors = yield* Connectors.Connectors
+      const connectorsCtx = yield* connectors.contextContribution
+      const ctx = Context.merge(reactCtx, connectorsCtx)
       const filteredEvents = events.filter((e) => !e.discarded)
       const prompt = yield* constructPrompt(filteredEvents, ctx)
 
@@ -157,10 +173,52 @@ const llmRequest = (events: Event[]) =>
     }),
   )
 
+/**
+ * After all tools resolve OR a user Ask lands, decide whether to fire
+ * the next LLM round or pause for a blocked connector. Reads
+ * `connectors.isBlocked` synchronously (D25 handler discipline — no
+ * async observation in the handler body); if blocked, forks a waiter
+ * fiber that dispatches `ConnectorReady` on unblock and returns the
+ * AwaitingConnector state. Otherwise forks the LLM request.
+ */
+const advanceFromEvents = (
+  events: Event[],
+  dispatch: Actor.Dispatch<Action>,
+): Eff.Effect.Effect<
+  State,
+  never,
+  LLM.LLM | Context.ConversationContext | Connectors.Connectors
+> =>
+  Eff.Effect.gen(function* () {
+    const connectors = yield* Connectors.Connectors
+    const blocked = yield* connectors.isBlocked
+    const timestamp = yield* getNow
+    if (blocked) {
+      const waiter = yield* Eff.Effect.fork(
+        Eff.Effect.gen(function* () {
+          yield* connectors.awaitUnblocked
+          yield* dispatch(Action.ConnectorReady())
+        }),
+      )
+      return State.AwaitingConnector({ events, timestamp, waiter })
+    }
+    const requestFiber = yield* Actor.forkRequest(
+      llmRequest(events),
+      dispatch,
+      (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
+      (error) => Eff.Effect.succeed(Action.LLMError({ error })),
+    )
+    return State.WaitingForAssistant({ events, timestamp, requestFiber })
+  })
+
 // XXX: separate "service" from handlers
 export const ConversationActor = Eff.Effect.succeed(
   Log.scopedFn(`${MODULE}.ConversationActor`)(
-    Actor.taggedHandler<State, Action, LLM.LLM | Context.ConversationContext>({
+    Actor.taggedHandler<
+      State,
+      Action,
+      LLM.LLM | Context.ConversationContext | Connectors.Connectors
+    >({
       Idle: {
         Ask: (state, action, dispatch) =>
           Eff.Effect.gen(function* () {
@@ -172,14 +230,7 @@ export const ConversationActor = Eff.Effect.succeed(
               content: Content.text(action.content),
             })
             const events = state.events.concat(event)
-
-            const requestFiber = yield* Actor.forkRequest(
-              llmRequest(events),
-              dispatch,
-              (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
-              (error) => Eff.Effect.succeed(Action.LLMError({ error })),
-            )
-            return State.WaitingForAssistant({ events, timestamp, requestFiber })
+            return yield* advanceFromEvents(events, dispatch)
           }),
         Clear: () => idle([]),
         Discard: (state, { id }) =>
@@ -280,19 +331,8 @@ export const ConversationActor = Eff.Effect.succeed(
               return State.ToolUse({ events, timestamp: state.timestamp, calls })
             }
 
-            // all calls completed, send results back to LLM
-            const requestFiber = yield* Actor.forkRequest(
-              llmRequest(events),
-              dispatch,
-              (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
-              (error) => Eff.Effect.succeed(Action.LLMError({ error })),
-            )
-
-            return State.WaitingForAssistant({
-              events,
-              timestamp: yield* getNow,
-              requestFiber,
-            })
+            // all calls completed: gate on connectors before the next LLM round
+            return yield* advanceFromEvents(events, dispatch)
           }),
         Abort: ({ events, calls }) =>
           Eff.Effect.gen(function* () {
@@ -309,6 +349,26 @@ export const ConversationActor = Eff.Effect.succeed(
               timestamp: yield* getNow,
               error: Eff.Option.none(),
             })
+          }),
+      },
+      AwaitingConnector: {
+        ConnectorReady: ({ events }, _action, dispatch) =>
+          advanceFromEvents(events, dispatch),
+        Abort: ({ events, waiter }) =>
+          Eff.Effect.gen(function* () {
+            yield* Eff.Fiber.interruptFork(waiter)
+            return State.Idle({
+              events,
+              timestamp: yield* getNow,
+              error: Eff.Option.none(),
+            })
+          }),
+        Discard: (state, { id }) =>
+          Eff.Effect.succeed({
+            ...state,
+            events: state.events.map((e) =>
+              e.id === id ? { ...e, discarded: true } : e,
+            ),
           }),
       },
     }),
