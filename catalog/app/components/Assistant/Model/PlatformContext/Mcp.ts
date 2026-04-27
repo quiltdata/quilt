@@ -1,11 +1,16 @@
 /**
  * Platform MCP — wire protocol + Qurator bridge.
  *
- * Collapses what was `client.ts` + `bridge.ts`. Effect-native throughout:
- * - `tryPromise` with the fetch AbortSignal — interruption cancels in-flight
- *   requests when the owning fiber is killed.
- * - Tagged errors via `Data.TaggedError` — catchable by kind.
- * - Pure content mapping, testable by supplying a stub `McpClient` record.
+ * Effect-native throughout:
+ * - Transport: `@effect/platform`'s `HttpClient` with the
+ *   `FetchHttpClient` layer. Cancellation via fiber interrupt aborts the
+ *   underlying fetch.
+ * - Wire validation: `Eff.Schema` decoders at every response boundary.
+ *   Unknown content types fall through to a permissive schema (forward-
+ *   compat) rather than failing — `mapContent` still renders them as
+ *   text for the LLM.
+ * - Tagged errors via `_tag` discriminator (plain classes — see ES5
+ *   note on error block) so `Effect.catchTags` can match by kind.
  *
  * Not using `@modelcontextprotocol/sdk`: the SDK lists Node/Bun/Deno only as
  * supported runtimes, assumes stateful sessions with an SSE GET channel, and
@@ -14,6 +19,9 @@
  * bearer. The protocol surface we need fits in this file.
  */
 
+import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
+import * as HttpClient from '@effect/platform/HttpClient'
+import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as Eff from 'effect'
 import * as uuid from 'uuid'
 
@@ -77,10 +85,10 @@ interface JsonRpcRequest {
   params?: unknown
 }
 
-interface JsonRpcResponse<T = unknown> {
+interface JsonRpcResponse {
   jsonrpc: '2.0'
   id: string | number
-  result?: T
+  result?: unknown
   error?: { code: number; message: string; data?: unknown }
 }
 
@@ -159,6 +167,123 @@ export class McpRpcError {
 export type McpError = McpAuthError | McpTransportError | McpProtocolError | McpRpcError
 
 // ---------------------------------------------------------------------------
+// Wire schemas (runtime validation at the response boundary)
+// ---------------------------------------------------------------------------
+
+const McpContentTextSchema = Eff.Schema.Struct({
+  type: Eff.Schema.Literal('text'),
+  text: Eff.Schema.String,
+})
+
+const McpContentImageSchema = Eff.Schema.Struct({
+  type: Eff.Schema.Literal('image'),
+  data: Eff.Schema.String,
+  mimeType: Eff.Schema.String,
+})
+
+const McpContentResourceSchema = Eff.Schema.Struct({
+  type: Eff.Schema.Literal('resource'),
+  resource: Eff.Schema.Struct({
+    uri: Eff.Schema.String,
+    text: Eff.Schema.optional(Eff.Schema.String),
+    mimeType: Eff.Schema.optional(Eff.Schema.String),
+  }),
+})
+
+/*
+ * Forward-compat fallback for content blocks whose `type` we don't yet
+ * recognize. Permissive on extra fields so a future `type: 'video'` (or
+ * malformed known type) decodes as `{ type: <string> }` and `mapContent`
+ * renders its JSON for the LLM rather than failing the whole response.
+ */
+const McpContentUnknownSchema = Eff.Schema.Struct({
+  type: Eff.Schema.String,
+})
+
+const McpContentSchema = Eff.Schema.Union(
+  McpContentTextSchema,
+  McpContentImageSchema,
+  McpContentResourceSchema,
+  McpContentUnknownSchema,
+)
+
+const McpToolDescriptorSchema = Eff.Schema.Struct({
+  name: Eff.Schema.String,
+  description: Eff.Schema.optional(Eff.Schema.String),
+  inputSchema: Eff.Schema.Record({
+    key: Eff.Schema.String,
+    value: Eff.Schema.Unknown,
+  }),
+})
+
+const ToolsListResponseSchema = Eff.Schema.Struct({
+  tools: Eff.Schema.Array(McpToolDescriptorSchema),
+})
+
+const McpToolResultSchema = Eff.Schema.Struct({
+  content: Eff.Schema.Array(McpContentSchema),
+  isError: Eff.Schema.optional(Eff.Schema.Boolean),
+})
+
+const McpResourceContentsSchema = Eff.Schema.Struct({
+  contents: Eff.Schema.Array(
+    Eff.Schema.Struct({
+      uri: Eff.Schema.String,
+      text: Eff.Schema.optional(Eff.Schema.String),
+      mimeType: Eff.Schema.optional(Eff.Schema.String),
+    }),
+  ),
+})
+
+const JsonRpcResponseSchema = Eff.Schema.Struct({
+  jsonrpc: Eff.Schema.Literal('2.0'),
+  id: Eff.Schema.Union(Eff.Schema.String, Eff.Schema.Number),
+  result: Eff.Schema.optional(Eff.Schema.Unknown),
+  error: Eff.Schema.optional(
+    Eff.Schema.Struct({
+      code: Eff.Schema.Number,
+      message: Eff.Schema.String,
+      data: Eff.Schema.optional(Eff.Schema.Unknown),
+    }),
+  ),
+})
+
+const decodeWith =
+  <A, I>(schema: Eff.Schema.Schema<A, I>, label: string) =>
+  (input: unknown): Eff.Effect.Effect<A, McpProtocolError> =>
+    Eff.Schema.decodeUnknown(schema)(input).pipe(
+      Eff.Effect.mapError(
+        (err) => new McpProtocolError({ detail: `${label}: ${String(err)}` }),
+      ),
+    )
+
+// ---------------------------------------------------------------------------
+// SSE parsing
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a buffered SSE response body and return the JSON payload of the
+ * first event with `data:` lines. FastMCP with `stateless_http=True` emits
+ * exactly one `message` event per response and closes. Returns `null` if
+ * the body has no data events (notification-style 200 with empty stream).
+ *
+ * SSE separates events with a blank line — `\n\n` per spec, but FastMCP
+ * emits the CRLF form (`\r\n\r\n`). Normalize before splitting.
+ */
+export function parseSseToJson(text: string): unknown | null {
+  const events = text.replace(/\r\n/g, '\n').split('\n\n')
+  for (const event of events) {
+    const dataLines = event
+      .split('\n')
+      .filter((l) => l.startsWith('data:'))
+      .map((l) => l.slice(5).trim())
+    if (!dataLines.length) continue
+    return JSON.parse(dataLines.join('\n'))
+  }
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 
@@ -189,48 +314,76 @@ export function make(options: McpClientOptions): McpClient {
   ): Eff.Effect.Effect<JsonRpcResponse | null, McpError> =>
     Eff.Effect.gen(function* () {
       const token = yield* options.getToken()
+      const httpClient = yield* HttpClient.HttpClient
 
-      const resp = yield* Eff.Effect.tryPromise({
-        try: (signal) =>
-          fetch(options.url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json, text/event-stream',
-              Authorization: `Bearer ${token}`,
-              'MCP-Protocol-Version': PROTOCOL_VERSION,
-            },
-            body: JSON.stringify(payload),
-            signal,
-          }),
-        catch: (e) => new McpTransportError({ detail: String(e) }),
-      })
+      const request = HttpClientRequest.post(options.url).pipe(
+        HttpClientRequest.bearerToken(token),
+        HttpClientRequest.setHeaders({
+          Accept: 'application/json, text/event-stream',
+          'MCP-Protocol-Version': PROTOCOL_VERSION,
+        }),
+        HttpClientRequest.bodyText(JSON.stringify(payload), 'application/json'),
+      )
 
-      if (!resp.ok) {
-        return yield* Eff.Effect.fail(
-          new McpTransportError({ detail: resp.statusText, status: resp.status }),
-        )
-      }
+      const resp = yield* httpClient.execute(request).pipe(
+        Eff.Effect.mapError((err) => {
+          const inner = (err as { cause?: unknown }).cause
+          const detail =
+            inner instanceof Error
+              ? `${err.message}: ${inner.message}`
+              : (err.message ?? String(err))
+          return new McpTransportError({ detail })
+        }),
+      )
 
       // Notifications get 202 Accepted with no body.
       if (resp.status === 202) return null
 
-      const contentType = resp.headers.get('content-type') ?? ''
-      if (contentType.includes('text/event-stream')) {
-        return yield* parseEventStream(resp)
+      if (resp.status < 200 || resp.status >= 300) {
+        return yield* Eff.Effect.fail(
+          new McpTransportError({
+            detail: `HTTP ${resp.status}`,
+            status: resp.status,
+          }),
+        )
       }
-      if (contentType.includes('application/json')) {
-        return yield* Eff.Effect.tryPromise({
-          try: () => resp.json() as Promise<JsonRpcResponse>,
-          catch: (e) => new McpProtocolError({ detail: `bad JSON: ${e}` }),
-        })
-      }
-      return yield* Eff.Effect.fail(
-        new McpProtocolError({ detail: `unexpected content-type: ${contentType}` }),
-      )
-    })
 
-  const rpc = <T>(method: string, params?: unknown): Eff.Effect.Effect<T, McpError> =>
+      const text = yield* resp.text.pipe(
+        Eff.Effect.mapError(
+          (e) => new McpProtocolError({ detail: `body read: ${String(e)}` }),
+        ),
+      )
+
+      const contentType = resp.headers['content-type'] ?? ''
+      let json: unknown
+      if (contentType.includes('text/event-stream')) {
+        try {
+          const parsed = parseSseToJson(text)
+          if (parsed === null) return null
+          json = parsed
+        } catch (e) {
+          return yield* Eff.Effect.fail(
+            new McpProtocolError({ detail: `SSE parse: ${String(e)}` }),
+          )
+        }
+      } else if (contentType.includes('application/json')) {
+        try {
+          json = JSON.parse(text)
+        } catch (e) {
+          return yield* Eff.Effect.fail(
+            new McpProtocolError({ detail: `bad JSON: ${String(e)}` }),
+          )
+        }
+      } else {
+        return yield* Eff.Effect.fail(
+          new McpProtocolError({ detail: `unexpected content-type: ${contentType}` }),
+        )
+      }
+
+      return yield* decodeWith(JsonRpcResponseSchema, 'envelope')(json)
+    }).pipe(Eff.Effect.provide(FetchHttpClient.layer))
+
+  const rpc = (method: string, params?: unknown): Eff.Effect.Effect<unknown, McpError> =>
     Eff.Effect.gen(function* () {
       const id = yield* Eff.Effect.sync(uuid.v4)
       const body = yield* post({ jsonrpc: '2.0', id, method, params })
@@ -248,7 +401,7 @@ export function make(options: McpClientOptions): McpClient {
           }),
         )
       }
-      return body.result as T
+      return body.result
     })
 
   const notify = (method: string, params?: unknown): Eff.Effect.Effect<void, McpError> =>
@@ -269,51 +422,21 @@ export function make(options: McpClientOptions): McpClient {
         yield* notify('notifications/initialized')
       }),
     listTools: () =>
-      rpc<{ tools: McpToolDescriptor[] }>('tools/list').pipe(
-        Eff.Effect.map((r) => r.tools),
+      rpc('tools/list').pipe(
+        Eff.Effect.flatMap(decodeWith(ToolsListResponseSchema, 'tools/list')),
+        Eff.Effect.map((r) => r.tools as McpToolDescriptor[]),
       ),
-    callTool: (name, args) => rpc<McpToolResult>('tools/call', { name, arguments: args }),
-    readResource: (uri) => rpc<McpResourceContents>('resources/read', { uri }),
+    callTool: (name, args) =>
+      rpc('tools/call', { name, arguments: args }).pipe(
+        Eff.Effect.flatMap(decodeWith(McpToolResultSchema, 'tools/call')),
+        Eff.Effect.map((r) => r as unknown as McpToolResult),
+      ),
+    readResource: (uri) =>
+      rpc('resources/read', { uri }).pipe(
+        Eff.Effect.flatMap(decodeWith(McpResourceContentsSchema, 'resources/read')),
+        Eff.Effect.map((r) => r as unknown as McpResourceContents),
+      ),
   }
-}
-
-/**
- * Parse a one-shot SSE response into a single JSON-RPC envelope. FastMCP with
- * `stateless_http=True` emits one `message` event with the body and closes.
- * Fiber interruption aborts the underlying fetch; the reader unwinds via the
- * stream being cancelled.
- */
-function parseEventStream(
-  resp: Response,
-): Eff.Effect.Effect<JsonRpcResponse | null, McpError> {
-  return Eff.Effect.tryPromise({
-    try: async () => {
-      const reader = resp.body?.getReader()
-      if (!reader) throw new Error('SSE response had no body')
-      const decoder = new TextDecoder()
-      let buffer = ''
-      while (true) {
-        const { value, done } = await reader.read()
-        if (value) buffer += decoder.decode(value, { stream: true })
-        // SSE events may be separated by `\n\n` or `\r\n\r\n` — FastMCP emits
-        // the CRLF form. Normalize before splitting.
-        const chunks = buffer.replace(/\r\n/g, '\n').split('\n\n')
-        buffer = chunks.pop() ?? ''
-        for (const chunk of chunks) {
-          const dataLines = chunk
-            .split('\n')
-            .filter((l) => l.startsWith('data:'))
-            .map((l) => l.slice(5).trim())
-          if (!dataLines.length) continue
-          const data = dataLines.join('\n')
-          reader.cancel().catch(() => {})
-          return JSON.parse(data) as JsonRpcResponse
-        }
-        if (done) return null
-      }
-    },
-    catch: (e) => new McpProtocolError({ detail: `SSE parse: ${e}` }),
-  })
 }
 
 // ---------------------------------------------------------------------------
