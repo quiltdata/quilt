@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
+  workflow_dispatch:
 
 jobs:
   deploy-lambda-s3:
