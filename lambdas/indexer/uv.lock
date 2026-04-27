@@ -668,8 +668,8 @@ wheels = [
 [[package]]
 name = "quilt-shared"
 version = "0.1.0"
-source = { url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "py-shared" }
-sdist = { hash = "sha256:17dae922f271ff098a9a1de047426c7644d314863b3257a86ac2f5b4559b7153" }
+source = { url = "https://github.com/quiltdata/quilt/archive/799586d807f72f24f353d18095b1669a40ff11bd.zip", subdirectory = "py-shared" }
+sdist = { hash = "sha256:70fe54c07b89e31f33d5deb2d77d7667c0ed5bce1b69b13bb05d9ea9ac59d859" }
 
 [package.optional-dependencies]
 boto = [
@@ -830,9 +830,9 @@ requires-dist = [
     { name = "nbformat", specifier = "~=5.1.3" },
     { name = "pdfminer-six", specifier = "==20240706" },
     { name = "python-pptx", specifier = "~=0.6.21" },
-    { name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "py-shared" },
+    { name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/quiltdata/quilt/archive/799586d807f72f24f353d18095b1669a40ff11bd.zip", subdirectory = "py-shared" },
     { name = "strict-rfc3339", specifier = "~=0.7" },
-    { name = "t4-lambda-shared", extras = ["mem", "preview"], url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "lambdas/shared" },
+    { name = "t4-lambda-shared", extras = ["mem", "preview"], url = "https://github.com/quiltdata/quilt/archive/799586d807f72f24f353d18095b1669a40ff11bd.zip", subdirectory = "lambdas/shared" },
     { name = "tenacity", specifier = "~=9.0" },
 ]
 
@@ -849,11 +849,11 @@ test = [
 [[package]]
 name = "t4-lambda-shared"
 version = "0.0.3"
-source = { url = "https://github.com/Austin-s-h/quilt/archive/4d39a6091ab16eee77c020cf5ffa0f8740da35de.zip", subdirectory = "lambdas/shared" }
+source = { url = "https://github.com/quiltdata/quilt/archive/799586d807f72f24f353d18095b1669a40ff11bd.zip", subdirectory = "lambdas/shared" }
 dependencies = [
     { name = "jsonschema" },
 ]
-sdist = { hash = "sha256:17dae922f271ff098a9a1de047426c7644d314863b3257a86ac2f5b4559b7153" }
+sdist = { hash = "sha256:70fe54c07b89e31f33d5deb2d77d7667c0ed5bce1b69b13bb05d9ea9ac59d859" }
 
 [package.optional-dependencies]
 mem = [
