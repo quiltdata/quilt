@@ -177,55 +177,6 @@ function MessageAction({ children, onClick }: MessageActionProps) {
   )
 }
 
-/**
- * Status banner for the platform-tools bootstrap. Renders inline at the
- * top of the conversation, alongside the welcome message:
- *
- * - Loading → "Loading platform tools…"
- * - Ready → "Platform tools ready · N tools available"
- * - Error → "Couldn't reach platform tools" + retry action + collapsible
- *   error details (JSON of the tagged error).
- *
- * `aria-live="polite"` so screen readers announce state transitions
- * (load → ready, error → reconnected) without interrupting the user.
- */
-interface PlatformStatusProps {
-  state: Model.PlatformContext.PlatformContextHandle['state']
-  retry: Model.PlatformContext.PlatformContextHandle['retry']
-}
-
-function PlatformStatus({ state, retry }: PlatformStatusProps) {
-  return (
-    <div aria-live="polite">
-      {Model.PlatformContext.PlatformContextState.$match(state, {
-        Loading: () => (
-          <MessageContainer color="faint">Loading platform tools…</MessageContainer>
-        ),
-        Ready: ({ tools }) => {
-          const count = Object.keys(tools).length
-          return (
-            <MessageContainer color="faint">
-              Platform tools ready · {count} {count === 1 ? 'tool' : 'tools'} available
-            </MessageContainer>
-          )
-        },
-        Error: ({ error }) => (
-          <MessageContainer
-            color="faint"
-            actions={<MessageAction onClick={retry}>retry</MessageAction>}
-          >
-            Couldn’t reach platform tools.
-            <details style={{ marginTop: 4 }}>
-              <summary style={{ cursor: 'pointer' }}>Details</summary>
-              <code>{error.message}</code>
-            </details>
-          </MessageContainer>
-        ),
-      })}
-    </div>
-  )
-}
-
 interface ConversationDispatchProps {
   dispatch: Model.Assistant.API['dispatch']
 }
@@ -494,10 +445,9 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
-  platform: Model.Assistant.API['platform']
 }
 
-export default function Chat({ state, dispatch, devTools, platform }: ChatProps) {
+export default function Chat({ state, dispatch, devTools }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
@@ -547,7 +497,6 @@ export default function Chat({ state, dispatch, devTools, platform }: ChatProps)
           <MessageContainer>
             Hi! I'm Qurator, your AI assistant. How can I help you?
           </MessageContainer>
-          <PlatformStatus state={platform.state} retry={platform.retry} />
           {state.events
             .filter((e) => !e.discarded)
             .map(

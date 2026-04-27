@@ -2,17 +2,22 @@ import * as Eff from 'effect'
 import invariant from 'invariant'
 
 import * as React from 'react'
+import * as redux from 'react-redux'
+import { createSelector } from 'reselect'
 
 import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
+import { runtime } from 'utils/Effect'
+import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
+import * as authSelectors from 'containers/Auth/selectors'
 
 import * as Bedrock from './Bedrock'
+import * as Connectors from './Connectors'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
-import * as PlatformContext from './PlatformContext'
 import useIsEnabled from './enabled'
 
 export const DISABLED = Symbol('DISABLED')
@@ -26,6 +31,95 @@ function usePassThru<T>(val: T) {
 export const DEFAULT_MODEL_ID =
   cfg.quratorDefaultModel || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
+
+const MCP_URL_KEY = 'QUILT_MCP_URL'
+
+/**
+ * MCP endpoint for the platform connector. Defaults to the registry-
+ * hostnamed `/mcp/platform/mcp` rewrite (D3); `localStorage.QUILT_MCP_URL`
+ * overrides for local dev (mirrors `QUILT_BEDROCK_MODEL_ID`).
+ */
+function getPlatformMcpUrl(): string {
+  if (typeof localStorage !== 'undefined') {
+    const override = localStorage.getItem(MCP_URL_KEY)
+    if (override) return override
+  }
+  return `${cfg.registryUrl}/mcp/platform/mcp`
+}
+
+/**
+ * Memoized projection from auth state to the bare bearer token. Mirrors
+ * the pattern in `utils/PFSCookieManager.tsx`.
+ */
+const selectToken = createSelector(
+  authSelectors.tokens,
+  (tokens) => (tokens as { token?: string } | undefined)?.token,
+)
+
+const PLATFORM_CONNECTOR_HINT =
+  'Quilt Platform tools: packages, search (Elasticsearch query syntax), S3 objects, Athena queries, tabulator tables, and platform reference resources via get_resource.'
+
+/**
+ * Build the platform connector config (D33). Auth is an Effect that
+ * re-reads the redux session token on every invocation so token rotation
+ * is handled without explicit plumbing — the connector layer sees the
+ * current token at each tool call. The config is memoized over `store`,
+ * which is itself stable across renders.
+ */
+function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
+  const store = redux.useStore()
+  return React.useMemo(
+    () => ({
+      id: 'platform',
+      title: 'Quilt Platform tools',
+      hint: PLATFORM_CONNECTOR_HINT,
+      transport: Connectors.TransportConfig.Mcp({
+        url: getPlatformMcpUrl(),
+        auth: () =>
+          Eff.Effect.suspend(() => {
+            const token = selectToken(store.getState())
+            return token
+              ? Eff.Effect.succeed(token)
+              : Eff.Effect.fail(new Connectors.McpAuthError())
+          }),
+      }),
+    }),
+    [store],
+  )
+}
+
+/**
+ * Allocate the `ConnectorsService` for this Assistant mount. The
+ * service is built once via `runtime.runSync` against a manually
+ * managed `Scope`; the per-connector lifecycle fibers (bootstrap,
+ * heartbeat, retry) live under that scope and are interrupted on
+ * unmount (D32).
+ *
+ * The synchronous build is fine: `buildService` is composed of pure
+ * sync allocations (`SubscriptionRef.make`, `Queue.unbounded`,
+ * `forkScoped`), with no async boundaries. The forked fibers run
+ * independently of the build call.
+ */
+function useConnectors(
+  configs: readonly Connectors.ConnectorConfig[],
+): Connectors.ConnectorsService {
+  const built = useConst(() => {
+    const scope = runtime.runSync(Eff.Scope.make())
+    const service = runtime.runSync(
+      Connectors.buildService(configs).pipe(
+        Eff.Effect.provideService(Eff.Scope.Scope, scope),
+      ),
+    )
+    return { service, scope }
+  })
+  React.useEffect(
+    () => () => {
+      runtime.runFork(Eff.Scope.close(built.scope, Eff.Exit.void))
+    },
+    [built],
+  )
+  return built.service
+}
 
 function useModelIdOverride() {
   const [value, setValue] = React.useState(
@@ -80,15 +174,21 @@ function useConstructAssistantAPI() {
   const [modelId, modelIdOverride] = useModelIdOverride()
   const [record, recording] = useRecording()
 
+  const platformConfig = usePlatformConnectorConfig()
+  const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
+  const connectors = useConnectors(connectorConfigs)
+
   const passThru = usePassThru({
     bedrock: AWS.Bedrock.useClient(),
     context: Context.useLayer(),
+    connectors,
   })
 
   const layerEff = Eff.Effect.sync(() =>
-    Eff.Layer.merge(
+    Eff.Layer.mergeAll(
       Bedrock.LLMBedrock(passThru.current.bedrock, { modelId, record }),
       passThru.current.context,
+      Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),
   )
 
@@ -99,7 +199,6 @@ function useConstructAssistantAPI() {
   )
 
   GlobalContext.use()
-  const platform = PlatformContext.use()
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
@@ -121,7 +220,7 @@ function useConstructAssistantAPI() {
     assist,
     state,
     dispatch,
-    platform,
+    connectors,
     devTools: { recording, modelIdOverride },
   }
 }

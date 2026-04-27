@@ -529,85 +529,100 @@ const renderConnectorOverview = (
 // ---------------------------------------------------------------------------
 
 /**
- * Build the `Connectors` service layer for the given configs. Per-config:
+ * Build a `ConnectorsService` for the given configs. Per-config:
  *
  *  - allocate per-connector state / health / controls refs
- *  - fork the lifecycle fiber under the layer's scope
+ *  - fork the lifecycle fiber under the surrounding `Scope`
  *  - expose the runtime in `byId`
  *
- * Aggregate primitives merge across all per-connector states. The layer
- * is `Layer.scoped`, so per-connector fibers are interrupted on layer
- * release (Assistant unmount, D32).
+ * Aggregate primitives merge across all per-connector states. Lifecycle
+ * fibers are interrupted on scope release (Assistant unmount, D32).
+ *
+ * Used by both the `layer` factory (production wiring through the
+ * Layer system) and React-side allocation (Assistant.tsx invokes this
+ * directly via `runtime.runSync` with a manually-managed scope so the
+ * resulting service can be passed to chat-UI components alongside being
+ * provided to the Conversation actor as a Layer).
  */
-export const layer = (
+export const buildService = (
   configs: readonly ConnectorConfig[],
   /**
    * Per-config wire client override (test seam). Production callers
    * omit it; the wire client is built from `config.transport`.
    */
   clientById: Partial<Record<ConnectorId, Mcp.McpClient>> = {},
-): Eff.Layer.Layer<Connectors> =>
-  Eff.Layer.scoped(
-    Connectors,
-    Eff.Effect.gen(function* () {
-      const runtimes: Record<ConnectorId, ConnectorRuntime> = {}
-      for (const c of configs) {
-        runtimes[c.id] = yield* buildConnectorRuntime(c, clientById[c.id])
-      }
-      const all = Object.values(runtimes)
+): Eff.Effect.Effect<ConnectorsService, never, Eff.Scope.Scope> =>
+  Eff.Effect.gen(function* () {
+    const runtimes: Record<ConnectorId, ConnectorRuntime> = {}
+    for (const c of configs) {
+      runtimes[c.id] = yield* buildConnectorRuntime(c, clientById[c.id])
+    }
+    const all = Object.values(runtimes)
 
-      const allStates = Eff.Effect.all(all.map((r) => Eff.SubscriptionRef.get(r.state)))
+    const allStates = Eff.Effect.all(all.map((r) => Eff.SubscriptionRef.get(r.state)))
 
-      const isTransient = allStates.pipe(
-        Eff.Effect.map((states) => states.some(stateIsTransient)),
-      )
-      const requiresAck = allStates.pipe(
-        Eff.Effect.map((states) => states.some(stateRequiresAck)),
-      )
-      const isBlocked = allStates.pipe(
-        Eff.Effect.map((states) => states.some(stateIsBlocked)),
-      )
+    const isTransient = allStates.pipe(
+      Eff.Effect.map((states) => states.some(stateIsTransient)),
+    )
+    const requiresAck = allStates.pipe(
+      Eff.Effect.map((states) => states.some(stateRequiresAck)),
+    )
+    const isBlocked = allStates.pipe(
+      Eff.Effect.map((states) => states.some(stateIsBlocked)),
+    )
 
-      const awaitUnblocked: Eff.Effect.Effect<void> =
-        all.length === 0
-          ? Eff.Effect.void
-          : Eff.pipe(
-              Eff.Stream.mergeAll(
-                all.map((r) => r.state.changes),
-                { concurrency: 'unbounded' },
-              ),
-              Eff.Stream.mapEffect(() => isBlocked),
-              Eff.Stream.filter((blocked) => !blocked),
-              Eff.Stream.take(1),
-              Eff.Stream.runDrain,
-            )
+    const awaitUnblocked: Eff.Effect.Effect<void> =
+      all.length === 0
+        ? Eff.Effect.void
+        : Eff.pipe(
+            Eff.Stream.mergeAll(
+              all.map((r) => r.state.changes),
+              { concurrency: 'unbounded' },
+            ),
+            Eff.Stream.mapEffect(() => isBlocked),
+            Eff.Stream.filter((blocked) => !blocked),
+            Eff.Stream.take(1),
+            Eff.Stream.runDrain,
+          )
 
-      const contextContribution: Eff.Effect.Effect<Partial<Context.ContextShape>> =
-        Eff.Effect.gen(function* () {
-          const tools: Tool.Collection = {}
-          const overviews: string[] = []
-          for (const r of all) {
-            const s = yield* Eff.SubscriptionRef.get(r.state)
-            if (s._tag === 'Ready') {
-              Object.assign(tools, s.tools)
-            }
-            const overview = renderConnectorOverview(r.config, s)
-            if (overview) overviews.push(overview)
+    const contextContribution: Eff.Effect.Effect<Partial<Context.ContextShape>> =
+      Eff.Effect.gen(function* () {
+        const tools: Tool.Collection = {}
+        const overviews: string[] = []
+        for (const r of all) {
+          const s = yield* Eff.SubscriptionRef.get(r.state)
+          if (s._tag === 'Ready') {
+            Object.assign(tools, s.tools)
           }
-          const messages =
-            overviews.length > 0
-              ? [XML.tag('connectors', {}, ...overviews).toString()]
-              : []
-          return { tools, messages }
-        })
+          const overview = renderConnectorOverview(r.config, s)
+          if (overview) overviews.push(overview)
+        }
+        const messages =
+          overviews.length > 0 ? [XML.tag('connectors', {}, ...overviews).toString()] : []
+        return { tools, messages }
+      })
 
-      return {
-        byId: runtimes,
-        isTransient,
-        requiresAck,
-        isBlocked,
-        awaitUnblocked,
-        contextContribution,
-      }
-    }),
-  )
+    return {
+      byId: runtimes,
+      isTransient,
+      requiresAck,
+      isBlocked,
+      awaitUnblocked,
+      contextContribution,
+    }
+  })
+
+/**
+ * `Layer.scoped` wrapper around `buildService`. Suitable for callers
+ * that compose Connectors purely through the Layer system (e.g., tests).
+ */
+export const layer = (
+  configs: readonly ConnectorConfig[],
+  clientById: Partial<Record<ConnectorId, Mcp.McpClient>> = {},
+): Eff.Layer.Layer<Connectors> =>
+  Eff.Layer.scoped(Connectors, buildService(configs, clientById))
+
+// Re-exports so catalog wiring can resolve auth / render error info
+// without importing the wire-level Mcp module directly.
+export { McpAuthError } from './Mcp'
+export type { McpError, McpTransportError, McpProtocolError, McpRpcError } from './Mcp'

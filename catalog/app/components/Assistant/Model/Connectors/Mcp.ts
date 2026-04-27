@@ -25,10 +25,7 @@ import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as Eff from 'effect'
 import * as uuid from 'uuid'
 
-import * as XML from 'utils/XML'
-
 import * as Content from '../Content'
-import * as Tool from '../Tool'
 
 const PROTOCOL_VERSION = '2025-06-18'
 const CLIENT_INFO = { name: 'quilt-catalog', version: '1' } as const
@@ -458,18 +455,6 @@ const IMAGE_MIME_MAP: Record<string, Content.ImageFormat> = {
   'image/webp': 'webp',
 }
 
-/**
- * Permissive Effect schema for MCP tool inputs.
- *
- * The MCP server's JSON Schema (sent to Bedrock as the tool's `inputSchema`)
- * is authoritative. Server-side validation happens in FastMCP + Pydantic. We
- * don't try to decode inputs client-side — just pass them through.
- */
-const AnyRecord = Eff.Schema.Record({
-  key: Eff.Schema.String,
-  value: Eff.Schema.Unknown,
-})
-
 export function mapContent(block: McpContent): Content.ToolResultContentBlock {
   if (block.type === 'text' && typeof (block as McpContentText).text === 'string') {
     return Content.ToolResultContentBlock.Text({
@@ -495,153 +480,4 @@ export function mapContent(block: McpContent): Content.ToolResultContentBlock {
   return Content.ToolResultContentBlock.Text({
     text: `[unknown content block]\n${JSON.stringify(block)}`,
   })
-}
-
-function makeExecutor(
-  client: McpClient,
-  mcpName: string,
-): Tool.Executor<Record<string, unknown>> {
-  return (args) =>
-    client.callTool(mcpName, args).pipe(
-      Eff.Effect.map((result) => {
-        const content = result.content.map(mapContent)
-        return result.isError ? Tool.fail(...content) : Tool.succeed(...content)
-      }),
-      Eff.Effect.catchAll((err) =>
-        Eff.Effect.succeed(
-          Tool.fail(
-            Content.ToolResultContentBlock.Text({
-              text: `${mcpName}: ${err.message}`,
-            }),
-          ),
-        ),
-      ),
-      Eff.Effect.map(Eff.Option.some),
-    )
-}
-
-/**
- * Build a Qurator `Tool.Descriptor` from an MCP tool.
- *
- * We bypass `Tool.make()` because it runs Effect-Schema decoding over the
- * inputs — the JSON Schema from the server is authoritative for Bedrock, and
- * server-side FastMCP + Pydantic validates the actual call. We construct the
- * descriptor directly: permissive Effect schema for the type wrapper, the
- * MCP server's JSON Schema for Bedrock's tool config.
- */
-export function buildTool(
-  client: McpClient,
-  mcp: McpToolDescriptor,
-): Tool.Descriptor<Record<string, unknown>> {
-  const effectJsonSchema = Tool.makeJSONSchema(AnyRecord)
-  const schema = {
-    ...effectJsonSchema,
-    ...mcp.inputSchema,
-    description: mcp.description ?? effectJsonSchema.description,
-  }
-  return {
-    description: mcp.description,
-    schema,
-    executor: makeExecutor(client, mcp.name),
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Session bootstrap
-// ---------------------------------------------------------------------------
-
-/**
- * Bootstrap state for `usePlatformContext`. Discriminated union so
- * impossible states (e.g. `Ready` with an `error`) are unrepresentable.
- * Consumers pattern-match via `PlatformContextState.$match` (built into
- * the Data.taggedEnum constructor).
- */
-export type PlatformContextState = Eff.Data.TaggedEnum<{
-  Loading: {}
-  Ready: { readonly tools: Tool.Collection; readonly messages: string[] }
-  Error: { readonly error: McpError }
-}>
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PlatformContextState = Eff.Data.taggedEnum<PlatformContextState>()
-
-/**
- * Platform resources surfaced as Qurator context messages. The server's
- * response is XML-tag-wrapped (so the LLM treats it as reference, not a
- * conversation turn) and folded into the bootstrap `messages` array.
- *
- * `quilt-platform://search_syntax` — Elasticsearch query field reference.
- * `quilt-platform://athena` — Athena config + table discovery (best-effort:
- *   the resource is opt-in by stack config; absence is normal).
- *
- * `buckets` is intentionally not surfaced: it duplicates the bucket info
- * already in `GlobalContext/stack.ts`. `me` is also catalog-resident.
- */
-const RESOURCES: ReadonlyArray<{ uri: string; tag: string }> = [
-  { uri: 'quilt-platform://search_syntax', tag: 'platform-search-syntax' },
-  { uri: 'quilt-platform://athena', tag: 'platform-athena' },
-]
-
-/**
- * Namespace prefix for MCP-discovered tools in the catalog `Tool.Collection`.
- * MCP itself is a transport detail and shouldn't show in user-visible tool
- * names. Future MCP servers would namespace as e.g. `catalog__<name>`.
- */
-export const TOOL_PREFIX = 'platform__'
-
-/**
- * Retry policy for transport-class failures during bootstrap. Auth /
- * protocol / RPC errors don't auto-retry — they're either user-actionable
- * (re-login) or code-shape mismatches that won't change on a re-attempt.
- *
- * Tuning: 2 retries, 500ms / 1s backoff. Caps total wall time at ~1.5s
- * before surfacing Error so the UI still lands within a reasonable window.
- */
-const TRANSPORT_RETRY = {
-  while: (e: McpError) => e._tag === 'McpTransportError',
-  schedule: Eff.Schedule.exponential('500 millis'),
-  times: 2,
-}
-
-/**
- * Fetch tools and optional resource context from PMS. Never fails — surfaces
- * errors through the returned state so the UI can render regardless. Auto-
- * retries transport-class failures inside the bootstrap.
- */
-export function loadContext(
-  client: McpClient,
-): Eff.Effect.Effect<PlatformContextState, never> {
-  const readResourceAsMessage = (uri: string, tag: string) =>
-    client.readResource(uri).pipe(
-      Eff.Effect.map((res) => {
-        const text = res.contents
-          .map((c) => c.text ?? '')
-          .join('\n')
-          .trim()
-        return text ? XML.tag(tag, {}, text).toString() : null
-      }),
-      Eff.Effect.catchAll(() => Eff.Effect.succeed(null)),
-    )
-
-  const bootstrap = Eff.Effect.gen(function* () {
-    yield* client.initialize()
-    const mcpTools = yield* client.listTools()
-    const tools: Tool.Collection = {}
-    for (const t of mcpTools) {
-      tools[`${TOOL_PREFIX}${t.name}`] = buildTool(client, t)
-    }
-    const resources = yield* Eff.Effect.all(
-      RESOURCES.map((r) => readResourceAsMessage(r.uri, r.tag)),
-      { concurrency: 'unbounded' },
-    )
-    const messages = resources.filter((m): m is string => m !== null)
-    return { tools, messages }
-  }).pipe(Eff.Effect.retry(TRANSPORT_RETRY))
-
-  return bootstrap.pipe(
-    Eff.Effect.map(PlatformContextState.Ready),
-    Eff.Effect.catchAll((error) =>
-      Eff.Effect.succeed(PlatformContextState.Error({ error })),
-    ),
-  )
 }
