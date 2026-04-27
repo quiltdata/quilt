@@ -15,6 +15,7 @@ import { describe, expect, it, vi } from 'vitest'
 import * as Actor from 'utils/Actor'
 
 import * as Connectors from './Connectors'
+import * as Content from './Content'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as LLM from './LLM'
@@ -214,5 +215,74 @@ describe('Conversation actor — connector gating', () => {
         if (second._tag !== 'AwaitingConnector') return
         expect(second.waiter).not.toBe(waiter1)
       }),
+    ))
+
+  /**
+   * The other gate point in `advanceFromEvents` is `ToolUse.ToolResult`
+   * (last call resolves). Set up: Idle + Ask while unblocked → LLM
+   * returns ToolUse → ToolUse state → mid-tool-execution, flip blocked
+   * → tool resolves → handler reads isBlocked synchronously → must
+   * transition to AwaitingConnector, not WaitingForAssistant.
+   */
+  it('ToolUse + ToolResult (last) + connectors blocked → AwaitingConnector', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          // Gate the LLM converse so we can sequence: ToolUse arrives only
+          // after we've staged the test, and the tool fiber doesn't race
+          // ahead before we flip isBlocked.
+          const llmGate = yield* Eff.Deferred.make<void>()
+          const llmResponded = yield* Eff.Deferred.make<void>()
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.await(llmGate)
+                yield* Eff.Deferred.succeed(llmResponded, undefined)
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'tu1',
+                      name: 'missing-tool',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, makeConnectorsStub(isBlockedRef)),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          // Ask while unblocked → WaitingForAssistant; LLM is still gated.
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'do thing' }))
+          yield* awaitState(actor, (s) => s._tag === 'WaitingForAssistant')
+
+          // Block connectors NOW so by the time the tool resolves and
+          // ToolResult fires, the next gate evaluates true.
+          yield* Eff.SubscriptionRef.set(isBlockedRef, true)
+
+          // Release the LLM. ToolUse landed → tool fiber executes the
+          // unknown tool ("Tool 'missing-tool' not found" → Tool.fail) →
+          // ToolResult dispatched → advanceFromEvents reads isBlocked →
+          // AwaitingConnector.
+          yield* Eff.Deferred.succeed(llmGate, undefined)
+          yield* Eff.Deferred.await(llmResponded)
+
+          const next = yield* awaitState(actor, (s) => s._tag === 'AwaitingConnector')
+          expect(next._tag).toBe('AwaitingConnector')
+          if (next._tag !== 'AwaitingConnector') return
+          // Two events: user message + tool-use record (with the fail result).
+          expect(next.events).toHaveLength(2)
+          expect(next.events[0]._tag).toBe('Message')
+          expect(next.events[1]._tag).toBe('ToolUse')
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
 })

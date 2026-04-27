@@ -30,22 +30,42 @@ import * as Tool from '../Tool'
 // ---------------------------------------------------------------------------
 
 /**
+ * Abstract error category surfaced to UI / lifecycle — independent of
+ * the concrete wire protocol. Backends must map their wire-level errors
+ * onto these tags so the connector layer (and DevTools) doesn't speak
+ * "MCP" or any other transport vocabulary.
+ *
+ *   Transport   — network-level failure (timeouts, refused connections,
+ *                 5xx, transport health degraded). Counts toward health.
+ *   Auth        — credentials missing / rejected. Application-level.
+ *   Protocol    — wire envelope / schema decode failure.
+ *   Application — server-side business error (e.g., JSON-RPC error).
+ */
+export type BackendErrorTag = 'Transport' | 'Auth' | 'Protocol' | 'Application'
+
+/**
  * A tagged error returned by a backend operation. Concrete error
  * classes live in the backend implementation; lifecycle only inspects
- * `_tag` (for telemetry / UI hover) and `transient` (whether to count
- * toward the health threshold).
+ * `_tag` (for routing / health classification) and `transient` (whether
+ * to count toward the health threshold). `cause` carries the wire-level
+ * tag for telemetry / hover detail; UI primary copy uses `_tag` +
+ * `message`.
  */
 export interface BackendError {
-  readonly _tag: string
+  readonly _tag: BackendErrorTag
   readonly message: string
   /**
    * Whether this error counts toward the health threshold. True for
-   * transport-level failures (timeouts, refused connections, 5xx);
-   * false for application-level failures (RPC errors, schema mismatches,
-   * auth). Lifecycle uses this to decide whether to bump the health
-   * counter on tool-call failure (D24).
+   * `Transport` errors (the only category that signals network-level
+   * failure); false otherwise. Lifecycle uses this to decide whether to
+   * bump the health counter on tool-call failure (D24).
    */
   readonly transient?: boolean
+  /**
+   * Optional wire-level error tag (e.g., MCP's `McpTransportError`).
+   * Surfaced in DevTools detail / hover; not used for control flow.
+   */
+  readonly cause?: string
 }
 
 export interface BackendToolDescriptor {
@@ -238,15 +258,17 @@ interface Health {
 const INITIAL_HEALTH: Health = { consecutiveFailures: 0, lastError: null }
 
 /**
- * Construct a transient `BackendError` for lifecycle-internal failures
+ * Construct a `Transport` `BackendError` for lifecycle-internal failures
  * (ping timeout, threshold-degraded, reconnect-exhausted) — situations
  * where the lifecycle synthesizes an error rather than receiving one
- * from the backend.
+ * from the backend. `cause` carries the lifecycle-internal kind for
+ * telemetry detail.
  */
-const transientError = (tag: string, message: string): BackendError => ({
-  _tag: tag,
+const transientError = (cause: string, message: string): BackendError => ({
+  _tag: 'Transport',
   message,
   transient: true,
+  cause,
 })
 
 type Control = 'retry' | 'acknowledge'
@@ -417,6 +439,12 @@ const awaitThresholdCrossed = (
  * returns the fresh `Tool.Collection`, exhaustion fails with the last
  * `BackendError`. The connector stays in `Disconnected{retrying:true}`
  * throughout — UI shows "reconnecting…".
+ *
+ * Followup (qhq-5d0.6): D24 also specifies an escalating heartbeat
+ * during Disconnected (5s → 30s with backoff). Not implemented today —
+ * only the 3-attempt bootstrap budget runs. If the catalog is offline
+ * for longer than 13s, the connector goes Failed{acked:false} without
+ * attempting transport-only probes that might surface earlier.
  */
 const runReconnectBudget = (
   config: ConnectorConfig,
@@ -496,8 +524,12 @@ export const manageConnector = (
       let tools = initial.right
       let inReady = true
       while (inReady) {
-        yield* Eff.SubscriptionRef.set(state, ConnectorState.Ready({ tools }))
+        // Reset health BEFORE flipping state to Ready: any tool call
+        // observing the Ready transition then sees a clean health
+        // counter (no carried-over `consecutiveFailures` from a prior
+        // Disconnected cycle).
         yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
+        yield* Eff.SubscriptionRef.set(state, ConnectorState.Ready({ tools }))
 
         // Race: heartbeat loop runs forever; threshold-crossing watcher
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any

@@ -95,6 +95,14 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
  * sync allocations (`SubscriptionRef.make`, `Queue.unbounded`,
  * `forkScoped`), with no async boundaries. The forked fibers run
  * independently of the build call.
+ *
+ * Known limitation (qhq-5d0.5): allocation happens during render via
+ * `useConst`. If React aborts the render before commit (Suspense
+ * unwind, Error Boundary, concurrent-mode discard), the cleanup
+ * `useEffect` never fires and the lifecycle fibers leak. Mitigation:
+ * `<AssistantProvider>` is mounted at app root above any Suspense
+ * boundaries. Proper fix is to defer allocation into `useEffect` and
+ * expose a Loading state on AssistantAPI.
  */
 function useConnectors(
   configs: readonly Connectors.ConnectorConfig[],

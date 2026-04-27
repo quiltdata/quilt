@@ -523,16 +523,28 @@ const adaptResult = (r: McpToolResult): Tool.Result => {
 }
 
 /**
- * Map a wire-level `McpError` to the abstract `BackendError`. Only
- * `McpTransportError` is `transient: true` — it's the only wire error
- * that signals a network-level failure (timeouts, refused connections,
- * 5xx). Auth / protocol / RPC errors are application-level: they don't
- * count toward the health threshold and don't trigger read-only retry.
+ * Map a wire-level `McpError` to the abstract `BackendError`. Wire tag
+ * is preserved on `cause` for DevTools / telemetry; UI copy comes from
+ * the abstract `_tag` and `message` so MCP vocabulary doesn't leak past
+ * the connector boundary.
+ *
+ *   McpTransportError  → Transport (transient)
+ *   McpAuthError       → Auth
+ *   McpProtocolError   → Protocol
+ *   McpRpcError        → Application
  */
+const ERROR_TAG_MAP: Record<McpError['_tag'], BackendError['_tag']> = {
+  McpTransportError: 'Transport',
+  McpAuthError: 'Auth',
+  McpProtocolError: 'Protocol',
+  McpRpcError: 'Application',
+}
+
 const adaptError = (e: McpError): BackendError => ({
-  _tag: e._tag,
+  _tag: ERROR_TAG_MAP[e._tag],
   message: e.message,
   transient: e._tag === 'McpTransportError',
+  cause: e._tag,
 })
 
 export interface BearerPassthruOptions {

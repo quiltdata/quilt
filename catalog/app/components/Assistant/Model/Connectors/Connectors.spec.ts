@@ -38,13 +38,13 @@ const baseConfig = (
 })
 
 const transportError: Connectors.BackendError = {
-  _tag: 'TransportError',
+  _tag: 'Transport',
   message: 'down',
   transient: true,
 }
 
 const authError: Connectors.BackendError = {
-  _tag: 'AuthError',
+  _tag: 'Auth',
   message: 'no session token',
   transient: false,
 }
@@ -148,7 +148,7 @@ describe('Connectors', () => {
           expect(failed._tag).toBe('Failed')
           if (failed._tag !== 'Failed') return
           expect(failed.acked).toBe(false)
-          expect(failed.error._tag).toBe('AuthError')
+          expect(failed.error._tag).toBe('Auth')
         }),
       ))
 
@@ -317,7 +317,7 @@ describe('Connectors', () => {
           expect(dc._tag).toBe('Disconnected')
           if (dc._tag !== 'Disconnected') return
           expect(dc.retrying).toBe(true)
-          expect(dc.error._tag).toBe('TransportError')
+          expect(dc.error._tag).toBe('Transport')
         }),
       ))
 
