@@ -43,7 +43,11 @@ function Fcs({ className, preview, metadata, note, vegaLite, warnings, ...props 
     <div className={className} {...props}>
       {renderWarnings(warnings)}
       {!!metadata && <JsonDisplay name="Metadata" value={metadata} />}
-      {!!vegaLite && <Vega className={classes.chart} spec={vegaLite} />}
+      {!!vegaLite && (
+        <div className={classes.chart}>
+          <Vega spec={vegaLite} />
+        </div>
+      )}
       {!!preview && (
         <div
           title={note}
