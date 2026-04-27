@@ -1,6 +1,7 @@
 """
 Preview helper functions
 """
+import json
 import os
 import pathlib
 import tempfile
@@ -189,6 +190,32 @@ class TestPreview(TestCase):
         assert spec['encoding']['x']['title'] == 'alpha'
         assert spec['encoding']['y']['title'] == 'beta'
         assert len(spec['data']['values']) == FCS_SCATTER_LIMIT
+
+    def test_fcs_scatter_spec_filters_nan_and_inf(self):
+        data = pandas.DataFrame(
+            {
+                'alpha': [1.0, float('nan'), 3.0, float('inf'), 5.0],
+                'beta': [2.0, 4.0, float('-inf'), 8.0, 10.0],
+            }
+        )
+
+        spec = _build_fcs_scatter_spec(data)
+
+        assert spec is not None
+        values = spec['data']['values']
+        assert values == [{'x': 1.0, 'y': 2.0}, {'x': 5.0, 'y': 10.0}]
+        # JSON-serializable (this is what would have failed pre-fix)
+        json.dumps(spec)
+
+    def test_fcs_scatter_spec_all_nan_returns_none(self):
+        data = pandas.DataFrame(
+            {
+                'alpha': [float('nan'), float('inf')],
+                'beta': [float('-inf'), float('nan')],
+            }
+        )
+
+        assert _build_fcs_scatter_spec(data) is None
 
     def test_parse_fcs_text_segment(self):
         text_segment = b'|$PAR|2|$P1N|FSC-A|$P2S|SSC||A|'

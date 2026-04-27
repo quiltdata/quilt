@@ -8,6 +8,7 @@ from io import BytesIO
 from math import ceil
 from typing import Tuple
 
+import numpy
 import pandas
 from flowio import FlowData
 from xlrd.biffh import XLRDError
@@ -263,21 +264,31 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
     x_axis, y_axis = _select_fcs_scatter_axes(list(data.columns))
     sampled = data[[x_axis, y_axis]]
 
-    if len(sampled) > limit:
+    downsampled = len(sampled) > limit
+    if downsampled:
         step = ceil(len(sampled) / limit)
         sampled = sampled.iloc[::step].head(limit)
+
+    # FCS event data routinely contains NaN/Inf (out-of-range detector readings,
+    # dead-cell/debris). json.dumps raises ValueError on those by default, so an
+    # unfiltered values list would break the entire preview response.
+    sampled = sampled[numpy.isfinite(sampled.to_numpy(dtype=float)).all(axis=1)]
+    if sampled.empty:
+        return None
 
     values = [
         {'x': x_value, 'y': y_value}
         for x_value, y_value in sampled.itertuples(index=False, name=None)
     ]
 
+    subtitle = f'Downsampled to {len(values)} events' if downsampled else f'{len(values)} events'
+
     return {
         '$schema': 'https://vega.github.io/schema/vega-lite/v5.json',
         'description': 'Downsampled FCS scatter plot preview',
         'title': {
             'text': f'{x_axis} vs {y_axis}',
-            'subtitle': f'Downsampled to {len(values)} events',
+            'subtitle': subtitle,
         },
         'width': 'container',
         'height': 320,
