@@ -192,4 +192,27 @@ describe('Conversation actor — connector gating', () => {
         expect(next.events[0].discarded).toBe(true)
       }),
     ))
+
+  it('AwaitingConnector re-enters fresh on each Ask while blocked (no waiter leak)', () =>
+    runActor((actor, isBlocked) =>
+      Eff.Effect.gen(function* () {
+        yield* Eff.SubscriptionRef.set(isBlocked, true)
+        // First Ask while blocked → AwaitingConnector with waiter₁
+        yield* actor.dispatch(Conversation.Action.Ask({ content: 'one' }))
+        const first = yield* awaitState(actor, (s) => s._tag === 'AwaitingConnector')
+        if (first._tag !== 'AwaitingConnector') return
+        const waiter1 = first.waiter
+        // Abort to clear, then re-Ask — verifies the waiter handle is fresh
+        // each entry rather than reusing a stale fiber from a prior cycle.
+        yield* actor.dispatch(Conversation.Action.Abort())
+        yield* awaitState(actor, (s) => s._tag === 'Idle')
+        yield* actor.dispatch(Conversation.Action.Ask({ content: 'two' }))
+        const second = yield* awaitState(
+          actor,
+          (s) => s._tag === 'AwaitingConnector' && s.events.length === 2,
+        )
+        if (second._tag !== 'AwaitingConnector') return
+        expect(second.waiter).not.toBe(waiter1)
+      }),
+    ))
 })

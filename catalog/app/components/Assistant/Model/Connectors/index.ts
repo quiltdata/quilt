@@ -125,6 +125,16 @@ export const stateIsBlocked = (s: ConnectorState): boolean =>
  * the UI invokes; `callTool` is the executor entrypoint Tool descriptors
  * close over.
  */
+/**
+ * Optional knobs for one tool-call invocation. Today the only knob is
+ * `retryOnTransport`: when `true`, a single transport-level failure is
+ * retried before reporting the error and bumping the health counter
+ * (D24 — read-only-tool auto-retry).
+ */
+export interface CallToolOptions {
+  readonly retryOnTransport?: boolean
+}
+
 export interface ConnectorRuntime {
   readonly id: ConnectorId
   readonly config: ConnectorConfig
@@ -134,6 +144,7 @@ export interface ConnectorRuntime {
   readonly callTool: (
     name: string,
     input: Record<string, unknown>,
+    opts?: CallToolOptions,
   ) => Eff.Effect.Effect<Tool.Result>
 }
 
@@ -201,9 +212,10 @@ const AnyRecord = Eff.Schema.Record({
 
 /**
  * Build a `Tool.Descriptor` whose executor routes through the
- * connector's gated `callTool`. Identical schema-passthrough as
- * `Mcp.buildTool` but the executor goes through the layer's
- * fast-fail-when-not-Ready path (D27).
+ * connector's gated `callTool` (D27 — fast-fail when not Ready). Tools
+ * marked `readOnlyHint` are configured to auto-retry once on transport
+ * error (D24); tools without the hint, or marked destructive, fail
+ * immediately on the first transport failure.
  */
 const buildConnectorTool = (
   callTool: ConnectorRuntime['callTool'],
@@ -215,10 +227,14 @@ const buildConnectorTool = (
     ...mcp.inputSchema,
     description: mcp.description ?? effectJsonSchema.description,
   }
+  const retryOnTransport = mcp.annotations?.readOnlyHint === true
   return {
     description: mcp.description,
     schema,
-    executor: (args) => callTool(mcp.name, args).pipe(Eff.Effect.map(Eff.Option.some)),
+    executor: (args) =>
+      callTool(mcp.name, args, { retryOnTransport }).pipe(
+        Eff.Effect.map(Eff.Option.some),
+      ),
   }
 }
 
@@ -227,6 +243,11 @@ const buildConnectorTool = (
  * and updates the shared health ref on transport-level outcome (D24,
  * D27). Non-transport McpRpcError / McpProtocolError don't disturb
  * health — those are server-application errors, not transport ones.
+ *
+ * `retryOnTransport` (set by `buildConnectorTool` for read-only tools)
+ * triggers a single re-attempt on the first transport failure before
+ * reporting the error or counting toward the threshold (D24). The
+ * second attempt's outcome is what hits health.
  */
 const makeConnectorCallTool =
   (
@@ -235,7 +256,11 @@ const makeConnectorCallTool =
     state: Eff.SubscriptionRef.SubscriptionRef<ConnectorState>,
     health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   ) =>
-  (name: string, input: Record<string, unknown>): Eff.Effect.Effect<Tool.Result> =>
+  (
+    name: string,
+    input: Record<string, unknown>,
+    opts: CallToolOptions = {},
+  ): Eff.Effect.Effect<Tool.Result> =>
     Eff.Effect.gen(function* () {
       const current = yield* Eff.SubscriptionRef.get(state)
       if (current._tag !== 'Ready') {
@@ -245,7 +270,15 @@ const makeConnectorCallTool =
           }),
         )
       }
-      const result = yield* client.callTool(name, input).pipe(Eff.Effect.either)
+      const attempt = client.callTool(name, input).pipe(Eff.Effect.either)
+      let result = yield* attempt
+      if (
+        opts.retryOnTransport &&
+        Eff.Either.isLeft(result) &&
+        result.left._tag === 'McpTransportError'
+      ) {
+        result = yield* attempt
+      }
       if (Eff.Either.isLeft(result)) {
         const err = result.left
         if (err._tag === 'McpTransportError') {
@@ -359,12 +392,20 @@ const runReconnectBudget = (
  * (caller loops back to Connecting); `'acknowledge'` flips
  * `Failed.acked = true` in place and keeps listening (user may still
  * click Retry afterwards).
+ *
+ * Stale-token drain at entry: any controls offered while the lifecycle
+ * was elsewhere (Connecting / Ready / Disconnected, where there's no
+ * Retry-from-Failed semantics) get cleared before we start listening,
+ * so a button click during a transient state doesn't short-circuit the
+ * next user-action gate. Without this, `runtime.retry` from non-Failed
+ * states could buffer and immediately fire on the next Failed entry.
  */
 const awaitRetryControl = (
   state: Eff.SubscriptionRef.SubscriptionRef<ConnectorState>,
   controls: Eff.Queue.Queue<Control>,
 ): Eff.Effect.Effect<void> =>
   Eff.Effect.gen(function* () {
+    yield* Eff.Queue.takeAll(controls)
     while (true) {
       const cmd = yield* Eff.Queue.take(controls)
       if (cmd === 'retry') return

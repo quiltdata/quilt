@@ -34,10 +34,23 @@ const CLIENT_INFO = { name: 'quilt-catalog', version: '1' } as const
 // Types (wire + tool)
 // ---------------------------------------------------------------------------
 
+/**
+ * Subset of MCP tool annotations the catalog cares about. The wire spec
+ * permits more (e.g. `idempotentHint`, `openWorldHint`); the connector
+ * layer only consumes `readOnlyHint` today (D24 — read-only-tool
+ * auto-retry once on transport error before counting toward the
+ * health-threshold).
+ */
+export interface McpToolAnnotations {
+  readOnlyHint?: boolean
+  destructiveHint?: boolean
+}
+
 export interface McpToolDescriptor {
   name: string
   description?: string
   inputSchema: Record<string, unknown>
+  annotations?: McpToolAnnotations
 }
 
 export interface McpContentText {
@@ -204,6 +217,11 @@ const McpContentSchema = Eff.Schema.Union(
   McpContentUnknownSchema,
 )
 
+const McpToolAnnotationsSchema = Eff.Schema.Struct({
+  readOnlyHint: Eff.Schema.optional(Eff.Schema.Boolean),
+  destructiveHint: Eff.Schema.optional(Eff.Schema.Boolean),
+})
+
 const McpToolDescriptorSchema = Eff.Schema.Struct({
   name: Eff.Schema.String,
   description: Eff.Schema.optional(Eff.Schema.String),
@@ -211,6 +229,7 @@ const McpToolDescriptorSchema = Eff.Schema.Struct({
     key: Eff.Schema.String,
     value: Eff.Schema.Unknown,
   }),
+  annotations: Eff.Schema.optional(McpToolAnnotationsSchema),
 })
 
 const ToolsListResponseSchema = Eff.Schema.Struct({
