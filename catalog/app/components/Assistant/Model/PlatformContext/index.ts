@@ -1,18 +1,19 @@
 /**
- * PlatformMcpContext — bridge from Quilt Platform MCP Server to Qurator.
+ * PlatformContext — bridge from the Quilt platform to Qurator.
  *
  * Runs once per Assistant session:
- *   1. `initialize` + `tools/list` against the MCP server.
- *   2. For each MCP tool, create a Qurator `Tool.Descriptor` prefixed with
- *      `mcp__platform__`. Executor proxies to `tools/call`.
+ *   1. `initialize` + `tools/list` against the Platform MCP Server.
+ *   2. For each platform tool, create a Qurator `Tool.Descriptor` prefixed
+ *      with `mcp__platform__`. Executor proxies to `tools/call`.
  *   3. Read the `quilt-platform://search_syntax` resource as an XML-tagged
  *      context message so the LLM can construct better search queries.
- *   4. Push the resulting `{ tools, messages }` into the shared context.
+ *   4. Push the resulting `{ tools, messages }` into the shared Assistant
+ *      context.
  *
  * The MCP server runs stateless HTTP, so there's no persistent connection to
  * manage. Every tool call is an independent POST with the current session
- * token. Bootstrap runs as an Effect on the shared runtime; fiber interruption
- * aborts in-flight fetches when the Provider unmounts.
+ * token. Bootstrap runs as an Effect on the shared runtime; fiber
+ * interruption aborts in-flight fetches when the Assistant unmounts.
  *
  * URL defaults to `${registryUrl}/mcp/platform/mcp`. Override for local dev
  * via `localStorage.setItem('QUILT_MCP_URL', '…')` (same pattern as
@@ -32,7 +33,7 @@ import * as Context from '../Context'
 
 import * as Mcp from './Mcp'
 
-const MODULE = 'PlatformMcpContext'
+const MODULE = 'PlatformContext'
 const LOGGER = Log.default.getLogger(MODULE)
 
 const MCP_URL_KEY = 'QUILT_MCP_URL'
@@ -49,7 +50,7 @@ function getMcpUrl(): string {
  * React hook — returns MCP context state (for UI affordances) AND pushes
  * the discovered tools + resource messages into Qurator's context.
  */
-export function usePlatformMcpContext() {
+export function usePlatformContext() {
   const tokens = redux.useSelector(authSelectors.tokens)
   const tokenRef = React.useRef<string | null>(null)
   tokenRef.current = (tokens && (tokens as { token?: string }).token) || null
@@ -89,4 +90,4 @@ export function usePlatformMcpContext() {
   return state
 }
 
-export { usePlatformMcpContext as use }
+export { usePlatformContext as use }

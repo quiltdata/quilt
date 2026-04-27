@@ -31,7 +31,7 @@ const stubClient = (overrides: Partial<Mcp.McpClient> = {}): Mcp.McpClient => ({
   ...overrides,
 })
 
-describe('PlatformMcpContext/Mcp', () => {
+describe('PlatformContext/Mcp', () => {
   describe('mapContent', () => {
     it('maps text blocks directly', () => {
       const out = Mcp.mapContent({ type: 'text', text: 'hello' })
