@@ -197,7 +197,7 @@ interface PlatformStatusProps {
 function PlatformStatus({ state, retry }: PlatformStatusProps) {
   return (
     <div aria-live="polite">
-      {Model.PlatformContext.matchState(state, {
+      {Model.PlatformContext.PlatformContextState.$match(state, {
         Loading: () => (
           <MessageContainer color="faint">Loading platform tools…</MessageContainer>
         ),

@@ -140,7 +140,8 @@ export function usePlatformContext(): PlatformContextHandle {
 
 export { usePlatformContext as use }
 
-// Re-export wire-level state shape and helpers so chat-UI consumers don't
-// have to dig into the transport module.
-export { PlatformContextState, matchState } from './Mcp'
+// Re-export wire-level state shape so chat-UI consumers don't have to dig
+// into the transport module. `PlatformContextState.$match` is the
+// built-in pattern-match — no separate helper needed.
+export { PlatformContextState } from './Mcp'
 export type { McpError } from './Mcp'

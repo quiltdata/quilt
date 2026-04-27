@@ -544,61 +544,36 @@ export function buildTool(
 // ---------------------------------------------------------------------------
 
 /**
- * Bootstrap state for `usePlatformContext`. Discriminated by `_tag` so
- * impossible states (`Ready` with an `error`, `Error` with no `error`) are
- * unrepresentable. Consumers should pattern-match on `_tag` rather than
- * inspecting fields conditionally.
- *
- * `Eff.Data.taggedEnum` is sidestepped here for the same reason errors
- * above use plain classes — the catalog babel target chokes on extending
- * runtime-produced classes. Plain object constructors compile cleanly and
- * give the same shape for `Match.tag`.
+ * Bootstrap state for `usePlatformContext`. Discriminated union so
+ * impossible states (e.g. `Ready` with an `error`) are unrepresentable.
+ * Consumers pattern-match via `PlatformContextState.$match` (built into
+ * the Data.taggedEnum constructor).
  */
-export type PlatformContextState =
-  | { readonly _tag: 'Loading' }
-  | {
-      readonly _tag: 'Ready'
-      readonly tools: Tool.Collection
-      readonly messages: string[]
-    }
-  | { readonly _tag: 'Error'; readonly error: McpError }
+export type PlatformContextState = Eff.Data.TaggedEnum<{
+  Loading: {}
+  Ready: { readonly tools: Tool.Collection; readonly messages: string[] }
+  Error: { readonly error: McpError }
+}>
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PlatformContextState = {
-  Loading: (): PlatformContextState => ({ _tag: 'Loading' }),
-  Ready: (props: {
-    tools: Tool.Collection
-    messages: string[]
-  }): PlatformContextState => ({ _tag: 'Ready', ...props }),
-  Error: (props: { error: McpError }): PlatformContextState => ({
-    _tag: 'Error',
-    ...props,
-  }),
-}
+export const PlatformContextState = Eff.Data.taggedEnum<PlatformContextState>()
 
 /**
- * Pattern-match a PlatformContextState. Pure data dispatch — useful in
- * UI render paths where `Eff.Match.tag` adds an import for one usage.
+ * Platform resources surfaced as Qurator context messages. The server's
+ * response is XML-tag-wrapped (so the LLM treats it as reference, not a
+ * conversation turn) and folded into the bootstrap `messages` array.
+ *
+ * `quilt-platform://search_syntax` — Elasticsearch query field reference.
+ * `quilt-platform://athena` — Athena config + table discovery (best-effort:
+ *   the resource is opt-in by stack config; absence is normal).
+ *
+ * `buckets` is intentionally not surfaced: it duplicates the bucket info
+ * already in `GlobalContext/stack.ts`. `me` is also catalog-resident.
  */
-export const matchState = <A>(
-  state: PlatformContextState,
-  cases: {
-    Loading: () => A
-    Ready: (s: { tools: Tool.Collection; messages: string[] }) => A
-    Error: (s: { error: McpError }) => A
-  },
-): A => {
-  switch (state._tag) {
-    case 'Loading':
-      return cases.Loading()
-    case 'Ready':
-      return cases.Ready(state)
-    case 'Error':
-      return cases.Error(state)
-  }
-}
-
-const SEARCH_SYNTAX_URI = 'quilt-platform://search_syntax'
+const RESOURCES: ReadonlyArray<{ uri: string; tag: string }> = [
+  { uri: 'quilt-platform://search_syntax', tag: 'platform-search-syntax' },
+  { uri: 'quilt-platform://athena', tag: 'platform-athena' },
+]
 
 /**
  * Namespace prefix for MCP-discovered tools in the catalog `Tool.Collection`.
@@ -629,16 +604,17 @@ const TRANSPORT_RETRY = {
 export function loadContext(
   client: McpClient,
 ): Eff.Effect.Effect<PlatformContextState, never> {
-  const searchSyntaxMessages = client.readResource(SEARCH_SYNTAX_URI).pipe(
-    Eff.Effect.map((syntax) => {
-      const text = syntax.contents
-        .map((c) => c.text ?? '')
-        .join('\n')
-        .trim()
-      return text ? [XML.tag('platform-mcp-search-syntax', {}, text).toString()] : []
-    }),
-    Eff.Effect.catchAll(() => Eff.Effect.succeed<string[]>([])),
-  )
+  const readResourceAsMessage = (uri: string, tag: string) =>
+    client.readResource(uri).pipe(
+      Eff.Effect.map((res) => {
+        const text = res.contents
+          .map((c) => c.text ?? '')
+          .join('\n')
+          .trim()
+        return text ? XML.tag(tag, {}, text).toString() : null
+      }),
+      Eff.Effect.catchAll(() => Eff.Effect.succeed(null)),
+    )
 
   const bootstrap = Eff.Effect.gen(function* () {
     yield* client.initialize()
@@ -647,7 +623,11 @@ export function loadContext(
     for (const t of mcpTools) {
       tools[`${TOOL_PREFIX}${t.name}`] = buildTool(client, t)
     }
-    const messages = yield* searchSyntaxMessages
+    const resources = yield* Eff.Effect.all(
+      RESOURCES.map((r) => readResourceAsMessage(r.uri, r.tag)),
+      { concurrency: 'unbounded' },
+    )
+    const messages = resources.filter((m): m is string => m !== null)
     return { tools, messages }
   }).pipe(Eff.Effect.retry(TRANSPORT_RETRY))
 

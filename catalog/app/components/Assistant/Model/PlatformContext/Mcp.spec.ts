@@ -8,7 +8,7 @@
 
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import * as Eff from 'effect'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import * as Content from '../Content'
 import * as Tool from '../Tool'
@@ -151,7 +151,10 @@ describe('PlatformContext/Mcp', () => {
   })
 
   describe('loadContext', () => {
-    it('discovers tools and renders search_syntax as an XML-tagged message', async () => {
+    it('discovers tools and renders configured resources as XML-tagged messages', async () => {
+      // Stub returns text for search_syntax, fails for athena → only one
+      // message should land. Verifies per-URI dispatch + best-effort fall-
+      // through on missing resources.
       const client = stubClient({
         listTools: () =>
           Eff.Effect.succeed([
@@ -161,18 +164,41 @@ describe('PlatformContext/Mcp', () => {
               inputSchema: { type: 'object' },
             },
           ]),
-        readResource: () =>
-          Eff.Effect.succeed({
-            contents: [{ uri: 'quilt-platform://search_syntax', text: 'QUERY SYNTAX' }],
-          }),
+        readResource: (uri: string) =>
+          uri === 'quilt-platform://search_syntax'
+            ? Eff.Effect.succeed({
+                contents: [{ uri, text: 'QUERY SYNTAX' }],
+              })
+            : Eff.Effect.fail(
+                new Mcp.McpRpcError({ code: -32602, rpcMessage: 'Resource not found' }),
+              ),
       })
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
       expect(state._tag).toBe('Ready')
       if (state._tag !== 'Ready') throw new Error('expected Ready')
       expect(Object.keys(state.tools)).toEqual([`${Mcp.TOOL_PREFIX}search_packages`])
       expect(state.messages).toHaveLength(1)
-      expect(state.messages[0]).toContain('platform-mcp-search-syntax')
+      expect(state.messages[0]).toContain('platform-search-syntax')
       expect(state.messages[0]).toContain('QUERY SYNTAX')
+    })
+
+    it('surfaces athena resource when configured', async () => {
+      const client = stubClient({
+        listTools: () => Eff.Effect.succeed([]),
+        readResource: (uri: string) =>
+          uri === 'quilt-platform://athena'
+            ? Eff.Effect.succeed({
+                contents: [{ uri, text: 'ATHENA CFG' }],
+              })
+            : Eff.Effect.fail(
+                new Mcp.McpRpcError({ code: -32602, rpcMessage: 'Resource not found' }),
+              ),
+      })
+      const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
+      if (state._tag !== 'Ready') throw new Error('expected Ready')
+      expect(state.messages).toHaveLength(1)
+      expect(state.messages[0]).toContain('platform-athena')
+      expect(state.messages[0]).toContain('ATHENA CFG')
     })
 
     it('still renders tools when search_syntax is unavailable', async () => {
@@ -282,15 +308,11 @@ describe('PlatformContext/Mcp', () => {
 
   describe('make() — wire-level integration', () => {
     /**
-     * Inject a stub fetch via BOTH the `FetchHttpClient.Fetch` service tag
-     * AND `vi.stubGlobal('fetch', …)` so that whichever resolution path the
-     * Effect HTTP layer takes (its tag-then-globalThis fallback chain) we
-     * see the same spy. Belt + suspenders against vitest/jsdom quirks.
+     * Inject a stub fetch via the `FetchHttpClient.Fetch` service tag — the
+     * canonical Effect way. `FetchHttpClient.layer` reads the Fetch tag
+     * from fiber context; providing it overrides the default
+     * `globalThis.fetch` lookup deterministically, no globalThis pollution.
      */
-    afterEach(() => {
-      vi.unstubAllGlobals()
-    })
-
     const captureCalls = (
       respond: () => Response,
     ): {
@@ -311,7 +333,6 @@ describe('PlatformContext/Mcp', () => {
         calls.push({ url: String(url), init, body })
         return respond()
       })
-      vi.stubGlobal('fetch', fetchSpy)
       return { fetchSpy, calls }
     }
 
@@ -486,9 +507,9 @@ describe('PlatformContext/Mcp', () => {
     })
   })
 
-  describe('matchState', () => {
+  describe('PlatformContextState.$match', () => {
     it('dispatches the Loading branch', () => {
-      const out = Mcp.matchState(Mcp.PlatformContextState.Loading(), {
+      const out = Mcp.PlatformContextState.$match(Mcp.PlatformContextState.Loading(), {
         Loading: () => 'L',
         Ready: () => 'R',
         Error: () => 'E',
@@ -501,7 +522,7 @@ describe('PlatformContext/Mcp', () => {
         tools: { platform__x: {} as any },
         messages: ['m'],
       })
-      const out = Mcp.matchState(state, {
+      const out = Mcp.PlatformContextState.$match(state, {
         Loading: () => 0,
         Ready: ({ tools, messages }) => Object.keys(tools).length + messages.length,
         Error: () => -1,
@@ -511,11 +532,14 @@ describe('PlatformContext/Mcp', () => {
 
     it('dispatches the Error branch with the error', () => {
       const err = new Mcp.McpTransportError({ detail: 'x' })
-      const out = Mcp.matchState(Mcp.PlatformContextState.Error({ error: err }), {
-        Loading: () => 'L',
-        Ready: () => 'R',
-        Error: ({ error }) => error._tag,
-      })
+      const out = Mcp.PlatformContextState.$match(
+        Mcp.PlatformContextState.Error({ error: err }),
+        {
+          Loading: () => 'L',
+          Ready: () => 'R',
+          Error: ({ error }) => error._tag,
+        },
+      )
       expect(out).toBe('McpTransportError')
     })
   })
