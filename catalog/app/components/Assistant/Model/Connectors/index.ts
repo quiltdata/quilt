@@ -17,7 +17,9 @@
  */
 
 import * as Eff from 'effect'
+import * as React from 'react'
 
+import { runtime } from 'utils/Effect'
 import * as XML from 'utils/XML'
 
 import * as Content from '../Content'
@@ -626,3 +628,58 @@ export const layer = (
 // without importing the wire-level Mcp module directly.
 export { McpAuthError } from './Mcp'
 export type { McpError, McpTransportError, McpProtocolError, McpRpcError } from './Mcp'
+
+// ---------------------------------------------------------------------------
+// React bridges (D30 — UI reads connector state live)
+// ---------------------------------------------------------------------------
+
+/**
+ * Subscribe to one connector's state ref. Initial value is read sync;
+ * subsequent updates re-render via a forked `Stream.runForEach` over
+ * `state.changes`. Cancels its fiber on unmount.
+ */
+export function useConnectorState(connector: ConnectorRuntime): ConnectorState {
+  const [state, setState] = React.useState<ConnectorState>(() =>
+    runtime.runSync(Eff.SubscriptionRef.get(connector.state)),
+  )
+  React.useEffect(() => {
+    const fiber = runtime.runFork(
+      Eff.Stream.runForEach(connector.state.changes, (s) =>
+        Eff.Effect.sync(() => setState(s)),
+      ),
+    )
+    return () => {
+      runtime.runFork(Eff.Fiber.interrupt(fiber))
+    }
+  }, [connector])
+  return state
+}
+
+/**
+ * Subscribe to the aggregate `isBlocked` predicate. Re-evaluates whenever
+ * any connector's state changes. Defaults to the synchronous current
+ * value at first render.
+ */
+export function useIsBlocked(service: ConnectorsService): boolean {
+  const [blocked, setBlocked] = React.useState<boolean>(() =>
+    runtime.runSync(service.isBlocked),
+  )
+  React.useEffect(() => {
+    const all = Object.values(service.byId)
+    if (all.length === 0) return
+    const fiber = runtime.runFork(
+      Eff.Stream.runForEach(
+        Eff.Stream.mergeAll(
+          all.map((c) => c.state.changes),
+          { concurrency: 'unbounded' },
+        ),
+        () =>
+          Eff.Effect.tap(service.isBlocked, (b) => Eff.Effect.sync(() => setBlocked(b))),
+      ),
+    )
+    return () => {
+      runtime.runFork(Eff.Fiber.interrupt(fiber))
+    }
+  }, [service])
+  return blocked
+}

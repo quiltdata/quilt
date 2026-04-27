@@ -6,6 +6,7 @@ import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
@@ -400,6 +401,132 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
   )
 }
 
+const useConnectorStatusStyles = M.makeStyles((t) => ({
+  region: {
+    background: t.palette.background.paper,
+    borderBottom: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(0.5)}px`,
+    padding: t.spacing(1, 2),
+  },
+  row: {
+    ...t.typography.caption,
+    alignItems: 'center',
+    color: t.palette.text.secondary,
+    display: 'flex',
+    gap: `${t.spacing(1)}px`,
+    minHeight: 24,
+  },
+  title: {
+    fontWeight: 500,
+  },
+  separator: {
+    flexGrow: 1,
+  },
+  spinner: {
+    color: 'inherit',
+  },
+  errorDot: {
+    color: t.palette.error.main,
+  },
+  okDot: {
+    color: t.palette.success.main,
+  },
+}))
+
+interface ConnectorStatusRowProps {
+  connector: Model.Connectors.ConnectorRuntime
+}
+
+/**
+ * Per-connector status row (D30). Reads the connector's state ref live
+ * via useConnectorState and renders one of:
+ * - Connecting               → spinner + "Connecting…"
+ * - Ready                    → title + "ready"
+ * - Disconnected{retrying}   → spinner + title + "reconnecting…"
+ * - Failed{acked:false}      → title + "[Retry] [Continue without]"
+ * - Failed{acked:true}       → title + "unavailable, [Retry]"
+ */
+function ConnectorStatusRow({ connector }: ConnectorStatusRowProps) {
+  const classes = useConnectorStatusStyles()
+  const state = Model.Connectors.useConnectorState(connector)
+
+  const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
+  const onAck = React.useCallback(
+    () => runtime.runFork(connector.acknowledge),
+    [connector],
+  )
+
+  const title = connector.config.title
+
+  return Model.Connectors.ConnectorState.$match(state, {
+    Connecting: () => (
+      <div className={classes.row} role="status" aria-live="polite">
+        <M.CircularProgress size={12} thickness={4} className={classes.spinner} />
+        <span className={classes.title}>{title}</span>
+        <span>connecting…</span>
+      </div>
+    ),
+    Ready: () => (
+      <div className={classes.row} role="status" aria-live="polite">
+        <Icons.CheckCircleOutline fontSize="small" className={classes.okDot} />
+        <span className={classes.title}>{title}</span>
+        <span>ready</span>
+      </div>
+    ),
+    Disconnected: () => (
+      <div className={classes.row} role="status" aria-live="polite">
+        <M.CircularProgress size={12} thickness={4} className={classes.spinner} />
+        <span className={classes.title}>{title}</span>
+        <span>reconnecting…</span>
+      </div>
+    ),
+    Failed: ({ error, acked }) =>
+      acked ? (
+        <div className={classes.row} role="status" aria-live="polite">
+          <Icons.ErrorOutline fontSize="small" className={classes.errorDot} />
+          <span className={classes.title}>{title}</span>
+          <span>unavailable</span>
+          <span className={classes.separator} />
+          <M.Button size="small" variant="outlined" color="primary" onClick={onRetry}>
+            Retry
+          </M.Button>
+        </div>
+      ) : (
+        <div className={classes.row} role="alert">
+          <Icons.ErrorOutline fontSize="small" className={classes.errorDot} />
+          <span className={classes.title}>{title}</span>
+          <span title={error.message}>couldn’t connect</span>
+          <span className={classes.separator} />
+          <M.Button size="small" variant="contained" color="primary" onClick={onRetry}>
+            Retry
+          </M.Button>
+          <M.Button size="small" variant="outlined" onClick={onAck}>
+            Continue without
+          </M.Button>
+        </div>
+      ),
+  })
+}
+
+interface ConnectorStatusRegionProps {
+  connectors: Model.Connectors.ConnectorsService
+}
+
+function ConnectorStatusRegion({ connectors }: ConnectorStatusRegionProps) {
+  const classes = useConnectorStatusStyles()
+  const all = Object.values(connectors.byId)
+  if (all.length === 0) return null
+  return (
+    <div className={classes.region}>
+      {all.map((c) => (
+        <ConnectorStatusRow key={c.id} connector={c} />
+      ))}
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   chat: {
     display: 'flex',
@@ -445,13 +572,15 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
+  connectors: Model.Assistant.API['connectors']
 }
 
-export default function Chat({ state, dispatch, devTools }: ChatProps) {
+export default function Chat({ state, dispatch, devTools, connectors }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  const inputDisabled = state._tag !== 'Idle'
+  const blocked = Model.Connectors.useIsBlocked(connectors)
+  const inputDisabled = state._tag !== 'Idle' || blocked
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
@@ -492,6 +621,7 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
           <DevTools state={state} {...devTools} />
         </M.Paper>
       </M.Slide>
+      <ConnectorStatusRegion connectors={connectors} />
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
