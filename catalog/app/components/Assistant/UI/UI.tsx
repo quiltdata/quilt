@@ -26,7 +26,12 @@ function Sidebar() {
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer anchor="right" open={api.visible} onClose={api.hide}>
         <div className={classes.sidebar}>
-          <Chat state={api.state} dispatch={api.dispatch} devTools={api.devTools} />
+          <Chat
+            state={api.state}
+            dispatch={api.dispatch}
+            devTools={api.devTools}
+            platform={api.platform}
+          />
         </div>
       </M.Drawer>
     </M.MuiThemeProvider>

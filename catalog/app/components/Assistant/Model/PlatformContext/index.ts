@@ -60,15 +60,35 @@ const selectToken = createSelector(
 const EMPTY_PUSH = { tools: {}, messages: [] as string[] }
 
 /**
- * React hook — returns PlatformContext state (for UI affordances) AND
- * pushes the discovered tools + resource messages into Qurator's context.
+ * Handle returned by `usePlatformContext`. Carries the current state and
+ * a manual retry trigger (the chat UI's "retry" button).
  */
-export function usePlatformContext() {
+export interface PlatformContextHandle {
+  state: Mcp.PlatformContextState
+  /**
+   * Re-run bootstrap from scratch. Resets state to Loading, kills the
+   * previous fiber, and starts a fresh `loadContext`. Idempotent: clicking
+   * twice while a fiber is in flight cancels the in-flight one and starts
+   * another. Distinct from the automatic transport-class retry inside
+   * `loadContext` itself — that handles transient blips silently; this is
+   * the user-action path after a definitive failure.
+   */
+  retry: () => void
+}
+
+/**
+ * React hook — returns PlatformContext state + retry callback AND pushes
+ * the discovered tools + resource messages into Qurator's context.
+ */
+export function usePlatformContext(): PlatformContextHandle {
   const store = redux.useStore()
 
   const [state, setState] = React.useState<Mcp.PlatformContextState>(() =>
     Mcp.PlatformContextState.Loading(),
   )
+
+  const [retryToken, setRetryToken] = React.useState(0)
+  const retry = React.useCallback(() => setRetryToken((n) => n + 1), [])
 
   const url = React.useMemo(getMcpUrl, [])
   const client = React.useMemo(
@@ -87,6 +107,7 @@ export function usePlatformContext() {
   )
 
   React.useEffect(() => {
+    setState(Mcp.PlatformContextState.Loading())
     const fiber = runtime.runFork(Mcp.loadContext(client))
     fiber.addObserver((exit) => {
       if (Eff.Exit.isSuccess(exit)) {
@@ -101,7 +122,8 @@ export function usePlatformContext() {
     return () => {
       runtime.runFork(Eff.Fiber.interrupt(fiber))
     }
-  }, [client])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client, retryToken])
 
   Context.usePushContext(
     React.useMemo(
@@ -113,7 +135,12 @@ export function usePlatformContext() {
     ),
   )
 
-  return state
+  return React.useMemo(() => ({ state, retry }), [state, retry])
 }
 
 export { usePlatformContext as use }
+
+// Re-export wire-level state shape and helpers so chat-UI consumers don't
+// have to dig into the transport module.
+export { PlatformContextState, matchState } from './Mcp'
+export type { McpError } from './Mcp'

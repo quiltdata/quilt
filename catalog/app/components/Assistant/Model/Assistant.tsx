@@ -99,7 +99,7 @@ function useConstructAssistantAPI() {
   )
 
   GlobalContext.use()
-  const mcpStatus = PlatformContext.use()
+  const platform = PlatformContext.use()
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
@@ -121,7 +121,7 @@ function useConstructAssistantAPI() {
     assist,
     state,
     dispatch,
-    mcpStatus,
+    platform,
     devTools: { recording, modelIdOverride },
   }
 }

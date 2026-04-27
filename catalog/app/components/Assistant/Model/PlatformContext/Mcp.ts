@@ -576,6 +576,28 @@ export const PlatformContextState = {
   }),
 }
 
+/**
+ * Pattern-match a PlatformContextState. Pure data dispatch — useful in
+ * UI render paths where `Eff.Match.tag` adds an import for one usage.
+ */
+export const matchState = <A>(
+  state: PlatformContextState,
+  cases: {
+    Loading: () => A
+    Ready: (s: { tools: Tool.Collection; messages: string[] }) => A
+    Error: (s: { error: McpError }) => A
+  },
+): A => {
+  switch (state._tag) {
+    case 'Loading':
+      return cases.Loading()
+    case 'Ready':
+      return cases.Ready(state)
+    case 'Error':
+      return cases.Error(state)
+  }
+}
+
 const SEARCH_SYNTAX_URI = 'quilt-platform://search_syntax'
 
 /**
@@ -586,8 +608,23 @@ const SEARCH_SYNTAX_URI = 'quilt-platform://search_syntax'
 export const TOOL_PREFIX = 'platform__'
 
 /**
+ * Retry policy for transport-class failures during bootstrap. Auth /
+ * protocol / RPC errors don't auto-retry — they're either user-actionable
+ * (re-login) or code-shape mismatches that won't change on a re-attempt.
+ *
+ * Tuning: 2 retries, 500ms / 1s backoff. Caps total wall time at ~1.5s
+ * before surfacing Error so the UI still lands within a reasonable window.
+ */
+const TRANSPORT_RETRY = {
+  while: (e: McpError) => e._tag === 'McpTransportError',
+  schedule: Eff.Schedule.exponential('500 millis'),
+  times: 2,
+}
+
+/**
  * Fetch tools and optional resource context from PMS. Never fails — surfaces
- * errors through the returned state so the UI can render regardless.
+ * errors through the returned state so the UI can render regardless. Auto-
+ * retries transport-class failures inside the bootstrap.
  */
 export function loadContext(
   client: McpClient,
@@ -603,7 +640,7 @@ export function loadContext(
     Eff.Effect.catchAll(() => Eff.Effect.succeed<string[]>([])),
   )
 
-  return Eff.Effect.gen(function* () {
+  const bootstrap = Eff.Effect.gen(function* () {
     yield* client.initialize()
     const mcpTools = yield* client.listTools()
     const tools: Tool.Collection = {}
@@ -611,8 +648,11 @@ export function loadContext(
       tools[`${TOOL_PREFIX}${t.name}`] = buildTool(client, t)
     }
     const messages = yield* searchSyntaxMessages
-    return PlatformContextState.Ready({ tools, messages })
-  }).pipe(
+    return { tools, messages }
+  }).pipe(Eff.Effect.retry(TRANSPORT_RETRY))
+
+  return bootstrap.pipe(
+    Eff.Effect.map(PlatformContextState.Ready),
     Eff.Effect.catchAll((error) =>
       Eff.Effect.succeed(PlatformContextState.Error({ error })),
     ),

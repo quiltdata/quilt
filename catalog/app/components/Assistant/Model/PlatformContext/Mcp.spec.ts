@@ -215,6 +215,55 @@ describe('PlatformContext/Mcp', () => {
       expect(state.error._tag).toBe('McpRpcError')
     })
 
+    it('retries transport-class failures and recovers on a later attempt', async () => {
+      let attempts = 0
+      const client = stubClient({
+        initialize: () =>
+          Eff.Effect.suspend(() => {
+            attempts += 1
+            if (attempts < 3) {
+              return Eff.Effect.fail(new Mcp.McpTransportError({ detail: 'flake' }))
+            }
+            return Eff.Effect.void
+          }),
+        listTools: () =>
+          Eff.Effect.succeed([
+            { name: 'x', description: 'x', inputSchema: { type: 'object' } },
+          ]),
+      })
+      const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
+      expect(state._tag).toBe('Ready')
+      expect(attempts).toBe(3)
+    })
+
+    it('does NOT retry McpAuthError — surfaces immediately', async () => {
+      let attempts = 0
+      const client = stubClient({
+        initialize: () =>
+          Eff.Effect.suspend(() => {
+            attempts += 1
+            return Eff.Effect.fail(new Mcp.McpAuthError())
+          }),
+      })
+      const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
+      expect(state._tag).toBe('Error')
+      expect(attempts).toBe(1)
+    })
+
+    it('does NOT retry McpProtocolError — surfaces immediately', async () => {
+      let attempts = 0
+      const client = stubClient({
+        initialize: () =>
+          Eff.Effect.suspend(() => {
+            attempts += 1
+            return Eff.Effect.fail(new Mcp.McpProtocolError({ detail: 'shape' }))
+          }),
+      })
+      const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
+      expect(state._tag).toBe('Error')
+      expect(attempts).toBe(1)
+    })
+
     it('propagates McpAuthError from getToken (via callTool path)', async () => {
       // Synthesize: a stub client whose initialize fails with McpAuthError —
       // standing in for a `make()`-built client whose `getToken` resolves to
@@ -434,6 +483,40 @@ describe('PlatformContext/Mcp', () => {
 
     it('throws on malformed JSON in data:', () => {
       expect(() => Mcp.parseSseToJson('data: {not-json}\n\n')).toThrow()
+    })
+  })
+
+  describe('matchState', () => {
+    it('dispatches the Loading branch', () => {
+      const out = Mcp.matchState(Mcp.PlatformContextState.Loading(), {
+        Loading: () => 'L',
+        Ready: () => 'R',
+        Error: () => 'E',
+      })
+      expect(out).toBe('L')
+    })
+
+    it('dispatches the Ready branch with tools/messages payload', () => {
+      const state = Mcp.PlatformContextState.Ready({
+        tools: { platform__x: {} as any },
+        messages: ['m'],
+      })
+      const out = Mcp.matchState(state, {
+        Loading: () => 0,
+        Ready: ({ tools, messages }) => Object.keys(tools).length + messages.length,
+        Error: () => -1,
+      })
+      expect(out).toBe(2)
+    })
+
+    it('dispatches the Error branch with the error', () => {
+      const err = new Mcp.McpTransportError({ detail: 'x' })
+      const out = Mcp.matchState(Mcp.PlatformContextState.Error({ error: err }), {
+        Loading: () => 'L',
+        Ready: () => 'R',
+        Error: ({ error }) => error._tag,
+      })
+      expect(out).toBe('McpTransportError')
     })
   })
 
