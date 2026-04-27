@@ -18,6 +18,8 @@
 
 import * as Eff from 'effect'
 
+import * as XML from 'utils/XML'
+
 import * as Content from '../Content'
 import * as Context from '../Context'
 import * as Tool from '../Tool'
@@ -483,21 +485,129 @@ export const buildConnectorRuntime = (
 // Layer (skeleton)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Connectors overview rendering (D29)
+// ---------------------------------------------------------------------------
+
 /**
- * Empty placeholder. Step 4 wires the service primitives and aggregates
- * across all per-connector runtimes. Until then this layer satisfies
- * the Tag with a no-op service so types stay coherent during the
- * incremental refactor.
+ * Render one `<connector>` element for the LLM-facing overview. Only
+ * stable states reach the prompt:
+ *
+ *  - `Ready`           → `state="ready"`, hint as body
+ *  - `Failed{acked}`   → `state="unavailable"`, terse body
+ *  - other states      → null (transient + needs-ack states block via
+ *                        AwaitingConnector and don't make it here)
+ */
+const renderConnectorOverview = (
+  config: ConnectorConfig,
+  state: ConnectorState,
+): string | null => {
+  const baseAttrs = {
+    id: config.id,
+    'tool-prefix': `${config.id}__`,
+    title: config.title,
+  }
+  if (state._tag === 'Ready') {
+    return XML.tag(
+      'connector',
+      { ...baseAttrs, state: 'ready' },
+      config.hint ?? '',
+    ).toString()
+  }
+  if (state._tag === 'Failed' && state.acked) {
+    return XML.tag(
+      'connector',
+      { ...baseAttrs, state: 'unavailable' },
+      'Currently unavailable. Tools from this connector cannot be called.',
+    ).toString()
+  }
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// Layer
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the `Connectors` service layer for the given configs. Per-config:
+ *
+ *  - allocate per-connector state / health / controls refs
+ *  - fork the lifecycle fiber under the layer's scope
+ *  - expose the runtime in `byId`
+ *
+ * Aggregate primitives merge across all per-connector states. The layer
+ * is `Layer.scoped`, so per-connector fibers are interrupted on layer
+ * release (Assistant unmount, D32).
  */
 export const layer = (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _configs: readonly ConnectorConfig[],
+  configs: readonly ConnectorConfig[],
+  /**
+   * Per-config wire client override (test seam). Production callers
+   * omit it; the wire client is built from `config.transport`.
+   */
+  clientById: Partial<Record<ConnectorId, Mcp.McpClient>> = {},
 ): Eff.Layer.Layer<Connectors> =>
-  Eff.Layer.succeed(Connectors, {
-    byId: {},
-    isTransient: Eff.Effect.succeed(false),
-    requiresAck: Eff.Effect.succeed(false),
-    isBlocked: Eff.Effect.succeed(false),
-    awaitUnblocked: Eff.Effect.void,
-    contextContribution: Eff.Effect.succeed({}),
-  })
+  Eff.Layer.scoped(
+    Connectors,
+    Eff.Effect.gen(function* () {
+      const runtimes: Record<ConnectorId, ConnectorRuntime> = {}
+      for (const c of configs) {
+        runtimes[c.id] = yield* buildConnectorRuntime(c, clientById[c.id])
+      }
+      const all = Object.values(runtimes)
+
+      const allStates = Eff.Effect.all(all.map((r) => Eff.SubscriptionRef.get(r.state)))
+
+      const isTransient = allStates.pipe(
+        Eff.Effect.map((states) => states.some(stateIsTransient)),
+      )
+      const requiresAck = allStates.pipe(
+        Eff.Effect.map((states) => states.some(stateRequiresAck)),
+      )
+      const isBlocked = allStates.pipe(
+        Eff.Effect.map((states) => states.some(stateIsBlocked)),
+      )
+
+      const awaitUnblocked: Eff.Effect.Effect<void> =
+        all.length === 0
+          ? Eff.Effect.void
+          : Eff.pipe(
+              Eff.Stream.mergeAll(
+                all.map((r) => r.state.changes),
+                { concurrency: 'unbounded' },
+              ),
+              Eff.Stream.mapEffect(() => isBlocked),
+              Eff.Stream.filter((blocked) => !blocked),
+              Eff.Stream.take(1),
+              Eff.Stream.runDrain,
+            )
+
+      const contextContribution: Eff.Effect.Effect<Partial<Context.ContextShape>> =
+        Eff.Effect.gen(function* () {
+          const tools: Tool.Collection = {}
+          const overviews: string[] = []
+          for (const r of all) {
+            const s = yield* Eff.SubscriptionRef.get(r.state)
+            if (s._tag === 'Ready') {
+              Object.assign(tools, s.tools)
+            }
+            const overview = renderConnectorOverview(r.config, s)
+            if (overview) overviews.push(overview)
+          }
+          const messages =
+            overviews.length > 0
+              ? [XML.tag('connectors', {}, ...overviews).toString()]
+              : []
+          return { tools, messages }
+        })
+
+      return {
+        byId: runtimes,
+        isTransient,
+        requiresAck,
+        isBlocked,
+        awaitUnblocked,
+        contextContribution,
+      }
+    }),
+  )

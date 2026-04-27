@@ -382,4 +382,148 @@ describe('Connectors', () => {
         }),
       ))
   })
+
+  describe('layer + service primitives', () => {
+    /**
+     * Drive the layer end-to-end with a stub client so the wire never
+     * fires. Exercises buildConnectorRuntime + aggregate primitives
+     * (`isBlocked`, `awaitUnblocked`, `contextContribution`).
+     */
+    const runWithLayer = <A, E>(
+      stubsByConfigId: Record<string, Mcp.McpClient>,
+      configs: ReadonlyArray<Connectors.ConnectorConfig>,
+      program: Eff.Effect.Effect<A, E, Connectors.Connectors>,
+    ): Promise<A> =>
+      Eff.Effect.runPromise(
+        program.pipe(
+          Eff.Effect.provide(Connectors.layer(configs, stubsByConfigId)),
+          Eff.Effect.provide(TestContext.TestContext),
+        ) as Eff.Effect.Effect<A, E, never>,
+      )
+
+    it('isBlocked starts true, flips false once the lone connector reaches Ready', () =>
+      runWithLayer(
+        { [config.id]: stubClient() },
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          const runtime = svc.byId[config.id]
+          // Initially Connecting → blocked.
+          const initial = yield* svc.isBlocked
+          expect(initial).toBe(true)
+          // Wait for Ready.
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          const after = yield* svc.isBlocked
+          expect(after).toBe(false)
+        }),
+      ))
+
+    it('awaitUnblocked returns once all connectors reach a non-blocking state', () =>
+      runWithLayer(
+        { [config.id]: stubClient() },
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          // No matter when we ask, awaitUnblocked completes by the time the
+          // connector reaches Ready (sub-second in TestClock).
+          yield* svc.awaitUnblocked
+          const blocked = yield* svc.isBlocked
+          expect(blocked).toBe(false)
+        }),
+      ))
+
+    it('contextContribution: Ready connector contributes namespaced tools + <connectors><connector state="ready">', () =>
+      runWithLayer(
+        {
+          [config.id]: stubClient({
+            listTools: () =>
+              Eff.Effect.succeed([
+                {
+                  name: 'foo',
+                  description: 'Foo tool',
+                  inputSchema: { type: 'object' },
+                },
+              ]),
+          }),
+        },
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          const ctx = yield* svc.contextContribution
+          expect(Object.keys(ctx.tools ?? {})).toEqual(['platform__foo'])
+          expect(ctx.messages).toHaveLength(1)
+          expect(ctx.messages?.[0]).toContain('<connectors>')
+          expect(ctx.messages?.[0]).toContain('id="platform"')
+          expect(ctx.messages?.[0]).toContain('state="ready"')
+          expect(ctx.messages?.[0]).toContain('tool-prefix="platform__"')
+          expect(ctx.messages?.[0]).toContain('Packages, search, S3.')
+        }),
+      ))
+
+    it('contextContribution: Failed{acked:true} connector contributes no tools + state="unavailable"', () =>
+      runWithLayer(
+        {
+          [config.id]: stubClient({
+            initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
+          }),
+        },
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          const runtime = svc.byId[config.id]
+          // Wait for Failed{acked:false}, then user acks → Failed{acked:true}.
+          yield* awaitState(runtime, (s) => s._tag === 'Failed')
+          yield* runtime.acknowledge
+          yield* awaitState(runtime, (s) => s._tag === 'Failed' && s.acked)
+          const ctx = yield* svc.contextContribution
+          expect(Object.keys(ctx.tools ?? {})).toEqual([])
+          expect(ctx.messages).toHaveLength(1)
+          expect(ctx.messages?.[0]).toContain('state="unavailable"')
+        }),
+      ))
+
+    it('aggregate isBlocked = OR across connectors: one blocked → blocked', () => {
+      const c2: Connectors.ConnectorConfig = {
+        ...config,
+        id: 'second',
+        title: 'Second',
+      }
+      return runWithLayer(
+        {
+          [config.id]: stubClient(),
+          [c2.id]: stubClient({
+            initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
+          }),
+        },
+        [config, c2],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          yield* awaitState(svc.byId[c2.id], (s) => s._tag === 'Failed')
+          // c2 in Failed{acked:false} → requiresAck → blocked
+          expect(yield* svc.isBlocked).toBe(true)
+          expect(yield* svc.requiresAck).toBe(true)
+          // user acknowledges the failed one — overall unblocked
+          yield* svc.byId[c2.id].acknowledge
+          yield* awaitState(svc.byId[c2.id], (s) => s._tag === 'Failed' && s.acked)
+          expect(yield* svc.isBlocked).toBe(false)
+        }),
+      )
+    })
+
+    it('zero-config layer is never blocked', () =>
+      runWithLayer(
+        {},
+        [],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          expect(yield* svc.isBlocked).toBe(false)
+          yield* svc.awaitUnblocked
+          const ctx = yield* svc.contextContribution
+          expect(Object.keys(ctx.tools ?? {})).toEqual([])
+          expect(ctx.messages).toEqual([])
+        }),
+      ))
+  })
 })
