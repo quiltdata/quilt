@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
+import { runtime } from 'utils/Effect'
 
 import * as Model from '../../Model'
 
@@ -137,6 +138,126 @@ function RecordingControls({ enabled, log, enable, clear }: RecordingControlsPro
   )
 }
 
+const useConnectorsPanelStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(2, 0),
+    padding: t.spacing(0, 2),
+  },
+  heading: {
+    ...t.typography.subtitle2,
+    marginBottom: t.spacing(1),
+  },
+  row: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: `${t.spacing(1)}px`,
+    margin: t.spacing(0.5, 0),
+  },
+  rowMeta: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    flexGrow: 1,
+  },
+  contribution: {
+    margin: t.spacing(2, 0, 0),
+  },
+  empty: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+  },
+}))
+
+interface ConnectorPanelRowProps {
+  connector: Model.Connectors.ConnectorRuntime
+}
+
+function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
+  const classes = useConnectorsPanelStyles()
+  const state = Model.Connectors.useConnectorState(connector)
+  const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
+  const onAck = React.useCallback(
+    () => runtime.runFork(connector.acknowledge),
+    [connector],
+  )
+  const detail =
+    state._tag === 'Failed'
+      ? `Failed{acked:${state.acked}} — ${state.error._tag}: ${state.error.message}`
+      : state._tag === 'Disconnected'
+        ? `Disconnected{retrying:${state.retrying}} — ${state.error._tag}: ${state.error.message}`
+        : state._tag === 'Ready'
+          ? `Ready — ${Object.keys(state.tools).length} tools`
+          : state._tag
+  return (
+    <div className={classes.row}>
+      <strong>{connector.id}</strong>
+      <span className={classes.rowMeta}>{detail}</span>
+      <M.Button size="small" variant="outlined" onClick={onRetry}>
+        Retry
+      </M.Button>
+      <M.Button size="small" variant="outlined" onClick={onAck}>
+        Ack
+      </M.Button>
+    </div>
+  )
+}
+
+interface ConnectorsPanelProps {
+  connectors: Model.Connectors.ConnectorsService
+}
+
+/**
+ * DevTools Connectors panel (D31; subsumes qhq-5d0.3). Shows per-connector
+ * state with manual retry / ack handles and a live preview of the
+ * `contextContribution` Effect output — exactly what the LLM would see
+ * if a turn fired right now.
+ */
+function ConnectorsPanel({ connectors }: ConnectorsPanelProps) {
+  const classes = useConnectorsPanelStyles()
+  const all = Object.values(connectors.byId)
+
+  const [contribution, setContribution] = React.useState<
+    Partial<Model.Context.ContextShape>
+  >(() => runtime.runSync(connectors.contextContribution))
+
+  React.useEffect(() => {
+    if (all.length === 0) return
+    const fiber = runtime.runFork(
+      Eff.Stream.runForEach(
+        Eff.Stream.mergeAll(
+          all.map((c) => c.state.changes),
+          { concurrency: 'unbounded' },
+        ),
+        () =>
+          Eff.Effect.tap(connectors.contextContribution, (c) =>
+            Eff.Effect.sync(() => setContribution(c)),
+          ),
+      ),
+    )
+    return () => {
+      runtime.runFork(Eff.Fiber.interrupt(fiber))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectors])
+
+  return (
+    <div className={classes.root}>
+      <div className={classes.heading}>Connectors</div>
+      {all.length === 0 ? (
+        <div className={classes.empty}>No connectors configured.</div>
+      ) : (
+        all.map((c) => <ConnectorPanelRow key={c.id} connector={c} />)
+      )}
+      <div className={classes.contribution}>
+        <JsonDisplay
+          name="contextContribution"
+          value={contribution}
+          defaultExpanded={1}
+        />
+      </div>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -163,9 +284,15 @@ interface DevToolsProps {
   state: Model.Assistant.API['state']
   modelIdOverride: Model.Assistant.API['devTools']['modelIdOverride']
   recording: Model.Assistant.API['devTools']['recording']
+  connectors: Model.Assistant.API['connectors']
 }
 
-export default function DevTools({ state, modelIdOverride, recording }: DevToolsProps) {
+export default function DevTools({
+  state,
+  modelIdOverride,
+  recording,
+  connectors,
+}: DevToolsProps) {
   const classes = useStyles()
 
   const context = Model.Context.useAggregatedContext()
@@ -188,6 +315,8 @@ export default function DevTools({ state, modelIdOverride, recording }: DevTools
         <ModelIdOverride {...modelIdOverride} />
         <M.Divider />
         <RecordingControls {...recording} />
+        <M.Divider />
+        <ConnectorsPanel connectors={connectors} />
         <M.Divider />
         <JsonDisplay className={classes.json} name="Context" value={context} />
         <JsonDisplay className={classes.json} name="State" value={state} />

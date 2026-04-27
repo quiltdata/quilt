@@ -618,7 +618,7 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
       />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
-          <DevTools state={state} {...devTools} />
+          <DevTools state={state} {...devTools} connectors={connectors} />
         </M.Paper>
       </M.Slide>
       <ConnectorStatusRegion connectors={connectors} />
