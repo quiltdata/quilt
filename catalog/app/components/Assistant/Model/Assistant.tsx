@@ -14,6 +14,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 
 import * as Bedrock from './Bedrock'
 import * as Connectors from './Connectors'
+import * as Mcp from './Connectors/Mcp'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
@@ -60,11 +61,12 @@ const PLATFORM_CONNECTOR_HINT =
   'Quilt Platform tools: packages, search (Elasticsearch query syntax), S3 objects, Athena queries, tabulator tables, and platform reference resources via get_resource.'
 
 /**
- * Build the platform connector config (D33). Auth is an Effect that
+ * Build the platform connector config (D33). The backend's `getToken`
  * re-reads the redux session token on every invocation so token rotation
- * is handled without explicit plumbing — the connector layer sees the
- * current token at each tool call. The config is memoized over `store`,
- * which is itself stable across renders.
+ * is handled without explicit plumbing — the backend sees the current
+ * token at each tool call. `Mcp.bearerPassthru` maps a `null` token to
+ * an internal auth error; we just project redux. The config is memoized
+ * over `store`, which is itself stable across renders.
  */
 function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
   const store = redux.useStore()
@@ -73,15 +75,9 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
       id: 'platform',
       title: 'Quilt Platform tools',
       hint: PLATFORM_CONNECTOR_HINT,
-      transport: Connectors.TransportConfig.Mcp({
+      backend: Mcp.bearerPassthru({
         url: getPlatformMcpUrl(),
-        auth: () =>
-          Eff.Effect.suspend(() => {
-            const token = selectToken(store.getState())
-            return token
-              ? Eff.Effect.succeed(token)
-              : Eff.Effect.fail(new Connectors.McpAuthError())
-          }),
+        getToken: () => Eff.Effect.sync(() => selectToken(store.getState()) ?? null),
       }),
     }),
     [store],

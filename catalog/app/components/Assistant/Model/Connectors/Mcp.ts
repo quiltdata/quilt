@@ -26,6 +26,11 @@ import * as Eff from 'effect'
 import * as uuid from 'uuid'
 
 import * as Content from '../Content'
+import * as Tool from '../Tool'
+
+// Type-only imports of the Backend contract — runtime dependency stays
+// one-way (index.ts depends on Mcp.ts) so this is purely compile-time.
+import type { Backend, BackendError, BackendToolDescriptor } from '.'
 
 const PROTOCOL_VERSION = '2025-06-18'
 const CLIENT_INFO = { name: 'quilt-catalog', version: '1' } as const
@@ -499,4 +504,80 @@ export function mapContent(block: McpContent): Content.ToolResultContentBlock {
   return Content.ToolResultContentBlock.Text({
     text: `[unknown content block]\n${JSON.stringify(block)}`,
   })
+}
+
+// ---------------------------------------------------------------------------
+// Backend adapter — `bearerPassthru` (1st-party, catalog auth passthrough)
+// ---------------------------------------------------------------------------
+
+const adaptDescriptor = (m: McpToolDescriptor): BackendToolDescriptor => ({
+  name: m.name,
+  description: m.description,
+  inputSchema: m.inputSchema,
+  readOnly: m.annotations?.readOnlyHint,
+})
+
+const adaptResult = (r: McpToolResult): Tool.Result => {
+  const blocks = r.content.map(mapContent)
+  return r.isError ? Tool.fail(...blocks) : Tool.succeed(...blocks)
+}
+
+/**
+ * Map a wire-level `McpError` to the abstract `BackendError`. Only
+ * `McpTransportError` is `transient: true` — it's the only wire error
+ * that signals a network-level failure (timeouts, refused connections,
+ * 5xx). Auth / protocol / RPC errors are application-level: they don't
+ * count toward the health threshold and don't trigger read-only retry.
+ */
+const adaptError = (e: McpError): BackendError => ({
+  _tag: e._tag,
+  message: e.message,
+  transient: e._tag === 'McpTransportError',
+})
+
+export interface BearerPassthruOptions {
+  readonly url: string
+  /**
+   * Resolve the bearer token. Returns `null` when no authenticated
+   * session is available — the backend maps this to an internal
+   * `McpAuthError` without firing fetch. Re-read on every call so
+   * token rotation is handled without explicit plumbing.
+   */
+  readonly getToken: () => Eff.Effect.Effect<string | null>
+}
+
+/**
+ * 1st-party MCP backend with bearer-passthrough auth. The caller
+ * resolves the bearer token (typically a catalog session JWT) on every
+ * call; the backend forwards it as `Authorization: Bearer <token>` and
+ * doesn't manage refresh, expiry, or session state.
+ *
+ * Distinct from a hypothetical `oauth(...)` factory (which would run the
+ * OAuth flow itself) or a stateful backend (which would maintain a
+ * session). Pairs with FastMCP's `stateless_http=True` transport mode.
+ *
+ * Design: see qhq-5d0 `--design`, D8 / D9 / D33.
+ */
+export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
+  const wire = make({
+    url: opts.url,
+    getToken: () =>
+      opts
+        .getToken()
+        .pipe(
+          Eff.Effect.flatMap((tok) =>
+            tok ? Eff.Effect.succeed(tok) : Eff.Effect.fail(new McpAuthError()),
+          ),
+        ),
+  })
+  const lift = <A>(eff: Eff.Effect.Effect<A, McpError>) =>
+    eff.pipe(Eff.Effect.mapError(adaptError))
+  return {
+    initialize: () => lift(wire.initialize()),
+    listTools: () =>
+      lift(wire.listTools()).pipe(Eff.Effect.map((ds) => ds.map(adaptDescriptor))),
+    callTool: (name, input) =>
+      lift(wire.callTool(name, input)).pipe(Eff.Effect.map(adaptResult)),
+    ping: () => lift(wire.ping()),
+  }
 }

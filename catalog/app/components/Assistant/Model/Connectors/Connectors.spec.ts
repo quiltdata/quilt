@@ -2,7 +2,7 @@
  * Connectors lifecycle tests.
  *
  * Scope: state predicates + the per-connector lifecycle (manageConnector
- * via buildConnectorRuntime). Stub the McpClient so transitions are
+ * via buildConnectorRuntime). Stub the Backend so transitions are
  * deterministic; use Effect's TestClock for heartbeat time-travel.
  */
 
@@ -11,30 +11,43 @@ import * as TestClock from 'effect/TestClock'
 import * as TestContext from 'effect/TestContext'
 import { describe, expect, it } from 'vitest'
 
-import * as Mcp from './Mcp'
+import * as Content from '../Content'
+import * as Tool from '../Tool'
+
 import * as Connectors from '.'
 
-const stubClient = (overrides: Partial<Mcp.McpClient> = {}): Mcp.McpClient => ({
+const stubBackend = (
+  overrides: Partial<Connectors.Backend> = {},
+): Connectors.Backend => ({
   initialize: () => Eff.Effect.void,
   listTools: () => Eff.Effect.succeed([]),
-  callTool: () => Eff.Effect.succeed({ content: [] }),
-  readResource: () =>
-    Eff.Effect.fail(new Mcp.McpProtocolError({ detail: 'stub: not provided' })),
+  callTool: () => Eff.Effect.succeed(Tool.succeed()),
   ping: () => Eff.Effect.void,
   ...overrides,
 })
 
-const config: Connectors.ConnectorConfig = {
+const baseConfig = (
+  backend: Connectors.Backend,
+  overrides: Partial<Connectors.ConnectorConfig> = {},
+): Connectors.ConnectorConfig => ({
   id: 'platform',
   title: 'Quilt Platform tools',
   hint: 'Packages, search, S3.',
-  transport: Connectors.TransportConfig.Mcp({
-    url: 'https://example.invalid/mcp',
-    auth: () => Eff.Effect.succeed('token'),
-  }),
+  backend,
+  ...overrides,
+})
+
+const transportError: Connectors.BackendError = {
+  _tag: 'TransportError',
+  message: 'down',
+  transient: true,
 }
 
-const transportError = new Mcp.McpTransportError({ detail: 'down' })
+const authError: Connectors.BackendError = {
+  _tag: 'AuthError',
+  message: 'no session token',
+  transient: false,
+}
 
 const runWithTest = <A, E>(
   effect: Eff.Effect.Effect<A, E, Eff.Scope.Scope>,
@@ -101,17 +114,18 @@ describe('Connectors', () => {
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              listTools: () =>
-                Eff.Effect.succeed([
-                  {
-                    name: 'foo',
-                    description: 'Foo',
-                    inputSchema: { type: 'object' },
-                  },
-                ]),
-            }),
+            baseConfig(
+              stubBackend({
+                listTools: () =>
+                  Eff.Effect.succeed([
+                    {
+                      name: 'foo',
+                      description: 'Foo',
+                      inputSchema: { type: 'object' },
+                    },
+                  ]),
+              }),
+            ),
           )
           const ready = yield* awaitState(runtime, (s) => s._tag === 'Ready')
           expect(ready._tag).toBe('Ready')
@@ -124,16 +138,17 @@ describe('Connectors', () => {
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () => Eff.Effect.fail(authError),
+              }),
+            ),
           )
           const failed = yield* awaitState(runtime, (s) => s._tag === 'Failed')
           expect(failed._tag).toBe('Failed')
           if (failed._tag !== 'Failed') return
           expect(failed.acked).toBe(false)
-          expect(failed.error._tag).toBe('McpAuthError')
+          expect(failed.error._tag).toBe('AuthError')
         }),
       ))
 
@@ -142,16 +157,17 @@ describe('Connectors', () => {
         Eff.Effect.gen(function* () {
           let attempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () =>
-                Eff.Effect.suspend(() => {
-                  attempts += 1
-                  return attempts === 1
-                    ? Eff.Effect.fail(transportError as Mcp.McpError)
-                    : Eff.Effect.void
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    return attempts === 1
+                      ? Eff.Effect.fail(transportError)
+                      : Eff.Effect.void
+                  }),
+              }),
+            ),
           )
           // wait for first Failed
           yield* awaitState(runtime, (s) => s._tag === 'Failed')
@@ -168,16 +184,17 @@ describe('Connectors', () => {
         Eff.Effect.gen(function* () {
           let attempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () =>
-                Eff.Effect.suspend(() => {
-                  attempts += 1
-                  return attempts === 1
-                    ? Eff.Effect.fail(transportError as Mcp.McpError)
-                    : Eff.Effect.void
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    return attempts === 1
+                      ? Eff.Effect.fail(transportError)
+                      : Eff.Effect.void
+                  }),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Failed')
           yield* runtime.acknowledge
@@ -197,17 +214,18 @@ describe('Connectors', () => {
         Eff.Effect.gen(function* () {
           let attempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () =>
-                Eff.Effect.suspend(() => {
-                  attempts += 1
-                  // attempt 1: bootstrap succeeds → Ready;
-                  // attempt 2 (after explicit user retry): also succeeds → Ready
-                  return Eff.Effect.void
-                }),
-              ping: () => Eff.Effect.fail(transportError),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    // attempt 1: bootstrap succeeds → Ready;
+                    // attempt 2 (after explicit user retry): also succeeds → Ready
+                    return Eff.Effect.void
+                  }),
+                ping: () => Eff.Effect.fail(transportError),
+              }),
+            ),
           )
           // Wait for Ready, then offer stale controls. They MUST be discarded
           // before the next Failed entry; otherwise a buffered 'retry' would
@@ -243,16 +261,17 @@ describe('Connectors', () => {
         Eff.Effect.gen(function* () {
           let bootstrapAttempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () =>
-                Eff.Effect.suspend(() => {
-                  bootstrapAttempts += 1
-                  // first bootstrap fails so connector goes Failed{acked:false};
-                  // stale tokens queued before Failed entry must NOT auto-exit
-                  return Eff.Effect.fail(transportError as Mcp.McpError)
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    bootstrapAttempts += 1
+                    // first bootstrap fails so connector goes Failed{acked:false};
+                    // stale tokens queued before Failed entry must NOT auto-exit
+                    return Eff.Effect.fail(transportError)
+                  }),
+              }),
+            ),
           )
           // Race: queue stale controls before lifecycle even has a chance to
           // park at awaitRetryControl.
@@ -278,10 +297,11 @@ describe('Connectors', () => {
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              ping: () => Eff.Effect.fail(transportError),
-            }),
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.fail(transportError),
+              }),
+            ),
           )
           // wait for bootstrap to succeed
           const reachReady = yield* Eff.Effect.fork(
@@ -297,7 +317,7 @@ describe('Connectors', () => {
           expect(dc._tag).toBe('Disconnected')
           if (dc._tag !== 'Disconnected') return
           expect(dc.retrying).toBe(true)
-          expect(dc.error._tag).toBe('McpTransportError')
+          expect(dc.error._tag).toBe('TransportError')
         }),
       ))
 
@@ -308,17 +328,18 @@ describe('Connectors', () => {
           // initialize calls also fail so reconnect attempts exhaust.
           let bootstraps = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () =>
-                Eff.Effect.suspend(() => {
-                  bootstraps += 1
-                  return bootstraps === 1
-                    ? Eff.Effect.void
-                    : Eff.Effect.fail(transportError as Mcp.McpError)
-                }),
-              ping: () => Eff.Effect.fail(transportError),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    bootstraps += 1
+                    return bootstraps === 1
+                      ? Eff.Effect.void
+                      : Eff.Effect.fail(transportError)
+                  }),
+                ping: () => Eff.Effect.fail(transportError),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const reachFailed = yield* Eff.Effect.fork(
@@ -341,21 +362,22 @@ describe('Connectors', () => {
           let bootstraps = 0
           let pingFailures = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () =>
-                Eff.Effect.suspend(() => {
-                  bootstraps += 1
-                  return Eff.Effect.void
-                }),
-              ping: () =>
-                Eff.Effect.suspend(() => {
-                  pingFailures += 1
-                  return pingFailures <= 2
-                    ? Eff.Effect.fail(transportError as Mcp.McpError)
-                    : Eff.Effect.void
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    bootstraps += 1
+                    return Eff.Effect.void
+                  }),
+                ping: () =>
+                  Eff.Effect.suspend(() => {
+                    pingFailures += 1
+                    return pingFailures <= 2
+                      ? Eff.Effect.fail(transportError)
+                      : Eff.Effect.void
+                  }),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const reachReadyAgain = yield* Eff.Effect.fork(
@@ -381,12 +403,13 @@ describe('Connectors', () => {
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
-              callTool: () =>
-                Eff.Effect.die('callTool should not be invoked while not Ready'),
-            }),
+            baseConfig(
+              stubBackend({
+                initialize: () => Eff.Effect.fail(authError),
+                callTool: () =>
+                  Eff.Effect.die('callTool should not be invoked while not Ready'),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Failed')
           const result = yield* runtime.callTool('foo', {})
@@ -396,17 +419,18 @@ describe('Connectors', () => {
         }),
       ))
 
-    it('delegates to client.callTool when Ready and maps content', () =>
+    it('delegates to backend.callTool when Ready and forwards content', () =>
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              callTool: () =>
-                Eff.Effect.succeed({
-                  content: [{ type: 'text', text: 'hello' } as Mcp.McpContent],
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                callTool: () =>
+                  Eff.Effect.succeed(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'hello' })),
+                  ),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const result = yield* runtime.callTool('foo', {})
@@ -416,18 +440,18 @@ describe('Connectors', () => {
         }),
       ))
 
-    it('maps tool-side errors to Tool.fail (isError=true)', () =>
+    it('forwards backend Tool.fail results unchanged (server-side tool error)', () =>
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              callTool: () =>
-                Eff.Effect.succeed({
-                  isError: true,
-                  content: [{ type: 'text', text: 'boom' } as Mcp.McpContent],
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                callTool: () =>
+                  Eff.Effect.succeed(
+                    Tool.fail(Content.ToolResultContentBlock.Text({ text: 'boom' })),
+                  ),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const result = yield* runtime.callTool('foo', {})
@@ -440,11 +464,12 @@ describe('Connectors', () => {
       runWithTest(
         Eff.Effect.gen(function* () {
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              ping: () => Eff.Effect.void,
-              callTool: () => Eff.Effect.fail(transportError),
-            }),
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.void,
+                callTool: () => Eff.Effect.fail(transportError),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           // two transport-error tool calls bump health past threshold;
@@ -462,24 +487,50 @@ describe('Connectors', () => {
         }),
       ))
 
+    it('non-transient backend errors do NOT bump health (no Disconnected)', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.void,
+                callTool: () => Eff.Effect.fail(authError), // transient: false
+              }),
+            ),
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          // Five non-transient failures — would cross the threshold (2) if
+          // these were transient. Verify Ready remains Ready.
+          for (let i = 0; i < 5; i += 1) {
+            const r = yield* runtime.callTool('foo', {})
+            expect(r.status).toBe('error')
+          }
+          const cur = yield* Eff.SubscriptionRef.get(runtime.state)
+          expect(cur._tag).toBe('Ready')
+        }),
+      ))
+
     it('retryOnTransport: a single transport error retries once before bumping health', () =>
       runWithTest(
         Eff.Effect.gen(function* () {
           let attempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              ping: () => Eff.Effect.void,
-              callTool: () =>
-                Eff.Effect.suspend(() => {
-                  attempts += 1
-                  return attempts === 1
-                    ? Eff.Effect.fail(transportError as Mcp.McpError)
-                    : Eff.Effect.succeed({
-                        content: [{ type: 'text', text: 'ok' } as Mcp.McpContent],
-                      })
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.void,
+                callTool: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    return attempts === 1
+                      ? Eff.Effect.fail(transportError)
+                      : Eff.Effect.succeed(
+                          Tool.succeed(
+                            Content.ToolResultContentBlock.Text({ text: 'ok' }),
+                          ),
+                        )
+                  }),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const result = yield* runtime.callTool('foo', {}, { retryOnTransport: true })
@@ -493,15 +544,16 @@ describe('Connectors', () => {
         Eff.Effect.gen(function* () {
           let attempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              ping: () => Eff.Effect.void,
-              callTool: () =>
-                Eff.Effect.suspend(() => {
-                  attempts += 1
-                  return Eff.Effect.fail(transportError as Mcp.McpError)
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.void,
+                callTool: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    return Eff.Effect.fail(transportError)
+                  }),
+              }),
+            ),
           )
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const result = yield* runtime.callTool('foo', {})
@@ -510,33 +562,36 @@ describe('Connectors', () => {
         }),
       ))
 
-    it('readOnlyHint annotation drives retryOnTransport via buildConnectorTool', () =>
+    it('readOnly descriptor flag drives retryOnTransport via buildConnectorTool', () =>
       runWithTest(
         Eff.Effect.gen(function* () {
           let attempts = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
-            config,
-            stubClient({
-              ping: () => Eff.Effect.void,
-              listTools: () =>
-                Eff.Effect.succeed([
-                  {
-                    name: 'safe',
-                    description: 'read-only',
-                    inputSchema: { type: 'object' },
-                    annotations: { readOnlyHint: true },
-                  },
-                ]),
-              callTool: () =>
-                Eff.Effect.suspend(() => {
-                  attempts += 1
-                  return attempts === 1
-                    ? Eff.Effect.fail(transportError as Mcp.McpError)
-                    : Eff.Effect.succeed({
-                        content: [{ type: 'text', text: 'ok' } as Mcp.McpContent],
-                      })
-                }),
-            }),
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.void,
+                listTools: () =>
+                  Eff.Effect.succeed([
+                    {
+                      name: 'safe',
+                      description: 'read-only',
+                      inputSchema: { type: 'object' },
+                      readOnly: true,
+                    },
+                  ]),
+                callTool: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    return attempts === 1
+                      ? Eff.Effect.fail(transportError)
+                      : Eff.Effect.succeed(
+                          Tool.succeed(
+                            Content.ToolResultContentBlock.Text({ text: 'ok' }),
+                          ),
+                        )
+                  }),
+              }),
+            ),
           )
           const ready = yield* awaitState(runtime, (s) => s._tag === 'Ready')
           if (ready._tag !== 'Ready') return
@@ -553,25 +608,24 @@ describe('Connectors', () => {
 
   describe('layer + service primitives', () => {
     /**
-     * Drive the layer end-to-end with a stub client so the wire never
-     * fires. Exercises buildConnectorRuntime + aggregate primitives
+     * Drive the layer end-to-end with stub backends embedded in the
+     * configs. Exercises buildConnectorRuntime + aggregate primitives
      * (`isBlocked`, `awaitUnblocked`, `contextContribution`).
      */
     const runWithLayer = <A, E>(
-      stubsByConfigId: Record<string, Mcp.McpClient>,
       configs: ReadonlyArray<Connectors.ConnectorConfig>,
       program: Eff.Effect.Effect<A, E, Connectors.Connectors>,
     ): Promise<A> =>
       Eff.Effect.runPromise(
         program.pipe(
-          Eff.Effect.provide(Connectors.layer(configs, stubsByConfigId)),
+          Eff.Effect.provide(Connectors.layer(configs)),
           Eff.Effect.provide(TestContext.TestContext),
         ) as Eff.Effect.Effect<A, E, never>,
       )
 
-    it('isBlocked starts true, flips false once the lone connector reaches Ready', () =>
-      runWithLayer(
-        { [config.id]: stubClient() },
+    it('isBlocked starts true, flips false once the lone connector reaches Ready', () => {
+      const config = baseConfig(stubBackend())
+      return runWithLayer(
         [config],
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors
@@ -584,11 +638,12 @@ describe('Connectors', () => {
           const after = yield* svc.isBlocked
           expect(after).toBe(false)
         }),
-      ))
+      )
+    })
 
-    it('awaitUnblocked returns once all connectors reach a non-blocking state', () =>
-      runWithLayer(
-        { [config.id]: stubClient() },
+    it('awaitUnblocked returns once all connectors reach a non-blocking state', () => {
+      const config = baseConfig(stubBackend())
+      return runWithLayer(
         [config],
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors
@@ -598,22 +653,23 @@ describe('Connectors', () => {
           const blocked = yield* svc.isBlocked
           expect(blocked).toBe(false)
         }),
-      ))
+      )
+    })
 
-    it('contextContribution: Ready connector contributes namespaced tools + <connectors><connector state="ready">', () =>
-      runWithLayer(
-        {
-          [config.id]: stubClient({
-            listTools: () =>
-              Eff.Effect.succeed([
-                {
-                  name: 'foo',
-                  description: 'Foo tool',
-                  inputSchema: { type: 'object' },
-                },
-              ]),
-          }),
-        },
+    it('contextContribution: Ready connector contributes namespaced tools + <connectors><connector state="ready">', () => {
+      const config = baseConfig(
+        stubBackend({
+          listTools: () =>
+            Eff.Effect.succeed([
+              {
+                name: 'foo',
+                description: 'Foo tool',
+                inputSchema: { type: 'object' },
+              },
+            ]),
+        }),
+      )
+      return runWithLayer(
         [config],
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors
@@ -627,15 +683,16 @@ describe('Connectors', () => {
           expect(ctx.messages?.[0]).toContain('tool-prefix="platform__"')
           expect(ctx.messages?.[0]).toContain('Packages, search, S3.')
         }),
-      ))
+      )
+    })
 
-    it('contextContribution: Failed{acked:true} connector contributes no tools + state="unavailable"', () =>
-      runWithLayer(
-        {
-          [config.id]: stubClient({
-            initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
-          }),
-        },
+    it('contextContribution: Failed{acked:true} connector contributes no tools + state="unavailable"', () => {
+      const config = baseConfig(
+        stubBackend({
+          initialize: () => Eff.Effect.fail(authError),
+        }),
+      )
+      return runWithLayer(
         [config],
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors
@@ -649,25 +706,20 @@ describe('Connectors', () => {
           expect(ctx.messages).toHaveLength(1)
           expect(ctx.messages?.[0]).toContain('state="unavailable"')
         }),
-      ))
+      )
+    })
 
     it('aggregate isBlocked = OR across connectors: one blocked → blocked', () => {
-      const c2: Connectors.ConnectorConfig = {
-        ...config,
-        id: 'second',
-        title: 'Second',
-      }
+      const c1 = baseConfig(stubBackend())
+      const c2 = baseConfig(
+        stubBackend({ initialize: () => Eff.Effect.fail(authError) }),
+        { id: 'second', title: 'Second' },
+      )
       return runWithLayer(
-        {
-          [config.id]: stubClient(),
-          [c2.id]: stubClient({
-            initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
-          }),
-        },
-        [config, c2],
+        [c1, c2],
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors
-          yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          yield* awaitState(svc.byId[c1.id], (s) => s._tag === 'Ready')
           yield* awaitState(svc.byId[c2.id], (s) => s._tag === 'Failed')
           // c2 in Failed{acked:false} → requiresAck → blocked
           expect(yield* svc.isBlocked).toBe(true)
@@ -682,7 +734,6 @@ describe('Connectors', () => {
 
     it('zero-config layer is never blocked', () =>
       runWithLayer(
-        {},
         [],
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors

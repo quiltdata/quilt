@@ -2,16 +2,15 @@
  * Connectors — registered sources of tools and context for the assistant.
  *
  * A *connector* is the agent-level abstraction (config + state + tools).
- * The wire client (`./Mcp.ts`) is the transport-level concept and stays
- * encapsulated; nothing outside the Connectors module should reference
- * "MCP server" — only "connector".
+ * Lifecycle (Connecting → Ready → Disconnected → Failed, heartbeat,
+ * reconnect budget) is generic in `Backend`, the connector's behavioral
+ * contract. Concrete backends (today: `Mcp.bearerPassthru` for 1st-party
+ * MCP with catalog session JWT; later: maybe `Mcp.oauth` or others)
+ * adapt their wire protocol into `Backend`.
  *
  * Each connector owns its own `SubscriptionRef<ConnectorState>` (D23). The
  * lifecycle fiber (bootstrap → heartbeat → retry) writes only to its own
  * ref; aggregate predicates merge across all per-connector refs.
- *
- * Today the only `TransportConfig` variant is `Mcp` (bearer-passthrough).
- * Future variants (`McpOauth`, `RestApi`, etc.) extend the taggedEnum.
  *
  * Design: see qhq-5d0 `--design`, sections D20-D33.
  */
@@ -26,7 +25,61 @@ import * as Content from '../Content'
 import * as Context from '../Context'
 import * as Tool from '../Tool'
 
-import * as Mcp from './Mcp'
+// ---------------------------------------------------------------------------
+// Backend — the connector's behavioral contract
+// ---------------------------------------------------------------------------
+
+/**
+ * A tagged error returned by a backend operation. Concrete error
+ * classes live in the backend implementation; lifecycle only inspects
+ * `_tag` (for telemetry / UI hover) and `transient` (whether to count
+ * toward the health threshold).
+ */
+export interface BackendError {
+  readonly _tag: string
+  readonly message: string
+  /**
+   * Whether this error counts toward the health threshold. True for
+   * transport-level failures (timeouts, refused connections, 5xx);
+   * false for application-level failures (RPC errors, schema mismatches,
+   * auth). Lifecycle uses this to decide whether to bump the health
+   * counter on tool-call failure (D24).
+   */
+  readonly transient?: boolean
+}
+
+export interface BackendToolDescriptor {
+  readonly name: string
+  readonly description?: string
+  readonly inputSchema: Record<string, unknown>
+  /**
+   * Generic version of MCP's `readOnlyHint` annotation (D24): when true,
+   * a single transport-level failure is retried once before reporting
+   * the error or counting toward the threshold. Destructive tools (or
+   * tools without the hint) fail immediately.
+   */
+  readonly readOnly?: boolean
+}
+
+/**
+ * The connector's behavioral surface. Implementations adapt a wire
+ * protocol (today: 1st-party MCP via `Mcp.bearerPassthru`; later: maybe
+ * OAuth-flavored MCP, in-process tools, etc.) into this interface.
+ * Lifecycle (Connecting → Ready → Disconnected → Failed, heartbeat,
+ * reconnect budget) is fully generic in `Backend`.
+ */
+export interface Backend {
+  readonly initialize: () => Eff.Effect.Effect<void, BackendError>
+  readonly listTools: () => Eff.Effect.Effect<
+    readonly BackendToolDescriptor[],
+    BackendError
+  >
+  readonly callTool: (
+    name: string,
+    input: Record<string, unknown>,
+  ) => Eff.Effect.Effect<Tool.Result, BackendError>
+  readonly ping: () => Eff.Effect.Effect<void, BackendError>
+}
 
 // ---------------------------------------------------------------------------
 // Config
@@ -35,30 +88,16 @@ import * as Mcp from './Mcp'
 export type ConnectorId = string
 
 /**
- * Transport-level configuration. The single `Mcp` variant carries the
- * wire-level inputs the `Mcp` client needs (URL + auth resolver). New
- * transports add new variants here.
- */
-export type TransportConfig = Eff.Data.TaggedEnum<{
-  Mcp: {
-    readonly url: string
-    readonly auth: () => Eff.Effect.Effect<string, Mcp.McpAuthError>
-  }
-}>
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const TransportConfig = Eff.Data.taggedEnum<TransportConfig>()
-
-/**
- * Connector configuration — title and hint plus a transport. The hint is
- * static text the LLM sees in the connectors overview (no resource
- * autoload — connectors expose tools to do that themselves).
+ * Connector configuration — title, hint, and the backend instance the
+ * lifecycle drives. The hint is static text the LLM sees in the
+ * connectors overview (no resource autoload — connectors expose tools
+ * to do that themselves).
  */
 export interface ConnectorConfig {
   readonly id: ConnectorId
   readonly title: string
   readonly hint?: string
-  readonly transport: TransportConfig
+  readonly backend: Backend
 }
 
 // ---------------------------------------------------------------------------
@@ -86,10 +125,10 @@ export type ConnectorState = Eff.Data.TaggedEnum<{
   }
   Disconnected: {
     readonly retrying: boolean
-    readonly error: Mcp.McpError
+    readonly error: BackendError
   }
   Failed: {
-    readonly error: Mcp.McpError
+    readonly error: BackendError
     readonly acked: boolean
   }
 }>
@@ -193,10 +232,22 @@ const RECONNECT_BACKOFF: ReadonlyArray<Eff.Duration.Duration> = [
 
 interface Health {
   readonly consecutiveFailures: number
-  readonly lastError: Mcp.McpError | null
+  readonly lastError: BackendError | null
 }
 
 const INITIAL_HEALTH: Health = { consecutiveFailures: 0, lastError: null }
+
+/**
+ * Construct a transient `BackendError` for lifecycle-internal failures
+ * (ping timeout, threshold-degraded, reconnect-exhausted) — situations
+ * where the lifecycle synthesizes an error rather than receiving one
+ * from the backend.
+ */
+const transientError = (tag: string, message: string): BackendError => ({
+  _tag: tag,
+  message,
+  transient: true,
+})
 
 type Control = 'retry' | 'acknowledge'
 
@@ -213,26 +264,26 @@ const AnyRecord = Eff.Schema.Record({
 /**
  * Build a `Tool.Descriptor` whose executor routes through the
  * connector's gated `callTool` (D27 — fast-fail when not Ready). Tools
- * marked `readOnlyHint` are configured to auto-retry once on transport
- * error (D24); tools without the hint, or marked destructive, fail
- * immediately on the first transport failure.
+ * marked `readOnly` auto-retry once on transport error (D24); tools
+ * without the hint, or marked destructive, fail immediately on the
+ * first transport failure.
  */
 const buildConnectorTool = (
   callTool: ConnectorRuntime['callTool'],
-  mcp: Mcp.McpToolDescriptor,
+  descriptor: BackendToolDescriptor,
 ): Tool.Descriptor<Record<string, unknown>> => {
   const effectJsonSchema = Tool.makeJSONSchema(AnyRecord)
   const schema = {
     ...effectJsonSchema,
-    ...mcp.inputSchema,
-    description: mcp.description ?? effectJsonSchema.description,
+    ...descriptor.inputSchema,
+    description: descriptor.description ?? effectJsonSchema.description,
   }
-  const retryOnTransport = mcp.annotations?.readOnlyHint === true
+  const retryOnTransport = descriptor.readOnly === true
   return {
-    description: mcp.description,
+    description: descriptor.description,
     schema,
     executor: (args) =>
-      callTool(mcp.name, args, { retryOnTransport }).pipe(
+      callTool(descriptor.name, args, { retryOnTransport }).pipe(
         Eff.Effect.map(Eff.Option.some),
       ),
   }
@@ -252,7 +303,7 @@ const buildConnectorTool = (
 const makeConnectorCallTool =
   (
     connectorId: ConnectorId,
-    client: Mcp.McpClient,
+    backend: Backend,
     state: Eff.SubscriptionRef.SubscriptionRef<ConnectorState>,
     health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   ) =>
@@ -270,18 +321,18 @@ const makeConnectorCallTool =
           }),
         )
       }
-      const attempt = client.callTool(name, input).pipe(Eff.Effect.either)
+      const attempt = backend.callTool(name, input).pipe(Eff.Effect.either)
       let result = yield* attempt
       if (
         opts.retryOnTransport &&
         Eff.Either.isLeft(result) &&
-        result.left._tag === 'McpTransportError'
+        result.left.transient === true
       ) {
         result = yield* attempt
       }
       if (Eff.Either.isLeft(result)) {
         const err = result.left
-        if (err._tag === 'McpTransportError') {
+        if (err.transient === true) {
           yield* Eff.SubscriptionRef.update(health, (h) => ({
             consecutiveFailures: h.consecutiveFailures + 1,
             lastError: err,
@@ -292,25 +343,24 @@ const makeConnectorCallTool =
         )
       }
       yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
-      const blocks = result.right.content.map(Mcp.mapContent)
-      return result.right.isError ? Tool.fail(...blocks) : Tool.succeed(...blocks)
+      return result.right
     })
 
 /**
- * Bootstrap: `initialize` + `tools/list`. No resource autoload — D21.
+ * Bootstrap: `initialize` + `listTools`. No resource autoload — D21.
  * Returns the connector's `Tool.Collection` (keyed `<id>__<name>`).
  */
 const bootstrap = (
   config: ConnectorConfig,
-  client: Mcp.McpClient,
+  backend: Backend,
   callTool: ConnectorRuntime['callTool'],
-): Eff.Effect.Effect<Tool.Collection, Mcp.McpError> =>
+): Eff.Effect.Effect<Tool.Collection, BackendError> =>
   Eff.Effect.gen(function* () {
-    yield* client.initialize()
-    const mcpTools = yield* client.listTools()
+    yield* backend.initialize()
+    const descriptors = yield* backend.listTools()
     const tools: Tool.Collection = {}
-    for (const t of mcpTools) {
-      tools[`${config.id}__${t.name}`] = buildConnectorTool(callTool, t)
+    for (const d of descriptors) {
+      tools[`${config.id}__${d.name}`] = buildConnectorTool(callTool, d)
     }
     return tools
   })
@@ -323,17 +373,16 @@ const bootstrap = (
  * source.
  */
 const runHeartbeat = (
-  client: Mcp.McpClient,
+  backend: Backend,
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
 ): Eff.Effect.Effect<never> =>
   Eff.Effect.gen(function* () {
     while (true) {
       yield* Eff.Effect.sleep(HEARTBEAT_CADENCE)
-      const result = yield* client.ping().pipe(
+      const result = yield* backend.ping().pipe(
         Eff.Effect.timeoutFail({
           duration: HEARTBEAT_TIMEOUT,
-          onTimeout: (): Mcp.McpError =>
-            new Mcp.McpTransportError({ detail: 'ping timeout' }),
+          onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
         }),
         Eff.Effect.either,
       )
@@ -366,24 +415,24 @@ const awaitThresholdCrossed = (
 /**
  * Reconnect budget (D24). Three attempts at 1s/3s/9s; first success
  * returns the fresh `Tool.Collection`, exhaustion fails with the last
- * `McpError`. The connector stays in `Disconnected{retrying:true}`
+ * `BackendError`. The connector stays in `Disconnected{retrying:true}`
  * throughout — UI shows "reconnecting…".
  */
 const runReconnectBudget = (
   config: ConnectorConfig,
-  client: Mcp.McpClient,
+  backend: Backend,
   callTool: ConnectorRuntime['callTool'],
-): Eff.Effect.Effect<Tool.Collection, Mcp.McpError> =>
+): Eff.Effect.Effect<Tool.Collection, BackendError> =>
   Eff.Effect.gen(function* () {
-    let lastError: Mcp.McpError | null = null
+    let lastError: BackendError | null = null
     for (const delay of RECONNECT_BACKOFF) {
       yield* Eff.Effect.sleep(delay)
-      const attempt = yield* bootstrap(config, client, callTool).pipe(Eff.Effect.either)
+      const attempt = yield* bootstrap(config, backend, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isRight(attempt)) return attempt.right
       lastError = attempt.left
     }
     return yield* Eff.Effect.fail(
-      lastError ?? new Mcp.McpTransportError({ detail: 'reconnect exhausted' }),
+      lastError ?? transientError('ReconnectExhausted', 'reconnect exhausted'),
     )
   })
 
@@ -424,7 +473,7 @@ const awaitRetryControl = (
  */
 export const manageConnector = (
   config: ConnectorConfig,
-  client: Mcp.McpClient,
+  backend: Backend,
   state: Eff.SubscriptionRef.SubscriptionRef<ConnectorState>,
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   controls: Eff.Queue.Queue<Control>,
@@ -434,7 +483,7 @@ export const manageConnector = (
     while (true) {
       yield* Eff.SubscriptionRef.set(state, ConnectorState.Connecting())
       yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
-      const initial = yield* bootstrap(config, client, callTool).pipe(Eff.Effect.either)
+      const initial = yield* bootstrap(config, backend, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isLeft(initial)) {
         yield* Eff.SubscriptionRef.set(
           state,
@@ -454,20 +503,19 @@ export const manageConnector = (
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any
         // source (heartbeat itself or external tool-call bumps).
         yield* Eff.Effect.race(
-          runHeartbeat(client, health),
+          runHeartbeat(backend, health),
           awaitThresholdCrossed(health),
         )
 
         const h = yield* Eff.SubscriptionRef.get(health)
-        const transportErr =
-          h.lastError ??
-          new Mcp.McpTransportError({ detail: 'transport health degraded' })
+        const degraded =
+          h.lastError ?? transientError('HealthDegraded', 'transport health degraded')
         yield* Eff.SubscriptionRef.set(
           state,
-          ConnectorState.Disconnected({ retrying: true, error: transportErr }),
+          ConnectorState.Disconnected({ retrying: true, error: degraded }),
         )
 
-        const reconnect = yield* runReconnectBudget(config, client, callTool).pipe(
+        const reconnect = yield* runReconnectBudget(config, backend, callTool).pipe(
           Eff.Effect.either,
         )
         if (Eff.Either.isRight(reconnect)) {
@@ -486,21 +534,16 @@ export const manageConnector = (
     }
   })
 
-const makeTransportClient = (transport: TransportConfig): Mcp.McpClient =>
-  TransportConfig.$match(transport, {
-    Mcp: ({ url, auth }) => Mcp.make({ url, getToken: auth }),
-  })
-
 /**
  * Build a `ConnectorRuntime` for one config. Allocates per-connector
  * refs + queue, wires the gated `callTool`, and forks the lifecycle
- * fiber under the surrounding scope. The optional `client` parameter
- * is for tests; production callers omit it and the wire client is
- * built from `config.transport`.
+ * fiber under the surrounding scope. The `backend` is sourced from
+ * `config.backend` directly — tests construct configs with stub
+ * backends; production wires `Mcp.bearerPassthru(...)` (or future
+ * factories) at the catalog layer.
  */
 export const buildConnectorRuntime = (
   config: ConnectorConfig,
-  client: Mcp.McpClient = makeTransportClient(config.transport),
 ): Eff.Effect.Effect<ConnectorRuntime, never, Eff.Scope.Scope> =>
   Eff.Effect.gen(function* () {
     const state = yield* Eff.SubscriptionRef.make<ConnectorState>(
@@ -508,10 +551,10 @@ export const buildConnectorRuntime = (
     )
     const health = yield* Eff.SubscriptionRef.make<Health>(INITIAL_HEALTH)
     const controls = yield* Eff.Queue.unbounded<Control>()
-    const callTool = makeConnectorCallTool(config.id, client, state, health)
+    const callTool = makeConnectorCallTool(config.id, config.backend, state, health)
 
     yield* Eff.Effect.forkScoped(
-      manageConnector(config, client, state, health, controls, callTool),
+      manageConnector(config, config.backend, state, health, controls, callTool),
     )
 
     return {
@@ -589,16 +632,11 @@ const renderConnectorOverview = (
  */
 export const buildService = (
   configs: readonly ConnectorConfig[],
-  /**
-   * Per-config wire client override (test seam). Production callers
-   * omit it; the wire client is built from `config.transport`.
-   */
-  clientById: Partial<Record<ConnectorId, Mcp.McpClient>> = {},
 ): Eff.Effect.Effect<ConnectorsService, never, Eff.Scope.Scope> =>
   Eff.Effect.gen(function* () {
     const runtimes: Record<ConnectorId, ConnectorRuntime> = {}
     for (const c of configs) {
-      runtimes[c.id] = yield* buildConnectorRuntime(c, clientById[c.id])
+      runtimes[c.id] = yield* buildConnectorRuntime(c)
     }
     const all = Object.values(runtimes)
 
@@ -659,16 +697,8 @@ export const buildService = (
  * `Layer.scoped` wrapper around `buildService`. Suitable for callers
  * that compose Connectors purely through the Layer system (e.g., tests).
  */
-export const layer = (
-  configs: readonly ConnectorConfig[],
-  clientById: Partial<Record<ConnectorId, Mcp.McpClient>> = {},
-): Eff.Layer.Layer<Connectors> =>
-  Eff.Layer.scoped(Connectors, buildService(configs, clientById))
-
-// Re-exports so catalog wiring can resolve auth / render error info
-// without importing the wire-level Mcp module directly.
-export { McpAuthError } from './Mcp'
-export type { McpError, McpTransportError, McpProtocolError, McpRpcError } from './Mcp'
+export const layer = (configs: readonly ConnectorConfig[]): Eff.Layer.Layer<Connectors> =>
+  Eff.Layer.scoped(Connectors, buildService(configs))
 
 // ---------------------------------------------------------------------------
 // React bridges (D30 — UI reads connector state live)
