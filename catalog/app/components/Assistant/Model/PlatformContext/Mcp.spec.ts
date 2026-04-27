@@ -7,7 +7,7 @@
  */
 
 import * as Eff from 'effect'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as Content from '../Content'
 import * as Tool from '../Tool'
@@ -166,7 +166,8 @@ describe('PlatformContext/Mcp', () => {
           }),
       })
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
-      expect(state.status).toBe('ready')
+      expect(state._tag).toBe('Ready')
+      if (state._tag !== 'Ready') throw new Error('expected Ready')
       expect(Object.keys(state.tools)).toEqual(['mcp__platform__search_packages'])
       expect(state.messages).toHaveLength(1)
       expect(state.messages[0]).toContain('platform-mcp-search-syntax')
@@ -185,31 +186,144 @@ describe('PlatformContext/Mcp', () => {
           ),
       })
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
-      expect(state.status).toBe('ready')
+      expect(state._tag).toBe('Ready')
+      if (state._tag !== 'Ready') throw new Error('expected Ready')
       expect(Object.keys(state.tools)).toEqual(['mcp__platform__x'])
       expect(state.messages).toEqual([])
     })
 
-    it('reports error state when initialize fails — never throws', async () => {
+    it('reports Error state when initialize fails — never throws', async () => {
       const client = stubClient({
         initialize: () =>
           Eff.Effect.fail(new Mcp.McpTransportError({ detail: 'DNS fail' })),
       })
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
-      expect(state.status).toBe('error')
-      expect(state.error?._tag).toBe('McpTransportError')
-      expect(state.tools).toEqual({})
-      expect(state.messages).toEqual([])
+      expect(state._tag).toBe('Error')
+      if (state._tag !== 'Error') throw new Error('expected Error')
+      expect(state.error._tag).toBe('McpTransportError')
     })
 
-    it('reports error state when listTools fails after successful initialize', async () => {
+    it('reports Error state when listTools fails after successful initialize', async () => {
       const client = stubClient({
         listTools: () =>
           Eff.Effect.fail(new Mcp.McpRpcError({ code: -32603, rpcMessage: 'Internal' })),
       })
       const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
-      expect(state.status).toBe('error')
-      expect(state.error?._tag).toBe('McpRpcError')
+      expect(state._tag).toBe('Error')
+      if (state._tag !== 'Error') throw new Error('expected Error')
+      expect(state.error._tag).toBe('McpRpcError')
+    })
+
+    it('propagates McpAuthError from getToken (via callTool path)', async () => {
+      // Synthesize: a stub client whose initialize fails with McpAuthError —
+      // standing in for a `make()`-built client whose `getToken` resolves to
+      // `McpAuthError`. Verifies loadContext surfaces auth failure under the
+      // discriminated union.
+      const client = stubClient({
+        initialize: () => Eff.Effect.fail(new Mcp.McpAuthError()),
+      })
+      const state = await Eff.Effect.runPromise(Mcp.loadContext(client))
+      expect(state._tag).toBe('Error')
+      if (state._tag !== 'Error') throw new Error('expected Error')
+      expect(state.error._tag).toBe('McpAuthError')
+      expect(state.error.message).toBe('MCP: no session token')
+    })
+  })
+
+  describe('make() — wire-level integration', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    const stubFetchEcho = (
+      record: Array<{ url: string; init?: RequestInit; body?: unknown }>,
+    ): typeof fetch =>
+      vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+        const body = init?.body ? JSON.parse(init.body as string) : undefined
+        record.push({ url: String(url), init, body })
+        return new Response(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: body?.id ?? 'echo',
+            result: { tools: [] },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      }) as unknown as typeof fetch
+
+    it('generates a fresh JSON-RPC id per call (uniqueness, not format)', async () => {
+      const calls: Array<{ url: string; init?: RequestInit; body?: any }> = []
+      vi.stubGlobal('fetch', stubFetchEcho(calls))
+
+      const client = Mcp.make({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('abc'),
+      })
+      await Eff.Effect.runPromise(client.listTools())
+      await Eff.Effect.runPromise(client.listTools())
+
+      expect(calls).toHaveLength(2)
+      expect(calls[0].body.id).toBeTruthy()
+      expect(calls[1].body.id).toBeTruthy()
+      expect(calls[0].body.id).not.toEqual(calls[1].body.id)
+    })
+
+    it('forwards bearer token from getToken Effect', async () => {
+      const calls: Array<{ url: string; init?: RequestInit; body?: any }> = []
+      vi.stubGlobal('fetch', stubFetchEcho(calls))
+
+      const client = Mcp.make({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('the-token'),
+      })
+      await Eff.Effect.runPromise(client.listTools())
+
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(headers.Authorization).toBe('Bearer the-token')
+    })
+
+    it('propagates McpAuthError without firing fetch when getToken fails', async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+
+      const client = Mcp.make({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.fail(new Mcp.McpAuthError()),
+      })
+      const exit = await Eff.Effect.runPromiseExit(client.listTools())
+
+      expect(Eff.Exit.isFailure(exit)).toBe(true)
+      if (Eff.Exit.isFailure(exit)) {
+        const failure = Eff.Cause.failureOption(exit.cause)
+        expect(Eff.Option.isSome(failure)).toBe(true)
+        if (Eff.Option.isSome(failure)) {
+          expect(failure.value._tag).toBe('McpAuthError')
+        }
+      }
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('PlatformContextState constructors', () => {
+    it('Loading produces a tagged value with no fields', () => {
+      const s = Mcp.PlatformContextState.Loading()
+      expect(s._tag).toBe('Loading')
+      expect(Object.keys(s)).toEqual(['_tag'])
+    })
+
+    it('Ready carries tools and messages', () => {
+      const s = Mcp.PlatformContextState.Ready({ tools: {}, messages: ['hi'] })
+      expect(s._tag).toBe('Ready')
+      if (s._tag !== 'Ready') throw new Error('expected Ready')
+      expect(s.messages).toEqual(['hi'])
+    })
+
+    it('Error carries the McpError instance verbatim', () => {
+      const err = new Mcp.McpTransportError({ detail: 'x' })
+      const s = Mcp.PlatformContextState.Error({ error: err })
+      expect(s._tag).toBe('Error')
+      if (s._tag !== 'Error') throw new Error('expected Error')
+      expect(s.error).toBe(err)
     })
   })
 })

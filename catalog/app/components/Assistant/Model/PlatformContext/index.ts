@@ -23,6 +23,7 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { createSelector } from 'reselect'
 
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -47,20 +48,42 @@ function getMcpUrl(): string {
 }
 
 /**
- * React hook — returns MCP context state (for UI affordances) AND pushes
- * the discovered tools + resource messages into Qurator's context.
+ * Memoized projection from auth state to the bare bearer token. Mirrors the
+ * pattern in `utils/PFSCookieManager.tsx` — composed from
+ * `authSelectors.tokens` rather than indexing the redux state directly.
+ */
+const selectToken = createSelector(
+  authSelectors.tokens,
+  (tokens) => (tokens as { token?: string } | undefined)?.token,
+)
+
+const EMPTY_PUSH = { tools: {}, messages: [] as string[] }
+
+/**
+ * React hook — returns PlatformContext state (for UI affordances) AND
+ * pushes the discovered tools + resource messages into Qurator's context.
  */
 export function usePlatformContext() {
-  const tokens = redux.useSelector(authSelectors.tokens)
-  const tokenRef = React.useRef<string | null>(null)
-  tokenRef.current = (tokens && (tokens as { token?: string }).token) || null
+  const store = redux.useStore()
 
-  const [state, setState] = React.useState<Mcp.McpContextState>(Mcp.INITIAL_STATE)
+  const [state, setState] = React.useState<Mcp.PlatformContextState>(() =>
+    Mcp.PlatformContextState.Loading(),
+  )
 
   const url = React.useMemo(getMcpUrl, [])
   const client = React.useMemo(
-    () => Mcp.make({ url, getToken: () => tokenRef.current }),
-    [url],
+    () =>
+      Mcp.make({
+        url,
+        getToken: () =>
+          Eff.Effect.suspend(() => {
+            const token = selectToken(store.getState())
+            return token
+              ? Eff.Effect.succeed(token)
+              : Eff.Effect.fail(new Mcp.McpAuthError())
+          }),
+      }),
+    [url, store],
   )
 
   React.useEffect(() => {
@@ -68,12 +91,12 @@ export function usePlatformContext() {
     fiber.addObserver((exit) => {
       if (Eff.Exit.isSuccess(exit)) {
         setState(exit.value)
-        if (exit.value.status === 'error') {
-          LOGGER.warn('mcp: bootstrap failed:', exit.value.error)
+        if (exit.value._tag === 'Error') {
+          LOGGER.warn('platform: bootstrap failed:', exit.value.error)
         }
       }
       // On interrupt/failure (fiber killed during unmount) we let the state
-      // stay in `loading` — the component is going away.
+      // stay in Loading — the component is going away.
     })
     return () => {
       runtime.runFork(Eff.Fiber.interrupt(fiber))
@@ -82,8 +105,11 @@ export function usePlatformContext() {
 
   Context.usePushContext(
     React.useMemo(
-      () => ({ tools: state.tools, messages: state.messages }),
-      [state.tools, state.messages],
+      () =>
+        state._tag === 'Ready'
+          ? { tools: state.tools, messages: state.messages }
+          : EMPTY_PUSH,
+      [state],
     ),
   )
 

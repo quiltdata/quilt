@@ -15,6 +15,7 @@
  */
 
 import * as Eff from 'effect'
+import * as uuid from 'uuid'
 
 import * as XML from 'utils/XML'
 
@@ -71,14 +72,14 @@ export interface McpResourceContents {
 
 interface JsonRpcRequest {
   jsonrpc: '2.0'
-  id: number
+  id: string
   method: string
   params?: unknown
 }
 
 interface JsonRpcResponse<T = unknown> {
   jsonrpc: '2.0'
-  id: number
+  id: string | number
   result?: T
   error?: { code: number; message: string; data?: unknown }
 }
@@ -163,7 +164,13 @@ export type McpError = McpAuthError | McpTransportError | McpProtocolError | Mcp
 
 export interface McpClientOptions {
   url: string
-  getToken: () => string | null
+  /**
+   * Resolve the bearer token effectfully. Returning `McpAuthError` short-
+   * circuits the request without firing a fetch. The token is read fresh on
+   * every call — callers can close over a redux store and project the
+   * current token via a memoized selector.
+   */
+  getToken: () => Eff.Effect.Effect<string, McpAuthError>
 }
 
 export interface McpClient {
@@ -177,16 +184,11 @@ export interface McpClient {
 }
 
 export function make(options: McpClientOptions): McpClient {
-  // JS is single-threaded; distinct values for concurrent callers are
-  // guaranteed by synchronous increment-before-await.
-  let nextId = 0
-
   const post = (
     payload: JsonRpcRequest | Omit<JsonRpcRequest, 'id'>,
   ): Eff.Effect.Effect<JsonRpcResponse | null, McpError> =>
     Eff.Effect.gen(function* () {
-      const token = options.getToken()
-      if (!token) return yield* Eff.Effect.fail(new McpAuthError())
+      const token = yield* options.getToken()
 
       const resp = yield* Eff.Effect.tryPromise({
         try: (signal) =>
@@ -230,7 +232,7 @@ export function make(options: McpClientOptions): McpClient {
 
   const rpc = <T>(method: string, params?: unknown): Eff.Effect.Effect<T, McpError> =>
     Eff.Effect.gen(function* () {
-      const id = ++nextId
+      const id = yield* Eff.Effect.sync(uuid.v4)
       const body = yield* post({ jsonrpc: '2.0', id, method, params })
       if (body === null) {
         return yield* Eff.Effect.fail(
@@ -418,17 +420,37 @@ export function buildTool(
 // Session bootstrap
 // ---------------------------------------------------------------------------
 
-export interface McpContextState {
-  status: 'loading' | 'ready' | 'error'
-  error?: McpError
-  tools: Tool.Collection
-  messages: string[]
-}
+/**
+ * Bootstrap state for `usePlatformContext`. Discriminated by `_tag` so
+ * impossible states (`Ready` with an `error`, `Error` with no `error`) are
+ * unrepresentable. Consumers should pattern-match on `_tag` rather than
+ * inspecting fields conditionally.
+ *
+ * `Eff.Data.taggedEnum` is sidestepped here for the same reason errors
+ * above use plain classes — the catalog babel target chokes on extending
+ * runtime-produced classes. Plain object constructors compile cleanly and
+ * give the same shape for `Match.tag`.
+ */
+export type PlatformContextState =
+  | { readonly _tag: 'Loading' }
+  | {
+      readonly _tag: 'Ready'
+      readonly tools: Tool.Collection
+      readonly messages: string[]
+    }
+  | { readonly _tag: 'Error'; readonly error: McpError }
 
-export const INITIAL_STATE: McpContextState = {
-  status: 'loading',
-  tools: {},
-  messages: [],
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const PlatformContextState = {
+  Loading: (): PlatformContextState => ({ _tag: 'Loading' }),
+  Ready: (props: {
+    tools: Tool.Collection
+    messages: string[]
+  }): PlatformContextState => ({ _tag: 'Ready', ...props }),
+  Error: (props: { error: McpError }): PlatformContextState => ({
+    _tag: 'Error',
+    ...props,
+  }),
 }
 
 const SEARCH_SYNTAX_URI = 'quilt-platform://search_syntax'
@@ -439,7 +461,7 @@ const SEARCH_SYNTAX_URI = 'quilt-platform://search_syntax'
  */
 export function loadContext(
   client: McpClient,
-): Eff.Effect.Effect<McpContextState, never> {
+): Eff.Effect.Effect<PlatformContextState, never> {
   const searchSyntaxMessages = client.readResource(SEARCH_SYNTAX_URI).pipe(
     Eff.Effect.map((syntax) => {
       const text = syntax.contents
@@ -459,15 +481,10 @@ export function loadContext(
       tools[`mcp__platform__${t.name}`] = buildTool(client, t)
     }
     const messages = yield* searchSyntaxMessages
-    return { status: 'ready' as const, tools, messages }
+    return PlatformContextState.Ready({ tools, messages })
   }).pipe(
     Eff.Effect.catchAll((error) =>
-      Eff.Effect.succeed<McpContextState>({
-        status: 'error',
-        error,
-        tools: {},
-        messages: [],
-      }),
+      Eff.Effect.succeed(PlatformContextState.Error({ error })),
     ),
   )
 }
