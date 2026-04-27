@@ -11,7 +11,6 @@ export const Loader = function FcsLoader({ handle, children }) {
     PreviewData.Fcs({
       preview: html,
       metadata: info.metadata,
-      vegaLite: info.vegaLite,
       note: info.note,
       warnings: info.warnings,
     }),
