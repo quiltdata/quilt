@@ -306,6 +306,12 @@ export interface McpClient {
     args: Record<string, unknown>,
   ) => Eff.Effect.Effect<McpToolResult, McpError>
   readResource: (uri: string) => Eff.Effect.Effect<McpResourceContents, McpError>
+  /**
+   * MCP base protocol `ping` — JSON-RPC method returning an empty
+   * object on success. Connectors uses this as a transport-health probe
+   * (D24); independent POST in stateless HTTP mode, no session state.
+   */
+  ping: () => Eff.Effect.Effect<void, McpError>
 }
 
 export function make(options: McpClientOptions): McpClient {
@@ -436,6 +442,7 @@ export function make(options: McpClientOptions): McpClient {
         Eff.Effect.flatMap(decodeWith(McpResourceContentsSchema, 'resources/read')),
         Eff.Effect.map((r) => r as unknown as McpResourceContents),
       ),
+    ping: () => rpc('ping').pipe(Eff.Effect.asVoid),
   }
 }
 

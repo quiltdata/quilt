@@ -29,6 +29,7 @@ const stubClient = (overrides: Partial<Mcp.McpClient> = {}): Mcp.McpClient => ({
   callTool: () => Eff.Effect.succeed({ content: [] }),
   readResource: () =>
     Eff.Effect.fail(new Mcp.McpProtocolError({ detail: 'stub: not provided' })),
+  ping: () => Eff.Effect.void,
   ...overrides,
 })
 
