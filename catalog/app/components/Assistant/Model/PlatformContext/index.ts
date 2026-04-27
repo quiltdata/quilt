@@ -32,7 +32,7 @@ import * as Log from 'utils/Logging'
 
 import * as Context from '../Context'
 
-import * as Mcp from './Mcp'
+import * as Mcp from '../Connectors/Mcp'
 
 const MODULE = 'PlatformContext'
 const LOGGER = Log.default.getLogger(MODULE)
@@ -143,5 +143,5 @@ export { usePlatformContext as use }
 // Re-export wire-level state shape so chat-UI consumers don't have to dig
 // into the transport module. `PlatformContextState.$match` is the
 // built-in pattern-match — no separate helper needed.
-export { PlatformContextState } from './Mcp'
-export type { McpError } from './Mcp'
+export { PlatformContextState } from '../Connectors/Mcp'
+export type { McpError } from '../Connectors/Mcp'
