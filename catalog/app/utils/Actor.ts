@@ -21,7 +21,7 @@ interface ActorStopReason<State> {
   state: State
 }
 
-interface Actor<State, Action> {
+export interface Actor<State, Action> {
   state: Eff.SubscriptionRef.SubscriptionRef<State>
   actions: Eff.Queue.Queue<Action>
   listener: Eff.Fiber.RuntimeFiber<ActorStopReason<State>>

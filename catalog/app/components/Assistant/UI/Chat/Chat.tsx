@@ -338,6 +338,21 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
+function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
+  const abort = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Abort()),
+    [dispatch],
+  )
+  return (
+    <MessageContainer
+      timestamp={timestamp}
+      actions={<MessageAction onClick={abort}>abort</MessageAction>}
+    >
+      Waiting for connectors…
+    </MessageContainer>
+  )
+}
+
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
@@ -667,6 +682,9 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
             ),
             ToolUse: (s) => (
               <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
+            ),
+            AwaitingConnector: (s) => (
+              <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),
           })}
           <div ref={scrollRef} />
