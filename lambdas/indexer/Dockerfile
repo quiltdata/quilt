@@ -7,6 +7,9 @@ FROM base AS build
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 
+# numpy 1.26.4 has no Python 3.13 wheel and must be built from source
+RUN dnf install -y gcc gcc-c++ python3-devel && dnf clean all
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 ENV UV_LINK_MODE=copy \
