@@ -140,31 +140,63 @@ function RecordingControls({ enabled, log, enable, clear }: RecordingControlsPro
 }
 
 const useConnectorsPanelStyles = M.makeStyles((t) => ({
-  root: {
+  connector: {
     margin: t.spacing(2, 0),
     padding: t.spacing(0, 2),
   },
   heading: {
     ...t.typography.subtitle2,
-    marginBottom: t.spacing(1),
   },
-  row: {
-    alignItems: 'center',
-    display: 'flex',
-    gap: `${t.spacing(1)}px`,
-    margin: t.spacing(0.5, 0),
-  },
-  rowMeta: {
+  hint: {
     ...t.typography.caption,
     color: t.palette.text.secondary,
-    flexGrow: 1,
+    margin: t.spacing(0.5, 0, 0),
+  },
+  state: {
+    ...t.typography.body2,
+    margin: t.spacing(1, 0, 0),
+  },
+  stateOk: {
+    color: t.palette.success.main,
+  },
+  stateWarn: {
+    // `warning.main` is too light on the panel's paper background;
+    // `warning.dark` reads cleanly.
+    color: t.palette.warning.dark,
+  },
+  stateError: {
+    color: t.palette.error.main,
+  },
+  separator: {
+    color: t.palette.text.disabled,
+    margin: t.spacing(0, 1),
+  },
+  // Mirrors the MessageAction pattern in Chat.tsx — plain clickable span,
+  // hover bumps opacity to 1. Grey + 500 weight to read as an action
+  // without the link blueness M.Link defaults to.
+  action: {
+    color: t.palette.text.secondary,
+    cursor: 'pointer',
+    fontWeight: 500,
+    opacity: 0.7,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+  error: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    margin: t.spacing(0.5, 0, 0),
+    wordBreak: 'break-word',
   },
   contribution: {
     margin: t.spacing(2, 0, 0),
+    padding: t.spacing(0, 2, 2),
   },
   empty: {
     ...t.typography.caption,
     color: t.palette.text.secondary,
+    padding: t.spacing(2),
   },
 }))
 
@@ -180,24 +212,59 @@ function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
     () => runtime.runFork(connector.acknowledge),
     [connector],
   )
-  const detail =
-    state._tag === 'Failed'
-      ? `Failed{acked:${state.acked}} — ${state.error._tag}: ${state.error.message}`
-      : state._tag === 'Disconnected'
-        ? `Disconnected{retrying:${state.retrying}} — ${state.error._tag}: ${state.error.message}`
-        : state._tag === 'Ready'
-          ? `Ready — ${Object.keys(state.tools).length} tools`
-          : state._tag
+  const stateLine = Model.Connectors.ConnectorState.$match(state, {
+    Connecting: () => ({ text: 'Connecting…', cls: classes.stateWarn }),
+    Ready: ({ tools }) => ({
+      text: `Ready — ${Object.keys(tools).length} tools`,
+      cls: classes.stateOk,
+    }),
+    Disconnected: ({ retrying }) => ({
+      text: retrying ? 'Disconnected — reconnecting…' : 'Disconnected',
+      cls: classes.stateWarn,
+    }),
+    Failed: ({ acked }) => ({
+      text: acked ? 'Failed (acknowledged)' : 'Failed',
+      cls: classes.stateError,
+    }),
+  })
+  const error =
+    state._tag === 'Failed' || state._tag === 'Disconnected' ? state.error : null
+  // Hide `reconnect` while the lifecycle is auto-progressing — Connecting
+  // (initial bootstrap) or Disconnected{retrying} (probe loop already
+  // running). The button would either no-op or queue redundant work.
+  const showRetry = !Model.Connectors.stateIsTransient(state)
+  const showAck = state._tag === 'Failed' && !state.acked
   return (
-    <div className={classes.row}>
-      <strong>{connector.id}</strong>
-      <span className={classes.rowMeta}>{detail}</span>
-      <M.Button size="small" variant="outlined" onClick={onRetry}>
-        Retry
-      </M.Button>
-      <M.Button size="small" variant="outlined" onClick={onAck}>
-        Ack
-      </M.Button>
+    <div className={classes.connector}>
+      <div className={classes.heading}>Connector: {connector.config.title}</div>
+      {connector.config.hint && (
+        <div className={classes.hint}>{connector.config.hint}</div>
+      )}
+      <div className={classes.state}>
+        <span className={stateLine.cls}>{stateLine.text}</span>
+        {showRetry && (
+          <>
+            <span className={classes.separator}>·</span>
+            <span className={classes.action} onClick={onRetry}>
+              reconnect
+            </span>
+          </>
+        )}
+        {showAck && (
+          <>
+            <span className={classes.separator}>·</span>
+            <span className={classes.action} onClick={onAck}>
+              acknowledge
+            </span>
+          </>
+        )}
+      </div>
+      {error && (
+        <div className={classes.error}>
+          {error._tag}: {error.message}
+          {error.cause && ` (${error.cause})`}
+        </div>
+      )}
     </div>
   )
 }
@@ -220,6 +287,14 @@ function ConnectorsPanel({ connectors }: ConnectorsPanelProps) {
     Partial<Model.Context.ContextShape>
   >(() => runtime.runSync(connectors.contextContribution))
 
+  // Connectors only contribute when at least one is in a stable state
+  // (Ready → tools + ready overview; Failed{acked} → unavailable
+  // overview). All other states emit nothing, in which case the panel
+  // shouldn't show an empty `{ tools: {}, messages: [] }` block.
+  const hasContribution =
+    Object.keys(contribution.tools ?? {}).length > 0 ||
+    (contribution.messages ?? []).length > 0
+
   React.useEffect(() => {
     if (all.length === 0) return
     const fiber = runtime.runFork(
@@ -241,21 +316,18 @@ function ConnectorsPanel({ connectors }: ConnectorsPanelProps) {
   }, [connectors])
 
   return (
-    <div className={classes.root}>
-      <div className={classes.heading}>Connectors</div>
+    <>
       {all.length === 0 ? (
         <div className={classes.empty}>No connectors configured.</div>
       ) : (
         all.map((c) => <ConnectorPanelRow key={c.id} connector={c} />)
       )}
-      <div className={classes.contribution}>
-        <JsonDisplay
-          name="contextContribution"
-          value={contribution}
-          defaultExpanded={1}
-        />
-      </div>
-    </div>
+      {hasContribution && (
+        <div className={classes.contribution}>
+          <JsonDisplay name="contextContribution" value={contribution} />
+        </div>
+      )}
+    </>
   )
 }
 
