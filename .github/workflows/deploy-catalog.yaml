@@ -10,6 +10,10 @@ on:
       - 'shared/**'
   workflow_dispatch:
     inputs:
+      ref:
+        description: 'Branch, tag, or SHA to build (defaults to dispatching ref)'
+        type: string
+        default: ''
       push_targets:
         description: 'JSON array of push targets (e.g. ["prod","mp","govcloud"]). [] = build only.'
         type: string
@@ -27,9 +31,15 @@ jobs:
       contents: read
     env:
       PUSH_TARGETS: ${{ inputs.push_targets || '["prod","mp","govcloud"]' }}
-      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - name: Resolve image tag from checked-out commit
+        id: tag
+        working-directory: ${{ github.workspace }}
+        run: echo "image_tag=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - run: echo "IMAGE_TAG=${{ steps.tag.outputs.image_tag }}" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v6
         with:
           node-version-file: 'catalog/package.json'
