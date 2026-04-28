@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Qurator: connect to the Quilt Platform MCP Server for ~25 tools (packages, search, S3, Athena, tabulator, `get_resource`); per-connector status with reconnect / continue-without / acknowledge controls in the chat input ([#4840](https://github.com/quiltdata/quilt/pull/4840))
+- [Added] Qurator: connect to the Quilt Platform MCP Server for ~25 tools (packages, search, S3, Athena, tabulator, `get_resource`); per-connector status with reconnect / continue-without controls in the chat input ([#4840](https://github.com/quiltdata/quilt/pull/4840))
 - [Changed] Qurator: replace `catalog_global_getObject` with `catalog_preview` (single `s3_uri` input); returns thumbnail-resized images, native Bedrock `Document` blocks for ≤500 KiB PDFs / Office docs, and language-tagged text ([#4840](https://github.com/quiltdata/quilt/pull/4840))
 - [Removed] Drop unused `linkedData` / `overviewUrl` code paths from the catalog: admin form fields, JSON-LD mounts, and the precomputed-summary S3 fetch branches ([#4856](https://github.com/quiltdata/quilt/pull/4856))
 - [Fixed] Admin Users / Policies panels: drop phantom permission rows referencing a just-removed bucket (cache was not cascading the removal through `Policy.permissions` / `ManagedRole.permissions`) ([#4855](https://github.com/quiltdata/quilt/pull/4855))

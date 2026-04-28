@@ -38,9 +38,9 @@ gated and inline actions appear in the helper-text region:
 
 - `connecting…` / `reconnecting…` — auto-progressing, no action required.
 - `couldn't connect` — click **reconnect** to retry, or **continue without**
-  to proceed with reduced tool access for the rest of the conversation.
-- `unavailable` — sticky after acknowledgement; click **reconnect** to try
-  again at any time.
+  to proceed with reduced tool access for the rest of the conversation. The
+  latter dismisses the error and moves the connector to `unavailable`.
+- `unavailable` — sticky; click **reconnect** to try again at any time.
 
 ## Getting Started
 
