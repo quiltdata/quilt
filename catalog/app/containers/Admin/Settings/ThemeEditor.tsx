@@ -177,7 +177,7 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         error={!!error}
-        helperText={error}
+        helperText={error ? errors?.[error] || error : null}
       />
     </div>
   )
