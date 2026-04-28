@@ -602,6 +602,7 @@ const adaptError = (e: McpError): BackendError => ({
   _tag: ERROR_TAG_MAP[e._tag],
   message: e.message,
   transient: e._tag === 'McpTransportError',
+  retryable: e._tag === 'McpTransportError' && e.status === undefined,
   cause: e._tag,
 })
 
