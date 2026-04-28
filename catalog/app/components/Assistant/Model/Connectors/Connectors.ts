@@ -471,24 +471,19 @@ const attachAutoloadedContent = (
   descriptor: BackendResourceDescriptor,
 ): Eff.Effect.Effect<BackendResourceDescriptor> =>
   config.backend.readResource(descriptor.uri).pipe(
-    Eff.Effect.map((content) => {
-      if (content.length > AUTOLOAD_MAX_BYTES) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[Connectors:${config.id}] resource ${descriptor.uri} exceeds autoload cap ` +
-            `(${content.length} > ${AUTOLOAD_MAX_BYTES}); dropped to on-demand path`,
-        )
-        return descriptor
-      }
-      return { ...descriptor, content }
-    }),
-    Eff.Effect.catchAll((err) => {
-      // eslint-disable-next-line no-console
-      console.warn(
+    Eff.Effect.flatMap((content) =>
+      content.length > AUTOLOAD_MAX_BYTES
+        ? Eff.Effect.logWarning(
+            `[Connectors:${config.id}] resource ${descriptor.uri} exceeds autoload cap ` +
+              `(${content.length} > ${AUTOLOAD_MAX_BYTES}); dropped to on-demand path`,
+          ).pipe(Eff.Effect.as(descriptor))
+        : Eff.Effect.succeed({ ...descriptor, content }),
+    ),
+    Eff.Effect.catchAll((err) =>
+      Eff.Effect.logWarning(
         `[Connectors:${config.id}] autoload of ${descriptor.uri} failed: ${err.message}`,
-      )
-      return Eff.Effect.succeed(descriptor)
-    }),
+      ).pipe(Eff.Effect.as(descriptor)),
+    ),
   )
 
 /**
@@ -642,7 +637,7 @@ export const manageConnector = (
   Eff.Effect.gen(function* () {
     while (true) {
       yield* Eff.SubscriptionRef.set(state, ConnectorState.Connecting())
-      yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
+      yield* resetHealth(health)
       const initial = yield* bootstrap(config, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isLeft(initial)) {
         yield* Eff.SubscriptionRef.set(
@@ -660,7 +655,7 @@ export const manageConnector = (
         // observing the Ready transition then sees a clean health
         // counter (no carried-over `consecutiveFailures` from a prior
         // Disconnected cycle).
-        yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
+        yield* resetHealth(health)
         yield* Eff.SubscriptionRef.set(state, ConnectorState.Ready({ tools, resources }))
 
         // Race: heartbeat loop runs forever; threshold-crossing watcher

@@ -9,6 +9,7 @@ import { S3ObjectLocation } from 'model/S3'
 import * as AWS from 'utils/AWS'
 import * as Log from 'utils/Logging'
 import mkSearch from 'utils/mkSearch'
+import * as s3paths from 'utils/s3paths'
 
 import * as Content from '../Content'
 import * as Tool from '../Tool'
@@ -115,17 +116,14 @@ const PreviewSchema = S.Struct({
 const parseS3Uri = (s3_uri: string): Eff.Effect.Effect<S3ObjectLocation, Error> =>
   Eff.Effect.try({
     try: () => {
-      const url = new URL(s3_uri)
-      if (url.protocol !== 's3:') {
+      if (!s3paths.isS3Url(s3_uri)) {
         throw new Error(`Not an s3:// URI: ${s3_uri}`)
       }
-      const bucket = url.host
-      const key = decodeURIComponent(url.pathname.replace(/^\//, ''))
-      if (!bucket || !key) {
-        throw new Error(`Invalid s3:// URI (missing bucket or key): ${s3_uri}`)
+      const handle = s3paths.parseS3Url(s3_uri)
+      if (!handle.key) {
+        throw new Error(`Invalid s3:// URI (missing key): ${s3_uri}`)
       }
-      const version = url.searchParams.get('versionId') ?? undefined
-      return { bucket, key, version }
+      return handle
     },
     catch: (e) => (e instanceof Error ? e : new Error(String(e))),
   })
@@ -177,7 +175,7 @@ const getObject = (handle: S3ObjectLocation) =>
         return Tool.fail(
           Content.text(
             'Error while getting S3 object metadata:\n',
-            `<object-metadata-error>\n${headE.left}'n</object-metadata-error>`,
+            `<object-metadata-error>\n${headE.left}\n</object-metadata-error>`,
           ),
         )
       }
@@ -213,7 +211,7 @@ const getObject = (handle: S3ObjectLocation) =>
                 Eff.Effect.succeed(
                   Content.text(
                     'Error while getting image preview:\n',
-                    `<object-contents-error>\n${e}'n</object-contents-error>`,
+                    `<object-contents-error>\n${e}\n</object-contents-error>`,
                   ),
                 ),
               ),
@@ -313,43 +311,12 @@ const getDocumentPreview = (handle: S3ObjectLocation, format: Content.DocumentFo
       Eff.Effect.succeed(
         Content.text(
           'Error while getting object contents:\n',
-          `<object-contents-error>\n${e}'n</object-contents-error>`,
+          `<object-contents-error>\n${e}\n</object-contents-error>`,
         ),
       ),
     ),
     Eff.Effect.map(Eff.Array.of),
   )
-
-// const hasNoExt = (key: string) => !extname(key)
-//
-// const isCsv = utils.extIs('.csv')
-//
-// const isExcel = utils.extIn(['.xls', '.xlsx'])
-//
-// const isJsonl = utils.extIs('.jsonl')
-//
-// const isParquet = R.anyPass([
-//   utils.extIn(['.parquet', '.pq']),
-//   R.test(/.+_0$/),
-//   R.test(/[.-]c\d{3,5}$/gi),
-// ])
-//
-// const isTsv = utils.extIn(['.tsv', '.tab'])
-//
-//
-// type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
-//
-// const detectTabularType: (type: string) => TabularType = R.pipe(
-//   utils.stripCompression,
-//   R.cond([
-//     [isCsv, R.always('csv')],
-//     [isExcel, R.always('excel')],
-//     [isJsonl, R.always('jsonl')],
-//     [isParquet, R.always('parquet')],
-//     [isTsv, R.always('tsv')],
-//     [R.T, R.always('csv')],
-//   ]),
-// )
 
 const LANGS = {
   accesslog: /\.log$/,
@@ -397,25 +364,6 @@ function isText(name: string) {
   return langPairs.some(([, re]) => re.test(normalized))
 }
 
-// const loaderChain = {
-//   Audio: extIn(['.flac', '.mp3', '.ogg', '.ts', '.tsa', '.wav']),
-//   Fcs: R.pipe(utils.stripCompression, utils.extIs('.fcs')),
-//   Json: 'json',
-//   Manifest: R.allPass([R.startsWith('.quilt/packages/'), hasNoExt]),
-//   NamedPackage: R.startsWith('.quilt/named_packages/'),
-//   Ngl: R.pipe(
-//     utils.stripCompression,
-//     utils.extIn(['.cif', '.ent', '.mol', '.mol2', '.pdb', '.sdf']),),
-//   Notebook: R.pipe(utils.stripCompression, utils.extIs('.ipynb')),
-//   Tabular: R.pipe(
-//     utils.stripCompression,
-//     R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),),
-//   Vcf: R.pipe(utils.stripCompression, utils.extIs('.vcf')),
-//   Video: utils.extIn(['.m2t', '.m2ts', '.mp4', '.webm']),
-//   Text: R.pipe(findLang, Boolean),
-// }
-// TODO: convert pptx?
-
 type FileType = Eff.Data.TaggedEnum<{
   Image: {}
   Document: {
@@ -427,28 +375,7 @@ type FileType = Eff.Data.TaggedEnum<{
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 const FileType = Eff.Data.taggedEnum<FileType>()
 
-// const getExt = (key: string) => extname(key).toLowerCase().slice(1)
-
-// const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
-// type CompressionType = keyof typeof COMPRESSION_TYPES
-//
-// const getCompression = (key: string): [string, CompressionType | null] => {
-//   for (const [type, ext] of Object.entries(COMPRESSION_TYPES)) {
-//     if (key.toLowerCase().endsWith(ext)) {
-//       return [
-//         key.slice(0, -ext.length),
-//         type as CompressionType,
-//       ]
-//     }
-//   }
-//   return [key, null]
-// }
-
-// TODO
 const detectFileType = (key: string): FileType => {
-  // XXX: support compression?
-  // const [withoutCompression, compression] = getCompression(key)
-  // const ext = extname(withoutCompression).toLowerCase()
   const ext = extname(key).toLowerCase()
 
   if (SUPPORTED_IMAGE_EXTENSIONS.includes(ext)) {
@@ -464,7 +391,6 @@ const detectFileType = (key: string): FileType => {
     return FileType.Document({ format: 'pdf' })
   }
   if (ext === '.csv') {
-    // XXX: does it support TSV?
     return FileType.Document({ format: 'csv' })
   }
   if (ext === '.docx') {

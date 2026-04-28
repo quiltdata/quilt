@@ -366,6 +366,11 @@ export const ConversationActor = Eff.Effect.succeed(
               error: Eff.Option.none(),
             })
           }),
+        Clear: ({ waiter }) =>
+          Eff.Effect.gen(function* () {
+            yield* Eff.Fiber.interruptFork(waiter)
+            return yield* idle([])
+          }),
         Discard: (state, { id }) =>
           Eff.Effect.succeed({
             ...state,

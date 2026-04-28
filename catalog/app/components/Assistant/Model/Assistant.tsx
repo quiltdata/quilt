@@ -3,7 +3,6 @@ import invariant from 'invariant'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { createSelector } from 'reselect'
 
 import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
@@ -48,15 +47,6 @@ function getPlatformMcpUrl(): string {
   return `${cfg.registryUrl}/mcp/platform/mcp`
 }
 
-/**
- * Memoized projection from auth state to the bare bearer token. Mirrors
- * the pattern in `utils/PFSCookieManager.tsx`.
- */
-const selectToken = createSelector(
-  authSelectors.tokens,
-  (tokens) => (tokens as { token?: string } | undefined)?.token,
-)
-
 const PLATFORM_CONNECTOR_HINT =
   'Quilt Platform tools: packages, search, S3 objects, Athena queries, tabulator tables. Reference resources are listed below — autoloaded entries carry their content inline; fetch the rest with get_resource.'
 
@@ -90,7 +80,8 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
       autoload: PLATFORM_AUTOLOAD,
       backend: Mcp.bearerPassthru({
         url: getPlatformMcpUrl(),
-        getToken: () => Eff.Effect.sync(() => selectToken(store.getState()) ?? null),
+        getToken: () =>
+          Eff.Effect.sync(() => authSelectors.token(store.getState()) ?? null),
       }),
     }),
     [store],
