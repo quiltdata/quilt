@@ -60,6 +60,13 @@ function convertSchema(schema: any) {
   }
 }
 
+/**
+ * Build a draft-2020-12 JSON Schema from an Effect-Schema. Effect emits
+ * draft-07 by default with array-`items` syntax; Bedrock rejects that
+ * shape, so we override `$schema` and run `convertSchema` (which
+ * rewrites array `items` → `prefixItems`, etc.). The MCP path never
+ * goes through here — server-authored schemas are forwarded as-is.
+ */
 export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
   const out = Eff.JSONSchema.make(schema)
   out.$schema = 'https://json-schema.org/draft/2020-12/schema'
@@ -71,7 +78,14 @@ export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
 ): Descriptor<A> {
-  const jsonSchema = makeJSONSchema(schema)
+  // `description` arrives on the JSON schema via `Schema.annotations`.
+  // Move it to the Descriptor's top-level field — Bedrock surfaces
+  // that as `toolSpec.description`, which is where Claude reads the
+  // tool's purpose for tool selection. Keeping it inside the schema
+  // body too would ship the same string twice on every turn. The MCP
+  // path doesn't have this concern: MCP's `BackendToolDescriptor`
+  // already separates `description` from `inputSchema`.
+  const { description, ...jsonSchema } = makeJSONSchema(schema)
 
   const decode = Eff.Schema.decodeUnknown(schema, {
     errors: 'all',
@@ -98,7 +112,7 @@ export function make<A, I>(
     )
 
   return {
-    description: jsonSchema.description,
+    description,
     schema: jsonSchema,
     executor: wrappedFn,
   }
