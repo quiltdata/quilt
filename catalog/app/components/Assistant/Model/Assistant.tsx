@@ -58,7 +58,7 @@ const selectToken = createSelector(
 )
 
 const PLATFORM_CONNECTOR_HINT =
-  'Quilt Platform tools: packages, search (Elasticsearch query syntax), S3 objects, Athena queries, tabulator tables, and platform reference resources via get_resource.'
+  'Quilt Platform tools: packages, search (Elasticsearch query syntax — see resource quilt-platform://search_syntax), S3 objects, Athena queries, tabulator tables, and platform reference resources via get_resource.'
 
 /**
  * Build the platform connector config (D33). The backend's `getToken`
