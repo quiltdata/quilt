@@ -14,6 +14,7 @@ import * as Model from '../../Model'
 
 import DevTools from './DevTools'
 import Input from './Input'
+import MessageAction from './MessageAction'
 
 const BG = {
   intense: M.colors.indigo[900],
@@ -128,16 +129,6 @@ function MessageContainer({
   )
 }
 
-const useMessageActionStyles = M.makeStyles({
-  action: {
-    cursor: 'pointer',
-    opacity: 0.7,
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-})
-
 const useToolMessageStyles = M.makeStyles((t) => ({
   header: {
     display: 'flex',
@@ -163,21 +154,6 @@ const useToolMessageStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
   },
 }))
-
-interface MessageActionProps {
-  children: React.ReactNode
-  className?: string
-  onClick?: () => void
-}
-
-function MessageAction({ children, onClick }: MessageActionProps) {
-  const classes = useMessageActionStyles()
-  return (
-    <span className={classes.action} onClick={onClick}>
-      {children}
-    </span>
-  )
-}
 
 interface ConversationDispatchProps {
   dispatch: Model.Assistant.API['dispatch']
@@ -418,18 +394,9 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
 }
 
 const useConnectorHelperStyles = M.makeStyles((t) => ({
-  // Mirrors the MessageAction pattern (Chat) and the DevTools panel
-  // action style — clickable span, hover bumps opacity to 1. Inherits
-  // the surrounding helper-text color (warning / error) so the action
-  // reads as part of the same severity message.
   action: {
-    cursor: 'pointer',
     fontWeight: 500,
     marginLeft: t.spacing(0.5),
-    opacity: 0.7,
-    '&:hover': {
-      opacity: 1,
-    },
   },
   separator: {
     margin: t.spacing(0, 0.5),
@@ -437,12 +404,6 @@ const useConnectorHelperStyles = M.makeStyles((t) => ({
   },
 }))
 
-/**
- * Per-connector helper-text fragment. Stateless — the parent
- * subscribes to state once via `Actor.useState` and threads the
- * current value in. Returns `null` for `Ready` so the parent can fall
- * back to the default disclaimer when every connector is healthy.
- */
 interface ConnectorHelperLineProps {
   connector: Model.Connectors.ConnectorRuntime
   state: Model.Connectors.ConnectorState
@@ -455,15 +416,15 @@ function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
     () => runtime.runFork(connector.acknowledge),
     [connector],
   )
-  const reconnectAction = (
-    <span className={classes.action} onClick={onRetry}>
+  const reconnect = (
+    <MessageAction className={classes.action} onClick={onRetry}>
       reconnect
-    </span>
+    </MessageAction>
   )
-  const ackAction = (
-    <span className={classes.action} onClick={onAck}>
+  const ack = (
+    <MessageAction className={classes.action} onClick={onAck}>
       continue without
-    </span>
+    </MessageAction>
   )
   const sep = <span className={classes.separator}>•</span>
   const title = connector.config.title
@@ -474,25 +435,20 @@ function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
     Failed: ({ acked }) =>
       acked ? (
         <>
-          {title}: unavailable {sep} {reconnectAction}
+          {title}: unavailable {sep} {reconnect}
         </>
       ) : (
         <>
-          {title}: couldn’t connect {sep} {reconnectAction} {sep} {ackAction}
+          {title}: couldn’t connect {sep} {reconnect} {sep} {ack}
         </>
       ),
   })
 }
 
-/**
- * Aggregate severity across all connectors — the input's helper-text
- * color picks the worst category so a single failed-unacked connector
- * dyes the whole helper row red regardless of the others' state.
- */
 const helperSeverityFor = (
   states: readonly Model.Connectors.ConnectorState[],
 ): 'warning' | 'error' | undefined => {
-  if (states.some((s) => s._tag === 'Failed' && !s.acked)) return 'error'
+  if (states.some(Model.Connectors.stateRequiresAck)) return 'error'
   if (states.some((s) => s._tag !== 'Ready')) return 'warning'
   return undefined
 }
@@ -551,32 +507,24 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
   const inputDisabled = state._tag !== 'Idle' || blocked
-  // Connector status surfaces under the input, not at the top of the
-  // chat — the helper-text line is where the user is already looking
-  // when submission is blocked. Per-connector lines stack vertically
-  // when more than one connector is non-`Ready`; everything Ready →
-  // `helperText` undefined and Input falls back to the default
-  // "Qurator may make errors…" disclaimer.
-  //
-  // `Object.values(connectors.byId)` is stable per-mount: `byId` is
-  // built once when the service is allocated, so the loop length never
-  // changes across renders and per-connector `Actor.useState` calls
-  // satisfy rules-of-hooks.
+  // `connectors.byId` is built once at service allocation and never
+  // re-keyed, so this loop's length is stable per-mount and the
+  // per-connector `Actor.useState` calls satisfy rules-of-hooks.
   const allConnectors = Object.values(connectors.byId)
   const connectorStates = allConnectors.map((c) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
     Actor.useState(c.state),
   )
-  const helperLines = allConnectors
-    .map((c, i) =>
-      connectorStates[i]._tag === 'Ready' ? null : (
-        <div key={c.id}>
-          <ConnectorHelperLine connector={c} state={connectorStates[i]} />
-        </div>
-      ),
-    )
-    .filter((x): x is React.ReactElement => x !== null)
-  const helperText = helperLines.length > 0 ? <>{helperLines}</> : undefined
+  const helperLines = allConnectors.flatMap((c, i) =>
+    connectorStates[i]._tag === 'Ready'
+      ? []
+      : [
+          <div key={c.id}>
+            <ConnectorHelperLine connector={c} state={connectorStates[i]} />
+          </div>,
+        ],
+  )
+  const helperText = helperLines.length > 0 ? helperLines : undefined
   const helperSeverity = helperSeverityFor(connectorStates)
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`

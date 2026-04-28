@@ -78,13 +78,9 @@ export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
 ): Descriptor<A> {
-  // `description` arrives on the JSON schema via `Schema.annotations`.
-  // Move it to the Descriptor's top-level field — Bedrock surfaces
-  // that as `toolSpec.description`, which is where Claude reads the
-  // tool's purpose for tool selection. Keeping it inside the schema
-  // body too would ship the same string twice on every turn. The MCP
-  // path doesn't have this concern: MCP's `BackendToolDescriptor`
-  // already separates `description` from `inputSchema`.
+  // Lift `description` out of the schema body so Bedrock doesn't ship
+  // it twice (once as `toolSpec.description`, once inside
+  // `inputSchema.json.description`).
   const { description, ...jsonSchema } = makeJSONSchema(schema)
 
   const decode = Eff.Schema.decodeUnknown(schema, {

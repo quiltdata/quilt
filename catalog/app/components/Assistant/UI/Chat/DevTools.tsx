@@ -8,6 +8,7 @@ import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 
 import * as Model from '../../Model'
+import MessageAction from './MessageAction'
 
 const useModelIdOverrideStyles = M.makeStyles((t) => ({
   root: {
@@ -159,9 +160,9 @@ const useConnectorsPanelStyles = M.makeStyles((t) => ({
   stateOk: {
     color: t.palette.success.main,
   },
+  // `warning.main` washes out on the panel's paper background;
+  // `warning.dark` reads cleanly.
   stateWarn: {
-    // `warning.main` is too light on the panel's paper background;
-    // `warning.dark` reads cleanly.
     color: t.palette.warning.dark,
   },
   stateError: {
@@ -171,17 +172,9 @@ const useConnectorsPanelStyles = M.makeStyles((t) => ({
     color: t.palette.text.disabled,
     margin: t.spacing(0, 1),
   },
-  // Mirrors the MessageAction pattern in Chat.tsx — plain clickable span,
-  // hover bumps opacity to 1. Grey + 500 weight to read as an action
-  // without the link blueness M.Link defaults to.
   action: {
     color: t.palette.text.secondary,
-    cursor: 'pointer',
     fontWeight: 500,
-    opacity: 0.7,
-    '&:hover': {
-      opacity: 1,
-    },
   },
   error: {
     ...t.typography.caption,
@@ -214,10 +207,10 @@ function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
   )
   const stateLine = Model.Connectors.ConnectorState.$match(state, {
     Connecting: () => ({ text: 'Connecting…', cls: classes.stateWarn }),
-    Ready: ({ tools }) => ({
-      text: `Ready — ${Object.keys(tools).length} tools`,
-      cls: classes.stateOk,
-    }),
+    Ready: ({ tools }) => {
+      const n = Object.keys(tools).length
+      return { text: `Ready — ${n} tool${n === 1 ? '' : 's'}`, cls: classes.stateOk }
+    },
     Disconnected: ({ retrying }) => ({
       text: retrying ? 'Disconnected — reconnecting…' : 'Disconnected',
       cls: classes.stateWarn,
@@ -230,10 +223,9 @@ function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
   const error =
     state._tag === 'Failed' || state._tag === 'Disconnected' ? state.error : null
   // Hide `reconnect` while the lifecycle is auto-progressing — Connecting
-  // (initial bootstrap) or Disconnected{retrying} (probe loop already
-  // running). The button would either no-op or queue redundant work.
+  // or Disconnected{retrying} would no-op or queue redundant work.
   const showRetry = !Model.Connectors.stateIsTransient(state)
-  const showAck = state._tag === 'Failed' && !state.acked
+  const showAck = Model.Connectors.stateRequiresAck(state)
   return (
     <div className={classes.connector}>
       <div className={classes.heading}>Connector: {connector.config.title}</div>
@@ -245,17 +237,17 @@ function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
         {showRetry && (
           <>
             <span className={classes.separator}>•</span>
-            <span className={classes.action} onClick={onRetry}>
+            <MessageAction className={classes.action} onClick={onRetry}>
               reconnect
-            </span>
+            </MessageAction>
           </>
         )}
         {showAck && (
           <>
             <span className={classes.separator}>•</span>
-            <span className={classes.action} onClick={onAck}>
+            <MessageAction className={classes.action} onClick={onAck}>
               acknowledge
-            </span>
+            </MessageAction>
           </>
         )}
       </div>
