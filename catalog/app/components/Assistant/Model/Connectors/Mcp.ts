@@ -30,7 +30,12 @@ import * as Tool from '../Tool'
 
 // Type-only imports of the Backend contract — runtime dependency stays
 // one-way (index.ts depends on Mcp.ts) so this is purely compile-time.
-import type { Backend, BackendError, BackendToolDescriptor } from '.'
+import type {
+  Backend,
+  BackendError,
+  BackendResourceDescriptor,
+  BackendToolDescriptor,
+} from '.'
 
 const PROTOCOL_VERSION = '2025-06-18'
 const CLIENT_INFO = { name: 'quilt-catalog', version: '1' } as const
@@ -91,6 +96,19 @@ export interface McpToolResult {
 
 export interface McpResourceContents {
   contents: Array<{ uri: string; text?: string; mimeType?: string }>
+}
+
+/**
+ * Resource directory entry from `resources/list`. Servers may publish
+ * any subset of these fields beyond `uri`; the catalog renders whatever
+ * the server provides into the connector overview so the model knows
+ * what URIs to feed `get_resource`.
+ */
+export interface McpResourceDescriptor {
+  uri: string
+  name?: string
+  description?: string
+  mimeType?: string
 }
 
 interface JsonRpcRequest {
@@ -256,6 +274,17 @@ const McpResourceContentsSchema = Eff.Schema.Struct({
   ),
 })
 
+const McpResourceDescriptorSchema = Eff.Schema.Struct({
+  uri: Eff.Schema.String,
+  name: Eff.Schema.optional(Eff.Schema.String),
+  description: Eff.Schema.optional(Eff.Schema.String),
+  mimeType: Eff.Schema.optional(Eff.Schema.String),
+})
+
+const ResourcesListResponseSchema = Eff.Schema.Struct({
+  resources: Eff.Schema.Array(McpResourceDescriptorSchema),
+})
+
 const JsonRpcResponseSchema = Eff.Schema.Struct({
   jsonrpc: Eff.Schema.Literal('2.0'),
   id: Eff.Schema.Union(Eff.Schema.String, Eff.Schema.Number),
@@ -322,6 +351,7 @@ export interface McpClientOptions {
 export interface McpClient {
   initialize: () => Eff.Effect.Effect<void, McpError>
   listTools: () => Eff.Effect.Effect<McpToolDescriptor[], McpError>
+  listResources: () => Eff.Effect.Effect<McpResourceDescriptor[], McpError>
   callTool: (
     name: string,
     args: Record<string, unknown>,
@@ -460,6 +490,11 @@ export function make(options: McpClientOptions): McpClient {
         Eff.Effect.flatMap(decodeWith(ToolsListResponseSchema, 'tools/list')),
         Eff.Effect.map((r) => r.tools as McpToolDescriptor[]),
       ),
+    listResources: () =>
+      rpc('resources/list').pipe(
+        Eff.Effect.flatMap(decodeWith(ResourcesListResponseSchema, 'resources/list')),
+        Eff.Effect.map((r) => r.resources as McpResourceDescriptor[]),
+      ),
     callTool: (name, args) =>
       rpc('tools/call', { name, arguments: args }).pipe(
         Eff.Effect.flatMap(decodeWith(McpToolResultSchema, 'tools/call')),
@@ -529,6 +564,15 @@ const adaptDescriptor = (m: McpToolDescriptor): BackendToolDescriptor => ({
   description: m.description,
   inputSchema: m.inputSchema,
   readOnly: m.annotations?.readOnlyHint,
+})
+
+const adaptResourceDescriptor = (
+  m: McpResourceDescriptor,
+): BackendResourceDescriptor => ({
+  uri: m.uri,
+  name: m.name,
+  description: m.description,
+  mimeType: m.mimeType,
 })
 
 const adaptResult = (r: McpToolResult): Tool.Result => {
@@ -602,6 +646,10 @@ export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
     initialize: () => lift(wire.initialize()),
     listTools: () =>
       lift(wire.listTools()).pipe(Eff.Effect.map((ds) => ds.map(adaptDescriptor))),
+    listResources: () =>
+      lift(wire.listResources()).pipe(
+        Eff.Effect.map((ds) => ds.map(adaptResourceDescriptor)),
+      ),
     callTool: (name, input) =>
       lift(wire.callTool(name, input)).pipe(Eff.Effect.map(adaptResult)),
     ping: () => lift(wire.ping()),

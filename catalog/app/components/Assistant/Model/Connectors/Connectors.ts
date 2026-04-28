@@ -82,6 +82,20 @@ export interface BackendToolDescriptor {
 }
 
 /**
+ * Application-driven resource entry. The model never reads resources
+ * autonomously (D21); the catalog enumerates them at bootstrap and
+ * surfaces the directory in the connector overview so the model knows
+ * which URIs to feed `get_resource`. Read content lives in the wire
+ * layer (`McpClient.readResource`) and only flows when a tool fetches it.
+ */
+export interface BackendResourceDescriptor {
+  readonly uri: string
+  readonly name?: string
+  readonly description?: string
+  readonly mimeType?: string
+}
+
+/**
  * The connector's behavioral surface. Implementations adapt a wire
  * protocol (today: 1st-party MCP via `Mcp.bearerPassthru`; later: maybe
  * OAuth-flavored MCP, in-process tools, etc.) into this interface.
@@ -92,6 +106,10 @@ export interface Backend {
   readonly initialize: () => Eff.Effect.Effect<void, BackendError>
   readonly listTools: () => Eff.Effect.Effect<
     readonly BackendToolDescriptor[],
+    BackendError
+  >
+  readonly listResources: () => Eff.Effect.Effect<
+    readonly BackendResourceDescriptor[],
     BackendError
   >
   readonly callTool: (
@@ -142,6 +160,7 @@ export type ConnectorState = Eff.Data.TaggedEnum<{
   Connecting: {}
   Ready: {
     readonly tools: Tool.Collection
+    readonly resources: readonly BackendResourceDescriptor[]
   }
   Disconnected: {
     readonly retrying: boolean
@@ -368,13 +387,27 @@ const makeConnectorCallTool =
     })
 
 /**
- * Bootstrap: `initialize` + `listTools`. No resource autoload — D21.
- * Returns the connector's `Tool.Collection` (keyed `<id>__<name>`).
+ * Bootstrap: `initialize` + `listTools` + `listResources`. No resource
+ * autoload (D21) — only enumeration, so the model sees the directory in
+ * the connector overview and knows which URIs to feed `get_resource`.
+ *
+ * `listResources` is treated as best-effort: servers without resource
+ * support return method-not-found from the spec, and a transient hiccup
+ * after a successful `listTools` shouldn't block the connector. On any
+ * error we proceed with an empty resource list — `listTools` already
+ * proved transport / auth are working.
+ *
+ * Returns the connector's tool collection (keyed `<id>__<name>`) and
+ * resource directory.
  */
+interface BootstrapResult {
+  readonly tools: Tool.Collection
+  readonly resources: readonly BackendResourceDescriptor[]
+}
 const bootstrap = (
   config: ConnectorConfig,
   callTool: ConnectorRuntime['callTool'],
-): Eff.Effect.Effect<Tool.Collection, BackendError> =>
+): Eff.Effect.Effect<BootstrapResult, BackendError> =>
   Eff.Effect.gen(function* () {
     yield* config.backend.initialize()
     const descriptors = yield* config.backend.listTools()
@@ -382,7 +415,14 @@ const bootstrap = (
     for (const d of descriptors) {
       tools[`${config.id}__${d.name}`] = buildConnectorTool(callTool, d)
     }
-    return tools
+    const resources = yield* config.backend
+      .listResources()
+      .pipe(
+        Eff.Effect.catchAll(() =>
+          Eff.Effect.succeed([] as readonly BackendResourceDescriptor[]),
+        ),
+      )
+    return { tools, resources }
   })
 
 /**
@@ -448,7 +488,7 @@ const awaitThresholdCrossed = (
 const runReconnectWithProbe = (
   config: ConnectorConfig,
   callTool: ConnectorRuntime['callTool'],
-): Eff.Effect.Effect<Tool.Collection, BackendError> => {
+): Eff.Effect.Effect<BootstrapResult, BackendError> => {
   const escalate = (cadence: Eff.Duration.Duration): Eff.Duration.Duration => {
     const doubled = Eff.Duration.times(cadence, 2)
     return Eff.Duration.greaterThan(doubled, PROBE_CADENCE_MAX)
@@ -547,7 +587,7 @@ export const manageConnector = (
         continue
       }
 
-      let tools = initial.right
+      let { tools, resources } = initial.right
       let inReady = true
       while (inReady) {
         // Reset health BEFORE flipping state to Ready: any tool call
@@ -555,7 +595,7 @@ export const manageConnector = (
         // counter (no carried-over `consecutiveFailures` from a prior
         // Disconnected cycle).
         yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
-        yield* Eff.SubscriptionRef.set(state, ConnectorState.Ready({ tools }))
+        yield* Eff.SubscriptionRef.set(state, ConnectorState.Ready({ tools, resources }))
 
         // Race: heartbeat loop runs forever; threshold-crossing watcher
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any
@@ -577,8 +617,9 @@ export const manageConnector = (
           Eff.Effect.either,
         )
         if (Eff.Either.isRight(reconnect)) {
-          tools = reconnect.right
-          // loop back to Ready with refreshed tool collection
+          tools = reconnect.right.tools
+          resources = reconnect.right.resources
+          // loop back to Ready with refreshed tool + resource directory
         } else {
           yield* Eff.SubscriptionRef.set(
             state,
@@ -654,10 +695,32 @@ export const buildConnectorRuntime = (
 // ---------------------------------------------------------------------------
 
 /**
+ * Render the resource directory as a nested `<resources>` block. The
+ * model uses these URIs with `get_resource` (or the connector's
+ * equivalent tool); content is fetched on demand, never autoloaded
+ * (D21).
+ */
+const renderResources = (
+  resources: readonly BackendResourceDescriptor[],
+): XML.Tag | null => {
+  if (resources.length === 0) return null
+  const entries = resources.map((r) =>
+    XML.tag('resource', {
+      uri: r.uri,
+      ...(r.name ? { name: r.name } : {}),
+      ...(r.mimeType ? { 'mime-type': r.mimeType } : {}),
+      ...(r.description ? { description: r.description } : {}),
+    }),
+  )
+  return XML.tag('resources', {}, ...entries)
+}
+
+/**
  * Render one `<connector>` element for the LLM-facing overview. Only
  * stable states reach the prompt:
  *
- *  - `Ready`           → `state="ready"`, hint as body
+ *  - `Ready`           → `state="ready"`, hint as body, resource
+ *                        directory as a nested `<resources>` block
  *  - `Failed{acked}`   → `state="unavailable"`, terse body
  *  - other states      → null (transient + needs-ack states block via
  *                        AwaitingConnector and don't make it here)
@@ -672,11 +735,11 @@ const renderConnectorOverview = (
     title: config.title,
   }
   if (state._tag === 'Ready') {
-    return XML.tag(
-      'connector',
-      { ...baseAttrs, state: 'ready' },
-      config.hint ?? '',
-    ).toString()
+    const children: (string | XML.Tag)[] = []
+    if (config.hint) children.push(config.hint)
+    const resources = renderResources(state.resources)
+    if (resources) children.push(resources)
+    return XML.tag('connector', { ...baseAttrs, state: 'ready' }, ...children).toString()
   }
   if (state._tag === 'Failed' && state.acked) {
     return XML.tag(

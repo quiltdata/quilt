@@ -21,6 +21,7 @@ const stubBackend = (
 ): Connectors.Backend => ({
   initialize: () => Eff.Effect.void,
   listTools: () => Eff.Effect.succeed([]),
+  listResources: () => Eff.Effect.succeed([]),
   callTool: () => Eff.Effect.succeed(Tool.succeed()),
   ping: () => Eff.Effect.void,
   ...overrides,
@@ -77,7 +78,7 @@ const awaitState = (
 
 describe('Connectors', () => {
   describe('state predicates', () => {
-    const ready = Connectors.ConnectorState.Ready({ tools: {} })
+    const ready = Connectors.ConnectorState.Ready({ tools: {}, resources: [] })
     const connecting = Connectors.ConnectorState.Connecting()
     const reconnecting = Connectors.ConnectorState.Disconnected({
       retrying: true,
@@ -770,6 +771,78 @@ describe('Connectors', () => {
           expect(ctx.messages?.[0]).toContain('state="ready"')
           expect(ctx.messages?.[0]).toContain('tool-prefix="platform__"')
           expect(ctx.messages?.[0]).toContain('Packages, search, S3.')
+        }),
+      )
+    })
+
+    it('contextContribution: Ready connector renders <resources> directory after the hint', () => {
+      const config = baseConfig(
+        stubBackend({
+          listResources: () =>
+            Eff.Effect.succeed([
+              {
+                uri: 'quilt-platform://search_syntax',
+                name: 'search_syntax',
+                description: 'Elasticsearch query string syntax reference.',
+                mimeType: 'text/markdown',
+              },
+              { uri: 'quilt-platform://me' },
+            ]),
+        }),
+      )
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          const ctx = yield* svc.contextContribution
+          const overview = ctx.messages?.[0] ?? ''
+          expect(overview).toContain('<resources>')
+          expect(overview).toContain('uri="quilt-platform://search_syntax"')
+          expect(overview).toContain('name="search_syntax"')
+          expect(overview).toContain('mime-type="text/markdown"')
+          expect(overview).toContain(
+            'description="Elasticsearch query string syntax reference."',
+          )
+          // Hint precedes the directory so the model has context first.
+          expect(overview.indexOf('Packages, search, S3.')).toBeLessThan(
+            overview.indexOf('<resources>'),
+          )
+        }),
+      )
+    })
+
+    it('contextContribution: empty resource directory omits the <resources> block entirely', () => {
+      const config = baseConfig(stubBackend())
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          const ctx = yield* svc.contextContribution
+          expect(ctx.messages?.[0]).not.toContain('<resources>')
+        }),
+      )
+    })
+
+    it("bootstrap: listResources error doesn't block Ready (best-effort enumeration)", () => {
+      const config = baseConfig(
+        stubBackend({
+          listResources: () => Eff.Effect.fail(transportError),
+          listTools: () =>
+            Eff.Effect.succeed([
+              { name: 'foo', description: 'Foo', inputSchema: { type: 'object' } },
+            ]),
+        }),
+      )
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          const ready = yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          if (ready._tag !== 'Ready') return
+          expect(Object.keys(ready.tools)).toEqual(['platform__foo'])
+          expect(ready.resources).toEqual([])
         }),
       )
     })
