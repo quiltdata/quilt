@@ -650,6 +650,18 @@ export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
       lift(wire.listResources()).pipe(
         Eff.Effect.map((ds) => ds.map(adaptResourceDescriptor)),
       ),
+    readResource: (uri) =>
+      lift(wire.readResource(uri)).pipe(
+        // MCP resources/read returns `contents: [{ uri, text?, mimeType? }]`.
+        // Concatenate text parts; binary parts (no `text`) are skipped — autoload
+        // is text-content-only by design.
+        Eff.Effect.map((r) =>
+          r.contents
+            .map((c) => c.text)
+            .filter((t): t is string => typeof t === 'string')
+            .join('\n'),
+        ),
+      ),
     callTool: (name, input) =>
       lift(wire.callTool(name, input)).pipe(Eff.Effect.map(adaptResult)),
     ping: () => lift(wire.ping()),

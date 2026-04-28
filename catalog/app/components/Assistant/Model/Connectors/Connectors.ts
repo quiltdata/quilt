@@ -82,17 +82,23 @@ export interface BackendToolDescriptor {
 }
 
 /**
- * Application-driven resource entry. The model never reads resources
- * autonomously (D21); the catalog enumerates them at bootstrap and
- * surfaces the directory in the connector overview so the model knows
- * which URIs to feed `get_resource`. Read content lives in the wire
- * layer (`McpClient.readResource`) and only flows when a tool fetches it.
+ * Application-driven resource entry. The catalog enumerates resources
+ * at bootstrap and surfaces the directory in the connector overview.
+ * By default content is fetched on demand via `get_resource` (D21); a
+ * subset listed in `ConnectorConfig.autoload` is pre-fetched at
+ * bootstrap and inlined into the prompt — see qhq-5d0.15 (carve-out
+ * for reference-grade resources the model demonstrably doesn't fetch
+ * on its own, e.g. ES query syntax).
+ *
+ * `content` is populated only for autoloaded entries; everything else
+ * stays attribute-only.
  */
 export interface BackendResourceDescriptor {
   readonly uri: string
   readonly name?: string
   readonly description?: string
   readonly mimeType?: string
+  readonly content?: string
 }
 
 /**
@@ -112,6 +118,13 @@ export interface Backend {
     readonly BackendResourceDescriptor[],
     BackendError
   >
+  /**
+   * Fetch a resource's content as a single text blob. Concatenates all
+   * text parts from the wire response; binary parts are skipped. Used by
+   * bootstrap for autoloaded resources (qhq-5d0.15) — the model still
+   * uses `get_resource` for on-demand fetches.
+   */
+  readonly readResource: (uri: string) => Eff.Effect.Effect<string, BackendError>
   readonly callTool: (
     name: string,
     input: Record<string, unknown>,
@@ -126,16 +139,21 @@ export interface Backend {
 export type ConnectorId = string
 
 /**
- * Connector configuration — title, hint, and the backend instance the
- * lifecycle drives. The hint is static text the LLM sees in the
- * connectors overview (no resource autoload — connectors expose tools
- * to do that themselves).
+ * Connector configuration — title, hint, the backend instance the
+ * lifecycle drives, and the optional set of resource URIs to autoload
+ * at bootstrap.
+ *
+ * Autoloaded resource content is inlined into the connector overview
+ * (qhq-5d0.15). Reference-grade resources the model demonstrably won't
+ * fetch on its own (search syntax, Athena schema) belong here; stack
+ * state already covered elsewhere or rarely-needed identity does not.
  */
 export interface ConnectorConfig {
   readonly id: ConnectorId
   readonly title: string
   readonly hint?: string
   readonly backend: Backend
+  readonly autoload?: ReadonlySet<string>
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +284,14 @@ const PROBE_CADENCE_MAX = Eff.Duration.seconds(30)
 const RECONNECT_MAX_ATTEMPTS = 3
 const DISCONNECTED_MAX_DURATION = Eff.Duration.seconds(60)
 
+/**
+ * Per-resource size cap for autoload (qhq-5d0.15). Resources whose
+ * content exceeds this byte count are dropped from the autoload path
+ * and stay listed as attribute-only entries in the directory — the
+ * model can still fetch them on demand via `get_resource`.
+ */
+const AUTOLOAD_MAX_BYTES = 16 * 1024
+
 interface Health {
   readonly consecutiveFailures: number
   readonly lastError: BackendError | null
@@ -387,15 +413,18 @@ const makeConnectorCallTool =
     })
 
 /**
- * Bootstrap: `initialize` + `listTools` + `listResources`. No resource
- * autoload (D21) — only enumeration, so the model sees the directory in
- * the connector overview and knows which URIs to feed `get_resource`.
+ * Bootstrap: `initialize` + `listTools` + `listResources` + autoload
+ * pre-fetch. `listResources` carves out the directory; for URIs in
+ * `config.autoload`, we additionally `readResource` and inline the
+ * content into the descriptor so it lands in the prompt (qhq-5d0.15).
  *
- * `listResources` is treated as best-effort: servers without resource
- * support return method-not-found from the spec, and a transient hiccup
- * after a successful `listTools` shouldn't block the connector. On any
- * error we proceed with an empty resource list — `listTools` already
- * proved transport / auth are working.
+ * Both `listResources` and per-URI `readResource` are best-effort.
+ * `listTools` already proved transport / auth; a downstream hiccup
+ * fetching resources or content shouldn't block Ready. Failures fall
+ * through to: empty directory (listResources) or attribute-only entry
+ * (readResource). Same fallback path applies when a resource exceeds
+ * `AUTOLOAD_MAX_BYTES` — we keep the entry in the directory but drop
+ * the content.
  *
  * Returns the connector's tool collection (keyed `<id>__<name>`) and
  * resource directory.
@@ -415,15 +444,52 @@ const bootstrap = (
     for (const d of descriptors) {
       tools[`${config.id}__${d.name}`] = buildConnectorTool(callTool, d)
     }
-    const resources = yield* config.backend
+    const listed = yield* config.backend
       .listResources()
       .pipe(
         Eff.Effect.catchAll(() =>
           Eff.Effect.succeed([] as readonly BackendResourceDescriptor[]),
         ),
       )
+    const autoload = config.autoload ?? new Set<string>()
+    const resources = yield* Eff.Effect.all(
+      listed.map((d) =>
+        autoload.has(d.uri) ? attachAutoloadedContent(config, d) : Eff.Effect.succeed(d),
+      ),
+      { concurrency: 'unbounded' },
+    )
     return { tools, resources }
   })
+
+/**
+ * Pre-fetch a resource's content for autoload (qhq-5d0.15). Drops the
+ * content (keeping the descriptor) on read failure or if the body
+ * exceeds `AUTOLOAD_MAX_BYTES`. Never fails — bootstrap stays best-effort.
+ */
+const attachAutoloadedContent = (
+  config: ConnectorConfig,
+  descriptor: BackendResourceDescriptor,
+): Eff.Effect.Effect<BackendResourceDescriptor> =>
+  config.backend.readResource(descriptor.uri).pipe(
+    Eff.Effect.map((content) => {
+      if (content.length > AUTOLOAD_MAX_BYTES) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Connectors:${config.id}] resource ${descriptor.uri} exceeds autoload cap ` +
+            `(${content.length} > ${AUTOLOAD_MAX_BYTES}); dropped to on-demand path`,
+        )
+        return descriptor
+      }
+      return { ...descriptor, content }
+    }),
+    Eff.Effect.catchAll((err) => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Connectors:${config.id}] autoload of ${descriptor.uri} failed: ${err.message}`,
+      )
+      return Eff.Effect.succeed(descriptor)
+    }),
+  )
 
 /**
  * Heartbeat ping loop (D24). Runs forever; each tick pings with timeout
@@ -695,23 +761,27 @@ export const buildConnectorRuntime = (
 // ---------------------------------------------------------------------------
 
 /**
- * Render the resource directory as a nested `<resources>` block. The
- * model uses these URIs with `get_resource` (or the connector's
- * equivalent tool); content is fetched on demand, never autoloaded
- * (D21).
+ * Render the resource directory as a nested `<resources>` block.
+ * Default: each entry is attribute-only and the model fetches content
+ * on demand via `get_resource`. Autoloaded entries (qhq-5d0.15) carry
+ * their content as the element body so it lands in the prompt without
+ * a tool round-trip.
  */
 const renderResources = (
   resources: readonly BackendResourceDescriptor[],
 ): XML.Tag | null => {
   if (resources.length === 0) return null
-  const entries = resources.map((r) =>
-    XML.tag('resource', {
+  const entries = resources.map((r) => {
+    const attrs = {
       uri: r.uri,
       ...(r.name ? { name: r.name } : {}),
       ...(r.mimeType ? { 'mime-type': r.mimeType } : {}),
       ...(r.description ? { description: r.description } : {}),
-    }),
-  )
+    }
+    return r.content !== undefined
+      ? XML.tag('resource', attrs, r.content)
+      : XML.tag('resource', attrs)
+  })
   return XML.tag('resources', {}, ...entries)
 }
 

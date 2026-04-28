@@ -22,6 +22,7 @@ const stubBackend = (
   initialize: () => Eff.Effect.void,
   listTools: () => Eff.Effect.succeed([]),
   listResources: () => Eff.Effect.succeed([]),
+  readResource: () => Eff.Effect.succeed(''),
   callTool: () => Eff.Effect.succeed(Tool.succeed()),
   ping: () => Eff.Effect.void,
   ...overrides,
@@ -843,6 +844,91 @@ describe('Connectors', () => {
           if (ready._tag !== 'Ready') return
           expect(Object.keys(ready.tools)).toEqual(['platform__foo'])
           expect(ready.resources).toEqual([])
+        }),
+      )
+    })
+
+    it('autoload: configured URIs get content inlined; others stay attribute-only', () => {
+      const backend = stubBackend({
+        listResources: () =>
+          Eff.Effect.succeed([
+            {
+              uri: 'quilt-platform://search_syntax',
+              name: 'search_syntax',
+              description: 'ES query string syntax.',
+            },
+            { uri: 'quilt-platform://me', name: 'me', description: 'User identity.' },
+          ]),
+        readResource: (uri) =>
+          uri === 'quilt-platform://search_syntax'
+            ? Eff.Effect.succeed('# ES syntax body')
+            : Eff.Effect.fail(transportError),
+      })
+      const config = baseConfig(backend, {
+        autoload: new Set(['quilt-platform://search_syntax']),
+      })
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          const ready = yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          if (ready._tag !== 'Ready') return
+          const syntax = ready.resources.find(
+            (r) => r.uri === 'quilt-platform://search_syntax',
+          )
+          const me = ready.resources.find((r) => r.uri === 'quilt-platform://me')
+          expect(syntax?.content).toBe('# ES syntax body')
+          expect(me?.content).toBeUndefined()
+          // Overview should embed the autoloaded body, leave the other attribute-only.
+          const ctx = yield* svc.contextContribution
+          const overview = ctx.messages?.[0] ?? ''
+          expect(overview).toContain('# ES syntax body')
+          expect(overview).toContain('uri="quilt-platform://me"')
+        }),
+      )
+    })
+
+    it('autoload: readResource error degrades gracefully — entry stays in directory without content', () => {
+      const backend = stubBackend({
+        listResources: () =>
+          Eff.Effect.succeed([
+            { uri: 'quilt-platform://search_syntax', name: 'search_syntax' },
+          ]),
+        readResource: () => Eff.Effect.fail(transportError),
+      })
+      const config = baseConfig(backend, {
+        autoload: new Set(['quilt-platform://search_syntax']),
+      })
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          const ready = yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          if (ready._tag !== 'Ready') return
+          expect(ready.resources).toHaveLength(1)
+          expect(ready.resources[0].content).toBeUndefined()
+        }),
+      )
+    })
+
+    it('autoload: oversize content is dropped; descriptor stays in directory', () => {
+      // 16 KiB cap + 1 byte → over the limit, content dropped.
+      const huge = 'x'.repeat(16 * 1024 + 1)
+      const backend = stubBackend({
+        listResources: () =>
+          Eff.Effect.succeed([{ uri: 'quilt-platform://big', name: 'big' }]),
+        readResource: () => Eff.Effect.succeed(huge),
+      })
+      const config = baseConfig(backend, {
+        autoload: new Set(['quilt-platform://big']),
+      })
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          const ready = yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          if (ready._tag !== 'Ready') return
+          expect(ready.resources[0].content).toBeUndefined()
         }),
       )
     })

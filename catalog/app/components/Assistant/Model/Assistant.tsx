@@ -57,12 +57,20 @@ const selectToken = createSelector(
   (tokens) => (tokens as { token?: string } | undefined)?.token,
 )
 
-const PLATFORM_CONNECTOR_HINT = [
-  'Quilt Platform tools: packages, search, S3 objects, Athena queries, tabulator tables.',
-  'Before using search tools (search_packages, search_objects), fetch quilt-platform://search_syntax via get_resource — non-trivial queries need Elasticsearch query string syntax.',
-  'Before using athena_query, fetch quilt-platform://athena via get_resource — covers workgroup, available databases, and tabulator-catalog usage.',
-  'Additional reference resources are listed below; fetch content with get_resource.',
-].join(' ')
+const PLATFORM_CONNECTOR_HINT =
+  'Quilt Platform tools: packages, search, S3 objects, Athena queries, tabulator tables. Reference resources are listed below — autoloaded entries carry their content inline; fetch the rest with get_resource.'
+
+/**
+ * Resources autoloaded into the prompt at bootstrap (qhq-5d0.15).
+ * Reference-grade docs the model needs before tool calls and won't
+ * fetch on its own. `quilt-platform://buckets` is excluded because the
+ * catalog already injects bucket info via `<quilt-stack-info>`;
+ * `quilt-platform://me` is excluded as rarely needed for tool calls.
+ */
+const PLATFORM_AUTOLOAD: ReadonlySet<string> = new Set([
+  'quilt-platform://search_syntax',
+  'quilt-platform://athena',
+])
 
 /**
  * Build the platform connector config (D33). The backend's `getToken`
@@ -79,6 +87,7 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
       id: 'platform',
       title: 'Quilt Platform tools',
       hint: PLATFORM_CONNECTOR_HINT,
+      autoload: PLATFORM_AUTOLOAD,
       backend: Mcp.bearerPassthru({
         url: getPlatformMcpUrl(),
         getToken: () => Eff.Effect.sync(() => selectToken(store.getState()) ?? null),

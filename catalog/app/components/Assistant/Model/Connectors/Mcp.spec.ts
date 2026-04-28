@@ -263,6 +263,39 @@ describe('Connectors/Mcp', () => {
       ])
     })
 
+    it('readResource hits resources/read and surfaces text contents', async () => {
+      const { fetchSpy, calls } = captureCalls(
+        () =>
+          new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: 'x',
+              result: {
+                contents: [
+                  {
+                    uri: 'quilt-platform://search_syntax',
+                    text: '# ES query syntax\n...',
+                    mimeType: 'text/markdown',
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      )
+      const client = Mcp.make({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const result = await Eff.Effect.runPromise(
+        withFetch(client.readResource('quilt-platform://search_syntax'), fetchSpy),
+      )
+      expect(calls[0].body.method).toBe('resources/read')
+      expect(calls[0].body.params).toEqual({ uri: 'quilt-platform://search_syntax' })
+      expect(result.contents).toHaveLength(1)
+      expect(result.contents[0].text).toBe('# ES query syntax\n...')
+    })
+
     it('handles SSE responses (FastMCP stateless_http=True path)', async () => {
       // FastMCP emits the response as SSE: `data: <json>\r\n\r\n`.
       const { fetchSpy, calls } = captureCalls(
