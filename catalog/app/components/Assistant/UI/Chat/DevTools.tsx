@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
+import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 
 import * as Model from '../../Model'
@@ -173,7 +174,7 @@ interface ConnectorPanelRowProps {
 
 function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
   const classes = useConnectorsPanelStyles()
-  const state = Model.Connectors.useConnectorState(connector)
+  const state = Actor.useState(connector.state)
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
   const onAck = React.useCallback(
     () => runtime.runFork(connector.acknowledge),

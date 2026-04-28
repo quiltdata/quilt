@@ -6,6 +6,7 @@ import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
@@ -455,17 +456,25 @@ interface ConnectorStatusRowProps {
 }
 
 /**
- * Per-connector status row (D30). Reads the connector's state ref live
- * via useConnectorState and renders one of:
+ * Per-connector status row (D30). Live-subscribes to the connector's
+ * state ref and renders one of:
  * - Connecting               → spinner + "Connecting…"
  * - Ready                    → title + "ready"
  * - Disconnected{retrying}   → spinner + title + "reconnecting…"
  * - Failed{acked:false}      → title + "[Retry] [Continue without]"
  * - Failed{acked:true}       → title + "unavailable, [Retry]"
  */
+interface RowVariant {
+  icon: React.ReactNode
+  text: React.ReactNode
+  textTitle?: string
+  buttons?: React.ReactNode
+  role: 'status' | 'alert'
+}
+
 function ConnectorStatusRow({ connector }: ConnectorStatusRowProps) {
   const classes = useConnectorStatusStyles()
-  const state = Model.Connectors.useConnectorState(connector)
+  const state = Actor.useState(connector.state)
 
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
   const onAck = React.useCallback(
@@ -473,56 +482,70 @@ function ConnectorStatusRow({ connector }: ConnectorStatusRowProps) {
     [connector],
   )
 
-  const title = connector.config.title
+  const spinner = (
+    <M.CircularProgress size={12} thickness={4} className={classes.spinner} />
+  )
+  const okDot = <Icons.CheckCircleOutline fontSize="small" className={classes.okDot} />
+  const errorDot = <Icons.ErrorOutline fontSize="small" className={classes.errorDot} />
+  const retryOutlined = (
+    <M.Button size="small" variant="outlined" color="primary" onClick={onRetry}>
+      Retry
+    </M.Button>
+  )
+  const retryContained = (
+    <M.Button size="small" variant="contained" color="primary" onClick={onRetry}>
+      Retry
+    </M.Button>
+  )
+  const ackButton = (
+    <M.Button size="small" variant="outlined" onClick={onAck}>
+      Continue without
+    </M.Button>
+  )
 
-  return Model.Connectors.ConnectorState.$match(state, {
-    Connecting: () => (
-      <div className={classes.row} role="status" aria-live="polite">
-        <M.CircularProgress size={12} thickness={4} className={classes.spinner} />
-        <span className={classes.title}>{title}</span>
-        <span>connecting…</span>
-      </div>
-    ),
-    Ready: () => (
-      <div className={classes.row} role="status" aria-live="polite">
-        <Icons.CheckCircleOutline fontSize="small" className={classes.okDot} />
-        <span className={classes.title}>{title}</span>
-        <span>ready</span>
-      </div>
-    ),
-    Disconnected: () => (
-      <div className={classes.row} role="status" aria-live="polite">
-        <M.CircularProgress size={12} thickness={4} className={classes.spinner} />
-        <span className={classes.title}>{title}</span>
-        <span>reconnecting…</span>
-      </div>
-    ),
+  const variant: RowVariant = Model.Connectors.ConnectorState.$match(state, {
+    Connecting: () => ({ icon: spinner, text: 'connecting…', role: 'status' }),
+    Ready: () => ({ icon: okDot, text: 'ready', role: 'status' }),
+    Disconnected: () => ({ icon: spinner, text: 'reconnecting…', role: 'status' }),
     Failed: ({ error, acked }) =>
-      acked ? (
-        <div className={classes.row} role="status" aria-live="polite">
-          <Icons.ErrorOutline fontSize="small" className={classes.errorDot} />
-          <span className={classes.title}>{title}</span>
-          <span>unavailable</span>
-          <span className={classes.separator} />
-          <M.Button size="small" variant="outlined" color="primary" onClick={onRetry}>
-            Retry
-          </M.Button>
-        </div>
-      ) : (
-        <div className={classes.row} role="alert">
-          <Icons.ErrorOutline fontSize="small" className={classes.errorDot} />
-          <span className={classes.title}>{title}</span>
-          <span title={error.message}>couldn’t connect</span>
-          <span className={classes.separator} />
-          <M.Button size="small" variant="contained" color="primary" onClick={onRetry}>
-            Retry
-          </M.Button>
-          <M.Button size="small" variant="outlined" onClick={onAck}>
-            Continue without
-          </M.Button>
-        </div>
-      ),
+      acked
+        ? {
+            icon: errorDot,
+            text: 'unavailable',
+            buttons: retryOutlined,
+            role: 'status',
+          }
+        : {
+            icon: errorDot,
+            text: 'couldn’t connect',
+            textTitle: error.message,
+            buttons: (
+              <>
+                {retryContained}
+                {ackButton}
+              </>
+            ),
+            role: 'alert',
+          },
   })
+
+  return (
+    <div
+      className={classes.row}
+      role={variant.role}
+      aria-live={variant.role === 'status' ? 'polite' : undefined}
+    >
+      {variant.icon}
+      <span className={classes.title}>{connector.config.title}</span>
+      <span title={variant.textTitle}>{variant.text}</span>
+      {variant.buttons && (
+        <>
+          <span className={classes.separator} />
+          {variant.buttons}
+        </>
+      )}
+    </div>
+  )
 }
 
 interface ConnectorStatusRegionProps {

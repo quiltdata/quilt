@@ -179,12 +179,6 @@ export const stateIsBlocked = (s: ConnectorState): boolean =>
 // ---------------------------------------------------------------------------
 
 /**
- * Per-connector handle. The state ref is the single source of truth for
- * UI / aggregator queries; `retry` and `acknowledge` are control effects
- * the UI invokes; `callTool` is the executor entrypoint Tool descriptors
- * close over.
- */
-/**
  * Optional knobs for one tool-call invocation. Today the only knob is
  * `retryOnTransport`: when `true`, a single transport-level failure is
  * retried before reporting the error and bumping the health counter
@@ -258,6 +252,18 @@ interface Health {
 const INITIAL_HEALTH: Health = { consecutiveFailures: 0, lastError: null }
 
 /**
+ * Reset health to INITIAL_HEALTH but skip the SubscriptionRef emission
+ * if it's already initial — avoids waking the threshold-crossing watcher
+ * (and any future subscribers) on every successful ping or tool call.
+ */
+const resetHealth = (
+  health: Eff.SubscriptionRef.SubscriptionRef<Health>,
+): Eff.Effect.Effect<void> =>
+  Eff.SubscriptionRef.update(health, (h) =>
+    h.consecutiveFailures === 0 && h.lastError === null ? h : INITIAL_HEALTH,
+  )
+
+/**
  * Construct a `Transport` `BackendError` for lifecycle-internal failures
  * (ping timeout, threshold-degraded, reconnect-exhausted) — situations
  * where the lifecycle synthesizes an error rather than receiving one
@@ -274,16 +280,6 @@ const transientError = (cause: string, message: string): BackendError => ({
 type Control = 'retry' | 'acknowledge'
 
 /**
- * Permissive Effect schema for connector tool inputs — server's JSON
- * Schema (forwarded raw to Bedrock) is authoritative; we don't decode
- * client-side.
- */
-const AnyRecord = Eff.Schema.Record({
-  key: Eff.Schema.String,
-  value: Eff.Schema.Unknown,
-})
-
-/**
  * Build a `Tool.Descriptor` whose executor routes through the
  * connector's gated `callTool` (D27 — fast-fail when not Ready). Tools
  * marked `readOnly` auto-retry once on transport error (D24); tools
@@ -294,12 +290,13 @@ const buildConnectorTool = (
   callTool: ConnectorRuntime['callTool'],
   descriptor: BackendToolDescriptor,
 ): Tool.Descriptor<Record<string, unknown>> => {
-  const effectJsonSchema = Tool.makeJSONSchema(AnyRecord)
+  // Server's inputSchema (JSON Schema, server-authoritative) is forwarded
+  // raw to Bedrock — D14. We don't run Effect-Schema decoding on the
+  // input client-side.
   const schema = {
-    ...effectJsonSchema,
     ...descriptor.inputSchema,
-    description: descriptor.description ?? effectJsonSchema.description,
-  }
+    description: descriptor.description,
+  } as Eff.JSONSchema.JsonSchema7Root
   const retryOnTransport = descriptor.readOnly === true
   return {
     description: descriptor.description,
@@ -364,7 +361,7 @@ const makeConnectorCallTool =
           Content.ToolResultContentBlock.Text({ text: `${name}: ${err.message}` }),
         )
       }
-      yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
+      yield* resetHealth(health)
       return result.right
     })
 
@@ -374,12 +371,11 @@ const makeConnectorCallTool =
  */
 const bootstrap = (
   config: ConnectorConfig,
-  backend: Backend,
   callTool: ConnectorRuntime['callTool'],
 ): Eff.Effect.Effect<Tool.Collection, BackendError> =>
   Eff.Effect.gen(function* () {
-    yield* backend.initialize()
-    const descriptors = yield* backend.listTools()
+    yield* config.backend.initialize()
+    const descriptors = yield* config.backend.listTools()
     const tools: Tool.Collection = {}
     for (const d of descriptors) {
       tools[`${config.id}__${d.name}`] = buildConnectorTool(callTool, d)
@@ -414,7 +410,7 @@ const runHeartbeat = (
           lastError: result.left,
         }))
       } else {
-        yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
+        yield* resetHealth(health)
       }
     }
   })
@@ -448,14 +444,13 @@ const awaitThresholdCrossed = (
  */
 const runReconnectBudget = (
   config: ConnectorConfig,
-  backend: Backend,
   callTool: ConnectorRuntime['callTool'],
 ): Eff.Effect.Effect<Tool.Collection, BackendError> =>
   Eff.Effect.gen(function* () {
     let lastError: BackendError | null = null
     for (const delay of RECONNECT_BACKOFF) {
       yield* Eff.Effect.sleep(delay)
-      const attempt = yield* bootstrap(config, backend, callTool).pipe(Eff.Effect.either)
+      const attempt = yield* bootstrap(config, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isRight(attempt)) return attempt.right
       lastError = attempt.left
     }
@@ -501,7 +496,6 @@ const awaitRetryControl = (
  */
 export const manageConnector = (
   config: ConnectorConfig,
-  backend: Backend,
   state: Eff.SubscriptionRef.SubscriptionRef<ConnectorState>,
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   controls: Eff.Queue.Queue<Control>,
@@ -511,7 +505,7 @@ export const manageConnector = (
     while (true) {
       yield* Eff.SubscriptionRef.set(state, ConnectorState.Connecting())
       yield* Eff.SubscriptionRef.set(health, INITIAL_HEALTH)
-      const initial = yield* bootstrap(config, backend, callTool).pipe(Eff.Effect.either)
+      const initial = yield* bootstrap(config, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isLeft(initial)) {
         yield* Eff.SubscriptionRef.set(
           state,
@@ -535,7 +529,7 @@ export const manageConnector = (
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any
         // source (heartbeat itself or external tool-call bumps).
         yield* Eff.Effect.race(
-          runHeartbeat(backend, health),
+          runHeartbeat(config.backend, health),
           awaitThresholdCrossed(health),
         )
 
@@ -547,7 +541,7 @@ export const manageConnector = (
           ConnectorState.Disconnected({ retrying: true, error: degraded }),
         )
 
-        const reconnect = yield* runReconnectBudget(config, backend, callTool).pipe(
+        const reconnect = yield* runReconnectBudget(config, callTool).pipe(
           Eff.Effect.either,
         )
         if (Eff.Either.isRight(reconnect)) {
@@ -586,7 +580,7 @@ export const buildConnectorRuntime = (
     const callTool = makeConnectorCallTool(config.id, config.backend, state, health)
 
     yield* Eff.Effect.forkScoped(
-      manageConnector(config, config.backend, state, health, controls, callTool),
+      manageConnector(config, state, health, controls, callTool),
     )
 
     return {
@@ -598,10 +592,6 @@ export const buildConnectorRuntime = (
       callTool,
     }
   })
-
-// ---------------------------------------------------------------------------
-// Layer (skeleton)
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Connectors overview rendering (D29)
@@ -736,27 +726,9 @@ export const layer = (configs: readonly ConnectorConfig[]): Eff.Layer.Layer<Conn
 // React bridges (D30 — UI reads connector state live)
 // ---------------------------------------------------------------------------
 
-/**
- * Subscribe to one connector's state ref. Initial value is read sync;
- * subsequent updates re-render via a forked `Stream.runForEach` over
- * `state.changes`. Cancels its fiber on unmount.
- */
-export function useConnectorState(connector: ConnectorRuntime): ConnectorState {
-  const [state, setState] = React.useState<ConnectorState>(() =>
-    runtime.runSync(Eff.SubscriptionRef.get(connector.state)),
-  )
-  React.useEffect(() => {
-    const fiber = runtime.runFork(
-      Eff.Stream.runForEach(connector.state.changes, (s) =>
-        Eff.Effect.sync(() => setState(s)),
-      ),
-    )
-    return () => {
-      runtime.runFork(Eff.Fiber.interrupt(fiber))
-    }
-  }, [connector])
-  return state
-}
+// Per-connector subscription: callers use `Actor.useState(connector.state)`
+// directly (the ConnectorState ref is the same shape Actor.useState was
+// designed for).
 
 /**
  * Subscribe to the aggregate `isBlocked` predicate. Re-evaluates whenever
