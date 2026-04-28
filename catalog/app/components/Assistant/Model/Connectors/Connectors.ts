@@ -65,7 +65,8 @@ export interface BackendError {
    * Whether a read-only tool call may retry this error once before
    * reporting it. This is narrower than `transient`: an HTTP 5xx response
    * still indicates degraded transport health, but the server may already
-   * have executed the request before returning the response.
+   * have executed the request before returning the response. Defaults to
+   * false when omitted.
    */
   readonly retryable?: boolean
   /**
@@ -330,6 +331,7 @@ const transientError = (cause: string, message: string): BackendError => ({
   _tag: 'Transport',
   message,
   transient: true,
+  retryable: false,
   cause,
 })
 
