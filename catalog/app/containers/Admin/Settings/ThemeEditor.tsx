@@ -391,7 +391,7 @@ export default function ThemeEditor() {
                       ) as FF.FieldValidator<string>
                     }
                     errors={{
-                      url: 'Image should be valid url',
+                      url: 'Image should be a valid URL',
                       file: 'Image should be file',
                     }}
                     disabled={submitting}

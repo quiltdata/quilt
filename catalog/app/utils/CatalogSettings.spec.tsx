@@ -29,7 +29,7 @@ import { useUploadFile } from './CatalogSettings'
 
 function makeFile(name: string, type = 'image/png', body = 'x') {
   const f = new File([body], name, { type })
-  // jsdom File lacks arrayBuffer in some envs; polyfill
+  // TODO: remove custom polyfill after updating `jsdom` (https://github.com/jsdom/jsdom/pull/4050)
   if (!f.arrayBuffer) {
     ;(f as { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer = async () =>
       new TextEncoder().encode(body).buffer as ArrayBuffer
@@ -55,7 +55,7 @@ describe('utils/CatalogSettings', () => {
         promise: () => Promise.resolve({ VersionId: 'v1' }),
       })
       const ref = captureHook(() => useUploadFile())
-      let result: { bucket: string; key: string; version?: string } | undefined
+      let result: Model.S3.S3ObjectLocation | undefined
       await act(async () => {
         result = await ref.current(makeFile('brand.svg', 'image/svg+xml'))
       })
