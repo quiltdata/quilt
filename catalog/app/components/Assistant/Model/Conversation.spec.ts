@@ -19,6 +19,7 @@ import * as Content from './Content'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as LLM from './LLM'
+import * as Tool from './Tool'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -282,6 +283,84 @@ describe('Conversation actor — connector gating', () => {
           expect(next.events).toHaveLength(2)
           expect(next.events[0]._tag).toBe('Message')
           expect(next.events[1]._tag).toBe('ToolUse')
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
+  /**
+   * Regression: connector-contributed tools must be reachable from the
+   * `LLMResponse` execute path, not just from the LLM-request path.
+   *
+   * Before the fix, `llmRequest` merged React + connector tool collections
+   * (so the LLM saw `c1__t1`), but the `LLMResponse` handler read tools
+   * from the React context only. Every connector tool round-tripped as a
+   * synthetic "Tool ... not found" without ever hitting the wire.
+   */
+  it('LLMResponse executes connector-contributed tools', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const executorRan = yield* Eff.Deferred.make<void>()
+
+          const connectorTool: Tool.Descriptor<Record<string, unknown>> = {
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(executorRan, undefined)
+                return Eff.Option.some(
+                  Tool.succeed(
+                    Content.ToolResultContentBlock.Text({ text: 'connector-ran' }),
+                  ),
+                )
+              }),
+          }
+          const connectorsStub: Connectors.ConnectorsService = {
+            ...makeConnectorsStub(isBlockedRef),
+            contextContribution: Eff.Effect.succeed({
+              tools: { c1__t1: connectorTool },
+              messages: [],
+            }),
+          }
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.succeed({
+                content: Eff.Option.some([
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: 'tu1',
+                    name: 'c1__t1',
+                    input: {},
+                  }),
+                ]),
+                backendResponse: {} as never,
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, connectorsStub),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(
+            Conversation.Action.Ask({ content: 'use connector tool' }),
+          )
+          // Without the fix, executor is never invoked — Tool.execute can't
+          // find `c1__t1` in the React-only collection — and this await
+          // hangs past the vitest timeout.
+          yield* Eff.Deferred.await(executorRan)
+
+          // The recorded ToolUse event should carry the executor's success
+          // result, not the "Tool ... not found" fallback.
+          const final = yield* awaitState(actor, (s) =>
+            s.events.some((e) => e._tag === 'ToolUse' && e.toolUseId === 'tu1'),
+          )
+          const event = final.events.find((e) => e._tag === 'ToolUse')
+          expect(event?._tag).toBe('ToolUse')
+          if (event?._tag !== 'ToolUse') return
+          expect(event.result.status).toBe('success')
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))

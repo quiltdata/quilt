@@ -274,7 +274,10 @@ export const ConversationActor = Eff.Effect.succeed(
             }
 
             const ctxService = yield* Context.ConversationContext
-            const { tools } = yield* ctxService.context
+            const reactCtx = yield* ctxService.context
+            const connectors = yield* Connectors.Connectors
+            const connectorsCtx = yield* connectors.contextContribution
+            const { tools } = Context.merge(reactCtx, connectorsCtx)
             const calls: Record<string, ToolCall> = {}
             for (const tu of toolUses) {
               const fiber = yield* Eff.Effect.fork(
