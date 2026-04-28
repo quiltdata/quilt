@@ -148,15 +148,19 @@ def _parse_fcs_flowio_full(path):
         channel_names.append(name)
 
     expected_values = fd.event_count * fd.channel_count
-    values = list(fd.events)
-    if len(values) < expected_values:
-        raise ValueError('FCS data is truncated or malformed')
+    # Stream events directly into a preallocated numpy array sized for the
+    # full event table, then reshape into rows. Avoids materializing two
+    # full Python lists (raw values + chunked rows) — important for large
+    # FCS files in a memory-constrained Lambda.
+    try:
+        values = numpy.fromiter(fd.events, dtype=float, count=expected_values)
+    except ValueError as exc:
+        raise ValueError('FCS data is truncated or malformed') from exc
 
-    rows = [
-        values[offset:offset + fd.channel_count]
-        for offset in range(0, expected_values, fd.channel_count)
-    ]
-    data = pandas.DataFrame(rows, columns=channel_names)
+    data = pandas.DataFrame(
+        values.reshape(fd.event_count, fd.channel_count),
+        columns=channel_names,
+    )
 
     metadata = {str(k): str(v) for k, v in fd.text.items()}
     metadata.setdefault('_channel_names_', ','.join(channel_names))
