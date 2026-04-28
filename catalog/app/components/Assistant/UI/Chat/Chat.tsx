@@ -503,19 +503,24 @@ function ConnectorStatusRow({ connector }: ConnectorStatusRowProps) {
     </M.Button>
   )
 
+  // `as const` narrows each `role` literal so the union of branch
+  // returns assigns cleanly to RowVariant — without it ts-loader widens
+  // role to `string` and the build-time type-check fails (vitest's
+  // esbuild path doesn't type-check, so this only surfaces in CI).
   const variant: RowVariant = Model.Connectors.ConnectorState.$match(state, {
-    Connecting: () => ({ icon: spinner, text: 'connecting…', role: 'status' }),
-    Ready: () => ({ icon: okDot, text: 'ready', role: 'status' }),
-    Disconnected: () => ({ icon: spinner, text: 'reconnecting…', role: 'status' }),
+    Connecting: () => ({ icon: spinner, text: 'connecting…', role: 'status' }) as const,
+    Ready: () => ({ icon: okDot, text: 'ready', role: 'status' }) as const,
+    Disconnected: () =>
+      ({ icon: spinner, text: 'reconnecting…', role: 'status' }) as const,
     Failed: ({ error, acked }) =>
       acked
-        ? {
+        ? ({
             icon: errorDot,
             text: 'unavailable',
             buttons: retryOutlined,
             role: 'status',
-          }
-        : {
+          } as const)
+        : ({
             icon: errorDot,
             text: 'couldn’t connect',
             textTitle: error.message,
@@ -526,7 +531,7 @@ function ConnectorStatusRow({ connector }: ConnectorStatusRowProps) {
               </>
             ),
             role: 'alert',
-          },
+          } as const),
   })
 
   return (
