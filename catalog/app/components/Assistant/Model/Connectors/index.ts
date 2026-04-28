@@ -295,15 +295,14 @@ const buildConnectorTool = (
 ): Tool.Descriptor<Record<string, unknown>> => {
   // Server's inputSchema (JSON Schema, server-authoritative) is forwarded
   // raw to Bedrock — D14. We don't run Effect-Schema decoding on the
-  // input client-side.
-  const schema = {
-    ...descriptor.inputSchema,
-    description: descriptor.description,
-  } as Eff.JSONSchema.JsonSchema7Root
+  // input client-side. `description` lives on the Tool.Descriptor (which
+  // Bedrock surfaces as `toolSpec.description`); we deliberately don't
+  // also stuff it into the inputSchema, since Bedrock would then send it
+  // to the LLM twice (once on the toolSpec, once in `inputSchema.json`).
   const retryOnTransport = descriptor.readOnly === true
   return {
     description: descriptor.description,
-    schema,
+    schema: descriptor.inputSchema as unknown as Eff.JSONSchema.JsonSchema7Root,
     executor: (args) =>
       callTool(descriptor.name, args, { retryOnTransport }).pipe(
         Eff.Effect.map(Eff.Option.some),
@@ -620,7 +619,31 @@ export const buildConnectorRuntime = (
       id: config.id,
       config,
       state,
-      retry: Eff.Queue.offer(controls, 'retry').pipe(Eff.Effect.asVoid),
+      // `retry` semantics depend on the current state:
+      //
+      //  - Failed{!acked}            → drain the controls queue token
+      //                                (`awaitRetryControl` listens here)
+      //  - Ready / Disconnected      → force a reconnect by degrading
+      //                                health to threshold; the Ready
+      //                                loop's heartbeat-vs-threshold race
+      //                                takes the threshold branch and
+      //                                falls into `runReconnectWithProbe`
+      //  - Connecting                → already in flight; no-op
+      //
+      // Without the Ready/Disconnected branch the controls queue is the
+      // only path, but it's only consumed from Failed — so a click while
+      // healthy went silently nowhere.
+      retry: Eff.Effect.gen(function* () {
+        const current = yield* Eff.SubscriptionRef.get(state)
+        if (current._tag === 'Ready' || current._tag === 'Disconnected') {
+          yield* Eff.SubscriptionRef.set(health, {
+            consecutiveFailures: HEALTH_THRESHOLD,
+            lastError: transientError('UserRetry', 'force reconnect requested'),
+          })
+        } else {
+          yield* Eff.Queue.offer(controls, 'retry')
+        }
+      }),
       acknowledge: Eff.Queue.offer(controls, 'acknowledge').pipe(Eff.Effect.asVoid),
       callTool,
     }
