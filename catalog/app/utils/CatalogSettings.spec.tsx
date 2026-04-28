@@ -2,6 +2,8 @@ import { act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
+import type * as Model from 'model'
+
 vi.mock('constants/config', () => ({
   default: { serviceBucket: 'test-bucket', mode: 'PRODUCT' },
 }))
@@ -45,7 +47,7 @@ describe('utils/CatalogSettings', () => {
         promise: () => Promise.resolve({ VersionId: 'v1' }),
       })
       const { result } = renderHook(() => useUploadFile())
-      let uploaded: { bucket: string; key: string; version?: string } | undefined
+      let uploaded: Model.S3.S3ObjectLocation | undefined
       await act(async () => {
         uploaded = await result.current(makeFile('brand.svg', 'image/svg+xml'))
       })
@@ -65,7 +67,7 @@ describe('utils/CatalogSettings', () => {
     it('omits extension when filename has none', async () => {
       putObjectMock.mockClear()
       const { result } = renderHook(() => useUploadFile())
-      let uploaded: { bucket: string; key: string; version?: string } | undefined
+      let uploaded: Model.S3.S3ObjectLocation | undefined
       await act(async () => {
         uploaded = await result.current(makeFile('logo', ''))
       })

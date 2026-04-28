@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Cache from 'utils/ResourceCache'
 
@@ -68,7 +69,7 @@ function format(settings: CatalogSettings) {
 export function useUploadFile() {
   const s3 = AWS.S3.use()
   return React.useCallback(
-    async (file: File): Promise<AWS.S3ObjectLocation> => {
+    async (file: File): Promise<Model.S3.S3ObjectLocation> => {
       const key = `catalog/logo${extname(file.name)}`
       const buf = await file.arrayBuffer()
       const res = await s3
