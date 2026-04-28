@@ -352,7 +352,14 @@ export function make(options: McpClientOptions): McpClient {
         HttpClientRequest.bodyText(JSON.stringify(payload), 'application/json'),
       )
 
+      // `withTracerPropagation(false)` strips the W3C `traceparent` + Zipkin
+      // `b3` headers Effect's HttpClient injects from the active span. The
+      // platform MCP server uses a strict CORS allow-list and rejects unknown
+      // headers (preflight returns 400 "Disallowed CORS headers"); we don't
+      // have a tracing collector on the receiving end either, so the headers
+      // are pure cost.
       const resp = yield* httpClient.execute(request).pipe(
+        HttpClient.withTracerPropagation(false),
         Eff.Effect.mapError((err) => {
           const inner = (err as { cause?: unknown }).cause
           const detail =
