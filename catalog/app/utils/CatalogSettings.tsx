@@ -68,7 +68,7 @@ function format(settings: CatalogSettings) {
 export function useUploadFile() {
   const s3 = AWS.S3.use()
   return React.useCallback(
-    async (file: File): Promise<S3ObjectLocation> => {
+    async (file: File): Promise<AWS.S3ObjectLocation> => {
       const key = `catalog/logo${extname(file.name)}`
       const buf = await file.arrayBuffer()
       const res = await s3
