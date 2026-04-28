@@ -8,7 +8,7 @@ vi.mock('constants/config', () => ({
 
 const putObjectMock = vi.fn<
   (params: { Bucket: string; Key: string; ContentType?: string; Body: unknown }) => {
-    promise: () => Promise<{}>
+    promise: () => Promise<{ VersionId?: string }>
   }
 >(() => ({ promise: () => Promise.resolve({}) }))
 const s3Mock = { putObject: putObjectMock }
@@ -49,14 +49,21 @@ function captureHook<T>(hook: () => T): { current: T } {
 
 describe('utils/CatalogSettings', () => {
   describe('useUploadFile', () => {
-    it('uploads file with extension-based key and returns s3 URL', async () => {
+    it('uploads file with extension-based key and returns S3 location', async () => {
       putObjectMock.mockClear()
+      putObjectMock.mockReturnValueOnce({
+        promise: () => Promise.resolve({ VersionId: 'v1' }),
+      })
       const ref = captureHook(() => useUploadFile())
-      let result: string | undefined
+      let result: { bucket: string; key: string; version?: string } | undefined
       await act(async () => {
         result = await ref.current(makeFile('brand.svg', 'image/svg+xml'))
       })
-      expect(result).toBe('s3://test-bucket/catalog/logo.svg')
+      expect(result).toEqual({
+        bucket: 'test-bucket',
+        key: 'catalog/logo.svg',
+        version: 'v1',
+      })
       expect(putObjectMock).toHaveBeenCalledTimes(1)
       const arg = putObjectMock.mock.calls[0][0]
       expect(arg.Bucket).toBe('test-bucket')
@@ -68,11 +75,15 @@ describe('utils/CatalogSettings', () => {
     it('omits extension when filename has none', async () => {
       putObjectMock.mockClear()
       const ref = captureHook(() => useUploadFile())
-      let result: string | undefined
+      let result: { bucket: string; key: string; version?: string } | undefined
       await act(async () => {
         result = await ref.current(makeFile('logo', ''))
       })
-      expect(result).toBe('s3://test-bucket/catalog/logo')
+      expect(result).toEqual({
+        bucket: 'test-bucket',
+        key: 'catalog/logo',
+        version: undefined,
+      })
       const arg = putObjectMock.mock.calls[0][0]
       expect(arg.Key).toBe('catalog/logo')
       expect(arg.ContentType).toBeUndefined()

@@ -1,8 +1,11 @@
+import { extname } from 'path'
+
 import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
+import type { S3ObjectLocation } from 'model/S3'
 import * as AWS from 'utils/AWS'
 import * as Cache from 'utils/ResourceCache'
 
@@ -66,11 +69,10 @@ function format(settings: CatalogSettings) {
 export function useUploadFile() {
   const s3 = AWS.S3.use()
   return React.useCallback(
-    async (file: File) => {
-      const ext = file.name.includes('.') ? file.name.split('.').pop() : ''
-      const key = ext ? `catalog/logo.${ext}` : 'catalog/logo'
+    async (file: File): Promise<S3ObjectLocation> => {
+      const key = `catalog/logo${extname(file.name)}`
       const buf = await file.arrayBuffer()
-      await s3
+      const res = await s3
         .putObject({
           Bucket: cfg.serviceBucket,
           Key: key,
@@ -78,7 +80,7 @@ export function useUploadFile() {
           ContentType: file.type || undefined,
         })
         .promise()
-      return `s3://${cfg.serviceBucket}/${key}`
+      return { bucket: cfg.serviceBucket, key, version: res.VersionId }
     },
     [s3],
   )
