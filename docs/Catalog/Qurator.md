@@ -20,11 +20,27 @@ or request key insights from a specific dataset.
   asthma treatments?” or “Summarize research on BRCA1 mutations.”
 - **Instant Summaries**: Quickly digest scientific papers, datasets, or reports
   without reading everything.
+- **Platform Tools via MCP**: Search packages and S3 objects, browse and create
+  packages, read objects, run Athena SQL, and manage Tabulator tables — all
+  through the same [Quilt Platform MCP Server](MCP-Server.md) used by external
+  MCP clients.
 - **Fine-Grained Permissions with RAG**: Ensure Retrieval-Augmented Generation
   only queries the data you're authorized to access, ensuring compliance with
   strict organizational policies
 - **Secure Cloud Environment**: Work within your private AWS cloud, ensuring
   data stays secure while using state-of-the-art AI models.
+
+### Connector Status
+
+Qurator's chat input shows the live connection status of each tool backend
+(e.g. the Platform MCP Server). When a backend is unhealthy the input is
+gated and inline actions appear in the helper-text region:
+
+- `connecting…` / `reconnecting…` — auto-progressing, no action required.
+- `couldn't connect` — click **reconnect** to retry, or **continue without**
+  to proceed with reduced tool access for the rest of the conversation.
+- `unavailable` — sticky after acknowledgement; click **reconnect** to try
+  again at any time.
 
 ## Getting Started
 
