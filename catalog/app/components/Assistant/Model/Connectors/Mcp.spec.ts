@@ -21,15 +21,19 @@ describe('Connectors/Mcp', () => {
       expect(out).toEqual(Content.ToolResultContentBlock.Text({ text: 'hello' }))
     })
 
-    it('maps png images to Image blocks', () => {
+    it('maps png images to Image blocks (base64 decoded to raw bytes)', () => {
+      // MCP delivers base64-encoded data; ImageBlock.source must hold raw
+      // bytes so Bedrock's AWS SDK doesn't double-encode the payload.
       const out = Mcp.mapContent({
         type: 'image',
-        data: 'AAAA',
+        data: 'AAAA', // base64 for [0, 0, 0]
         mimeType: 'image/png',
       })
-      expect(out).toEqual(
-        Content.ToolResultContentBlock.Image({ format: 'png', source: 'AAAA' }),
-      )
+      expect(out._tag).toBe('Image')
+      if (out._tag !== 'Image') return
+      expect(out.format).toBe('png')
+      expect(Buffer.isBuffer(out.source)).toBe(true)
+      expect(Array.from(out.source as Buffer)).toEqual([0, 0, 0])
     })
 
     it('falls back to Text when image mimeType is unsupported', () => {

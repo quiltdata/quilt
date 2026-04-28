@@ -496,7 +496,14 @@ export function mapContent(block: McpContent): Content.ToolResultContentBlock {
     const img = block as McpContentImage
     const format = IMAGE_MIME_MAP[img.mimeType?.toLowerCase()]
     if (format) {
-      return Content.ToolResultContentBlock.Image({ format, source: img.data })
+      // MCP delivers `data` as a base64 string; ImageBlock.source is supposed
+      // to hold the raw bytes (Bedrock's AWS SDK base64-encodes them itself).
+      // Pass-through would double-encode and Bedrock rejects with
+      // ValidationException: Could not process image.
+      return Content.ToolResultContentBlock.Image({
+        format,
+        source: Buffer.from(img.data, 'base64'),
+      })
     }
     return Content.ToolResultContentBlock.Text({
       text: `[image: ${img.mimeType ?? 'unknown'} — ${img.data.length} base64 chars]`,
