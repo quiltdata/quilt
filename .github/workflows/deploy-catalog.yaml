@@ -9,6 +9,11 @@ on:
       - 'catalog/**'
       - 'shared/**'
   workflow_dispatch:
+    inputs:
+      push_targets:
+        description: 'JSON array of push targets (e.g. ["prod","mp","govcloud"]). [] = build only.'
+        type: string
+        default: '[]'
 
 jobs:
   deploy-catalog-ecr:
@@ -20,6 +25,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    env:
+      PUSH_TARGETS: ${{ inputs.push_targets || '["prod","mp","govcloud"]' }}
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -29,41 +37,58 @@ jobs:
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
       - run: npm run build
+      - name: Build Docker image
+        run: docker buildx build --load -t catalog:$IMAGE_TAG .
+
+      # Prod and MP both authenticate via the Prod IAM role.
       - name: Configure AWS credentials from Prod account
+        if: contains(fromJSON(env.PUSH_TARGETS), 'prod') || contains(fromJSON(env.PUSH_TARGETS), 'mp')
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
           aws-region: us-east-1
       - name: Login to Prod ECR
+        if: contains(fromJSON(env.PUSH_TARGETS), 'prod')
         id: login-prod-ecr
         uses: aws-actions/amazon-ecr-login@v2
+      - name: Push to Prod ECR
+        if: contains(fromJSON(env.PUSH_TARGETS), 'prod')
+        env:
+          ECR_REGISTRY: ${{ steps.login-prod-ecr.outputs.registry }}
+          ECR_REPOSITORY: quiltdata/catalog
+        run: |
+          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       - name: Login to MP ECR
+        if: contains(fromJSON(env.PUSH_TARGETS), 'mp')
         id: login-mp-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: 709825985650
+      - name: Push to MP ECR
+        if: contains(fromJSON(env.PUSH_TARGETS), 'mp')
+        env:
+          ECR_REGISTRY: ${{ steps.login-mp-ecr.outputs.registry }}
+          ECR_REPOSITORY: quilt-data/quilt-payg-catalog
+        run: |
+          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
       - name: Configure AWS credentials from GovCloud account
+        if: contains(fromJSON(env.PUSH_TARGETS), 'govcloud')
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
       - name: Login to GovCloud ECR
+        if: contains(fromJSON(env.PUSH_TARGETS), 'govcloud')
         id: login-govcloud-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push Docker image to Prod, MP and GovCloud ECR
+      - name: Push to GovCloud ECR
+        if: contains(fromJSON(env.PUSH_TARGETS), 'govcloud')
         env:
-          ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
-          ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
-          ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-govcloud-ecr.outputs.registry }}
           ECR_REPOSITORY: quiltdata/catalog
-          ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker buildx build \
-            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
-            .
-          docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
+          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
