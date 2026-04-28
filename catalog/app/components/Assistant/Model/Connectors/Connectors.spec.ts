@@ -321,46 +321,14 @@ describe('Connectors', () => {
         }),
       ))
 
-    it('reconnect exhaustion → Failed{acked:false}', () =>
+    it('reconnect succeeds via probe → returns to Ready', () =>
       runWithTest(
         Eff.Effect.gen(function* () {
-          // initialize succeeds first time; ping always fails; subsequent
-          // initialize calls also fail so reconnect attempts exhaust.
+          // ping fails twice (heartbeat threshold) → Disconnected;
+          // 3rd ping (probe at +5s into Disconnected) succeeds → bootstrap
+          // fires → Ready.
           let bootstraps = 0
-          const runtime = yield* Connectors.buildConnectorRuntime(
-            baseConfig(
-              stubBackend({
-                initialize: () =>
-                  Eff.Effect.suspend(() => {
-                    bootstraps += 1
-                    return bootstraps === 1
-                      ? Eff.Effect.void
-                      : Eff.Effect.fail(transportError)
-                  }),
-                ping: () => Eff.Effect.fail(transportError),
-              }),
-            ),
-          )
-          yield* awaitState(runtime, (s) => s._tag === 'Ready')
-          const reachFailed = yield* Eff.Effect.fork(
-            awaitState(runtime, (s) => s._tag === 'Failed'),
-          )
-          // advance: 2× 30s heartbeat → Disconnected; 1+3+9s reconnect budget
-          // exhausts → Failed
-          yield* TestClock.adjust(Eff.Duration.seconds(60 + 1 + 3 + 9))
-          const failed = yield* Eff.Fiber.join(reachFailed)
-          expect(failed._tag).toBe('Failed')
-          if (failed._tag !== 'Failed') return
-          expect(failed.acked).toBe(false)
-          expect(bootstraps).toBe(4) // initial + 3 reconnect attempts
-        }),
-      ))
-
-    it('reconnect succeeds → returns to Ready', () =>
-      runWithTest(
-        Eff.Effect.gen(function* () {
-          let bootstraps = 0
-          let pingFailures = 0
+          let pings = 0
           const runtime = yield* Connectors.buildConnectorRuntime(
             baseConfig(
               stubBackend({
@@ -371,10 +339,8 @@ describe('Connectors', () => {
                   }),
                 ping: () =>
                   Eff.Effect.suspend(() => {
-                    pingFailures += 1
-                    return pingFailures <= 2
-                      ? Eff.Effect.fail(transportError)
-                      : Eff.Effect.void
+                    pings += 1
+                    return pings <= 2 ? Eff.Effect.fail(transportError) : Eff.Effect.void
                   }),
               }),
             ),
@@ -382,18 +348,140 @@ describe('Connectors', () => {
           yield* awaitState(runtime, (s) => s._tag === 'Ready')
           const reachReadyAgain = yield* Eff.Effect.fork(
             Eff.Effect.gen(function* () {
-              // wait through Disconnected then back to Ready
               yield* awaitState(runtime, (s) => s._tag === 'Disconnected')
               return yield* awaitState(runtime, (s) => s._tag === 'Ready')
             }),
           )
-          // 60s for two ping failures → Disconnected; +1s for first reconnect
-          // attempt → Ready (initialize stub never fails so first attempt
-          // succeeds).
-          yield* TestClock.adjust(Eff.Duration.seconds(61))
+          // 60s heartbeat (two failures → Disconnected) + 5s first probe
+          // succeeds → bootstrap fires → Ready.
+          yield* TestClock.adjust(Eff.Duration.seconds(65))
           const ready = yield* Eff.Fiber.join(reachReadyAgain)
           expect(ready._tag).toBe('Ready')
           expect(bootstraps).toBe(2) // initial + first reconnect
+          expect(pings).toBe(3) // 2 heartbeat + 1 probe
+        }),
+      ))
+
+    it('ping never succeeds during Disconnected → DisconnectedTimeout → Failed{!acked}', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          // ping always fails. Heartbeat (2 fails) crosses threshold;
+          // probe loop pings at escalating cadence (5/10/20/30); outer
+          // 60s timeout fires before the probe loop hits its 3-bootstrap
+          // budget. Failed.error.cause === 'DisconnectedTimeout'.
+          let pings = 0
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                ping: () =>
+                  Eff.Effect.suspend(() => {
+                    pings += 1
+                    return Eff.Effect.fail(transportError)
+                  }),
+              }),
+            ),
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          const reachFailed = yield* Eff.Effect.fork(
+            awaitState(runtime, (s) => s._tag === 'Failed'),
+          )
+          // 60s heartbeat → Disconnected; 60s outer timeout → Failed.
+          yield* TestClock.adjust(Eff.Duration.seconds(120))
+          const failed = yield* Eff.Fiber.join(reachFailed)
+          expect(failed._tag).toBe('Failed')
+          if (failed._tag !== 'Failed') return
+          expect(failed.acked).toBe(false)
+          expect(failed.error._tag).toBe('Transport')
+          expect(failed.error.cause).toBe('DisconnectedTimeout')
+          // 2 heartbeat + 3 probes (5s, +10s, +20s, sleep 30s interrupted
+          // by outer timeout at 60s into Disconnected). Probes fired at
+          // clock 65, 75, 95.
+          expect(pings).toBe(5)
+        }),
+      ))
+
+    it('3 bootstrap failures after successful pings → Failed{!acked} (budget exhausted)', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          // ping fails twice (cross threshold), then succeeds; initialize
+          // succeeds first time then fails — so each probe's bootstrap
+          // attempt fails. After 3 attempts (cadence reset to 5s between
+          // each), budget exhausts → Failed with the last bootstrap error.
+          let bootstraps = 0
+          let pings = 0
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                initialize: () =>
+                  Eff.Effect.suspend(() => {
+                    bootstraps += 1
+                    return bootstraps === 1
+                      ? Eff.Effect.void
+                      : Eff.Effect.fail(transportError)
+                  }),
+                ping: () =>
+                  Eff.Effect.suspend(() => {
+                    pings += 1
+                    return pings <= 2 ? Eff.Effect.fail(transportError) : Eff.Effect.void
+                  }),
+              }),
+            ),
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          const reachFailed = yield* Eff.Effect.fork(
+            awaitState(runtime, (s) => s._tag === 'Failed'),
+          )
+          // 60s heartbeat → Disconnected; +5/+5/+5 (cadence resets after
+          // each successful ping) → 3 bootstraps fail → Failed.
+          yield* TestClock.adjust(Eff.Duration.seconds(75))
+          const failed = yield* Eff.Fiber.join(reachFailed)
+          expect(failed._tag).toBe('Failed')
+          if (failed._tag !== 'Failed') return
+          expect(failed.acked).toBe(false)
+          expect(bootstraps).toBe(4) // initial + 3 reconnect attempts
+          // last bootstrap error preserved (not the synthetic timeout)
+          expect(failed.error._tag).toBe('Transport')
+          expect(failed.error.cause).not.toBe('DisconnectedTimeout')
+        }),
+      ))
+
+    it('probe cadence escalates 5s → 10s → 20s → 30s on consecutive failures', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          // ping always fails. Track ping count at intermediate times
+          // to verify the 5/10/20/30 schedule.
+          let pings = 0
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                ping: () =>
+                  Eff.Effect.suspend(() => {
+                    pings += 1
+                    return Eff.Effect.fail(transportError)
+                  }),
+              }),
+            ),
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          // 60s for heartbeat → Disconnected (2 pings).
+          yield* TestClock.adjust(Eff.Duration.seconds(60))
+          yield* awaitState(runtime, (s) => s._tag === 'Disconnected')
+          expect(pings).toBe(2)
+          // +5s → 1st probe fires
+          yield* TestClock.adjust(Eff.Duration.seconds(5))
+          expect(pings).toBe(3)
+          // +10s → 2nd probe (cadence escalated to 10s)
+          yield* TestClock.adjust(Eff.Duration.seconds(10))
+          expect(pings).toBe(4)
+          // +20s → 3rd probe (cadence escalated to 20s)
+          yield* TestClock.adjust(Eff.Duration.seconds(20))
+          expect(pings).toBe(5)
+          // Don't advance further — the 4th probe would fire after +30s
+          // but the outer 60s timeout fires first (at 60s into Disconnected,
+          // i.e. clock 120). We've only consumed 35s of the Disconnected
+          // window; verify state is still Disconnected.
+          const cur = yield* Eff.SubscriptionRef.get(runtime.state)
+          expect(cur._tag).toBe('Disconnected')
         }),
       ))
   })

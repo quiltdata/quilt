@@ -228,21 +228,24 @@ export class Connectors extends Eff.Context.Tag('Connectors')<
  * Heartbeat cadence + timeout + threshold (D24). Both ping failures and
  * tool-call transport failures contribute to `Health.consecutiveFailures`;
  * crossing the threshold flips the state to Disconnected and starts the
- * reconnect budget.
+ * reconnect probe loop.
  */
 const HEARTBEAT_CADENCE = Eff.Duration.seconds(30)
 const HEARTBEAT_TIMEOUT = Eff.Duration.seconds(5)
 const HEALTH_THRESHOLD = 2
 
 /**
- * Auto-retry budget for re-bootstrap during Disconnected (D24). Three
- * attempts at 1s/3s/9s; exhaustion transitions to Failed{acked:false}.
+ * Disconnected-mode probe parameters (D24, qhq-5d0.6). The lifecycle
+ * pings at escalating cadence (`PROBE_CADENCE_INITIAL`, doubled each
+ * failure, capped at `PROBE_CADENCE_MAX`); each successful ping triggers
+ * a bootstrap attempt (cap: `RECONNECT_MAX_ATTEMPTS`). If ping never
+ * succeeds within `DISCONNECTED_MAX_DURATION`, fail with a
+ * synthetic `DisconnectedTimeout` `Transport` error.
  */
-const RECONNECT_BACKOFF: ReadonlyArray<Eff.Duration.Duration> = [
-  Eff.Duration.seconds(1),
-  Eff.Duration.seconds(3),
-  Eff.Duration.seconds(9),
-]
+const PROBE_CADENCE_INITIAL = Eff.Duration.seconds(5)
+const PROBE_CADENCE_MAX = Eff.Duration.seconds(30)
+const RECONNECT_MAX_ATTEMPTS = 3
+const DISCONNECTED_MAX_DURATION = Eff.Duration.seconds(60)
 
 interface Health {
   readonly consecutiveFailures: number
@@ -431,25 +434,48 @@ const awaitThresholdCrossed = (
   )
 
 /**
- * Reconnect budget (D24). Three attempts at 1s/3s/9s; first success
- * returns the fresh `Tool.Collection`, exhaustion fails with the last
- * `BackendError`. The connector stays in `Disconnected{retrying:true}`
- * throughout — UI shows "reconnecting…".
+ * Probe-driven reconnect (D24, qhq-5d0.6). Pings at escalating cadence
+ * (5s → 10s → 20s → 30s cap); each successful ping resets cadence and
+ * fires a bootstrap attempt. Up to `RECONNECT_MAX_ATTEMPTS` bootstraps;
+ * subsequent failures exhaust the budget. Wrapped in an outer
+ * `DISCONNECTED_MAX_DURATION` timeout for the case where ping never
+ * succeeds — without it the loop would stay in Disconnected forever.
  *
- * Followup (qhq-5d0.6): D24 also specifies an escalating heartbeat
- * during Disconnected (5s → 30s with backoff). Not implemented today —
- * only the 3-attempt bootstrap budget runs. If the catalog is offline
- * for longer than 13s, the connector goes Failed{acked:false} without
- * attempting transport-only probes that might surface earlier.
+ * The connector stays in `Disconnected{retrying:true}` throughout — UI
+ * shows "reconnecting…". Failure modes: budget exhaustion (returns the
+ * last bootstrap error) or the outer timeout (returns a synthetic
+ * `DisconnectedTimeout` Transport error).
  */
-const runReconnectBudget = (
+const runReconnectWithProbe = (
   config: ConnectorConfig,
   callTool: ConnectorRuntime['callTool'],
-): Eff.Effect.Effect<Tool.Collection, BackendError> =>
-  Eff.Effect.gen(function* () {
+): Eff.Effect.Effect<Tool.Collection, BackendError> => {
+  const escalate = (cadence: Eff.Duration.Duration): Eff.Duration.Duration => {
+    const doubled = Eff.Duration.times(cadence, 2)
+    return Eff.Duration.greaterThan(doubled, PROBE_CADENCE_MAX)
+      ? PROBE_CADENCE_MAX
+      : doubled
+  }
+  return Eff.Effect.gen(function* () {
+    let cadence = PROBE_CADENCE_INITIAL
+    let bootstrapAttempts = 0
     let lastError: BackendError | null = null
-    for (const delay of RECONNECT_BACKOFF) {
-      yield* Eff.Effect.sleep(delay)
+    while (bootstrapAttempts < RECONNECT_MAX_ATTEMPTS) {
+      yield* Eff.Effect.sleep(cadence)
+      const probe = yield* config.backend.ping().pipe(
+        Eff.Effect.timeoutFail({
+          duration: HEARTBEAT_TIMEOUT,
+          onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
+        }),
+        Eff.Effect.either,
+      )
+      if (Eff.Either.isLeft(probe)) {
+        cadence = escalate(cadence)
+        continue
+      }
+      // Transport just confirmed up — reset cadence and attempt bootstrap.
+      cadence = PROBE_CADENCE_INITIAL
+      bootstrapAttempts += 1
       const attempt = yield* bootstrap(config, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isRight(attempt)) return attempt.right
       lastError = attempt.left
@@ -457,7 +483,14 @@ const runReconnectBudget = (
     return yield* Eff.Effect.fail(
       lastError ?? transientError('ReconnectExhausted', 'reconnect exhausted'),
     )
-  })
+  }).pipe(
+    Eff.Effect.timeoutFail({
+      duration: DISCONNECTED_MAX_DURATION,
+      onTimeout: (): BackendError =>
+        transientError('DisconnectedTimeout', 'reconnect window exhausted'),
+    }),
+  )
+}
 
 /**
  * Drain the controls queue while in Failed. `'retry'` returns
@@ -541,7 +574,7 @@ export const manageConnector = (
           ConnectorState.Disconnected({ retrying: true, error: degraded }),
         )
 
-        const reconnect = yield* runReconnectBudget(config, callTool).pipe(
+        const reconnect = yield* runReconnectWithProbe(config, callTool).pipe(
           Eff.Effect.either,
         )
         if (Eff.Either.isRight(reconnect)) {
