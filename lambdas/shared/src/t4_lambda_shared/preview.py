@@ -5,9 +5,9 @@ import re
 import tempfile
 import zlib
 from io import BytesIO
-from math import isfinite
 from typing import Tuple
 
+import numpy
 import pandas
 from flowio import FlowData
 from xlrd.biffh import XLRDError
@@ -233,7 +233,7 @@ def _split_fcs_text_tokens(text, delimiter):
     if current:
         tokens.append(''.join(current))
 
-    return [token for token in tokens if token]
+    return tokens
 
 
 def _extract_fcs_channel_names(metadata):
@@ -259,10 +259,8 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
     sampled = data[[x_axis, y_axis]].copy()
     sampled[x_axis] = pandas.to_numeric(sampled[x_axis], errors='coerce')
     sampled[y_axis] = pandas.to_numeric(sampled[y_axis], errors='coerce')
-    sampled = sampled[sampled[x_axis].notna() & sampled[y_axis].notna()]
-    sampled = sampled[
-        sampled[x_axis].map(isfinite) & sampled[y_axis].map(isfinite)
-    ]
+    finite_mask = numpy.isfinite(sampled[x_axis].to_numpy()) & numpy.isfinite(sampled[y_axis].to_numpy())
+    sampled = sampled[finite_mask]
 
     if sampled.empty:
         return None

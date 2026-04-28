@@ -26,7 +26,6 @@ quilt = [
 es = [
   "aws-requests-auth ~= 0.4.2",
   "elasticsearch ~= 6.8",
-  "numpy < 2",
   "orjson ~= 3.10",
 ]
 
