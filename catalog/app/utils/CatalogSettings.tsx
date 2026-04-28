@@ -5,7 +5,6 @@ import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
-import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Cache from 'utils/ResourceCache'
 

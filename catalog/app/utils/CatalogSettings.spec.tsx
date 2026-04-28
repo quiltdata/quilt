@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { render, act } from '@testing-library/react'
+import { act } from '@testing-library/react'
+import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({
@@ -37,16 +38,6 @@ function makeFile(name: string, type = 'image/png', body = 'x') {
   return f
 }
 
-function captureHook<T>(hook: () => T): { current: T } {
-  const ref: { current: T } = { current: undefined as unknown as T }
-  function Probe() {
-    ref.current = hook()
-    return null
-  }
-  render(<Probe />)
-  return ref
-}
-
 describe('utils/CatalogSettings', () => {
   describe('useUploadFile', () => {
     it('uploads file with extension-based key and returns S3 location', async () => {
@@ -54,12 +45,12 @@ describe('utils/CatalogSettings', () => {
       putObjectMock.mockReturnValueOnce({
         promise: () => Promise.resolve({ VersionId: 'v1' }),
       })
-      const ref = captureHook(() => useUploadFile())
-      let result: Model.S3.S3ObjectLocation | undefined
+      const { result } = renderHook(() => useUploadFile())
+      let uploaded: { bucket: string; key: string; version?: string } | undefined
       await act(async () => {
-        result = await ref.current(makeFile('brand.svg', 'image/svg+xml'))
+        uploaded = await result.current(makeFile('brand.svg', 'image/svg+xml'))
       })
-      expect(result).toEqual({
+      expect(uploaded).toEqual({
         bucket: 'test-bucket',
         key: 'catalog/logo.svg',
         version: 'v1',
@@ -74,12 +65,12 @@ describe('utils/CatalogSettings', () => {
 
     it('omits extension when filename has none', async () => {
       putObjectMock.mockClear()
-      const ref = captureHook(() => useUploadFile())
-      let result: { bucket: string; key: string; version?: string } | undefined
+      const { result } = renderHook(() => useUploadFile())
+      let uploaded: { bucket: string; key: string; version?: string } | undefined
       await act(async () => {
-        result = await ref.current(makeFile('logo', ''))
+        uploaded = await result.current(makeFile('logo', ''))
       })
-      expect(result).toEqual({
+      expect(uploaded).toEqual({
         bucket: 'test-bucket',
         key: 'catalog/logo',
         version: undefined,
@@ -91,9 +82,9 @@ describe('utils/CatalogSettings', () => {
 
     it('uses last extension for multi-dot filenames', async () => {
       putObjectMock.mockClear()
-      const ref = captureHook(() => useUploadFile())
+      const { result } = renderHook(() => useUploadFile())
       await act(async () => {
-        await ref.current(makeFile('my.company.logo.png'))
+        await result.current(makeFile('my.company.logo.png'))
       })
       expect(putObjectMock.mock.calls[0][0].Key).toBe('catalog/logo.png')
     })

@@ -85,7 +85,10 @@ function InputColor({
 }
 
 const useInputFileStyles = M.makeStyles((t) => ({
-  root: {},
+  root: {
+    display: 'grid',
+    gap: t.spacing(1),
+  },
   dropzone: {
     alignItems: 'center',
     display: 'flex',
@@ -121,9 +124,12 @@ interface InputFileProps {
     value: FileWithPath | string
     onChange: (value: FileWithPath | string) => void
   }
+  errors?: Record<string, React.ReactNode>
+  meta?: RF.FieldMetaState<string>
 }
 
-export function InputFile({ input: { value, onChange } }: InputFileProps) {
+export function InputFile({ input: { value, onChange }, meta, errors }: InputFileProps) {
+  const error = meta?.submitFailed && (meta.error || meta.submitError)
   const classes = useInputFileStyles()
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
@@ -170,6 +176,8 @@ export function InputFile({ input: { value, onChange } }: InputFileProps) {
         size="small"
         variant="outlined"
         InputLabelProps={{ shrink: true }}
+        error={!!error}
+        helperText={error}
       />
     </div>
   )
