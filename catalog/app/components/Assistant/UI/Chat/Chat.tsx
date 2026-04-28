@@ -417,157 +417,84 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
   )
 }
 
-const useConnectorStatusStyles = M.makeStyles((t) => ({
-  region: {
-    background: t.palette.background.paper,
-    borderBottom: `1px solid ${t.palette.divider}`,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: `${t.spacing(0.5)}px`,
-    padding: t.spacing(1, 2),
-  },
-  row: {
-    ...t.typography.caption,
-    alignItems: 'center',
-    color: t.palette.text.secondary,
-    display: 'flex',
-    gap: `${t.spacing(1)}px`,
-    minHeight: 24,
-  },
-  title: {
+const useConnectorHelperStyles = M.makeStyles((t) => ({
+  // Mirrors the MessageAction pattern (Chat) and the DevTools panel
+  // action style — clickable span, hover bumps opacity to 1. Inherits
+  // the surrounding helper-text color (warning / error) so the action
+  // reads as part of the same severity message.
+  action: {
+    cursor: 'pointer',
     fontWeight: 500,
+    marginLeft: t.spacing(0.5),
+    opacity: 0.7,
+    '&:hover': {
+      opacity: 1,
+    },
   },
   separator: {
-    flexGrow: 1,
-  },
-  spinner: {
-    color: 'inherit',
-  },
-  errorDot: {
-    color: t.palette.error.main,
-  },
-  okDot: {
-    color: t.palette.success.main,
+    margin: t.spacing(0, 0.5),
+    opacity: 0.5,
   },
 }))
 
-interface ConnectorStatusRowProps {
-  connector: Model.Connectors.ConnectorRuntime
-}
-
 /**
- * Per-connector status row (D30). Live-subscribes to the connector's
- * state ref and renders one of:
- * - Connecting               → spinner + "Connecting…"
- * - Ready                    → title + "ready"
- * - Disconnected{retrying}   → spinner + title + "reconnecting…"
- * - Failed{acked:false}      → title + "[Retry] [Continue without]"
- * - Failed{acked:true}       → title + "unavailable, [Retry]"
+ * Per-connector helper-text fragment. Stateless — the parent
+ * subscribes to state once via `Actor.useState` and threads the
+ * current value in. Returns `null` for `Ready` so the parent can fall
+ * back to the default disclaimer when every connector is healthy.
  */
-interface RowVariant {
-  icon: React.ReactNode
-  text: React.ReactNode
-  textTitle?: string
-  buttons?: React.ReactNode
-  role: 'status' | 'alert'
+interface ConnectorHelperLineProps {
+  connector: Model.Connectors.ConnectorRuntime
+  state: Model.Connectors.ConnectorState
 }
 
-function ConnectorStatusRow({ connector }: ConnectorStatusRowProps) {
-  const classes = useConnectorStatusStyles()
-  const state = Actor.useState(connector.state)
-
+function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
+  const classes = useConnectorHelperStyles()
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
   const onAck = React.useCallback(
     () => runtime.runFork(connector.acknowledge),
     [connector],
   )
-
-  const spinner = (
-    <M.CircularProgress size={12} thickness={4} className={classes.spinner} />
+  const reconnectAction = (
+    <span className={classes.action} onClick={onRetry}>
+      reconnect
+    </span>
   )
-  const okDot = <Icons.CheckCircleOutline fontSize="small" className={classes.okDot} />
-  const errorDot = <Icons.ErrorOutline fontSize="small" className={classes.errorDot} />
-  const retryOutlined = (
-    <M.Button size="small" variant="outlined" color="primary" onClick={onRetry}>
-      Retry
-    </M.Button>
+  const ackAction = (
+    <span className={classes.action} onClick={onAck}>
+      continue without
+    </span>
   )
-  const retryContained = (
-    <M.Button size="small" variant="contained" color="primary" onClick={onRetry}>
-      Retry
-    </M.Button>
-  )
-  const ackButton = (
-    <M.Button size="small" variant="outlined" onClick={onAck}>
-      Continue without
-    </M.Button>
-  )
-
-  // `as const` narrows each `role` literal so the union of branch
-  // returns assigns cleanly to RowVariant — without it ts-loader widens
-  // role to `string` and the build-time type-check fails (vitest's
-  // esbuild path doesn't type-check, so this only surfaces in CI).
-  const variant: RowVariant = Model.Connectors.ConnectorState.$match(state, {
-    Connecting: () => ({ icon: spinner, text: 'connecting…', role: 'status' }) as const,
-    Ready: () => ({ icon: okDot, text: 'ready', role: 'status' }) as const,
-    Disconnected: () =>
-      ({ icon: spinner, text: 'reconnecting…', role: 'status' }) as const,
-    Failed: ({ error, acked }) =>
-      acked
-        ? ({
-            icon: errorDot,
-            text: 'unavailable',
-            buttons: retryOutlined,
-            role: 'status',
-          } as const)
-        : ({
-            icon: errorDot,
-            text: 'couldn’t connect',
-            textTitle: error.message,
-            buttons: (
-              <>
-                {retryContained}
-                {ackButton}
-              </>
-            ),
-            role: 'alert',
-          } as const),
-  })
-
-  return (
-    <div
-      className={classes.row}
-      role={variant.role}
-      aria-live={variant.role === 'status' ? 'polite' : undefined}
-    >
-      {variant.icon}
-      <span className={classes.title}>{connector.config.title}</span>
-      <span title={variant.textTitle}>{variant.text}</span>
-      {variant.buttons && (
+  const sep = <span className={classes.separator}>•</span>
+  const title = connector.config.title
+  return Model.Connectors.ConnectorState.$match(state, {
+    Connecting: () => <>{title}: connecting…</>,
+    Ready: () => null,
+    Disconnected: () => <>{title}: reconnecting…</>,
+    Failed: ({ acked }) =>
+      acked ? (
         <>
-          <span className={classes.separator} />
-          {variant.buttons}
+          {title}: unavailable {sep} {reconnectAction}
         </>
-      )}
-    </div>
-  )
+      ) : (
+        <>
+          {title}: couldn’t connect {sep} {reconnectAction} {sep} {ackAction}
+        </>
+      ),
+  })
 }
 
-interface ConnectorStatusRegionProps {
-  connectors: Model.Connectors.ConnectorsService
-}
-
-function ConnectorStatusRegion({ connectors }: ConnectorStatusRegionProps) {
-  const classes = useConnectorStatusStyles()
-  const all = Object.values(connectors.byId)
-  if (all.length === 0) return null
-  return (
-    <div className={classes.region}>
-      {all.map((c) => (
-        <ConnectorStatusRow key={c.id} connector={c} />
-      ))}
-    </div>
-  )
+/**
+ * Aggregate severity across all connectors — the input's helper-text
+ * color picks the worst category so a single failed-unacked connector
+ * dyes the whole helper row red regardless of the others' state.
+ */
+const helperSeverityFor = (
+  states: readonly Model.Connectors.ConnectorState[],
+): 'warning' | 'error' | undefined => {
+  if (states.some((s) => s._tag === 'Failed' && !s.acked)) return 'error'
+  if (states.some((s) => s._tag !== 'Ready')) return 'warning'
+  return undefined
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -624,6 +551,33 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
   const inputDisabled = state._tag !== 'Idle' || blocked
+  // Connector status surfaces under the input, not at the top of the
+  // chat — the helper-text line is where the user is already looking
+  // when submission is blocked. Per-connector lines stack vertically
+  // when more than one connector is non-`Ready`; everything Ready →
+  // `helperText` undefined and Input falls back to the default
+  // "Qurator may make errors…" disclaimer.
+  //
+  // `Object.values(connectors.byId)` is stable per-mount: `byId` is
+  // built once when the service is allocated, so the loop length never
+  // changes across renders and per-connector `Actor.useState` calls
+  // satisfy rules-of-hooks.
+  const allConnectors = Object.values(connectors.byId)
+  const connectorStates = allConnectors.map((c) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    Actor.useState(c.state),
+  )
+  const helperLines = allConnectors
+    .map((c, i) =>
+      connectorStates[i]._tag === 'Ready' ? null : (
+        <div key={c.id}>
+          <ConnectorHelperLine connector={c} state={connectorStates[i]} />
+        </div>
+      ),
+    )
+    .filter((x): x is React.ReactElement => x !== null)
+  const helperText = helperLines.length > 0 ? <>{helperLines}</> : undefined
+  const helperSeverity = helperSeverityFor(connectorStates)
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
@@ -664,7 +618,6 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
           <DevTools state={state} {...devTools} connectors={connectors} />
         </M.Paper>
       </M.Slide>
-      <ConnectorStatusRegion connectors={connectors} />
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
@@ -718,7 +671,13 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
           <div ref={scrollRef} />
         </div>
       </div>
-      <Input className={classes.input} disabled={inputDisabled} onSubmit={ask} />
+      <Input
+        className={classes.input}
+        disabled={inputDisabled}
+        helperText={helperText}
+        helperSeverity={helperSeverity}
+        onSubmit={ask}
+      />
     </div>
   )
 }

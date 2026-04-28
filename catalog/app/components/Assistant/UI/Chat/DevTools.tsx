@@ -244,7 +244,7 @@ function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
         <span className={stateLine.cls}>{stateLine.text}</span>
         {showRetry && (
           <>
-            <span className={classes.separator}>·</span>
+            <span className={classes.separator}>•</span>
             <span className={classes.action} onClick={onRetry}>
               reconnect
             </span>
@@ -252,7 +252,7 @@ function ConnectorPanelRow({ connector }: ConnectorPanelRowProps) {
         )}
         {showAck && (
           <>
-            <span className={classes.separator}>·</span>
+            <span className={classes.separator}>•</span>
             <span className={classes.action} onClick={onAck}>
               acknowledge
             </span>

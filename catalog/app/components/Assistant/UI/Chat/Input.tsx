@@ -17,6 +17,15 @@ const useStyles = M.makeStyles((t) => ({
   hint: {
     color: t.palette.text.hint,
   },
+  hintWarning: {
+    // `warning.dark` is the same darker-orange we use in DevTools; reads
+    // cleanly on the helper-text band's light background, where
+    // `warning.main` washes out.
+    color: t.palette.warning.dark,
+  },
+  hintError: {
+    color: t.palette.error.dark,
+  },
 }))
 
 const backgroundColor = M.colors.indigo[900]
@@ -60,11 +69,36 @@ const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
 interface ChatInputProps {
   className?: string
   disabled?: boolean
+  /**
+   * Override for the helper text below the input. Falls back to the
+   * generic disclaimer when not set. Used to surface contextual state
+   * right next to the input — e.g., a connector that's blocking
+   * submission or a Failed{acked} unavailable hint with a reconnect
+   * link.
+   *
+   * `severity` colors the helper accordingly: undefined → default hint
+   * grey, `warning` → orange, `error` → red.
+   */
+  helperText?: React.ReactNode
+  helperSeverity?: 'warning' | 'error'
   onSubmit: (value: string) => void
 }
 
-export default function ChatInput({ className, disabled, onSubmit }: ChatInputProps) {
+const DEFAULT_HELPER_TEXT = 'Qurator may make errors. Verify important information.'
+
+export default function ChatInput({
+  className,
+  disabled,
+  helperText,
+  helperSeverity,
+  onSubmit,
+}: ChatInputProps) {
   const classes = useStyles()
+  const helperClass = helperSeverity
+    ? helperSeverity === 'error'
+      ? classes.hintError
+      : classes.hintWarning
+    : classes.hint
 
   const [value, setValue] = React.useState('')
 
@@ -90,7 +124,7 @@ export default function ChatInput({ className, disabled, onSubmit }: ChatInputPr
           fullWidth
           margin="normal"
           label="Ask Qurator"
-          helperText="Qurator may make errors. Verify important information."
+          helperText={helperText ?? DEFAULT_HELPER_TEXT}
           InputProps={{
             disableUnderline: true,
             classes: useInputStyles(),
@@ -108,7 +142,7 @@ export default function ChatInput({ className, disabled, onSubmit }: ChatInputPr
             ),
           }}
           InputLabelProps={{ classes: useLabelStyles() }}
-          FormHelperTextProps={{ classes: { root: classes.hint } }}
+          FormHelperTextProps={{ classes: { root: helperClass } }}
         />
       </M.ThemeProvider>
     </form>
