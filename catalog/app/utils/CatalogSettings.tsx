@@ -5,9 +5,9 @@ import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
-import type { S3ObjectLocation } from 'model/S3'
 import * as AWS from 'utils/AWS'
 import * as Cache from 'utils/ResourceCache'
+import * as s3paths from 'utils/s3paths'
 
 const CONFIG_KEY = 'catalog/settings.json'
 
@@ -69,18 +69,19 @@ function format(settings: CatalogSettings) {
 export function useUploadFile() {
   const s3 = AWS.S3.use()
   return React.useCallback(
-    async (file: File): Promise<S3ObjectLocation> => {
+    async (file: File) => {
+      const bucket = cfg.serviceBucket
       const key = `catalog/logo${extname(file.name)}`
       const buf = await file.arrayBuffer()
-      const res = await s3
+      const { VersionId } = await s3
         .putObject({
-          Bucket: cfg.serviceBucket,
+          Bucket: bucket,
           Key: key,
           Body: new Uint8Array(buf),
           ContentType: file.type || undefined,
         })
         .promise()
-      return { bucket: cfg.serviceBucket, key, version: res.VersionId }
+      return s3paths.handleToS3Url({ bucket, key, version: VersionId })
     },
     [s3],
   )

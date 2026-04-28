@@ -11,7 +11,6 @@ import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import Logo from 'components/Logo'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import * as s3paths from 'utils/s3paths'
 import * as validators from 'utils/validators'
 
 const useInputColorStyles = M.makeStyles((t) => ({
@@ -298,7 +297,7 @@ export default function ThemeEditor() {
         let logoUrl = values?.logoUrl
         // TODO: check is instance of File explicitly
         if (logoUrl && typeof logoUrl !== 'string') {
-          logoUrl = s3paths.handleToS3Url(await uploadFile(logoUrl))
+          logoUrl = await uploadFile(logoUrl)
         }
         const updatedSettings = settings || {}
         if (logoUrl) {

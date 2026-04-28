@@ -10,7 +10,7 @@ const putObjectMock = vi.fn<
   (params: { Bucket: string; Key: string; ContentType?: string; Body: unknown }) => {
     promise: () => Promise<{ VersionId?: string }>
   }
->(() => ({ promise: () => Promise.resolve({}) }))
+>(() => ({ promise: () => Promise.resolve({ VersionId: 'v1' }) }))
 const s3Mock = { putObject: putObjectMock }
 
 vi.mock('utils/AWS', () => ({
@@ -49,21 +49,17 @@ function captureHook<T>(hook: () => T): { current: T } {
 
 describe('utils/CatalogSettings', () => {
   describe('useUploadFile', () => {
-    it('uploads file with extension-based key and returns S3 location', async () => {
+    it('uploads file with extension-based key and returns versioned s3 URL', async () => {
       putObjectMock.mockClear()
       putObjectMock.mockReturnValueOnce({
-        promise: () => Promise.resolve({ VersionId: 'v1' }),
+        promise: () => Promise.resolve({ VersionId: 'abc123' }),
       })
       const ref = captureHook(() => useUploadFile())
-      let result: { bucket: string; key: string; version?: string } | undefined
+      let result: string | undefined
       await act(async () => {
         result = await ref.current(makeFile('brand.svg', 'image/svg+xml'))
       })
-      expect(result).toEqual({
-        bucket: 'test-bucket',
-        key: 'catalog/logo.svg',
-        version: 'v1',
-      })
+      expect(result).toBe('s3://test-bucket/catalog/logo.svg?versionId=abc123')
       expect(putObjectMock).toHaveBeenCalledTimes(1)
       const arg = putObjectMock.mock.calls[0][0]
       expect(arg.Bucket).toBe('test-bucket')
@@ -75,15 +71,11 @@ describe('utils/CatalogSettings', () => {
     it('omits extension when filename has none', async () => {
       putObjectMock.mockClear()
       const ref = captureHook(() => useUploadFile())
-      let result: { bucket: string; key: string; version?: string } | undefined
+      let result: string | undefined
       await act(async () => {
         result = await ref.current(makeFile('logo', ''))
       })
-      expect(result).toEqual({
-        bucket: 'test-bucket',
-        key: 'catalog/logo',
-        version: undefined,
-      })
+      expect(result).toBe('s3://test-bucket/catalog/logo?versionId=v1')
       const arg = putObjectMock.mock.calls[0][0]
       expect(arg.Key).toBe('catalog/logo')
       expect(arg.ContentType).toBeUndefined()
@@ -96,6 +88,17 @@ describe('utils/CatalogSettings', () => {
         await ref.current(makeFile('my.company.logo.png'))
       })
       expect(putObjectMock.mock.calls[0][0].Key).toBe('catalog/logo.png')
+    })
+
+    it('omits versionId when bucket has no versioning', async () => {
+      putObjectMock.mockClear()
+      putObjectMock.mockReturnValueOnce({ promise: () => Promise.resolve({}) })
+      const ref = captureHook(() => useUploadFile())
+      let result: string | undefined
+      await act(async () => {
+        result = await ref.current(makeFile('logo.png'))
+      })
+      expect(result).toBe('s3://test-bucket/catalog/logo.png')
     })
   })
 })
