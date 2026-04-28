@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
