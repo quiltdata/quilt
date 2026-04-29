@@ -497,19 +497,40 @@ const attachAutoloadedContent = (
   )
 
 /**
+ * Race a sleep against the wake stream — either the cadence elapses or
+ * page activity fires. Used in heartbeat and reconnect-probe loops so a
+ * suspended tab (laptop closed, hidden tab) checks connectivity
+ * immediately on resume rather than waiting for the next scheduled tick.
+ */
+const sleepOrWake = (
+  duration: Eff.Duration.Duration,
+  wake: Eff.Stream.Stream<void>,
+): Eff.Effect.Effect<void> =>
+  Eff.Effect.race(
+    Eff.Effect.sleep(duration),
+    wake.pipe(Eff.Stream.take(1), Eff.Stream.runDrain),
+  )
+
+/**
  * Heartbeat ping loop (D24). Runs forever; each tick pings with timeout
  * and updates `health` on outcome. Tool-call transport failures bump
  * the same counter externally — `awaitThresholdCrossed` watches the
  * shared ref and fires whenever the threshold crosses, regardless of
  * source.
+ *
+ * The cadence sleep races against `wake` (page-activity signal). When
+ * the tab resumes from hidden/suspended, the heartbeat re-checks the
+ * connector immediately rather than waiting up to 30s for the in-flight
+ * sleep timer to fire.
  */
 const runHeartbeat = (
   backend: Backend,
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
+  wake: Eff.Stream.Stream<void>,
 ): Eff.Effect.Effect<never> =>
   Eff.Effect.gen(function* () {
     while (true) {
-      yield* Eff.Effect.sleep(HEARTBEAT_CADENCE)
+      yield* sleepOrWake(HEARTBEAT_CADENCE, wake)
       const result = yield* backend.ping().pipe(
         Eff.Effect.timeoutFail({
           duration: HEARTBEAT_TIMEOUT,
@@ -559,6 +580,7 @@ const awaitThresholdCrossed = (
 const runReconnectWithProbe = (
   config: ConnectorConfig,
   callTool: ConnectorRuntime['callTool'],
+  wake: Eff.Stream.Stream<void>,
 ): Eff.Effect.Effect<BootstrapResult, BackendError> => {
   const escalate = (cadence: Eff.Duration.Duration): Eff.Duration.Duration => {
     const doubled = Eff.Duration.times(cadence, 2)
@@ -571,7 +593,7 @@ const runReconnectWithProbe = (
     let bootstrapAttempts = 0
     let lastError: BackendError | null = null
     while (bootstrapAttempts < RECONNECT_MAX_ATTEMPTS) {
-      yield* Eff.Effect.sleep(cadence)
+      yield* sleepOrWake(cadence, wake)
       const probe = yield* config.backend.ping().pipe(
         Eff.Effect.timeoutFail({
           duration: HEARTBEAT_TIMEOUT,
@@ -643,6 +665,7 @@ export const manageConnector = (
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   controls: Eff.Queue.Queue<Control>,
   callTool: ConnectorRuntime['callTool'],
+  wake: Eff.Stream.Stream<void> = Eff.Stream.never,
 ): Eff.Effect.Effect<never> =>
   Eff.Effect.gen(function* () {
     while (true) {
@@ -679,7 +702,7 @@ export const manageConnector = (
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any
         // source (heartbeat itself or external tool-call bumps).
         yield* Eff.Effect.race(
-          runHeartbeat(config.backend, health),
+          runHeartbeat(config.backend, health, wake),
           awaitThresholdCrossed(health),
         )
 
@@ -691,7 +714,7 @@ export const manageConnector = (
           ConnectorState.Disconnected({ retrying: true, error: degraded }),
         )
 
-        const reconnect = yield* runReconnectWithProbe(config, callTool).pipe(
+        const reconnect = yield* runReconnectWithProbe(config, callTool, wake).pipe(
           Eff.Effect.either,
         )
         if (Eff.Either.isRight(reconnect)) {
@@ -721,6 +744,7 @@ export const manageConnector = (
  */
 export const buildConnectorRuntime = (
   config: ConnectorConfig,
+  wake: Eff.Stream.Stream<void> = Eff.Stream.never,
 ): Eff.Effect.Effect<ConnectorRuntime, never, Eff.Scope.Scope> =>
   Eff.Effect.gen(function* () {
     const state = yield* Eff.SubscriptionRef.make<ConnectorState>(
@@ -731,7 +755,7 @@ export const buildConnectorRuntime = (
     const callTool = makeConnectorCallTool(config.id, config.backend, state, health)
 
     yield* Eff.Effect.forkScoped(
-      manageConnector(config, state, health, controls, callTool),
+      manageConnector(config, state, health, controls, callTool, wake),
     )
 
     return {
@@ -834,6 +858,59 @@ const renderConnectorOverview = (
 }
 
 // ---------------------------------------------------------------------------
+// Page-activity wake stream
+// ---------------------------------------------------------------------------
+
+/**
+ * Wake signal for sleep-bound lifecycle loops (heartbeat + reconnect
+ * probe). Emits whenever the tab transitions to `visibilityState ===
+ * 'visible'` (laptop reopened, tab returned to foreground, browser
+ * un-suspended) or the browser fires `online` (network recovered).
+ *
+ * Without this, a long sleep timer that gets frozen during suspend
+ * means the heartbeat doesn't tick until the sleep timer eventually
+ * fires post-resume — which can be ≫30s after the user is back. With
+ * the wake signal, the in-flight sleep is race-cancelled and ping
+ * fires immediately on resume.
+ *
+ * Single PubSub fed by one set of DOM listeners; `Stream.fromPubSub`
+ * fans out to per-connector consumers. Listeners are detached when
+ * the surrounding `Scope` closes (Assistant unmount).
+ *
+ * SSR-safe: returns `Stream.never` if `document` / `window` aren't in
+ * scope.
+ */
+const makeWakeStream = (): Eff.Effect.Effect<
+  Eff.Stream.Stream<void>,
+  never,
+  Eff.Scope.Scope
+> =>
+  Eff.Effect.gen(function* () {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return Eff.Stream.never
+    }
+    const hub = yield* Eff.PubSub.unbounded<void>()
+    yield* Eff.Effect.acquireRelease(
+      Eff.Effect.sync(() => {
+        const fire = () => runtime.runFork(Eff.PubSub.publish(hub, undefined as void))
+        const onVisible = () => {
+          if (document.visibilityState === 'visible') fire()
+        }
+        const onOnline = () => fire()
+        document.addEventListener('visibilitychange', onVisible)
+        window.addEventListener('online', onOnline)
+        return { onVisible, onOnline }
+      }),
+      (handlers) =>
+        Eff.Effect.sync(() => {
+          document.removeEventListener('visibilitychange', handlers.onVisible)
+          window.removeEventListener('online', handlers.onOnline)
+        }),
+    )
+    return Eff.Stream.fromPubSub(hub)
+  })
+
+// ---------------------------------------------------------------------------
 // Layer
 // ---------------------------------------------------------------------------
 
@@ -857,9 +934,10 @@ export const buildService = (
   configs: readonly ConnectorConfig[],
 ): Eff.Effect.Effect<ConnectorsService, never, Eff.Scope.Scope> =>
   Eff.Effect.gen(function* () {
+    const wake = yield* makeWakeStream()
     const runtimes: Record<ConnectorId, ConnectorRuntime> = {}
     for (const c of configs) {
-      runtimes[c.id] = yield* buildConnectorRuntime(c)
+      runtimes[c.id] = yield* buildConnectorRuntime(c, wake)
     }
     const all = Object.values(runtimes)
 

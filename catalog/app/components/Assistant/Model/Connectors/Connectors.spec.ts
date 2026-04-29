@@ -517,6 +517,43 @@ describe('Connectors', () => {
           expect(cur._tag).toBe('Disconnected')
         }),
       ))
+
+    it('wake stream cancels heartbeat sleep and pings immediately', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          // The page-activity wake signal (visibilitychange→visible /
+          // online) races against the heartbeat sleep so a tab returning
+          // from suspend re-checks connectivity immediately rather than
+          // waiting up to 30s for the next scheduled tick.
+          const pingCount = yield* Eff.SubscriptionRef.make(0)
+          const wakeQueue = yield* Eff.Queue.unbounded<void>()
+          const wake = Eff.Stream.fromQueue(wakeQueue)
+
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.SubscriptionRef.update(pingCount, (n) => n + 1),
+              }),
+            ),
+            wake,
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          // Bootstrap doesn't ping; counter is 0 even after Ready.
+          expect(yield* Eff.SubscriptionRef.get(pingCount)).toBe(0)
+
+          // Fire wake before HEARTBEAT_CADENCE elapses; the heartbeat's
+          // in-flight sleep should race-cancel and ping immediately.
+          yield* Eff.Queue.offer(wakeQueue, undefined as void)
+          // Wait for the ping to land (counter to cross 1).
+          yield* Eff.pipe(
+            pingCount.changes,
+            Eff.Stream.filter((n) => n >= 1),
+            Eff.Stream.take(1),
+            Eff.Stream.runDrain,
+          )
+          expect(yield* Eff.SubscriptionRef.get(pingCount)).toBe(1)
+        }),
+      ))
   })
 
   describe('callTool gating (D27)', () => {
