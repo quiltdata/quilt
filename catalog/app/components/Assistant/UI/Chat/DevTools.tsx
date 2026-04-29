@@ -266,10 +266,10 @@ interface ConnectorsPanelProps {
 }
 
 /**
- * DevTools Connectors panel (D31; subsumes qhq-5d0.3). Shows per-connector
- * state with manual retry / ack handles and a live preview of the
- * `contextContribution` Effect output — exactly what the LLM would see
- * if a turn fired right now.
+ * DevTools Connectors panel. Shows per-connector state with manual
+ * retry / ack handles and a live preview of the `contextContribution`
+ * Effect output — exactly what the LLM would see if a turn fired right
+ * now.
  */
 function ConnectorsPanel({ connectors }: ConnectorsPanelProps) {
   const classes = useConnectorsPanelStyles()

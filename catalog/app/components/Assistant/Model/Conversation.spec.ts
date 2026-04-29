@@ -1,6 +1,6 @@
 /**
  * Conversation actor tests — state-machine transitions around
- * AwaitingConnector + the ConnectorReady action (D25).
+ * AwaitingConnector + the ConnectorReady action.
  *
  * The actor runs as a daemon fiber inside Actor.start; we dispatch
  * actions, await state-changes via SubscriptionRef.changes, and assert

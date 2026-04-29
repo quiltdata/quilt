@@ -556,7 +556,7 @@ describe('Connectors', () => {
       ))
   })
 
-  describe('callTool gating (D27)', () => {
+  describe('callTool gating', () => {
     it('fast-fails when state is not Ready', () =>
       runWithTest(
         Eff.Effect.gen(function* () {

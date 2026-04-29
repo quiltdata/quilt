@@ -46,10 +46,8 @@ const CLIENT_INFO = { name: 'quilt-catalog', version: '1' } as const
 
 /**
  * Subset of MCP tool annotations the catalog cares about. The wire spec
- * permits more (e.g. `idempotentHint`, `openWorldHint`); the connector
- * layer only consumes `readOnlyHint` today (D24 — read-only-tool
- * auto-retry once on transport error before counting toward the
- * health-threshold).
+ * permits more (`idempotentHint`, `openWorldHint`); the connector layer
+ * only consumes `readOnlyHint` today.
  */
 export interface McpToolAnnotations {
   readOnlyHint?: boolean
@@ -358,9 +356,9 @@ export interface McpClient {
   ) => Eff.Effect.Effect<McpToolResult, McpError>
   readResource: (uri: string) => Eff.Effect.Effect<McpResourceContents, McpError>
   /**
-   * MCP base protocol `ping` — JSON-RPC method returning an empty
-   * object on success. Connectors uses this as a transport-health probe
-   * (D24); independent POST in stateless HTTP mode, no session state.
+   * MCP base protocol `ping` — JSON-RPC method returning an empty object
+   * on success. Used as a transport-health probe; independent POST in
+   * stateless HTTP mode, no session state.
    */
   ping: () => Eff.Effect.Effect<void, McpError>
 }
@@ -651,13 +649,8 @@ export interface BearerPassthruOptions {
  * 1st-party MCP backend with bearer-passthrough auth. The caller
  * resolves the bearer token (typically a catalog session JWT) on every
  * call; the backend forwards it as `Authorization: Bearer <token>` and
- * doesn't manage refresh, expiry, or session state.
- *
- * Distinct from a hypothetical `oauth(...)` factory (which would run the
- * OAuth flow itself) or a stateful backend (which would maintain a
- * session). Pairs with FastMCP's `stateless_http=True` transport mode.
- *
- * Design: see qhq-5d0 `--design`, D8 / D9 / D33.
+ * doesn't manage refresh, expiry, or session state. Pairs with FastMCP's
+ * `stateless_http=True` transport mode.
  */
 export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
   const wire = make({

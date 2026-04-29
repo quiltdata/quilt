@@ -87,10 +87,10 @@ export type State = Eff.Data.TaggedEnum<{
 
   /**
    * One or more connectors are blocked (transient or needs-ack); the
-   * conversation pauses before the next LLM round-trip. The waiter fiber
-   * dispatches `ConnectorReady` once `connectors.awaitUnblocked` resolves.
-   * UI gates input and renders connector status independently — this state
-   * carries no per-connector snapshot (D26).
+   * conversation pauses before the next LLM round-trip. The waiter
+   * fiber dispatches `ConnectorReady` once `connectors.awaitUnblocked`
+   * resolves. UI gates input and renders connector status independently
+   * — this state carries no per-connector snapshot.
    */
   AwaitingConnector: StateBase & {
     readonly waiter: Eff.Fiber.RuntimeFiber<void>
@@ -176,10 +176,10 @@ const llmRequest = (events: Event[]) =>
 /**
  * After all tools resolve OR a user Ask lands, decide whether to fire
  * the next LLM round or pause for a blocked connector. Reads
- * `connectors.isBlocked` synchronously (D25 handler discipline — no
- * async observation in the handler body); if blocked, forks a waiter
- * fiber that dispatches `ConnectorReady` on unblock and returns the
- * AwaitingConnector state. Otherwise forks the LLM request.
+ * `connectors.isBlocked` synchronously — handlers must not yield on
+ * async observations. If blocked, forks a waiter that dispatches
+ * `ConnectorReady` on unblock and returns AwaitingConnector. Otherwise
+ * forks the LLM request.
  */
 const advanceFromEvents = (
   events: Event[],

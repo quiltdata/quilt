@@ -3,16 +3,10 @@
  *
  * A *connector* is the agent-level abstraction (config + state + tools).
  * Lifecycle (Connecting → Ready → Disconnected → Failed, heartbeat,
- * reconnect budget) is generic in `Backend`, the connector's behavioral
- * contract. Concrete backends (today: `Mcp.bearerPassthru` for 1st-party
- * MCP with catalog session JWT; later: maybe `Mcp.oauth` or others)
- * adapt their wire protocol into `Backend`.
- *
- * Each connector owns its own `SubscriptionRef<ConnectorState>` (D23). The
- * lifecycle fiber (bootstrap → heartbeat → retry) writes only to its own
- * ref; aggregate predicates merge across all per-connector refs.
- *
- * Design: see qhq-5d0 `--design`, sections D20-D33.
+ * reconnect budget) is generic in `Backend`. Each connector owns its own
+ * `SubscriptionRef<ConnectorState>`; the lifecycle fiber writes only to
+ * its own ref, and aggregate predicates merge across all per-connector
+ * refs.
  */
 
 import * as Eff from 'effect'
@@ -56,9 +50,7 @@ export interface BackendError {
   readonly message: string
   /**
    * Whether this error counts toward the health threshold. True for
-   * `Transport` errors (the only category that signals network-level
-   * failure); false otherwise. Lifecycle uses this to decide whether to
-   * bump the health counter on tool-call failure (D24).
+   * `Transport` errors only; false otherwise.
    */
   readonly transient?: boolean
   /**
@@ -81,10 +73,9 @@ export interface BackendToolDescriptor {
   readonly description?: string
   readonly inputSchema: Record<string, unknown>
   /**
-   * Generic version of MCP's `readOnlyHint` annotation (D24): when true,
-   * a single transport-level failure is retried once before reporting
-   * the error or counting toward the threshold. Destructive tools (or
-   * tools without the hint) fail immediately.
+   * When true, a single transport-level failure is retried once before
+   * reporting the error or counting toward the threshold. Destructive
+   * tools (or tools without the hint) fail immediately.
    */
   readonly readOnly?: boolean
 }
@@ -92,14 +83,12 @@ export interface BackendToolDescriptor {
 /**
  * Application-driven resource entry. The catalog enumerates resources
  * at bootstrap and surfaces the directory in the connector overview.
- * By default content is fetched on demand via `get_resource` (D21); a
- * subset listed in `ConnectorConfig.autoload` is pre-fetched at
- * bootstrap and inlined into the prompt — see qhq-5d0.15 (carve-out
- * for reference-grade resources the model demonstrably doesn't fetch
- * on its own, e.g. ES query syntax).
+ * Content is fetched on demand via `get_resource` by default; URIs in
+ * `ConnectorConfig.autoload` are pre-fetched at bootstrap and inlined
+ * into the prompt for reference-grade resources the model
+ * demonstrably doesn't fetch on its own (e.g. ES query syntax).
  *
- * `content` is populated only for autoloaded entries; everything else
- * stays attribute-only.
+ * `content` is populated only for autoloaded entries.
  */
 export interface BackendResourceDescriptor {
   readonly uri: string
@@ -111,10 +100,8 @@ export interface BackendResourceDescriptor {
 
 /**
  * The connector's behavioral surface. Implementations adapt a wire
- * protocol (today: 1st-party MCP via `Mcp.bearerPassthru`; later: maybe
- * OAuth-flavored MCP, in-process tools, etc.) into this interface.
- * Lifecycle (Connecting → Ready → Disconnected → Failed, heartbeat,
- * reconnect budget) is fully generic in `Backend`.
+ * protocol (today: 1st-party MCP via `Mcp.bearerPassthru`) into this
+ * interface; the lifecycle is fully generic in `Backend`.
  */
 export interface Backend {
   readonly initialize: () => Eff.Effect.Effect<void, BackendError>
@@ -128,9 +115,8 @@ export interface Backend {
   >
   /**
    * Fetch a resource's content as a single text blob. Concatenates all
-   * text parts from the wire response; binary parts are skipped. Used by
-   * bootstrap for autoloaded resources (qhq-5d0.15) — the model still
-   * uses `get_resource` for on-demand fetches.
+   * text parts from the wire response; binary parts are skipped. Used
+   * by bootstrap for autoloaded resources.
    */
   readonly readResource: (uri: string) => Eff.Effect.Effect<string, BackendError>
   readonly callTool: (
@@ -151,10 +137,9 @@ export type ConnectorId = string
  * lifecycle drives, and the optional set of resource URIs to autoload
  * at bootstrap.
  *
- * Autoloaded resource content is inlined into the connector overview
- * (qhq-5d0.15). Reference-grade resources the model demonstrably won't
- * fetch on its own (search syntax, Athena schema) belong here; stack
- * state already covered elsewhere or rarely-needed identity does not.
+ * Reference-grade resources the model demonstrably won't fetch on its
+ * own (search syntax, Athena schema) belong in `autoload`. Stack state
+ * already covered elsewhere or rarely-needed identity does not.
  */
 export interface ConnectorConfig {
   readonly id: ConnectorId
@@ -169,7 +154,7 @@ export interface ConnectorConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Per-connector state machine (D22):
+ * Per-connector state machine:
  *
  *   Connecting ──success──→ Ready
  *   Connecting ──failure──→ Failed{acked:false}
@@ -224,10 +209,9 @@ export const stateIsBlocked = (s: ConnectorState): boolean =>
 // ---------------------------------------------------------------------------
 
 /**
- * Optional knobs for one tool-call invocation. Today the only knob is
- * `retryOnTransport`: when `true`, a single transport-level failure is
- * retried before reporting the error and bumping the health counter
- * (D24 — read-only-tool auto-retry).
+ * Optional knobs for one tool-call invocation. `retryOnTransport`:
+ * when true, a single transport-level failure is retried before
+ * reporting the error and bumping the health counter.
  */
 export interface CallToolOptions {
   readonly retryOnTransport?: boolean
@@ -266,11 +250,11 @@ export class Connectors extends Eff.Context.Tag('Connectors')<
 >() {}
 
 // ---------------------------------------------------------------------------
-// Lifecycle internals (D24)
+// Lifecycle internals
 // ---------------------------------------------------------------------------
 
 /**
- * Heartbeat cadence + timeout + threshold (D24). Both ping failures and
+ * Heartbeat cadence + timeout + threshold. Both ping failures and
  * tool-call transport failures contribute to `Health.consecutiveFailures`;
  * crossing the threshold flips the state to Disconnected and starts the
  * reconnect probe loop.
@@ -281,12 +265,12 @@ const HEALTH_THRESHOLD = 2
 const BOOTSTRAP_TIMEOUT = Eff.Duration.seconds(60)
 
 /**
- * Disconnected-mode probe parameters (D24, qhq-5d0.6). The lifecycle
- * pings at escalating cadence (`PROBE_CADENCE_INITIAL`, doubled each
- * failure, capped at `PROBE_CADENCE_MAX`); each successful ping triggers
- * a bootstrap attempt (cap: `RECONNECT_MAX_ATTEMPTS`). If ping never
- * succeeds within `DISCONNECTED_MAX_DURATION`, fail with a
- * synthetic `DisconnectedTimeout` `Transport` error.
+ * Disconnected-mode probe parameters. The lifecycle pings at escalating
+ * cadence (`PROBE_CADENCE_INITIAL`, doubled each failure, capped at
+ * `PROBE_CADENCE_MAX`); each successful ping triggers a bootstrap
+ * attempt (cap: `RECONNECT_MAX_ATTEMPTS`). If ping never succeeds
+ * within `DISCONNECTED_MAX_DURATION`, fail with a synthetic
+ * `DisconnectedTimeout` `Transport` error.
  */
 const PROBE_CADENCE_INITIAL = Eff.Duration.seconds(5)
 const PROBE_CADENCE_MAX = Eff.Duration.seconds(30)
@@ -294,10 +278,10 @@ const RECONNECT_MAX_ATTEMPTS = 3
 const DISCONNECTED_MAX_DURATION = Eff.Duration.seconds(60)
 
 /**
- * Per-resource size cap for autoload (qhq-5d0.15). Resources whose
- * content exceeds this byte count are dropped from the autoload path
- * and stay listed as attribute-only entries in the directory — the
- * model can still fetch them on demand via `get_resource`.
+ * Per-resource size cap for autoload. Resources whose content exceeds
+ * this byte count are dropped from the autoload path and stay listed as
+ * attribute-only entries — the model can still fetch them on demand
+ * via `get_resource`.
  */
 const AUTOLOAD_MAX_BYTES = 16 * 1024
 
@@ -339,21 +323,18 @@ type Control = 'retry' | 'acknowledge'
 
 /**
  * Build a `Tool.Descriptor` whose executor routes through the
- * connector's gated `callTool` (D27 — fast-fail when not Ready). Tools
- * marked `readOnly` auto-retry once on transport error (D24); tools
- * without the hint, or marked destructive, fail immediately on the
- * first transport failure.
+ * connector's gated `callTool` (fast-fail when not Ready). Tools marked
+ * `readOnly` auto-retry once on transport error; tools without the
+ * hint fail immediately on the first transport failure.
  */
 const buildConnectorTool = (
   callTool: ConnectorRuntime['callTool'],
   descriptor: BackendToolDescriptor,
 ): Tool.Descriptor<Record<string, unknown>> => {
-  // Server's inputSchema (JSON Schema, server-authoritative) is forwarded
-  // raw to Bedrock — D14. We don't run Effect-Schema decoding on the
-  // input client-side. `description` lives on the Tool.Descriptor (which
-  // Bedrock surfaces as `toolSpec.description`); we deliberately don't
-  // also stuff it into the inputSchema, since Bedrock would then send it
-  // to the LLM twice (once on the toolSpec, once in `inputSchema.json`).
+  // Forward the server's `inputSchema` raw to Bedrock; we don't run
+  // Effect-Schema decoding on the input client-side. `description` lives
+  // on `Tool.Descriptor` (Bedrock surfaces it as `toolSpec.description`);
+  // we keep it out of `inputSchema` so it doesn't ship twice.
   const retryOnTransport = descriptor.readOnly === true
   return {
     description: descriptor.description,
@@ -367,14 +348,13 @@ const buildConnectorTool = (
 
 /**
  * Build the connector's `callTool`: gates on Ready, fires the wire call,
- * and updates the shared health ref on transport-level outcome (D24,
- * D27). Non-transport McpRpcError / McpProtocolError don't disturb
- * health — those are server-application errors, not transport ones.
+ * and updates the shared health ref on transport-level outcome.
+ * Non-transport (e.g. server-side application) errors don't disturb
+ * health.
  *
  * `retryOnTransport` (set by `buildConnectorTool` for read-only tools)
  * triggers a single re-attempt on the first transport failure before
- * reporting the error or counting toward the threshold (D24). The
- * second attempt's outcome is what hits health.
+ * reporting the error; only the second attempt's outcome hits health.
  */
 const makeConnectorCallTool =
   (
@@ -424,20 +404,17 @@ const makeConnectorCallTool =
 
 /**
  * Bootstrap: `initialize` + `listTools` + `listResources` + autoload
- * pre-fetch. `listResources` carves out the directory; for URIs in
- * `config.autoload`, we additionally `readResource` and inline the
- * content into the descriptor so it lands in the prompt (qhq-5d0.15).
+ * pre-fetch. For URIs in `config.autoload`, the content is fetched and
+ * inlined into the descriptor.
  *
- * Both `listResources` and per-URI `readResource` are best-effort.
- * `listTools` already proved transport / auth; a downstream hiccup
- * fetching resources or content shouldn't block Ready. Failures fall
- * through to: empty directory (listResources) or attribute-only entry
- * (readResource). Same fallback path applies when a resource exceeds
- * `AUTOLOAD_MAX_BYTES` — we keep the entry in the directory but drop
- * the content.
+ * `listResources` and per-URI `readResource` are best-effort —
+ * `listTools` already proved transport/auth, so a downstream hiccup
+ * shouldn't block Ready. Failures fall through to an empty directory
+ * or attribute-only entry. Same fallback when a resource exceeds
+ * `AUTOLOAD_MAX_BYTES`.
  *
- * Returns the connector's tool collection (keyed `<id>__<name>`) and
- * resource directory.
+ * Returns the tool collection (keyed `<id>__<name>`) and resource
+ * directory.
  */
 interface BootstrapResult {
   readonly tools: Tool.Collection
@@ -472,9 +449,9 @@ const bootstrap = (
   })
 
 /**
- * Pre-fetch a resource's content for autoload (qhq-5d0.15). Drops the
- * content (keeping the descriptor) on read failure or if the body
- * exceeds `AUTOLOAD_MAX_BYTES`. Never fails — bootstrap stays best-effort.
+ * Pre-fetch a resource's content for autoload. Drops the content
+ * (keeping the descriptor) on read failure or if the body exceeds
+ * `AUTOLOAD_MAX_BYTES`. Never fails — bootstrap stays best-effort.
  */
 const attachAutoloadedContent = (
   config: ConnectorConfig,
@@ -512,11 +489,10 @@ const sleepOrWake = (
   )
 
 /**
- * Heartbeat ping loop (D24). Runs forever; each tick pings with timeout
- * and updates `health` on outcome. Tool-call transport failures bump
- * the same counter externally — `awaitThresholdCrossed` watches the
- * shared ref and fires whenever the threshold crosses, regardless of
- * source.
+ * Heartbeat ping loop. Runs forever; each tick pings with timeout and
+ * updates `health` on outcome. Tool-call transport failures bump the
+ * same counter externally; `awaitThresholdCrossed` watches the shared
+ * ref and fires when the threshold crosses, regardless of source.
  *
  * The cadence sleep races against `wake` (page-activity signal). When
  * the tab resumes from hidden/suspended, the heartbeat re-checks the
@@ -565,17 +541,16 @@ const awaitThresholdCrossed = (
   )
 
 /**
- * Probe-driven reconnect (D24, qhq-5d0.6). Pings at escalating cadence
+ * Probe-driven reconnect. Pings at escalating cadence
  * (5s → 10s → 20s → 30s cap); each successful ping resets cadence and
  * fires a bootstrap attempt. Up to `RECONNECT_MAX_ATTEMPTS` bootstraps;
  * subsequent failures exhaust the budget. Wrapped in an outer
- * `DISCONNECTED_MAX_DURATION` timeout for the case where ping never
- * succeeds — without it the loop would stay in Disconnected forever.
+ * `DISCONNECTED_MAX_DURATION` timeout — without it the loop would stay
+ * in Disconnected forever if ping never succeeds.
  *
- * The connector stays in `Disconnected{retrying:true}` throughout — UI
- * shows "reconnecting…". Failure modes: budget exhaustion (returns the
- * last bootstrap error) or the outer timeout (returns a synthetic
- * `DisconnectedTimeout` Transport error).
+ * The connector stays in `Disconnected{retrying:true}` throughout.
+ * Failure modes: budget exhaustion (returns the last bootstrap error)
+ * or outer timeout (returns a synthetic `DisconnectedTimeout`).
  */
 const runReconnectWithProbe = (
   config: ConnectorConfig,
@@ -655,7 +630,7 @@ const awaitRetryControl = (
   })
 
 /**
- * Long-running connector lifecycle. Sole writer to `state` (D23). Loops:
+ * Long-running connector lifecycle. Sole writer to `state`. Loops:
  * Connecting → (Ready loop with heartbeat + reconnect budget) → Failed
  * → wait for retry → repeat. Interrupted on Layer release.
  */
@@ -720,7 +695,6 @@ export const manageConnector = (
         if (Eff.Either.isRight(reconnect)) {
           tools = reconnect.right.tools
           resources = reconnect.right.resources
-          // loop back to Ready with refreshed tool + resource directory
         } else {
           yield* Eff.SubscriptionRef.set(
             state,
@@ -793,15 +767,15 @@ export const buildConnectorRuntime = (
   })
 
 // ---------------------------------------------------------------------------
-// Connectors overview rendering (D29)
+// Connectors overview rendering
 // ---------------------------------------------------------------------------
 
 /**
  * Render the resource directory as a nested `<resources>` block.
  * Default: each entry is attribute-only and the model fetches content
- * on demand via `get_resource`. Autoloaded entries (qhq-5d0.15) carry
- * their content as the element body so it lands in the prompt without
- * a tool round-trip.
+ * on demand via `get_resource`. Autoloaded entries carry their content
+ * as the element body so it lands in the prompt without a tool
+ * round-trip.
  */
 const renderResources = (
   resources: readonly BackendResourceDescriptor[],
@@ -922,7 +896,7 @@ const makeWakeStream = (): Eff.Effect.Effect<
  *  - expose the runtime in `byId`
  *
  * Aggregate primitives merge across all per-connector states. Lifecycle
- * fibers are interrupted on scope release (Assistant unmount, D32).
+ * fibers are interrupted on scope release (Assistant unmount).
  *
  * Used by both the `layer` factory (production wiring through the
  * Layer system) and React-side allocation (Assistant.tsx invokes this
@@ -1002,7 +976,7 @@ export const layer = (configs: readonly ConnectorConfig[]): Eff.Layer.Layer<Conn
   Eff.Layer.scoped(Connectors, buildService(configs))
 
 // ---------------------------------------------------------------------------
-// React bridges (D30 — UI reads connector state live)
+// React bridges
 // ---------------------------------------------------------------------------
 
 // Per-connector subscription: callers use `Actor.useState(connector.state)`

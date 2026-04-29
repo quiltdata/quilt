@@ -36,7 +36,7 @@ const MCP_URL_KEY = 'QUILT_MCP_URL'
 
 /**
  * MCP endpoint for the platform connector. Defaults to the registry-
- * hostnamed `/mcp/platform/mcp` rewrite (D3); `localStorage.QUILT_MCP_URL`
+ * hostnamed `/mcp/platform/mcp` rewrite; `localStorage.QUILT_MCP_URL`
  * overrides for local dev (mirrors `QUILT_BEDROCK_MODEL_ID`).
  */
 function getPlatformMcpUrl(): string {
@@ -51,11 +51,11 @@ const PLATFORM_CONNECTOR_HINT =
   'Quilt Platform tools: packages, search, S3 objects, Athena queries, tabulator tables. Reference resources are listed below — autoloaded entries carry their content inline; fetch the rest with get_resource.'
 
 /**
- * Resources autoloaded into the prompt at bootstrap (qhq-5d0.15).
- * Reference-grade docs the model needs before tool calls and won't
- * fetch on its own. `quilt-platform://buckets` is excluded because the
- * catalog already injects bucket info via `<quilt-stack-info>`;
- * `quilt-platform://me` is excluded as rarely needed for tool calls.
+ * Resources autoloaded into the prompt at bootstrap. Reference-grade
+ * docs the model needs before tool calls and won't fetch on its own.
+ * `quilt-platform://buckets` is excluded because the catalog already
+ * injects bucket info via `<quilt-stack-info>`; `quilt-platform://me`
+ * is excluded as rarely needed for tool calls.
  */
 const PLATFORM_AUTOLOAD: ReadonlySet<string> = new Set([
   'quilt-platform://search_syntax',
@@ -63,12 +63,10 @@ const PLATFORM_AUTOLOAD: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Build the platform connector config (D33). The backend's `getToken`
- * re-reads the redux session token on every invocation so token rotation
- * is handled without explicit plumbing — the backend sees the current
- * token at each tool call. `Mcp.bearerPassthru` maps a `null` token to
- * an internal auth error; we just project redux. The config is memoized
- * over `store`, which is itself stable across renders.
+ * Build the platform connector config. The backend's `getToken`
+ * re-reads the redux session token on every invocation so token
+ * rotation is handled without explicit plumbing. `Mcp.bearerPassthru`
+ * maps a `null` token to an internal auth error.
  */
 function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
   const store = redux.useStore()
@@ -91,22 +89,16 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
 /**
  * Allocate the `ConnectorsService` for this Assistant mount. The
  * service is built once via `runtime.runSync` against a manually
- * managed `Scope`; the per-connector lifecycle fibers (bootstrap,
- * heartbeat, retry) live under that scope and are interrupted on
- * unmount (D32).
+ * managed `Scope`; the per-connector lifecycle fibers live under that
+ * scope and are interrupted on unmount.
  *
- * The synchronous build is fine: `buildService` is composed of pure
- * sync allocations (`SubscriptionRef.make`, `Queue.unbounded`,
- * `forkScoped`), with no async boundaries. The forked fibers run
- * independently of the build call.
- *
- * Known limitation (qhq-5d0.5): allocation happens during render via
- * `useConst`. If React aborts the render before commit (Suspense
- * unwind, Error Boundary, concurrent-mode discard), the cleanup
- * `useEffect` never fires and the lifecycle fibers leak. Mitigation:
- * `<AssistantProvider>` is mounted at app root above any Suspense
- * boundaries. Proper fix is to defer allocation into `useEffect` and
- * expose a Loading state on AssistantAPI.
+ * Known limitation: allocation happens during render via `useConst`.
+ * If React aborts the render before commit (Suspense unwind, Error
+ * Boundary, concurrent-mode discard), the cleanup `useEffect` never
+ * fires and the lifecycle fibers leak. Mitigation: `<AssistantProvider>`
+ * is mounted at app root above any Suspense boundaries. Proper fix is
+ * to defer allocation into `useEffect` and expose a Loading state on
+ * AssistantAPI.
  */
 function useConnectors(
   configs: readonly Connectors.ConnectorConfig[],
