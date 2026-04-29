@@ -132,6 +132,7 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
   const classes = useInputFileStyles()
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
+      if (files.length === 0) return
       onChange(files[0])
     },
     [onChange],
@@ -302,12 +303,12 @@ export default function ThemeEditor() {
   }, [editing, removing, settings, writeSettings, push])
 
   const onSubmit = React.useCallback(
-    async (values: { logoUrl: string; primaryColor: string }) => {
+    async (values: { logoUrl: string | FileWithPath; primaryColor: string }) => {
       try {
-        let logoUrl = values?.logoUrl
-        // TODO: check is instance of File explicitly
-        if (logoUrl && typeof logoUrl !== 'string') {
-          logoUrl = s3paths.handleToS3Url(await uploadFile(logoUrl))
+        const raw = values?.logoUrl
+        let logoUrl: string = typeof raw === 'string' ? raw : ''
+        if (raw && typeof raw !== 'string') {
+          logoUrl = s3paths.handleToS3Url(await uploadFile(raw))
         }
         const updatedSettings = settings || {}
         if (logoUrl) {
