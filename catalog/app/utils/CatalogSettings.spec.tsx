@@ -27,7 +27,7 @@ vi.mock('utils/ResourceCache', () => ({
 
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
 
-import { useUploadFile } from './CatalogSettings'
+import { useUploadFile, UnsupportedLogoTypeError } from './CatalogSettings'
 
 function makeFile(name: string, type = 'image/png', body = 'x') {
   const f = new File([body], name, { type })
@@ -41,7 +41,12 @@ function makeFile(name: string, type = 'image/png', body = 'x') {
 
 describe('utils/CatalogSettings', () => {
   describe('useUploadFile', () => {
-    it('uploads file with extension-based key and returns S3 location', async () => {
+    it.each([
+      ['image/png', 'catalog/logo.png'],
+      ['image/jpeg', 'catalog/logo.jpg'],
+      ['image/webp', 'catalog/logo.webp'],
+      ['image/gif', 'catalog/logo.gif'],
+    ])('derives key from MIME type %s -> %s', async (mime, expectedKey) => {
       putObjectMock.mockClear()
       putObjectMock.mockReturnValueOnce({
         promise: () => Promise.resolve({ VersionId: 'v1' }),
@@ -49,43 +54,42 @@ describe('utils/CatalogSettings', () => {
       const { result } = renderHook(() => useUploadFile())
       let uploaded: Model.S3.S3ObjectLocation | undefined
       await act(async () => {
-        uploaded = await result.current(makeFile('brand.svg', 'image/svg+xml'))
+        uploaded = await result.current(makeFile('whatever.bin', mime))
       })
       expect(uploaded).toEqual({
         bucket: 'test-bucket',
-        key: 'catalog/logo.svg',
+        key: expectedKey,
         version: 'v1',
       })
-      expect(putObjectMock).toHaveBeenCalledTimes(1)
       const arg = putObjectMock.mock.calls[0][0]
-      expect(arg.Bucket).toBe('test-bucket')
-      expect(arg.Key).toBe('catalog/logo.svg')
-      expect(arg.ContentType).toBe('image/svg+xml')
+      expect(arg.Key).toBe(expectedKey)
+      expect(arg.ContentType).toBe(mime)
       expect(arg.Body).toBeInstanceOf(Uint8Array)
     })
 
-    it('omits extension when filename has none', async () => {
+    it('rejects SVG (intentionally not on the IAM allowlist)', async () => {
       putObjectMock.mockClear()
       const { result } = renderHook(() => useUploadFile())
-      let uploaded: Model.S3.S3ObjectLocation | undefined
-      await act(async () => {
-        uploaded = await result.current(makeFile('logo', ''))
-      })
-      expect(uploaded).toEqual({
-        bucket: 'test-bucket',
-        key: 'catalog/logo',
-        version: undefined,
-      })
-      const arg = putObjectMock.mock.calls[0][0]
-      expect(arg.Key).toBe('catalog/logo')
-      expect(arg.ContentType).toBeUndefined()
+      await expect(
+        result.current(makeFile('brand.svg', 'image/svg+xml')),
+      ).rejects.toBeInstanceOf(UnsupportedLogoTypeError)
+      expect(putObjectMock).not.toHaveBeenCalled()
     })
 
-    it('uses last extension for multi-dot filenames', async () => {
+    it('rejects file with empty MIME type', async () => {
+      putObjectMock.mockClear()
+      const { result } = renderHook(() => useUploadFile())
+      await expect(result.current(makeFile('logo', ''))).rejects.toBeInstanceOf(
+        UnsupportedLogoTypeError,
+      )
+      expect(putObjectMock).not.toHaveBeenCalled()
+    })
+
+    it('ignores filename extension; uses MIME type', async () => {
       putObjectMock.mockClear()
       const { result } = renderHook(() => useUploadFile())
       await act(async () => {
-        await result.current(makeFile('my.company.logo.png'))
+        await result.current(makeFile('my.company.logo.gif', 'image/png'))
       })
       expect(putObjectMock.mock.calls[0][0].Key).toBe('catalog/logo.png')
     })

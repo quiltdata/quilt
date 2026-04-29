@@ -138,7 +138,9 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
   )
   const { getInputProps, getRootProps } = useDropzone({
     maxFiles: 1,
-    accept: { 'image/*': [] },
+    accept: Object.fromEntries(
+      CatalogSettings.ACCEPTED_LOGO_MIME_TYPES.map((t) => [t, []]),
+    ),
     onDrop,
   })
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
