@@ -108,10 +108,6 @@ const useInputFileStyles = M.makeStyles((t) => ({
     justifyContent: 'center',
     width: '50px',
   },
-  preview: {
-    height: '50px',
-    width: '50px',
-  },
   or: {
     textAlign: 'center',
     margin: t.spacing(1, 0),
@@ -142,24 +138,28 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
     accept: { 'image/*': [] },
     onDrop,
   })
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+  const [blobUrl, setBlobUrl] = React.useState<string | null>(null)
   React.useEffect(() => {
     if (!value || typeof value === 'string') {
-      setPreviewUrl(null)
+      setBlobUrl(null)
       return undefined
     }
     const url = URL.createObjectURL(value)
-    setPreviewUrl(url)
+    setBlobUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [value])
-  const isUrl = typeof value === 'string' && value.length > 0
+  const previewSrc = React.useMemo<string | null>(() => {
+    if (typeof value === 'string') return value || null
+    return blobUrl
+  }, [value, blobUrl])
+  const urlValue = typeof value === 'string' ? value : ''
   return (
     <div className={classes.root}>
       <div className={classes.dropzone} {...getRootProps()}>
         <input {...getInputProps()} />
-        {isUrl && <Logo src={value} height="50px" width="50px" />}
-        {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
-        {!value && (
+        {previewSrc ? (
+          <Logo src={previewSrc} height="50px" width="50px" />
+        ) : (
           <div className={classes.placeholder}>
             <M.Icon>hide_image</M.Icon>
           </div>
@@ -168,7 +168,7 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
       </div>
       <div className={classes.or}>or</div>
       <M.TextField
-        value={isUrl ? value : ''}
+        value={urlValue}
         onChange={(e) => onChange(e.target.value)}
         placeholder="https://example.com/logo.png"
         label="Logo URL"
