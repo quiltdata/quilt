@@ -222,6 +222,35 @@ describe('Connectors/Mcp', () => {
       }
     })
 
+    it('marks HTTP responses as transient health failures but not retryable', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response('already executed', {
+            status: 500,
+            headers: { 'content-type': 'text/plain' },
+          }),
+      )
+
+      const backend = Mcp.bearerPassthru({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(
+        withFetch(backend.callTool('maybe_write', {}), fetchSpy),
+      )
+
+      expect(Eff.Exit.isFailure(exit)).toBe(true)
+      if (Eff.Exit.isFailure(exit)) {
+        const failure = Eff.Cause.failureOption(exit.cause)
+        if (Eff.Option.isSome(failure)) {
+          expect(failure.value._tag).toBe('Transport')
+          expect(failure.value.transient).toBe(true)
+          expect(failure.value.retryable).toBe(false)
+          expect(failure.value.cause).toBe('McpTransportError')
+        }
+      }
+    })
+
     it('listResources hits resources/list and decodes the directory', async () => {
       const { fetchSpy, calls } = captureCalls(
         () =>

@@ -62,6 +62,14 @@ export interface BackendError {
    */
   readonly transient?: boolean
   /**
+   * Whether a read-only tool call may retry this error once before
+   * reporting it. This is narrower than `transient`: an HTTP 5xx response
+   * still indicates degraded transport health, but the server may already
+   * have executed the request before returning the response. Defaults to
+   * false when omitted.
+   */
+  readonly retryable?: boolean
+  /**
    * Optional wire-level error tag (e.g., MCP's `McpTransportError`).
    * Surfaced in DevTools detail / hover; not used for control flow.
    */
@@ -270,6 +278,7 @@ export class Connectors extends Eff.Context.Tag('Connectors')<
 const HEARTBEAT_CADENCE = Eff.Duration.seconds(30)
 const HEARTBEAT_TIMEOUT = Eff.Duration.seconds(5)
 const HEALTH_THRESHOLD = 2
+const BOOTSTRAP_TIMEOUT = Eff.Duration.seconds(60)
 
 /**
  * Disconnected-mode probe parameters (D24, qhq-5d0.6). The lifecycle
@@ -322,6 +331,7 @@ const transientError = (cause: string, message: string): BackendError => ({
   _tag: 'Transport',
   message,
   transient: true,
+  retryable: false,
   cause,
 })
 
@@ -392,7 +402,7 @@ const makeConnectorCallTool =
       if (
         opts.retryOnTransport &&
         Eff.Either.isLeft(result) &&
-        result.left.transient === true
+        result.left.retryable === true
       ) {
         result = yield* attempt
       }
@@ -638,7 +648,14 @@ export const manageConnector = (
     while (true) {
       yield* Eff.SubscriptionRef.set(state, ConnectorState.Connecting())
       yield* resetHealth(health)
-      const initial = yield* bootstrap(config, callTool).pipe(Eff.Effect.either)
+      const initial = yield* bootstrap(config, callTool).pipe(
+        Eff.Effect.timeoutFail({
+          duration: BOOTSTRAP_TIMEOUT,
+          onTimeout: (): BackendError =>
+            transientError('ConnectingTimeout', 'initial connection timed out'),
+        }),
+        Eff.Effect.either,
+      )
       if (Eff.Either.isLeft(initial)) {
         yield* Eff.SubscriptionRef.set(
           state,
@@ -742,7 +759,7 @@ export const buildConnectorRuntime = (
             consecutiveFailures: HEALTH_THRESHOLD,
             lastError: transientError('UserRetry', 'force reconnect requested'),
           })
-        } else {
+        } else if (current._tag === 'Failed') {
           yield* Eff.Queue.offer(controls, 'retry')
         }
       }),

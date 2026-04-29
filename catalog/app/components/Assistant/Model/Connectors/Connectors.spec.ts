@@ -43,6 +43,14 @@ const transportError: Connectors.BackendError = {
   _tag: 'Transport',
   message: 'down',
   transient: true,
+  retryable: true,
+}
+
+const httpTransportError: Connectors.BackendError = {
+  _tag: 'Transport',
+  message: 'HTTP 500',
+  transient: true,
+  retryable: false,
 }
 
 const authError: Connectors.BackendError = {
@@ -151,6 +159,29 @@ describe('Connectors', () => {
           if (failed._tag !== 'Failed') return
           expect(failed.acked).toBe(false)
           expect(failed.error._tag).toBe('Auth')
+        }),
+      ))
+
+    it('Connecting → Failed{acked:false} when initial bootstrap times out', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                initialize: () => Eff.Effect.never,
+              }),
+            ),
+          )
+          const reachFailed = yield* Eff.Effect.fork(
+            awaitState(runtime, (s) => s._tag === 'Failed'),
+          )
+          yield* TestClock.adjust(Eff.Duration.seconds(60))
+          const failed = yield* Eff.Fiber.join(reachFailed)
+          expect(failed._tag).toBe('Failed')
+          if (failed._tag !== 'Failed') return
+          expect(failed.acked).toBe(false)
+          expect(failed.error._tag).toBe('Transport')
+          expect(failed.error.cause).toBe('ConnectingTimeout')
         }),
       ))
 
@@ -626,6 +657,29 @@ describe('Connectors', () => {
           const result = yield* runtime.callTool('foo', {}, { retryOnTransport: true })
           expect(result.status).toBe('success')
           expect(attempts).toBe(2)
+        }),
+      ))
+
+    it('retryOnTransport does not retry non-retryable HTTP transport responses', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          let attempts = 0
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                ping: () => Eff.Effect.void,
+                callTool: () =>
+                  Eff.Effect.suspend(() => {
+                    attempts += 1
+                    return Eff.Effect.fail(httpTransportError)
+                  }),
+              }),
+            ),
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          const result = yield* runtime.callTool('foo', {}, { retryOnTransport: true })
+          expect(result.status).toBe('error')
+          expect(attempts).toBe(1)
         }),
       ))
 
