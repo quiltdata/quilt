@@ -68,7 +68,7 @@ describe('Connectors/Mcp', () => {
      * `globalThis.fetch` lookup deterministically, no globalThis pollution.
      */
     const captureCalls = (
-      respond: () => Response,
+      respond: (req: any) => Response,
     ): {
       fetchSpy: ReturnType<typeof vi.fn>
       calls: Array<{ url: string; init?: RequestInit; body?: any }>
@@ -85,16 +85,16 @@ describe('Connectors/Mcp', () => {
           body = JSON.parse(text)
         }
         calls.push({ url: String(url), init, body })
-        return respond()
+        return respond(body)
       })
       return { fetchSpy, calls }
     }
 
-    const okResponse = () =>
+    const okResponse = (req: any) =>
       new Response(
         JSON.stringify({
           jsonrpc: '2.0',
-          id: 'echo',
+          id: req?.id,
           result: { tools: [] },
         }),
         { status: 200, headers: { 'content-type': 'application/json' } },
@@ -190,14 +190,76 @@ describe('Connectors/Mcp', () => {
       }
     })
 
-    it('decodes tools/list result via Schema; bad shape → McpProtocolError', async () => {
-      // Envelope is well-formed; result.tools is a string (not array).
+    it('rejects responses whose id does not echo the request id', async () => {
+      // Well-formed envelope with a wrong id — exercises the JSON-RPC §5
+      // id-echo check.
       const { fetchSpy } = captureCalls(
         () =>
           new Response(
             JSON.stringify({
               jsonrpc: '2.0',
-              id: 'x',
+              id: 'not-the-id-we-sent',
+              result: { tools: [] },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      )
+
+      const client = Mcp.make({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(
+        withFetch(client.listTools(), fetchSpy),
+      )
+
+      expect(Eff.Exit.isFailure(exit)).toBe(true)
+      if (Eff.Exit.isFailure(exit)) {
+        const failure = Eff.Cause.failureOption(exit.cause)
+        if (Eff.Option.isSome(failure)) {
+          expect(failure.value._tag).toBe('McpProtocolError')
+          expect(failure.value.message).toContain('id mismatch')
+        }
+      }
+    })
+
+    it('maps HTTP 401 to Auth (not Transport) so it does not bump health', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response('Unauthorized', {
+            status: 401,
+            headers: { 'content-type': 'text/plain' },
+          }),
+      )
+
+      const backend = Mcp.bearerPassthru({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('stale'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(
+        withFetch(backend.callTool('foo', {}), fetchSpy),
+      )
+
+      expect(Eff.Exit.isFailure(exit)).toBe(true)
+      if (Eff.Exit.isFailure(exit)) {
+        const failure = Eff.Cause.failureOption(exit.cause)
+        if (Eff.Option.isSome(failure)) {
+          expect(failure.value._tag).toBe('Auth')
+          expect(failure.value.transient).toBe(false)
+          expect(failure.value.retryable).toBe(false)
+          expect(failure.value.cause).toBe('McpTransportError')
+        }
+      }
+    })
+
+    it('decodes tools/list result via Schema; bad shape → McpProtocolError', async () => {
+      // Envelope is well-formed; result.tools is a string (not array).
+      const { fetchSpy } = captureCalls(
+        (req) =>
+          new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: req?.id,
               result: { tools: 'not-an-array' },
             }),
             { status: 200, headers: { 'content-type': 'application/json' } },
@@ -253,11 +315,11 @@ describe('Connectors/Mcp', () => {
 
     it('listResources hits resources/list and decodes the directory', async () => {
       const { fetchSpy, calls } = captureCalls(
-        () =>
+        (req) =>
           new Response(
             JSON.stringify({
               jsonrpc: '2.0',
-              id: 'x',
+              id: req?.id,
               result: {
                 resources: [
                   {
@@ -294,11 +356,11 @@ describe('Connectors/Mcp', () => {
 
     it('readResource hits resources/read and surfaces text contents', async () => {
       const { fetchSpy, calls } = captureCalls(
-        () =>
+        (req) =>
           new Response(
             JSON.stringify({
               jsonrpc: '2.0',
-              id: 'x',
+              id: req?.id,
               result: {
                 contents: [
                   {
@@ -328,11 +390,14 @@ describe('Connectors/Mcp', () => {
     it('handles SSE responses (FastMCP stateless_http=True path)', async () => {
       // FastMCP emits the response as SSE: `data: <json>\r\n\r\n`.
       const { fetchSpy, calls } = captureCalls(
-        () =>
-          new Response('data: {"jsonrpc":"2.0","id":"x","result":{"tools":[]}}\r\n\r\n', {
-            status: 200,
-            headers: { 'content-type': 'text/event-stream' },
-          }),
+        (req) =>
+          new Response(
+            `data: ${JSON.stringify({ jsonrpc: '2.0', id: req?.id, result: { tools: [] } })}\r\n\r\n`,
+            {
+              status: 200,
+              headers: { 'content-type': 'text/event-stream' },
+            },
+          ),
       )
 
       const client = Mcp.make({
