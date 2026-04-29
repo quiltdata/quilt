@@ -2,12 +2,18 @@ import * as Eff from 'effect'
 import invariant from 'invariant'
 
 import * as React from 'react'
+import * as redux from 'react-redux'
 
 import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
+import { runtime } from 'utils/Effect'
+import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
+import * as authSelectors from 'containers/Auth/selectors'
 
 import * as Bedrock from './Bedrock'
+import * as Connectors from './Connectors'
+import * as Mcp from './Connectors/Mcp'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
@@ -25,6 +31,95 @@ function usePassThru<T>(val: T) {
 export const DEFAULT_MODEL_ID =
   cfg.quratorDefaultModel || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
+
+const MCP_URL_KEY = 'QUILT_MCP_URL'
+
+/**
+ * MCP endpoint for the platform connector. Defaults to the registry-
+ * hostnamed `/mcp/platform/mcp` rewrite; `localStorage.QUILT_MCP_URL`
+ * overrides for local dev (mirrors `QUILT_BEDROCK_MODEL_ID`).
+ */
+function getPlatformMcpUrl(): string {
+  if (typeof localStorage !== 'undefined') {
+    const override = localStorage.getItem(MCP_URL_KEY)
+    if (override) return override
+  }
+  return `${cfg.registryUrl}/mcp/platform/mcp`
+}
+
+const PLATFORM_CONNECTOR_HINT =
+  'Quilt Platform tools: packages, search, S3 objects, Athena queries, tabulator tables. Reference resources are listed below — autoloaded entries carry their content inline; fetch the rest with get_resource.'
+
+/**
+ * Resources autoloaded into the prompt at bootstrap. Reference-grade
+ * docs the model needs before tool calls and won't fetch on its own.
+ * `quilt-platform://buckets` is excluded because the catalog already
+ * injects bucket info via `<quilt-stack-info>`; `quilt-platform://me`
+ * is excluded as rarely needed for tool calls.
+ */
+const PLATFORM_AUTOLOAD: ReadonlySet<string> = new Set([
+  'quilt-platform://search_syntax',
+  'quilt-platform://athena',
+])
+
+/**
+ * Build the platform connector config. The backend's `getToken`
+ * re-reads the redux session token on every invocation so token
+ * rotation is handled without explicit plumbing. `Mcp.bearerPassthru`
+ * maps a `null` token to an internal auth error.
+ */
+function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
+  const store = redux.useStore()
+  return React.useMemo(
+    () => ({
+      id: 'platform',
+      title: 'Quilt Platform tools',
+      hint: PLATFORM_CONNECTOR_HINT,
+      autoload: PLATFORM_AUTOLOAD,
+      backend: Mcp.bearerPassthru({
+        url: getPlatformMcpUrl(),
+        getToken: () =>
+          Eff.Effect.sync(() => authSelectors.token(store.getState()) ?? null),
+      }),
+    }),
+    [store],
+  )
+}
+
+/**
+ * Allocate the `ConnectorsService` for this Assistant mount. The
+ * service is built once via `runtime.runSync` against a manually
+ * managed `Scope`; the per-connector lifecycle fibers live under that
+ * scope and are interrupted on unmount.
+ *
+ * Known limitation: allocation happens during render via `useConst`.
+ * If React aborts the render before commit (Suspense unwind, Error
+ * Boundary, concurrent-mode discard), the cleanup `useEffect` never
+ * fires and the lifecycle fibers leak. Mitigation: `<AssistantProvider>`
+ * is mounted at app root above any Suspense boundaries. Proper fix is
+ * to defer allocation into `useEffect` and expose a Loading state on
+ * AssistantAPI.
+ */
+function useConnectors(
+  configs: readonly Connectors.ConnectorConfig[],
+): Connectors.ConnectorsService {
+  const built = useConst(() => {
+    const scope = runtime.runSync(Eff.Scope.make())
+    const service = runtime.runSync(
+      Connectors.buildService(configs).pipe(
+        Eff.Effect.provideService(Eff.Scope.Scope, scope),
+      ),
+    )
+    return { service, scope }
+  })
+  React.useEffect(
+    () => () => {
+      runtime.runFork(Eff.Scope.close(built.scope, Eff.Exit.void))
+    },
+    [built],
+  )
+  return built.service
+}
 
 function useModelIdOverride() {
   const [value, setValue] = React.useState(
@@ -79,15 +174,21 @@ function useConstructAssistantAPI() {
   const [modelId, modelIdOverride] = useModelIdOverride()
   const [record, recording] = useRecording()
 
+  const platformConfig = usePlatformConnectorConfig()
+  const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
+  const connectors = useConnectors(connectorConfigs)
+
   const passThru = usePassThru({
     bedrock: AWS.Bedrock.useClient(),
     context: Context.useLayer(),
+    connectors,
   })
 
   const layerEff = Eff.Effect.sync(() =>
-    Eff.Layer.merge(
+    Eff.Layer.mergeAll(
       Bedrock.LLMBedrock(passThru.current.bedrock, { modelId, record }),
       passThru.current.context,
+      Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),
   )
 
@@ -119,6 +220,7 @@ function useConstructAssistantAPI() {
     assist,
     state,
     dispatch,
+    connectors,
     devTools: { recording, modelIdOverride },
   }
 }

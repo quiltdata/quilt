@@ -6,12 +6,15 @@ import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import * as Actor from 'utils/Actor'
+import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
 
 import DevTools from './DevTools'
 import Input from './Input'
+import MessageAction from './MessageAction'
 
 const BG = {
   intense: M.colors.indigo[900],
@@ -126,16 +129,6 @@ function MessageContainer({
   )
 }
 
-const useMessageActionStyles = M.makeStyles({
-  action: {
-    cursor: 'pointer',
-    opacity: 0.7,
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-})
-
 const useToolMessageStyles = M.makeStyles((t) => ({
   header: {
     display: 'flex',
@@ -161,21 +154,6 @@ const useToolMessageStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
   },
 }))
-
-interface MessageActionProps {
-  children: React.ReactNode
-  className?: string
-  onClick?: () => void
-}
-
-function MessageAction({ children, onClick }: MessageActionProps) {
-  const classes = useMessageActionStyles()
-  return (
-    <span className={classes.action} onClick={onClick}>
-      {children}
-    </span>
-  )
-}
 
 interface ConversationDispatchProps {
   dispatch: Model.Assistant.API['dispatch']
@@ -337,6 +315,21 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
+function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
+  const abort = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Abort()),
+    [dispatch],
+  )
+  return (
+    <MessageContainer
+      timestamp={timestamp}
+      actions={<MessageAction onClick={abort}>abort</MessageAction>}
+    >
+      Waiting for connectors…
+    </MessageContainer>
+  )
+}
+
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
@@ -400,6 +393,66 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
   )
 }
 
+const useConnectorHelperStyles = M.makeStyles((t) => ({
+  action: {
+    fontWeight: 500,
+    marginLeft: t.spacing(0.5),
+  },
+  separator: {
+    margin: t.spacing(0, 0.5),
+    opacity: 0.5,
+  },
+}))
+
+interface ConnectorHelperLineProps {
+  connector: Model.Connectors.ConnectorRuntime
+  state: Model.Connectors.ConnectorState
+}
+
+function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
+  const classes = useConnectorHelperStyles()
+  const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
+  const onAck = React.useCallback(
+    () => runtime.runFork(connector.acknowledge),
+    [connector],
+  )
+  const reconnect = (
+    <MessageAction className={classes.action} onClick={onRetry}>
+      reconnect
+    </MessageAction>
+  )
+  const ack = (
+    <MessageAction className={classes.action} onClick={onAck}>
+      continue without
+    </MessageAction>
+  )
+  const sep = <span className={classes.separator}>•</span>
+  const title = connector.config.title
+  return Model.Connectors.ConnectorState.$match(state, {
+    Connecting: () => <>{title}: connecting…</>,
+    Ready: () => null,
+    Disconnected: () => <>{title}: reconnecting…</>,
+    Failed: ({ acked }) =>
+      acked ? (
+        <>
+          {title}: unavailable {sep} {reconnect}
+        </>
+      ) : (
+        <>
+          {title}: couldn’t connect {sep} {reconnect} {sep} {ack}
+        </>
+      ),
+  })
+}
+
+const helperSeverityFor = (
+  states: readonly Model.Connectors.ConnectorState[],
+): 'warning' | 'error' | undefined => {
+  if (states.some(Model.Connectors.stateRequiresAck)) return 'error'
+  if (states.some(Model.Connectors.stateIsUnready)) return 'warning'
+  return undefined
+}
+
 const useStyles = M.makeStyles((t) => ({
   chat: {
     display: 'flex',
@@ -445,13 +498,34 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
+  connectors: Model.Assistant.API['connectors']
 }
 
-export default function Chat({ state, dispatch, devTools }: ChatProps) {
+export default function Chat({ state, dispatch, devTools, connectors }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  const inputDisabled = state._tag !== 'Idle'
+  const blocked = Model.Connectors.useIsBlocked(connectors)
+  const inputDisabled = state._tag !== 'Idle' || blocked
+  // `connectors.byId` is built once at service allocation and never
+  // re-keyed, so this loop's length is stable per-mount and the
+  // per-connector `Actor.useState` calls satisfy rules-of-hooks.
+  const allConnectors = Object.values(connectors.byId)
+  const connectorStates = allConnectors.map((c) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    Actor.useState(c.state),
+  )
+  const helperLines = allConnectors.flatMap((c, i) =>
+    Model.Connectors.stateIsUnready(connectorStates[i])
+      ? [
+          <div key={c.id}>
+            <ConnectorHelperLine connector={c} state={connectorStates[i]} />
+          </div>,
+        ]
+      : [],
+  )
+  const helperText = helperLines.length > 0 ? helperLines : undefined
+  const helperSeverity = helperSeverityFor(connectorStates)
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
@@ -489,7 +563,7 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
       />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
-          <DevTools state={state} {...devTools} />
+          <DevTools state={state} {...devTools} connectors={connectors} />
         </M.Paper>
       </M.Slide>
       <div className={classes.historyContainer}>
@@ -538,11 +612,20 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
             ToolUse: (s) => (
               <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
             ),
+            AwaitingConnector: (s) => (
+              <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
+            ),
           })}
           <div ref={scrollRef} />
         </div>
       </div>
-      <Input className={classes.input} disabled={inputDisabled} onSubmit={ask} />
+      <Input
+        className={classes.input}
+        disabled={inputDisabled}
+        helperText={helperText}
+        helperSeverity={helperSeverity}
+        onSubmit={ask}
+      />
     </div>
   )
 }

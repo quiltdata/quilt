@@ -27,6 +27,8 @@ export const email = createSelector(getIn([REDUX_KEY, 'user', 'email']), R.ident
 
 export const tokens = createSelector(getIn([REDUX_KEY, 'tokens']), toJS())
 
+export const token = createSelector(getIn([REDUX_KEY, 'tokens', 'token']), R.identity)
+
 export const exp = createSelector(getIn([REDUX_KEY, 'tokens', 'exp']), R.identity)
 
 export const sessionId = createSelector(getIn([REDUX_KEY, 'sessionId']), R.identity)

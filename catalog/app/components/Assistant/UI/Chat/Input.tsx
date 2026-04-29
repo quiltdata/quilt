@@ -17,6 +17,18 @@ const useStyles = M.makeStyles((t) => ({
   hint: {
     color: t.palette.text.hint,
   },
+  // `&$hint` compiles to `.severity.hint` so stacking via `cx(hint,
+  // classes[severity])` wins specificity over the base.
+  warning: {
+    '&$hint': {
+      color: t.palette.warning.dark,
+    },
+  },
+  error: {
+    '&$hint': {
+      color: t.palette.error.dark,
+    },
+  },
 }))
 
 const backgroundColor = M.colors.indigo[900]
@@ -60,11 +72,23 @@ const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
 interface ChatInputProps {
   className?: string
   disabled?: boolean
+  /** Override the default disclaimer; severity colors the text. */
+  helperText?: React.ReactNode
+  helperSeverity?: 'warning' | 'error'
   onSubmit: (value: string) => void
 }
 
-export default function ChatInput({ className, disabled, onSubmit }: ChatInputProps) {
+const DEFAULT_HELPER_TEXT = 'Qurator may make errors. Verify important information.'
+
+export default function ChatInput({
+  className,
+  disabled,
+  helperText,
+  helperSeverity,
+  onSubmit,
+}: ChatInputProps) {
   const classes = useStyles()
+  const helperClass = cx(classes.hint, helperSeverity && classes[helperSeverity])
 
   const [value, setValue] = React.useState('')
 
@@ -90,7 +114,7 @@ export default function ChatInput({ className, disabled, onSubmit }: ChatInputPr
           fullWidth
           margin="normal"
           label="Ask Qurator"
-          helperText="Qurator may make errors. Verify important information."
+          helperText={helperText ?? DEFAULT_HELPER_TEXT}
           InputProps={{
             disableUnderline: true,
             classes: useInputStyles(),
@@ -108,7 +132,7 @@ export default function ChatInput({ className, disabled, onSubmit }: ChatInputPr
             ),
           }}
           InputLabelProps={{ classes: useLabelStyles() }}
-          FormHelperTextProps={{ classes: { root: classes.hint } }}
+          FormHelperTextProps={{ classes: { root: helperClass } }}
         />
       </M.ThemeProvider>
     </form>

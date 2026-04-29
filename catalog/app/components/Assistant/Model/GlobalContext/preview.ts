@@ -9,6 +9,7 @@ import { S3ObjectLocation } from 'model/S3'
 import * as AWS from 'utils/AWS'
 import * as Log from 'utils/Logging'
 import mkSearch from 'utils/mkSearch'
+import * as s3paths from 'utils/s3paths'
 
 import * as Content from '../Content'
 import * as Tool from '../Tool'
@@ -87,30 +88,77 @@ const normalizeDocumentName = (name: string) =>
 
 const THRESHOLD = 500 * 1024 // 500 KiB
 
-const GetObjectSchema = S.Struct({
-  bucket: S.String,
-  key: S.String,
-  version: S.optional(S.String).annotations({}),
-  // XXX: force type?
+const PreviewSchema = S.Struct({
+  s3_uri: S.String,
 }).annotations({
-  description: 'Get contents and metadata of an S3 object',
+  description: [
+    'Render an S3 object as content this model can natively interpret —',
+    'thumbnail-resized images, native Document blocks for PDFs / Office docs,',
+    'language-tagged text. Use when the goal is for the model to *understand*',
+    'the content (summarize, describe, extract).',
+    'For raw bytes, scripting, or files where the model only needs the bytes,',
+    'use platform__object_read instead.',
+    '',
+    'Always call platform__s3_object_info first to check size and content-type',
+    'before invoking this tool. Skip the preview and fall back to',
+    'platform__object_read when:',
+    '- ContentLength > 500 KiB and the content is a document',
+    '- content-type is outside {image/*, application/pdf, application/msword,',
+    '  application/vnd.openxmlformats-officedocument.*, text/*,',
+    '  application/json, application/x-yaml}',
+    '- the task only needs raw bytes (downloads, scripted parsing).',
+    '',
+    'Input is a single s3:// URI; versionId may be passed as a query parameter:',
+    'e.g. s3://bucket/path/key?versionId=abc.',
+  ].join(' '),
 })
+
+const parseS3Uri = (s3_uri: string): Eff.Effect.Effect<S3ObjectLocation, Error> =>
+  Eff.Effect.try({
+    try: () => {
+      if (!s3paths.isS3Url(s3_uri)) {
+        throw new Error(`Not an s3:// URI: ${s3_uri}`)
+      }
+      const handle = s3paths.parseS3Url(s3_uri)
+      if (!handle.key) {
+        throw new Error(`Invalid s3:// URI (missing key): ${s3_uri}`)
+      }
+      return handle
+    },
+    catch: (e) => (e instanceof Error ? e : new Error(String(e))),
+  })
 
 // return format:
 // - metadata block (text or json)
 // - content block (json | text | image | document)
-export function useGetObject() {
+export function useCatalogPreview() {
   const s3Client = AWS.S3.use()
   const s3Signer = AWS.Signer.useS3Signer()
 
   return Tool.useMakeTool(
-    GetObjectSchema,
-    Eff.flow(
-      getObject,
-      Eff.Effect.map(Eff.Option.some),
-      Eff.Effect.provide(fromS3Client(s3Client)),
-      Eff.Effect.provide(fromS3Signer(s3Signer)),
-    ),
+    PreviewSchema,
+    ({ s3_uri }) =>
+      parseS3Uri(s3_uri).pipe(
+        Eff.Effect.matchEffect({
+          onFailure: (e) =>
+            Eff.Effect.succeed(
+              Eff.Option.some(
+                Tool.fail(
+                  Content.text(
+                    'Could not parse s3 URI:\n',
+                    `<s3-uri-error>\n${e.message}\n</s3-uri-error>`,
+                  ),
+                ),
+              ),
+            ),
+          onSuccess: (handle) =>
+            getObject(handle).pipe(
+              Eff.Effect.map(Eff.Option.some),
+              Eff.Effect.provide(fromS3Client(s3Client)),
+              Eff.Effect.provide(fromS3Signer(s3Signer)),
+            ),
+        }),
+      ),
     [s3Client, s3Signer],
   )
 }
@@ -127,7 +175,7 @@ const getObject = (handle: S3ObjectLocation) =>
         return Tool.fail(
           Content.text(
             'Error while getting S3 object metadata:\n',
-            `<object-metadata-error>\n${headE.left}'n</object-metadata-error>`,
+            `<object-metadata-error>\n${headE.left}\n</object-metadata-error>`,
           ),
         )
       }
@@ -163,7 +211,7 @@ const getObject = (handle: S3ObjectLocation) =>
                 Eff.Effect.succeed(
                   Content.text(
                     'Error while getting image preview:\n',
-                    `<object-contents-error>\n${e}'n</object-contents-error>`,
+                    `<object-contents-error>\n${e}\n</object-contents-error>`,
                   ),
                 ),
               ),
@@ -263,43 +311,12 @@ const getDocumentPreview = (handle: S3ObjectLocation, format: Content.DocumentFo
       Eff.Effect.succeed(
         Content.text(
           'Error while getting object contents:\n',
-          `<object-contents-error>\n${e}'n</object-contents-error>`,
+          `<object-contents-error>\n${e}\n</object-contents-error>`,
         ),
       ),
     ),
     Eff.Effect.map(Eff.Array.of),
   )
-
-// const hasNoExt = (key: string) => !extname(key)
-//
-// const isCsv = utils.extIs('.csv')
-//
-// const isExcel = utils.extIn(['.xls', '.xlsx'])
-//
-// const isJsonl = utils.extIs('.jsonl')
-//
-// const isParquet = R.anyPass([
-//   utils.extIn(['.parquet', '.pq']),
-//   R.test(/.+_0$/),
-//   R.test(/[.-]c\d{3,5}$/gi),
-// ])
-//
-// const isTsv = utils.extIn(['.tsv', '.tab'])
-//
-//
-// type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
-//
-// const detectTabularType: (type: string) => TabularType = R.pipe(
-//   utils.stripCompression,
-//   R.cond([
-//     [isCsv, R.always('csv')],
-//     [isExcel, R.always('excel')],
-//     [isJsonl, R.always('jsonl')],
-//     [isParquet, R.always('parquet')],
-//     [isTsv, R.always('tsv')],
-//     [R.T, R.always('csv')],
-//   ]),
-// )
 
 const LANGS = {
   accesslog: /\.log$/,
@@ -347,25 +364,6 @@ function isText(name: string) {
   return langPairs.some(([, re]) => re.test(normalized))
 }
 
-// const loaderChain = {
-//   Audio: extIn(['.flac', '.mp3', '.ogg', '.ts', '.tsa', '.wav']),
-//   Fcs: R.pipe(utils.stripCompression, utils.extIs('.fcs')),
-//   Json: 'json',
-//   Manifest: R.allPass([R.startsWith('.quilt/packages/'), hasNoExt]),
-//   NamedPackage: R.startsWith('.quilt/named_packages/'),
-//   Ngl: R.pipe(
-//     utils.stripCompression,
-//     utils.extIn(['.cif', '.ent', '.mol', '.mol2', '.pdb', '.sdf']),),
-//   Notebook: R.pipe(utils.stripCompression, utils.extIs('.ipynb')),
-//   Tabular: R.pipe(
-//     utils.stripCompression,
-//     R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),),
-//   Vcf: R.pipe(utils.stripCompression, utils.extIs('.vcf')),
-//   Video: utils.extIn(['.m2t', '.m2ts', '.mp4', '.webm']),
-//   Text: R.pipe(findLang, Boolean),
-// }
-// TODO: convert pptx?
-
 type FileType = Eff.Data.TaggedEnum<{
   Image: {}
   Document: {
@@ -377,28 +375,7 @@ type FileType = Eff.Data.TaggedEnum<{
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 const FileType = Eff.Data.taggedEnum<FileType>()
 
-// const getExt = (key: string) => extname(key).toLowerCase().slice(1)
-
-// const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
-// type CompressionType = keyof typeof COMPRESSION_TYPES
-//
-// const getCompression = (key: string): [string, CompressionType | null] => {
-//   for (const [type, ext] of Object.entries(COMPRESSION_TYPES)) {
-//     if (key.toLowerCase().endsWith(ext)) {
-//       return [
-//         key.slice(0, -ext.length),
-//         type as CompressionType,
-//       ]
-//     }
-//   }
-//   return [key, null]
-// }
-
-// TODO
 const detectFileType = (key: string): FileType => {
-  // XXX: support compression?
-  // const [withoutCompression, compression] = getCompression(key)
-  // const ext = extname(withoutCompression).toLowerCase()
   const ext = extname(key).toLowerCase()
 
   if (SUPPORTED_IMAGE_EXTENSIONS.includes(ext)) {
@@ -414,7 +391,6 @@ const detectFileType = (key: string): FileType => {
     return FileType.Document({ format: 'pdf' })
   }
   if (ext === '.csv') {
-    // XXX: does it support TSV?
     return FileType.Document({ format: 'csv' })
   }
   if (ext === '.docx') {
