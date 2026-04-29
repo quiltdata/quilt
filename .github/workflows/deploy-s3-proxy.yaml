@@ -17,7 +17,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: quiltdata/gh-actions/deploy-ecr@deploy-ecr
+      - uses: quiltdata/gh-actions/docker-build-publish@docker-build-publish
         with:
           dockerfile_path: s3-proxy/Dockerfile
           docker_context_path: s3-proxy
