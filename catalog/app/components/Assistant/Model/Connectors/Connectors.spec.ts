@@ -845,6 +845,7 @@ describe('Connectors', () => {
         Eff.Effect.gen(function* () {
           const svc = yield* Connectors.Connectors
           yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          expect(yield* svc.isBlocked).toBe(false)
           yield* svc.awaitUnblocked
         }),
       )
