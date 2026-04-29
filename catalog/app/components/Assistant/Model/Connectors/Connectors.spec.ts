@@ -837,6 +837,29 @@ describe('Connectors', () => {
       )
     })
 
+    it('awaitUnblocked returns immediately when all connectors are already Ready', () => {
+      // Pins the "no race with the read-then-fork pattern" claim: the
+      // SubscriptionRef.changes streams replay the current value on
+      // subscribe, so even if the conversation actor reads `isBlocked ===
+      // true` and then by the time our subscription happens every
+      // connector has flipped to Ready, the first emission still
+      // triggers mapEffect(isBlocked) → filter → take(1) and we exit.
+      const config = baseConfig(stubBackend())
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          // Wait for Ready before subscribing.
+          yield* awaitState(svc.byId[config.id], (s) => s._tag === 'Ready')
+          const before = yield* svc.isBlocked
+          expect(before).toBe(false)
+          // Subscribe now — every state.changes replay should yield Ready;
+          // mapEffect(isBlocked) sees false; filter passes; take(1) exits.
+          yield* svc.awaitUnblocked
+        }),
+      )
+    })
+
     it('contextContribution: Ready connector contributes namespaced tools + <connectors><connector state="ready">', () => {
       const config = baseConfig(
         stubBackend({
