@@ -41,7 +41,7 @@ jobs:
         working-directory: catalog
       - run: npm run build
         working-directory: catalog
-      - uses: quiltdata/gh-actions/deploy-ecr@deploy-ecr
+      - uses: quiltdata/gh-actions/docker-build-publish@docker-build-publish
         with:
           dockerfile_path: catalog/Dockerfile
           docker_context_path: catalog
