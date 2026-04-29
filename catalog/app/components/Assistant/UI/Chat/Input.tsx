@@ -17,11 +17,8 @@ const useStyles = M.makeStyles((t) => ({
   hint: {
     color: t.palette.text.hint,
   },
-  // Severity overrides. The `&$hint` selector compiles to `.warning.hint`
-  // (specificity 0,2,0 > base `.hint` at 0,1,0), so stacking
-  // `cx(classes.hint, classes[severity])` produces the right cascade
-  // without `extend`. `warning.dark` / `error.dark` read cleanly on the
-  // helper-text band's light background where `.main` washes out.
+  // `&$hint` compiles to `.severity.hint` so stacking via `cx(hint,
+  // classes[severity])` wins specificity over the base.
   warning: {
     '&$hint': {
       color: t.palette.warning.dark,
@@ -75,16 +72,7 @@ const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
 interface ChatInputProps {
   className?: string
   disabled?: boolean
-  /**
-   * Override for the helper text below the input. Falls back to the
-   * generic disclaimer when not set. Used to surface contextual state
-   * right next to the input — e.g., a connector that's blocking
-   * submission or a Failed{acked} unavailable hint with a reconnect
-   * link.
-   *
-   * `severity` colors the helper accordingly: undefined → default hint
-   * grey, `warning` → orange, `error` → red.
-   */
+  /** Override the default disclaimer; severity colors the text. */
   helperText?: React.ReactNode
   helperSeverity?: 'warning' | 'error'
   onSubmit: (value: string) => void

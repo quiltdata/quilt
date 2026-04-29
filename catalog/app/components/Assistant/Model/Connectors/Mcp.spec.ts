@@ -247,7 +247,7 @@ describe('Connectors/Mcp', () => {
           expect(failure.value._tag).toBe('Auth')
           expect(failure.value.transient).toBe(false)
           expect(failure.value.retryable).toBe(false)
-          expect(failure.value.cause).toBe('McpTransportError')
+          expect(failure.value.cause).toBe('McpAuthError')
         }
       }
     })

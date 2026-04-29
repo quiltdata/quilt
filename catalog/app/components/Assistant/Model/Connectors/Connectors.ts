@@ -204,6 +204,13 @@ export const stateRequiresAck = (s: ConnectorState): boolean =>
 export const stateIsBlocked = (s: ConnectorState): boolean =>
   stateIsTransient(s) || stateRequiresAck(s)
 
+/**
+ * Anything that isn't `Ready`. Stricter than `stateIsBlocked` —
+ * includes acknowledged Failed (which is a stable "unavailable" state,
+ * doesn't gate but isn't healthy either).
+ */
+export const stateIsUnready = (s: ConnectorState): boolean => s._tag !== 'Ready'
+
 // ---------------------------------------------------------------------------
 // Runtime + service
 // ---------------------------------------------------------------------------
@@ -305,6 +312,23 @@ const resetHealth = (
   )
 
 /**
+ * Increment the failure counter, capped at `HEALTH_THRESHOLD + 1`.
+ * Anything above the threshold is equivalent for the watcher's filter,
+ * so capping prevents a sustained outage from spamming subscribers.
+ * Skips emission when neither field changes.
+ */
+const bumpHealth = (
+  health: Eff.SubscriptionRef.SubscriptionRef<Health>,
+  err: BackendError,
+): Eff.Effect.Effect<void> =>
+  Eff.SubscriptionRef.update(health, (h) => {
+    const next = Math.min(h.consecutiveFailures + 1, HEALTH_THRESHOLD + 1)
+    return next === h.consecutiveFailures && h.lastError === err
+      ? h
+      : { consecutiveFailures: next, lastError: err }
+  })
+
+/**
  * Construct a `Transport` `BackendError` for lifecycle-internal failures
  * (ping timeout, threshold-degraded, reconnect-exhausted) — situations
  * where the lifecycle synthesizes an error rather than receiving one
@@ -323,18 +347,15 @@ type Control = 'retry' | 'acknowledge'
 
 /**
  * Build a `Tool.Descriptor` whose executor routes through the
- * connector's gated `callTool` (fast-fail when not Ready). Tools marked
- * `readOnly` auto-retry once on transport error; tools without the
- * hint fail immediately on the first transport failure.
+ * connector's gated `callTool`. `readOnly` tools auto-retry once on
+ * transport error.
  */
 const buildConnectorTool = (
   callTool: ConnectorRuntime['callTool'],
   descriptor: BackendToolDescriptor,
 ): Tool.Descriptor<Record<string, unknown>> => {
-  // Forward the server's `inputSchema` raw to Bedrock; we don't run
-  // Effect-Schema decoding on the input client-side. `description` lives
-  // on `Tool.Descriptor` (Bedrock surfaces it as `toolSpec.description`);
-  // we keep it out of `inputSchema` so it doesn't ship twice.
+  // `description` lives on `Tool.Descriptor`, not on `inputSchema` —
+  // otherwise Bedrock would ship it twice.
   const retryOnTransport = descriptor.readOnly === true
   return {
     description: descriptor.description,
@@ -388,12 +409,7 @@ const makeConnectorCallTool =
       }
       if (Eff.Either.isLeft(result)) {
         const err = result.left
-        if (err.transient === true) {
-          yield* Eff.SubscriptionRef.update(health, (h) => ({
-            consecutiveFailures: h.consecutiveFailures + 1,
-            lastError: err,
-          }))
-        }
+        if (err.transient === true) yield* bumpHealth(health, err)
         return Tool.fail(
           Content.ToolResultContentBlock.Text({ text: `${name}: ${err.message}` }),
         )
@@ -488,6 +504,17 @@ const sleepOrWake = (
     wake.pipe(Eff.Stream.take(1), Eff.Stream.runDrain),
   )
 
+const pingOrTimeout = (
+  backend: Backend,
+): Eff.Effect.Effect<Eff.Either.Either<void, BackendError>> =>
+  backend.ping().pipe(
+    Eff.Effect.timeoutFail({
+      duration: HEARTBEAT_TIMEOUT,
+      onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
+    }),
+    Eff.Effect.either,
+  )
+
 /**
  * Heartbeat ping loop. Runs forever; each tick pings with timeout and
  * updates `health` on outcome. Tool-call transport failures bump the
@@ -507,18 +534,9 @@ const runHeartbeat = (
   Eff.Effect.gen(function* () {
     while (true) {
       yield* sleepOrWake(HEARTBEAT_CADENCE, wake)
-      const result = yield* backend.ping().pipe(
-        Eff.Effect.timeoutFail({
-          duration: HEARTBEAT_TIMEOUT,
-          onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
-        }),
-        Eff.Effect.either,
-      )
+      const result = yield* pingOrTimeout(backend)
       if (Eff.Either.isLeft(result)) {
-        yield* Eff.SubscriptionRef.update(health, (h) => ({
-          consecutiveFailures: h.consecutiveFailures + 1,
-          lastError: result.left,
-        }))
+        yield* bumpHealth(health, result.left)
       } else {
         yield* resetHealth(health)
       }
@@ -569,13 +587,7 @@ const runReconnectWithProbe = (
     let lastError: BackendError | null = null
     while (bootstrapAttempts < RECONNECT_MAX_ATTEMPTS) {
       yield* sleepOrWake(cadence, wake)
-      const probe = yield* config.backend.ping().pipe(
-        Eff.Effect.timeoutFail({
-          duration: HEARTBEAT_TIMEOUT,
-          onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
-        }),
-        Eff.Effect.either,
-      )
+      const probe = yield* pingOrTimeout(config.backend)
       if (Eff.Either.isLeft(probe)) {
         cadence = escalate(cadence)
         continue
@@ -736,20 +748,11 @@ export const buildConnectorRuntime = (
       id: config.id,
       config,
       state,
-      // `retry` semantics depend on the current state:
-      //
-      //  - Failed{!acked}            → drain the controls queue token
-      //                                (`awaitRetryControl` listens here)
-      //  - Ready / Disconnected      → force a reconnect by degrading
-      //                                health to threshold; the Ready
-      //                                loop's heartbeat-vs-threshold race
-      //                                takes the threshold branch and
-      //                                falls into `runReconnectWithProbe`
-      //  - Connecting                → already in flight; no-op
-      //
-      // Without the Ready/Disconnected branch the controls queue is the
-      // only path, but it's only consumed from Failed — so a click while
-      // healthy went silently nowhere.
+      // Failed → drain the controls queue (awaitRetryControl listens).
+      // Ready / Disconnected → force reconnect by degrading health to
+      // threshold; the heartbeat-vs-threshold race takes the threshold
+      // branch and falls into runReconnectWithProbe.
+      // Connecting → already in flight; no-op.
       retry: Eff.Effect.gen(function* () {
         const current = yield* Eff.SubscriptionRef.get(state)
         if (current._tag === 'Ready' || current._tag === 'Disconnected') {

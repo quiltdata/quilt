@@ -137,8 +137,14 @@ interface JsonRpcResponse {
 export class McpAuthError {
   readonly _tag = 'McpAuthError'
 
+  readonly detail: string
+
+  constructor(props: { detail?: string } = {}) {
+    this.detail = props.detail ?? 'no session token'
+  }
+
   get message() {
-    return 'MCP: no session token'
+    return `MCP auth: ${this.detail}`
   }
 }
 
@@ -380,12 +386,9 @@ export function make(options: McpClientOptions): McpClient {
         HttpClientRequest.bodyText(JSON.stringify(payload), 'application/json'),
       )
 
-      // `withTracerPropagation(false)` strips the W3C `traceparent` + Zipkin
-      // `b3` headers Effect's HttpClient injects from the active span. The
-      // platform MCP server uses a strict CORS allow-list and rejects unknown
-      // headers (preflight returns 400 "Disallowed CORS headers"); we don't
-      // have a tracing collector on the receiving end either, so the headers
-      // are pure cost.
+      // Strip W3C `traceparent` + Zipkin `b3` headers — the MCP server's
+      // CORS allow-list rejects them (preflight: "Disallowed CORS
+      // headers"), and there's no tracing collector on the other end.
       const resp = yield* httpClient.execute(request).pipe(
         HttpClient.withTracerPropagation(false),
         Eff.Effect.mapError((err) => {
@@ -400,6 +403,13 @@ export function make(options: McpClientOptions): McpClient {
 
       // Notifications get 202 Accepted with no body.
       if (resp.status === 202) return null
+
+      // 401/403: token missing/expired/revoked. Surface as auth error so
+      // the connector layer doesn't bump health and trigger a futile
+      // reconnect loop — refresh is the redux/auth layer's job.
+      if (resp.status === 401 || resp.status === 403) {
+        return yield* Eff.Effect.fail(new McpAuthError({ detail: `HTTP ${resp.status}` }))
+      }
 
       if (resp.status < 200 || resp.status >= 300) {
         return yield* Eff.Effect.fail(
@@ -457,10 +467,8 @@ export function make(options: McpClientOptions): McpClient {
           new McpProtocolError({ detail: `${method}: empty response` }),
         )
       }
-      // JSON-RPC 2.0 §5: response.id MUST equal request.id. Stateless HTTP
-      // makes a mismatch unlikely in practice (one-shot POST), but the
-      // schema permits string|number so we compare via String() to tolerate
-      // servers that round-trip a numeric id.
+      // JSON-RPC §5: response.id must echo request.id. Compare via
+      // String() since the schema permits string|number.
       if (String(body.id) !== id) {
         return yield* Eff.Effect.fail(
           new McpProtocolError({
@@ -610,29 +618,13 @@ const ERROR_TAG_MAP: Record<McpError['_tag'], BackendError['_tag']> = {
   McpRpcError: 'Application',
 }
 
-const adaptError = (e: McpError): BackendError => {
-  // 401/403 from the server: token is missing/expired/revoked. Reclassify
-  // as Auth (not Transport) so it doesn't bump the connector's health
-  // counter — token rotation is handled at the redux/auth layer, and
-  // counting auth failures toward Disconnected would push us into a
-  // reconnect loop that won't help.
-  if (e._tag === 'McpTransportError' && (e.status === 401 || e.status === 403)) {
-    return {
-      _tag: 'Auth',
-      message: e.message,
-      transient: false,
-      retryable: false,
-      cause: e._tag,
-    }
-  }
-  return {
-    _tag: ERROR_TAG_MAP[e._tag],
-    message: e.message,
-    transient: e._tag === 'McpTransportError',
-    retryable: e._tag === 'McpTransportError' && e.status === undefined,
-    cause: e._tag,
-  }
-}
+const adaptError = (e: McpError): BackendError => ({
+  _tag: ERROR_TAG_MAP[e._tag],
+  message: e.message,
+  transient: e._tag === 'McpTransportError',
+  retryable: e._tag === 'McpTransportError' && e.status === undefined,
+  cause: e._tag,
+})
 
 export interface BearerPassthruOptions {
   readonly url: string

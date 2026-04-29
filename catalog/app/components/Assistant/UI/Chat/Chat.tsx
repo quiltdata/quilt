@@ -449,7 +449,7 @@ const helperSeverityFor = (
   states: readonly Model.Connectors.ConnectorState[],
 ): 'warning' | 'error' | undefined => {
   if (states.some(Model.Connectors.stateRequiresAck)) return 'error'
-  if (states.some((s) => s._tag !== 'Ready')) return 'warning'
+  if (states.some(Model.Connectors.stateIsUnready)) return 'warning'
   return undefined
 }
 
@@ -516,13 +516,13 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
     Actor.useState(c.state),
   )
   const helperLines = allConnectors.flatMap((c, i) =>
-    connectorStates[i]._tag === 'Ready'
-      ? []
-      : [
+    Model.Connectors.stateIsUnready(connectorStates[i])
+      ? [
           <div key={c.id}>
             <ConnectorHelperLine connector={c} state={connectorStates[i]} />
           </div>,
-        ],
+        ]
+      : [],
   )
   const helperText = helperLines.length > 0 ? helperLines : undefined
   const helperSeverity = helperSeverityFor(connectorStates)

@@ -62,10 +62,9 @@ function convertSchema(schema: any) {
 
 /**
  * Build a draft-2020-12 JSON Schema from an Effect-Schema. Effect emits
- * draft-07 by default with array-`items` syntax; Bedrock rejects that
- * shape, so we override `$schema` and run `convertSchema` (which
- * rewrites array `items` → `prefixItems`, etc.). The MCP path never
- * goes through here — server-authored schemas are forwarded as-is.
+ * draft-07 with array-`items`; Bedrock rejects that shape, so override
+ * `$schema` and run `convertSchema` (rewrites array `items` →
+ * `prefixItems`, etc.).
  */
 export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
   const out = Eff.JSONSchema.make(schema)

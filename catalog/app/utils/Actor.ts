@@ -217,10 +217,8 @@ export function useActorLayer<State, Action, R>(
     ),
   )
 
-  // The listener fiber is `forkDaemon`'d inside `start` (decoupled from
-  // the calling fiber's scope), so we own its lifetime explicitly here:
-  // interrupt on unmount, otherwise each Assistant remount accumulates a
-  // daemon. Mirrors the cleanup pattern in `useState` below.
+  // The listener is forkDaemon'd inside `start`, so we own its
+  // lifetime here — interrupt on unmount.
   React.useEffect(
     () => () => {
       runtime.runFork(

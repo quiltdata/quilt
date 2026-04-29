@@ -160,8 +160,6 @@ const useConnectorsPanelStyles = M.makeStyles((t) => ({
   stateOk: {
     color: t.palette.success.main,
   },
-  // `warning.main` washes out on the panel's paper background;
-  // `warning.dark` reads cleanly.
   stateWarn: {
     color: t.palette.warning.dark,
   },
