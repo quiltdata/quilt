@@ -17,14 +17,20 @@ const useStyles = M.makeStyles((t) => ({
   hint: {
     color: t.palette.text.hint,
   },
-  hintWarning: {
-    // `warning.dark` is the same darker-orange we use in DevTools; reads
-    // cleanly on the helper-text band's light background, where
-    // `warning.main` washes out.
-    color: t.palette.warning.dark,
+  // Severity overrides. The `&$hint` selector compiles to `.warning.hint`
+  // (specificity 0,2,0 > base `.hint` at 0,1,0), so stacking
+  // `cx(classes.hint, classes[severity])` produces the right cascade
+  // without `extend`. `warning.dark` / `error.dark` read cleanly on the
+  // helper-text band's light background where `.main` washes out.
+  warning: {
+    '&$hint': {
+      color: t.palette.warning.dark,
+    },
   },
-  hintError: {
-    color: t.palette.error.dark,
+  error: {
+    '&$hint': {
+      color: t.palette.error.dark,
+    },
   },
 }))
 
@@ -94,11 +100,7 @@ export default function ChatInput({
   onSubmit,
 }: ChatInputProps) {
   const classes = useStyles()
-  const helperClass = helperSeverity
-    ? helperSeverity === 'error'
-      ? classes.hintError
-      : classes.hintWarning
-    : classes.hint
+  const helperClass = cx(classes.hint, helperSeverity && classes[helperSeverity])
 
   const [value, setValue] = React.useState('')
 
