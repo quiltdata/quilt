@@ -217,7 +217,21 @@ export function useActorLayer<State, Action, R>(
     ),
   )
 
-  // TODO: stop/interrupt on unmount
+  // The listener fiber is `forkDaemon`'d inside `start` (decoupled from
+  // the calling fiber's scope), so we own its lifetime explicitly here:
+  // interrupt on unmount, otherwise each Assistant remount accumulates a
+  // daemon. Mirrors the cleanup pattern in `useState` below.
+  React.useEffect(
+    () => () => {
+      runtime.runFork(
+        Log.scoped({
+          name: `${MODULE}.useActor:cleanup`,
+          enter: [Log.br, 'interrupting actor listener:', actor.listener],
+        })(Eff.Fiber.interrupt(actor.listener)),
+      )
+    },
+    [actor],
+  )
 
   // TODO: make state lazy/subscriptable a-la redux
   const state = useState(actor.state)
