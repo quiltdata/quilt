@@ -930,12 +930,8 @@ export const buildService = (
       Eff.Effect.map((states) => states.some(stateIsBlocked)),
     )
 
-    // No race with the read-then-fork pattern in the conversation actor:
-    // each `state.changes` replays the current value on subscribe, so if
-    // every connector flipped to a non-blocking state between the
-    // synchronous `isBlocked` read and our `mergeAll` subscription, the
-    // first emission already triggers the `mapEffect(isBlocked)` →
-    // filter → take(1) path and we exit immediately.
+    // `state.changes` replays the current value on subscribe, so the
+    // read-then-fork pattern in Conversation can't miss a flip.
     const awaitUnblocked: Eff.Effect.Effect<void> =
       all.length === 0
         ? Eff.Effect.void
