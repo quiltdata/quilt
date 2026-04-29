@@ -114,7 +114,6 @@ const useInputFileStyles = M.makeStyles((t) => ({
   },
   or: {
     textAlign: 'center',
-    margin: t.spacing(1, 0),
     color: t.palette.text.secondary,
   },
 }))
