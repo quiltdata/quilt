@@ -42,6 +42,7 @@ longer in the match set is revoked on next login. Default is `false`.
 ```yaml
 version: "1.0"
 default_role: ReadQuiltBucket
+union_roles: true
 mappings:
   - schema:
       type: object
@@ -51,7 +52,7 @@ mappings:
       required:
         - email
     roles:
-      - ReadWriteQuiltBucket
+      - AdminTools
     admin: true
   - schema:
       type: object
@@ -66,11 +67,16 @@ mappings:
       - ReadWriteQuiltBucket
 ```
 
-1. user with email `admin@example.com` will have `ReadWriteQuiltBucket` role and
-admin flag set to true
-1. user with group `rw` will have `ReadWriteQuiltBucket` role and admin flag set
-to false (except the user with `admin@example.com` email)
+With `union_roles: true`:
+
+1. user with email `admin@example.com` **and** group `rw` is granted both
+`AdminTools` and `ReadWriteQuiltBucket`, with admin flag set to true; they
+can switch between roles via the role switcher
+1. user with group `rw` only is granted `ReadWriteQuiltBucket`
 1. all other users will have `ReadQuiltBucket` role
+
+Without `union_roles` (or set to `false`), only the first matching mapping
+applies — the `admin@example.com` user above would receive `AdminTools` only.
 
 > Note: Unrecognized users will have their role set to the `default_role`, but
 their admin flag will be unchanged.
