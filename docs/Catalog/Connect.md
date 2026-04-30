@@ -36,7 +36,7 @@ Each comma-separated entry can be one of:
 | Format | Example | Matches |
 | --- | --- | --- |
 | **Hostname** | `claude.ai` | `https://claude.ai/*` (HTTPS only) |
-| **Wildcard suffix** | `.benchling.com` | `https://<any-subdomain>.benchling.com/*` — any subdomain at any depth (e.g. `app.benchling.com`, `app.us.benchling.com`); does **not** match the apex `https://benchling.com/*` (HTTPS only; leading dot required) |
+| **Subdomain wildcard** | `.benchling.com` | `https://<any-subdomain>.benchling.com/*` — any subdomain at any depth (e.g. `app.benchling.com`, `app.us.benchling.com`); does **not** match the apex `https://benchling.com/*` (HTTPS only; leading dot required) |
 | **Custom scheme** | `cursor://` | `cursor://<any-host>/*` (for desktop apps with a custom URI scheme) |
 | **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; either loopback enables both) |
 <!-- markdownlint-enable line-length -->
