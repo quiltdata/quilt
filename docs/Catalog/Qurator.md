@@ -44,6 +44,8 @@ gated and inline actions appear in the helper-text region:
   latter dismisses the error and moves the connector to `unavailable`.
 - `unavailable` — sticky; click **reconnect** to try again at any time.
 
+![Qurator platform tools connector ready](../imgs/qurator-tools.png)
+
 ## Getting Started
 
 To enable Qurator Omni:

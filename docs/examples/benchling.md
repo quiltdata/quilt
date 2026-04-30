@@ -75,6 +75,8 @@ view, browse, and sync the associated Quilt packages.
   browsable throughout. Benchling `reviewRecord` events also trigger package
   updates automatically (in addition to metadata changes).
 
+![App Canvas - Updated](../imgs/benchling-updated.png)
+
 The canvas also allows you to browse package contents:
 
 ![App Canvas - Browse](../imgs/benchling-browse.png)
