@@ -100,9 +100,23 @@ See [S3 Events, EventBridge](../EventBridge.md) for more.
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links
-in the navbar, custom logo and default search mode.
+in the navbar, custom logo, and default search mode. The Theme editor accepts
+a logo as either a URL or a direct file upload (PNG, JPEG, WebP, or GIF).
 
 ![](../imgs/admin-settings.png)
+
+## Stack-managed buckets
+
+Buckets provisioned by the Quilt CloudFormation stack are protected at the
+S3 bucket-policy level: manual changes via the AWS console or CLI are denied.
+All configuration changes must go through CloudFormation.
+
+## Role-scoped bucket listings
+
+Admin users see role-appropriate bucket listings (catalog navbar, landing
+grid, search filter, MCP `bucket_list` tool) rather than every bucket on
+the stack. Grant the admin role explicit access to additional buckets to
+see them in these surfaces.
 
 ## Further settings
 See [Preferences](Preferences.md) for further control over the catalog user interface.

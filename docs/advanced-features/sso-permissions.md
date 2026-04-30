@@ -32,6 +32,11 @@ because otherwise the schema will match any ID token even if these claims are mi
 mapping is applied**. To assign multiple roles to a user, include all roles
 in the `roles` array of a single mapping.
 
+> Note: Set `union_roles: true` at the top level of the config (Quilt Platform
+1.69+) to instead grant the union of roles from **all** matching mappings.
+Users can switch between the assigned roles via the role switcher; any role no
+longer in the match set is revoked on next login. Default is `false`.
+
 ### Example
 
 ```yaml
