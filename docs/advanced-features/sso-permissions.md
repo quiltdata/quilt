@@ -28,15 +28,20 @@ which includes descriptions of all the fields.
 > Warning: In schemas don't forget to add claims you want to check to `required`,
 because otherwise the schema will match any ID token even if these claims are missing.
 
-> Note: Mappings are evaluated in order, and **only the first matching
-mapping is applied**. To assign multiple roles to a user, include all roles
-in the `roles` array of a single mapping.
+> Note: By default, mappings are evaluated in order and **only the first
+matching mapping is applied** — to assign multiple roles to a user this way,
+include all roles in the `roles` array of a single mapping. Alternatively,
+set `union_roles: true` at the top level of the config (Quilt Platform 1.69+)
+to grant the union of roles from **all** matching mappings; users can switch
+between the assigned roles via the role switcher, and any role no longer in
+the match set is revoked on next login.
 
 ### Example
 
 ```yaml
 version: "1.0"
 default_role: ReadQuiltBucket
+union_roles: true
 mappings:
   - schema:
       type: object
@@ -46,7 +51,7 @@ mappings:
       required:
         - email
     roles:
-      - ReadWriteQuiltBucket
+      - AdminTools
     admin: true
   - schema:
       type: object
@@ -61,11 +66,12 @@ mappings:
       - ReadWriteQuiltBucket
 ```
 
-1. user with email `admin@example.com` will have `ReadWriteQuiltBucket` role and
-admin flag set to true
-1. user with group `rw` will have `ReadWriteQuiltBucket` role and admin flag set
-to false (except the user with `admin@example.com` email)
-1. all other users will have `ReadQuiltBucket` role
+By default (or with `union_roles: false`), only the first matching mapping
+applies — the `admin@example.com` user above would receive `AdminTools` only.
+With `union_roles: true`, that same user is granted both `AdminTools` and
+`ReadWriteQuiltBucket` (admin flag true) and can switch between them via the
+role switcher; a user with group `rw` only is granted `ReadWriteQuiltBucket`
+in either mode.
 
-> Note: Unrecognized users will have their role set to the `default_role`, but
-their admin flag will be unchanged.
+> Note: Users matching no mapping receive the `default_role`
+(`ReadQuiltBucket` in this example). Their admin flag is unchanged.

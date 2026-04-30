@@ -23,7 +23,9 @@ or request key insights from a specific dataset.
 - **Platform Tools via MCP**: Search packages and S3 objects, browse and create
   packages, read objects, run Athena SQL, and manage Tabulator tables — all
   through the same [Quilt Platform MCP Server](MCP-Server.md) used by external
-  MCP clients.
+  MCP clients. Available in-catalog without enabling Quilt Connect; tools
+  execute under the user's catalog session and respect existing role and
+  bucket permissions.
 - **Fine-Grained Permissions with RAG**: Ensure Retrieval-Augmented Generation
   only queries the data you're authorized to access, ensuring compliance with
   strict organizational policies
@@ -41,6 +43,8 @@ gated and inline actions appear in the helper-text region:
   to proceed with reduced tool access for the rest of the conversation. The
   latter dismisses the error and moves the connector to `unavailable`.
 - `unavailable` — sticky; click **reconnect** to try again at any time.
+
+![Qurator platform tools connector ready](../imgs/qurator-tools.png)
 
 ## Getting Started
 

@@ -43,8 +43,8 @@ to sign in to the Quilt catalog. The default role is shown in bold.
 ![](../imgs/default-role.png)
 
 You may create roles for different groups of users by combining up to 5 policies.
-With the exception of administrators, users of managed roles can only see, list,
-and search buckets for which they are explicitly granted read access.
+Users of managed roles — including administrators — only see, list, and search
+buckets for which their role is explicitly granted read access.
 
 ![](../imgs/admin-role-managed-create.png)
 
@@ -100,7 +100,9 @@ See [S3 Events, EventBridge](../EventBridge.md) for more.
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links
-in the navbar, custom logo and default search mode.
+in the navbar, custom logo, and default search mode. The Theme editor accepts
+a logo as either a direct file upload (PNG, JPEG, WebP, or GIF) or a URL
+(all of those plus SVG).
 
 ![](../imgs/admin-settings.png)
 
