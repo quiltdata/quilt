@@ -28,14 +28,13 @@ which includes descriptions of all the fields.
 > Warning: In schemas don't forget to add claims you want to check to `required`,
 because otherwise the schema will match any ID token even if these claims are missing.
 
-> Note: Mappings are evaluated in order, and **only the first matching
-mapping is applied**. To assign multiple roles to a user, include all roles
-in the `roles` array of a single mapping.
-
-> Note: Set `union_roles: true` at the top level of the config (Quilt Platform
-1.69+) to instead grant the union of roles from **all** matching mappings.
-Users can switch between the assigned roles via the role switcher; any role no
-longer in the match set is revoked on next login. Default is `false`.
+> Note: By default, mappings are evaluated in order and **only the first
+matching mapping is applied** — to assign multiple roles to a user this way,
+include all roles in the `roles` array of a single mapping. Alternatively,
+set `union_roles: true` at the top level of the config (Quilt Platform 1.69+)
+to grant the union of roles from **all** matching mappings; users can switch
+between the assigned roles via the role switcher, and any role no longer in
+the match set is revoked on next login.
 
 ### Example
 
@@ -67,18 +66,12 @@ mappings:
       - ReadWriteQuiltBucket
 ```
 
-With `union_roles: true`:
-
-1. user with email `admin@example.com` **and** group `rw` is granted both
-`AdminTools` and `ReadWriteQuiltBucket`, with admin flag set to true; they
-can switch between roles via the role switcher
-1. user with group `rw` only is granted `ReadWriteQuiltBucket`
-
-Without `union_roles` (or set to `false`), only the first matching mapping
+By default (or with `union_roles: false`), only the first matching mapping
 applies — the `admin@example.com` user above would receive `AdminTools` only.
+With `union_roles: true`, that same user is granted both `AdminTools` and
+`ReadWriteQuiltBucket` (admin flag true) and can switch between them via the
+role switcher; a user with group `rw` only is granted `ReadWriteQuiltBucket`
+in either mode.
 
-Users matching no mapping receive the `default_role` (`ReadQuiltBucket` in
-this example).
-
-> Note: Unrecognized users will have their role set to the `default_role`, but
-their admin flag will be unchanged.
+> Note: Users matching no mapping receive the `default_role`
+(`ReadQuiltBucket` in this example). Their admin flag is unchanged.
