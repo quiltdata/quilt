@@ -101,7 +101,8 @@ See [S3 Events, EventBridge](../EventBridge.md) for more.
 
 This section allows you to customize your Quilt catalog, including custom links
 in the navbar, custom logo, and default search mode. The Theme editor accepts
-a logo as either a URL or a direct file upload (PNG, JPEG, WebP, or GIF).
+a logo as either a direct file upload (PNG, JPEG, WebP, or GIF) or a URL
+(all of those plus SVG).
 
 ![](../imgs/admin-settings.png)
 
