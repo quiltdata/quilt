@@ -43,8 +43,8 @@ to sign in to the Quilt catalog. The default role is shown in bold.
 ![](../imgs/default-role.png)
 
 You may create roles for different groups of users by combining up to 5 policies.
-With the exception of administrators, users of managed roles can only see, list,
-and search buckets for which they are explicitly granted read access.
+Users of managed roles — including administrators — only see, list, and search
+buckets for which their role is explicitly granted read access.
 
 ![](../imgs/admin-role-managed-create.png)
 
@@ -104,19 +104,6 @@ in the navbar, custom logo, and default search mode. The Theme editor accepts
 a logo as either a URL or a direct file upload (PNG, JPEG, WebP, or GIF).
 
 ![](../imgs/admin-settings.png)
-
-## Stack-managed buckets
-
-Buckets provisioned by the Quilt CloudFormation stack are protected at the
-S3 bucket-policy level: manual changes via the AWS console or CLI are denied.
-All configuration changes must go through CloudFormation.
-
-## Role-scoped bucket listings
-
-Admin users see role-appropriate bucket listings (catalog navbar, landing
-grid, search filter, MCP `bucket_list` tool) rather than every bucket on
-the stack. Grant the admin role explicit access to additional buckets to
-see them in these surfaces.
 
 ## Further settings
 See [Preferences](Preferences.md) for further control over the catalog user interface.

@@ -36,7 +36,7 @@ Each comma-separated entry can be one of:
 | Format | Example | Matches |
 | --- | --- | --- |
 | **Hostname** | `claude.ai` | `https://claude.ai/*` (HTTPS only) |
-| **Wildcard suffix** | `.benchling.com` | `https://<any-subdomain>.benchling.com/*` (HTTPS only; leading dot required) |
+| **Wildcard suffix** | `.benchling.com` | `https://<any-subdomain>.benchling.com/*` — any subdomain at any depth (e.g. `app.benchling.com`, `app.us.benchling.com`); does **not** match the apex `https://benchling.com/*` (HTTPS only; leading dot required) |
 | **Custom scheme** | `cursor://` | `cursor://<any-host>/*` (for desktop apps with a custom URI scheme) |
 | **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; either loopback enables both) |
 <!-- markdownlint-enable line-length -->
@@ -49,8 +49,8 @@ claude.ai, claude.com, cursor://, localhost
 
 Entries are case-insensitive. Trailing dots on hostnames are ignored.
 Network schemes (`http://`, `https://`, etc.) are not valid entries and are
-silently ignored — use a bare hostname for HTTPS clients and a custom scheme
-(`cursor://`) for desktop clients.
+silently ignored — use a bare hostname (or `.`-prefixed wildcard suffix) for
+HTTPS clients and a custom scheme (`cursor://`) for desktop clients.
 
 ## DNS Configuration
 

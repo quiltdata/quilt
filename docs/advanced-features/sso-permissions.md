@@ -73,10 +73,12 @@ With `union_roles: true`:
 `AdminTools` and `ReadWriteQuiltBucket`, with admin flag set to true; they
 can switch between roles via the role switcher
 1. user with group `rw` only is granted `ReadWriteQuiltBucket`
-1. all other users will have `ReadQuiltBucket` role
 
 Without `union_roles` (or set to `false`), only the first matching mapping
 applies — the `admin@example.com` user above would receive `AdminTools` only.
+
+Users matching no mapping receive the `default_role` (`ReadQuiltBucket` in
+this example).
 
 > Note: Unrecognized users will have their role set to the `default_role`, but
 their admin flag will be unchanged.
