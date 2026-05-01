@@ -86,6 +86,14 @@ display settings.
 
 ![](../imgs/admin-buckets-add.png)
 
+### Reindexing
+
+Stack admins can reindex a bucket via `POST /api/admin/reindex/<bucket>`.
+The request accepts an optional `prefix` field; when supplied, the
+existing Elasticsearch indices are left in place and only keys under
+that prefix are re-walked. This is useful for refreshing a slice of a
+large bucket without a full reindex.
+
 ### S3 events
 
 By default, when you add a bucket to the Quilt stack one of two things will happen:

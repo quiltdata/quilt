@@ -71,6 +71,13 @@ will be parsed as JSON.
 You can push an existing data package from one S3 bucket to another. To use this
 feature consult the [Workflows](../advanced-features/workflows.md) page.
 
+### Compare revisions
+
+To see what changed between two revisions of a package, click the
+double-arrow diff icon on the package revisions list. The diff view
+highlights added, removed, and modified entries between the selected
+revisions.
+
 ### Summarize
 
 Adding a `quilt_summarize.json` file to a data package (or S3 directory path)

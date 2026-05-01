@@ -32,6 +32,18 @@ or request key insights from a specific dataset.
 - **Secure Cloud Environment**: Work within your private AWS cloud, ensuring
   data stays secure while using state-of-the-art AI models.
 
+### Developer Tools
+
+The Developer Tools menu (upper right of the Qurator chat window) provides:
+
+- **Swappable Models**: Override the default Bedrock model for the current
+  session by pasting a Bedrock Model ID or Inference Profile ID. The model
+  must be enabled in the same region as your Quilt stack and support text,
+  document, and image inputs.
+- **Session Recordings**: Record a portion of a Qurator session and download
+  (or clear) the resulting JSON log. Useful for tuning or debugging prompts
+  and capturing structured results.
+
 ### Connector Status
 
 Qurator's chat input shows the live connection status of each tool backend
