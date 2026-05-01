@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - stack/alexion
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
