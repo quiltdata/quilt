@@ -44,6 +44,7 @@ MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 SECONDS_TO_CLEANUP = 1
 
 S3: contextvars.ContextVar[S3Client] = contextvars.ContextVar("s3")
+TARGET_S3: contextvars.ContextVar[S3Client] = contextvars.ContextVar("target_s3")
 
 
 # Isolated for test-ability.
@@ -51,6 +52,10 @@ def get_user_boto_session(credentials: AWSCredentials) -> aiobotocore.session.Ai
     s = aiobotocore.session.get_session()
     s.set_credentials(credentials.key, credentials.secret, credentials.token)
     return s
+
+
+def get_service_boto_session() -> aiobotocore.session.AioSession:
+    return aiobotocore.session.get_session()
 
 
 @contextlib.asynccontextmanager
@@ -64,6 +69,26 @@ async def aio_context(credentials: AWSCredentials):
             yield
         finally:
             S3.reset(s3_token)
+
+
+@contextlib.asynccontextmanager
+async def aio_target_context():
+    session = get_service_boto_session()
+    config = aiobotocore.config.AioConfig(max_pool_connections=MPU_CONCURRENCY)
+
+    async with session.create_client("s3", config=config) as s3:
+        s3_token = TARGET_S3.set(s3)
+        try:
+            yield
+        finally:
+            TARGET_S3.reset(s3_token)
+
+
+def get_target_s3() -> S3Client:
+    try:
+        return TARGET_S3.get()
+    except LookupError:
+        return S3.get()
 
 
 async def get_bucket_region(bucket: str) -> str:
@@ -161,7 +186,7 @@ async def upload_part(
     part: PartDef,
     algorithm: ChecksumAlgorithm,
 ) -> PartUploadResult:
-    res = await S3.get().upload_part_copy(
+    res = await get_target_s3().upload_part_copy(
         **mpu.boto_args,
         **part.boto_args,
         CopySource=src.boto_args,
@@ -247,7 +272,7 @@ class MPURef(MPURefBase):
             # XXX: better exception type
             raise Exception("MPU is already completed.")
 
-        result = await S3.get().complete_multipart_upload(
+        result = await get_target_s3().complete_multipart_upload(
             **self.boto_args,
             MultipartUpload={
                 "Parts": [part.boto_args_completed(n) for n, part in enumerate(parts, 1)],
@@ -258,14 +283,14 @@ class MPURef(MPURefBase):
 
     async def abort(self):
         if not self.completed:
-            await S3.get().abort_multipart_upload(**self.boto_args)
+            await get_target_s3().abort_multipart_upload(**self.boto_args)
 
 
 @contextlib.asynccontextmanager
 async def create_mpu(target: S3ObjectDestination, algorithm: ChecksumAlgorithm):
     """Create multipart upload with checksum algorithm."""
     try:
-        upload_data = await S3.get().create_multipart_upload(
+        upload_data = await get_target_s3().create_multipart_upload(
             **target.boto_args,
             ChecksumAlgorithm=algorithm.s3_checksum_algorithm,
         )
@@ -368,7 +393,9 @@ async def lambda_handler(
     checksum_algorithm: ChecksumAlgorithm,
 ) -> ChecksumResult:
     logger.info(f"[PERF] lambda_handler START: {location} algorithm={checksum_algorithm}")
-    async with aio_context(credentials):
+    # Chosen interim model: source-object reads stay user-scoped while scratch-bucket
+    # MPU writes use the stack-owned target client.
+    async with aio_context(credentials), aio_target_context():
         result = await compute_checksum(location, scratch_buckets, checksum_algorithm)
     logger.info(f"[PERF] lambda_handler END: {location} -> {result.checksum.type}")
     return result
@@ -379,6 +406,9 @@ async def copy(
     target: S3ObjectDestination,
     checksum_algorithm: ChecksumAlgorithm,
 ) -> CopyResult:
+    # Tech debt: the copy path still uses the user-scoped client end to end. This is the
+    # simplest compatible behavior for now, but destination semantics are intentionally
+    # left as legacy behavior until we make an explicit deeper design change.
     resp = await S3.get().head_object(**location.boto_args)
     etag, total_size = resp["ETag"], resp["ContentLength"]
 

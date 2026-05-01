@@ -1,10 +1,17 @@
+import datetime
 import logging
 
 import boto3
 import pytest
 from botocore.stub import Stubber
 
-from quilt_shared.athena import AthenaQueryCancelledException, AthenaQueryFailedException, QueryRunner
+from quilt_shared.athena import (
+    _ASSUMED_ATHENA_CLIENT_CACHE,
+    AthenaQueryCancelledException,
+    AthenaQueryFailedException,
+    QueryRunner,
+    get_assumed_athena_client,
+)
 
 
 @pytest.fixture
@@ -114,3 +121,45 @@ def test_run_multiple_queries(query_runner, stubbed_athena_client):
     assert len(results) == len(queries)
     for result in results:
         assert result["Status"]["State"] == "SUCCEEDED"
+
+
+def test_get_assumed_athena_client_caches(mocker):
+    expiration = datetime.datetime(2026, 4, 20, 12, 0, tzinfo=datetime.timezone.utc)
+    sts_client = mocker.Mock()
+    sts_client.assume_role.return_value = {
+        "Credentials": {
+            "AccessKeyId": "access-key",
+            "SecretAccessKey": "secret-key",
+            "SessionToken": "session-token",
+            "Expiration": expiration,
+        }
+    }
+    session = mocker.Mock()
+    athena_client = object()
+    session.client.return_value = athena_client
+    session_factory = mocker.patch("quilt_shared.athena.boto3.session.Session", return_value=session)
+    mocker.patch("quilt_shared.athena._sts_client", return_value=sts_client)
+    mocker.patch(
+        "quilt_shared.athena._utcnow",
+        side_effect=[
+            datetime.datetime(2026, 4, 20, 11, 0, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2026, 4, 20, 11, 1, tzinfo=datetime.timezone.utc),
+        ],
+    )
+    _ASSUMED_ATHENA_CLIENT_CACHE.clear()
+
+    client1 = get_assumed_athena_client(
+        role_arn="arn:aws:iam::123456789012:role/QuiltAthenaAccessRole",
+        role_session_name="quilt-iceberg-athena",
+        region_name="us-east-1",
+    )
+    client2 = get_assumed_athena_client(
+        role_arn="arn:aws:iam::123456789012:role/QuiltAthenaAccessRole",
+        role_session_name="quilt-iceberg-athena",
+        region_name="us-east-1",
+    )
+
+    assert client1 is athena_client
+    assert client2 is athena_client
+    sts_client.assume_role.assert_called_once()
+    session_factory.assert_called_once()

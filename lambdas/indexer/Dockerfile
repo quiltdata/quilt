@@ -9,14 +9,18 @@ ARG FUNCTION_DIR
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+WORKDIR /src/lambdas/indexer
+
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=${FUNCTION_DIR}
 
+COPY py-shared /src/py-shared
+
 RUN --mount=type=cache,target=/root/.cache \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=lambdas/indexer/uv.lock,target=/src/lambdas/indexer/uv.lock \
+    --mount=type=bind,source=lambdas/indexer/pyproject.toml,target=/src/lambdas/indexer/pyproject.toml \
     uv sync \
     --locked \
     --no-dev \
@@ -24,7 +28,6 @@ RUN --mount=type=cache,target=/root/.cache \
     --no-install-project
 
 COPY . /src
-WORKDIR /src
 RUN --mount=type=cache,target=/root/.cache \
     uv sync \
     --locked \

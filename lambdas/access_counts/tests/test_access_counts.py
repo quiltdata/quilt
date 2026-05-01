@@ -4,6 +4,7 @@ from io import BytesIO
 from unittest import TestCase
 from unittest.mock import patch
 
+import boto3
 from botocore.session import Session
 from botocore.stub import Stubber
 
@@ -16,12 +17,22 @@ class TestAccessCounts(TestCase):
         self.s3_stubber = Stubber(index.s3)
         self.s3_stubber.activate()
 
-        self.athena_stubber = Stubber(index.athena)
+        self.athena = boto3.client(
+            'athena',
+            region_name='us-east-1',
+            aws_access_key_id='test',
+            aws_secret_access_key='test',
+            aws_session_token='test',
+        )
+        self.get_athena_patcher = patch.object(index, 'get_athena', return_value=self.athena)
+        self.get_athena_patcher.start()
+        self.athena_stubber = Stubber(self.athena)
         self.athena_stubber.activate()
 
     def tearDown(self):
         self.athena_stubber.deactivate()
         self.s3_stubber.deactivate()
+        self.get_athena_patcher.stop()
 
     def _start_query(self, query, execution_id):
         self.athena_stubber.add_response(

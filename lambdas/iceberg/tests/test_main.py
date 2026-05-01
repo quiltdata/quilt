@@ -101,6 +101,9 @@ def test_handler(mocker):
     event = {"Records": [{"body": "irrelevant"}]}
     context = mocker.Mock()
 
+    # Route through the named Athena role path
+    mocker.patch.object(t4_lambda_iceberg, "QUILT_ATHENA_ACCESS_ROLE_ARN", "arn:aws:iam::111122223333:role/QuiltAthenaAccessRole-test")
+
     # Patch dependencies to return mocks
     mock_bucket = mocker.Mock(name="bucket")
     mock_key = mocker.Mock(name="key")
@@ -110,11 +113,27 @@ def test_handler(mocker):
     mock_process = mocker.patch("t4_lambda_iceberg.process_s3_event", return_value=(mock_bucket, mock_key))
     mock_get_first_line = mocker.patch("t4_lambda_iceberg.get_first_line", return_value=mock_first_line)
     mock_generate_queries = mocker.patch("t4_lambda_iceberg.generate_queries", return_value=mock_queries)
-    mock_run = mocker.patch.object(t4_lambda_iceberg.query_runner, "run_multiple_queries")
+    mock_athena = object()
+    mock_get_athena_client = mocker.patch(
+        "t4_lambda_iceberg.get_assumed_athena_client",
+        return_value=mock_athena,
+    )
+    mock_query_runner = mocker.patch("t4_lambda_iceberg.QueryRunner")
 
     t4_lambda_iceberg.handler(event, context)
 
     mock_process.assert_called_once_with(event)
     mock_get_first_line.assert_called_once_with(mock_bucket, mock_key)
     mock_generate_queries.assert_called_once_with(mock_bucket, mock_key, mock_first_line)
-    mock_run.assert_called_once_with(mock_queries)
+    mock_get_athena_client.assert_called_once_with(
+        role_arn=t4_lambda_iceberg.QUILT_ATHENA_ACCESS_ROLE_ARN,
+        role_session_name="quilt-iceberg-athena",
+        region_name=t4_lambda_iceberg.AWS_REGION,
+    )
+    mock_query_runner.assert_called_once_with(
+        logger=t4_lambda_iceberg.logger,
+        athena=mock_athena,
+        database=t4_lambda_iceberg.QUILT_ICEBERG_GLUE_DB,
+        workgroup=t4_lambda_iceberg.QUILT_ICEBERG_WORKGROUP,
+    )
+    mock_query_runner.return_value.run_multiple_queries.assert_called_once_with(mock_queries)

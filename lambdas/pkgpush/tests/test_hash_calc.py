@@ -77,6 +77,7 @@ def test_calculate_pkg_hashes(
     checksum_algorithms = [ChecksumAlgorithm.SHA256_CHUNKED]
 
     session_mock = boto3.Session(**CREDENTIALS.boto_args)
+    get_service_s3_client_mock = mocker.patch.object(t4_lambda_pkgpush, "get_service_s3_client")
 
     # Mock SHA256_CHUNKED compliance check to return None (not compliant/available)
     # Note: CRC64NVME is not checked here - already done in complete_entries_metadata
@@ -96,6 +97,9 @@ def test_calculate_pkg_hashes(
     assert compute_via_copy_mock.call_count == 1
     # Verify large file was processed via s3hash lambda
     assert invoke_hash_lambda_mock.call_count == 1
+    # Checksum routing must stay on user credentials; the service client is only for
+    # scratch-map reads outside calculate_pkg_hashes().
+    get_service_s3_client_mock.assert_not_called()
     # Verify hashes were set
     assert entry_without_hash.hash is not None
     assert entry_without_hash_large.hash is not None

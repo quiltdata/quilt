@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import Code from 'components/Code'
 import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
+import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -366,12 +367,15 @@ function AthenaContainer() {
 
 export default function Wrapper() {
   const { prefs } = BucketPreferences.use()
+  const athenaCredentials = AWS.Credentials.useAthenaCredentials()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui }) => (
-        <Model.Provider preferences={ui.athena}>
-          <AthenaContainer />
-        </Model.Provider>
+        <AWS.Athena.Provider credentials={athenaCredentials || undefined}>
+          <Model.Provider preferences={ui.athena}>
+            <AthenaContainer />
+          </Model.Provider>
+        </AWS.Athena.Provider>
       ),
       _: () => <Placeholder color="inherit" />,
     },

@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
     "boto3[crt]~=1.40",
+    "quilt-shared[boto,pydantic]",
     "t4_lambda_shared",
 ]
 
@@ -23,4 +24,5 @@ test = [
 default-groups = ["test"]
 
 [tool.uv.sources]
+quilt-shared = { path = "../../py-shared" }
 t4_lambda_shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
