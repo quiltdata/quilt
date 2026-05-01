@@ -1,5 +1,7 @@
 name: Deploy catalog to ECR
 
+# stack/alexion is used for FCS preview image bundles.
+
 on:
   push:
     branches:
