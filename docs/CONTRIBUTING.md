@@ -13,20 +13,42 @@ Unsure about something? To get support, check out our [Slack community](https://
 
 Found a bug? File it in our [GitHub issues](https://github.com/quiltdata/quilt/issues).
 
-## Cloning
+## Forking and Cloning
 
-To work on `quilt` you will first need to clone the repository.
+Most contributors will not have direct push access to `quiltdata/quilt`.
+Use a fork-and-pull-request workflow instead.
+
+1. Fork `https://github.com/quiltdata/quilt` to your own GitHub account.
+1. Clone your fork locally.
+1. Add the main repository as `upstream`.
+1. Create your work branch from the latest `upstream/master`.
 
 ```bash
-git clone https://github.com/quiltdata/quilt
+git clone https://github.com/<your-github-user>/quilt
+cd quilt
+git remote add upstream https://github.com/quiltdata/quilt
+git fetch upstream
+git checkout -B new-branch-name upstream/master
 ```
 
-You can then set up your own branch version of the code, and work
-on your changes for a pull request from there.
+When your branch is ready, push it to your fork and open a pull request from
+your fork branch into `quiltdata/quilt`.
 
 ```bash
-cd quilt
-git checkout -B new-branch-name
+git push -u origin new-branch-name
+```
+
+If `git push origin ...` returns `403` against `https://github.com/quiltdata/quilt/`,
+your local `origin` is probably pointing at the upstream repository instead of your fork.
+Repoint `origin` to your fork, or push to a separate fork remote.
+
+If you already cloned `quiltdata/quilt` directly, one straightforward fix is:
+
+```bash
+git remote rename origin upstream
+git remote add origin https://github.com/<your-github-user>/quilt
+git fetch upstream
+git checkout -B new-branch-name upstream/master
 ```
 
 ## Local package development
@@ -94,6 +116,13 @@ cd catalog
 npm install
 ```
 
+For the repo's filesystem-backed LOCAL catalog workflow, use the documented one-shot setup in [`docs/Catalog/LocalMode.md`](Catalog/LocalMode.md):
+
+```bash
+cd api/python
+uvx --from poethepoet poe catalog-test
+```
+
 ### Build
 
 To build a static code bundle, as would be necessary in order to serve the catalog:
@@ -131,6 +160,8 @@ npm run test
 ```
 
 ## Creating a release
+
+These steps require maintainer access to the main repository.
 
 1. Once you are ready to cut a new release, update the version in `api/python/pyproject.toml`
 ([`uv version`](https://docs.astral.sh/uv/guides/package/#updating-your-version)

@@ -438,7 +438,7 @@ wheels = [
 
 [[package]]
 name = "quilt3"
-version = "7.3.0"
+version = "7.3.1"
 source = { editable = "../api/python" }
 dependencies = [
     { name = "awscrt" },
@@ -458,6 +458,7 @@ dependencies = [
 requires-dist = [
     { name = "aiobotocore", extras = ["boto3"], marker = "extra == 'catalog'", specifier = ">=2" },
     { name = "anndata", marker = "extra == 'anndata'", specifier = ">=0.8.0" },
+    { name = "asgiproxy", marker = "extra == 'catalog'", specifier = ">=0.2,<0.3" },
     { name = "awscrt", specifier = ">=0.31.0" },
     { name = "boto3", specifier = ">=1.21.7" },
     { name = "jsonlines", specifier = "==1.2.0" },

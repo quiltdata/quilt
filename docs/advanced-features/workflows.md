@@ -96,7 +96,7 @@ workflows:
     metadata_schema: experiment-universal
 schemas:
   experiment-universal:
-    url: s3://quilt-dev-metadata/.quilt/workflows/schemas/experiment-universal.json
+    url: file:///path/to/.quilt/workflows/schemas/experiment-universal.json
 ```
 
 This specifies which workflow will be used (`experiment`) if a
