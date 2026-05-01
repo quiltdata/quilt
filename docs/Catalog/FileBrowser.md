@@ -11,9 +11,10 @@ that displays all files in the bucket.
 You can upload files directly to a bucket by dragging them onto the file
 listing or using the **Add Files** button (including into a new
 subfolder). One or more files can also be deleted from the listing or via
-the **Organize** menu without leaving the Catalog. Deletion adds a delete
-marker to the latest version, so prior versions remain available from
-packages.
+the **Organize** menu without leaving the Catalog. On
+versioning-enabled buckets, deletion adds a delete marker so prior
+versions remain available from packages; on unversioned buckets the
+object is permanently removed.
 
 File and directory delete buttons are hidden by default. Administrators
 can enable them by setting `ui.actions.deleteObject` in the
@@ -25,9 +26,9 @@ You can create packages directly from files already stored in S3 buckets
 without downloading and re-uploading them. Even without a workflow
 configuration file, users can create packages from files in the current
 bucket, either by selecting them directly or by using **Add Files from
-Bucket** when revising a package. Administrators can disable this
-zero-config behavior by creating a configuration file with no
-`successors`.
+Bucket** when revising a package. To disable adding files from any
+bucket (including the current one), set `ui.sourceBuckets` to an empty
+dictionary `{}` in the [Catalog configuration](./Preferences.md).
 
 Package creation uses the current bucket by default.
 With workflow configuration,
