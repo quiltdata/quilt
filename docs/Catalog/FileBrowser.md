@@ -75,6 +75,12 @@ format (the default is README.md), enter your content, and click save.
 
 ![Edit file](../imgs/catalog-texteditor-main.png)
 
+## Copy URI button
+
+Files and directories include a copy-URI action on the download button,
+making it easy to copy an `s3://` URI for use in scripts, notebooks, and
+CLI workflows.
+
 ## Working with Amazon S3 Glacier storage classes
 
 Glacier storage classes are built for data archiving. Quilt is
