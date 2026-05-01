@@ -12,10 +12,10 @@ is under that limit.
 
 If the file is zero bytes, the top hash is the sha2-256 hash of the empty string.
 
-## CRC64/NVMe Checksums (Experimental)
+## CRC64/NVME Checksums (Experimental)
 
 For files already in S3, packaging can be up to 10x faster by using
-S3's native CRC64/NVMe checksums instead of computing SHA-256 hashes
+S3's native CRC64/NVME checksums instead of computing SHA-256 hashes
 manually. This is opt-in: set the `CRC64Checksums` CloudFormation stack
 parameter to enable it.
 
