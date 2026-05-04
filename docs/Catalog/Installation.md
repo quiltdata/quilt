@@ -61,7 +61,7 @@ Service Catalog).
     > Ensure that your service role is up-to-date with the example before every
     stack update so as to prevent installation failures.
 
-1. The **ability to create DNS entries**, such as CNAME records,
+1. The **ability to create DNS entries** (Route 53 alias records or CNAMEs)
 for your company's domain.
 1. **An SSL certificate in the same region as your Quilt instance** to secure the
 domain where your users will access your Quilt instance.
@@ -237,17 +237,27 @@ and not storing passwords in version control.
 > For detailed configuration options, including search sizing and common pitfalls,
 see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md).
 
-### CNAMEs
+### DNS records
 
-In order for your users to reach the Quilt catalog you must set three CNAMEs
-that point to the `LoadBalancerDNSName` as shown below and in the Outputs
-of your stack.
+<a id="cnames"></a>
 
-| CNAME | Value |
+In order for your users to reach the Quilt catalog you must create three DNS
+records pointing to the `LoadBalancerDNSName` as shown below and in the
+Outputs of your stack.
+
+| Hostname | Target |
 | ------ | ------- |
 | `<QuiltWebHost>` Key | `LoadBalancerDNSName` |
 | `<RegistryHostName>` Key | `LoadBalancerDNSName` |
 | `<S3ProxyHost>` Key | `LoadBalancerDNSName` |
+
+If your hosted zone is in **Route 53**, we recommend Route 53 alias
+records (record type `A`, alias target = `LoadBalancerDNSName`,
+hosted zone ID = `LoadBalancerCanonicalHostedZoneID`). Aliases incur no
+per-query DNS charges and can target a zone apex.
+
+If your DNS is hosted elsewhere, use **CNAME** records pointing to
+`LoadBalancerDNSName`.
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
@@ -282,7 +292,7 @@ of isolated subnets and a preference for private routing.
 
 An upgrade to the 2.0 network, unlike routine Quilt upgrades, requires you to create
 a new stack with a new load balancer. You must therefore also update your
-[CNAMEs](#cnames) to point to the new load balancer.
+[DNS records](#dns-records) to point to the new load balancer.
 
 ## Create a new stack with an existing configuration
 
