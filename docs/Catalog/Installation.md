@@ -245,16 +245,17 @@ In order for your users to reach the Quilt catalog you must create three DNS
 records pointing to the `LoadBalancerDNSName` as shown below and in the
 Outputs of your stack.
 
-| Hostname | Target |
-| ------ | ------- |
-| `<QuiltWebHost>` Key | `LoadBalancerDNSName` |
-| `<RegistryHostName>` Key | `LoadBalancerDNSName` |
-| `<S3ProxyHost>` Key | `LoadBalancerDNSName` |
+| Hostname         | Target                  |
+| ---------------- | ----------------------- |
+| `<QuiltWebHost>` | `<LoadBalancerDNSName>` |
+| `<RegistryHost>` | `<LoadBalancerDNSName>` |
+| `<S3ProxyHost>`  | `<LoadBalancerDNSName>` |
 
 If your hosted zone is in **Route 53**, we recommend Route 53 alias
 records (record type `A`, alias target = `LoadBalancerDNSName`,
-hosted zone ID = `LoadBalancerCanonicalHostedZoneID`). Aliases incur no
-per-query DNS charges and can target a zone apex.
+hosted zone ID = `LoadBalancerCanonicalHostedZoneID`). Route 53 doesn't
+charge for alias queries to AWS resources like ALBs, and aliases work at
+the zone apex (which CNAMEs cannot).
 
 If your DNS is hosted elsewhere, use **CNAME** records pointing to
 `LoadBalancerDNSName`.
