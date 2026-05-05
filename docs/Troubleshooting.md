@@ -60,8 +60,9 @@ The following are common causes of failed logins. In most cases we recommend
 that you check the browser's network panel
 for details.
 
-1. SSO connector misconfigured. See [Single sign-on (SSO)](technical-reference.md#single-sign-on-sso) for
-   details.
+1. SSO connector misconfigured.
+   See [Single sign-on (SSO)](technical-reference.md#single-sign-on-sso)
+   for details.
 1. SSL errors are often caused by misspelled names, or incomplete Subject
 Alternate Names. The ACM certificate for `CertificateArnELB` must cover all
 three Quilt [hostnames](Catalog/Installation.md#dns-records) either via a

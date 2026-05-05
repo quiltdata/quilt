@@ -239,6 +239,7 @@ see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md)
 
 ### DNS records
 
+<!-- markdownlint-disable-next-line no-inline-html -->
 <a id="cnames"></a>
 
 In order for your users to reach the Quilt catalog you must create three DNS
