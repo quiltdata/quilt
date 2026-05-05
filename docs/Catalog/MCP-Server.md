@@ -109,6 +109,14 @@ Add the following to your MCP client configuration
 > Your administrator must include the client's custom scheme (e.g. `cursor://`)
 > in `ConnectAllowedHosts` for the OAuth flow to complete.
 
+### Connecting Databricks
+
+For Databricks Unity Catalog MCP connections, use the Connect Server host as
+the MCP server host (`https://<connect-host>`) and `/api` as the base path.
+OAuth discovery returns the issuer as the bare origin
+`https://<connect-host>`, while authorization, token, registration, and JWKS
+endpoints remain under `/auth/*` paths.
+
 ### User Authorization
 
 Each user must authorize their MCP connection once:

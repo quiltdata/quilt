@@ -66,6 +66,15 @@ Connect subdomain (typically `<stack-name>-connect.<your-domain>`):
 The final Connect Server hostname is available in the `ConnectHost`
 CloudFormation output.
 
+## OAuth Metadata
+
+Connect Server publishes OAuth authorization server metadata at
+`/.well-known/oauth-authorization-server` and OpenID metadata at
+`/.well-known/openid-configuration`. The `issuer` value is the bare Connect
+Server origin (`https://<connect-host>`) as required by RFC 8414. OAuth
+endpoints continue to live under `/auth/*`, including `/auth/token`,
+`/auth/register`, `/auth/revoke`, and `/auth/.well-known/jwks.json`.
+
 ## IP Allowlisting (Optional)
 
 To restrict which IP ranges can reach the Connect Server, create an EC2
