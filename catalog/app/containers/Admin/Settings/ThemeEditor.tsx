@@ -187,7 +187,7 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
     <div className={classes.root}>
       <div className={classes.dropzone} {...getRootProps()}>
         <input {...getInputProps()} />
-        <Preview source={value} blobUrl={blobUrl} invalid={!!meta?.error} />
+        <Preview source={value} blobUrl={blobUrl} invalid={!!error} />
         <p className={classes.note}>Drop logo here</p>
       </div>
       <div className={classes.or}>or</div>
