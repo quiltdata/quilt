@@ -93,10 +93,6 @@ const usePreviewStyles = M.makeStyles((t) => ({
     justifyContent: 'center',
     width: '50px',
   },
-  preview: {
-    height: '50px',
-    width: '50px',
-  },
 }))
 
 interface PreviewProps {
@@ -110,7 +106,7 @@ function Preview({ source, blobUrl, invalid }: PreviewProps) {
   if (!invalid) {
     if (typeof source === 'string' && source)
       return <Logo src={source} height="50px" width="50px" />
-    if (blobUrl) return <img className={classes.preview} src={blobUrl} />
+    if (blobUrl) return <Logo src={blobUrl} height="50px" width="50px" />
     return (
       <div className={classes.placeholder}>
         <M.Icon>hide_image</M.Icon>

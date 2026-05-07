@@ -48,14 +48,12 @@ describe('containers/Admin/Settings/ThemeEditor', () => {
       const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
 
       const file = new File(['x'], 'logo.png', { type: 'image/png' })
-      const { container, unmount } = renderWithTheme(
+      const { getByTestId, unmount } = renderWithTheme(
         <InputFile input={{ value: file, onChange: vi.fn() }} />,
       )
 
       expect(createSpy).toHaveBeenCalledWith(file)
-      const img = container.querySelector('img')
-      expect(img).not.toBeNull()
-      expect(img!.getAttribute('src')).toBe('blob:preview-url')
+      expect(getByTestId('logo').getAttribute('data-src')).toBe('blob:preview-url')
 
       unmount()
       expect(revokeSpy).toHaveBeenCalledWith('blob:preview-url')
