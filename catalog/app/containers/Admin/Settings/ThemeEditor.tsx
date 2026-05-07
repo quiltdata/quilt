@@ -119,28 +119,21 @@ const useInputFileStyles = M.makeStyles((t) => ({
 }))
 
 interface PreviewProps {
-  value: FileWithPath | string
-  previewUrl: string | null
+  source: FileWithPath | string
+  blobUrl: string | null
   invalid: boolean
 }
 
-function Preview({ value, previewUrl, invalid }: PreviewProps) {
+function Preview({ source, blobUrl, invalid }: PreviewProps) {
   const classes = useInputFileStyles()
-  if (!value)
-    return (
-      <div className={classes.placeholder}>
-        <M.Icon>hide_image</M.Icon>
-      </div>
-    )
-  if (typeof value !== 'string')
-    return previewUrl ? <img className={classes.preview} src={previewUrl} /> : null
-  if (invalid)
-    return (
-      <div className={classes.placeholder}>
-        <M.Icon>broken_image</M.Icon>
-      </div>
-    )
-  return <Logo src={value} height="50px" width="50px" />
+  const placeholder = (
+    <div className={classes.placeholder}>
+      <M.Icon>broken_image</M.Icon>
+    </div>
+  )
+  if (!source || invalid) return placeholder
+  if (typeof source === 'string') return <Logo src={source} height="50px" width="50px" />
+  return blobUrl ? <img className={classes.preview} src={blobUrl} /> : placeholder
 }
 
 interface InputFileProps {
@@ -170,21 +163,21 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
     ),
     onDrop,
   })
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+  const [blobUrl, setBlobUrl] = React.useState<string | null>(null)
   React.useEffect(() => {
     if (!value || typeof value === 'string') {
-      setPreviewUrl(null)
+      setBlobUrl(null)
       return undefined
     }
     const url = URL.createObjectURL(value)
-    setPreviewUrl(url)
+    setBlobUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [value])
   return (
     <div className={classes.root}>
       <div className={classes.dropzone} {...getRootProps()}>
         <input {...getInputProps()} />
-        <Preview value={value} previewUrl={previewUrl} invalid={!!meta?.error} />
+        <Preview source={value} blobUrl={blobUrl} invalid={!!meta?.error} />
         <p className={classes.note}>Drop logo here</p>
       </div>
       <div className={classes.or}>or</div>
