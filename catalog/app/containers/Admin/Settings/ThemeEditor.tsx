@@ -128,7 +128,8 @@ interface InputFileProps {
 }
 
 export function InputFile({ input: { value, onChange }, meta, errors }: InputFileProps) {
-  const error = meta?.submitFailed && (meta.error || meta.submitError)
+  const showError = meta?.modified || meta?.submitFailed
+  const error = showError && (meta?.error || meta?.submitError)
   const classes = useInputFileStyles()
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
@@ -155,11 +156,17 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
     return () => URL.revokeObjectURL(url)
   }, [value])
   const isUrl = typeof value === 'string' && value.length > 0
+  const isInvalidUrl = isUrl && !!meta?.error
   return (
     <div className={classes.root}>
       <div className={classes.dropzone} {...getRootProps()}>
         <input {...getInputProps()} />
-        {isUrl && <Logo src={value} height="50px" width="50px" />}
+        {isUrl && !isInvalidUrl && <Logo src={value} height="50px" width="50px" />}
+        {isInvalidUrl && (
+          <div className={classes.placeholder}>
+            <M.Icon>broken_image</M.Icon>
+          </div>
+        )}
         {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
         {!value && (
           <div className={classes.placeholder}>
@@ -398,11 +405,13 @@ export default function ThemeEditor() {
                       validators.composeOr(
                         validators.file,
                         validators.url,
+                        validators.s3Url,
                       ) as FF.FieldValidator<string>
                     }
                     errors={{
-                      url: 'Image should be a valid URL',
-                      file: 'Image should be file',
+                      url: 'Image should be a valid URL or S3 URL',
+                      s3Url: 'Image should be a valid URL or S3 URL',
+                      file: 'Image should be a file',
                     }}
                     disabled={submitting}
                     fullWidth
