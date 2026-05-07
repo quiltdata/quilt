@@ -111,6 +111,11 @@ function Preview({ source, blobUrl, invalid }: PreviewProps) {
     if (typeof source === 'string' && source)
       return <Logo src={source} height="50px" width="50px" />
     if (blobUrl) return <img className={classes.preview} src={blobUrl} />
+    return (
+      <div className={classes.placeholder}>
+        <M.Icon>hide_image</M.Icon>
+      </div>
+    )
   }
   return (
     <div className={classes.placeholder}>
