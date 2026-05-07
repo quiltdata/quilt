@@ -118,6 +118,31 @@ const useInputFileStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface PreviewProps {
+  value: FileWithPath | string
+  previewUrl: string | null
+  invalid: boolean
+}
+
+function Preview({ value, previewUrl, invalid }: PreviewProps) {
+  const classes = useInputFileStyles()
+  if (!value)
+    return (
+      <div className={classes.placeholder}>
+        <M.Icon>hide_image</M.Icon>
+      </div>
+    )
+  if (typeof value !== 'string')
+    return previewUrl ? <img className={classes.preview} src={previewUrl} /> : null
+  if (invalid)
+    return (
+      <div className={classes.placeholder}>
+        <M.Icon>broken_image</M.Icon>
+      </div>
+    )
+  return <Logo src={value} height="50px" width="50px" />
+}
+
 interface InputFileProps {
   input: {
     value: FileWithPath | string
@@ -155,29 +180,16 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
     setPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [value])
-  const isUrl = typeof value === 'string' && value.length > 0
-  const isInvalidUrl = isUrl && !!meta?.error
   return (
     <div className={classes.root}>
       <div className={classes.dropzone} {...getRootProps()}>
         <input {...getInputProps()} />
-        {isUrl && !isInvalidUrl && <Logo src={value} height="50px" width="50px" />}
-        {isInvalidUrl && (
-          <div className={classes.placeholder}>
-            <M.Icon>broken_image</M.Icon>
-          </div>
-        )}
-        {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
-        {!value && (
-          <div className={classes.placeholder}>
-            <M.Icon>hide_image</M.Icon>
-          </div>
-        )}
+        <Preview value={value} previewUrl={previewUrl} invalid={!!meta?.error} />
         <p className={classes.note}>Drop logo here</p>
       </div>
       <div className={classes.or}>or</div>
       <M.TextField
-        value={isUrl ? value : ''}
+        value={typeof value === 'string' ? value : ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder="https://example.com/logo.png"
         label="Logo URL"
@@ -409,8 +421,8 @@ export default function ThemeEditor() {
                       ) as FF.FieldValidator<string>
                     }
                     errors={{
-                      url: 'Image should be a valid URL or S3 URL',
-                      s3Url: 'Image should be a valid URL or S3 URL',
+                      url: 'Enter a valid URL (https:// or s3://)',
+                      s3Url: 'Enter a valid URL (https:// or s3://)',
                       file: 'Image should be a file',
                     }}
                     disabled={submitting}
