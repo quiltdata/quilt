@@ -84,6 +84,41 @@ function InputColor({
   )
 }
 
+const usePreviewStyles = M.makeStyles((t) => ({
+  placeholder: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.action.disabled}`,
+    display: 'flex',
+    height: '50px',
+    justifyContent: 'center',
+    width: '50px',
+  },
+  preview: {
+    height: '50px',
+    width: '50px',
+  },
+}))
+
+interface PreviewProps {
+  source: FileWithPath | string
+  blobUrl: string | null
+  invalid: boolean
+}
+
+function Preview({ source, blobUrl, invalid }: PreviewProps) {
+  const classes = usePreviewStyles()
+  if (!invalid) {
+    if (typeof source === 'string' && source)
+      return <Logo src={source} height="50px" width="50px" />
+    if (blobUrl) return <img className={classes.preview} src={blobUrl} />
+  }
+  return (
+    <div className={classes.placeholder}>
+      <M.Icon>broken_image</M.Icon>
+    </div>
+  )
+}
+
 const useInputFileStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
@@ -100,43 +135,11 @@ const useInputFileStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     textAlign: 'center',
   },
-  placeholder: {
-    alignItems: 'center',
-    border: `1px solid ${t.palette.action.disabled}`,
-    display: 'flex',
-    height: '50px',
-    justifyContent: 'center',
-    width: '50px',
-  },
-  preview: {
-    height: '50px',
-    width: '50px',
-  },
   or: {
     textAlign: 'center',
     color: t.palette.text.secondary,
   },
 }))
-
-interface PreviewProps {
-  source: FileWithPath | string
-  blobUrl: string | null
-  invalid: boolean
-}
-
-function Preview({ source, blobUrl, invalid }: PreviewProps) {
-  const classes = useInputFileStyles()
-  if (!invalid) {
-    if (typeof source === 'string' && source)
-      return <Logo src={source} height="50px" width="50px" />
-    if (blobUrl) return <img className={classes.preview} src={blobUrl} />
-  }
-  return (
-    <div className={classes.placeholder}>
-      <M.Icon>broken_image</M.Icon>
-    </div>
-  )
-}
 
 interface InputFileProps {
   input: {
