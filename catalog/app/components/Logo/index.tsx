@@ -40,8 +40,11 @@ function CustomLogo({ className, src, height, width }: LogoProps) {
   const sign = AWS.Signer.useS3Signer()
   const parsedSrc = React.useMemo(() => {
     if (!src || !s3paths.isS3Url(src)) return src
-    const location = s3paths.tryParseS3Url(src)
-    return location ? sign(location) : null
+    try {
+      return sign(s3paths.parseS3Url(src))
+    } catch {
+      return null
+    }
   }, [sign, src])
 
   React.useEffect(() => {

@@ -99,19 +99,6 @@ export const parseS3Url = (url: string): S3ObjectLocation => {
 }
 
 /**
- * Like {@link parseS3Url} but returns null instead of throwing when the URL
- * is malformed. Use this in render paths where a throw would unmount the
- * tree.
- */
-export const tryParseS3Url = (url: string): S3ObjectLocation | null => {
-  try {
-    return parseS3Url(url)
-  } catch {
-    return null
-  }
-}
-
-/**
  * Resolve an S3 key.
  */
 export const resolveKey = (from: string, to: string) =>
