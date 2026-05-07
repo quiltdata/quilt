@@ -65,4 +65,12 @@ describe('components/Logo', () => {
     expect(err).toBeInstanceOf(Error)
     expect(ctx).toEqual({ extra: { src: 's3://' } })
   })
+
+  it('should fall back to default logo when S3 URL has no key', () => {
+    const { container } = render(<Logo src="s3://bucket" height="10px" width="10px" />)
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('quilt')
+    expect(element.className).not.toContain('custom')
+    expect(captureException).toHaveBeenCalledTimes(1)
+  })
 })

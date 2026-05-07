@@ -41,7 +41,9 @@ function CustomLogo({ className, src, height, width }: LogoProps) {
   const parsedSrc = React.useMemo(() => {
     if (!src || !s3paths.isS3Url(src)) return src
     try {
-      return sign(s3paths.parseS3Url(src))
+      const parsed = s3paths.parseS3Url(src)
+      if (!parsed.key) return null
+      return sign(parsed)
     } catch {
       return null
     }

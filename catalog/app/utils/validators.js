@@ -1,6 +1,8 @@
 import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 
+import * as s3paths from './s3paths'
+
 /**
  * @typedef {function} TestFunction
  *
@@ -129,18 +131,18 @@ export const hexColor = (v) => {
 }
 
 /**
- * Validate that the string is a URL with a non-empty hostname.
- *
- * `new URL('s3://')` does not throw because non-special schemes are allowed
- * an empty host, but a hostless URL can't resolve to anything loadable, so
- * the hostname check is part of the contract.
+ * Validate that the string is a URL that can plausibly resolve to a logo
+ * image. Accepts http(s) URLs and `s3://bucket/key` URLs; rejects URLs
+ * without a hostname (e.g. `s3://`) and S3 URLs without a key
+ * (e.g. `s3://bucket`).
  */
-export const url = (v) => {
+export const logoUrl = (v) => {
   if (!v) return undefined
   try {
-    if (!new window.URL(v).hostname) return 'url'
+    if (!new window.URL(v).hostname) return 'logoUrl'
+    if (s3paths.isS3Url(v) && !s3paths.parseS3Url(v).key) return 'logoUrl'
   } catch (e) {
-    return 'url'
+    return 'logoUrl'
   }
   return undefined
 }

@@ -67,26 +67,32 @@ describe('utils/validators', () => {
     })
   })
 
-  describe('url', () => {
+  describe('logoUrl', () => {
     it('should return undefined for empty value', () => {
-      expect(validators.url('')).toBeUndefined()
-      expect(validators.url(null)).toBeUndefined()
+      expect(validators.logoUrl('')).toBeUndefined()
+      expect(validators.logoUrl(null)).toBeUndefined()
     })
 
-    it('should accept well-formed URLs with a hostname', () => {
-      expect(validators.url('https://example.com')).toBeUndefined()
-      expect(validators.url('https://example.com/logo.png')).toBeUndefined()
-      expect(validators.url('s3://bucket/key')).toBeUndefined()
+    it('should accept http(s) URLs and s3 URLs with a key', () => {
+      expect(validators.logoUrl('https://example.com')).toBeUndefined()
+      expect(validators.logoUrl('https://example.com/logo.png')).toBeUndefined()
+      expect(validators.logoUrl('s3://bucket/key')).toBeUndefined()
+      expect(validators.logoUrl('s3://bucket/path/to/logo.png')).toBeUndefined()
     })
 
     it('should reject malformed URLs', () => {
-      expect(validators.url('not a url')).toBe('url')
-      expect(validators.url('https:////')).toBe('url')
+      expect(validators.logoUrl('not a url')).toBe('logoUrl')
+      expect(validators.logoUrl('https:////')).toBe('logoUrl')
     })
 
     it('should reject URLs without a hostname (non-special schemes)', () => {
       // new URL('s3://') does not throw — non-special schemes allow empty host.
-      expect(validators.url('s3://')).toBe('url')
+      expect(validators.logoUrl('s3://')).toBe('logoUrl')
+    })
+
+    it('should reject s3 URLs without a key', () => {
+      expect(validators.logoUrl('s3://bucket')).toBe('logoUrl')
+      expect(validators.logoUrl('s3://bucket/')).toBe('logoUrl')
     })
   })
 
