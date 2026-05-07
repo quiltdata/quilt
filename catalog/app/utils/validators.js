@@ -140,6 +140,21 @@ export const url = (v) => {
   }
 }
 
+/**
+ * Stricter version of {@link url}: also rejects URLs without a hostname.
+ * `new URL('s3://')` does not throw because non-special schemes are allowed
+ * an empty host, but a hostless URL can't resolve to anything loadable.
+ */
+export const urlWithHost = (v) => {
+  if (!v) return undefined
+  try {
+    if (!new window.URL(v).hostname) return 'url'
+  } catch (e) {
+    return 'url'
+  }
+  return undefined
+}
+
 export const s3Url = (v) => {
   if (!v) return undefined
   try {

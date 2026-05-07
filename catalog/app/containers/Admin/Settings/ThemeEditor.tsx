@@ -261,19 +261,6 @@ function ThemePreview({}: ThemePreviewProps) {
   )
 }
 
-// Local strictening of `validators.url`: also rejects URLs without a hostname.
-// `new URL('s3://')` does not throw (non-special schemes allow empty host),
-// but a hostless URL can't load a logo, so treat it as invalid here.
-const urlWithHost = (v: string) => {
-  if (!v) return undefined
-  try {
-    if (!new URL(v).hostname) return 'url'
-  } catch {
-    return 'url'
-  }
-  return undefined
-}
-
 const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
@@ -432,7 +419,7 @@ export default function ThemeEditor() {
                     validate={
                       validators.composeOr(
                         validators.file,
-                        urlWithHost,
+                        validators.urlWithHost,
                         validators.s3Url,
                       ) as FF.FieldValidator<string>
                     }
