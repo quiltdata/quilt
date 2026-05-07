@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as Sentry from '@sentry/react'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
@@ -39,9 +40,22 @@ function CustomLogo({ className, src, height, width }: LogoProps) {
   const sign = AWS.Signer.useS3Signer()
   const parsedSrc = React.useMemo(() => {
     if (!src || !s3paths.isS3Url(src)) return src
-    return sign(s3paths.parseS3Url(src))
+    const location = s3paths.tryParseS3Url(src)
+    return location ? sign(location) : null
   }, [sign, src])
+
+  React.useEffect(() => {
+    if (parsedSrc === null) {
+      Sentry.captureException(new Error('Logo: malformed S3 URL'), {
+        extra: { src },
+      })
+    }
+  }, [parsedSrc, src])
+
   const classes = useStyles({ height, width })
+  if (parsedSrc === null) {
+    return <QuiltLogo className={className} height={height} width={width} />
+  }
   return <img src={parsedSrc} className={cx(classes.custom, className)} />
 }
 
