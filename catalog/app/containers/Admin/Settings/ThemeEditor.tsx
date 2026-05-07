@@ -126,14 +126,16 @@ interface PreviewProps {
 
 function Preview({ source, blobUrl, invalid }: PreviewProps) {
   const classes = useInputFileStyles()
-  const placeholder = (
+  if (!invalid) {
+    if (typeof source === 'string' && source)
+      return <Logo src={source} height="50px" width="50px" />
+    if (blobUrl) return <img className={classes.preview} src={blobUrl} />
+  }
+  return (
     <div className={classes.placeholder}>
       <M.Icon>broken_image</M.Icon>
     </div>
   )
-  if (!source || invalid) return placeholder
-  if (typeof source === 'string') return <Logo src={source} height="50px" width="50px" />
-  return blobUrl ? <img className={classes.preview} src={blobUrl} /> : placeholder
 }
 
 interface InputFileProps {
