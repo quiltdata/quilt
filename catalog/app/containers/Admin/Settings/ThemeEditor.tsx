@@ -419,13 +419,11 @@ export default function ThemeEditor() {
                     validate={
                       validators.composeOr(
                         validators.file,
-                        validators.urlWithHost,
-                        validators.s3Url,
+                        validators.url,
                       ) as FF.FieldValidator<string>
                     }
                     errors={{
                       url: 'Enter a valid URL (https:// or s3://)',
-                      s3Url: 'Enter a valid URL (https:// or s3://)',
                       file: 'Image should be a file',
                     }}
                     disabled={submitting}

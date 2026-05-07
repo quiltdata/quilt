@@ -1,8 +1,6 @@
 import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 
-import * as s3paths from './s3paths'
-
 /**
  * @typedef {function} TestFunction
  *
@@ -130,22 +128,14 @@ export const hexColor = (v) => {
   return matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)(v) ? undefined : 'hex'
 }
 
-export const url = (v) => {
-  if (!v) return undefined
-  try {
-    // if v is not valid URL, then URL will throws
-    new window.URL(v)
-  } catch (e) {
-    return 'url'
-  }
-}
-
 /**
- * Stricter version of {@link url}: also rejects URLs without a hostname.
+ * Validate that the string is a URL with a non-empty hostname.
+ *
  * `new URL('s3://')` does not throw because non-special schemes are allowed
- * an empty host, but a hostless URL can't resolve to anything loadable.
+ * an empty host, but a hostless URL can't resolve to anything loadable, so
+ * the hostname check is part of the contract.
  */
-export const urlWithHost = (v) => {
+export const url = (v) => {
   if (!v) return undefined
   try {
     if (!new window.URL(v).hostname) return 'url'
@@ -153,16 +143,6 @@ export const urlWithHost = (v) => {
     return 'url'
   }
   return undefined
-}
-
-export const s3Url = (v) => {
-  if (!v) return undefined
-  try {
-    const { bucket, key } = s3paths.parseS3Url(v)
-    if (!bucket || !key) return 's3Url'
-  } catch (e) {
-    return 's3Url'
-  }
 }
 
 export const file = (v) => {
