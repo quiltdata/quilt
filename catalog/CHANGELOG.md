@@ -18,8 +18,8 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Bundle only the highlight.js grammars the catalog uses (~35 languages, down from ~190); Markdown fences with unsupported labels render as plain monospace instead of being auto-detected, since auto-detection accuracy degrades sharply on a small registered set
-- [Added] Theme editor: drag-and-drop logo upload writes to the service bucket (`catalog/logo.<ext>`); the URL field remains for externally hosted logos ([#4781](https://github.com/quiltdata/quilt/pull/4781), [#4863](https://github.com/quiltdata/quilt/pull/4863))
+- [Changed] Bundle only the highlight.js grammars the catalog uses (~35 languages, down from ~190); Markdown fences with unsupported labels render as plain monospace instead of being auto-detected, since auto-detection accuracy degrades sharply on a small registered set ([#4883](https://github.com/quiltdata/quilt/pull/4883))
+- [Added] Theme editor: drag-and-drop logo upload writes to the service bucket (`catalog/logo.<ext>`); the URL field remains for externally hosted logos ([#4781](https://github.com/quiltdata/quilt/pull/4781), [#4863](https://github.com/quiltdata/quilt/pull/4863), [#4881](https://github.com/quiltdata/quilt/pull/4881))
 - [Added] Qurator: connect to the Quilt Platform MCP Server for ~25 tools (packages, search, S3, Athena, tabulator, `get_resource`); per-connector status with reconnect / continue-without controls in the chat input ([#4840](https://github.com/quiltdata/quilt/pull/4840))
 - [Changed] Qurator: replace `catalog_global_getObject` with `catalog_preview` (single `s3_uri` input); returns thumbnail-resized images, native Bedrock `Document` blocks for ≤500 KiB PDFs / Office docs, and language-tagged text ([#4840](https://github.com/quiltdata/quilt/pull/4840))
 - [Removed] Drop unused `linkedData` / `overviewUrl` code paths from the catalog: admin form fields, JSON-LD mounts, and the precomputed-summary S3 fetch branches ([#4856](https://github.com/quiltdata/quilt/pull/4856))

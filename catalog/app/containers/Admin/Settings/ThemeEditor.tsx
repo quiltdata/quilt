@@ -84,6 +84,42 @@ function InputColor({
   )
 }
 
+const usePreviewStyles = M.makeStyles((t) => ({
+  placeholder: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.action.disabled}`,
+    display: 'flex',
+    height: '50px',
+    justifyContent: 'center',
+    width: '50px',
+  },
+}))
+
+interface PreviewProps {
+  source: FileWithPath | string
+  blobUrl: string | null
+  invalid: boolean
+}
+
+function Preview({ source, blobUrl, invalid }: PreviewProps) {
+  const classes = usePreviewStyles()
+  if (!invalid) {
+    if (typeof source === 'string' && source)
+      return <Logo src={source} height="50px" width="50px" />
+    if (blobUrl) return <Logo src={blobUrl} height="50px" width="50px" />
+    return (
+      <div className={classes.placeholder}>
+        <M.Icon>hide_image</M.Icon>
+      </div>
+    )
+  }
+  return (
+    <div className={classes.placeholder}>
+      <M.Icon>broken_image</M.Icon>
+    </div>
+  )
+}
+
 const useInputFileStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
@@ -99,14 +135,6 @@ const useInputFileStyles = M.makeStyles((t) => ({
   note: {
     flexGrow: 1,
     textAlign: 'center',
-  },
-  placeholder: {
-    alignItems: 'center',
-    border: `1px solid ${t.palette.action.disabled}`,
-    display: 'flex',
-    height: '50px',
-    justifyContent: 'center',
-    width: '50px',
   },
   or: {
     textAlign: 'center',
@@ -124,7 +152,8 @@ interface InputFileProps {
 }
 
 export function InputFile({ input: { value, onChange }, meta, errors }: InputFileProps) {
-  const error = meta?.submitFailed && (meta.error || meta.submitError)
+  const showError = meta?.modified || meta?.submitFailed
+  const error = showError && (meta?.error || meta?.submitError)
   const classes = useInputFileStyles()
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
@@ -150,27 +179,16 @@ export function InputFile({ input: { value, onChange }, meta, errors }: InputFil
     setBlobUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [value])
-  const previewSrc = React.useMemo<string | null>(() => {
-    if (typeof value === 'string') return value || null
-    return blobUrl
-  }, [value, blobUrl])
-  const urlValue = typeof value === 'string' ? value : ''
   return (
     <div className={classes.root}>
       <div className={classes.dropzone} {...getRootProps()}>
         <input {...getInputProps()} />
-        {previewSrc ? (
-          <Logo src={previewSrc} height="50px" width="50px" />
-        ) : (
-          <div className={classes.placeholder}>
-            <M.Icon>hide_image</M.Icon>
-          </div>
-        )}
+        <Preview source={value} blobUrl={blobUrl} invalid={!!error} />
         <p className={classes.note}>Drop logo here</p>
       </div>
       <div className={classes.or}>or</div>
       <M.TextField
-        value={urlValue}
+        value={typeof value === 'string' ? value : ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder="https://example.com/logo.png"
         label="Logo URL"
@@ -397,12 +415,12 @@ export default function ThemeEditor() {
                     validate={
                       validators.composeOr(
                         validators.file,
-                        validators.url,
+                        validators.logoUrl,
                       ) as FF.FieldValidator<string>
                     }
                     errors={{
-                      url: 'Image should be a valid URL',
-                      file: 'Image should be file',
+                      logoUrl: 'Enter a valid URL (https:// or s3://bucket/key)',
+                      file: 'Image should be a file',
                     }}
                     disabled={submitting}
                     fullWidth
