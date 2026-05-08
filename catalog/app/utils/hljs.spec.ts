@@ -56,4 +56,10 @@ describe('utils/hljs', () => {
       expect(hljs.getLanguage(lang), `getLanguage(${lang})`).toBeTruthy()
     }
   })
+
+  it('resolves every language declared in REGISTERED_LANGUAGES', () => {
+    for (const lang of REGISTERED_LANGUAGES) {
+      expect(hljs.getLanguage(lang), `getLanguage(${lang})`).toBeTruthy()
+    }
+  })
 })
