@@ -1,12 +1,12 @@
-import hljs from 'highlight.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
 import * as Notifications from 'containers/Notifications'
 import copyToClipboard from 'utils/clipboard'
+import hljs, { RegisteredLanguage } from 'utils/hljs'
 
-function highlight(str: string, lang?: string) {
+function highlight(str: string, lang?: RegisteredLanguage) {
   if (lang && hljs.getLanguage(lang)) {
     try {
       const { value } = hljs.highlight(str, { language: lang })
@@ -21,7 +21,7 @@ function highlight(str: string, lang?: string) {
 
 interface LineOfCodeProps {
   className: string
-  hl: string
+  hl: RegisteredLanguage
   line: string
 }
 
@@ -70,7 +70,7 @@ interface CodeProps {
   lines: string[]
   className: string
   help: string
-  hl: string
+  hl: RegisteredLanguage
   label: string
 }
 

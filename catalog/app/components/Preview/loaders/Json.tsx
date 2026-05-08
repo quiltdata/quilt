@@ -1,9 +1,9 @@
-import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
+import hljs from 'utils/hljs'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'

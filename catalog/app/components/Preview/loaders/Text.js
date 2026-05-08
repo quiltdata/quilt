@@ -1,7 +1,8 @@
 import { basename } from 'path'
 
-import hljs from 'highlight.js'
 import * as R from 'ramda'
+
+import hljs from 'utils/hljs'
 
 import { PreviewData } from '../types'
 
@@ -12,7 +13,7 @@ export const MAX_BYTES = 10 * 1024
 
 export const FILE_TYPE = FileType.Text
 
-const LANGS = {
+export const LANGS = {
   accesslog: /\.log$/,
   bash: /\.(ba|z)?sh$/,
   clojure: /\.clj$/,

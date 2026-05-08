@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import createDOMPurify from 'dompurify'
-import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
 import * as React from 'react'
@@ -9,6 +8,7 @@ import { linkify } from 'remarkable/linkify'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
+import hljs from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
 import parseTasklist, { CheckboxContentToken } from './parseTasklist'
@@ -88,10 +88,12 @@ const SANITIZE_OPTS = {
 
 // TODO: switch to pluggable react-aware renderer
 // TODO: use react-router's Link component for local links
+// No `hljs.highlightAuto` fallback by design: `utils/hljs` registers ~35
+// languages instead of bundling all ~190, and auto-detection accuracy degrades
+// sharply on a small registered set. Unlabeled or unsupported fences render as
+// plain monospace via Remarkable's default escaping, matching the GitHub/Slack
+// UX. To support a new fence label, register it in `utils/hljs`.
 const highlight = (str: string, lang: string) => {
-  if (lang === 'none') {
-    return ''
-  }
   if (hljs.getLanguage(lang)) {
     try {
       return hljs.highlight(str, { language: lang }).value
@@ -99,16 +101,8 @@ const highlight = (str: string, lang: string) => {
       // istanbul ignore next
       console.error(err) // eslint-disable-line no-console
     }
-  } else {
-    try {
-      return hljs.highlightAuto(str).value
-    } catch (err) {
-      // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
-    }
   }
-  // istanbul ignore next
-  return '' // use external default escaping
+  return ''
 }
 
 interface RemarkableWithUtils extends Remarkable.Remarkable {

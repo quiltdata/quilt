@@ -1,9 +1,9 @@
-import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
 import { S3SummarizeHandle } from 'utils/LogicalKeyResolver'
+import hljs from 'utils/hljs'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
