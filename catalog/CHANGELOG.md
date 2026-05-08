@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Replace unmaintained `remarkable` with `markdown-it` for markdown rendering (same `linkify-it` engine, near drop-in) ([#4884](https://github.com/quiltdata/quilt/pull/4884))
 - [Added] Theme editor: drag-and-drop logo upload writes to the service bucket (`catalog/logo.<ext>`); the URL field remains for externally hosted logos ([#4781](https://github.com/quiltdata/quilt/pull/4781), [#4863](https://github.com/quiltdata/quilt/pull/4863), [#4881](https://github.com/quiltdata/quilt/pull/4881))
 - [Added] Qurator: connect to the Quilt Platform MCP Server for ~25 tools (packages, search, S3, Athena, tabulator, `get_resource`); per-connector status with reconnect / continue-without controls in the chat input ([#4840](https://github.com/quiltdata/quilt/pull/4840))
 - [Changed] Qurator: replace `catalog_global_getObject` with `catalog_preview` (single `s3_uri` input); returns thumbnail-resized images, native Bedrock `Document` blocks for ≤500 KiB PDFs / Office docs, and language-tagged text ([#4840](https://github.com/quiltdata/quilt/pull/4840))
