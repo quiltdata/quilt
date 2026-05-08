@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
+import assertNever from 'utils/assertNever'
 import * as s3paths from 'utils/s3paths'
 
 import quilt from './quilt.png'
@@ -36,32 +37,40 @@ function QuiltLogo({ className, height, width }: LogoProps) {
   return <div className={cx(classes.quilt, className)} />
 }
 
-function CustomLogo({ className, src, height, width }: LogoProps) {
+type ParsedSrc =
+  | { _tag: 'ok'; src: string }
+  | { _tag: 'error'; error: unknown; src: string }
+
+function CustomLogo({ className, src, height, width }: LogoProps & { src: string }) {
   const sign = AWS.Signer.useS3Signer()
-  const parsedSrc = React.useMemo(() => {
-    if (!src || !s3paths.isS3Url(src)) return src
+  const parsedSrc = React.useMemo<ParsedSrc>(() => {
+    if (!s3paths.isS3Url(src)) return { _tag: 'ok', src }
     try {
       const parsed = s3paths.parseS3Url(src)
-      if (!parsed.key) return null
-      return sign(parsed)
-    } catch {
-      return null
+      if (!parsed.key) {
+        return { _tag: 'error', error: new Error('S3 URL has no key'), src }
+      }
+      return { _tag: 'ok', src: sign(parsed) }
+    } catch (error) {
+      return { _tag: 'error', error, src }
     }
   }, [sign, src])
 
   React.useEffect(() => {
-    if (parsedSrc === null) {
-      Sentry.captureException(new Error('Logo: malformed S3 URL'), {
-        extra: { src },
-      })
+    if (parsedSrc._tag === 'error') {
+      Sentry.captureException(parsedSrc.error, { extra: { src: parsedSrc.src } })
     }
-  }, [parsedSrc, src])
+  }, [parsedSrc])
 
   const classes = useStyles({ height, width })
-  if (parsedSrc === null) {
-    return <QuiltLogo className={className} height={height} width={width} />
+  switch (parsedSrc._tag) {
+    case 'ok':
+      return <img src={parsedSrc.src} className={cx(classes.custom, className)} />
+    case 'error':
+      return <QuiltLogo className={className} height={height} width={width} />
+    default:
+      assertNever(parsedSrc)
   }
-  return <img src={parsedSrc} className={cx(classes.custom, className)} />
 }
 
 export default function Logo({ src, ...rest }: LogoProps) {
