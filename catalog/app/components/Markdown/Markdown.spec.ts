@@ -109,5 +109,10 @@ describe('components/Markdown', () => {
     it('preserves escape sequences in alt text', () => {
       expect(renderPlain('![a\\!b](x.png)')).toMatch(/alt="a!b"/)
     })
+    it('preserves line breaks in multi-line alt text', () => {
+      expect(renderPlain('![line one\nline two](x.png)')).toMatch(
+        /alt="line one\nline two"/,
+      )
+    })
   })
 })

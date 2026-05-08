@@ -140,9 +140,11 @@ const imageAltHandler = (md: MarkdownIt) => {
     const token = tokens[idx]
     const altIdx = token.attrIndex('alt')
     const alt = (token.children ?? [])
-      .map((child) =>
-        child.type === 'text' || child.type === 'text_special' ? child.content : '',
-      )
+      .map((child) => {
+        if (child.type === 'text' || child.type === 'text_special') return child.content
+        if (child.type === 'softbreak' || child.type === 'hardbreak') return '\n'
+        return ''
+      })
       .join('')
     if (altIdx >= 0 && token.attrs) token.attrs[altIdx][1] = alt
     return self.renderToken(tokens, idx, options)
@@ -164,6 +166,11 @@ function handleImage(process: AttributeProcessor, element: Element) {
 
   const alt = element.getAttribute('alt')
   if (alt) {
+    // For markdown image syntax this is a no-op — `imageAltHandler` already
+    // decoded backslash escapes and HTML entities at the token level. The call
+    // still does work for raw HTML `<img alt="...">` written directly in
+    // markdown source (markdown-it passes those through untouched), preserving
+    // pre-migration behavior under `remarkable`'s `unescapeMd`.
     element.setAttribute('alt', unescapeAll(alt))
   }
 }
