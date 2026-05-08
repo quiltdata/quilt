@@ -1,6 +1,6 @@
-import type { Remarkable } from 'remarkable'
+import type { StateInline, Token } from 'markdown-it'
 
-export interface CheckboxContentToken extends Remarkable.ContentToken {
+export interface CheckboxContentToken extends Token {
   checked: boolean
 }
 
@@ -12,8 +12,7 @@ const isCross = (str: string, charPosition: number) =>
   isChar(120, str, charPosition) || isChar(88, str, charPosition)
 const isSpace = isChar.bind(null, 32)
 
-// TODO: Wait for https://github.com/jonschlinkert/remarkable/pull/401 and then remove
-export default function parseTasklist(state: Remarkable.StateInline) {
+export default function parseTasklist(state: StateInline) {
   const charPosition = state.pos
 
   if (charPosition === state.posMax) return false
@@ -21,11 +20,8 @@ export default function parseTasklist(state: Remarkable.StateInline) {
 
   const nextCharPosition = charPosition + 1
   if (isCloseBracket(state.src, nextCharPosition)) {
-    state.push({
-      type: 'tasklist',
-      checked: false,
-      level: state.level,
-    } as CheckboxContentToken)
+    const token = state.push('tasklist', '', 0)
+    ;(token as CheckboxContentToken).checked = false
     state.pos = nextCharPosition + 1
     return true
   }
@@ -34,11 +30,8 @@ export default function parseTasklist(state: Remarkable.StateInline) {
     const lastCharPosition = nextCharPosition + 1
     if (!isCloseBracket(state.src, lastCharPosition)) return false
 
-    state.push({
-      type: 'tasklist',
-      checked: isCross(state.src, nextCharPosition),
-      level: state.level,
-    } as CheckboxContentToken)
+    const token = state.push('tasklist', '', 0)
+    ;(token as CheckboxContentToken).checked = isCross(state.src, nextCharPosition)
     state.pos = lastCharPosition + 1
     return true
   }

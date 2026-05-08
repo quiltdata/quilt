@@ -4,8 +4,7 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
 import * as React from 'react'
-import * as Remarkable from 'remarkable'
-import { linkify } from 'remarkable/linkify'
+import MarkdownIt from 'markdown-it'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
@@ -22,6 +21,17 @@ import parseTasklist, { CheckboxContentToken } from './parseTasklist'
  * I opted not to include UI tags (opt, optgroup); ditto for base, body, head,
  * meta, title
  * which shouldn't be needed
+ *
+ * NOTE: this allowlist is the union of two categories:
+ * (a) tags emitted by the markdown-it parser with the options we enable
+ *     (default preset + linkify + typographer + the `s` rule for ~~strike~~);
+ * (b) tags that can reach the sanitizer via raw HTML pass-through (`html: true`)
+ *     when authors embed inline HTML in markdown source.
+ * Examples in category (b): abbr, dd, dl, dt, ins, mark, sub, sup, del — none
+ * of these are produced by the parser today, but stripping them silently from
+ * raw HTML would be a regression vs the previous remarkable-based pipeline.
+ * If we add a markdown-it plugin (e.g. markdown-it-abbr, -mark, -sub, -sup,
+ * -ins, -deflist, -footnote) the corresponding tags are already covered here.
  */
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
@@ -67,6 +77,7 @@ const SANITIZE_OPTS = {
     'p',
     'param',
     'pre',
+    's',
     'section',
     'span',
     'strong',
@@ -111,19 +122,31 @@ const highlight = (str: string, lang: string) => {
   return '' // use external default escaping
 }
 
-interface RemarkableWithUtils extends Remarkable.Remarkable {
-  // NOTE: Remarkable.Remarkable doesn't export utils
-  utils: {
-    unescapeMd: (str: string) => string
-  }
-}
+const { unescapeAll } = new MarkdownIt().utils
 
-const { unescapeMd } = (Remarkable as unknown as RemarkableWithUtils).utils
-
-const checkboxHandler = (md: Remarkable.Remarkable) => {
-  md.inline.ruler.push('tasklist', parseTasklist, {})
+const checkboxHandler = (md: MarkdownIt) => {
+  md.inline.ruler.push('tasklist', parseTasklist)
   md.renderer.rules.tasklist = (tokens, idx) =>
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
+}
+
+// Override the default image renderer to preserve backslash-escaped punctuation
+// in alt text. markdown-it's built-in `renderInlineAsText` (used for the `alt`
+// attribute) skips `text_special` tokens, so `\!` would be dropped instead of
+// decoded to `!`. We walk the children ourselves and read `content`, which
+// already holds the decoded character.
+const imageAltHandler = (md: MarkdownIt) => {
+  md.renderer.rules.image = (tokens, idx, options, _env, self) => {
+    const token = tokens[idx]
+    const altIdx = token.attrIndex('alt')
+    const alt = (token.children ?? [])
+      .map((child) =>
+        child.type === 'text' || child.type === 'text_special' ? child.content : '',
+      )
+      .join('')
+    if (altIdx >= 0 && token.attrs) token.attrs[altIdx][1] = alt
+    return self.renderToken(tokens, idx, options)
+  }
 }
 
 type AttributeProcessor = (attr: string) => string
@@ -141,7 +164,7 @@ function handleImage(process: AttributeProcessor, element: Element) {
 
   const alt = element.getAttribute('alt')
   if (alt) {
-    element.setAttribute('alt', unescapeMd(alt))
+    element.setAttribute('alt', unescapeAll(alt))
   }
 }
 
@@ -178,12 +201,14 @@ interface RendererArgs {
 
 export const getRenderer = memoize(
   ({ processImg, processLink, win = window }: RendererArgs) => {
-    const md = new Remarkable.Remarkable('full', {
+    const md = new MarkdownIt({
       highlight,
       html: true,
+      linkify: true,
       typographer: true,
-    }).use(linkify)
+    })
     md.use(checkboxHandler)
+    md.use(imageAltHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(
       'uponSanitizeElement',

@@ -73,5 +73,41 @@ describe('components/Markdown', () => {
       const output = `<p><a rel="nofollow">title</a> <img alt=""></p>\n`
       expect(withInvalidAttributes(input)).toBe(output)
     })
+
+    const renderPlain = getRenderer({
+      processImg: (s) => s,
+      processLink: (s) => s,
+      win: win as $TSFixMe,
+    })
+
+    it('renders fenced code with language via highlight.js', () => {
+      const html = renderPlain('```js\nconst x = 1\n```')
+      expect(html).toContain('hljs')
+      expect(html).toMatch(/language-js/)
+    })
+    it('autolinks bare URLs (linkify)', () => {
+      expect(renderPlain('see https://example.com')).toContain(
+        'href="https://example.com"',
+      )
+    })
+    it('adds nofollow rel to links', () => {
+      expect(renderPlain('[x](https://example.com)')).toMatch(/rel="[^"]*nofollow/)
+    })
+    it('renders tasklist glyphs', () => {
+      const html = renderPlain('- [x] done\n- [ ] todo\n- [] none')
+      expect(html).toContain('☑')
+      expect(html).toContain('☐')
+    })
+    it('typographer: (c) → ©, -- → en-dash', () => {
+      const html = renderPlain('(c) -- test')
+      expect(html).toContain('©')
+      expect(html).toContain('–')
+    })
+    it('strips <script> via DOMPurify', () => {
+      expect(renderPlain('<script>alert(1)</script>')).not.toContain('<script')
+    })
+    it('preserves escape sequences in alt text', () => {
+      expect(renderPlain('![a\\!b](x.png)')).toMatch(/alt="a!b"/)
+    })
   })
 })
