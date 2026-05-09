@@ -111,11 +111,46 @@ Add the following to your MCP client configuration
 
 ### Connecting Databricks
 
-For Databricks Unity Catalog MCP connections, use the same MCP endpoint as
-other clients: `https://<connect-host>/mcp/platform/mcp`. OAuth discovery
-returns the issuer as the bare origin `https://<connect-host>`, while
-authorization, token, registration, and JWKS endpoints remain under `/auth/*`
-paths.
+Databricks Apps MCP connections require explicit `:443` in the URLs they
+compare against the OAuth issuer origin. Quilt Connect emits `:443`-explicit
+metadata so Databricks DCR (Dynamic Client Registration) and origin checks
+succeed. Use the following fields when creating the connection in the
+Databricks Catalog **HTTP connection** UI:
+
+<!-- markdownlint-disable line-length -->
+| Field | Value |
+| --- | --- |
+| Connection type | `HTTP` |
+| Is MCP connection | `true` |
+| Host | `https://<connect-host>` |
+| Base path | `/mcp/platform/mcp` |
+| URL | `https://<connect-host>:443/mcp/platform/mcp` |
+| OAuth issuer (from discovery) | `https://<connect-host>:443` |
+| Authorization endpoint | `https://<connect-host>:443/connect/authorize` (served on the Connect origin; redirects to the catalog UI) |
+| Token endpoint | `https://<connect-host>:443/auth/token` |
+| Registration endpoint | `https://<connect-host>:443/auth/register` |
+| JWKS URI | `https://<connect-host>:443/auth/.well-known/jwks.json` |
+| OAuth redirect URI (set by Databricks) | `https://<region>.cloud.databricks.com/api/2.0/http/oauth/redirect` |
+<!-- markdownlint-enable line-length -->
+
+The redirect URI is determined by the Databricks workspace region (for
+example `oregon.cloud.databricks.com`). Your Quilt administrator must include
+`.cloud.databricks.com` (note the leading dot — subdomain wildcard) in
+`ConnectAllowedHosts` so DCR accepts that redirect URI. See
+[Connect Server `ConnectAllowedHosts` entry formats](Connect.md#connectallowedhosts-entry-formats).
+
+> **Serverless egress caveat.** Databricks Apps and serving endpoints run on
+> a serverless network plane that blocks outbound traffic by default. Even
+> after the connection is created and OAuth succeeds, tool listing will fail
+> with `Access to <connect-host> is denied because of serverless network
+> policy` unless your Databricks workspace's serverless network policy
+> allows outbound HTTPS (port 443) to **both**:
+>
+> - `<connect-host>` (the Connect Server FQDN), and
+> - `<catalog-host>` (the Quilt catalog FQDN that serves `/connect/authorize`).
+>
+> Configure these in Databricks under serverless network policies; see
+> [Databricks serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies).
 
 ### User Authorization
 
