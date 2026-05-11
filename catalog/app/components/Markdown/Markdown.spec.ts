@@ -145,5 +145,16 @@ describe('components/Markdown', () => {
       const input = '<script>alert(1)</script>'
       expect(render(input)).toMatchInlineSnapshot(`""`)
     })
+
+    // Regression for the silent-mode bug in `parseTasklist`: when markdown-it's
+    // `parseLinkLabel` calls `skipToken` to scan past inner tokens, our rule
+    // must not push tokens — otherwise the image label is corrupted.
+    it('Renders tasklist nested inside image label', () => {
+      const input = '![ [x] image](url)'
+      expect(render(input)).toMatchInlineSnapshot(`
+        "<p><img alt="image" src="https://image/url"></p>
+        "
+      `)
+    })
   })
 })

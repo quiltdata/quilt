@@ -66,4 +66,18 @@ describe('components/Markdown/parseTasklist', () => {
     tasklist.parse(state)
     expect(state.tokens).toMatchObject([])
   })
+  it('In silent mode, advances pos and returns true without pushing tokens', () => {
+    const state = createState('[x]')
+    const matched = tasklist.parse(state, true)
+    expect(matched).toBe(true)
+    expect(state.pos).toBe(3)
+    expect(state.tokens).toMatchObject([])
+  })
+  it('In silent mode, returns false without advancing pos when no match', () => {
+    const state = createState('foobar')
+    const matched = tasklist.parse(state, true)
+    expect(matched).toBe(false)
+    expect(state.pos).toBe(0)
+    expect(state.tokens).toMatchObject([])
+  })
 })
