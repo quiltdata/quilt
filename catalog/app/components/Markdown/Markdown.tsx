@@ -27,9 +27,7 @@ import * as tasklist from './parseTasklist'
  *     (default preset, which already includes ~~strike~~, + linkify + typographer);
  * (b) tags that can reach the sanitizer via raw HTML pass-through (`html: true`)
  *     when authors embed inline HTML in markdown source.
- * Examples in category (b): input, abbr, dd, dl, dt, ins, mark, sub, sup, del —
- * none of these are produced by the parser today, but stripping them silently
- * from raw HTML would be a regression vs the previous remarkable-based pipeline.
+ * Examples in category (b): input, abbr, dd, dl, dt, ins, mark, sub, sup, del.
  * If we add a markdown-it plugin (e.g. markdown-it-abbr, -mark, -sub, -sup,
  * -ins, -deflist, -footnote) the corresponding tags are already covered here.
  */
