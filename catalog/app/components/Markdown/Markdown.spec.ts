@@ -56,7 +56,7 @@ describe('components/Markdown', () => {
       expect(hack('<a href="anything">l</a>')).toBe('<p><a rel="nofollow">l</a></p>\n')
     })
 
-    it('should strip invalid attributes', () => {
+    it('Strip invalid attributes', () => {
       const withInvalidAttributes = getRenderer({
         processImg: () => {
           throw new Error('processImg error')
@@ -80,40 +80,52 @@ describe('components/Markdown', () => {
       win: win as $TSFixMe,
     })
 
-    it('renders fenced code with language via highlight.js', () => {
-      const html = renderPlain('```js\nconst x = 1\n```')
-      expect(html).toContain('hljs')
-      expect(html).toMatch(/language-js/)
+    it('Highlight fenced code via highlight.js', () => {
+      const input = '```js\nconst x = 1\n```'
+      const output = `<pre><code class="language-js"><span class="hljs-keyword">const</span> x = <span class="hljs-number">1</span>\n</code></pre>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('autolinks bare URLs (linkify)', () => {
-      expect(renderPlain('see https://example.com')).toContain(
-        'href="https://example.com"',
-      )
+
+    it('Autolink bare URLs', () => {
+      const input = 'see https://example.com'
+      const output = `<p>see <a rel="nofollow" href="https://example.com">https://example.com</a></p>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('adds nofollow rel to links', () => {
-      expect(renderPlain('[x](https://example.com)')).toMatch(/rel="[^"]*nofollow/)
+
+    it('Add nofollow rel to links', () => {
+      const input = '[x](https://example.com)'
+      const output = `<p><a rel="nofollow" href="https://example.com">x</a></p>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('renders tasklist glyphs', () => {
-      const html = renderPlain('- [x] done\n- [ ] todo\n- [] none')
-      expect(html).toContain('☑')
-      expect(html).toContain('☐')
+
+    it('Render tasklist glyphs', () => {
+      const input = '- [x] done\n- [ ] todo\n- [] none'
+      const output = `<ul>\n<li>☑ done</li>\n<li>☐ todo</li>\n<li>☐ none</li>\n</ul>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('does not render tasklist glyph for escaped brackets', () => {
-      const html = renderPlain('\\[x] not a checkbox')
-      expect(html).not.toContain('☑')
-      expect(html).not.toContain('☐')
+
+    it('Skip tasklist glyph for escaped brackets', () => {
+      const input = '\\[x] not a checkbox'
+      const output = `<p>[x] not a checkbox</p>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('does not render tasklist glyph mid-word', () => {
-      const html = renderPlain('foo[x]bar')
-      expect(html).not.toContain('☑')
+
+    it('Skip tasklist glyph mid-word', () => {
+      const input = 'foo[x]bar'
+      const output = `<p>foo[x]bar</p>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('typographer: (c) → ©, -- → en-dash', () => {
-      const html = renderPlain('(c) -- test')
-      expect(html).toContain('©')
-      expect(html).toContain('–')
+
+    it('Apply typographer replacements', () => {
+      const input = '(c) -- test'
+      const output = `<p>© – test</p>\n`
+      expect(renderPlain(input)).toBe(output)
     })
-    it('strips <script> via DOMPurify', () => {
-      expect(renderPlain('<script>alert(1)</script>')).not.toContain('<script')
+
+    it('Strip <script> via DOMPurify', () => {
+      const input = '<script>alert(1)</script>'
+      const output = ``
+      expect(renderPlain(input)).toBe(output)
     })
   })
 })
