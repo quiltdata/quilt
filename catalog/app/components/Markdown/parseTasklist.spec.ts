@@ -21,22 +21,22 @@ function createState(src: string, pos = 0) {
 }
 
 describe('components/Markdown/parseTasklist', () => {
-  it('Detect empty checkbox', () => {
+  it('Detects empty checkbox', () => {
     const state = createState('[]')
     tasklist.parse(state)
     expect(state.tokens).toMatchObject([{ type: tasklist.UNCHECKED }])
   })
-  it('Detect empty checkbox with space inside', () => {
+  it('Detects empty checkbox with space inside', () => {
     const state = createState('[ ]')
     tasklist.parse(state)
     expect(state.tokens).toMatchObject([{ type: tasklist.UNCHECKED }])
   })
-  it('Detect checked checkbox', () => {
+  it('Detects checked checkbox', () => {
     const state = createState('[x]')
     tasklist.parse(state)
     expect(state.tokens).toMatchObject([{ type: tasklist.CHECKED }])
   })
-  it('Detect checked checkbox with uppercase X', () => {
+  it('Detects checked checkbox with uppercase X', () => {
     const state = createState('[X]')
     tasklist.parse(state)
     expect(state.tokens).toMatchObject([{ type: tasklist.CHECKED }])
