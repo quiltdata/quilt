@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/react'
 
 import { linkStyle } from 'utils/StyledLink'
 
-import parseTasklist, { CheckboxContentToken } from './parseTasklist'
+import * as tasklist from './parseTasklist'
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
@@ -24,12 +24,12 @@ import parseTasklist, { CheckboxContentToken } from './parseTasklist'
  *
  * NOTE: this allowlist is the union of two categories:
  * (a) tags emitted by the markdown-it parser with the options we enable
- *     (default preset + linkify + typographer + the `s` rule for ~~strike~~);
+ *     (default preset, which already includes ~~strike~~, + linkify + typographer);
  * (b) tags that can reach the sanitizer via raw HTML pass-through (`html: true`)
  *     when authors embed inline HTML in markdown source.
- * Examples in category (b): abbr, dd, dl, dt, ins, mark, sub, sup, del — none
- * of these are produced by the parser today, but stripping them silently from
- * raw HTML would be a regression vs the previous remarkable-based pipeline.
+ * Examples in category (b): input, abbr, dd, dl, dt, ins, mark, sub, sup, del —
+ * none of these are produced by the parser today, but stripping them silently
+ * from raw HTML would be a regression vs the previous remarkable-based pipeline.
  * If we add a markdown-it plugin (e.g. markdown-it-abbr, -mark, -sub, -sup,
  * -ins, -deflist, -footnote) the corresponding tags are already covered here.
  */
@@ -122,33 +122,10 @@ const highlight = (str: string, lang: string) => {
   return '' // use external default escaping
 }
 
-const { unescapeAll } = new MarkdownIt().utils
-
 const checkboxHandler = (md: MarkdownIt) => {
-  md.inline.ruler.push('tasklist', parseTasklist)
-  md.renderer.rules.tasklist = (tokens, idx) =>
-    (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
-}
-
-// Override the default image renderer to preserve backslash-escaped punctuation
-// in alt text. markdown-it's built-in `renderInlineAsText` (used for the `alt`
-// attribute) skips `text_special` tokens, so `\!` would be dropped instead of
-// decoded to `!`. We walk the children ourselves and read `content`, which
-// already holds the decoded character.
-const imageAltHandler = (md: MarkdownIt) => {
-  md.renderer.rules.image = (tokens, idx, options, _env, self) => {
-    const token = tokens[idx]
-    const altIdx = token.attrIndex('alt')
-    const alt = (token.children ?? [])
-      .map((child) => {
-        if (child.type === 'text' || child.type === 'text_special') return child.content
-        if (child.type === 'softbreak' || child.type === 'hardbreak') return '\n'
-        return ''
-      })
-      .join('')
-    if (altIdx >= 0 && token.attrs) token.attrs[altIdx][1] = alt
-    return self.renderToken(tokens, idx, options)
-  }
+  md.inline.ruler.push('tasklist', tasklist.parse)
+  md.renderer.rules[tasklist.CHECKED] = () => '☑'
+  md.renderer.rules[tasklist.UNCHECKED] = () => '☐'
 }
 
 type AttributeProcessor = (attr: string) => string
@@ -162,16 +139,6 @@ function handleImage(process: AttributeProcessor, element: Element) {
   } catch (e) {
     element.removeAttribute('src')
     Sentry.captureException(e)
-  }
-
-  const alt = element.getAttribute('alt')
-  if (alt) {
-    // For markdown image syntax this is a no-op — `imageAltHandler` already
-    // decoded backslash escapes and HTML entities at the token level. The call
-    // still does work for raw HTML `<img alt="...">` written directly in
-    // markdown source (markdown-it passes those through untouched), preserving
-    // pre-migration behavior under `remarkable`'s `unescapeMd`.
-    element.setAttribute('alt', unescapeAll(alt))
   }
 }
 
@@ -215,7 +182,6 @@ export const getRenderer = memoize(
       typographer: true,
     })
     md.use(checkboxHandler)
-    md.use(imageAltHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(
       'uponSanitizeElement',

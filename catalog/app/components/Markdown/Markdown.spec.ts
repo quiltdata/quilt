@@ -98,6 +98,15 @@ describe('components/Markdown', () => {
       expect(html).toContain('☑')
       expect(html).toContain('☐')
     })
+    it('does not render tasklist glyph for escaped brackets', () => {
+      const html = renderPlain('\\[x] not a checkbox')
+      expect(html).not.toContain('☑')
+      expect(html).not.toContain('☐')
+    })
+    it('does not render tasklist glyph mid-word', () => {
+      const html = renderPlain('foo[x]bar')
+      expect(html).not.toContain('☑')
+    })
     it('typographer: (c) → ©, -- → en-dash', () => {
       const html = renderPlain('(c) -- test')
       expect(html).toContain('©')
@@ -105,14 +114,6 @@ describe('components/Markdown', () => {
     })
     it('strips <script> via DOMPurify', () => {
       expect(renderPlain('<script>alert(1)</script>')).not.toContain('<script')
-    })
-    it('preserves escape sequences in alt text', () => {
-      expect(renderPlain('![a\\!b](x.png)')).toMatch(/alt="a!b"/)
-    })
-    it('preserves line breaks in multi-line alt text', () => {
-      expect(renderPlain('![line one\nline two](x.png)')).toMatch(
-        /alt="line one\nline two"/,
-      )
     })
   })
 })
