@@ -400,11 +400,9 @@ def _preview_h5ad_inner(src, counter, max_out_size):
             output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
             matrix_preview, matrix_preview_error = _extract_matrix_preview(adata)
-    except (OSError, KeyError, ValueError, RuntimeError) as exc:
-        return _h5ad_error_response(exc, counter.stats())
     except Exception as exc:  # noqa: BLE001 - catch h5py / anndata family
-        # h5py raises a custom hierarchy that does not all derive from OSError
-        # (e.g. h5py._hl.files.FileError); fall through here for those.
+        # h5py / anndata raise a wide hierarchy (OSError, KeyError, ValueError,
+        # RuntimeError, plus custom types like h5py._hl.files.FileError).
         return _h5ad_error_response(exc, counter.stats())
 
     info = {

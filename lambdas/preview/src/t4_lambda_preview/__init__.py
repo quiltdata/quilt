@@ -357,6 +357,9 @@ def extract_txt(head, raw_preamble: bytes = b'', skip_sniff_labels=()):
     `skip_sniff_labels` lets callers suppress specific magic-byte checks
     (e.g. 'gzip' when gzip compression was explicitly declared).
     """
+    # Materialize head up front so the fallback path can sniff without
+    # exhausting a generator passed in by the caller.
+    head = list(head) if head is not None else []
     if raw_preamble:
         sample = raw_preamble[:BINARY_SNIFF_BYTES]
     else:

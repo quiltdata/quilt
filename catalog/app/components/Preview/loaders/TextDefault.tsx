@@ -9,8 +9,6 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import AsyncResult from 'utils/AsyncResult'
-
 import { PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
@@ -97,7 +95,7 @@ export const Loader = function TextDefaultLoader({ handle, children }: LoaderPro
     },
     [handle.logicalKey, handle.key],
   )
-  return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
+  return <>{children(utils.useErrorHandling(processed, { handle, retry: fetch }))}</>
 }
 
 export default {
@@ -105,6 +103,3 @@ export default {
   FILE_TYPE,
   Loader,
 }
-
-// Suppress AsyncResult unused-import warning under noUnusedLocals
-void AsyncResult
