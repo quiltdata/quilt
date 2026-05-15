@@ -15,6 +15,18 @@ def patch_urlopen(data: bytes):
     return mock.patch("t4_lambda_tabular_preview.urlopen", return_value=io.BytesIO(data))
 
 
+def make_event(query, headers=None):
+    return {
+        "httpMethod": "POST",
+        "path": "/foo",
+        "pathParameters": {},
+        "queryStringParameters": query or None,
+        "headers": headers or None,
+        "body": None,
+        "isBase64Encoded": False,
+    }
+
+
 @pytest.mark.parametrize(
     "data, handler_name",
     [
@@ -207,7 +219,7 @@ def test_is_s3_url_rejects_local_proxy_url():
 
 def test_lambda_handler_rejects_local_url():
     response = t4_lambda_tabular_preview.lambda_handler(
-        _make_event({"url": "http://localhost:3000/not-a-proxy/sample.csv", "input": "csv"}),
+        make_event({"url": "http://localhost:3000/not-a-proxy/sample.csv", "input": "csv"}),
         None,
     )
 
