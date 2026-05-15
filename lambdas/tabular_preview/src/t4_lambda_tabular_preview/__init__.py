@@ -248,8 +248,124 @@ def preview_parquet(url, compression, max_out_size):
     )
 
 
+class _ReadCounter:
+    """Wrap a seekable byte-stream so we can count reads.
+
+    Used as telemetry to confirm that h5py/anndata pull only ranges of a
+    remote file (S3 via fsspec) rather than downloading the full object.
+    All attribute access falls through to the wrapped file; we only
+    intercept read()/readinto() to measure.
+    """
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.range_request_count = 0
+        self.total_bytes_read = 0
+        self.max_single_read = 0
+
+    def _record(self, n: int):
+        self.range_request_count += 1
+        self.total_bytes_read += max(n, 0)
+        if n > self.max_single_read:
+            self.max_single_read = n
+
+    def read(self, size=-1):
+        data = self._inner.read(size)
+        self._record(len(data) if data is not None else 0)
+        return data
+
+    def readinto(self, buf):
+        n = self._inner.readinto(buf)
+        self._record(n or 0)
+        return n
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def stats(self):
+        return {
+            "range_request_count": self.range_request_count,
+            "total_bytes_read": self.total_bytes_read,
+            "max_single_read": self.max_single_read,
+        }
+
+
+def _extract_matrix_preview(adata, *, rows: int = 5, cols: int = 5):
+    """Return a bounded preview of adata.X as a JSON-safe dict, or None
+    with an error reason on failure. Never raises.
+    """
+    try:
+        X = adata.X
+        if X is None:
+            return None, "no matrix"
+        try:
+            shape = tuple(X.shape)
+        except Exception:  # pragma: no cover - defensive
+            shape = None
+        sample = X[:rows, :cols]
+        if hasattr(sample, "toarray"):
+            sample = sample.toarray()
+        # adata.experimental.read_lazy may return dask-backed arrays.
+        if hasattr(sample, "compute"):
+            sample = sample.compute()
+        try:
+            import numpy
+            arr = numpy.asarray(sample)
+            dtype = str(arr.dtype)
+            values = arr.tolist()
+        except Exception:
+            dtype = str(getattr(sample, "dtype", "unknown"))
+            values = list(sample)
+        return {
+            "shape": list(shape) if shape is not None else None,
+            "dtype": dtype,
+            "values": values,
+        }, None
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
+
+
+def _h5ad_error_response(exc: BaseException, telemetry: dict):
+    err_type = type(exc).__name__
+    logger.warning("h5ad preview failed: %s: %s", err_type, exc)
+    return (
+        200,
+        b"",
+        {
+            "Content-Type": "application/octet-stream",
+            QUILT_INFO_HEADER: json.dumps({
+                "truncated": False,
+                "meta_only": True,
+                "meta": {
+                    "error": {
+                        "type": err_type,
+                        "message": str(exc),
+                    },
+                },
+                "telemetry": telemetry,
+            }),
+        },
+    )
+
+
 def preview_h5ad(url, compression, max_out_size):
-    with urlopen(url, compression=compression, seekable=True) as src:
+    counter = None
+    try:
+        with urlopen(url, compression=compression, seekable=True) as raw_src:
+            src = _ReadCounter(raw_src)
+            counter = src
+            return _preview_h5ad_inner(src, counter, max_out_size)
+    except Exception as exc:  # pragma: no cover - defensive top-level
+        telemetry = counter.stats() if counter is not None else {
+            "range_request_count": 0,
+            "total_bytes_read": 0,
+            "max_single_read": 0,
+        }
+        return _h5ad_error_response(exc, telemetry)
+
+
+def _preview_h5ad_inner(src, counter, max_out_size):
+    try:
         with h5py.File(src, "r") as h5py_file:
             adata = anndata.experimental.read_lazy(h5py_file)
 
@@ -283,33 +399,52 @@ def preview_h5ad(url, compression, max_out_size):
             table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
             output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
+            matrix_preview, matrix_preview_error = _extract_matrix_preview(adata)
+    except (OSError, KeyError, ValueError, RuntimeError) as exc:
+        return _h5ad_error_response(exc, counter.stats())
+    except Exception as exc:  # noqa: BLE001 - catch h5py / anndata family
+        # h5py raises a custom hierarchy that does not all derive from OSError
+        # (e.g. h5py._hl.files.FileError); fall through here for those.
+        return _h5ad_error_response(exc, counter.stats())
+
+    info = {
+        "truncated": output_truncated,
+        "meta_only": meta_only,
+        # H5AD-specific metadata format
+        "meta": {
+            "schema": {"names": list(var_df_with_index.columns)},
+            "h5ad_obs_keys": list(adata.obs.columns),
+            "h5ad_var_keys": list(adata.var.columns),
+            "h5ad_uns_keys": list(adata.uns.keys()),
+            "h5ad_obsm_keys": list(adata.obsm.keys()),
+            "h5ad_varm_keys": list(adata.varm.keys()),
+            "h5ad_layers_keys": list(adata.layers.keys()),
+            "anndata_version": getattr(adata, "__version__", None),
+            "n_cells": adata.n_obs,
+            "n_genes": adata.n_vars,
+            "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
+            "has_raw": adata.raw is not None,
+            "matrix_preview": matrix_preview,
+        },
+        "telemetry": counter.stats(),
+    }
+    if matrix_preview is None and matrix_preview_error is not None:
+        info["meta"]["matrix_preview_error"] = matrix_preview_error
+
+    logger.info(
+        "h5ad preview telemetry: range_request_count=%d total_bytes_read=%d max_single_read=%d",
+        counter.range_request_count,
+        counter.total_bytes_read,
+        counter.max_single_read,
+    )
+
     return (
         200,
         output_data,
         {
             "Content-Type": "application/vnd.apache.arrow.file",
             "Content-Encoding": "gzip",
-            QUILT_INFO_HEADER: json.dumps(
-                {
-                    "truncated": output_truncated,
-                    "meta_only": meta_only,
-                    # H5AD-specific metadata format
-                    "meta": {
-                        "schema": {"names": list(var_df_with_index.columns)},
-                        "h5ad_obs_keys": list(adata.obs.columns),
-                        "h5ad_var_keys": list(adata.var.columns),
-                        "h5ad_uns_keys": list(adata.uns.keys()),
-                        "h5ad_obsm_keys": list(adata.obsm.keys()),
-                        "h5ad_varm_keys": list(adata.varm.keys()),
-                        "h5ad_layers_keys": list(adata.layers.keys()),
-                        "anndata_version": getattr(adata, "__version__", None),
-                        "n_cells": adata.n_obs,
-                        "n_genes": adata.n_vars,
-                        "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
-                        "has_raw": adata.raw is not None,
-                    },
-                }
-            ),
+            QUILT_INFO_HEADER: json.dumps(info),
         },
     )
 
