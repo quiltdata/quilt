@@ -1334,6 +1334,42 @@ class TestIndex(TestCase):
             col = f'column_{letter}'
             assert col not in contents, f'missing column: {col}'
 
+    @patch(__name__ + '.index.get_content_index_bytes', return_value=10_000)
+    @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
+    def test_get_contents_fcs(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
+        del mocked_get_content_index_extensions, mocked_get_content_index_bytes
+        fcs = (
+            BASE_DIR.parents[2]
+            / 'shared'
+            / 'tests'
+            / 'data'
+            / 'fcs'
+            / 'normal.fcs'
+        ).read_bytes()
+        size = len(fcs)
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': size,
+                'Body': BytesIO(fcs),
+            }
+        )
+
+        contents = index.maybe_get_contents(
+            'test-bucket',
+            'some/dir/data.fcs',
+            '.fcs',
+            s3_client=self.s3_client,
+            etag='11223344',
+            size=size,
+            version_id='abcde',
+        )
+
+        assert 'FSC-A,SSC-A,FL1-A,FL2-A,FL3-A,FL4-A,FSC-H,SSC-H,FL1-H,FL2-H,FL3-H,FL4-H,Width,Time' in contents
+        assert 'vegaLite' in contents
+        assert 'FSC-A vs SSC-A' in contents
+
     @patch(__name__ + '.index.get_content_index_bytes', return_value=462)
     def test_get_contents_dots(self, mocked_get_content_index_bytes):
         json_ = (BASE_DIR / 'sample.json.gz').read_bytes()
