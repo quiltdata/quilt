@@ -251,7 +251,7 @@ export const Loader = function TabularLoader({
           retry: data.fetch,
           message: `${h5adError.type}: ${h5adError.message}`,
           originalError: h5adError,
-        } as $TSFixMe)
+        })
       }
       return PreviewData.Perspective({
         data: csv,

@@ -3,24 +3,24 @@
 // detects binary content and returns a structured error envelope
 // ({ info: { error: 'binary', detected } }); when that arrives we render a
 // clear "binary file" message instead of dumping bytes.
-import { basename } from 'path'
-
-import hljs from 'highlight.js'
-import * as R from 'ramda'
+//
+// IMPORTANT: this loader's position in the `loaderChain` in load.jsx is
+// load-bearing. `detect = () => true` means it claims everything that
+// reaches it, so it must run after every type-specific loader and
+// immediately before the generic `fallback`. Re-ordering breaks the
+// "specific loader wins" contract.
 import * as React from 'react'
 
 import { PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
+import { getLang, hl } from './Text'
 import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
 
 export const FILE_TYPE = FileType.Text
 
-// Always match. This loader runs after every other loader in the chain
-// (between Text and fallback) so it only fires for genuinely unknown
-// extensions.
 export const detect = () => true
 
 interface BinaryEnvelope {
@@ -45,9 +45,6 @@ type PreviewEnvelope = BinaryEnvelope | TextEnvelope
 const isBinaryEnvelope = (r: PreviewEnvelope): r is BinaryEnvelope =>
   Boolean((r as BinaryEnvelope)?.info?.error === 'binary')
 
-const hl = (language: string) => (contents: string) =>
-  hljs.highlight(contents, { language }).value
-
 interface Handle {
   key: string
   logicalKey?: string
@@ -58,7 +55,7 @@ interface LoaderProps {
   children: (result: unknown) => React.ReactNode
 }
 
-export const Loader = function TextDefaultLoader({ handle, children }: LoaderProps) {
+export const Loader = function TextFallbackLoader({ handle, children }: LoaderProps) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
@@ -71,26 +68,30 @@ export const Loader = function TextDefaultLoader({ handle, children }: LoaderPro
         const detected = response.info.detected ? ` (${response.info.detected})` : ''
         throw PreviewError.Unsupported({
           handle,
-          // PreviewError.Unsupported is rendered generically, but pass the
-          // detected hint via message in case the renderer surfaces it.
           message: `Binary file${detected} — no text preview available`,
-        } as $TSFixMe)
+        })
       }
-      const data = (response as TextEnvelope).info.data
+      const textResponse = response as TextEnvelope
+      const data = textResponse.info.data
+      if (!data || !data.head) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: fetch,
+          message: 'preview lambda returned an unexpected envelope (missing info.data)',
+        })
+      }
       const head = data.head.join('\n')
       const tail = (data.tail || []).join('\n')
-      const lang = (() => {
-        const name = R.pipe(R.unary(basename), R.toLower)(handle.logicalKey || handle.key)
-        return name.endsWith('.json') || name.endsWith('.jsonl') ? 'json' : 'plaintext'
-      })()
-      const highlighted = { head: hl(lang)(head), tail: hl(lang)(tail) }
+      const lang: string = getLang(handle.logicalKey || handle.key)
+      const highlight = hl(lang)
+      const highlighted = { head: highlight(head), tail: highlight(tail) }
       return PreviewData.Text({
         head,
         tail,
         lang,
         highlighted,
-        note: (response as TextEnvelope).info.note,
-        warnings: (response as TextEnvelope).info.warnings,
+        note: textResponse.info.note,
+        warnings: textResponse.info.warnings,
       })
     },
     [handle.logicalKey, handle.key],

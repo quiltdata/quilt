@@ -24,6 +24,10 @@ vi.mock('../types', () => ({
 }))
 
 vi.mock('./utils', () => ({
+  // stripCompression is consumed by Text.js's findLang pipeline at import time
+  // when we re-use its highlighting helpers; the identity function is fine
+  // for these tests since the input keys here have no compression suffix.
+  stripCompression: (s: string) => s,
   usePreview: () => ({ result: previewState.value, fetch }),
   useProcessing: (result: unknown, process: (value: unknown) => unknown) => {
     try {
@@ -35,9 +39,9 @@ vi.mock('./utils', () => ({
   useErrorHandling: (value: unknown) => value,
 }))
 
-import { detect, Loader } from './TextDefault'
+import { detect, Loader } from './TextFallback'
 
-describe('components/Preview/loaders/TextDefault', () => {
+describe('components/Preview/loaders/TextFallback', () => {
   it('always detects', () => {
     expect(detect()).toBe(true)
   })

@@ -270,6 +270,11 @@ class _ReadCounter:
             self.max_single_read = n
 
     def read(self, size=-1):
+        if size is None or size < 0:
+            raise ValueError(
+                "_ReadCounter.read() requires an explicit size; unbounded reads "
+                "would mask whether the underlying stream pulled ranges."
+            )
         data = self._inner.read(size)
         self._record(len(data) if data is not None else 0)
         return data
@@ -312,7 +317,14 @@ def _extract_matrix_preview(adata, *, rows: int = 5, cols: int = 5):
             import numpy
             arr = numpy.asarray(sample)
             dtype = str(arr.dtype)
-            values = arr.tolist()
+            if numpy.issubdtype(arr.dtype, numpy.integer):
+                values = arr.astype(int, copy=False).tolist()
+            elif numpy.issubdtype(arr.dtype, numpy.floating):
+                values = arr.astype(float, copy=False).tolist()
+            elif numpy.issubdtype(arr.dtype, numpy.bool_):
+                values = arr.astype(bool, copy=False).tolist()
+            else:
+                values = arr.tolist()
         except Exception:
             dtype = str(getattr(sample, "dtype", "unknown"))
             values = list(sample)
@@ -352,10 +364,59 @@ def preview_h5ad(url, compression, max_out_size):
     counter = None
     try:
         with urlopen(url, compression=compression, seekable=True) as raw_src:
-            src = _ReadCounter(raw_src)
-            counter = src
-            return _preview_h5ad_inner(src, counter, max_out_size)
-    except Exception as exc:  # pragma: no cover - defensive top-level
+            counter = _ReadCounter(raw_src)
+            with h5py.File(counter, "r") as h5py_file:
+                adata = anndata.experimental.read_lazy(h5py_file)
+                n_obs, n_vars = adata.shape
+
+                if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
+                    logger.warning(
+                        "Getting only meta for large matrix (%d x %d) to avoid OOM/timeout",
+                        n_obs, n_vars,
+                    )
+                    var_df = pandas.DataFrame(columns=list(adata.var.keys()))
+                else:
+                    adata = anndata.read_h5ad(counter)
+                    sc.pp.calculate_qc_metrics(
+                        adata, percent_top=None, log1p=False, inplace=True
+                    )
+                    var_df = adata.var.copy()
+
+                var_df_with_index = var_df.reset_index().rename(
+                    columns={"index": "gene_id"}
+                )
+                table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
+                output_data, output_truncated = write_data_as_arrow(
+                    table, table.schema, max_out_size
+                )
+
+                matrix_preview, matrix_preview_error = _extract_matrix_preview(adata)
+
+                # Materialize every adata attribute while the h5py file is still
+                # open — adata.experimental.read_lazy returns lazy views that
+                # raise once the underlying file handle is closed.
+                info = {
+                    "truncated": output_truncated,
+                    "meta_only": meta_only,
+                    "meta": {
+                        "schema": {"names": list(var_df_with_index.columns)},
+                        "h5ad_obs_keys": list(adata.obs.columns),
+                        "h5ad_var_keys": list(adata.var.columns),
+                        "h5ad_uns_keys": list(adata.uns.keys()),
+                        "h5ad_obsm_keys": list(adata.obsm.keys()),
+                        "h5ad_varm_keys": list(adata.varm.keys()),
+                        "h5ad_layers_keys": list(adata.layers.keys()),
+                        "anndata_version": getattr(adata, "__version__", None),
+                        "n_cells": adata.n_obs,
+                        "n_genes": adata.n_vars,
+                        "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
+                        "has_raw": adata.raw is not None,
+                        "matrix_preview": matrix_preview,
+                    },
+                }
+                if matrix_preview is None and matrix_preview_error is not None:
+                    info["meta"]["matrix_preview_error"] = matrix_preview_error
+    except Exception as exc:  # noqa: BLE001 - catch urlopen + h5py/anndata family
         telemetry = counter.stats() if counter is not None else {
             "range_request_count": 0,
             "total_bytes_read": 0,
@@ -363,71 +424,7 @@ def preview_h5ad(url, compression, max_out_size):
         }
         return _h5ad_error_response(exc, telemetry)
 
-
-def _preview_h5ad_inner(src, counter, max_out_size):
-    try:
-        with h5py.File(src, "r") as h5py_file:
-            adata = anndata.experimental.read_lazy(h5py_file)
-
-            # Get matrix dimensions to decide processing strategy
-            n_obs, n_vars = adata.shape
-
-            if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
-                # For large files, skip intensive QC calculation that requires loading full matrix
-                logger.warning("Getting only meta for large matrix (%d x %d) to avoid OOM/timeout", n_obs, n_vars)
-
-                # Create empty dataframe
-                var_df = pandas.DataFrame(columns=list(adata.var.keys()))
-            else:
-                adata = anndata.read_h5ad(src)
-                # For smaller matrices, calculate full QC metrics using scanpy
-                sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-                var_df = adata.var.copy()
-
-            # Add gene expression statistics from the QC metrics
-            # These columns are added by calculate_qc_metrics:
-            # - total_counts: total UMI counts for this gene across all cells
-            # - n_cells_by_counts: number of cells with non-zero counts for this gene
-            # - mean_counts: mean counts per cell for this gene
-            # - pct_dropout_by_counts: percentage of cells with zero counts
-
-            # Reset index to include gene IDs as a regular column
-            var_df_with_index = var_df.reset_index()
-            # XXX: doesn't that change the original column name?
-            var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
-
-            table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
-            output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
-
-            matrix_preview, matrix_preview_error = _extract_matrix_preview(adata)
-    except Exception as exc:  # noqa: BLE001 - catch h5py / anndata family
-        # h5py / anndata raise a wide hierarchy (OSError, KeyError, ValueError,
-        # RuntimeError, plus custom types like h5py._hl.files.FileError).
-        return _h5ad_error_response(exc, counter.stats())
-
-    info = {
-        "truncated": output_truncated,
-        "meta_only": meta_only,
-        # H5AD-specific metadata format
-        "meta": {
-            "schema": {"names": list(var_df_with_index.columns)},
-            "h5ad_obs_keys": list(adata.obs.columns),
-            "h5ad_var_keys": list(adata.var.columns),
-            "h5ad_uns_keys": list(adata.uns.keys()),
-            "h5ad_obsm_keys": list(adata.obsm.keys()),
-            "h5ad_varm_keys": list(adata.varm.keys()),
-            "h5ad_layers_keys": list(adata.layers.keys()),
-            "anndata_version": getattr(adata, "__version__", None),
-            "n_cells": adata.n_obs,
-            "n_genes": adata.n_vars,
-            "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
-            "has_raw": adata.raw is not None,
-            "matrix_preview": matrix_preview,
-        },
-        "telemetry": counter.stats(),
-    }
-    if matrix_preview is None and matrix_preview_error is not None:
-        info["meta"]["matrix_preview_error"] = matrix_preview_error
+    info["telemetry"] = counter.stats()
 
     logger.info(
         "h5ad preview telemetry: range_request_count=%d total_bytes_read=%d max_single_read=%d",
