@@ -3,7 +3,7 @@ import { basename } from 'path'
 import hljs from 'highlight.js'
 import * as R from 'ramda'
 
-import { PreviewData } from '../types'
+import { PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
 import * as utils from './utils'
@@ -71,7 +71,15 @@ export const Loader = function TextLoader({ handle, forceLang = null, children }
   })
   const processed = utils.useProcessing(
     result,
-    ({ info: { data, note, warnings } }) => {
+    ({ info }) => {
+      if (info && info.error === 'binary') {
+        const detected = info.detected ? ` (${info.detected})` : ''
+        throw PreviewError.Unsupported({
+          handle,
+          message: `Binary file${detected} — no text preview available`,
+        })
+      }
+      const { data, note, warnings } = info
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)

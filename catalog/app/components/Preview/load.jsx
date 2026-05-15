@@ -16,6 +16,7 @@ import * as Notebook from './loaders/Notebook'
 import * as Pdf from './loaders/Pdf'
 import * as Tabular from './loaders/Tabular'
 import * as Text from './loaders/Text'
+import * as TextDefault from './loaders/TextDefault'
 import * as Vcf from './loaders/Vcf'
 import * as Vega from './loaders/Vega'
 import * as Video from './loaders/Video'
@@ -43,6 +44,7 @@ const loaderChain = [
   Video,
   Voila,
   Text,
+  TextDefault,
   fallback,
 ]
 
