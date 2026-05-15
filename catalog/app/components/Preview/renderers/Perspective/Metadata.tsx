@@ -63,6 +63,10 @@ const FIELDS_MAP: Record<
   version: { title: 'Manifest version:', RenderValue: MonoString },
   workflow: { title: 'Workflow:', RenderValue: JsonDisplay },
   message: { title: 'Message:' },
+
+  error: { title: 'Preview error:', RenderValue: JsonDisplay },
+  matrix_preview: { title: 'Matrix preview (5x5):', RenderValue: JsonDisplay },
+  matrix_preview_error: { title: 'Matrix preview error:' },
 }
 
 const useStyles = M.makeStyles((t) => ({
