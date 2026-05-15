@@ -42,6 +42,44 @@ FILE_EXTENSIONS.extend(TEXT_TYPES)
 
 EXTRACT_PARQUET_MAX_BYTES = 10_000
 
+# How many bytes of the head to scan for binary signatures.
+BINARY_SNIFF_BYTES = 8 * 1024
+
+# Magic bytes -> human-readable label.
+BINARY_MAGIC_SIGNATURES = (
+    (b'\x89HDF\r\n\x1a\n', 'hdf5'),
+    (b'\x1f\x8b', 'gzip'),
+    (b'PK\x03\x04', 'zip'),
+    (b'%PDF', 'pdf'),
+)
+
+
+class BinaryContentError(Exception):
+    """Raised when text extraction detects binary content."""
+
+    def __init__(self, detected: str):
+        super().__init__(f'binary content detected: {detected}')
+        self.detected = detected
+
+
+def _sniff_binary(sample: bytes, skip_labels=()):
+    """Return a label string if `sample` looks binary, else None.
+
+    `skip_labels` suppresses specific magic-byte and heuristic checks, by
+    label: pass 'gzip' to skip the gzip magic prefix, 'nul-byte' to skip the
+    embedded-NUL heuristic, etc. Callers that have declared
+    `compression='gz'` should pass both (the preamble is the raw gzipped
+    stream, which routinely contains NUL bytes throughout).
+    """
+    for magic, label in BINARY_MAGIC_SIGNATURES:
+        if label in skip_labels:
+            continue
+        if sample.startswith(magic):
+            return label
+    if 'nul-byte' not in skip_labels and b'\x00' in sample[:BINARY_SNIFF_BYTES]:
+        return 'nul-byte'
+    return None
+
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -134,6 +172,22 @@ def lambda_handler(request):
     resp = requests.get(url, stream=True)
     if resp.ok:
         content_iter = resp.iter_content(CHUNK)
+        # For text-mode inputs, sniff the raw (still possibly compressed) bytes
+        # for binary signatures before lossy UTF-8 decoding strips NUL bytes.
+        binary_preamble = b''
+        if input_type in TEXT_TYPES:
+            try:
+                first_chunk = next(content_iter)
+            except StopIteration:
+                first_chunk = b''
+            binary_preamble = first_chunk[:BINARY_SNIFF_BYTES]
+
+            def _prepend(chunk, rest):
+                if chunk:
+                    yield chunk
+                yield from rest
+
+            content_iter = _prepend(first_chunk, content_iter)
         if input_type == 'csv':
             html, info = extract_csv(
                 get_preview_lines(content_iter, compression, line_count, max_bytes),
@@ -153,9 +207,22 @@ def lambda_handler(request):
                 get_preview_lines(content_iter, compression, line_count, max_bytes)
             )
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(
-                get_preview_lines(content_iter, compression, line_count, max_bytes)
-            )
+            skip_labels = ('gzip', 'nul-byte') if compression == 'gz' else ()
+            try:
+                html, info = extract_txt(
+                    get_preview_lines(content_iter, compression, line_count, max_bytes),
+                    raw_preamble=binary_preamble,
+                    skip_sniff_labels=skip_labels,
+                )
+            except BinaryContentError as binary_err:
+                return make_json_response(415, {
+                    'info': {
+                        'data': {'head': [], 'tail': []},
+                        'error': 'binary',
+                        'detected': binary_err.detected,
+                    },
+                    'html': '',
+                })
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -288,13 +355,28 @@ def extract_vcf(head):
     return '', info
 
 
-def extract_txt(head):
+def extract_txt(head, raw_preamble: bytes, skip_sniff_labels=()):
     """
     dummy formatting function
+
+    Raises BinaryContentError if `raw_preamble` looks like binary content:
+    NUL byte anywhere in the first 8 KB, or known binary magic bytes at the
+    start (HDF5/gzip/zip/PDF). `raw_preamble` is required because sniffing
+    already-decoded text would only catch surviving NUL bytes; the magic-
+    byte checks need the undecoded stream.
+
+    `skip_sniff_labels` lets callers suppress specific magic-byte / heuristic
+    checks (e.g. 'gzip' and 'nul-byte' when gzip compression was explicitly
+    declared and the preamble is the raw gzipped stream).
     """
+    sample = raw_preamble[:BINARY_SNIFF_BYTES]
+    detected = _sniff_binary(sample, skip_labels=skip_sniff_labels)
+    if detected is not None:
+        raise BinaryContentError(detected)
+
     info = {
         'data': {
-            'head': head,
+            'head': list(head),
             # retain tail for backwards compatibility with client
             'tail': []
         }

@@ -8,7 +8,7 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
 
-import { CONTEXT, PreviewData } from '../types'
+import { CONTEXT, PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
 import * as utils from './utils'
@@ -82,6 +82,19 @@ export interface H5adMetadata {
   n_genes: number
   matrix_type: string
   has_raw: boolean
+  matrix_preview?: {
+    shape: [number, number] | null
+    dtype: string
+    values: unknown[][]
+  } | null
+  matrix_preview_error?: string
+  // Populated by the tabular_preview lambda when the file cannot be parsed.
+  // Presence of this field means the response carries no tabular data and the
+  // catalog should render an error panel instead of an empty Perspective view.
+  error?: {
+    type: string
+    message: string
+  }
 }
 
 export interface PackageMetadata {
@@ -226,15 +239,29 @@ export const Loader = function TabularLoader({
   // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, meta, truncated }: TabularDataOutput) =>
-      PreviewData.Perspective({
+    ({ csv, meta, truncated }: TabularDataOutput) => {
+      // The h5ad branch of the tabular_preview lambda returns an error envelope
+      // (meta.error) instead of tabular bytes when parsing fails. Surface this
+      // as an explicit PreviewError so users get a clear message rather than
+      // an empty/blank Perspective panel.
+      const h5adError = (meta as H5adMetadata | null)?.error
+      if (h5adError) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: data.fetch,
+          message: `${h5adError.type}: ${h5adError.message}`,
+          originalError: h5adError,
+        })
+      }
+      return PreviewData.Perspective({
         data: csv,
         handle,
         modes: [FileType.Tabular, FileType.Text],
         meta,
         onLoadMore: showLoadMore(truncated) ? onLoadMore : null,
         truncated,
-      }),
+      })
+    },
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }

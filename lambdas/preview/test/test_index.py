@@ -620,3 +620,84 @@ def _check_vcf(resp):
     assert data['data'][-1] == [
         '20', '1234567', 'microsat1', 'GTCT', 'G,GTACT', '50', 'PASS', 'NS=3;DP=9;AA=G', 'GT:GQ:DP'
     ], 'unexpected first data line'
+
+
+class TestBinarySniffing:
+    """Cover binary-content detection in extract_txt + the txt handler path."""
+
+    FILE_URL = 'https://quilt-example.s3.amazonaws.com/file.ext'
+
+    @classmethod
+    def _make_event(cls, query, headers=None):
+        return {
+            'httpMethod': 'POST',
+            'path': '/foo',
+            'pathParameters': {},
+            'queryStringParameters': query or None,
+            'headers': headers or None,
+            'body': None,
+            'isBase64Encoded': False,
+        }
+
+    def test_extract_txt_passes_through_plain_text(self):
+        html, info = t4_lambda_preview.extract_txt(
+            ['hello\n', 'world\n'],
+            raw_preamble=b'hello\nworld\n',
+        )
+        assert html == ''
+        assert info['data']['head'] == ['hello\n', 'world\n']
+
+    def test_extract_txt_rejects_nul_byte(self):
+        import pytest
+        with pytest.raises(t4_lambda_preview.BinaryContentError) as exc:
+            t4_lambda_preview.extract_txt(
+                ['junk'],
+                raw_preamble=b'abc\x00def',
+            )
+        assert exc.value.detected == 'nul-byte'
+
+    def test_extract_txt_rejects_hdf5_magic(self):
+        import pytest
+        hdf5_magic = b'\x89HDF\r\n\x1a\n' + b'\x00' * 16
+        with pytest.raises(t4_lambda_preview.BinaryContentError) as exc:
+            t4_lambda_preview.extract_txt([], raw_preamble=hdf5_magic)
+        assert exc.value.detected == 'hdf5'
+
+    def test_extract_txt_rejects_pdf_magic(self):
+        import pytest
+        with pytest.raises(t4_lambda_preview.BinaryContentError) as exc:
+            t4_lambda_preview.extract_txt([], raw_preamble=b'%PDF-1.5\n%...')
+        assert exc.value.detected == 'pdf'
+
+    def test_extract_txt_skip_gzip_when_compression_declared(self):
+        # gzip magic should not raise if caller declares compression
+        html, info = t4_lambda_preview.extract_txt(
+            ['line\n'],
+            raw_preamble=b'\x1f\x8b' + b'plain-text-follows-no-nulls',
+            skip_sniff_labels=('gzip',),
+        )
+        assert html == ''
+        assert info['data']['head'] == ['line\n']
+
+    @responses.activate
+    def test_handler_returns_415_for_binary_txt(self):
+        # Serve raw HDF5 bytes when the catalog asks for txt preview.
+        body = b'\x89HDF\r\n\x1a\n' + b'\x00' * 1024 + b'more binary'
+        responses.add(responses.GET, self.FILE_URL, body=body, status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
+        resp = t4_lambda_preview.lambda_handler(event, None)
+        assert resp['statusCode'] == 415
+        parsed = json.loads(read_body(resp))
+        assert parsed['info']['error'] == 'binary'
+        assert parsed['info']['detected'] == 'hdf5'
+        assert parsed['html'] == ''
+
+    @responses.activate
+    def test_handler_passes_through_normal_text(self):
+        body = b'hello\nworld\n'
+        responses.add(responses.GET, self.FILE_URL, body=body, status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
+        resp = t4_lambda_preview.lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        parsed = json.loads(read_body(resp))
+        assert parsed['info']['data']['head'] == ['hello', 'world']
