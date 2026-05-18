@@ -51,6 +51,36 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Microsoft Entra ID (Azure Active Directory)
 
+Quilt integrates with Entra ID using **OpenID Connect (OIDC)** on top of **OAuth 2.0**.
+It does not use SAML.
+
+> **If a central IAM team will configure Entra for you** (common in large
+> enterprises where application owners cannot register apps themselves), give them
+> the following so they can complete their intake form and create the app
+> registration:
+>
+> - **Protocol:** OpenID Connect (OIDC) — an OAuth 2.0 / OAuth flow. If the intake
+>   form only lists "SAML" and "OAuth", select **OAuth**. If neither fits, select
+>   **Other** and link to this section.
+> - **Platform type:** Web
+> - **Redirect URI (Reply URL):** `<QuiltWebHost>/oauth-callback`
+>   (e.g. `https://quilt.example.com/oauth-callback`)
+> - **Sign-in audience:** single tenant (unless you have a specific reason to
+>   allow multi-tenant)
+> - **Implicit grant — ID tokens:** must be **enabled**. Login will fail without it.
+> - **Delegated Microsoft Graph permissions** (with admin consent):
+>   `openid`, `profile`, `email`, `offline_access`, `User.Read`
+> - **Client secret:** required. They must share the **Value** (not the Secret ID)
+>   with you over a secure channel.
+> - **Optional — group-based role mapping:** add a **groups claim** that emits
+>   **Group IDs** in the **ID token**. Required only if you plan to map Entra
+>   groups to Quilt roles via [SSO Permissions Mapping](./advanced-features/sso-permissions.md).
+>
+> What you will need back from them, in addition to the client secret:
+> **Application (client) ID** and **Directory (tenant) ID**.
+
+The steps below describe the configuration in full, in case you are doing it yourself.
+
 1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
 1. Name the app, select the supported account types, and click **Register**.
    Note the **Application (client) ID** and **Directory (tenant) ID**.
