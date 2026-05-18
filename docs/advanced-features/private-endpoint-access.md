@@ -43,11 +43,18 @@ to pull Quilt's container images:
 | --- | --- |
 | Internet Gateway + public subnets | No egress changes needed. |
 | NAT Gateway or Transit Gateway with egress | No egress changes needed. |
-| Neither (fully isolated VPC) | You must create VPC interface endpoints for **every** AWS service Quilt uses (see step 4 below). This is the most restrictive option and requires the most setup. |
+| Neither (fully isolated VPC) | Create VPC interface endpoints for the AWS services Quilt uses (see step 4 below). |
 
-For most customers, **a NAT gateway is the simplest and recommended approach**
-when an Internet Gateway is not acceptable to your security policy.
-See [Amazon's guide on NAT gateways](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating).
+Both NAT/Transit Gateway egress and a complete VPC-endpoint set are
+supported. Choose whichever matches your security posture:
+
+- **NAT or Transit Gateway** is simpler to set up and maintain — one
+  egress path covers every current and future AWS service Quilt calls.
+  See [Amazon's guide on NAT gateways](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating).
+- **Pure VPC endpoints** keep all traffic on the AWS backbone with no
+  public egress, at the cost of provisioning and maintaining an endpoint
+  for each service. Use this path when your security policy disallows
+  any form of internet routing from the VPC.
 
 ## Required AWS resources
 
@@ -120,8 +127,9 @@ for Amazon API Gateway.
     > from inside an ECS task. Tracked in
     > [quiltdata/quiltx#52](https://github.com/quiltdata/quiltx/issues/52).
 
-    > If you can't enumerate every runtime endpoint, prefer NAT or Transit
-    > Gateway egress (step 1) — it's significantly less operational overhead.
+    > If you can't enumerate every runtime endpoint, NAT or Transit Gateway
+    > egress (step 1) is a lower-maintenance alternative that covers all
+    > current and future AWS service calls.
 
 1. Test and apply policies to enforce your data perimeter.
 
