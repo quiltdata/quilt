@@ -53,10 +53,10 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 Quilt uses **OpenID Connect (OIDC)** over **OAuth 2.0** — not SAML.
 
-#### Handoff to a central IAM team
+#### Handoff to someone else configuring Entra
 
-If your IAM team will create the Entra app registration on your behalf,
-give them the following:
+If someone else is configuring Entra on your behalf, give them the
+following:
 
 | Field | Value |
 | --- | --- |
@@ -69,7 +69,7 @@ give them the following:
 | Groups claim (optional) | Emit **Group IDs** in the **ID token**. Required only for [SSO Permissions Mapping](./advanced-features/sso-permissions.md). |
 | Client secret | Required. Have them share the secret **Value** (not the Secret ID) over a secure channel. |
 
-Ask them to return: **Application (client) ID**, **Directory (tenant) ID**,
+Ask them to send back: **Application (client) ID**, **Directory (tenant) ID**,
 and the client secret **Value**.
 
 #### Self-service: configure Entra yourself
