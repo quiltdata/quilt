@@ -53,7 +53,7 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 Quilt uses **OpenID Connect (OIDC)** over **OAuth 2.0** — not SAML.
 
-#### Handoff to someone else configuring Entra
+#### Delegated Setup
 
 If someone else is configuring Entra on your behalf, give them the
 following:
@@ -72,7 +72,7 @@ following:
 Ask them to send back: **Application (client) ID**, **Directory (tenant) ID**,
 and the client secret **Value**.
 
-#### Self-service: configure Entra yourself
+#### Self-Service Configuration
 
 1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
 1. Name the app, select the supported account types, and click **Register**.
