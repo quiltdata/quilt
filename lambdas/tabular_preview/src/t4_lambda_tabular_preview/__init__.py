@@ -248,52 +248,156 @@ def preview_parquet(url, compression, max_out_size):
     )
 
 
-def preview_h5ad(url, compression, max_out_size):
-    with urlopen(url, compression=compression, seekable=True) as src:
-        with h5py.File(src, "r") as h5py_file:
-            adata = anndata.experimental.read_lazy(h5py_file)
+class _ReadCounter:
+    """Wrap a seekable byte-stream so we can count reads.
 
-            # Get matrix dimensions to decide processing strategy
-            n_obs, n_vars = adata.shape
+    Used as telemetry to confirm that h5py/anndata pull only ranges of a
+    remote file (S3 via fsspec) rather than downloading the full object.
+    All attribute access falls through to the wrapped file; we only
+    intercept read()/readinto() to measure.
+    """
 
-            if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
-                # For large files, skip intensive QC calculation that requires loading full matrix
-                logger.warning("Getting only meta for large matrix (%d x %d) to avoid OOM/timeout", n_obs, n_vars)
+    def __init__(self, inner):
+        self._inner = inner
+        self.range_request_count = 0
+        self.total_bytes_read = 0
+        self.max_single_read = 0
 
-                # Create empty dataframe
-                var_df = pandas.DataFrame(columns=list(adata.var.keys()))
+    def _record(self, n: int):
+        self.range_request_count += 1
+        self.total_bytes_read += max(n, 0)
+        if n > self.max_single_read:
+            self.max_single_read = n
+
+    def read(self, size=-1):
+        if size is None or size < 0:
+            raise ValueError(
+                "_ReadCounter.read() requires an explicit size; unbounded reads "
+                "would mask whether the underlying stream pulled ranges."
+            )
+        data = self._inner.read(size)
+        self._record(len(data) if data is not None else 0)
+        return data
+
+    def readinto(self, buf):
+        n = self._inner.readinto(buf)
+        self._record(n or 0)
+        return n
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def stats(self):
+        return {
+            "range_request_count": self.range_request_count,
+            "total_bytes_read": self.total_bytes_read,
+            "max_single_read": self.max_single_read,
+        }
+
+
+def _extract_matrix_preview(adata, *, rows: int = 5, cols: int = 5):
+    """Return a bounded preview of adata.X as a JSON-safe dict, or None
+    with an error reason on failure. Never raises.
+    """
+    try:
+        X = adata.X
+        if X is None:
+            return None, "no matrix"
+        try:
+            shape = tuple(X.shape)
+        except Exception:  # pragma: no cover - defensive
+            shape = None
+        sample = X[:rows, :cols]
+        if hasattr(sample, "toarray"):
+            sample = sample.toarray()
+        # adata.experimental.read_lazy may return dask-backed arrays.
+        if hasattr(sample, "compute"):
+            sample = sample.compute()
+        try:
+            import numpy
+            arr = numpy.asarray(sample)
+            dtype = str(arr.dtype)
+            if numpy.issubdtype(arr.dtype, numpy.integer):
+                values = arr.astype(int, copy=False).tolist()
+            elif numpy.issubdtype(arr.dtype, numpy.floating):
+                values = arr.astype(float, copy=False).tolist()
+            elif numpy.issubdtype(arr.dtype, numpy.bool_):
+                values = arr.astype(bool, copy=False).tolist()
             else:
-                adata = anndata.read_h5ad(src)
-                # For smaller matrices, calculate full QC metrics using scanpy
-                sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-                var_df = adata.var.copy()
+                values = arr.tolist()
+        except Exception:
+            dtype = str(getattr(sample, "dtype", "unknown"))
+            values = list(sample)
+        return {
+            "shape": list(shape) if shape is not None else None,
+            "dtype": dtype,
+            "values": values,
+        }, None
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
 
-            # Add gene expression statistics from the QC metrics
-            # These columns are added by calculate_qc_metrics:
-            # - total_counts: total UMI counts for this gene across all cells
-            # - n_cells_by_counts: number of cells with non-zero counts for this gene
-            # - mean_counts: mean counts per cell for this gene
-            # - pct_dropout_by_counts: percentage of cells with zero counts
 
-            # Reset index to include gene IDs as a regular column
-            var_df_with_index = var_df.reset_index()
-            # XXX: doesn't that change the original column name?
-            var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
-
-            table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
-            output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
-
+def _h5ad_error_response(exc: BaseException, telemetry: dict):
+    err_type = type(exc).__name__
+    logger.warning("h5ad preview failed: %s: %s", err_type, exc)
     return (
         200,
-        output_data,
+        b"",
         {
-            "Content-Type": "application/vnd.apache.arrow.file",
-            "Content-Encoding": "gzip",
-            QUILT_INFO_HEADER: json.dumps(
-                {
+            "Content-Type": "application/octet-stream",
+            QUILT_INFO_HEADER: json.dumps({
+                "truncated": False,
+                "meta_only": True,
+                "meta": {
+                    "error": {
+                        "type": err_type,
+                        "message": str(exc),
+                    },
+                },
+                "telemetry": telemetry,
+            }),
+        },
+    )
+
+
+def preview_h5ad(url, compression, max_out_size):
+    counter = None
+    try:
+        with urlopen(url, compression=compression, seekable=True) as raw_src:
+            counter = _ReadCounter(raw_src)
+            with h5py.File(counter, "r") as h5py_file:
+                adata = anndata.experimental.read_lazy(h5py_file)
+                n_obs, n_vars = adata.shape
+
+                if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
+                    logger.warning(
+                        "Getting only meta for large matrix (%d x %d) to avoid OOM/timeout",
+                        n_obs, n_vars,
+                    )
+                    var_df = pandas.DataFrame(columns=list(adata.var.keys()))
+                else:
+                    adata = anndata.read_h5ad(counter)
+                    sc.pp.calculate_qc_metrics(
+                        adata, percent_top=None, log1p=False, inplace=True
+                    )
+                    var_df = adata.var.copy()
+
+                var_df_with_index = var_df.reset_index().rename(
+                    columns={"index": "gene_id"}
+                )
+                table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
+                output_data, output_truncated = write_data_as_arrow(
+                    table, table.schema, max_out_size
+                )
+
+                matrix_preview, matrix_preview_error = _extract_matrix_preview(adata)
+
+                # Materialize every adata attribute while the h5py file is still
+                # open — adata.experimental.read_lazy returns lazy views that
+                # raise once the underlying file handle is closed.
+                info = {
                     "truncated": output_truncated,
                     "meta_only": meta_only,
-                    # H5AD-specific metadata format
                     "meta": {
                         "schema": {"names": list(var_df_with_index.columns)},
                         "h5ad_obs_keys": list(adata.obs.columns),
@@ -307,9 +411,35 @@ def preview_h5ad(url, compression, max_out_size):
                         "n_genes": adata.n_vars,
                         "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
                         "has_raw": adata.raw is not None,
+                        "matrix_preview": matrix_preview,
                     },
                 }
-            ),
+                if matrix_preview is None and matrix_preview_error is not None:
+                    info["meta"]["matrix_preview_error"] = matrix_preview_error
+    except Exception as exc:  # noqa: BLE001 - catch urlopen + h5py/anndata family
+        telemetry = counter.stats() if counter is not None else {
+            "range_request_count": 0,
+            "total_bytes_read": 0,
+            "max_single_read": 0,
+        }
+        return _h5ad_error_response(exc, telemetry)
+
+    info["telemetry"] = counter.stats()
+
+    logger.info(
+        "h5ad preview telemetry: range_request_count=%d total_bytes_read=%d max_single_read=%d",
+        counter.range_request_count,
+        counter.total_bytes_read,
+        counter.max_single_read,
+    )
+
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "application/vnd.apache.arrow.file",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(info),
         },
     )
 
