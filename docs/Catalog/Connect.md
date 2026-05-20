@@ -41,10 +41,12 @@ Each comma-separated entry can be one of:
 | **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; either loopback enables both) |
 <!-- markdownlint-enable line-length -->
 
-Example covering web, desktop, and local clients:
+Canonical example covering the common web, desktop, and local MCP clients
+(loopback first, then suffix wildcards, then alphabetized hostnames and
+custom schemes):
 
 ```text
-claude.ai, claude.com, cursor://, localhost
+127.0.0.1,localhost,.benchling.com,.cloud.databricks.com,chat.openai.com,chatgpt.com,claude.ai,claude.com,cursor://,gemini.google.com,vscode.dev,windsurf://
 ```
 
 Entries are case-insensitive. Trailing dots on hostnames are ignored.
