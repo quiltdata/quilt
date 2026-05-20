@@ -70,8 +70,14 @@ view, browse, and sync the associated Quilt packages.
 - Clicking the package name opens it in the Quilt Catalog
 - The `sync` button will open the package or file in
   [QuiltSync](https://www.quilt.bio/quiltsync), if you have it installed.
-- The `Update` button refreshes the package, as Benchling only notifies Quilt
-  of changes when the metadata fields are modified.
+- The `Update` button manually refreshes the package. The canvas stays
+  browsable while Quilt re-exports in the background, showing a "pending"
+  badge that flips to "complete" when the new revision is ready.
+- Package updates also happen automatically: any metadata change to the
+  linked entry triggers a refresh, as does a Benchling `reviewRecord` event
+  (e.g. when a notebook entry is submitted for review).
+
+![App Canvas - Updated](../imgs/benchling-updated.png)
 
 The canvas also allows you to browse package contents:
 

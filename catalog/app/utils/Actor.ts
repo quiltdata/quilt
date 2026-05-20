@@ -21,7 +21,7 @@ interface ActorStopReason<State> {
   state: State
 }
 
-interface Actor<State, Action> {
+export interface Actor<State, Action> {
   state: Eff.SubscriptionRef.SubscriptionRef<State>
   actions: Eff.Queue.Queue<Action>
   listener: Eff.Fiber.RuntimeFiber<ActorStopReason<State>>
@@ -217,7 +217,19 @@ export function useActorLayer<State, Action, R>(
     ),
   )
 
-  // TODO: stop/interrupt on unmount
+  // The listener is forkDaemon'd inside `start`, so we own its
+  // lifetime here — interrupt on unmount.
+  React.useEffect(
+    () => () => {
+      runtime.runFork(
+        Log.scoped({
+          name: `${MODULE}.useActor:cleanup`,
+          enter: [Log.br, 'interrupting actor listener:', actor.listener],
+        })(Eff.Fiber.interrupt(actor.listener)),
+      )
+    },
+    [actor],
+  )
 
   // TODO: make state lazy/subscriptable a-la redux
   const state = useState(actor.state)

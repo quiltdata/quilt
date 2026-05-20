@@ -140,6 +140,29 @@ page.
 
 ![Quilt MCP Configuration](../imgs/mcp-tools.png)
 
+### Headless Access with API Keys
+
+For automation, AWS-side services, and other non-interactive clients
+that cannot complete an OAuth flow, the MCP server also accepts a
+[Quilt API key](../api-reference/authentication.md#api-keys) as a bearer
+token:
+
+```http
+POST https://<connect-host>/mcp/platform/mcp
+Authorization: Bearer qk_...
+```
+
+For stdio-mode MCP clients, set the key in the environment instead:
+
+```bash
+export QUILT_API_KEY=qk_...
+```
+
+The MCP request executes under the API key owner's role and bucket
+permissions, exactly as an OAuth-issued session would. Generate, list,
+and revoke keys via `quilt3.api_keys` (see the [Authentication
+guide](../api-reference/authentication.md)).
+
 ---
 
 ## Administrator Reference
