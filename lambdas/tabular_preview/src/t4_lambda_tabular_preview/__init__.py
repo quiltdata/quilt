@@ -8,15 +8,11 @@ import tempfile
 import urllib.request
 from urllib.parse import urlparse
 
-import anndata
-import fsspec
-import h5py
 import pandas
 import pyarrow
 import pyarrow.csv
 import pyarrow.json
 import pyarrow.parquet
-import scanpy as sc
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import (
@@ -56,6 +52,8 @@ def urlopen(url: str, *, compression: str, seekable: bool = False):
         compression = "gzip"
     # urllib's urlopen() works faster than fsspec, but is not seekable.
     if seekable:
+        import fsspec
+
         return fsspec.open(url, compression=compression).open()
     fileobj = urllib.request.urlopen(url)  # pylint: disable=consider-using-with
     if compression is not None:
@@ -360,7 +358,16 @@ def _h5ad_error_response(exc: BaseException, telemetry: dict):
     )
 
 
+def _calculate_h5ad_qc_metrics(adata):
+    import scanpy as sc
+
+    sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+
+
 def preview_h5ad(url, compression, max_out_size):
+    import anndata
+    import h5py
+
     counter = None
     try:
         with urlopen(url, compression=compression, seekable=True) as raw_src:
@@ -377,9 +384,7 @@ def preview_h5ad(url, compression, max_out_size):
                     var_df = pandas.DataFrame(columns=list(adata.var.keys()))
                 else:
                     adata = anndata.read_h5ad(counter)
-                    sc.pp.calculate_qc_metrics(
-                        adata, percent_top=None, log1p=False, inplace=True
-                    )
+                    _calculate_h5ad_qc_metrics(adata)
                     var_df = adata.var.copy()
 
                 var_df_with_index = var_df.reset_index().rename(

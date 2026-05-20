@@ -6,24 +6,15 @@ Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
 import os
+import re
 import warnings
+import zlib
+from io import BytesIO
 from urllib.parse import urlparse
 
-import pandas
 import requests
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.preview import (
-    CATALOG_LIMIT_BYTES,
-    CATALOG_LIMIT_LINES,
-    TRUNCATED,
-    extract_excel,
-    extract_fcs,
-    extract_parquet,
-    get_bytes,
-    get_preview_lines,
-    remove_pandas_footer,
-)
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
@@ -41,6 +32,16 @@ TEXT_TYPES = ["bed", "txt"]
 FILE_EXTENSIONS.extend(TEXT_TYPES)
 
 EXTRACT_PARQUET_MAX_BYTES = 10_000
+
+# Keep the text/VCF paths independent of t4_lambda_shared.preview. That module
+# loads pandas/numpy/flowio for richer previews, and a bad native wheel should
+# not prevent plain text fallback from serving.
+CATALOG_LIMIT_BYTES = 1024*1024
+CATALOG_LIMIT_LINES = 512
+TRUNCATED = (
+    'Rows and columns truncated for preview. '
+    'S3 object may contain more data than shown.'
+)
 
 # How many bytes of the head to scan for binary signatures.
 BINARY_SNIFF_BYTES = 8 * 1024
@@ -60,6 +61,67 @@ class BinaryContentError(Exception):
     def __init__(self, detected: str):
         super().__init__(f'binary content detected: {detected}')
         self.detected = detected
+
+
+class NoopDecompressObj:
+    @property
+    def eof(self):
+        return False
+
+    def decompress(self, chunk):
+        return chunk
+
+
+def decompress_stream(chunk_iterator, compression):
+    if compression is None:
+        dec = NoopDecompressObj()
+    elif compression == 'gz':
+        dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
+    else:
+        raise ValueError('Only gzip compression is supported')
+
+    for chunk in chunk_iterator:
+        yield dec.decompress(chunk)
+        if dec.eof:
+            break
+
+
+def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
+    buffer = []
+    size = 0
+    line_count = 0
+
+    for chunk in decompress_stream(chunk_iterator, compression):
+        buffer.append(chunk)
+        size += len(chunk)
+        line_count += chunk.count(b'\n')
+
+        if size > max_bytes or line_count > max_lines:
+            break
+
+    lines = b''.join(buffer).splitlines()
+
+    if size > max_bytes and len(lines) > 1:
+        lines.pop()
+
+    del lines[max_lines:]
+
+    return [line.decode('utf-8', 'ignore') for line in lines]
+
+
+def get_bytes(chunk_iterator, compression):
+    buffer = BytesIO()
+    buffer.writelines(decompress_stream(chunk_iterator, compression))
+    buffer.seek(0)
+    return buffer
+
+
+def remove_pandas_footer(html: str) -> str:
+    return re.sub(
+        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
+        r'\1\2',
+        html,
+    )
 
 
 def _sniff_binary(sample: bytes, skip_labels=()):
@@ -113,9 +175,6 @@ SCHEMA = {
     'required': ['url', 'input'],
     'additionalProperties': False
 }
-
-# global option for pandas
-pandas.set_option('min_rows', 50)
 
 
 @api(cors_origins=get_default_origins())
@@ -188,12 +247,18 @@ def lambda_handler(request):
                 separator
             )
         elif input_type == 'excel':
+            from t4_lambda_shared.preview import extract_excel
+
             html, info = extract_excel(get_bytes(content_iter, compression))
         elif input_type == 'fcs':
+            from t4_lambda_shared.preview import extract_fcs
+
             html, info = extract_fcs(get_bytes(content_iter, compression))
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
+            from t4_lambda_shared.preview import extract_parquet
+
             # TODO: shouldn't we pass max_bytes variable as max_bytes parameter?
             html, info = extract_parquet(get_bytes(content_iter, compression), max_bytes=EXTRACT_PARQUET_MAX_BYTES)
         elif input_type == 'vcf':
@@ -245,6 +310,9 @@ def extract_csv(head, separator):
         html - html version of *first sheet only* in workbook
         info - metadata
     """
+    import pandas
+
+    pandas.set_option('min_rows', 50)
     warnings_ = []
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:

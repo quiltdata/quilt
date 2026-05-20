@@ -7,11 +7,6 @@ import zlib
 from io import BytesIO
 from typing import Tuple
 
-import numpy
-import pandas
-from flowio import FlowData
-from xlrd.biffh import XLRDError
-
 from .utils import get_available_memory, get_quilt_logger
 
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
@@ -66,6 +61,9 @@ def extract_excel(file_, as_html=True):
         body - html or text version of *first sheet only* in workbook
         info - metadata
     """
+    import pandas
+    from xlrd.biffh import XLRDError
+
     try:
         first_sheet = pandas.read_excel(file_, sheet_name=0)
     except XLRDError:
@@ -90,6 +88,8 @@ def extract_fcs(file_, as_html=True):
             body - summary of main contents (if applicable)
             info - metdata for user consumption
     """
+    import pandas
+
     meta = {}
     data = None
     body = ""
@@ -140,6 +140,10 @@ def extract_fcs(file_, as_html=True):
 
 
 def _parse_fcs_flowio_full(path):
+    import numpy
+    import pandas
+    from flowio import FlowData
+
     fd = FlowData(path, ignore_offset_discrepancy=True, ignore_offset_error=True)
     channel_names = []
     for idx in range(1, fd.channel_count + 1):
@@ -168,6 +172,8 @@ def _parse_fcs_flowio_full(path):
 
 
 def _parse_fcs_flowio_meta(path):
+    from flowio import FlowData
+
     try:
         fd = FlowData(
             path,
@@ -256,6 +262,9 @@ def _extract_fcs_channel_names(metadata):
 
 
 def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
+    import numpy
+    import pandas
+
     if data.shape[1] < 2:
         return None
 
@@ -350,6 +359,7 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
             info - metadata for user consumption
     """
     logger_ = get_quilt_logger()
+    import pandas
     import pyarrow.parquet as pq  # pylint: disable=C0415
 
     pf = pq.ParquetFile(file_)
