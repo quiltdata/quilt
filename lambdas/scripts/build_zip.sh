@@ -50,7 +50,9 @@ find . \( -name 'test_*' -o -name '*.py' -o -name '*.h' -o -name '*.c' -o -name 
 for lib in pyarrow/*.so.*; do rm -f "${lib%%.*}.so"; done
 
 find . -name tests -type d -exec rm -r \{} \+
-find . \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+find . \( -name '*.so.*' -o -name '*.so' \) -type f \
+    ! -name 'libscipy_openblas*.so' \
+    -exec strip \{} \+
 
 MAX_SIZE=262144000
 size=$(du -b -s . | cut -f 1)

@@ -120,7 +120,7 @@ def test_preview_h5ad(mocker, meta_only):
             "t4_lambda_tabular_preview.H5AD_META_ONLY_SIZE",
             0,  # Force providing only meta
         )
-        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview.sc.pp.calculate_qc_metrics")
+        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview._calculate_h5ad_qc_metrics")
 
     code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
         url=str(pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"),
