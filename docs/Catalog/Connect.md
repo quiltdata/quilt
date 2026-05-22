@@ -87,6 +87,23 @@ Server origin with the explicit HTTPS default port
 > compatible with these clients; well-behaved clients that normalize per
 > RFC 3986 are unaffected.
 
+### Protected Resource Identifier
+
+Connect Server registers exactly one OAuth `resource` identifier for the
+Platform MCP server:
+
+```text
+https://<connect-host>/mcp/platform
+```
+
+Connect normalizes inbound `resource` parameters by stripping a trailing
+`/mcp` before the membership check, so clients that submit the full MCP
+transport URL (`https://<connect-host>/mcp/platform/mcp`, as ChatGPT does)
+are accepted alongside clients that derive the canonical resource from
+[RFC 9728 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728)
+(as Claude.ai and Cursor do). The token `aud` claim is always the
+canonical `/mcp/platform` identifier regardless of input form.
+
 ## IP Allowlisting (Optional)
 
 To restrict which IP ranges can reach the Connect Server, create an EC2

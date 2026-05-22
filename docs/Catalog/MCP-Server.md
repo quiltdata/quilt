@@ -109,48 +109,64 @@ Add the following to your MCP client configuration
 > Your administrator must include the client's custom scheme (e.g. `cursor://`)
 > in `ConnectAllowedHosts` for the OAuth flow to complete.
 
+### Connecting ChatGPT
+
+In ChatGPT, go to **Settings -> Apps -> Create app** (Developer mode
+required). Set:
+
+- **MCP Server URL:** `https://<connect-host>/mcp/platform/mcp`
+- **Authentication:** `OAuth`
+- **OIDC enabled:** on, with **OIDC scopes supported:** `platform`
+
+Leave the OAuth endpoint fields on their auto-discovered values.
+
+`chatgpt.com` must be in `ConnectAllowedHosts` (see
+[Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+
 ### Connecting Databricks
 
-Databricks Apps MCP connections require explicit `:443` in the URLs they
-compare against the OAuth issuer origin. Quilt Connect emits `:443`-explicit
-metadata so Databricks DCR (Dynamic Client Registration) and origin checks
-succeed. Use the following fields when creating the connection in the
-Databricks Catalog **HTTP connection** UI:
+In the Databricks Catalog **HTTP connection** UI, fill in:
 
-<!-- markdownlint-disable line-length -->
 | Field | Value |
 | --- | --- |
 | Connection type | `HTTP` |
 | Is MCP connection | `true` |
 | Host | `https://<connect-host>` |
 | Base path | `/mcp/platform/mcp` |
-| URL | `https://<connect-host>:443/mcp/platform/mcp` |
-| OAuth issuer (from discovery) | `https://<connect-host>:443` |
-| Authorization endpoint | `https://<connect-host>:443/connect/authorize` (served on the Connect origin; redirects to the catalog UI) |
-| Token endpoint | `https://<connect-host>:443/auth/token` |
-| Registration endpoint | `https://<connect-host>:443/auth/register` |
-| JWKS URI | `https://<connect-host>:443/auth/.well-known/jwks.json` |
-| OAuth redirect URI (set by Databricks) | `https://<region>.cloud.databricks.com/api/2.0/http/oauth/redirect` |
-<!-- markdownlint-enable line-length -->
 
-The redirect URI is determined by the Databricks workspace region (for
-example `oregon.cloud.databricks.com`). Your Quilt administrator must include
-`.cloud.databricks.com` (note the leading dot — subdomain wildcard) in
-`ConnectAllowedHosts` so DCR accepts that redirect URI. See
-[Connect Server `ConnectAllowedHosts` entry formats](Connect.md#connectallowedhosts-entry-formats).
+Databricks discovers the OAuth endpoints from
+`/.well-known/oauth-authorization-server` and uses
+`https://<region>.cloud.databricks.com/api/2.0/http/oauth/redirect` as its
+redirect URI (the workspace region determines the exact host).
 
-> **Serverless egress caveat.** Databricks Apps and serving endpoints run on
-> a serverless network plane that blocks outbound traffic by default. Even
-> after the connection is created and OAuth succeeds, tool listing will fail
-> with `Access to <connect-host> is denied because of serverless network
-> policy` unless your Databricks workspace's serverless network policy
-> allows outbound HTTPS (port 443) to **both**:
+`.cloud.databricks.com` must be in `ConnectAllowedHosts` so DCR accepts
+that redirect URI (see
+[Connect.md](Connect.md#connectallowedhosts-entry-formats)). Quilt Connect
+already emits the `:443`-explicit metadata Databricks requires — see
+[Connect.md OAuth Metadata](Connect.md#oauth-metadata) for why.
+
+> **Serverless egress caveat.** Databricks Apps and serving endpoints run
+> on a serverless network plane that blocks outbound traffic by default.
+> Even after OAuth succeeds, tool listing will fail with
+> `Access to <connect-host> is denied because of serverless network policy`
+> until a Databricks **account admin** updates the serverless network
+> policy attached to the workspace to allow outbound HTTPS to both
+> `<connect-host>` and `<catalog-host>` (the latter serves
+> `/connect/authorize`). This is not a per-connection or per-app setting;
+> the connection creator cannot fix it.
 >
-> - `<connect-host>` (the Connect Server FQDN), and
-> - `<catalog-host>` (the Quilt catalog FQDN that serves `/connect/authorize`).
+> Confirm the block from a Databricks SQL warehouse:
 >
-> Configure these in Databricks under serverless network policies; see
-> [Databricks serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies).
+> ```sql
+> SELECT * FROM system.access.outbound_network
+> WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 2 HOUR
+> ORDER BY event_time DESC;
+> ```
+>
+> See the Databricks docs:
+> [serverless network policies overview](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)
+> and
+> [managing serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/manage-network-policies).
 
 ### User Authorization
 
