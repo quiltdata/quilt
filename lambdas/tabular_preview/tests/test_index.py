@@ -120,7 +120,7 @@ def test_preview_h5ad(mocker, meta_only):
             "t4_lambda_tabular_preview.H5AD_META_ONLY_SIZE",
             0,  # Force providing only meta
         )
-        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview.sc.pp.calculate_qc_metrics")
+        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview._calculate_h5ad_qc_metrics")
 
     code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
         url=str(pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"),
@@ -272,6 +272,35 @@ def test_preview_h5ad_error_envelope_on_bad_file():
     assert info["meta"]["error"]["message"]
     # telemetry still reported
     assert "telemetry" in info
+
+
+def test_preview_h5ad_retries_once_on_oserror(mocker):
+    """A torn HTTP read (OSError from h5py) should retry once and succeed
+    on the second attempt rather than going straight to the error envelope."""
+    real_h5ad = pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"
+    real_bytes = real_h5ad.read_bytes()
+
+    # First attempt: hand h5py a stream that truncates after 512 bytes
+    # (the same signature as the production bug). Second attempt: real file.
+    sources = [
+        io.BytesIO(real_bytes[:512]),
+        io.BytesIO(real_bytes),
+    ]
+    mocker.patch(
+        "t4_lambda_tabular_preview.urlopen",
+        side_effect=lambda *a, **kw: sources.pop(0),
+    )
+
+    code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
+        url="https://example.com/x.h5ad?Signature=redacted",
+        compression=None,
+        max_out_size=None,
+    )
+    assert code == 200
+    info = json.loads(headers[QUILT_INFO_HEADER])
+    assert "error" not in info["meta"], info["meta"]
+    assert info["meta"]["n_cells"] >= 1
+    assert sources == []  # both attempts consumed
 
 
 def test_extract_matrix_preview_handles_sparse(mocker):

@@ -1,22 +1,16 @@
 import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { createSelector } from 'reselect'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
-import { tokens as tokensSelector } from 'containers/Auth/selectors'
+import { token as selectToken } from 'containers/Auth/selectors'
 import { useApi } from 'utils/APIConnector'
 import log from 'utils/Logging'
 
 type Ensure = () => Promise<void>
 
 const Ctx = React.createContext<Ensure | null>(null)
-
-const selectToken = createSelector(
-  tokensSelector,
-  (tokens) => tokens?.token as string | undefined,
-)
 
 interface State {
   token: string | undefined

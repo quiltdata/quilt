@@ -57,7 +57,8 @@ ui:
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
-* `ui.actions.deleteObject: True` - show buttons to delete files and directories
+* `ui.actions.deleteObject: True` - show buttons to delete files and
+  directories (off by default since 1.66 to prevent accidental deletions)
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.downloadObject: False` - hide download buttons under "Bucket" tab
 * `ui.actions.downloadPackage: False` - hide download buttons under "Packages" tab
