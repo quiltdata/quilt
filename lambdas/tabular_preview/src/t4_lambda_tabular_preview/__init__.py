@@ -335,9 +335,14 @@ def _extract_matrix_preview(adata, *, rows: int = 5, cols: int = 5):
         return None, f"{type(exc).__name__}: {exc}"
 
 
-def _h5ad_error_response(exc: BaseException, telemetry: dict):
+def _h5ad_error_response(exc: BaseException, telemetry: dict, url: str):
     err_type = type(exc).__name__
-    logger.warning("h5ad preview failed: %s: %s", err_type, exc)
+    # Strip presigned-URL query string to keep signatures/credentials out of logs.
+    safe_url = str(url).split("?", 1)[0]
+    logger.warning(
+        "h5ad preview failed: %s: %s (url=%s)",
+        err_type, exc, safe_url,
+    )
     return (
         200,
         b"",
@@ -364,7 +369,39 @@ def _calculate_h5ad_qc_metrics(adata):
     sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 
 
+# Errors worth retrying once: torn HTTP reads (OSError from h5py) and
+# transport-level failures from fsspec/aiohttp/urllib. Structural problems
+# (bad h5ad, missing groups) raise ValueError/KeyError and are not retried.
+_H5AD_RETRYABLE = (OSError,)
+
+
 def preview_h5ad(url, compression, max_out_size):
+    last_exc: BaseException | None = None
+    last_counter = None
+    for attempt in range(2):
+        try:
+            return _preview_h5ad_once(url, compression, max_out_size)
+        except _H5AD_RETRYABLE as exc:
+            last_exc = exc
+            last_counter = getattr(exc, "_h5ad_counter", None)
+            logger.warning(
+                "h5ad preview attempt %d failed: %s: %s",
+                attempt + 1, type(exc).__name__, exc,
+            )
+            continue
+        except Exception as exc:  # noqa: BLE001 - non-retryable; fall through to error envelope
+            last_exc = exc
+            last_counter = getattr(exc, "_h5ad_counter", None)
+            break
+    telemetry = last_counter.stats() if last_counter is not None else {
+        "range_request_count": 0,
+        "total_bytes_read": 0,
+        "max_single_read": 0,
+    }
+    return _h5ad_error_response(last_exc, telemetry, url)
+
+
+def _preview_h5ad_once(url, compression, max_out_size):
     import anndata
     import h5py
 
@@ -421,13 +458,12 @@ def preview_h5ad(url, compression, max_out_size):
                 }
                 if matrix_preview is None and matrix_preview_error is not None:
                     info["meta"]["matrix_preview_error"] = matrix_preview_error
-    except Exception as exc:  # noqa: BLE001 - catch urlopen + h5py/anndata family
-        telemetry = counter.stats() if counter is not None else {
-            "range_request_count": 0,
-            "total_bytes_read": 0,
-            "max_single_read": 0,
-        }
-        return _h5ad_error_response(exc, telemetry)
+    except Exception as exc:
+        # Attach the counter so the retry/error wrapper can read telemetry
+        # even though the with-block has already torn down `raw_src`.
+        if counter is not None:
+            exc._h5ad_counter = counter  # type: ignore[attr-defined]
+        raise
 
     info["telemetry"] = counter.stats()
 
