@@ -156,8 +156,8 @@ function EChartsLoader({ gated, handle, children }) {
   )
 }
 
-export const Loader = function GatedEChartsLoader({ handle, children }) {
-  const data = useGate(handle)
+export const Loader = function GatedEChartsLoader({ handle, children, options }) {
+  const data = useGate(handle, undefined, options?.resetKey)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,

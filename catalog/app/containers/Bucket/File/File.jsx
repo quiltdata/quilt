@@ -355,8 +355,8 @@ function File() {
   }, [handleReload, onSave])
 
   const previewOptions = React.useMemo(
-    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
-    [viewModes.mode],
+    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode, resetKey }),
+    [viewModes.mode, resetKey],
   )
 
   const withPreview = (callback) =>
@@ -366,7 +366,11 @@ function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
-          return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+          return callback(
+            AsyncResult.Err(
+              Preview.PreviewError.Archived({ handle, restore: h.restore }),
+            ),
+          )
         }
         return Preview.load(handle, callback, previewOptions)
       },
@@ -477,7 +481,9 @@ function File() {
                       Err: (e) => {
                         throw e
                       },
-                      Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                      Ok: withPreview(
+                        renderPreview(viewModes.handlePreviewResult, handleReload),
+                      ),
                     })}
                   </div>
                 </Section>

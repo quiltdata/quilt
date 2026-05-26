@@ -7,6 +7,8 @@ import log from 'utils/Logging'
 
 import { PreviewError } from '../types'
 
+import { parseRestoreHeader, isEffectivelyArchived } from './restore'
+
 interface SizeThresholds {
   autoFetch: number
   neverFetch: number
@@ -21,6 +23,9 @@ interface GateArgs {
   s3: S3
   handle: Model.S3.S3ObjectLocation
   thresholds?: Partial<SizeThresholds>
+  // resetKey is only used as part of the `useData` cache key (so a parent can
+  // force a refetch by bumping it). Ignored in the function body.
+  resetKey?: number
 }
 
 // TODO: make it more general-purpose "head"?
@@ -35,8 +40,12 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     const head = await req.promise()
     length = head.ContentLength
     if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
-    if (head.StorageClass === 'GLACIER' || head.StorageClass === 'DEEP_ARCHIVE') {
-      throw PreviewError.Archived({ handle })
+    const restoreHeader = (req as $TSFixMe).response?.httpResponse?.headers?.[
+      'x-amz-restore'
+    ]
+    const restore = parseRestoreHeader(restoreHeader)
+    if (isEffectivelyArchived(head.StorageClass, restore)) {
+      throw PreviewError.Archived({ handle, restore })
     }
   } catch (e) {
     if (PreviewError.is(e)) throw e
@@ -73,7 +82,8 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
 export default function useGate(
   handle: Model.S3.S3ObjectLocation,
   thresholds?: Partial<SizeThresholds>,
+  resetKey?: number,
 ) {
   const s3 = AWS.S3.use()
-  return Data.use(gate, { s3, handle, thresholds })
+  return Data.use(gate, { s3, handle, thresholds, resetKey })
 }

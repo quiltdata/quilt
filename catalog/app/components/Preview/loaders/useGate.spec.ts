@@ -23,6 +23,12 @@ function mockS3(responseFunc: any, opts?: any) {
   } as S3
 }
 
+function mockS3WithHeaders(responseFunc: any, headers: Record<string, string>) {
+  return mockS3(responseFunc, {
+    response: { httpResponse: { headers } },
+  })
+}
+
 function mockAWSError(code: string | number): AWSError {
   const error = new Error()
   // @ts-expect-error
@@ -89,6 +95,34 @@ describe('components/Preview/loaders/useGate', () => {
       })
       it('handles deep archive storage class', () => {
         const s3 = mockS3(() => ({ StorageClass: 'DEEP_ARCHIVE' }))
+        return expect(gate({ s3, handle })).rejects.toMatchObject(
+          PreviewError.Archived({ handle }),
+        )
+      })
+      it('stays archived while restore is in progress', () => {
+        const s3 = mockS3WithHeaders(() => ({ StorageClass: 'GLACIER' }), {
+          'x-amz-restore': 'ongoing-request="true"',
+        })
+        return expect(gate({ s3, handle })).rejects.toMatchObject(
+          PreviewError.Archived({ handle, restore: { ongoing: true } }),
+        )
+      })
+      it('loads when restore is complete with future expiry', async () => {
+        const future = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        const s3 = mockS3WithHeaders(
+          () => ({ ContentLength: 50, StorageClass: 'GLACIER' }),
+          {
+            'x-amz-restore': `ongoing-request="false", expiry-date="${future.toUTCString()}"`,
+          },
+        )
+        // Reaches the size/threshold path without throwing.
+        await expect(gate({ s3, handle })).resolves.toBe(false)
+      })
+      it('stays archived when restore expiry is in the past', () => {
+        const past = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        const s3 = mockS3WithHeaders(() => ({ StorageClass: 'GLACIER' }), {
+          'x-amz-restore': `ongoing-request="false", expiry-date="${past.toUTCString()}"`,
+        })
         return expect(gate({ s3, handle })).rejects.toMatchObject(
           PreviewError.Archived({ handle }),
         )

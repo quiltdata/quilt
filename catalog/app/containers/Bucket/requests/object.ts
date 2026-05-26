@@ -1,4 +1,4 @@
-import type { S3 } from 'aws-sdk'
+import type { S3, AWSError } from 'aws-sdk'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
 import Log from 'utils/Logging'
@@ -128,6 +128,12 @@ const isDeleteMarker = (v: ListItem): v is S3.DeleteMarkerEntry =>
 const isObjectVersion = (v: ListItem): v is S3.ObjectVersion =>
   (v as S3.ObjectVersion).Size != null
 
+// NOTE: `archived` here is LIST-derived, not HEAD-derived, so it cannot see
+// the `x-amz-restore` header. A restored historical version will still report
+// `archived: true` until the underlying StorageClass changes. The file-detail
+// page is the authoritative surface (it does a HEAD); the version popover here
+// is a cheap overview and intentionally stays inconsistent for v1.
+// See docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
 export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) => {
   const { Versions, DeleteMarkers } = await s3
     .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
@@ -208,6 +214,94 @@ interface WorkflowsConfigArgs {
   s3: S3
   bucket: string
   strict?: boolean
+}
+
+export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
+
+export interface RestoreObjectArgs {
+  s3: S3
+  handle: Model.S3.S3ObjectLocation
+  tier: GlacierTier
+  days: number
+}
+
+export interface RestoreObjectResult {
+  // True when S3 returned 200 OK (object was already restored, duration
+  // extended). False when S3 returned 202 Accepted (new restore initiated).
+  alreadyRestored: boolean
+}
+
+// Why setPrototypeOf: tsconfig targets ES5, which down-levels `class extends
+// Error` to a function form that doesn't preserve the prototype chain. Without
+// this call, `e instanceof RestoreXxxError` returns false in the production
+// bundle. (Vitest/Vite don't down-level, so unit tests pass without it — but
+// the browser bundle does, and the catch branches in RehydrateDialog would
+// silently fall through to the generic-error path.)
+export class RestoreAlreadyInProgressError extends Error {
+  constructor() {
+    super('Restore is already in progress — check back later.')
+    this.name = 'RestoreAlreadyInProgressError'
+    Object.setPrototypeOf(this, RestoreAlreadyInProgressError.prototype)
+  }
+}
+
+export class GlacierExpeditedUnavailableError extends Error {
+  constructor() {
+    super('Expedited capacity unavailable. Try Standard or Bulk.')
+    this.name = 'GlacierExpeditedUnavailableError'
+    Object.setPrototypeOf(this, GlacierExpeditedUnavailableError.prototype)
+  }
+}
+
+export class RestoreAccessDeniedError extends Error {
+  constructor() {
+    super("You don't have permission to rehydrate this object.")
+    this.name = 'RestoreAccessDeniedError'
+    Object.setPrototypeOf(this, RestoreAccessDeniedError.prototype)
+  }
+}
+
+// TODO: migrate to GraphQL — see feedback_network_calls_graphql in memory.
+//   First impl uses the AWS SDK because no GraphQL mutation exists yet.
+//   When a server-side restore mutation lands, replace this body with
+//   a urql mutation; keep the function signature stable so callers
+//   don't change.
+export async function restoreObject({
+  s3,
+  handle,
+  tier,
+  days,
+}: RestoreObjectArgs): Promise<RestoreObjectResult> {
+  const req = s3.restoreObject({
+    Bucket: handle.bucket,
+    Key: handle.key,
+    VersionId: handle.version,
+    RestoreRequest: {
+      Days: days,
+      GlacierJobParameters: { Tier: tier },
+    },
+  })
+  try {
+    await req.promise()
+    const statusCode = (req as $TSFixMe).response?.httpResponse?.statusCode
+    // S3 returns 200 OK when the object is already restored (duration extended)
+    // and 202 Accepted when a new restore is initiated.
+    return { alreadyRestored: statusCode === 200 }
+  } catch (e) {
+    const code = (e as AWSError).code
+    if (code === 'RestoreAlreadyInProgress') {
+      throw new RestoreAlreadyInProgressError()
+    }
+    if (code === 'GlacierExpeditedRetrievalNotAvailable') {
+      throw new GlacierExpeditedUnavailableError()
+    }
+    if (code === 'AccessDenied') {
+      throw new RestoreAccessDeniedError()
+    }
+    Log.error('Error calling restoreObject')
+    Log.error(e)
+    throw e
+  }
 }
 
 export const workflowsConfig = async ({ s3, bucket, strict }: WorkflowsConfigArgs) => {

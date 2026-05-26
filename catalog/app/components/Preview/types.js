@@ -40,7 +40,7 @@ export const PreviewData = tagged([
 
 export const PreviewError = tagged([
   'Deleted', // { handle }
-  'Archived', // { handle }
+  'Archived', // { handle, restore? }
   'InvalidVersion', // { handle }
   'Forbidden', // { handle }
   'Gated', // { handle, load }

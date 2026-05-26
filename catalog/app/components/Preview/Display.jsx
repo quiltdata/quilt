@@ -7,6 +7,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import StyledLink from 'utils/StyledLink'
 
+import ArchivedMessage from './ArchivedMessage'
 import render from './render'
 import { PreviewError } from './types'
 
@@ -37,6 +38,7 @@ const defaultAction = ({ label, ...rest }) => (
 export default function PreviewDisplay({
   data,
   noDownload = undefined,
+  onReload = undefined,
   renderContents = R.identity,
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
@@ -70,11 +72,16 @@ export default function PreviewDisplay({
               </>
             ),
           }),
-        Archived: () =>
-          renderMessage({
-            heading: 'Object Archived',
-            body: 'Preview not available',
-          }),
+        Archived: ({ handle, restore }) => (
+          <ArchivedMessage
+            handle={handle}
+            restore={restore}
+            renderMessage={renderMessage}
+            renderAction={renderAction}
+            onReload={onReload}
+            noDownload={noDl}
+          />
+        ),
         InvalidVersion: () =>
           renderMessage({
             heading: 'Invalid Version',

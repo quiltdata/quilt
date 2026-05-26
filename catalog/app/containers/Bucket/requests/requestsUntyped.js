@@ -11,9 +11,14 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
+import { parseRestoreHeader } from 'components/Preview/loaders/restore'
+
 import { decodeS3Key } from './utils'
 
 const parseDate = (d) => d && new Date(d)
+
+const isLiveRestoredCopy = (restore) =>
+  !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > new Date()
 
 const processStats = R.applySpec({
   exts: R.pipe(
@@ -73,17 +78,25 @@ const MAX_IMGS = 100
 
 export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
 
+// `resetKey` is accepted only to bust the `useData` cache; ignored in the body.
 export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
+    const restoreHeader = req.response?.httpResponse?.headers?.['x-amz-restore']
+    const restore = parseRestoreHeader(restoreHeader)
+    const isArchiveClass =
+      h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE'
     return ObjectExistence.Exists({
       bucket,
       key,
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
-      archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
+      // "Effectively archived": archive storage class AND no live restored copy.
+      // See docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
+      archived: isArchiveClass && !isLiveRestoredCopy(restore),
+      restore,
       lastModified: parseDate(h.LastModified),
     })
   } catch (e) {

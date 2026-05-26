@@ -105,8 +105,8 @@ const SIZE_THRESHOLDS = {
   neverFetch: 3 * 1024 * 1024,
 }
 
-export const Loader = function GatedMarkdownLoader({ handle, children }) {
-  const data = useGate(handle, SIZE_THRESHOLDS)
+export const Loader = function GatedMarkdownLoader({ handle, children, options }) {
+  const data = useGate(handle, SIZE_THRESHOLDS, options?.resetKey)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,

@@ -318,7 +318,11 @@ export default function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
-          return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+          return callback(
+            AsyncResult.Err(
+              Preview.PreviewError.Archived({ handle, restore: h.restore }),
+            ),
+          )
         }
         return Preview.load(handle, callback, previewOptions)
       },
