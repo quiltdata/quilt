@@ -9,6 +9,7 @@ import {
   parseRestoreHeader,
   isEffectivelyArchived,
 } from 'containers/Bucket/requests/restore'
+import { archivedError } from '../archivedError'
 import { PreviewError } from '../types'
 
 interface SizeThresholds {
@@ -46,7 +47,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     ]
     const restore = parseRestoreHeader(restoreHeader)
     if (isEffectivelyArchived(head.StorageClass, restore)) {
-      throw PreviewError.Archived({ handle, restore, storageClass: head.StorageClass })
+      throw archivedError(handle, { restore, storageClass: head.StorageClass })
     }
   } catch (e) {
     if (PreviewError.is(e)) throw e
