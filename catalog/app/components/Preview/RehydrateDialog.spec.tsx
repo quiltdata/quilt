@@ -166,12 +166,13 @@ describe('components/Preview/RehydrateDialog', () => {
       expect(push).toHaveBeenCalledWith(expect.stringMatching(/extended to 7 days/i))
     })
 
-    it('closes on 409 RestoreAlreadyInProgress', async () => {
+    it('refetches and closes on 409 RestoreAlreadyInProgress', async () => {
       restoreObject.mockRejectedValueOnce(new RestoreAlreadyInProgressError())
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onClose).toHaveBeenCalled())
-      expect(onSubmitted).not.toHaveBeenCalled()
+      // 409 = restore already running → trigger the in-progress flip + refetch.
+      expect(onSubmitted).toHaveBeenCalledWith(false)
       expect(push).toHaveBeenCalledWith(expect.stringMatching(/already in progress/i))
     })
 

@@ -161,6 +161,10 @@ export default function RehydrateDialog({
     } catch (e) {
       if (e instanceof requests.RestoreAlreadyInProgressError) {
         push(e.message)
+        // A restore is already running; surface it like a fresh 202 so
+        // ArchivedMessage flips to "Restore in progress" (and refetches)
+        // instead of staying idle with a Rehydrate button.
+        onSubmitted(false)
         onClose()
       } else if (e instanceof requests.GlacierExpeditedUnavailableError) {
         setErrorMessage(e.message)
