@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import { parseRestoreHeader, isEffectivelyArchived } from './restore'
 
-describe('components/Preview/loaders/restore', () => {
+describe('containers/Bucket/requests/restore', () => {
   describe('parseRestoreHeader', () => {
     it('returns undefined for missing value', () => {
       expect(parseRestoreHeader(undefined)).toBeUndefined()

@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 
+import type { RestoreStatus } from 'containers/Bucket/requests/restore'
 import RehydrateDialog from './RehydrateDialog'
-import type { RestoreStatus } from './loaders/restore'
 
 interface RenderMessageProps {
   heading: React.ReactNode

@@ -11,12 +11,8 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
-import {
-  parseRestoreHeader,
-  isEffectivelyArchived,
-} from 'components/Preview/loaders/restore'
-
 import { decodeS3Key } from './utils'
+import { parseRestoreHeader, isEffectivelyArchived } from './restore'
 
 const parseDate = (d) => d && new Date(d)
 

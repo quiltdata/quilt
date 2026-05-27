@@ -5,9 +5,11 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import log from 'utils/Logging'
 
+import {
+  parseRestoreHeader,
+  isEffectivelyArchived,
+} from 'containers/Bucket/requests/restore'
 import { PreviewError } from '../types'
-
-import { parseRestoreHeader, isEffectivelyArchived } from './restore'
 
 interface SizeThresholds {
   autoFetch: number
