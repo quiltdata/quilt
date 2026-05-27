@@ -5,6 +5,7 @@ import * as Lab from '@material-ui/lab'
 import type { S3 } from 'aws-sdk'
 
 import * as Notifications from 'containers/Notifications'
+import * as URLS from 'constants/urls'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import type * as Model from 'model'
@@ -20,6 +21,10 @@ const DEFAULT_TIER: requests.GlacierTier = 'Standard'
 
 const S3_RESTORE_DOC =
   'https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects.html'
+
+// Quilt docs explaining the IAM permissions an admin grants per bucket — where a
+// user blocked on s3:RestoreObject learns what to ask their admin to enable.
+const REHYDRATE_PERMISSION_DOC = `${URLS.docs}/advanced/s3-prefix-permissions`
 
 interface TierOption {
   value: requests.GlacierTier
@@ -250,7 +255,11 @@ export default function RehydrateDialog({
             {showIamHint && (
               <>
                 <br />
-                Your IAM role needs <code>s3:RestoreObject</code> on this bucket.
+                Your IAM role needs <code>s3:RestoreObject</code> on this bucket.{' '}
+                <StyledLink href={REHYDRATE_PERMISSION_DOC} target="_blank">
+                  Ask your admin to enable rehydration
+                </StyledLink>
+                .
               </>
             )}
           </Lab.Alert>
