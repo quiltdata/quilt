@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import type { S3 } from 'aws-sdk'
+
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import Log from 'utils/Logging'
@@ -68,6 +70,7 @@ interface RehydrateDialogProps {
   open: boolean
   onClose: () => void
   handle: Model.S3.S3ObjectLocation
+  storageClass?: S3.StorageClass
   onSubmitted: (alreadyRestored: boolean) => void
 }
 
@@ -75,6 +78,7 @@ export default function RehydrateDialog({
   open,
   onClose,
   handle,
+  storageClass,
   onSubmitted,
 }: RehydrateDialogProps) {
   const classes = useStyles()
@@ -133,9 +137,19 @@ export default function RehydrateDialog({
     [],
   )
 
+  // Expedited retrieval is only available for GLACIER (Flexible Retrieval),
+  // not DEEP_ARCHIVE. Hide it when we know the object is in Deep Archive.
+  const tierOptions = React.useMemo(
+    () =>
+      storageClass === 'DEEP_ARCHIVE'
+        ? TIER_OPTIONS.filter((o) => o.value !== 'Expedited')
+        : TIER_OPTIONS,
+    [storageClass],
+  )
+
   const tierHint = React.useMemo(
-    () => TIER_OPTIONS.find((o) => o.value === tier)?.hint,
-    [tier],
+    () => tierOptions.find((o) => o.value === tier)?.hint,
+    [tierOptions, tier],
   )
 
   const handleSubmit = React.useCallback(async () => {
@@ -203,7 +217,7 @@ export default function RehydrateDialog({
             inputProps={{ 'aria-label': 'Retrieval tier' }}
             helperText={tierHint}
           >
-            {TIER_OPTIONS.map((opt) => (
+            {tierOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

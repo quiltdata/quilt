@@ -72,10 +72,11 @@ export default function PreviewDisplay({
               </>
             ),
           }),
-        Archived: ({ handle, restore }) => (
+        Archived: ({ handle, restore, storageClass }) => (
           <ArchivedMessage
             handle={handle}
             restore={restore}
+            storageClass={storageClass}
             renderMessage={renderMessage}
             renderAction={renderAction}
             onReload={onReload}

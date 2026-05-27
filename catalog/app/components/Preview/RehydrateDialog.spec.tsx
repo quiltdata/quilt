@@ -88,6 +88,18 @@ describe('components/Preview/RehydrateDialog', () => {
     expect(tier.value).toBe('Expedited')
   })
 
+  it('offers Expedited for GLACIER', () => {
+    setup({ storageClass: 'GLACIER' })
+    const values = Array.from(getTierSelect().options).map((o) => o.value)
+    expect(values).toEqual(['Standard', 'Bulk', 'Expedited'])
+  })
+
+  it('hides Expedited for DEEP_ARCHIVE', () => {
+    setup({ storageClass: 'DEEP_ARCHIVE' })
+    const values = Array.from(getTierSelect().options).map((o) => o.value)
+    expect(values).toEqual(['Standard', 'Bulk'])
+  })
+
   describe('days validation', () => {
     it('disables submit when input is empty', () => {
       setup()

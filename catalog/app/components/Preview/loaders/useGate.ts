@@ -45,7 +45,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     ]
     const restore = parseRestoreHeader(restoreHeader)
     if (isEffectivelyArchived(head.StorageClass, restore)) {
-      throw PreviewError.Archived({ handle, restore })
+      throw PreviewError.Archived({ handle, restore, storageClass: head.StorageClass })
     }
   } catch (e) {
     if (PreviewError.is(e)) throw e

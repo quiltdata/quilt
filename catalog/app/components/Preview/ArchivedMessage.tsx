@@ -1,3 +1,4 @@
+import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 
 import type * as Model from 'model'
@@ -19,6 +20,7 @@ interface RenderActionProps {
 interface ArchivedMessageProps {
   handle: Model.S3.S3ObjectLocation
   restore?: RestoreStatus
+  storageClass?: S3.StorageClass
   renderMessage: (props: RenderMessageProps) => React.ReactNode
   renderAction: (props: RenderActionProps) => React.ReactNode
   onReload?: () => void
@@ -28,6 +30,7 @@ interface ArchivedMessageProps {
 export default function ArchivedMessage({
   handle,
   restore,
+  storageClass,
   renderMessage,
   renderAction,
   onReload,
@@ -85,6 +88,7 @@ export default function ArchivedMessage({
         open={dialogOpen}
         onClose={closeDialog}
         handle={handle}
+        storageClass={storageClass}
         onSubmitted={handleSubmitted}
       />
     </>

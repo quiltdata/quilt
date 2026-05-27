@@ -97,6 +97,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       // See docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
       archived: isArchiveClass && !isLiveRestoredCopy(restore),
       restore,
+      storageClass: h.StorageClass,
       lastModified: parseDate(h.LastModified),
     })
   } catch (e) {

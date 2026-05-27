@@ -216,6 +216,10 @@ interface WorkflowsConfigArgs {
   strict?: boolean
 }
 
+// Intentionally narrows the SDK's `S3.Tier`, which is typed
+// `"Standard" | "Bulk" | "Expedited" | string` — the `| string` member widens
+// it to `string` and erases literal narrowing. Keeping our own union preserves
+// exhaustiveness and catches typos at the call sites.
 export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
 
 export interface RestoreObjectArgs {

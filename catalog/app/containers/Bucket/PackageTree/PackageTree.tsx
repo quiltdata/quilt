@@ -1,3 +1,4 @@
+import type { S3 } from 'aws-sdk'
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -528,7 +529,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
 }
 
 const withPreview = (
-  { archived, deleted, restore }: ObjectAttrs,
+  { archived, deleted, restore, storageClass }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
   resetKey: number,
@@ -538,7 +539,9 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
-    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle, restore })))
+    return callback(
+      AsyncResult.Err(Preview.PreviewError.Archived({ handle, restore, storageClass })),
+    )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE, resetKey }
   return Preview.load(handle, callback, previewOptions)
@@ -550,6 +553,7 @@ interface ObjectAttrs {
   lastModified?: Date
   size?: number
   restore?: RestoreStatus
+  storageClass?: S3.StorageClass
 }
 
 type CrumbProp = $TSFixMe
@@ -847,7 +851,14 @@ function FileDisplay({
         )
       },
       Ok: requests.ObjectExistence.case({
-        Exists: ({ archived, deleted, lastModified, size, restore }: ObjectAttrs) => (
+        Exists: ({
+          archived,
+          deleted,
+          lastModified,
+          size,
+          restore,
+          storageClass,
+        }: ObjectAttrs) => (
           <>
             <FileContext file={file} pkg={packageHandle} />
             <TopBar crumbs={crumbs}>
@@ -930,7 +941,7 @@ function FileDisplay({
             <Section icon="remove_red_eye" heading="Preview" expandable={false}>
               <div className={classes.preview}>
                 {withPreview(
-                  { archived, deleted, restore },
+                  { archived, deleted, restore, storageClass },
                   handle,
                   viewModes.mode,
                   resetKey,
