@@ -540,7 +540,7 @@ const withPreview = (
   }
   if (archived) {
     return callback(
-      AsyncResult.Err(Preview.PreviewError.Archived({ handle, restore, storageClass })),
+      AsyncResult.Err(Preview.archivedError(handle, { restore, storageClass })),
     )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE, resetKey }

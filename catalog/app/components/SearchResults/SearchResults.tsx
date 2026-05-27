@@ -329,15 +329,7 @@ function PreviewDisplay({
                 return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
               }
               if (h.archived) {
-                return callback(
-                  AsyncResult.Err(
-                    Preview.PreviewError.Archived({
-                      handle,
-                      restore: h.restore,
-                      storageClass: h.storageClass,
-                    }),
-                  ),
-                )
+                return callback(AsyncResult.Err(Preview.archivedError(handle, h)))
               }
               return Preview.load(handle, callback, previewOptions)
             },
