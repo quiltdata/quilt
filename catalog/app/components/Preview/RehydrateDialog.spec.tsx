@@ -21,19 +21,15 @@ const restoreObject = vi.fn()
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-vi.mock('utils/AWS', () => ({
-  S3: { use: () => ({}) },
-}))
-
 vi.mock('containers/Notifications', () => ({
   use: () => ({ push }),
 }))
 
-vi.mock('containers/Bucket/requests', async () => {
-  const actual: $TSFixMe = await vi.importActual('containers/Bucket/requests/object')
+vi.mock('./restoreObject', async () => {
+  const actual: $TSFixMe = await vi.importActual('./restoreObject')
   return {
     ...actual,
-    restoreObject: (...args: $TSFixMe[]) => restoreObject(...args),
+    useRestoreObject: () => restoreObject,
   }
 })
 
@@ -149,7 +145,6 @@ describe('components/Preview/RehydrateDialog', () => {
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(false))
       expect(restoreObject).toHaveBeenCalledWith({
-        s3: expect.anything(),
         handle,
         tier: 'Standard',
         days: 7,

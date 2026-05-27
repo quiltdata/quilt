@@ -5,12 +5,13 @@ import * as Lab from '@material-ui/lab'
 import type { S3 } from 'aws-sdk'
 
 import * as Notifications from 'containers/Notifications'
-import * as AWS from 'utils/AWS'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import type * as Model from 'model'
 
 import * as requests from 'containers/Bucket/requests'
+
+import { useRestoreObject } from './restoreObject'
 
 const MIN_DAYS = 1
 const MAX_DAYS = 90
@@ -82,7 +83,7 @@ export default function RehydrateDialog({
   onSubmitted,
 }: RehydrateDialogProps) {
   const classes = useStyles()
-  const s3 = AWS.S3.use()
+  const restoreObject = useRestoreObject()
   const { push } = Notifications.use()
 
   const [tier, setTier] = React.useState<requests.GlacierTier>(DEFAULT_TIER)
@@ -145,8 +146,7 @@ export default function RehydrateDialog({
     setErrorMessage(null)
     setShowIamHint(false)
     try {
-      const result = await requests.restoreObject({
-        s3,
+      const result = await restoreObject({
         handle,
         tier,
         days: parsedDays,
@@ -181,7 +181,17 @@ export default function RehydrateDialog({
     } finally {
       setSubmitting(false)
     }
-  }, [daysValid, submitting, s3, handle, tier, parsedDays, push, onSubmitted, onClose])
+  }, [
+    daysValid,
+    submitting,
+    restoreObject,
+    handle,
+    tier,
+    parsedDays,
+    push,
+    onSubmitted,
+    onClose,
+  ])
 
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
