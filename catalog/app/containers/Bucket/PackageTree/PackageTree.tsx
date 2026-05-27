@@ -532,18 +532,20 @@ const withPreview = (
   { archived, deleted, restore, storageClass }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
-  resetKey: number,
   callback: (res: $TSFixMe) => JSX.Element,
 ) => {
   if (deleted) {
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
+    // NOTE: reload refreshes the preview because this guard re-runs on the
+    // <Data> refetch and remounts the loader fresh; useGate has no cache-bust
+    // of its own. Drop this and reload breaks.
     return callback(
       AsyncResult.Err(Preview.archivedError(handle, { restore, storageClass })),
     )
   }
-  const previewOptions = { mode, context: Preview.CONTEXT.FILE, resetKey }
+  const previewOptions = { mode, context: Preview.CONTEXT.FILE }
   return Preview.load(handle, callback, previewOptions)
 }
 
@@ -735,8 +737,8 @@ function FileDisplay({
 
   const viewModes = useViewModes(mode)
 
-  // Bumped on rehydrate-submit / Check status to bust caches in
-  // `getObjectExistence` (Data params) and `useGate` (Preview.load options).
+  // Bumped on rehydrate-submit / Check status to refetch getObjectExistence
+  // (via Data params); the loader then remounts fresh, re-running its HEAD.
   const [resetKey, setResetKey] = React.useState(0)
 
   const onViewModeChange = React.useCallback(
@@ -943,7 +945,6 @@ function FileDisplay({
                   { archived, deleted, restore, storageClass },
                   handle,
                   viewModes.mode,
-                  resetKey,
                   renderPreview(viewModes.handlePreviewResult, handleReload),
                 )}
               </div>

@@ -355,8 +355,8 @@ function File() {
   }, [handleReload, onSave])
 
   const previewOptions = React.useMemo(
-    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode, resetKey }),
-    [viewModes.mode, resetKey],
+    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
+    [viewModes.mode],
   )
 
   const withPreview = (callback) =>
@@ -366,6 +366,9 @@ function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
+          // NOTE: reload refreshes the preview because this guard re-runs on the
+          // parent's getObjectExistence refetch and remounts the loader fresh;
+          // useGate has no cache-bust of its own. Drop this and reload breaks.
           return callback(AsyncResult.Err(Preview.archivedError(handle, h)))
         }
         return Preview.load(handle, callback, previewOptions)

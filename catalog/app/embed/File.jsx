@@ -280,10 +280,7 @@ export default function File() {
 
   const [resetKey, setResetKey] = React.useState(0)
   const handleReload = React.useCallback(() => setResetKey((k) => k + 1), [])
-  const previewOptions = React.useMemo(
-    () => ({ context: Preview.CONTEXT.FILE, resetKey }),
-    [resetKey],
-  )
+  const previewOptions = React.useMemo(() => ({ context: Preview.CONTEXT.FILE }), [])
 
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
@@ -329,6 +326,9 @@ export default function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
+          // NOTE: reload refreshes the preview because this guard re-runs on the
+          // parent's getObjectExistence refetch and remounts the loader fresh;
+          // useGate has no cache-bust of its own. Drop this and reload breaks.
           return callback(AsyncResult.Err(Preview.archivedError(handle, h)))
         }
         return Preview.load(handle, callback, previewOptions)

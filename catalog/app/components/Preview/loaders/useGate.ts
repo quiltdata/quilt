@@ -26,8 +26,6 @@ interface GateArgs {
   s3: S3
   handle: Model.S3.S3ObjectLocation
   thresholds?: Partial<SizeThresholds>
-  // Only busts the `useData` cache key (parent bumps it to refetch); unused here.
-  resetKey?: number
 }
 
 // TODO: make it more general-purpose "head"?
@@ -84,8 +82,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
 export default function useGate(
   handle: Model.S3.S3ObjectLocation,
   thresholds?: Partial<SizeThresholds>,
-  resetKey?: number,
 ) {
   const s3 = AWS.S3.use()
-  return Data.use(gate, { s3, handle, thresholds, resetKey })
+  return Data.use(gate, { s3, handle, thresholds })
 }
