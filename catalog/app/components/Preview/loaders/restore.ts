@@ -23,15 +23,16 @@ export function parseRestoreHeader(value: string | undefined): RestoreStatus | u
   return { ongoing: false, expiresAt: parsed }
 }
 
-// GLACIER / DEEP_ARCHIVE counts as archived unless a live restored copy exists.
+export const isArchiveStorageClass = (storageClass: string | undefined): boolean =>
+  storageClass === 'GLACIER' || storageClass === 'DEEP_ARCHIVE'
+
+const hasLiveRestoredCopy = (restore: RestoreStatus | undefined, now: Date): boolean =>
+  !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > now
+
 export function isEffectivelyArchived(
   storageClass: string | undefined,
   restore: RestoreStatus | undefined,
   now: Date = new Date(),
 ): boolean {
-  if (storageClass !== 'GLACIER' && storageClass !== 'DEEP_ARCHIVE') return false
-  if (!restore) return true
-  if (restore.ongoing) return true
-  if (!restore.expiresAt) return true
-  return restore.expiresAt <= now
+  return isArchiveStorageClass(storageClass) && !hasLiveRestoredCopy(restore, now)
 }

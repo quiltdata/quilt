@@ -11,14 +11,14 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
-import { parseRestoreHeader } from 'components/Preview/loaders/restore'
+import {
+  parseRestoreHeader,
+  isEffectivelyArchived,
+} from 'components/Preview/loaders/restore'
 
 import { decodeS3Key } from './utils'
 
 const parseDate = (d) => d && new Date(d)
-
-const isLiveRestoredCopy = (restore) =>
-  !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > new Date()
 
 const processStats = R.applySpec({
   exts: R.pipe(
@@ -85,16 +85,13 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
     const h = await req.promise()
     const restoreHeader = req.response?.httpResponse?.headers?.['x-amz-restore']
     const restore = parseRestoreHeader(restoreHeader)
-    const isArchiveClass =
-      h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE'
     return ObjectExistence.Exists({
       bucket,
       key,
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
-      // "Effectively archived": archive class AND no live restored copy.
-      archived: isArchiveClass && !isLiveRestoredCopy(restore),
+      archived: isEffectivelyArchived(h.StorageClass, restore),
       restore,
       storageClass: h.StorageClass,
       lastModified: parseDate(h.LastModified),
