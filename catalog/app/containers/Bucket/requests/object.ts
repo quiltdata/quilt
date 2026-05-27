@@ -1,4 +1,4 @@
-import type { S3, AWSError } from 'aws-sdk'
+import type { S3 } from 'aws-sdk'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
 import Log from 'utils/Logging'
@@ -217,13 +217,6 @@ interface WorkflowsConfigArgs {
 // narrowing. Our own union keeps exhaustiveness and catches typos.
 export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
 
-export interface RestoreObjectArgs {
-  s3: S3
-  handle: Model.S3.S3ObjectLocation
-  tier: GlacierTier
-  days: number
-}
-
 export interface RestoreObjectResult {
   // true: 200 OK (already restored, duration extended); false: 202 (new restore).
   alreadyRestored: boolean
@@ -253,45 +246,6 @@ export class RestoreAccessDeniedError extends Error {
     super("You don't have permission to rehydrate this object.")
     this.name = 'RestoreAccessDeniedError'
     Object.setPrototypeOf(this, RestoreAccessDeniedError.prototype)
-  }
-}
-
-// TODO: migrate to GraphQL (feedback_network_calls_graphql) — no mutation
-// exists yet; swap this AWS SDK body for a urql mutation, keeping the signature.
-export async function restoreObject({
-  s3,
-  handle,
-  tier,
-  days,
-}: RestoreObjectArgs): Promise<RestoreObjectResult> {
-  const req = s3.restoreObject({
-    Bucket: handle.bucket,
-    Key: handle.key,
-    VersionId: handle.version,
-    RestoreRequest: {
-      Days: days,
-      GlacierJobParameters: { Tier: tier },
-    },
-  })
-  try {
-    await req.promise()
-    const statusCode = (req as $TSFixMe).response?.httpResponse?.statusCode
-    // 200 OK = already restored (extended); 202 Accepted = new restore.
-    return { alreadyRestored: statusCode === 200 }
-  } catch (e) {
-    const code = (e as AWSError).code
-    if (code === 'RestoreAlreadyInProgress') {
-      throw new RestoreAlreadyInProgressError()
-    }
-    if (code === 'GlacierExpeditedRetrievalNotAvailable') {
-      throw new GlacierExpeditedUnavailableError()
-    }
-    if (code === 'AccessDenied') {
-      throw new RestoreAccessDeniedError()
-    }
-    Log.error('Error calling restoreObject')
-    Log.error(e)
-    throw e
   }
 }
 
