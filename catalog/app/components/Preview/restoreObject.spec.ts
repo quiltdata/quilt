@@ -6,6 +6,7 @@ import {
   RestoreAlreadyInProgressError,
   GlacierExpeditedUnavailableError,
   RestoreAccessDeniedError,
+  ObjectNotArchivedError,
 } from 'containers/Bucket/requests/object'
 
 import { interpretRestoreResult } from './restoreObject'
@@ -42,6 +43,12 @@ describe('components/Preview/restoreObject/interpretRestoreResult', () => {
   it('throws RestoreAccessDeniedError', () => {
     expect(() => interpretRestoreResult(opError('RestoreAccessDenied'))).toThrow(
       RestoreAccessDeniedError,
+    )
+  })
+
+  it('throws ObjectNotArchivedError for InvalidObjectState', () => {
+    expect(() => interpretRestoreResult(opError('InvalidObjectState'))).toThrow(
+      ObjectNotArchivedError,
     )
   })
 

@@ -9,6 +9,7 @@ import {
   RestoreAlreadyInProgressError,
   GlacierExpeditedUnavailableError,
   RestoreAccessDeniedError,
+  ObjectNotArchivedError,
 } from 'containers/Bucket/requests/object'
 import { GlacierRestoreTier } from 'model/graphql/types.generated'
 
@@ -29,6 +30,8 @@ export function interpretRestoreResult(data: MutationData): RestoreObjectResult 
           throw new GlacierExpeditedUnavailableError()
         case 'RestoreAccessDenied':
           throw new RestoreAccessDeniedError()
+        case 'InvalidObjectState':
+          throw new ObjectNotArchivedError()
         default:
           throw new Error(r.message || r.name)
       }

@@ -176,6 +176,10 @@ export default function RehydrateDialog({
       } else if (e instanceof requests.RestoreAccessDeniedError) {
         setErrorMessage(e.message)
         setShowIamHint(true)
+      } else if (e instanceof requests.ObjectNotArchivedError) {
+        // Expected condition (object already restored / not archived), not a
+        // failure — show the calm message without logging to Sentry.
+        setErrorMessage(e.message)
       } else {
         Log.error(e)
         const fallback =

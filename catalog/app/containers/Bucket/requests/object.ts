@@ -249,6 +249,17 @@ export class RestoreAccessDeniedError extends Error {
   }
 }
 
+// S3 InvalidObjectState: the object isn't in a restorable archived state
+// (e.g. already restored, or not actually archived) — an expected condition,
+// not a failure, so it gets a calm message rather than a generic error.
+export class ObjectNotArchivedError extends Error {
+  constructor() {
+    super('This object is not archived — it may already be restored. No rehydration needed.')
+    this.name = 'ObjectNotArchivedError'
+    Object.setPrototypeOf(this, ObjectNotArchivedError.prototype)
+  }
+}
+
 export const workflowsConfig = async ({ s3, bucket, strict }: WorkflowsConfigArgs) => {
   try {
     const response = await fetchFile({
