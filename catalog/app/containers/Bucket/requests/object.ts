@@ -128,12 +128,9 @@ const isDeleteMarker = (v: ListItem): v is S3.DeleteMarkerEntry =>
 const isObjectVersion = (v: ListItem): v is S3.ObjectVersion =>
   (v as S3.ObjectVersion).Size != null
 
-// NOTE: `archived` here is LIST-derived, not HEAD-derived, so it cannot see
-// the `x-amz-restore` header. A restored historical version will still report
-// `archived: true` until the underlying StorageClass changes. The file-detail
-// page is the authoritative surface (it does a HEAD); the version popover here
-// is a cheap overview and intentionally stays inconsistent for v1.
-// See docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
+// NOTE: LIST-derived `archived` can't read `x-amz-restore`, so a restored
+// version still shows archived here until its StorageClass changes; the
+// file-detail page (HEAD-based) is authoritative. See glacier-rehydration spec.
 export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) => {
   const { Versions, DeleteMarkers } = await s3
     .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
@@ -216,10 +213,8 @@ interface WorkflowsConfigArgs {
   strict?: boolean
 }
 
-// Intentionally narrows the SDK's `S3.Tier`, which is typed
-// `"Standard" | "Bulk" | "Expedited" | string` — the `| string` member widens
-// it to `string` and erases literal narrowing. Keeping our own union preserves
-// exhaustiveness and catches typos at the call sites.
+// Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
+// narrowing. Our own union keeps exhaustiveness and catches typos.
 export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
 
 export interface RestoreObjectArgs {
@@ -230,17 +225,13 @@ export interface RestoreObjectArgs {
 }
 
 export interface RestoreObjectResult {
-  // True when S3 returned 200 OK (object was already restored, duration
-  // extended). False when S3 returned 202 Accepted (new restore initiated).
+  // true: 200 OK (already restored, duration extended); false: 202 (new restore).
   alreadyRestored: boolean
 }
 
-// Why setPrototypeOf: tsconfig targets ES5, which down-levels `class extends
-// Error` to a function form that doesn't preserve the prototype chain. Without
-// this call, `e instanceof RestoreXxxError` returns false in the production
-// bundle. (Vitest/Vite don't down-level, so unit tests pass without it — but
-// the browser bundle does, and the catch branches in RehydrateDialog would
-// silently fall through to the generic-error path.)
+// setPrototypeOf: ES5 target down-levels `class extends Error` and breaks the
+// prototype chain, so `instanceof` returns false in the bundle (tests pass —
+// Vite doesn't down-level), making the catch branches below fall through.
 export class RestoreAlreadyInProgressError extends Error {
   constructor() {
     super('Restore is already in progress — check back later.')
@@ -265,11 +256,8 @@ export class RestoreAccessDeniedError extends Error {
   }
 }
 
-// TODO: migrate to GraphQL — see feedback_network_calls_graphql in memory.
-//   First impl uses the AWS SDK because no GraphQL mutation exists yet.
-//   When a server-side restore mutation lands, replace this body with
-//   a urql mutation; keep the function signature stable so callers
-//   don't change.
+// TODO: migrate to GraphQL (feedback_network_calls_graphql) — no mutation
+// exists yet; swap this AWS SDK body for a urql mutation, keeping the signature.
 export async function restoreObject({
   s3,
   handle,
@@ -288,8 +276,7 @@ export async function restoreObject({
   try {
     await req.promise()
     const statusCode = (req as $TSFixMe).response?.httpResponse?.statusCode
-    // S3 returns 200 OK when the object is already restored (duration extended)
-    // and 202 Accepted when a new restore is initiated.
+    // 200 OK = already restored (extended); 202 Accepted = new restore.
     return { alreadyRestored: statusCode === 200 }
   } catch (e) {
     const code = (e as AWSError).code

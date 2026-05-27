@@ -157,8 +157,8 @@ describe('components/Preview/ArchivedMessage', () => {
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
       fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))
       await waitFor(() => expect(onReload).toHaveBeenCalled())
-      // No optimistic flip — heading still says Object Archived. Parent will
-      // unmount/replace this component once `effectivelyArchived === false`.
+      // No optimistic flip — parent replaces this component once
+      // `effectivelyArchived === false`.
       expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
     })
   })

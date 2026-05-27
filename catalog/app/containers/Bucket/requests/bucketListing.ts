@@ -122,11 +122,9 @@ export const bucketListing = async ({
         .map(R.evolve({ Key: decodeS3Key }))
         // filter-out "directory-files" (files that match prefixes)
         .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
-        // NOTE: `archived` here is LIST-derived (listObjectsV2 does not return
-        // the `x-amz-restore` header), so a restored-but-still-GLACIER object
-        // will still report archived in directory listings. The file-detail
-        // page is the authoritative surface. See
-        // docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
+        // NOTE: LIST-derived `archived` can't read `x-amz-restore`, so a restored
+        // object still shows archived in listings; the file-detail page (HEAD-based)
+        // is authoritative. See glacier-rehydration spec.
         .map((i: S3.Object) => ({
           bucket,
           key: i.Key!,

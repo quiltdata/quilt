@@ -93,8 +93,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
-      // "Effectively archived": archive storage class AND no live restored copy.
-      // See docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
+      // "Effectively archived": archive class AND no live restored copy.
       archived: isArchiveClass && !isLiveRestoredCopy(restore),
       restore,
       storageClass: h.StorageClass,

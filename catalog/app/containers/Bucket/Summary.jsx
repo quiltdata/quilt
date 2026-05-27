@@ -21,10 +21,8 @@ const SUMMARIZE_RE = /^quilt_summarize\.json$/i
 
 const findFile = (re) => R.find((f) => re.test(getBasename(f.logicalKey || f.key)))
 
-// NOTE: `f.archived` is LIST-derived (see bucketListing.ts). A restored-but-
-// still-GLACIER image is filtered out of the bucket summary gallery. The
-// file-detail page is the authoritative surface. See
-// docs/superpowers/specs/2026-05-26-glacier-rehydration-ux-design.md
+// NOTE: LIST-derived `f.archived` (see bucketListing.ts) filters a restored
+// image out of the gallery; the file-detail page is authoritative.
 const extractSummary = R.applySpec({
   readme: findFile(README_RE),
   summarize: findFile(SUMMARIZE_RE),

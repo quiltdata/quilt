@@ -3,16 +3,10 @@ export interface RestoreStatus {
   expiresAt?: Date
 }
 
-// Parse the `x-amz-restore` HEAD response header emitted by S3 for Glacier /
-// Deep Archive objects.
-//
-// Format examples:
-//   ongoing-request="true"
-//     -> { ongoing: true }
-//   ongoing-request="false", expiry-date="Fri, 21 Dec 2012 00:00:00 GMT"
-//     -> { ongoing: false, expiresAt: Date }
-//
-// Returns undefined for missing or malformed values.
+// Parse S3's `x-amz-restore` HEAD header (Glacier / Deep Archive):
+//   ongoing-request="true"                          -> { ongoing: true }
+//   ongoing-request="false", expiry-date="<http>"   -> { ongoing: false, expiresAt }
+// Missing / malformed -> undefined.
 export function parseRestoreHeader(value: string | undefined): RestoreStatus | undefined {
   if (!value) return undefined
 
@@ -29,9 +23,7 @@ export function parseRestoreHeader(value: string | undefined): RestoreStatus | u
   return { ongoing: false, expiresAt: parsed }
 }
 
-// Derived predicate: an object whose StorageClass is GLACIER or DEEP_ARCHIVE
-// counts as "effectively archived" unless a live restored temp copy is
-// available.
+// GLACIER / DEEP_ARCHIVE counts as archived unless a live restored copy exists.
 export function isEffectivelyArchived(
   storageClass: string | undefined,
   restore: RestoreStatus | undefined,

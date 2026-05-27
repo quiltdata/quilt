@@ -137,8 +137,7 @@ export default function RehydrateDialog({
     [],
   )
 
-  // Expedited retrieval is only available for GLACIER (Flexible Retrieval),
-  // not DEEP_ARCHIVE. Hide it when we know the object is in Deep Archive.
+  // Expedited is GLACIER-only (not DEEP_ARCHIVE); hide it for Deep Archive.
   const tierOptions = React.useMemo(
     () =>
       storageClass === 'DEEP_ARCHIVE'
@@ -182,9 +181,6 @@ export default function RehydrateDialog({
         setShowIamHint(true)
       } else {
         Log.error(e)
-        // Prefer the AWS-shaped message when present (e.g. "AccessDenied:
-        // ...") so the user sees what S3 actually returned, not a generic
-        // toast that drops the real cause.
         const fallback =
           (e instanceof Error && e.message) ||
           'Failed to start restore. Please try again later.'

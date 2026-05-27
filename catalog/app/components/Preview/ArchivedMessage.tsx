@@ -37,14 +37,12 @@ export default function ArchivedMessage({
   noDownload,
 }: ArchivedMessageProps) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  // Optimistic "restoring" hold: after S3 accepts a new restore (202 Accepted),
-  // we render the in-progress branch immediately even before the next HEAD
-  // catches up. Cleared once HEAD confirms ongoing=true.
+  // Optimistic hold: after a 202, show the in-progress branch immediately,
+  // before HEAD catches up. Cleared once HEAD confirms ongoing.
   const [optimisticRestoring, setOptimisticRestoring] = React.useState(false)
 
   React.useEffect(() => {
     if (!optimisticRestoring) return
-    // Server-confirmed in-progress restore — no longer need to hold optimistically.
     if (restore?.ongoing === true) setOptimisticRestoring(false)
   }, [optimisticRestoring, restore])
 
@@ -53,9 +51,8 @@ export default function ArchivedMessage({
 
   const handleSubmitted = React.useCallback(
     (alreadyRestored: boolean) => {
-      // For the 200 OK path, the parent's reload will flip out of "archived"
-      // entirely once HEAD reports the live restored copy; no optimistic hold
-      // needed. For the 202 path, hold optimistically until HEAD confirms.
+      // 200 OK: parent reload flips out of "archived" once HEAD sees the live
+      // copy. 202: hold optimistically until HEAD confirms.
       if (!alreadyRestored) setOptimisticRestoring(true)
       onReload?.()
     },

@@ -23,8 +23,7 @@ interface GateArgs {
   s3: S3
   handle: Model.S3.S3ObjectLocation
   thresholds?: Partial<SizeThresholds>
-  // resetKey is only used as part of the `useData` cache key (so a parent can
-  // force a refetch by bumping it). Ignored in the function body.
+  // Only busts the `useData` cache key (parent bumps it to refetch); unused here.
   resetKey?: number
 }
 

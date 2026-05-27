@@ -86,9 +86,8 @@ describe('useFeatures', () => {
   })
 
   it('should enable download/delete when object is effectively restored (notAvailable=false)', () => {
-    // A restored Glacier object flows through File.jsx with `archived: false`
-    // (effectively archived, after the Restore-header refinement), so
-    // notAvailable === false. Toolbar features should be enabled.
+    // A restored Glacier object reaches File.jsx with `archived: false`, so
+    // notAvailable === false and toolbar features should be enabled.
     prefsHook.mockImplementationOnce(() => ({
       prefs: BucketPreferences.Result.Ok(
         extendDefaults({

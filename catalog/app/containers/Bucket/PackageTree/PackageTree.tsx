@@ -735,8 +735,8 @@ function FileDisplay({
 
   const viewModes = useViewModes(mode)
 
-  // Bumped on rehydrate-submit / Check status to bust caches in `getObjectExistence`
-  // (via Data's params) and in `useGate` (via Preview.load's options.resetKey).
+  // Bumped on rehydrate-submit / Check status to bust caches in
+  // `getObjectExistence` (Data params) and `useGate` (Preview.load options).
   const [resetKey, setResetKey] = React.useState(0)
 
   const onViewModeChange = React.useCallback(
@@ -815,8 +815,7 @@ function FileDisplay({
     // @ts-expect-error
     <Data fetch={requests.getObjectExistence} params={{ s3, ...handle, resetKey }}>
       {(result: $TSFixMe, { fetch }: { fetch: () => void }) =>
-        // Capture `fetch` (from Data's render-prop) as part of handleReload so
-        // we can re-run the HEAD after the user submits a restore.
+        // Capture Data's `fetch` into handleReload to re-HEAD after a submit.
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         renderWithReload(result, fetch)
       }
