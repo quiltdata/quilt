@@ -980,6 +980,19 @@ union BrowsingSessionRefreshResult =
 
 union BrowsingSessionDisposeResult = Ok | OperationError
 
+enum GlacierRestoreTier {
+  STANDARD
+  BULK
+  EXPEDITED
+}
+
+type RestoreObjectSuccess {
+  # true: 200 OK (already restored, duration extended); false: 202 (new restore)
+  alreadyRestored: Boolean!
+}
+
+union RestoreObjectResult = RestoreObjectSuccess | InvalidInput | OperationError
+
 input UserInput {
   name: String!
   email: String!
@@ -1088,4 +1101,12 @@ type Mutation {
     ttl: Int! = 180
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
+
+  restoreObject(
+    bucket: String!
+    key: String!
+    version: String
+    tier: GlacierRestoreTier!
+    days: Int!
+  ): RestoreObjectResult!
 }

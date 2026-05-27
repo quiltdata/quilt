@@ -381,6 +381,12 @@ export interface EmptySearchResultSet {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export enum GlacierRestoreTier {
+  STANDARD = 'STANDARD',
+  BULK = 'BULK',
+  EXPEDITED = 'EXPEDITED',
+}
+
 export interface IPackageUserMetaFacet {
   readonly path: Scalars['String']
 }
@@ -532,6 +538,7 @@ export interface Mutation {
   readonly browsingSessionCreate: BrowsingSessionCreateResult
   readonly browsingSessionRefresh: BrowsingSessionRefreshResult
   readonly browsingSessionDispose: BrowsingSessionDisposeResult
+  readonly restoreObject: RestoreObjectResult
 }
 
 export interface MutationswitchRoleArgs {
@@ -649,6 +656,14 @@ export interface MutationbrowsingSessionRefreshArgs {
 
 export interface MutationbrowsingSessionDisposeArgs {
   id: Scalars['ID']
+}
+
+export interface MutationrestoreObjectArgs {
+  bucket: Scalars['String']
+  key: Scalars['String']
+  version: Maybe<Scalars['String']>
+  tier: GlacierRestoreTier
+  days: Scalars['Int']
 }
 
 export interface MyRole {
@@ -1114,6 +1129,13 @@ export interface QuerypolicyArgs {
 
 export interface QueryroleArgs {
   id: Scalars['ID']
+}
+
+export type RestoreObjectResult = RestoreObjectSuccess | InvalidInput | OperationError
+
+export interface RestoreObjectSuccess {
+  readonly __typename: 'RestoreObjectSuccess'
+  readonly alreadyRestored: Scalars['Boolean']
 }
 
 export type Role = UnmanagedRole | ManagedRole
