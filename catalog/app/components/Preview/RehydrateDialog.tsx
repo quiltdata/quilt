@@ -43,13 +43,17 @@ const TIER_OPTIONS: TierOption[] = [
 ]
 
 const useStyles = M.makeStyles((t) => ({
-  daysField: {
-    marginTop: t.spacing(2),
-    maxWidth: 240,
+  row: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    gap: t.spacing(2),
+    marginTop: t.spacing(1),
   },
-  hint: {
-    color: t.palette.text.secondary,
-    display: 'block',
+  tierField: {
+    flex: 1,
+  },
+  daysField: {
+    flex: 1,
   },
   permissionHint: {
     marginTop: t.spacing(2),
@@ -122,9 +126,17 @@ export default function RehydrateDialog({
     setDaysInput(String(clamped))
   }, [])
 
-  const handleTierChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setTier(e.target.value as requests.GlacierTier)
-  }, [])
+  const handleTierChange = React.useCallback(
+    (e: React.ChangeEvent<{ value: unknown }>) => {
+      setTier(e.target.value as requests.GlacierTier)
+    },
+    [],
+  )
+
+  const tierHint = React.useMemo(
+    () => TIER_OPTIONS.find((o) => o.value === tier)?.hint,
+    [tier],
+  )
 
   const handleSubmit = React.useCallback(async () => {
     if (!daysValid || submitting) return
@@ -174,55 +186,51 @@ export default function RehydrateDialog({
       <M.DialogTitle>Rehydrate from Glacier</M.DialogTitle>
       <M.DialogContent>
         <M.Typography variant="body2" gutterBottom>
-          Restoring creates a temporary copy of this object that you can preview and
-          download until it expires.
+          Rehydrating makes this archived object temporarily downloadable. It stays
+          available for the number of days you choose, then returns to archived — the
+          object itself is never lost.
         </M.Typography>
 
-        <M.FormControl component="fieldset" margin="normal" fullWidth>
-          <M.FormLabel component="legend">Retrieval tier</M.FormLabel>
-          <M.RadioGroup
-            aria-label="retrieval tier"
-            name="tier"
+        <div className={classes.row}>
+          <M.TextField
+            select
+            id="rehydrate-tier"
+            className={classes.tierField}
+            label="Retrieval tier"
             value={tier}
             onChange={handleTierChange}
+            SelectProps={{ native: true }}
+            inputProps={{ 'aria-label': 'Retrieval tier' }}
+            helperText={tierHint}
           >
             {TIER_OPTIONS.map((opt) => (
-              <M.FormControlLabel
-                key={opt.value}
-                value={opt.value}
-                control={<M.Radio color="primary" />}
-                label={
-                  <span>
-                    {opt.label}
-                    <M.Typography variant="caption" className={classes.hint}>
-                      {opt.hint}
-                    </M.Typography>
-                  </span>
-                }
-              />
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
-          </M.RadioGroup>
-        </M.FormControl>
+          </M.TextField>
 
-        <M.TextField
-          id="rehydrate-days"
-          className={classes.daysField}
-          label={`Keep restored copy for N days (${MIN_DAYS}–${MAX_DAYS})`}
-          type="number"
-          value={daysInput}
-          onChange={handleDaysChange}
-          inputProps={{
-            min: MIN_DAYS,
-            max: MAX_DAYS,
-            step: 1,
-            'aria-label': 'Restore duration in days',
-          }}
-          error={!daysValid}
-          helperText={
-            !daysValid ? `Enter a value between ${MIN_DAYS} and ${MAX_DAYS}.` : undefined
-          }
-          fullWidth
-        />
+          <M.TextField
+            id="rehydrate-days"
+            className={classes.daysField}
+            label="Duration (days)"
+            type="number"
+            value={daysInput}
+            onChange={handleDaysChange}
+            inputProps={{
+              min: MIN_DAYS,
+              max: MAX_DAYS,
+              step: 1,
+              'aria-label': 'Restore duration in days',
+            }}
+            error={!daysValid}
+            helperText={
+              !daysValid
+                ? `Enter a value between ${MIN_DAYS} and ${MAX_DAYS}.`
+                : `How long the restored copy stays downloadable (${MIN_DAYS}–${MAX_DAYS}).`
+            }
+          />
+        </div>
 
         {errorMessage && (
           <Lab.Alert severity="error" className={classes.permissionHint}>

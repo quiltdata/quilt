@@ -58,6 +58,10 @@ function getDaysInput(): HTMLInputElement {
   return screen.getByLabelText(/Restore duration in days/i) as HTMLInputElement
 }
 
+function getTierSelect(): HTMLSelectElement {
+  return screen.getByLabelText(/Retrieval tier/i) as HTMLSelectElement
+}
+
 function getRehydrateButton(): HTMLButtonElement {
   return screen.getByRole('button', {
     name: /^rehydrate$|^submitting/i,
@@ -73,16 +77,15 @@ describe('components/Preview/RehydrateDialog', () => {
 
   it('renders with Standard tier and 7 days defaults', () => {
     setup()
-    const standardRadio = screen.getByRole('radio', { name: /Standard/i })
-    expect((standardRadio as HTMLInputElement).checked).toBe(true)
+    expect(getTierSelect().value).toBe('Standard')
     expect(getDaysInput().value).toBe('7')
   })
 
   it('allows selecting Expedited tier', () => {
     setup()
-    const expedited = screen.getByRole('radio', { name: /Expedited/i })
-    fireEvent.click(expedited)
-    expect((expedited as HTMLInputElement).checked).toBe(true)
+    const tier = getTierSelect()
+    fireEvent.change(tier, { target: { value: 'Expedited' } })
+    expect(tier.value).toBe('Expedited')
   })
 
   describe('days validation', () => {
