@@ -12,10 +12,12 @@ import {
 import { interpretRestoreResult } from './restoreObject'
 
 const success = (alreadyRestored: boolean) => ({
+  __typename: 'Mutation' as const,
   restoreObject: { __typename: 'RestoreObjectSuccess' as const, alreadyRestored },
 })
 
 const opError = (name: string) => ({
+  __typename: 'Mutation' as const,
   restoreObject: { __typename: 'OperationError' as const, name, message: name },
 })
 
@@ -59,9 +61,17 @@ describe('components/Preview/restoreObject/interpretRestoreResult', () => {
   it('throws with the first InvalidInput message', () => {
     expect(() =>
       interpretRestoreResult({
+        __typename: 'Mutation',
         restoreObject: {
           __typename: 'InvalidInput',
-          errors: [{ name: 'DaysOutOfRange', path: 'days', message: 'bad days' }],
+          errors: [
+            {
+              __typename: 'InputError',
+              name: 'DaysOutOfRange',
+              path: 'days',
+              message: 'bad days',
+            },
+          ],
         },
       }),
     ).toThrow(/bad days/)
