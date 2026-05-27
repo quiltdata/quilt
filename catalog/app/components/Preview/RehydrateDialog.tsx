@@ -15,9 +15,6 @@ import * as requests from 'containers/Bucket/requests'
 const MIN_DAYS = 1
 const MAX_DAYS = 90
 const DEFAULT_DAYS = 7
-
-const clampDays = (n: number): string =>
-  String(Math.max(MIN_DAYS, Math.min(MAX_DAYS, Math.floor(n))))
 const DEFAULT_TIER: requests.GlacierTier = 'Standard'
 
 const S3_RESTORE_DOC =
@@ -118,17 +115,7 @@ export default function RehydrateDialog({
     parsedDays <= MAX_DAYS
 
   const handleDaysChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value
-    if (raw === '') {
-      setDaysInput('')
-      return
-    }
-    const n = Number(raw)
-    if (!Number.isFinite(n)) {
-      setDaysInput(raw)
-      return
-    }
-    setDaysInput(clampDays(n))
+    setDaysInput(e.target.value)
   }, [])
 
   const handleTierChange = React.useCallback(

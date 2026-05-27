@@ -109,30 +109,31 @@ describe('components/Preview/RehydrateDialog', () => {
       expect(screen.getByText(/Enter a value between 1 and 90/i)).toBeTruthy()
     })
 
-    it('clamps typed value 9999 to 90', () => {
+    it('keeps the typed value and disables submit when above max', () => {
       setup()
       const days = getDaysInput()
       fireEvent.change(days, { target: { value: '9999' } })
-      expect(days.value).toBe('90')
-      expect(getRehydrateButton().disabled).toBe(false)
+      expect(days.value).toBe('9999')
+      expect(getRehydrateButton().disabled).toBe(true)
+      expect(screen.getByText(/Enter a value between 1 and 90/i)).toBeTruthy()
     })
 
-    it('clamps 0 to 1 (minimum)', () => {
+    it('keeps the typed value and disables submit when below min', () => {
       setup()
       const days = getDaysInput()
       fireEvent.change(days, { target: { value: '0' } })
-      expect(days.value).toBe('1')
-      expect(getRehydrateButton().disabled).toBe(false)
+      expect(days.value).toBe('0')
+      expect(getRehydrateButton().disabled).toBe(true)
     })
 
-    it('clamps negative values to 1', () => {
+    it('disables submit for a non-integer value', () => {
       setup()
       const days = getDaysInput()
-      fireEvent.change(days, { target: { value: '-1' } })
-      expect(days.value).toBe('1')
+      fireEvent.change(days, { target: { value: '7.5' } })
+      expect(getRehydrateButton().disabled).toBe(true)
     })
 
-    it('accepts in-range value 90', () => {
+    it('enables submit for an in-range value (90)', () => {
       setup()
       const days = getDaysInput()
       fireEvent.change(days, { target: { value: '90' } })
