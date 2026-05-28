@@ -37,6 +37,11 @@ describe('containers/Auth/urqlExchange', () => {
       expect(isAuthLostError(err)).toBe(true)
     })
 
+    it('flags legacy Not logged in message (no extension)', () => {
+      const err = combinedError([{ message: 'Not logged in' }])
+      expect(isAuthLostError(err)).toBe(true)
+    })
+
     it('does not flag unrelated errors', () => {
       const err = combinedError([
         { message: 'something else', extensions: { code: 'INTERNAL_SERVER_ERROR' } },
@@ -67,6 +72,14 @@ describe('containers/Auth/urqlExchange', () => {
     it('false when there are no graphQL errors', () => {
       const err = combinedError([])
       expect(isOnlyNotLoggedIn(err)).toBe(false)
+    })
+
+    it('true for legacy `Not logged in` message without extension', () => {
+      // Older registry builds reply without extensions.code; the race
+      // suppression must still apply so users mid-handshake don't get
+      // bounced.
+      const err = combinedError([{ message: 'Not logged in' }])
+      expect(isOnlyNotLoggedIn(err)).toBe(true)
     })
   })
 })

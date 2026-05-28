@@ -48,12 +48,16 @@ export function isAuthLostError(error: urql.CombinedError): boolean {
   })
 }
 
-// True when every GraphQL error in the response carries the NOT_LOGGED_IN
-// code — i.e. the request reached the registry with no Authorization
-// header at all. This is the shape the post-OAuth-callback hydration
-// race produces; AUTH_REFRESH_FAILED has a different shape and is not
-// suppressed by this check.
+// True when every signal in the response says "no Authorization header
+// was sent" — i.e. the request reached the registry unauthenticated.
+// This is the shape the post-OAuth-callback hydration race produces.
+// Covers the typed NOT_LOGGED_IN extension code AND the pre-typed
+// `[GraphQL] Not logged in` message (older registry builds during the
+// rollout). AUTH_REFRESH_FAILED implies a token was sent and rejected,
+// which is never racy, so it is intentionally not covered here.
+const LEGACY_NOT_LOGGED_IN_MESSAGE = '[GraphQL] Not logged in'
 export function isOnlyNotLoggedIn(error: urql.CombinedError): boolean {
+  if (error.message === LEGACY_NOT_LOGGED_IN_MESSAGE) return true
   if (error.graphQLErrors.length === 0) return false
   return error.graphQLErrors.every(
     (e) => (e.extensions as { code?: string } | undefined)?.code === 'NOT_LOGGED_IN',
