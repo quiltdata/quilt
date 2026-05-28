@@ -7,7 +7,7 @@ import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
-import { FileNotFound, VersionNotFound } from '../errors'
+import { BucketError, FileNotFound, VersionNotFound } from '../errors'
 
 import { decodeS3Key } from './utils'
 import { ensureObjectIsPresent } from './requestsUntyped'
@@ -222,41 +222,32 @@ export interface RestoreObjectResult {
   alreadyRestored: boolean
 }
 
-// setPrototypeOf: ES5 target down-levels `class extends Error` and breaks the
-// prototype chain, so `instanceof` returns false in the bundle (tests pass —
-// Vite doesn't down-level), making the catch branches below fall through.
-export class RestoreAlreadyInProgressError extends Error {
+export class RestoreAlreadyInProgressError extends BucketError {
   constructor() {
     super('Restore is already in progress — check back later.')
-    this.name = 'RestoreAlreadyInProgressError'
-    Object.setPrototypeOf(this, RestoreAlreadyInProgressError.prototype)
   }
 }
 
-export class GlacierExpeditedUnavailableError extends Error {
+export class GlacierExpeditedUnavailableError extends BucketError {
   constructor() {
     super('Expedited capacity unavailable. Try Standard or Bulk.')
-    this.name = 'GlacierExpeditedUnavailableError'
-    Object.setPrototypeOf(this, GlacierExpeditedUnavailableError.prototype)
   }
 }
 
-export class RestoreAccessDeniedError extends Error {
+export class RestoreAccessDeniedError extends BucketError {
   constructor() {
     super("You don't have permission to rehydrate this object.")
-    this.name = 'RestoreAccessDeniedError'
-    Object.setPrototypeOf(this, RestoreAccessDeniedError.prototype)
   }
 }
 
 // S3 InvalidObjectState: the object isn't in a restorable archived state
 // (e.g. already restored, or not actually archived) — an expected condition,
 // not a failure, so it gets a calm message rather than a generic error.
-export class ObjectNotArchivedError extends Error {
+export class ObjectNotArchivedError extends BucketError {
   constructor() {
-    super('This object is not archived — it may already be restored. No rehydration needed.')
-    this.name = 'ObjectNotArchivedError'
-    Object.setPrototypeOf(this, ObjectNotArchivedError.prototype)
+    super(
+      'This object is not archived — it may already be restored. No rehydration needed.',
+    )
   }
 }
 
