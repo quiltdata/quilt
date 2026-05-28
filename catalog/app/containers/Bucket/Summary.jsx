@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
 import * as Preview from 'components/Preview'
-import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
+import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail/constants'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -91,7 +91,13 @@ function ThumbnailsWrapper({
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
+export default function BucketSummary({
+  files,
+  mkUrl: mkUrlProp,
+  packageHandle,
+  path,
+  sourceFiles,
+}) {
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
   const mkUrl = React.useCallback(
@@ -154,6 +160,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           handle={summarize}
           mkUrl={mkUrl}
           packageHandle={packageHandle}
+          sourceFiles={sourceFiles || files}
         />
       )}
     </Summarize.FileThemeContext.Provider>

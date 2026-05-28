@@ -1,4 +1,4 @@
-import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
+import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail/constants'
 import AsyncResult from 'utils/AsyncResult'
 
 import { PreviewData } from '../types'

@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import cx from 'classnames'
 import * as React from 'react'
 import * as R from 'ramda'
 import * as RRDom from 'react-router-dom'
@@ -12,6 +13,9 @@ import AsyncResult from 'utils/AsyncResult'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import type * as SummaryTypes from 'components/Preview/loaders/summarize'
+
+import type { GalleryItem } from './GallerySource'
 import * as Summarize from './Summarize'
 
 const useImageGridStyles = M.makeStyles((t) => ({
@@ -33,14 +37,30 @@ const useImageGridStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ImageGrid({ children }: React.PropsWithChildren<{}>) {
-  const classes = useImageGridStyles()
-  return <div className={classes.root}>{children}</div>
+interface ImageGridProps {
+  columns?: number
 }
 
-const useThumbnailsStyles = M.makeStyles({
-  link: {
+function ImageGrid({ children, columns }: React.PropsWithChildren<ImageGridProps>) {
+  const classes = useImageGridStyles()
+  const style = React.useMemo(
+    () =>
+      columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined,
+    [columns],
+  )
+  return (
+    <div className={classes.root} style={style}>
+      {children}
+    </div>
+  )
+}
+
+const useThumbnailsStyles = M.makeStyles((t) => ({
+  button: {
+    display: 'block',
     overflow: 'hidden',
+    width: '100%',
+    textAlign: 'inherit',
   },
   img: {
     display: 'block',
@@ -48,16 +68,295 @@ const useThumbnailsStyles = M.makeStyles({
     marginRight: 'auto',
     maxWidth: '100%',
   },
-})
+  cover: {
+    height: 180,
+    objectFit: 'cover',
+    width: '100%',
+  },
+  contain: {
+    maxHeight: 180,
+    objectFit: 'contain',
+  },
+  caption: {
+    ...t.typography.caption,
+    display: 'block',
+    marginTop: t.spacing(0.5),
+    overflowWrap: 'break-word',
+    textAlign: 'center',
+  },
+}))
+
+const useLightboxStyles = M.makeStyles((t) => ({
+  paper: {
+    backgroundColor: t.palette.background.default,
+  },
+  content: {
+    alignItems: 'center',
+    display: 'flex',
+    minHeight: '70vh',
+    position: 'relative',
+  },
+  imageWrap: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'center',
+  },
+  image: {
+    maxHeight: '70vh',
+    maxWidth: '100%',
+  },
+  imageZoomed: {
+    cursor: 'zoom-out',
+    transform: 'scale(1.5)',
+  },
+  nav: {
+    zIndex: 1,
+  },
+  navOverlay: {
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+  },
+  navInside: {
+    margin: t.spacing(0, 1),
+  },
+  navOutside: {
+    margin: t.spacing(0, 2),
+  },
+  prevOverlay: {
+    left: t.spacing(1),
+  },
+  nextOverlay: {
+    right: t.spacing(1),
+  },
+  footer: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+    justifyContent: 'space-between',
+    padding: t.spacing(1, 3, 2),
+  },
+  footerText: {
+    minWidth: 0,
+  },
+}))
+
+type ImageLike = LogicalKeyResolver.S3SummarizeHandle | GalleryItem
 
 interface ThumbnailsProps {
-  images: LogicalKeyResolver.S3SummarizeHandle[]
+  arrows?: SummaryTypes.GalleryArrows
+  captions?: SummaryTypes.GalleryCaptions
+  columns?: number
+  counter?: boolean
+  description?: React.ReactNode
+  emptyMessage?: React.ReactNode
+  fullscreen?: boolean
+  images: ImageLike[]
   mkUrl?: Summarize.MakeURL
+  pageSize?: number
+  rows?: number
+  thumbnailFit?: SummaryTypes.GalleryThumbnailFit
+  title?: React.ReactNode
+  zoom?: boolean
 }
 
-export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
-  const classes = useThumbnailsStyles()
+function isGalleryItem(image: ImageLike): image is GalleryItem {
+  return !!(image as GalleryItem).handle
+}
+
+function getHandle(image: ImageLike): LogicalKeyResolver.S3SummarizeHandle {
+  return isGalleryItem(image) ? image.handle : image
+}
+
+function getPath(image: ImageLike): string {
+  const handle = getHandle(image)
+  return isGalleryItem(image) ? image.path : handle.logicalKey || handle.key
+}
+
+function getCaption(
+  image: ImageLike,
+  captions: SummaryTypes.GalleryCaptions | undefined,
+): string {
+  if (isGalleryItem(image)) return image.caption
+  const path = getPath(image)
+  switch (captions || 'none') {
+    case 'filename':
+      return basename(path)
+    case 'path':
+      return path
+    default:
+      return ''
+  }
+}
+
+function Lightbox({
+  active,
+  arrows = 'overlay',
+  counter = true,
+  fullscreen,
+  images,
+  mkUrl,
+  onClose,
+  onSelect,
+  zoom,
+}: {
+  active: number | null
+  arrows?: SummaryTypes.GalleryArrows
+  counter?: boolean
+  fullscreen?: boolean
+  images: ImageLike[]
+  mkUrl?: Summarize.MakeURL
+  onClose: () => void
+  onSelect: (index: number) => void
+  zoom?: boolean
+}) {
+  const classes = useLightboxStyles()
   const { urls } = NamedRoutes.use()
+  const [zoomed, setZoomed] = React.useState(false)
+  const activeImage = active == null ? null : images[active]
+  const activeHandle = activeImage && getHandle(activeImage)
+  const caption = activeImage ? getCaption(activeImage, 'filename') : ''
+  const canNavigate = images.length > 1 && arrows !== 'none'
+
+  const move = React.useCallback(
+    (delta: number) => {
+      if (active == null || !images.length) return
+      onSelect((active + delta + images.length) % images.length)
+    },
+    [active, images.length, onSelect],
+  )
+
+  React.useEffect(() => {
+    setZoomed(false)
+  }, [active])
+
+  React.useEffect(() => {
+    if (active == null) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        move(-1)
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        move(1)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [active, move, onClose])
+
+  if (!activeHandle) return null
+
+  const fileUrl = mkUrl
+    ? mkUrl(activeHandle)
+    : urls.bucketFile(activeHandle.bucket, activeHandle.key, {
+        version: activeHandle.version,
+      })
+
+  let navClass = classes.navOverlay
+  if (arrows === 'outside') navClass = classes.navOutside
+  if (arrows === 'inside') navClass = classes.navInside
+
+  const navButton = (direction: -1 | 1) => (
+    <M.IconButton
+      aria-label={direction < 0 ? 'Previous image' : 'Next image'}
+      className={cx(
+        classes.nav,
+        navClass,
+        arrows === 'overlay' &&
+          (direction < 0 ? classes.prevOverlay : classes.nextOverlay),
+      )}
+      color="primary"
+      onClick={() => move(direction)}
+    >
+      <M.Icon>{direction < 0 ? 'chevron_left' : 'chevron_right'}</M.Icon>
+    </M.IconButton>
+  )
+
+  return (
+    <M.Dialog
+      open
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      fullScreen={fullscreen}
+      aria-label="Image gallery lightbox"
+      classes={{ paper: classes.paper }}
+    >
+      <M.DialogTitle disableTypography>
+        <M.Box display="flex" alignItems="center">
+          <M.Typography variant="h6">{caption || 'Image preview'}</M.Typography>
+          <M.IconButton aria-label="Close image preview" onClick={onClose}>
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </M.Box>
+      </M.DialogTitle>
+      <M.DialogContent className={classes.content}>
+        {canNavigate && arrows === 'outside' && navButton(-1)}
+        {canNavigate && arrows !== 'outside' && navButton(-1)}
+        <div className={classes.imageWrap}>
+          <Summarize.HandleResolver handle={activeHandle}>
+            {AsyncResult.case({
+              _: () => null,
+              Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
+                <Thumbnail
+                  handle={resolved}
+                  size="lg"
+                  className={cx(classes.image, zoomed && classes.imageZoomed)}
+                  alt={caption}
+                  title={caption}
+                  onClick={() => zoom && setZoomed((value) => !value)}
+                />
+              ),
+            })}
+          </Summarize.HandleResolver>
+        </div>
+        {canNavigate && arrows !== 'outside' && navButton(1)}
+        {canNavigate && arrows === 'outside' && navButton(1)}
+      </M.DialogContent>
+      <div className={classes.footer}>
+        <div className={classes.footerText}>
+          {counter && (
+            <M.Typography variant="body2">
+              {(active || 0) + 1} of {images.length}
+            </M.Typography>
+          )}
+        </div>
+        <M.Button component={RRDom.Link} to={fileUrl} onClick={onClose}>
+          Open file
+        </M.Button>
+        {zoom && (
+          <M.Button onClick={() => setZoomed((value) => !value)}>
+            {zoomed ? 'Reset zoom' : 'Zoom'}
+          </M.Button>
+        )}
+      </div>
+    </M.Dialog>
+  )
+}
+
+export function Thumbnails({
+  arrows,
+  captions,
+  columns,
+  counter,
+  description,
+  emptyMessage = 'No images found',
+  fullscreen,
+  images,
+  mkUrl,
+  pageSize,
+  rows,
+  thumbnailFit = 'contain',
+  title,
+  zoom,
+}: ThumbnailsProps) {
+  const classes = useThumbnailsStyles()
 
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const scroll = React.useCallback(
@@ -67,45 +366,78 @@ export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
     [scrollRef],
   )
 
-  const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
+  const perPage = pageSize || (columns && rows ? columns * rows : 25)
+  const pagination = Pagination.use(images, { perPage, onChange: scroll })
+  const [active, setActive] = React.useState<number | null>(null)
+
+  const heading = title || (
+    <>
+      Images ({pagination.from}&ndash;{Math.min(pagination.to, images.length)} of{' '}
+      {images.length})
+    </>
+  )
+
+  if (!images.length) {
+    return (
+      <Summarize.Section heading={title || 'Images'} description={description}>
+        <M.Typography>{emptyMessage}</M.Typography>
+      </Summarize.Section>
+    )
+  }
 
   return (
     <Summarize.Section
-      heading={
-        <>
-          Images ({pagination.from}&ndash;{Math.min(pagination.to, images.length)} of{' '}
-          {images.length})
-        </>
-      }
+      heading={heading}
+      description={description}
       footer={pagination.pages > 1 && <Pagination.Controls {...pagination} />}
     >
       <div ref={scrollRef} />
-      <ImageGrid>
-        {pagination.paginated.map((i: LogicalKeyResolver.S3SummarizeHandle) => (
-          <RRDom.Link
-            key={i.logicalKey || i.key}
-            to={
-              mkUrl ? mkUrl(i) : urls.bucketFile(i.bucket, i.key, { version: i.version })
-            }
-            className={classes.link}
-          >
-            {/* @ts-expect-error */}
-            <Summarize.HandleResolver handle={i}>
-              {AsyncResult.case({
-                _: () => null,
-                Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
-                  <Thumbnail
-                    handle={resolved}
-                    className={classes.img}
-                    alt={basename(i.logicalKey || i.key)}
-                    title={basename(i.logicalKey || i.key)}
-                  />
-                ),
-              })}
-            </Summarize.HandleResolver>
-          </RRDom.Link>
-        ))}
+      <ImageGrid columns={columns}>
+        {pagination.paginated.map((image: ImageLike, pageIndex: number) => {
+          const handle = getHandle(image)
+          const caption = getCaption(image, captions)
+          const index = (pagination.from || 1) - 1 + pageIndex
+          return (
+            <M.ButtonBase
+              key={handle.logicalKey || handle.key}
+              className={classes.button}
+              onClick={() => setActive(index)}
+            >
+              {/* @ts-expect-error */}
+              <Summarize.HandleResolver handle={handle}>
+                {AsyncResult.case({
+                  _: () => null,
+                  Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
+                    <>
+                      <Thumbnail
+                        handle={resolved}
+                        className={cx(
+                          classes.img,
+                          thumbnailFit === 'cover' ? classes.cover : classes.contain,
+                        )}
+                        alt={caption || basename(handle.logicalKey || handle.key)}
+                        title={caption || basename(handle.logicalKey || handle.key)}
+                      />
+                      {!!caption && <span className={classes.caption}>{caption}</span>}
+                    </>
+                  ),
+                })}
+              </Summarize.HandleResolver>
+            </M.ButtonBase>
+          )
+        })}
       </ImageGrid>
+      <Lightbox
+        active={active}
+        arrows={arrows}
+        counter={counter}
+        fullscreen={fullscreen}
+        images={images}
+        mkUrl={mkUrl}
+        onClose={() => setActive(null)}
+        onSelect={setActive}
+        zoom={zoom}
+      />
     </Summarize.Section>
   )
 }

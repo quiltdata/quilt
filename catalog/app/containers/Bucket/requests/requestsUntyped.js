@@ -4,7 +4,7 @@ import * as R from 'ramda'
 
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
-import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail/constants'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/JSONSchema'
 import mkSearch from 'utils/mkSearch'
@@ -247,6 +247,7 @@ export const bucketImgs = async ({ req, s3, bucket, inStack }) => {
 }
 
 const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
+const isGallery = (fileHandle) => !!fileHandle?.gallery
 
 const isValidManifest = makeSchemaValidator(quiltSummarizeSchema)
 
@@ -265,6 +266,22 @@ async function parseFile(resolvePath, fileHandle) {
   return {
     ...(typeof fileHandle === 'string' ? null : fileHandle),
     handle,
+  }
+}
+
+function parseGallery(summaryHandle, entry) {
+  const prefix = entry.gallery.source?.prefix
+  return {
+    ...entry,
+    gallery: {
+      ...entry.gallery,
+      source: {
+        ...entry.gallery.source,
+        resolvedPrefix: prefix
+          ? s3paths.resolveKey(summaryHandle.logicalKey || summaryHandle.key, prefix)
+          : undefined,
+      },
+    },
   }
 }
 
@@ -324,11 +341,14 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     }
 
     return await Promise.all(
-      manifest.map((fileHandle) =>
-        isFile(fileHandle)
-          ? parseFile(resolvePath, fileHandle)
-          : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
-      ),
+      manifest.map(async (entry) => {
+        if (isGallery(entry)) {
+          return parseGallery(inputHandle, entry)
+        }
+        return isFile(entry)
+          ? parseFile(resolvePath, entry)
+          : Promise.all(entry.map(parseFile.bind(null, resolvePath)))
+      }),
     )
   } catch (e) {
     // eslint-disable-next-line no-console

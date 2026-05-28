@@ -20,6 +20,7 @@ export interface Column {
 export interface Row {
   id: string
   columns: Column[]
+  gallery?: Summarize.GalleryBlock
 }
 
 export interface Layout {
@@ -122,6 +123,10 @@ function parseColumn(fileOrPath: Summarize.File): Column {
   })
 }
 
+export function isGalleryRow(row: Row): boolean {
+  return !!row.gallery
+}
+
 function preStringifyType(type: Summarize.TypeExtended): [Summarize.Type] {
   const { name, ...rest } = type
   if (!Object.keys(rest).length) return [name]
@@ -151,6 +156,20 @@ function preStringifyColumn(column: Column): Summarize.File {
   }
 }
 
+function parseRow(row: Summarize.Row): Row {
+  if (row && typeof row === 'object' && !Array.isArray(row) && 'gallery' in row) {
+    return {
+      id: crypto.randomUUID(),
+      columns: [],
+      gallery: row,
+    }
+  }
+  return {
+    id: crypto.randomUUID(),
+    columns: Array.isArray(row) ? row.map(parseColumn) : [parseColumn(row)],
+  }
+}
+
 function validate(config: any) {
   const errors = makeSchemaValidator(quiltSummarizeSchema)(config)
   if (errors.length) {
@@ -170,16 +189,14 @@ export function parse(str: string): Layout {
   validate(config)
 
   return {
-    rows: config.map((row) => ({
-      id: crypto.randomUUID(),
-      columns: Array.isArray(row) ? row.map(parseColumn) : [parseColumn(row)],
-    })),
+    rows: config.map(parseRow),
   }
 }
 
 export function stringify(layout: Layout) {
   const converted = layout.rows
     .map((row) => {
+      if (row.gallery) return row.gallery
       const columns = row.columns.filter(({ file }) => file.path).map(preStringifyColumn)
       return columns.length > 1 ? columns : columns[0]
     })

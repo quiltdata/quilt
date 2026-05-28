@@ -16,17 +16,7 @@ import usePrevious from 'utils/usePrevious'
 import checkboard from './checkboard.svg'
 import glacier from './glacier.svg'
 
-export const SUPPORTED_EXTENSIONS = [
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.gif',
-  '.webp',
-  '.bmp',
-  '.tiff',
-  '.tif',
-  '.czi',
-]
+export { SUPPORTED_EXTENSIONS } from './constants'
 
 const SIZES = {
   sm: { w: 256, h: 256 },

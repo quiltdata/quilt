@@ -86,6 +86,100 @@
       ]
     },
 
+    "gallerySource": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["package", "folder"],
+          "default": "package"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Folder prefix relative to quilt_summarize.json"
+        },
+        "recursive": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+
+    "gallery": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/gallerySource"
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12,
+          "default": 5
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "pageSize": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "arrows": {
+          "type": "string",
+          "enum": ["inside", "outside", "overlay", "none"],
+          "default": "overlay"
+        },
+        "captions": {
+          "type": "string",
+          "enum": ["filename", "path", "title", "none"],
+          "default": "filename"
+        },
+        "counter": {
+          "type": "boolean",
+          "default": true
+        },
+        "thumbnailFit": {
+          "type": "string",
+          "enum": ["contain", "cover"],
+          "default": "contain"
+        },
+        "sort": {
+          "type": "string",
+          "enum": ["path", "filename", "modified"],
+          "default": "path"
+        },
+        "zoom": {
+          "type": "boolean"
+        },
+        "fullscreen": {
+          "type": "boolean"
+        }
+      },
+      "required": ["source"]
+    },
+
+    "galleryBlock": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "gallery": {
+          "$ref": "#/definitions/gallery"
+        },
+        "title": {
+          "type": "string"
+        },
+        "width": {
+          "$ref": "#/definitions/width"
+        }
+      },
+      "required": ["gallery"]
+    },
+
     "width": {
       "anyOf": [
         {
@@ -103,6 +197,9 @@
 
     "row": {
       "anyOf": [
+        {
+          "$ref": "#/definitions/galleryBlock"
+        },
         {
           "$ref": "#/definitions/file"
         },

@@ -252,5 +252,22 @@ describe('components/FileEditor/QuiltConfigEditor/QuiltSummarize/State', () => {
     it('convert layout state back to config', () => {
       expect(stringify(layout as Layout)).toBe(quiltSummarize)
     })
+
+    it('preserves gallery rows', () => {
+      const config = `[
+  {
+    "title": "Images",
+    "gallery": {
+      "source": {
+        "scope": "folder",
+        "prefix": "images/"
+      },
+      "columns": 3,
+      "rows": 3
+    }
+  }
+]`
+      expect(stringify(parse(config))).toBe(config)
+    })
   })
 })

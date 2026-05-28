@@ -48,6 +48,42 @@ export interface FileExtended {
 
 export type File = FileShortcut | FileExtended
 
+export type GallerySourceScope = 'package' | 'folder'
+export type GalleryArrows = 'inside' | 'outside' | 'overlay' | 'none'
+export type GalleryCaptions = 'filename' | 'path' | 'title' | 'none'
+export type GalleryThumbnailFit = 'contain' | 'cover'
+export type GallerySort = 'path' | 'filename' | 'modified'
+
+export interface GallerySource {
+  scope?: GallerySourceScope
+  prefix?: string
+  recursive?: boolean
+  resolvedPrefix?: string
+}
+
+export interface Gallery {
+  source: GallerySource
+  columns?: number
+  rows?: number
+  pageSize?: number
+  arrows?: GalleryArrows
+  captions?: GalleryCaptions
+  counter?: boolean
+  thumbnailFit?: GalleryThumbnailFit
+  sort?: GallerySort
+  zoom?: boolean
+  fullscreen?: boolean
+}
+
+export interface GalleryBlock {
+  gallery: Gallery
+  description?: string
+  title?: string
+  width?: string | number
+}
+
+export type Row = File | File[] | GalleryBlock
+
 export function detect(fileType: TypeShorthand, options: File): Type | undefined {
   return (options as FileExtended)?.types?.find(
     (type) => type === fileType || (type as TypeExtended).name === fileType,
