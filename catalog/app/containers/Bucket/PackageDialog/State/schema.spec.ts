@@ -1,7 +1,10 @@
+import * as React from 'react'
 import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
+import { BucketContextProvider } from 'containers/Bucket/context'
+
 import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -18,6 +21,9 @@ vi.mock('../../requests', () => ({
   metadataSchema: ({ s3, ...rest }: any) => Promise.resolve(metadataSchema({ ...rest })),
   objectSchema: ({ s3, ...rest }: any) => Promise.resolve(objectSchema({ ...rest })),
 }))
+
+const wrapper = ({ children }: React.PropsWithChildren<{}>) =>
+  React.createElement(BucketContextProvider, { bucket: 'test-bucket', children })
 
 describe('containers/Bucket/PackageDialog/State/schema', () => {
   describe('mkMetaValidator', () => {
@@ -54,14 +60,14 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
 
   describe('useMetadataSchema', () => {
     it('should return ready when no workflow', () => {
-      const { result } = renderHook(() => useMetadataSchema())
+      const { result } = renderHook(() => useMetadataSchema(), { wrapper })
 
       expect(result.current).toEqual(Ready())
     })
 
     it('should return ready when workflow has no schema', () => {
       const workflow = { name: 'test' } as any
-      const { result } = renderHook(() => useMetadataSchema(workflow))
+      const { result } = renderHook(() => useMetadataSchema(workflow), { wrapper })
 
       expect(result.current).toEqual(Ready())
     })
@@ -69,7 +75,10 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
     it('should call metadataSchema with correct parameters from workflow', async () => {
       const workflow = { schema: { url: 'https://example.com/schema.json' } } as any
 
-      const { waitForNextUpdate, unmount } = renderHook(() => useMetadataSchema(workflow))
+      const { waitForNextUpdate, unmount } = renderHook(
+        () => useMetadataSchema(workflow),
+        { wrapper },
+      )
 
       await act(() => waitForNextUpdate())
 
@@ -82,14 +91,14 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
 
   describe('useEntriesSchema', () => {
     it('should return ready when no workflow', () => {
-      const { result } = renderHook(() => useEntriesSchema())
+      const { result } = renderHook(() => useEntriesSchema(), { wrapper })
 
       expect(result.current).toEqual(Ready())
     })
 
     it('should return ready when workflow has no entriesSchema', () => {
       const workflow = { name: 'test' } as any
-      const { result } = renderHook(() => useEntriesSchema(workflow))
+      const { result } = renderHook(() => useEntriesSchema(workflow), { wrapper })
 
       expect(result.current).toEqual(Ready())
     })
@@ -97,7 +106,10 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
     it('should call objectSchema with correct parameters from workflow', async () => {
       const workflow = { entriesSchema: 'https://example.com/entries.json' } as any
 
-      const { waitForNextUpdate, unmount } = renderHook(() => useEntriesSchema(workflow))
+      const { waitForNextUpdate, unmount } = renderHook(
+        () => useEntriesSchema(workflow),
+        { wrapper },
+      )
       await act(() => waitForNextUpdate())
 
       expect(objectSchema).toHaveBeenCalledWith({

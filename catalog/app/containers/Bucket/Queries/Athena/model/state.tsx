@@ -5,6 +5,8 @@ import * as RRDom from 'react-router-dom'
 import type * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import { useBucketContext } from '../../../context'
+
 import * as requests from './requests'
 import * as Model from './utils'
 
@@ -70,17 +72,12 @@ interface ProviderProps {
 
 export function Provider({ preferences, children }: ProviderProps) {
   const { urls } = NamedRoutes.use()
+  const { name: bucket } = useBucketContext()
 
-  const {
-    bucket,
-    queryExecutionId,
-    workgroup: workgroupId,
-  } = RRDom.useParams<{
-    bucket: string
+  const { queryExecutionId, workgroup: workgroupId } = RRDom.useParams<{
     queryExecutionId?: string
     workgroup?: requests.Workgroup
   }>()
-  invariant(!!bucket, '`bucket` must be defined')
 
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 

@@ -1,7 +1,9 @@
+import * as React from 'react'
 import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 import dedent from 'dedent'
 
+import { BucketContextProvider } from 'containers/Bucket/context'
 import { FileNotFound } from 'containers/Bucket/errors'
 import Log from 'utils/Logging'
 import * as Request from 'utils/useRequest'
@@ -21,6 +23,11 @@ vi.mock('utils/AWS', () => ({ S3: { use: () => s3 } }))
 
 describe('useSuccessors integration tests', () => {
   const CURRENT_BUCKET = 'foo-bucket'
+  const wrapper = ({ children }: React.PropsWithChildren<{}>) =>
+    React.createElement(BucketContextProvider, {
+      bucket: CURRENT_BUCKET,
+      children,
+    })
 
   const SUCCESSOR_FOR_CURRENT_BUCKET = {
     copyData: true,
@@ -45,7 +52,7 @@ describe('useSuccessors integration tests', () => {
         promise: () => new Promise((resolve) => setTimeout(() => resolve(null), 1000)),
       })
 
-      const { result } = renderHook(() => useSuccessors(CURRENT_BUCKET))
+      const { result } = renderHook(() => useSuccessors(CURRENT_BUCKET), { wrapper })
 
       expect(result.current).toBe(Request.Loading)
     })
@@ -59,8 +66,9 @@ describe('useSuccessors integration tests', () => {
         promise: () => Promise.reject(testError),
       })
 
-      const { result, waitForValueToChange } = renderHook(() =>
-        useSuccessors(CURRENT_BUCKET),
+      const { result, waitForValueToChange } = renderHook(
+        () => useSuccessors(CURRENT_BUCKET),
+        { wrapper },
       )
 
       await waitForValueToChange(() => result.current, { timeout: 5000 })
@@ -79,8 +87,9 @@ describe('useSuccessors integration tests', () => {
             name: Test Workflow
       `)
 
-      const { result, waitForValueToChange } = renderHook(() =>
-        useSuccessors(CURRENT_BUCKET),
+      const { result, waitForValueToChange } = renderHook(
+        () => useSuccessors(CURRENT_BUCKET),
+        { wrapper },
       )
       await waitForValueToChange(() => result.current, { timeout: 5000 })
 
@@ -92,8 +101,9 @@ describe('useSuccessors integration tests', () => {
         promise: () => Promise.reject(new FileNotFound('Object not found')),
       })
 
-      const { result, waitForValueToChange } = renderHook(() =>
-        useSuccessors(CURRENT_BUCKET),
+      const { result, waitForValueToChange } = renderHook(
+        () => useSuccessors(CURRENT_BUCKET),
+        { wrapper },
       )
 
       await waitForValueToChange(() => result.current, { timeout: 5000 })
@@ -103,8 +113,9 @@ describe('useSuccessors integration tests', () => {
     it('should handle empty workflow config when file exists but is empty', async () => {
       mockS3ConfigYaml('')
 
-      const { result, waitForValueToChange } = renderHook(() =>
-        useSuccessors(CURRENT_BUCKET),
+      const { result, waitForValueToChange } = renderHook(
+        () => useSuccessors(CURRENT_BUCKET),
+        { wrapper },
       )
 
       await waitForValueToChange(() => result.current, { timeout: 5000 })
@@ -128,8 +139,9 @@ describe('useSuccessors integration tests', () => {
             name: Test Workflow
       `)
 
-      const { result, waitForValueToChange } = renderHook(() =>
-        useSuccessors(CURRENT_BUCKET),
+      const { result, waitForValueToChange } = renderHook(
+        () => useSuccessors(CURRENT_BUCKET),
+        { wrapper },
       )
       await waitForValueToChange(() => result.current, { timeout: 5000 })
 
@@ -173,8 +185,9 @@ describe('useSuccessors integration tests', () => {
             name: Test Workflow
       `)
 
-      const { result, waitForValueToChange } = renderHook(() =>
-        useSuccessors(CURRENT_BUCKET),
+      const { result, waitForValueToChange } = renderHook(
+        () => useSuccessors(CURRENT_BUCKET),
+        { wrapper },
       )
 
       await waitForValueToChange(() => result.current, { timeout: 5000 })

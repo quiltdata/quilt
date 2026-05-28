@@ -126,10 +126,15 @@ export const Provider = function S3Provider({ children, ...overrides }) {
     { ...awsCfg, ...DEFAULT_OPTS, ...overrides },
     (opts) => {
       const clients = {}
-      return (region) => {
-        const r = region || opts.region
+      return (bucketConfig) => {
+        const r =
+          typeof bucketConfig === 'string'
+            ? bucketConfig
+            : bucketConfig?.region || opts.region
         if (!clients[r]) {
-          clients[r] = new SmartS3({ ...opts, region: r })
+          const configOverrides =
+            typeof bucketConfig === 'string' ? {} : bucketConfig || {}
+          clients[r] = new SmartS3({ ...opts, ...configOverrides, region: r })
         }
         return clients[r]
       }
@@ -141,9 +146,9 @@ export const Provider = function S3Provider({ children, ...overrides }) {
 
 // Returns an S3 client for the default region (cfg.region).
 // Use useS3Factory() when you need a client for a specific bucket region.
-export function useS3() {
+export function useS3(bucketConfig) {
   const factory = useS3Factory()
-  return factory()
+  return factory(bucketConfig)
 }
 
 // Returns a factory (region?) => S3Client that caches clients per region.

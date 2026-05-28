@@ -4,6 +4,7 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
 import noop from 'utils/noop'
+import { BucketContextProvider } from 'containers/Bucket/context'
 
 import * as Model from './'
 
@@ -69,14 +70,24 @@ describe('app/containers/Queries/Athena/model/state', () => {
     }
     const tree = () =>
       render(
-        <Model.Provider preferences={{}}>
-          <Component />
-        </Model.Provider>,
+        <BucketContextProvider>
+          <Model.Provider preferences={{}}>
+            <Component />
+          </Model.Provider>
+        </BucketContextProvider>,
       )
     expect(tree).toThrow('`bucket` must be defined')
   })
 
   it('load workgroups and set current workgroup', async () => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: vi.fn(() => null),
+        removeItem: vi.fn(),
+        setItem: vi.fn(),
+      },
+    })
     listWorkGroups.mockImplementation(() => ({
       promise: () =>
         Promise.resolve({
@@ -109,7 +120,9 @@ describe('app/containers/Queries/Athena/model/state', () => {
       promise: () => Promise.resolve({ DataCatalogsSummary: [] }),
     }))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <Model.Provider preferences={{}}>{children}</Model.Provider>
+      <BucketContextProvider>
+        <Model.Provider preferences={{}}>{children}</Model.Provider>
+      </BucketContextProvider>
     )
     const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
     await act(async () => {

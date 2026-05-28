@@ -11,6 +11,7 @@ import {
 import * as Request from 'utils/useRequest'
 import * as Types from 'utils/types'
 import * as workflows from 'utils/workflows'
+import { useBucketContext } from 'containers/Bucket/context'
 
 import { metadataSchema, objectSchema } from '../../requests'
 
@@ -40,7 +41,8 @@ export function mkMetaValidator(schema?: JsonSchema) {
 }
 
 export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const schemaUrl = workflow?.schema?.url
   const req = React.useCallback(() => metadataSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
@@ -55,7 +57,8 @@ export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
 }
 
 export function useEntriesSchema(workflow?: workflows.Workflow): SchemaStatus {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const schemaUrl = workflow?.entriesSchema || ''
   const req = React.useCallback(() => objectSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)

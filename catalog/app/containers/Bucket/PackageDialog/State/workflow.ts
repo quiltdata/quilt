@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as Request from 'utils/useRequest'
 import * as workflows from 'utils/workflows'
+import { useBucketContext } from 'containers/Bucket/context'
 
 import * as requests from '../../requests'
 
@@ -38,7 +39,8 @@ export function useWorkflowsConfig(
   open: boolean,
   { bucket }: PackageDst,
 ): WorkflowsConfigStatus {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const req = React.useCallback(
     () => requests.workflowsConfig({ s3, bucket }),
     [bucket, s3],

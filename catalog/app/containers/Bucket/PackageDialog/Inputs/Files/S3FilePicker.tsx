@@ -19,6 +19,7 @@ import type * as Model from 'model'
 
 import * as Listing from '../../../Listing'
 import * as Selection from '../../../Selection'
+import { useBucketContext } from '../../../context'
 import { displayError } from '../../../errors'
 import * as requests from '../../../requests'
 
@@ -119,8 +120,7 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
   const classes = useBucketSelectStyles()
 
   const { handle } = BucketPreferences.use()
-  const { bucket: currentBucket } = RRDom.useParams<{ bucket: string }>()
-  invariant(currentBucket, '`currentBucket` must be defined')
+  const { name: currentBucket } = useBucketContext()
 
   const toConfig = FileEditorRoutes.useEditBucketFile(
     handle || { bucket: currentBucket, key: quiltConfigs.bucketPreferences[0] },

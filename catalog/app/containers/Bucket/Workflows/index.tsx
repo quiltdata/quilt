@@ -1,4 +1,3 @@
-import invariant from 'invariant'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -12,6 +11,7 @@ import * as Workflows from 'utils/workflows'
 
 import { displayError } from '../errors'
 import * as requests from '../requests'
+import { useBucketContext } from '../context'
 
 import Detail from './Detail'
 import * as Layout from './Layout'
@@ -91,10 +91,11 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
 }
 
 export default function WorkflowsRoot() {
-  const { bucket, slug } = RR.useParams<{ bucket: string; slug?: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+  const { name: bucket } = useBucketContext()
+  const { slug } = RR.useParams<{ slug?: string }>()
 
-  const s3 = AWS.S3.use()
+  const { config: bucketConfig } = useBucketContext()
+  const s3 = AWS.S3.use(bucketConfig)
   const data = useData(requests.workflowsConfig, { s3, bucket })
 
   const title = React.useMemo(() => {

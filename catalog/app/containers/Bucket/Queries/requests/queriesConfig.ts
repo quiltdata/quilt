@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
+import { useBucketContext } from 'containers/Bucket/context'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as YAML from 'utils/yaml'
@@ -65,6 +66,7 @@ export const queriesConfig = async ({
 }
 
 export function useQueriesConfig(bucket: string): AsyncData<Query[]> {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   return useData(queriesConfig, { s3, bucket })
 }

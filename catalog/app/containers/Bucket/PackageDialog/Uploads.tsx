@@ -12,6 +12,7 @@ import * as s3paths from 'utils/s3paths'
 import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
+import { useBucketContext } from '../context'
 import type { LocalFile } from './Inputs/Files/Input'
 
 interface UploadResult extends S3.ManagedUpload.SendData {
@@ -50,7 +51,8 @@ const computeTotalProgress = (uploads: UploadsState): UploadTotalProgress =>
   )
 
 export function useUploads() {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
 
   const [uploads, setUploads] = React.useState<UploadsState>({})
   const progress = React.useMemo(() => computeTotalProgress(uploads), [uploads])

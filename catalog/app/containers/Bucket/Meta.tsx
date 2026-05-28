@@ -11,6 +11,7 @@ import type { MetaBlockPreferences } from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import type { JsonRecord } from 'utils/types'
 
+import { useBucketContext } from './context'
 import * as requests from './requests'
 import Section from './Section'
 
@@ -155,7 +156,8 @@ interface ObjectMetaProps {
 }
 
 export function ObjectMeta({ handle }: ObjectMetaProps) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const metaData = useData(requests.objectMeta, {
     s3,
     handle,
@@ -185,7 +187,8 @@ interface ObjectTagsProps {
 }
 
 export function ObjectTags({ handle }: ObjectTagsProps) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const tagsData = useData(requests.objectTags, {
     s3,
     handle,

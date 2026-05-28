@@ -9,6 +9,8 @@ import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import Log from 'utils/Logging'
 
+import { useBucketContext } from '../context'
+
 const useDeleteDialogStyles = M.makeStyles({
   deleted: {
     textDecoration: 'line-through',
@@ -54,7 +56,8 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
     [resolvedObjects],
   )
 
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const getFiles = useFilesListing()
 
   React.useEffect(() => {

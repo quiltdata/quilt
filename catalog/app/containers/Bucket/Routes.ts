@@ -1,10 +1,10 @@
 import * as Eff from 'effect'
 import { Schema as S } from 'effect'
 import invariant from 'invariant'
-import { useParams } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
 import * as Nav from 'utils/Navigation'
+import { useBucketContext } from './context'
 
 export interface RouteMap {
   bucketDir: routes.BucketDirArgs
@@ -23,8 +23,7 @@ export interface RouteMap {
 }
 
 export function useBucketSafe() {
-  const { bucket } = useParams<{ bucket?: string }>()
-  return bucket
+  return useBucketContext().name
 }
 
 export function useBucketStrict() {
