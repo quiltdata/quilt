@@ -8,13 +8,15 @@ const push = vi.fn()
 const restoreObject = vi.fn()
 
 vi.mock('constants/config', () => ({ default: {} }))
-vi.mock('utils/AWS', () => ({ S3: { use: () => ({}) } }))
 vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
-vi.mock('containers/Bucket/requests', async () => {
-  const actual: $TSFixMe = await vi.importActual('containers/Bucket/requests/object')
+// RehydrateDialog now calls useRestoreObject() (urql-backed) instead of the
+// AWS-SDK requests.restoreObject. Mock the hook so the dialog gets our stub
+// without urql trying to hit /graphql in the test environment.
+vi.mock('./restoreObject', async () => {
+  const actual: $TSFixMe = await vi.importActual('./restoreObject')
   return {
     ...actual,
-    restoreObject: (...args: $TSFixMe[]) => restoreObject(...args),
+    useRestoreObject: () => restoreObject,
   }
 })
 
