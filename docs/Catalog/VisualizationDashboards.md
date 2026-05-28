@@ -184,7 +184,7 @@ Supported gallery options:
 - `source.prefix`: folder prefix relative to `quilt_summarize.json`.
 - `source.recursive`: include nested files under the prefix; defaults to `true`.
 - `columns` and `rows`: thumbnail grid size; `pageSize` can override their product.
-- `arrows`: `overlay`, `inside`, `outside`, or `none`.
+- `arrows`: `overlay`, `inside`, `outside`, or `none`; controls both gallery page arrows and lightbox arrows.
 - `captions`: `filename`, `path`, `title`, or `none`.
 - `counter`: show the current lightbox position.
 - `fullscreen`: open the lightbox as a full-screen dialog.

@@ -56,6 +56,39 @@ function ImageGrid({ children, columns }: React.PropsWithChildren<ImageGridProps
 }
 
 const useThumbnailsStyles = M.makeStyles((t) => ({
+  galleryFrame: {
+    alignItems: 'center',
+    display: 'flex',
+    position: 'relative',
+  },
+  galleryGrid: {
+    flex: 1,
+    minWidth: 0,
+  },
+  galleryArrow: {
+    zIndex: 1,
+  },
+  galleryArrowOverlay: {
+    backgroundColor: t.palette.background.paper,
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    '&:hover': {
+      backgroundColor: t.palette.background.paper,
+    },
+  },
+  galleryArrowInside: {
+    margin: t.spacing(0, 1),
+  },
+  galleryArrowOutside: {
+    margin: t.spacing(0, 2),
+  },
+  galleryArrowPrevOverlay: {
+    left: t.spacing(-1.5),
+  },
+  galleryArrowNextOverlay: {
+    right: t.spacing(-1.5),
+  },
   button: {
     display: 'block',
     overflow: 'hidden',
@@ -430,6 +463,14 @@ function Lightbox({
   )
 }
 
+function PageIndicator({ page, pages }: { page: number; pages: number }) {
+  return (
+    <M.Box display="flex" alignItems="center" px={1.5} py={1}>
+      {page} of {pages}
+    </M.Box>
+  )
+}
+
 export function Thumbnails({
   arrows,
   captions,
@@ -457,8 +498,13 @@ export function Thumbnails({
   )
 
   const perPage = pageSize || (columns && rows ? columns * rows : 25)
-  const pagination = Pagination.use(images, { perPage, onChange: scroll })
+  const shouldUseSidePager = !!arrows && arrows !== 'none'
+  const pagination = Pagination.use(images, {
+    perPage,
+    onChange: shouldUseSidePager ? undefined : scroll,
+  })
   const [active, setActive] = React.useState<number | null>(null)
+  const useSidePager = shouldUseSidePager && pagination.pages > 1
 
   const heading = title || (
     <>
@@ -479,43 +525,88 @@ export function Thumbnails({
     <GallerySection
       heading={heading}
       description={description}
-      footer={pagination.pages > 1 && <Pagination.Controls {...pagination} />}
+      footer={
+        pagination.pages > 1 &&
+        (useSidePager ? (
+          <PageIndicator page={pagination.page} pages={pagination.pages} />
+        ) : (
+          <Pagination.Controls {...pagination} />
+        ))
+      }
     >
       <div ref={scrollRef} />
-      <ImageGrid columns={columns}>
-        {pagination.paginated.map((image: ImageLike, pageIndex: number) => {
-          const handle = getHandle(image)
-          const caption = getCaption(image, captions)
-          const index = (pagination.from || 1) - 1 + pageIndex
-          return (
-            <M.ButtonBase
-              key={handle.logicalKey || handle.key}
-              className={classes.button}
-              onClick={() => setActive(index)}
-            >
-              <HandleResolver handle={handle}>
-                {AsyncResult.case({
-                  _: () => null,
-                  Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
-                    <>
-                      <Thumbnail
-                        handle={resolved}
-                        className={cx(
-                          classes.img,
-                          thumbnailFit === 'cover' ? classes.cover : classes.contain,
-                        )}
-                        alt={caption || basename(handle.logicalKey || handle.key)}
-                        title={caption || basename(handle.logicalKey || handle.key)}
-                      />
-                      {!!caption && <span className={classes.caption}>{caption}</span>}
-                    </>
-                  ),
-                })}
-              </HandleResolver>
-            </M.ButtonBase>
-          )
-        })}
-      </ImageGrid>
+      <div className={classes.galleryFrame}>
+        {useSidePager && (
+          <M.IconButton
+            aria-label="Previous gallery page"
+            className={cx(
+              classes.galleryArrow,
+              arrows === 'overlay' && classes.galleryArrowOverlay,
+              arrows === 'overlay' && classes.galleryArrowPrevOverlay,
+              arrows === 'inside' && classes.galleryArrowInside,
+              arrows === 'outside' && classes.galleryArrowOutside,
+            )}
+            disabled={pagination.page <= 1}
+            onClick={pagination.prevPage}
+          >
+            <M.Icon>chevron_left</M.Icon>
+          </M.IconButton>
+        )}
+        <div className={classes.galleryGrid}>
+          <ImageGrid columns={columns}>
+            {pagination.paginated.map((image: ImageLike, pageIndex: number) => {
+              const handle = getHandle(image)
+              const caption = getCaption(image, captions)
+              const index = (pagination.from || 1) - 1 + pageIndex
+              return (
+                <M.ButtonBase
+                  key={handle.logicalKey || handle.key}
+                  className={classes.button}
+                  onClick={() => setActive(index)}
+                >
+                  <HandleResolver handle={handle}>
+                    {AsyncResult.case({
+                      _: () => null,
+                      Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
+                        <>
+                          <Thumbnail
+                            handle={resolved}
+                            className={cx(
+                              classes.img,
+                              thumbnailFit === 'cover' ? classes.cover : classes.contain,
+                            )}
+                            alt={caption || basename(handle.logicalKey || handle.key)}
+                            title={caption || basename(handle.logicalKey || handle.key)}
+                          />
+                          {!!caption && (
+                            <span className={classes.caption}>{caption}</span>
+                          )}
+                        </>
+                      ),
+                    })}
+                  </HandleResolver>
+                </M.ButtonBase>
+              )
+            })}
+          </ImageGrid>
+        </div>
+        {useSidePager && (
+          <M.IconButton
+            aria-label="Next gallery page"
+            className={cx(
+              classes.galleryArrow,
+              arrows === 'overlay' && classes.galleryArrowOverlay,
+              arrows === 'overlay' && classes.galleryArrowNextOverlay,
+              arrows === 'inside' && classes.galleryArrowInside,
+              arrows === 'outside' && classes.galleryArrowOutside,
+            )}
+            disabled={pagination.page >= pagination.pages}
+            onClick={pagination.nextPage}
+          >
+            <M.Icon>chevron_right</M.Icon>
+          </M.IconButton>
+        )}
+      </div>
       <Lightbox
         active={active}
         arrows={arrows}
