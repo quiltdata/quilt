@@ -10,13 +10,13 @@ import * as Pagination from 'components/Pagination'
 import Thumbnail from 'components/Thumbnail'
 import Skel from 'components/Skeleton'
 import AsyncResult from 'utils/AsyncResult'
+import Data from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import type * as SummaryTypes from 'components/Preview/loaders/summarize'
 
 import type { GalleryItem } from './GallerySource'
-import * as Summarize from './Summarize'
 
 const useImageGridStyles = M.makeStyles((t) => ({
   root: {
@@ -142,6 +142,7 @@ const useLightboxStyles = M.makeStyles((t) => ({
 }))
 
 type ImageLike = LogicalKeyResolver.S3SummarizeHandle | GalleryItem
+type MakeURL = (h: LogicalKeyResolver.S3SummarizeHandle) => RRDom.LinkProps['to']
 
 interface ThumbnailsProps {
   arrows?: SummaryTypes.GalleryArrows
@@ -152,7 +153,7 @@ interface ThumbnailsProps {
   emptyMessage?: React.ReactNode
   fullscreen?: boolean
   images: ImageLike[]
-  mkUrl?: Summarize.MakeURL
+  mkUrl?: MakeURL
   pageSize?: number
   rows?: number
   thumbnailFit?: SummaryTypes.GalleryThumbnailFit
@@ -189,6 +190,95 @@ function getCaption(
   }
 }
 
+const useGallerySectionStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+    zIndex: 1,
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
+    },
+    [t.breakpoints.up('sm')]: {
+      marginTop: t.spacing(2),
+    },
+  },
+  content: {
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(1),
+      paddingTop: t.spacing(2),
+    },
+    [t.breakpoints.up('sm')]: {
+      padding: t.spacing(2),
+    },
+  },
+  footer: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(0.25, 1),
+    },
+    [t.breakpoints.up('sm')]: {
+      padding: t.spacing(0.25, 2),
+    },
+  },
+  description: {
+    ...t.typography.body2,
+  },
+  heading: {
+    marginBottom: t.spacing(1),
+    [t.breakpoints.up('sm')]: {
+      marginBottom: t.spacing(2),
+    },
+  },
+}))
+
+interface GallerySectionProps {
+  description?: React.ReactNode
+  footer?: React.ReactNode
+  heading?: React.ReactNode
+}
+
+function GallerySection({
+  children,
+  description,
+  footer,
+  heading,
+}: React.PropsWithChildren<GallerySectionProps>) {
+  const classes = useGallerySectionStyles()
+  return (
+    <M.Paper className={classes.root}>
+      <div className={classes.content}>
+        {!!heading && (
+          <M.Typography className={classes.heading} variant="h5">
+            {heading}
+          </M.Typography>
+        )}
+        {!!description && <div className={classes.description}>{description}</div>}
+        {children}
+      </div>
+      {footer && <div className={classes.footer}>{footer}</div>}
+    </M.Paper>
+  )
+}
+
+interface HandleResolverProps {
+  handle: LogicalKeyResolver.S3SummarizeHandle
+  children: (r: $TSFixMe) => React.ReactNode
+}
+
+function HandleResolver({ handle, children }: HandleResolverProps) {
+  const resolve = LogicalKeyResolver.use()
+  if (resolve && handle.logicalKey && !handle.key) {
+    return (
+      // @ts-expect-error
+      <Data fetch={resolve} params={handle.logicalKey}>
+        {children}
+      </Data>
+    )
+  }
+  return <>{children(AsyncResult.Ok(handle))}</>
+}
+
 function Lightbox({
   active,
   arrows = 'overlay',
@@ -205,7 +295,7 @@ function Lightbox({
   counter?: boolean
   fullscreen?: boolean
   images: ImageLike[]
-  mkUrl?: Summarize.MakeURL
+  mkUrl?: MakeURL
   onClose: () => void
   onSelect: (index: number) => void
   zoom?: boolean
@@ -300,8 +390,7 @@ function Lightbox({
         {canNavigate && arrows === 'outside' && navButton(-1)}
         {canNavigate && arrows !== 'outside' && navButton(-1)}
         <div className={classes.imageWrap}>
-          {/* @ts-expect-error */}
-          <Summarize.HandleResolver handle={activeHandle}>
+          <HandleResolver handle={activeHandle}>
             {AsyncResult.case({
               _: () => null,
               Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
@@ -315,7 +404,7 @@ function Lightbox({
                 />
               ),
             })}
-          </Summarize.HandleResolver>
+          </HandleResolver>
         </div>
         {canNavigate && arrows !== 'outside' && navButton(1)}
         {canNavigate && arrows === 'outside' && navButton(1)}
@@ -380,14 +469,14 @@ export function Thumbnails({
 
   if (!images.length) {
     return (
-      <Summarize.Section heading={title || 'Images'} description={description}>
+      <GallerySection heading={title || 'Images'} description={description}>
         <M.Typography>{emptyMessage}</M.Typography>
-      </Summarize.Section>
+      </GallerySection>
     )
   }
 
   return (
-    <Summarize.Section
+    <GallerySection
       heading={heading}
       description={description}
       footer={pagination.pages > 1 && <Pagination.Controls {...pagination} />}
@@ -404,8 +493,7 @@ export function Thumbnails({
               className={classes.button}
               onClick={() => setActive(index)}
             >
-              {/* @ts-expect-error */}
-              <Summarize.HandleResolver handle={handle}>
+              <HandleResolver handle={handle}>
                 {AsyncResult.case({
                   _: () => null,
                   Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
@@ -423,7 +511,7 @@ export function Thumbnails({
                     </>
                   ),
                 })}
-              </Summarize.HandleResolver>
+              </HandleResolver>
             </M.ButtonBase>
           )
         })}
@@ -439,13 +527,16 @@ export function Thumbnails({
         onSelect={setActive}
         zoom={zoom}
       />
-    </Summarize.Section>
+    </GallerySection>
   )
 }
 
 export function Skeleton() {
   return (
-    <Summarize.Section key="thumbs:skel" heading={<Summarize.HeadingSkel />}>
+    <GallerySection
+      key="thumbs:skel"
+      heading={<Skel borderRadius="borderRadius" width={200} />}
+    >
       <ImageGrid>
         {R.times(
           (i) => (
@@ -454,6 +545,6 @@ export function Skeleton() {
           9,
         )}
       </ImageGrid>
-    </Summarize.Section>
+    </GallerySection>
   )
 }
