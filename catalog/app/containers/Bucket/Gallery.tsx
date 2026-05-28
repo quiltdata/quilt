@@ -300,6 +300,7 @@ function Lightbox({
         {canNavigate && arrows === 'outside' && navButton(-1)}
         {canNavigate && arrows !== 'outside' && navButton(-1)}
         <div className={classes.imageWrap}>
+          {/* @ts-expect-error */}
           <Summarize.HandleResolver handle={activeHandle}>
             {AsyncResult.case({
               _: () => null,
