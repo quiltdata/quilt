@@ -8,7 +8,7 @@ MAINTAINER Quilt Data, Inc. support@quilt.bio
 
 EXPOSE 80
 
-ENV NGINX_VERSION=1.24.0
+ENV NGINX_VERSION=1.30.2
 
 # Download and compile Nginx.
 # Dependencies:
