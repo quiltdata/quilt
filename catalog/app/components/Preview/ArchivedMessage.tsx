@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 
-import type { RestoreStatus } from 'containers/Bucket/requests/restore'
+import type { RestoreStatus } from 'utils/glacier'
 import RehydrateDialog from './RehydrateDialog'
 
 interface RenderMessageProps {

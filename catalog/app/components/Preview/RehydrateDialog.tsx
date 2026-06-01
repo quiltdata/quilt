@@ -4,21 +4,19 @@ import * as Lab from '@material-ui/lab'
 
 import type { S3 } from 'aws-sdk'
 
-import * as Notifications from 'containers/Notifications'
 import * as URLS from 'constants/urls'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import { GlacierTier } from 'utils/glacier'
 import type * as Model from 'model'
-
-import * as requests from 'containers/Bucket/requests'
 
 import { useRestoreObject } from './restoreObject'
 
 const MIN_DAYS = 1
 const MAX_DAYS = 90
 const DEFAULT_DAYS = 7
-const DEFAULT_TIER: requests.GlacierTier = 'Standard'
+const DEFAULT_TIER: GlacierTier = 'Standard'
 
 const S3_RESTORE_DOC =
   'https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects.html'
@@ -28,7 +26,7 @@ const S3_RESTORE_DOC =
 const REHYDRATE_PERMISSION_DOC = `${URLS.docs}/advanced/s3-prefix-permissions`
 
 interface TierOption {
-  value: requests.GlacierTier
+  value: GlacierTier
   label: string
   hint: string
 }
@@ -90,9 +88,8 @@ export default function RehydrateDialog({
 }: RehydrateDialogProps) {
   const classes = useStyles()
   const restoreObject = useRestoreObject()
-  const { push } = Notifications.use()
 
-  const [tier, setTier] = React.useState<requests.GlacierTier>(DEFAULT_TIER)
+  const [tier, setTier] = React.useState<GlacierTier>(DEFAULT_TIER)
   const [daysInput, setDaysInput] = React.useState<string>(String(DEFAULT_DAYS))
   const [submitting, setSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -127,7 +124,7 @@ export default function RehydrateDialog({
 
   const handleTierChange = React.useCallback(
     (e: React.ChangeEvent<{ value: unknown }>) => {
-      setTier(e.target.value as requests.GlacierTier)
+      setTier(e.target.value as GlacierTier)
     },
     [],
   )
@@ -155,21 +152,23 @@ export default function RehydrateDialog({
       const r = await restoreObject({ handle, tier, days: parsedDays })
       switch (r.__typename) {
         case 'RestoreObjectSuccess':
-          push(
-            r.alreadyRestored
-              ? `Already restored — duration extended to ${parsedDays} days`
-              : 'Restore initiated — check back later',
-          )
+          // 202 (alreadyRestored=false): onSubmitted(false) flips ArchivedMessage
+          // to "Restore in progress" optimistically — that's the feedback.
+          // DEV NOTE: 200 (alreadyRestored=true) intentionally has NO feedback —
+          // the dialog just closes and the page stays on "Object Archived" until
+          // reloaded. This only happens on a rare stale-cache race (the object's
+          // restore completed since the cached HEAD was read; you can only open
+          // this dialog from a "cold archived" view). We accept the silent close
+          // rather than depend on the Notifications container. Revisit if/when
+          // status is read fresh (e.g. via GraphQL) instead of a cached HEAD.
           onSubmitted(r.alreadyRestored)
           onClose()
           break
         case 'OperationError':
           switch (r.name) {
             case 'RestoreAlreadyInProgress':
-              // A restore is already running; surface it like a fresh 202 so
-              // ArchivedMessage flips to "Restore in progress" instead of
-              // staying idle with a Rehydrate button.
-              push('Restore is already in progress — check back later.')
+              // Already running → flip ArchivedMessage to "Restore in progress"
+              // (same as a fresh 202) instead of leaving the Rehydrate button.
               onSubmitted(false)
               onClose()
               break
@@ -217,7 +216,6 @@ export default function RehydrateDialog({
     handle,
     tier,
     parsedDays,
-    push,
     onSubmitted,
     onClose,
   ])

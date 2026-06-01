@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 
-import { parseRestoreHeader, isEffectivelyArchived } from './restore'
+import { parseRestoreHeader, isEffectivelyArchived } from './glacier'
 
-describe('containers/Bucket/requests/restore', () => {
+describe('utils/glacier', () => {
   describe('parseRestoreHeader', () => {
     it('returns undefined for missing value', () => {
       expect(parseRestoreHeader(undefined)).toBeUndefined()

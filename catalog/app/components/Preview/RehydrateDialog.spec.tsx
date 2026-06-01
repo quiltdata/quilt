@@ -11,7 +11,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import RehydrateDialog from './RehydrateDialog'
 
-const push = vi.fn()
 const restoreObject = vi.fn()
 
 // useRestoreObject now returns the raw mutation union; the dialog branches on it.
@@ -26,10 +25,6 @@ const opError = (name: string) => ({
 })
 
 vi.mock('constants/config', () => ({ default: {} }))
-
-vi.mock('containers/Notifications', () => ({
-  use: () => ({ push }),
-}))
 
 vi.mock('./restoreObject', async () => {
   const actual: $TSFixMe = await vi.importActual('./restoreObject')
@@ -72,7 +67,6 @@ function getRehydrateButton(): HTMLButtonElement {
 
 describe('components/Preview/RehydrateDialog', () => {
   beforeEach(() => {
-    push.mockReset()
     restoreObject.mockReset()
   })
   afterEach(cleanup)
@@ -145,7 +139,7 @@ describe('components/Preview/RehydrateDialog', () => {
   })
 
   describe('submit', () => {
-    it('calls restoreObject and pushes "initiated" toast on a new restore', async () => {
+    it('flips to in-progress and closes on a new restore', async () => {
       restoreObject.mockResolvedValueOnce(success(false))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
@@ -155,26 +149,25 @@ describe('components/Preview/RehydrateDialog', () => {
         tier: 'Standard',
         days: 7,
       })
-      expect(push).toHaveBeenCalledWith(expect.stringMatching(/initiated/i))
       expect(onClose).toHaveBeenCalled()
     })
 
-    it('pushes "extended" toast when already restored', async () => {
+    it('closes silently when already restored (200 — no page feedback by design)', async () => {
       restoreObject.mockResolvedValueOnce(success(true))
-      const { onSubmitted } = setup()
+      const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
-      await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(true))
-      expect(push).toHaveBeenCalledWith(expect.stringMatching(/extended to 7 days/i))
+      await waitFor(() => expect(onClose).toHaveBeenCalled())
+      // No optimistic flip on 200; the page stays archived until reloaded.
+      expect(onSubmitted).toHaveBeenCalledWith(true)
     })
 
-    it('refetches and closes on RestoreAlreadyInProgress', async () => {
+    it('flips to in-progress and closes on RestoreAlreadyInProgress', async () => {
       restoreObject.mockResolvedValueOnce(opError('RestoreAlreadyInProgress'))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onClose).toHaveBeenCalled())
       // already running → trigger the in-progress flip (treated like a new restore).
       expect(onSubmitted).toHaveBeenCalledWith(false)
-      expect(push).toHaveBeenCalledWith(expect.stringMatching(/already in progress/i))
     })
 
     it('stays open and surfaces the error + IAM hint on RestoreAccessDenied', async () => {

@@ -3,7 +3,7 @@ import * as React from 'react'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 
-import type { GlacierTier } from 'containers/Bucket/requests/object'
+import type { GlacierTier } from 'utils/glacier'
 import { GlacierRestoreTier } from 'model/graphql/types.generated'
 
 import RESTORE_OBJECT from './gql/RestoreObject.generated'

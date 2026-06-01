@@ -5,10 +5,7 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import log from 'utils/Logging'
 
-import {
-  parseRestoreHeader,
-  isEffectivelyArchived,
-} from 'containers/Bucket/requests/restore'
+import { parseRestoreHeader, isEffectivelyArchived } from 'utils/glacier'
 import { archivedError } from '../archivedError'
 import { PreviewError } from '../types'
 

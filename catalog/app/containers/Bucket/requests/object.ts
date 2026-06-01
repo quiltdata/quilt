@@ -213,10 +213,6 @@ interface WorkflowsConfigArgs {
   strict?: boolean
 }
 
-// Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
-// narrowing. Our own union keeps exhaustiveness and catches typos.
-export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
-
 export const workflowsConfig = async ({ s3, bucket, strict }: WorkflowsConfigArgs) => {
   try {
     const response = await fetchFile({

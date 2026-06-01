@@ -2,7 +2,7 @@ import type { S3 } from 'aws-sdk'
 
 import type * as Model from 'model'
 
-import type { RestoreStatus } from 'containers/Bucket/requests/restore'
+import type { RestoreStatus } from 'utils/glacier'
 
 import { PreviewError } from './types'
 

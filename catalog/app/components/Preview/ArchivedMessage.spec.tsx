@@ -4,14 +4,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import ArchivedMessage from './ArchivedMessage'
 
-const push = vi.fn()
 const restoreObject = vi.fn()
 
 vi.mock('constants/config', () => ({ default: {} }))
-vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
-// RehydrateDialog now calls useRestoreObject() (urql-backed) instead of the
-// AWS-SDK requests.restoreObject. Mock the hook so the dialog gets our stub
-// without urql trying to hit /graphql in the test environment.
+// RehydrateDialog calls useRestoreObject() (urql-backed). Mock the hook so the
+// dialog gets our stub without urql trying to hit /graphql in the test env.
 vi.mock('./restoreObject', async () => {
   const actual: $TSFixMe = await vi.importActual('./restoreObject')
   return {
@@ -49,7 +46,6 @@ function setup(props: Partial<React.ComponentProps<typeof ArchivedMessage>> = {}
 
 describe('components/Preview/ArchivedMessage', () => {
   beforeEach(() => {
-    push.mockReset()
     restoreObject.mockReset()
   })
   afterEach(cleanup)
@@ -142,10 +138,9 @@ describe('components/Preview/ArchivedMessage', () => {
       setup()
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
       fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))
-      // Success is reported via a notification; wait for it, then confirm we
-      // stayed on the archived branch (no optimistic flip on 200 — a later page
-      // load flips out of "archived" once the HEAD sees the live copy).
-      await waitFor(() => expect(push).toHaveBeenCalled())
+      // 200 closes the dialog silently (no optimistic flip); the page stays on
+      // "Object Archived" until reloaded — a later HEAD sees the live copy.
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
       expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
     })
   })

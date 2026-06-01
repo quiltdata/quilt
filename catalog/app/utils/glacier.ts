@@ -1,3 +1,8 @@
+// Pure, transport-agnostic helpers for S3 Glacier / Deep Archive state, shared
+// by the request layer (getObjectExistence, package listings) and the preview
+// components (ArchivedMessage, useGate). Lives in utils so neither layer has to
+// reach into the other.
+
 export interface RestoreStatus {
   ongoing: boolean
   expiresAt?: Date
@@ -36,3 +41,7 @@ export function isEffectivelyArchived(
 ): boolean {
   return isArchiveStorageClass(storageClass) && !hasLiveRestoredCopy(restore, now)
 }
+
+// Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
+// narrowing. Our own union keeps exhaustiveness and catches typos.
+export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'

@@ -35,7 +35,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
-import type { RestoreStatus } from '../requests/restore'
+import type { RestoreStatus } from 'utils/glacier'
 
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
