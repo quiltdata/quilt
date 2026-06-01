@@ -6,33 +6,32 @@ import type * as Model from 'model'
 import type { RestoreStatus } from 'utils/glacier'
 import RehydrateDialog from './RehydrateDialog'
 
-interface RenderMessageProps {
-  heading: React.ReactNode
-  body: React.ReactNode
-  action?: React.ReactNode
-}
-
-interface RenderActionProps {
+interface MessageAction {
   label: string
   onClick: () => void
+}
+
+interface MessageData {
+  heading: React.ReactNode
+  body: React.ReactNode
+  action?: MessageAction
 }
 
 interface ArchivedMessageProps {
   handle: Model.S3.S3ObjectLocation
   restore?: RestoreStatus
   storageClass?: S3.StorageClass
-  renderMessage: (props: RenderMessageProps) => React.ReactNode
-  renderAction: (props: RenderActionProps) => React.ReactNode
-  noDownload?: boolean
+  // The host (PreviewDisplay) owns how the message looks and whether to surface
+  // the action (e.g. it drops it when downloads are disabled); this component
+  // only manages the rehydrate dialog + optimistic state and hands back content.
+  children: (msg: MessageData) => React.ReactNode
 }
 
 export default function ArchivedMessage({
   handle,
   restore,
   storageClass,
-  renderMessage,
-  renderAction,
-  noDownload,
+  children,
 }: ArchivedMessageProps) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
   // Optimistic hold: a 202 flips to "in progress" and stays. Rehydration takes
@@ -55,7 +54,7 @@ export default function ArchivedMessage({
   if (showInProgress) {
     return (
       <>
-        {renderMessage({
+        {children({
           heading: 'Restore in progress',
           body: 'Restoring from Glacier — this can take minutes to hours depending on the retrieval tier and storage class. Refresh the page to check progress.',
         })}
@@ -65,10 +64,10 @@ export default function ArchivedMessage({
 
   return (
     <>
-      {renderMessage({
+      {children({
         heading: 'Object Archived',
         body: 'This file is in S3 Glacier — preview is not available until you rehydrate it.',
-        action: !noDownload && renderAction({ label: 'Rehydrate', onClick: openDialog }),
+        action: { label: 'Rehydrate', onClick: openDialog },
       })}
       <RehydrateDialog
         open={dialogOpen}

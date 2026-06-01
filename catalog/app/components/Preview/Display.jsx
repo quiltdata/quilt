@@ -72,14 +72,15 @@ export default function PreviewDisplay({
             ),
           }),
         Archived: ({ handle, restore, storageClass }) => (
-          <ArchivedMessage
-            handle={handle}
-            restore={restore}
-            storageClass={storageClass}
-            renderMessage={renderMessage}
-            renderAction={renderAction}
-            noDownload={noDl}
-          />
+          <ArchivedMessage handle={handle} restore={restore} storageClass={storageClass}>
+            {({ heading, body, action }) =>
+              renderMessage({
+                heading,
+                body,
+                action: !noDl && action && renderAction(action),
+              })
+            }
+          </ArchivedMessage>
         ),
         InvalidVersion: () =>
           renderMessage({

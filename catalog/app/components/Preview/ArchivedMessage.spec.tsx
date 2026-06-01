@@ -19,28 +19,29 @@ vi.mock('./restoreObject', async () => {
 
 const handle = { bucket: 'B', key: 'K', version: 'V' }
 
-const renderMessage = ({ heading, body, action }: $TSFixMe) => (
+// Stands in for PreviewDisplay's renderer: ArchivedMessage hands back message
+// data, the host renders it (action is plain { label, onClick } data).
+const renderChildren = ({ heading, body, action }: $TSFixMe) => (
   <div data-testid="message">
     <h6 data-testid="heading">{heading}</h6>
     <p data-testid="body">{body}</p>
-    {action}
+    {action && (
+      <button
+        type="button"
+        onClick={action.onClick}
+        data-testid={`action-${action.label}`}
+      >
+        {action.label}
+      </button>
+    )}
   </div>
-)
-
-const renderAction = ({ label, onClick }: $TSFixMe) => (
-  <button type="button" onClick={onClick} data-testid={`action-${label}`}>
-    {label}
-  </button>
 )
 
 function setup(props: Partial<React.ComponentProps<typeof ArchivedMessage>> = {}) {
   return render(
-    <ArchivedMessage
-      handle={handle}
-      renderMessage={renderMessage}
-      renderAction={renderAction}
-      {...props}
-    />,
+    <ArchivedMessage handle={handle} {...props}>
+      {renderChildren}
+    </ArchivedMessage>,
   )
 }
 
@@ -55,12 +56,6 @@ describe('components/Preview/ArchivedMessage', () => {
       setup()
       expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
       expect(screen.getByTestId('action-Rehydrate')).toBeTruthy()
-    })
-
-    it('hides Rehydrate when noDownload is true', () => {
-      setup({ noDownload: true })
-      expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
-      expect(screen.queryByTestId('action-Rehydrate')).toBeNull()
     })
 
     it('opens the dialog when Rehydrate is clicked', () => {
@@ -107,11 +102,7 @@ describe('components/Preview/ArchivedMessage', () => {
         alreadyRestored: false,
       })
       const { rerender } = render(
-        <ArchivedMessage
-          handle={handle}
-          renderMessage={renderMessage}
-          renderAction={renderAction}
-        />,
+        <ArchivedMessage handle={handle}>{renderChildren}</ArchivedMessage>,
       )
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
       fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))
@@ -120,12 +111,9 @@ describe('components/Preview/ArchivedMessage', () => {
       )
       // Simulate a fresh HEAD arriving with ongoing=true.
       rerender(
-        <ArchivedMessage
-          handle={handle}
-          restore={{ ongoing: true }}
-          renderMessage={renderMessage}
-          renderAction={renderAction}
-        />,
+        <ArchivedMessage handle={handle} restore={{ ongoing: true }}>
+          {renderChildren}
+        </ArchivedMessage>,
       )
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })
