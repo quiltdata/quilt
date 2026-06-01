@@ -1,3 +1,4 @@
+import inspect
 import unittest
 from unittest import mock
 
@@ -47,3 +48,15 @@ class TelemetryTest(unittest.TestCase):
         new_session_id = self.mock_report_api_use.call_args[0][1]
 
         assert new_session_id != session_id
+
+    def test_preserves_signature(self):
+        """
+        The decorator exposes the wrapped function's signature so that
+        inspect.signature() works (e.g. through @classmethod, as pydoc-markdown relies on).
+        """
+
+        def func(a, b, c=1, *, d=2):
+            pass
+
+        decorated = ApiTelemetry(mock.sentinel.API_NAME)(func)
+        assert inspect.signature(decorated) == inspect.signature(func)

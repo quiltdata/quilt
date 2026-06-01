@@ -1,5 +1,6 @@
 import atexit
 import functools
+import inspect
 import os
 import platform
 import sys
@@ -139,6 +140,12 @@ class ApiTelemetry:
                 # TODO(armand): This string matching is extremely brittle. Fix ASAP
                 ApiTelemetry.telemetry_disabled = True
             return results
+
+        # Preserve explicit signature so inspect.signature() works through @classmethod
+        try:
+            decorated.__signature__ = inspect.signature(func)
+        except (ValueError, TypeError):
+            pass
 
         return decorated
 
