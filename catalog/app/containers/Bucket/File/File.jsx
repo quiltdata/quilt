@@ -370,7 +370,15 @@ function File() {
           // Carries restore/storageClass so ArchivedMessage can show the
           // Rehydrate flow / in-progress state. The toolbar reload (handleReload)
           // re-runs this guard via the getObjectExistence refetch.
-          return callback(AsyncResult.Err(Preview.archivedError(handle, h)))
+          return callback(
+            AsyncResult.Err(
+              Preview.PreviewError.Archived({
+                handle,
+                restore: h.restore,
+                storageClass: h.storageClass,
+              }),
+            ),
+          )
         }
         return Preview.load(handle, callback, previewOptions)
       },

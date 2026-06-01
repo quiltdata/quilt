@@ -6,7 +6,6 @@ import * as Data from 'utils/Data'
 import log from 'utils/Logging'
 
 import { parseRestoreHeader, isEffectivelyArchived } from 'utils/glacier'
-import { archivedError } from '../archivedError'
 import { PreviewError } from '../types'
 
 interface SizeThresholds {
@@ -42,7 +41,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     ]
     const restore = parseRestoreHeader(restoreHeader)
     if (isEffectivelyArchived(head.StorageClass, restore)) {
-      throw archivedError(handle, { restore, storageClass: head.StorageClass })
+      throw PreviewError.Archived({ handle, restore, storageClass: head.StorageClass })
     }
   } catch (e) {
     if (PreviewError.is(e)) throw e

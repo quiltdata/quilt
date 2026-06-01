@@ -541,7 +541,7 @@ const withPreview = (
     // Carries restore/storageClass so ArchivedMessage can show the Rehydrate
     // flow / in-progress state.
     return callback(
-      AsyncResult.Err(Preview.archivedError(handle, { restore, storageClass })),
+      AsyncResult.Err(Preview.PreviewError.Archived({ handle, restore, storageClass })),
     )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
