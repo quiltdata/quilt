@@ -7,7 +7,7 @@ import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
-import { BucketError, FileNotFound, VersionNotFound } from '../errors'
+import { FileNotFound, VersionNotFound } from '../errors'
 
 import { decodeS3Key } from './utils'
 import { ensureObjectIsPresent } from './requestsUntyped'
@@ -216,35 +216,6 @@ interface WorkflowsConfigArgs {
 // Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
 // narrowing. Our own union keeps exhaustiveness and catches typos.
 export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
-
-export class RestoreAlreadyInProgressError extends BucketError {
-  constructor() {
-    super('Restore is already in progress — check back later.')
-  }
-}
-
-export class GlacierExpeditedUnavailableError extends BucketError {
-  constructor() {
-    super('Expedited capacity unavailable. Try Standard or Bulk.')
-  }
-}
-
-export class RestoreAccessDeniedError extends BucketError {
-  constructor() {
-    super("You don't have permission to rehydrate this object.")
-  }
-}
-
-// S3 InvalidObjectState: the object isn't in a restorable archived state
-// (e.g. already restored, or not actually archived) — an expected condition,
-// not a failure, so it gets a calm message rather than a generic error.
-export class ObjectNotArchivedError extends BucketError {
-  constructor() {
-    super(
-      'This object is not archived — it may already be restored. No rehydration needed.',
-    )
-  }
-}
 
 export const workflowsConfig = async ({ s3, bucket, strict }: WorkflowsConfigArgs) => {
   try {

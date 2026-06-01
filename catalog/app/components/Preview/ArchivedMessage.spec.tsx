@@ -92,7 +92,10 @@ describe('components/Preview/ArchivedMessage', () => {
 
   describe('optimistic restoring hold', () => {
     it('flips to in-progress immediately after a 202 callback even if restore is still undefined', async () => {
-      restoreObject.mockResolvedValueOnce({ alreadyRestored: false })
+      restoreObject.mockResolvedValueOnce({
+        __typename: 'RestoreObjectSuccess',
+        alreadyRestored: false,
+      })
       setup()
       // Open dialog and submit.
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
@@ -103,7 +106,10 @@ describe('components/Preview/ArchivedMessage', () => {
     })
 
     it('holds in-progress when HEAD-derived ongoing=true later arrives (no remount/flicker)', async () => {
-      restoreObject.mockResolvedValueOnce({ alreadyRestored: false })
+      restoreObject.mockResolvedValueOnce({
+        __typename: 'RestoreObjectSuccess',
+        alreadyRestored: false,
+      })
       const { rerender } = render(
         <ArchivedMessage
           handle={handle}
@@ -129,7 +135,10 @@ describe('components/Preview/ArchivedMessage', () => {
     })
 
     it('does NOT enter optimistic branch on 200 OK (alreadyRestored=true)', async () => {
-      restoreObject.mockResolvedValueOnce({ alreadyRestored: true })
+      restoreObject.mockResolvedValueOnce({
+        __typename: 'RestoreObjectSuccess',
+        alreadyRestored: true,
+      })
       setup()
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
       fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))

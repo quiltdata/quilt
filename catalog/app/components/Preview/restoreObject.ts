@@ -3,50 +3,12 @@ import * as React from 'react'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 
-import {
-  type GlacierTier,
-  RestoreAlreadyInProgressError,
-  GlacierExpeditedUnavailableError,
-  RestoreAccessDeniedError,
-  ObjectNotArchivedError,
-} from 'containers/Bucket/requests/object'
+import type { GlacierTier } from 'containers/Bucket/requests/object'
 import { GlacierRestoreTier } from 'model/graphql/types.generated'
 
 import RESTORE_OBJECT from './gql/RestoreObject.generated'
 
 type MutationData = GQL.DataForDoc<typeof RESTORE_OBJECT>
-
-// Success projection of the mutation union — interpretRestoreResult throws on
-// the error variants, so callers only ever get this shape.
-export type RestoreObjectResult = Extract<
-  MutationData['restoreObject'],
-  { __typename: 'RestoreObjectSuccess' }
->
-
-export function interpretRestoreResult(data: MutationData): RestoreObjectResult {
-  const r = data.restoreObject
-  switch (r.__typename) {
-    case 'RestoreObjectSuccess':
-      return r
-    case 'OperationError':
-      switch (r.name) {
-        case 'RestoreAlreadyInProgress':
-          throw new RestoreAlreadyInProgressError()
-        case 'GlacierExpeditedUnavailable':
-          throw new GlacierExpeditedUnavailableError()
-        case 'RestoreAccessDenied':
-          throw new RestoreAccessDeniedError()
-        case 'InvalidObjectState':
-          throw new ObjectNotArchivedError()
-        default:
-          throw new Error(r.message || r.name)
-      }
-    case 'InvalidInput':
-      throw new Error(r.errors[0]?.message || 'Invalid input')
-    default:
-      return r // exhaustive: never
-  }
-}
 
 interface UseRestoreObjectArgs {
   handle: Model.S3.S3ObjectLocation
@@ -60,6 +22,8 @@ const TIER_TO_ENUM: Record<GlacierTier, GlacierRestoreTier> = {
   Expedited: GlacierRestoreTier.EXPEDITED,
 }
 
+// Returns the raw mutation union; the caller branches on __typename (see
+// RehydrateDialog). Transport/network failures reject as usual.
 export function useRestoreObject() {
   const runRestore = GQL.useMutation(RESTORE_OBJECT)
   return React.useCallback(
@@ -67,7 +31,7 @@ export function useRestoreObject() {
       handle,
       tier,
       days,
-    }: UseRestoreObjectArgs): Promise<RestoreObjectResult> => {
+    }: UseRestoreObjectArgs): Promise<MutationData['restoreObject']> => {
       const data = await runRestore({
         bucket: handle.bucket,
         key: handle.key,
@@ -75,7 +39,7 @@ export function useRestoreObject() {
         tier: TIER_TO_ENUM[tier],
         days,
       })
-      return interpretRestoreResult(data)
+      return data.restoreObject
     },
     [runRestore],
   )

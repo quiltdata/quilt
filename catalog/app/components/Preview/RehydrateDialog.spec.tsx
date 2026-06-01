@@ -9,15 +9,21 @@ import {
 } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import {
-  RestoreAlreadyInProgressError,
-  RestoreAccessDeniedError,
-} from 'containers/Bucket/requests/object'
-
 import RehydrateDialog from './RehydrateDialog'
 
 const push = vi.fn()
 const restoreObject = vi.fn()
+
+// useRestoreObject now returns the raw mutation union; the dialog branches on it.
+const success = (alreadyRestored: boolean) => ({
+  __typename: 'RestoreObjectSuccess' as const,
+  alreadyRestored,
+})
+const opError = (name: string) => ({
+  __typename: 'OperationError' as const,
+  name,
+  message: `server: ${name}`,
+})
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -139,8 +145,8 @@ describe('components/Preview/RehydrateDialog', () => {
   })
 
   describe('submit', () => {
-    it('calls restoreObject and pushes "initiated" toast on 202', async () => {
-      restoreObject.mockResolvedValueOnce({ alreadyRestored: false })
+    it('calls restoreObject and pushes "initiated" toast on a new restore', async () => {
+      restoreObject.mockResolvedValueOnce(success(false))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(false))
@@ -153,26 +159,26 @@ describe('components/Preview/RehydrateDialog', () => {
       expect(onClose).toHaveBeenCalled()
     })
 
-    it('pushes "extended" toast on 200 (already restored)', async () => {
-      restoreObject.mockResolvedValueOnce({ alreadyRestored: true })
+    it('pushes "extended" toast when already restored', async () => {
+      restoreObject.mockResolvedValueOnce(success(true))
       const { onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(true))
       expect(push).toHaveBeenCalledWith(expect.stringMatching(/extended to 7 days/i))
     })
 
-    it('refetches and closes on 409 RestoreAlreadyInProgress', async () => {
-      restoreObject.mockRejectedValueOnce(new RestoreAlreadyInProgressError())
+    it('refetches and closes on RestoreAlreadyInProgress', async () => {
+      restoreObject.mockResolvedValueOnce(opError('RestoreAlreadyInProgress'))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onClose).toHaveBeenCalled())
-      // 409 = restore already running → trigger the in-progress flip + refetch.
+      // already running → trigger the in-progress flip (treated like a new restore).
       expect(onSubmitted).toHaveBeenCalledWith(false)
       expect(push).toHaveBeenCalledWith(expect.stringMatching(/already in progress/i))
     })
 
-    it('stays open and surfaces the error + IAM hint on 403 AccessDenied', async () => {
-      restoreObject.mockRejectedValueOnce(new RestoreAccessDeniedError())
+    it('stays open and surfaces the error + IAM hint on RestoreAccessDenied', async () => {
+      restoreObject.mockResolvedValueOnce(opError('RestoreAccessDenied'))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       const dialog = screen.getByRole('dialog')
@@ -182,6 +188,26 @@ describe('components/Preview/RehydrateDialog', () => {
       expect(within(dialog).getByText(/s3:RestoreObject/)).toBeTruthy()
       expect(onClose).not.toHaveBeenCalled()
       expect(onSubmitted).not.toHaveBeenCalled()
+    })
+
+    it('stays open and suggests another tier on GlacierExpeditedUnavailable', async () => {
+      restoreObject.mockResolvedValueOnce(opError('GlacierExpeditedUnavailable'))
+      const { onClose } = setup()
+      fireEvent.click(getRehydrateButton())
+      const dialog = screen.getByRole('dialog')
+      await waitFor(() =>
+        expect(within(dialog).getByText(/Expedited capacity unavailable/i)).toBeTruthy(),
+      )
+      expect(onClose).not.toHaveBeenCalled()
+    })
+
+    it('shows a calm message on InvalidObjectState (not archived)', async () => {
+      restoreObject.mockResolvedValueOnce(opError('InvalidObjectState'))
+      const { onClose } = setup()
+      fireEvent.click(getRehydrateButton())
+      const dialog = screen.getByRole('dialog')
+      await waitFor(() => expect(within(dialog).getByText(/not archived/i)).toBeTruthy())
+      expect(onClose).not.toHaveBeenCalled()
     })
   })
 })

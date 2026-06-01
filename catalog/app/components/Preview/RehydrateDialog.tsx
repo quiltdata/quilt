@@ -8,6 +8,7 @@ import * as Notifications from 'containers/Notifications'
 import * as URLS from 'constants/urls'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
 import type * as Model from 'model'
 
 import * as requests from 'containers/Bucket/requests'
@@ -151,42 +152,61 @@ export default function RehydrateDialog({
     setErrorMessage(null)
     setShowIamHint(false)
     try {
-      const result = await restoreObject({
-        handle,
-        tier,
-        days: parsedDays,
-      })
-      if (result.alreadyRestored) {
-        push(`Already restored — duration extended to ${parsedDays} days`)
-      } else {
-        push('Restore initiated — check back later')
+      const r = await restoreObject({ handle, tier, days: parsedDays })
+      switch (r.__typename) {
+        case 'RestoreObjectSuccess':
+          push(
+            r.alreadyRestored
+              ? `Already restored — duration extended to ${parsedDays} days`
+              : 'Restore initiated — check back later',
+          )
+          onSubmitted(r.alreadyRestored)
+          onClose()
+          break
+        case 'OperationError':
+          switch (r.name) {
+            case 'RestoreAlreadyInProgress':
+              // A restore is already running; surface it like a fresh 202 so
+              // ArchivedMessage flips to "Restore in progress" instead of
+              // staying idle with a Rehydrate button.
+              push('Restore is already in progress — check back later.')
+              onSubmitted(false)
+              onClose()
+              break
+            case 'GlacierExpeditedUnavailable':
+              setErrorMessage('Expedited capacity unavailable. Try Standard or Bulk.')
+              break
+            case 'RestoreAccessDenied':
+              setErrorMessage("You don't have permission to rehydrate this object.")
+              setShowIamHint(true)
+              break
+            case 'InvalidObjectState':
+              // Expected condition (object already restored / not archived),
+              // not a failure — calm message, no Sentry.
+              setErrorMessage(
+                'This object is not archived — it may already be restored. No rehydration needed.',
+              )
+              break
+            default:
+              Log.error(new Error(`restoreObject: ${r.name}: ${r.message}`))
+              setErrorMessage(
+                r.message || 'Failed to start restore. Please try again later.',
+              )
+          }
+          break
+        case 'InvalidInput':
+          setErrorMessage(r.errors[0]?.message || 'Invalid input')
+          break
+        default:
+          assertNever(r)
       }
-      onSubmitted(result.alreadyRestored)
-      onClose()
     } catch (e) {
-      if (e instanceof requests.RestoreAlreadyInProgressError) {
-        push(e.message)
-        // A restore is already running; surface it like a fresh 202 so
-        // ArchivedMessage flips to "Restore in progress" (and refetches)
-        // instead of staying idle with a Rehydrate button.
-        onSubmitted(false)
-        onClose()
-      } else if (e instanceof requests.GlacierExpeditedUnavailableError) {
-        setErrorMessage(e.message)
-      } else if (e instanceof requests.RestoreAccessDeniedError) {
-        setErrorMessage(e.message)
-        setShowIamHint(true)
-      } else if (e instanceof requests.ObjectNotArchivedError) {
-        // Expected condition (object already restored / not archived), not a
-        // failure — show the calm message without logging to Sentry.
-        setErrorMessage(e.message)
-      } else {
-        Log.error(e)
-        const fallback =
-          (e instanceof Error && e.message) ||
-          'Failed to start restore. Please try again later.'
-        setErrorMessage(fallback)
-      }
+      // Transport/network failure (the mutation itself rejected).
+      Log.error(e)
+      setErrorMessage(
+        (e instanceof Error && e.message) ||
+          'Failed to start restore. Please try again later.',
+      )
     } finally {
       setSubmitting(false)
     }
