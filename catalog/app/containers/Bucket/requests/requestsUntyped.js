@@ -78,8 +78,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
-    const restoreHeader = req.response?.httpResponse?.headers?.['x-amz-restore']
-    const restore = parseRestoreHeader(restoreHeader)
+    const restore = parseRestoreHeader(h.Restore)
     return ObjectExistence.Exists({
       bucket,
       key,

@@ -36,10 +36,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     const head = await req.promise()
     length = head.ContentLength
     if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
-    const restoreHeader = (req as $TSFixMe).response?.httpResponse?.headers?.[
-      'x-amz-restore'
-    ]
-    const restore = parseRestoreHeader(restoreHeader)
+    const restore = parseRestoreHeader(head.Restore)
     if (isEffectivelyArchived(head.StorageClass, restore)) {
       throw PreviewError.Archived({ handle, restore, storageClass: head.StorageClass })
     }
