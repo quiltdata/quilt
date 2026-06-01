@@ -278,22 +278,18 @@ export default function File() {
 
   const path = s3paths.decode(encodedPath)
 
-  const [resetKey, setResetKey] = React.useState(0)
-  const handleReload = React.useCallback(() => setResetKey((k) => k + 1), [])
   const previewOptions = React.useMemo(() => ({ context: Preview.CONTEXT.FILE }), [])
 
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
     key: path,
-    resetKey,
   })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
     key: path,
     version,
-    resetKey,
   })
 
   const objExists = objExistsData.case({
@@ -326,9 +322,8 @@ export default function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
-          // NOTE: reload refreshes the preview because this guard re-runs on the
-          // parent's getObjectExistence refetch and remounts the loader fresh;
-          // useGate has no cache-bust of its own. Drop this and reload breaks.
+          // Carries restore/storageClass so ArchivedMessage can show the
+          // Rehydrate flow / in-progress state.
           return callback(AsyncResult.Err(Preview.archivedError(handle, h)))
         }
         return Preview.load(handle, callback, previewOptions)
@@ -402,7 +397,7 @@ export default function File() {
                     Err: (e) => {
                       throw e
                     },
-                    Ok: withPreview(renderPreview(undefined, handleReload)),
+                    Ok: withPreview(renderPreview(undefined)),
                   })}
                 </div>
               </Section>

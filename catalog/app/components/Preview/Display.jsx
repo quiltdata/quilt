@@ -38,7 +38,6 @@ const defaultAction = ({ label, ...rest }) => (
 export default function PreviewDisplay({
   data,
   noDownload = undefined,
-  onReload = undefined,
   renderContents = R.identity,
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
@@ -79,7 +78,6 @@ export default function PreviewDisplay({
             storageClass={storageClass}
             renderMessage={renderMessage}
             renderAction={renderAction}
-            onReload={onReload}
             noDownload={noDl}
           />
         ),

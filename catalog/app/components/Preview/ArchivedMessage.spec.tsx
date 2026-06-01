@@ -37,17 +37,14 @@ const renderAction = ({ label, onClick }: $TSFixMe) => (
 )
 
 function setup(props: Partial<React.ComponentProps<typeof ArchivedMessage>> = {}) {
-  const onReload = vi.fn()
-  const utils = render(
+  return render(
     <ArchivedMessage
       handle={handle}
       renderMessage={renderMessage}
       renderAction={renderAction}
-      onReload={onReload}
       {...props}
     />,
   )
-  return { ...utils, onReload }
 }
 
 describe('components/Preview/ArchivedMessage', () => {
@@ -84,28 +81,11 @@ describe('components/Preview/ArchivedMessage', () => {
   })
 
   describe('in-progress branch', () => {
-    it('renders Restore in progress heading with Check status button', () => {
+    it('renders Restore in progress heading with no action (rehydration is async)', () => {
       setup({ restore: { ongoing: true } })
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
-      expect(screen.getByTestId('action-Check status')).toBeTruthy()
-    })
-
-    it('Check status calls onReload', () => {
-      const { onReload } = setup({ restore: { ongoing: true } })
-      fireEvent.click(screen.getByTestId('action-Check status'))
-      expect(onReload).toHaveBeenCalled()
-    })
-
-    it('hides Check status when onReload is absent', () => {
-      render(
-        <ArchivedMessage
-          handle={handle}
-          restore={{ ongoing: true }}
-          renderMessage={renderMessage}
-          renderAction={renderAction}
-        />,
-      )
-      expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
+      // No in-app refresh control — restore takes hours; a later page load
+      // reflects the real state.
       expect(screen.queryByTestId('action-Check status')).toBeNull()
     })
   })
@@ -122,15 +102,13 @@ describe('components/Preview/ArchivedMessage', () => {
       )
     })
 
-    it('clears optimistic state once HEAD-derived ongoing=true arrives, staying in in-progress branch', async () => {
+    it('holds in-progress when HEAD-derived ongoing=true later arrives (no remount/flicker)', async () => {
       restoreObject.mockResolvedValueOnce({ alreadyRestored: false })
-      const onReload = vi.fn()
       const { rerender } = render(
         <ArchivedMessage
           handle={handle}
           renderMessage={renderMessage}
           renderAction={renderAction}
-          onReload={onReload}
         />,
       )
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
@@ -138,29 +116,27 @@ describe('components/Preview/ArchivedMessage', () => {
       await waitFor(() =>
         expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i),
       )
-      // Simulate parent refetch landing HEAD-derived ongoing=true.
+      // Simulate a fresh HEAD arriving with ongoing=true.
       rerender(
         <ArchivedMessage
           handle={handle}
           restore={{ ongoing: true }}
           renderMessage={renderMessage}
           renderAction={renderAction}
-          onReload={onReload}
         />,
       )
-      // Still in-progress, no flicker back to idle.
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })
 
     it('does NOT enter optimistic branch on 200 OK (alreadyRestored=true)', async () => {
       restoreObject.mockResolvedValueOnce({ alreadyRestored: true })
-      const onReload = vi.fn()
-      setup({ onReload })
+      setup()
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
       fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))
-      await waitFor(() => expect(onReload).toHaveBeenCalled())
-      // No optimistic flip — parent replaces this component once
-      // `effectivelyArchived === false`.
+      // Success is reported via a notification; wait for it, then confirm we
+      // stayed on the archived branch (no optimistic flip on 200 — a later page
+      // load flips out of "archived" once the HEAD sees the live copy).
+      await waitFor(() => expect(push).toHaveBeenCalled())
       expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
     })
   })

@@ -23,7 +23,6 @@ interface ArchivedMessageProps {
   storageClass?: S3.StorageClass
   renderMessage: (props: RenderMessageProps) => React.ReactNode
   renderAction: (props: RenderActionProps) => React.ReactNode
-  onReload?: () => void
   noDownload?: boolean
 }
 
@@ -33,31 +32,23 @@ export default function ArchivedMessage({
   storageClass,
   renderMessage,
   renderAction,
-  onReload,
   noDownload,
 }: ArchivedMessageProps) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  // Optimistic hold: after a 202, show the in-progress branch immediately,
-  // before HEAD catches up. Cleared once HEAD confirms ongoing.
+  // Optimistic hold: a 202 flips to "in progress" and stays. Rehydration takes
+  // hours and the HEAD is browser-cached, so there's no in-session polling — a
+  // later page load picks up the real state.
   const [optimisticRestoring, setOptimisticRestoring] = React.useState(false)
-
-  React.useEffect(() => {
-    if (!optimisticRestoring) return
-    if (restore?.ongoing === true) setOptimisticRestoring(false)
-  }, [optimisticRestoring, restore])
 
   const openDialog = React.useCallback(() => setDialogOpen(true), [])
   const closeDialog = React.useCallback(() => setDialogOpen(false), [])
 
-  const handleSubmitted = React.useCallback(
-    (alreadyRestored: boolean) => {
-      // 200 OK: parent reload flips out of "archived" once HEAD sees the live
-      // copy. 202: hold optimistically until HEAD confirms.
-      if (!alreadyRestored) setOptimisticRestoring(true)
-      onReload?.()
-    },
-    [onReload],
-  )
+  const handleSubmitted = React.useCallback((alreadyRestored: boolean) => {
+    // 202: a new restore started — hold the in-progress message optimistically.
+    // 200 (already restored): a later page load re-reads the HEAD and flips out
+    // of "archived".
+    if (!alreadyRestored) setOptimisticRestoring(true)
+  }, [])
 
   const showInProgress = optimisticRestoring || restore?.ongoing === true
 
@@ -66,9 +57,7 @@ export default function ArchivedMessage({
       <>
         {renderMessage({
           heading: 'Restore in progress',
-          body: 'Restoring from Glacier — the exact time depends on the tier and storage class you picked. Refresh to check status.',
-          action:
-            !!onReload && renderAction({ label: 'Check status', onClick: onReload }),
+          body: 'Restoring from Glacier — this can take minutes to hours depending on the retrieval tier and storage class. Refresh the page to check progress.',
         })}
       </>
     )

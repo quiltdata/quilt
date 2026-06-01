@@ -538,9 +538,8 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
-    // NOTE: reload refreshes the preview because this guard re-runs on the
-    // <Data> refetch and remounts the loader fresh; useGate has no cache-bust
-    // of its own. Drop this and reload breaks.
+    // Carries restore/storageClass so ArchivedMessage can show the Rehydrate
+    // flow / in-progress state.
     return callback(
       AsyncResult.Err(Preview.archivedError(handle, { restore, storageClass })),
     )
@@ -737,10 +736,6 @@ function FileDisplay({
 
   const viewModes = useViewModes(mode)
 
-  // Bumped on rehydrate-submit / Check status to refetch getObjectExistence
-  // (via Data params); the loader then remounts fresh, re-running its HEAD.
-  const [resetKey, setResetKey] = React.useState(0)
-
   const onViewModeChange = React.useCallback(
     (m) => {
       history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
@@ -760,9 +755,7 @@ function FileDisplay({
   const existenceData = useData(requests.getObjectExistence, {
     s3,
     ...handle,
-    resetKey,
   })
-  const handleReload = React.useCallback(() => setResetKey(R.inc), [])
 
   const { push } = Notifications.use()
   const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
@@ -936,7 +929,7 @@ function FileDisplay({
                 { archived, deleted, restore, storageClass },
                 handle,
                 viewModes.mode,
-                renderPreview(viewModes.handlePreviewResult, handleReload),
+                renderPreview(viewModes.handlePreviewResult),
               )}
             </div>
           </Section>
