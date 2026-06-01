@@ -7,7 +7,7 @@ import * as R from 'ramda'
 
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
-import { isEffectivelyArchived, restoreFromListStatus } from 'utils/glacier'
+import { isEffectivelyArchived, parseRestoreStatus } from 'utils/glacier'
 import * as s3paths from 'utils/s3paths'
 
 import * as errors from '../errors'
@@ -132,7 +132,7 @@ export const bucketListing = async ({
           etag: i.ETag!,
           archived: isEffectivelyArchived(
             i.StorageClass,
-            restoreFromListStatus(i.RestoreStatus),
+            parseRestoreStatus(i.RestoreStatus),
           ),
         }))
       if (prev && prev.files) files = prev.files.concat(files)

@@ -34,13 +34,13 @@ export function parseRestoreHeader(value: string | undefined): RestoreStatus | u
 //   IsRestoreInProgress=true                      -> { ongoing: true }
 //   IsRestoreInProgress=false, RestoreExpiryDate  -> { ongoing: false, expiresAt }
 // Absent / unrestored -> undefined.
-export function restoreFromListStatus(
-  rs: S3.RestoreStatus | undefined,
+export function parseRestoreStatus(
+  value: S3.RestoreStatus | undefined,
 ): RestoreStatus | undefined {
-  if (rs?.IsRestoreInProgress == null) return undefined
-  return rs.IsRestoreInProgress
+  if (value?.IsRestoreInProgress == null) return undefined
+  return value.IsRestoreInProgress
     ? { ongoing: true }
-    : { ongoing: false, expiresAt: rs.RestoreExpiryDate }
+    : { ongoing: false, expiresAt: value.RestoreExpiryDate }
 }
 
 export const isArchiveStorageClass = (storageClass: string | undefined): boolean =>
