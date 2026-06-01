@@ -4,7 +4,6 @@ import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 
 import {
-  type RestoreObjectResult,
   type GlacierTier,
   RestoreAlreadyInProgressError,
   GlacierExpeditedUnavailableError,
@@ -17,11 +16,18 @@ import RESTORE_OBJECT from './gql/RestoreObject.generated'
 
 type MutationData = GQL.DataForDoc<typeof RESTORE_OBJECT>
 
+// Success projection of the mutation union — interpretRestoreResult throws on
+// the error variants, so callers only ever get this shape.
+export type RestoreObjectResult = Extract<
+  MutationData['restoreObject'],
+  { __typename: 'RestoreObjectSuccess' }
+>
+
 export function interpretRestoreResult(data: MutationData): RestoreObjectResult {
   const r = data.restoreObject
   switch (r.__typename) {
     case 'RestoreObjectSuccess':
-      return { alreadyRestored: r.alreadyRestored }
+      return r
     case 'OperationError':
       switch (r.name) {
         case 'RestoreAlreadyInProgress':

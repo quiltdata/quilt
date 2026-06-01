@@ -23,11 +23,13 @@ const opError = (name: string) => ({
 
 describe('components/Preview/restoreObject/interpretRestoreResult', () => {
   it('returns alreadyRestored=false for a new restore', () => {
-    expect(interpretRestoreResult(success(false))).toEqual({ alreadyRestored: false })
+    expect(interpretRestoreResult(success(false))).toMatchObject({
+      alreadyRestored: false,
+    })
   })
 
   it('returns alreadyRestored=true when already restored', () => {
-    expect(interpretRestoreResult(success(true))).toEqual({ alreadyRestored: true })
+    expect(interpretRestoreResult(success(true))).toMatchObject({ alreadyRestored: true })
   })
 
   it('throws RestoreAlreadyInProgressError', () => {

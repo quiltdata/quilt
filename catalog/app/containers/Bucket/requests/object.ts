@@ -217,11 +217,6 @@ interface WorkflowsConfigArgs {
 // narrowing. Our own union keeps exhaustiveness and catches typos.
 export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
 
-export interface RestoreObjectResult {
-  // true: 200 OK (already restored, duration extended); false: 202 (new restore).
-  alreadyRestored: boolean
-}
-
 export class RestoreAlreadyInProgressError extends BucketError {
   constructor() {
     super('Restore is already in progress — check back later.')

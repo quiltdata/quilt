@@ -987,7 +987,8 @@ enum GlacierRestoreTier {
 }
 
 type RestoreObjectSuccess {
-  # true: 200 OK (already restored, duration extended); false: 202 (new restore)
+  # true: a restored copy already existed, so only its expiry was extended.
+  # false: a new restore was started and is now in progress.
   alreadyRestored: Boolean!
 }
 
