@@ -752,11 +752,6 @@ function FileDisplay({
     [file, packageHandle],
   )
 
-  const existenceData = useData(requests.getObjectExistence, {
-    s3,
-    ...handle,
-  })
-
   const { push } = Notifications.use()
   const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
   const handleEdit = React.useCallback(() => {
@@ -779,6 +774,14 @@ function FileDisplay({
   // Ensure the file bucket's region is cached for correct presigned URLs.
   // For same-bucket files this is instant (already cached by BucketLayout).
   const fileBucketExistence = useBucketExistence(handle.bucket)
+  const bucketReady = fileBucketExistence.case({ Ok: () => true, _: () => false })
+
+  // Defer the existence HEAD until the bucket resolves (skip inaccessible buckets).
+  const existenceData = useData(
+    requests.getObjectExistence,
+    { s3, ...handle },
+    { noAutoFetch: !bucketReady },
+  )
 
   const bucketNotReady = fileBucketExistence.case({
     Ok: () => null,
