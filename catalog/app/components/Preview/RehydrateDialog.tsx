@@ -71,21 +71,21 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface RehydrateDialogProps {
-  open: boolean
-  onClose: () => void
+interface RehydrateFormProps {
   handle: Model.S3.S3ObjectLocation
   storageClass?: S3.StorageClass
+  onClose: () => void
   onSubmitted: (alreadyRestored: boolean) => void
 }
 
-export default function RehydrateDialog({
-  open,
-  onClose,
+// The form body. Mounted only while the dialog is open (M.Dialog unmounts its
+// children on close), so its state starts fresh on every open — no manual reset.
+function RehydrateForm({
   handle,
   storageClass,
+  onClose,
   onSubmitted,
-}: RehydrateDialogProps) {
+}: RehydrateFormProps) {
   const classes = useStyles()
   const restoreObject = useRestoreObject()
 
@@ -95,7 +95,7 @@ export default function RehydrateDialog({
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [showIamHint, setShowIamHint] = React.useState(false)
 
-  // A successful submit calls onSubmitted, which unmounts this dialog (the parent
+  // A successful submit calls onSubmitted, which unmounts this form (the parent
   // switches to "Restore in progress"). Track mounted state so the post-await
   // updates below don't fire on an unmounted component.
   const mountedRef = React.useRef(true)
@@ -105,17 +105,6 @@ export default function RehydrateDialog({
     },
     [],
   )
-
-  // Reset state when the dialog opens.
-  React.useEffect(() => {
-    if (open) {
-      setTier(DEFAULT_TIER)
-      setDaysInput(String(DEFAULT_DAYS))
-      setSubmitting(false)
-      setErrorMessage(null)
-      setShowIamHint(false)
-    }
-  }, [open])
 
   const parsedDays = React.useMemo(() => {
     if (daysInput.trim() === '') return NaN
@@ -238,7 +227,7 @@ export default function RehydrateDialog({
   ])
 
   return (
-    <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <>
       <M.DialogTitle>Rehydrate from Glacier</M.DialogTitle>
       <M.DialogContent>
         <M.Typography variant="body2" gutterBottom>
@@ -321,6 +310,33 @@ export default function RehydrateDialog({
           {submitting ? 'Submitting…' : 'Rehydrate'}
         </M.Button>
       </M.DialogActions>
+    </>
+  )
+}
+
+interface RehydrateDialogProps {
+  open: boolean
+  onClose: () => void
+  handle: Model.S3.S3ObjectLocation
+  storageClass?: S3.StorageClass
+  onSubmitted: (alreadyRestored: boolean) => void
+}
+
+export default function RehydrateDialog({
+  open,
+  onClose,
+  handle,
+  storageClass,
+  onSubmitted,
+}: RehydrateDialogProps) {
+  return (
+    <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <RehydrateForm
+        handle={handle}
+        storageClass={storageClass}
+        onClose={onClose}
+        onSubmitted={onSubmitted}
+      />
     </M.Dialog>
   )
 }
