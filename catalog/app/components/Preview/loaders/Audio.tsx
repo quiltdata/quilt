@@ -18,7 +18,7 @@ interface AudioLoaderProps {
 
 function useAudioSrc(handle: Model.S3.S3ObjectLocation): string {
   const sign = AWS.Signer.useS3Signer()
-  const url = React.useMemo(() => sign(handle), [handle, sign])
+  const url = React.useMemo(() => sign(handle, {}), [handle, sign])
   const query = new URLSearchParams({
     duration: '30',
     format: 'audio/mpeg',

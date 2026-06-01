@@ -76,11 +76,10 @@ const useDropdownMenuStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DropdownMenuProps
-  extends Omit<
-    M.MenuProps,
-    'anchorEl' | 'open' | 'onClose' | 'children' | 'MenuListProps'
-  > {
+interface DropdownMenuProps extends Omit<
+  M.MenuProps,
+  'anchorEl' | 'open' | 'onClose' | 'children' | 'MenuListProps'
+> {
   trigger: (
     open: React.EventHandler<React.SyntheticEvent<HTMLElement>>,
   ) => React.ReactNode
@@ -322,7 +321,7 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
             invisible={!bookmarks?.hasUpdates}
             color="primary"
             variant="dot"
-            overlap="circle"
+            overlap="circular"
           >
             <M.Icon fontSize="small">account_circle</M.Icon>
           </M.Badge>
@@ -457,7 +456,7 @@ function MobileMenu({ auth }: MobileMenuProps) {
             invisible={!bookmarks?.hasUpdates}
             color="primary"
             variant="dot"
-            overlap="circle"
+            overlap="circular"
           >
             <M.Icon>menu</M.Icon>
           </M.Badge>

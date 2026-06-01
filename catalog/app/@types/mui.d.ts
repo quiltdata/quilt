@@ -1,6 +1,8 @@
 import type * as React from 'react'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, import/no-duplicates
 import type * as MUI from '@material-ui/core'
+// eslint-disable-next-line import/no-duplicates
+import type { Theme } from '@material-ui/core'
 import type { FontStyle } from '@material-ui/core/styles/createTypography'
 
 declare module '@material-ui/core' {
@@ -15,4 +17,18 @@ declare module '@material-ui/core/styles/createTypography' {
   interface Typography {
     monospace: FontStyle
   }
+}
+
+declare module '@material-ui/styles/makeStyles' {
+  export default function makeStyles(
+    styles: Record<string, any> | ((theme: Theme) => Record<string, any>),
+    options?: any,
+  ): (props?: any) => Record<string, string>
+}
+
+declare module '@material-ui/core/styles' {
+  export function makeStyles(
+    styles: Record<string, any> | ((theme: Theme) => Record<string, any>),
+    options?: any,
+  ): (props?: any) => Record<string, string>
 }

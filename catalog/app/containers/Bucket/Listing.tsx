@@ -465,7 +465,12 @@ function FilterToolbarButton() {
         color="primary"
         aria-label={apiRef!.current.getLocaleText('toolbarFiltersLabel')}
       >
-        <M.Badge badgeContent={counter} color="secondary" overlap="circle" variant="dot">
+        <M.Badge
+          badgeContent={counter}
+          color="secondary"
+          overlap="circular"
+          variant="dot"
+        >
           <M.Icon fontSize="small">filter_list</M.Icon>
         </M.Badge>
       </M.IconButton>

@@ -28,8 +28,7 @@ interface EnumFilterProps {
 }
 
 interface EnumProps
-  extends Omit<M.TextFieldProps, keyof EnumFilterProps>,
-    EnumFilterProps {}
+  extends Omit<M.TextFieldProps, keyof EnumFilterProps>, EnumFilterProps {}
 
 export default function Enum({
   selectAll,

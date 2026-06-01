@@ -33,7 +33,6 @@ const isPrimitiveSupported = R.anyPass([
   R.is(Number),
   R.is(Boolean),
   R.equals(null),
-  // @ts-expect-error
   R.equals(undefined),
 ]) as IsPrimitiveSupported
 
