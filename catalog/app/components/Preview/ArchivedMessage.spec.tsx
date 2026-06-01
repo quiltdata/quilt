@@ -118,6 +118,29 @@ describe('components/Preview/ArchivedMessage', () => {
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })
 
+    it('clears the optimistic hold when switching to a different object (no remount)', async () => {
+      restoreObject.mockResolvedValueOnce({
+        __typename: 'RestoreObjectSuccess',
+        alreadyRestored: false,
+      })
+      const { rerender } = render(
+        <ArchivedMessage handle={handle}>{renderChildren}</ArchivedMessage>,
+      )
+      fireEvent.click(screen.getByTestId('action-Rehydrate'))
+      fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))
+      await waitFor(() =>
+        expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i),
+      )
+      // Navigate to a different archived object: same instance is reused, so the
+      // previous object's optimistic "in progress" must not leak into this one.
+      rerender(
+        <ArchivedMessage handle={{ ...handle, key: 'OTHER_KEY' }}>
+          {renderChildren}
+        </ArchivedMessage>,
+      )
+      expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
+    })
+
     it('does NOT enter optimistic branch on 200 OK (alreadyRestored=true)', async () => {
       restoreObject.mockResolvedValueOnce({
         __typename: 'RestoreObjectSuccess',

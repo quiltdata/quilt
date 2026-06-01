@@ -39,6 +39,11 @@ export default function ArchivedMessage({
   // later page load picks up the real state.
   const [optimisticRestoring, setOptimisticRestoring] = React.useState(false)
 
+  // Clear the optimistic hold when navigating to another object.
+  React.useEffect(() => {
+    setOptimisticRestoring(false)
+  }, [handle.bucket, handle.key, handle.version])
+
   const openDialog = React.useCallback(() => setDialogOpen(true), [])
   const closeDialog = React.useCallback(() => setDialogOpen(false), [])
 
