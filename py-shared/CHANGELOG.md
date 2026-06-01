@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] `QueryMaker` retargeted to per-bucket Iceberg tables (`{bucket}_{table}`): the `bucket` column is dropped from `SELECT`/`ON`/`INSERT`/`WHERE` across `*_add_single` / `*_add_bucket` / `*_delete_single`; the `{bucket}_manifests` / `{bucket}_packages` source reads are unchanged. The now-dead `*_delete_bucket` methods are removed (whole-bucket teardown is `DROP TABLE` on the registry side). Part of the per-bucket Iceberg pivot across **quilt/iceberg-per-bucket-lambdas**, **enterprise#1071**, **deployment#2436**, **tabulator#133**, **enterprise#1075** ([#4930](https://github.com/quiltdata/quilt/pull/4930))
 - [Added] Add CRC64NVME checksum type support ([#4623](https://github.com/quiltdata/quilt/pull/4623))
 - [Added] Add utilities for Athena/Iceberg ([#4570](https://github.com/quiltdata/quilt/pull/4570))
 - [Added] Add various utilities for ES ingest ([#4433](https://github.com/quiltdata/quilt/pull/4433))
