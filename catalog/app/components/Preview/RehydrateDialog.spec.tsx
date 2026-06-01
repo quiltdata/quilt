@@ -202,5 +202,16 @@ describe('components/Preview/RehydrateDialog', () => {
       await waitFor(() => expect(within(dialog).getByText(/not archived/i)).toBeTruthy())
       expect(onClose).not.toHaveBeenCalled()
     })
+
+    it('shows a calm message on ObjectNotFound (deleted)', async () => {
+      restoreObject.mockResolvedValueOnce(opError('ObjectNotFound'))
+      const { onClose } = setup()
+      fireEvent.click(getRehydrateButton())
+      const dialog = screen.getByRole('dialog')
+      await waitFor(() =>
+        expect(within(dialog).getByText(/no longer exists/i)).toBeTruthy(),
+      )
+      expect(onClose).not.toHaveBeenCalled()
+    })
   })
 })

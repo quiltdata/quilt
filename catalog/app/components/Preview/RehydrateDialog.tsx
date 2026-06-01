@@ -186,6 +186,9 @@ export default function RehydrateDialog({
                 'This object is not archived — it may already be restored. No rehydration needed.',
               )
               break
+            case 'ObjectNotFound':
+              setErrorMessage('This object no longer exists — it may have been deleted.')
+              break
             default:
               Log.error(new Error(`restoreObject: ${r.name}: ${r.message}`))
               setErrorMessage(
