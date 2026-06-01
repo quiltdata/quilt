@@ -20,6 +20,7 @@ RUN --mount=type=cache,target=/root/.cache \
     uv sync \
     --locked \
     --no-dev \
+    --no-default-groups \
     --group=prod \
     --no-install-project
 
@@ -29,6 +30,7 @@ RUN --mount=type=cache,target=/root/.cache \
     uv sync \
     --locked \
     --no-dev \
+    --no-default-groups \
     --group=prod \
     --no-editable
 

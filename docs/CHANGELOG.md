@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased
+
+### Python API
+
+* [Changed] Drop support for Python 3.9 and 3.10; `quilt3` now requires Python >=3.11
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API
