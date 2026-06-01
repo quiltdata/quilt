@@ -49,6 +49,76 @@ const TIER_OPTIONS: TierOption[] = [
   },
 ]
 
+type RestoreResult = Awaited<ReturnType<ReturnType<typeof useRestoreObject>>>
+
+interface Failure {
+  message: string
+  // Show the "ask your admin for s3:RestoreObject" hint under the error.
+  iam?: boolean
+}
+
+// The submit lifecycle. `failed` carries the message to show; otherwise the
+// dialog is idle (editing) or submitting. Replaces the separate submitting /
+// errorMessage / showIamHint flags.
+type Status = { _tag: 'idle' } | { _tag: 'submitting' } | ({ _tag: 'failed' } & Failure)
+
+const IDLE: Status = { _tag: 'idle' }
+
+// What a completed mutation means for the dialog: close it (optionally flipping
+// the parent to "Restore in progress"), or stay open showing a failure.
+type Outcome = { _tag: 'close'; flip: boolean } | ({ _tag: 'failed' } & Failure)
+
+// Pure mapping from the mutation union to a dialog outcome. Kept separate from
+// the imperative submit so it can be reasoned about / tested on its own.
+export function interpretResult(r: RestoreResult): Outcome {
+  switch (r.__typename) {
+    case 'RestoreObjectSuccess':
+      // 202 (alreadyRestored=false): flip the parent to "Restore in progress".
+      // 200 (alreadyRestored=true): a rare stale-cache race — close silently; a
+      // later page load re-reads the HEAD and leaves "Object Archived".
+      return { _tag: 'close', flip: !r.alreadyRestored }
+    case 'OperationError':
+      switch (r.name) {
+        case 'RestoreAlreadyInProgress':
+          // Already running → same in-progress flip as a fresh 202.
+          return { _tag: 'close', flip: true }
+        case 'GlacierExpeditedUnavailable':
+          return {
+            _tag: 'failed',
+            message: 'Expedited capacity unavailable. Try Standard or Bulk.',
+          }
+        case 'RestoreAccessDenied':
+          return {
+            _tag: 'failed',
+            message: "You don't have permission to rehydrate this object.",
+            iam: true,
+          }
+        case 'InvalidObjectState':
+          // Expected condition (object already restored / not archived).
+          return {
+            _tag: 'failed',
+            message:
+              'This object is not archived — it may already be restored. No rehydration needed.',
+          }
+        case 'ObjectNotFound':
+          return {
+            _tag: 'failed',
+            message: 'This object no longer exists — it may have been deleted.',
+          }
+        default:
+          Log.error(new Error(`restoreObject: ${r.name}: ${r.message}`))
+          return {
+            _tag: 'failed',
+            message: r.message || 'Failed to start restore. Please try again later.',
+          }
+      }
+    case 'InvalidInput':
+      return { _tag: 'failed', message: r.errors[0]?.message || 'Invalid input' }
+    default:
+      return assertNever(r)
+  }
+}
+
 const useStyles = M.makeStyles((t) => ({
   row: {
     alignItems: 'flex-start',
@@ -91,13 +161,13 @@ function RehydrateForm({
 
   const [tier, setTier] = React.useState<GlacierTier>(DEFAULT_TIER)
   const [daysInput, setDaysInput] = React.useState<string>(String(DEFAULT_DAYS))
-  const [submitting, setSubmitting] = React.useState(false)
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
-  const [showIamHint, setShowIamHint] = React.useState(false)
+  const [status, setStatus] = React.useState<Status>(IDLE)
 
-  // A successful submit calls onSubmitted, which unmounts this form (the parent
-  // switches to "Restore in progress"). Track mounted state so the post-await
-  // updates below don't fire on an unmounted component.
+  const submitting = status._tag === 'submitting'
+
+  // A 202 makes the parent drop the dialog outright (no close transition), and a
+  // close mid-submit unmounts the form once the request settles. Guard the one
+  // post-await setState so it doesn't fire on an unmounted component.
   const mountedRef = React.useRef(true)
   React.useEffect(
     () => () => {
@@ -145,75 +215,26 @@ function RehydrateForm({
 
   const handleSubmit = React.useCallback(async () => {
     if (!daysValid || submitting) return
-    setSubmitting(true)
-    setErrorMessage(null)
-    setShowIamHint(false)
+    setStatus({ _tag: 'submitting' })
+    let outcome: Outcome
     try {
-      const r = await restoreObject({ handle, tier, days: parsedDays })
-      if (!mountedRef.current) return
-      switch (r.__typename) {
-        case 'RestoreObjectSuccess':
-          // 202 (alreadyRestored=false): onSubmitted(false) flips ArchivedMessage
-          // to "Restore in progress" optimistically — that's the feedback.
-          // DEV NOTE: 200 (alreadyRestored=true) intentionally has NO feedback —
-          // the dialog just closes and the page stays on "Object Archived" until
-          // reloaded. This only happens on a rare stale-cache race (the object's
-          // restore completed since the cached HEAD was read; you can only open
-          // this dialog from a "cold archived" view). We accept the silent close
-          // rather than depend on the Notifications container. Revisit if/when
-          // status is read fresh (e.g. via GraphQL) instead of a cached HEAD.
-          onSubmitted(r.alreadyRestored)
-          onClose()
-          break
-        case 'OperationError':
-          switch (r.name) {
-            case 'RestoreAlreadyInProgress':
-              // Already running → flip ArchivedMessage to "Restore in progress"
-              // (same as a fresh 202) instead of leaving the Rehydrate button.
-              onSubmitted(false)
-              onClose()
-              break
-            case 'GlacierExpeditedUnavailable':
-              setErrorMessage('Expedited capacity unavailable. Try Standard or Bulk.')
-              break
-            case 'RestoreAccessDenied':
-              setErrorMessage("You don't have permission to rehydrate this object.")
-              setShowIamHint(true)
-              break
-            case 'InvalidObjectState':
-              // Expected condition (object already restored / not archived),
-              // not a failure — calm message, no Sentry.
-              setErrorMessage(
-                'This object is not archived — it may already be restored. No rehydration needed.',
-              )
-              break
-            case 'ObjectNotFound':
-              setErrorMessage('This object no longer exists — it may have been deleted.')
-              break
-            default:
-              Log.error(new Error(`restoreObject: ${r.name}: ${r.message}`))
-              setErrorMessage(
-                r.message || 'Failed to start restore. Please try again later.',
-              )
-          }
-          break
-        case 'InvalidInput':
-          setErrorMessage(r.errors[0]?.message || 'Invalid input')
-          break
-        default:
-          assertNever(r)
-      }
+      outcome = interpretResult(await restoreObject({ handle, tier, days: parsedDays }))
     } catch (e) {
       // Transport/network failure (the mutation itself rejected).
       Log.error(e)
-      if (mountedRef.current) {
-        setErrorMessage(
+      outcome = {
+        _tag: 'failed',
+        message:
           (e instanceof Error && e.message) ||
-            'Failed to start restore. Please try again later.',
-        )
+          'Failed to start restore. Please try again later.',
       }
-    } finally {
-      if (mountedRef.current) setSubmitting(false)
+    }
+    if (!mountedRef.current) return
+    if (outcome._tag === 'close') {
+      if (outcome.flip) onSubmitted(false)
+      onClose()
+    } else {
+      setStatus(outcome)
     }
   }, [
     daysValid,
@@ -277,10 +298,10 @@ function RehydrateForm({
           />
         </div>
 
-        {errorMessage && (
+        {status._tag === 'failed' && (
           <Lab.Alert severity="error" className={classes.permissionHint}>
-            {errorMessage}
-            {showIamHint && (
+            {status.message}
+            {status.iam && (
               <>
                 <br />
                 Your IAM role needs <code>s3:RestoreObject</code> on this bucket.{' '}

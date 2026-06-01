@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import RehydrateDialog from './RehydrateDialog'
+import RehydrateDialog, { interpretResult } from './RehydrateDialog'
 
 const restoreObject = vi.fn()
 
@@ -64,6 +64,62 @@ function getRehydrateButton(): HTMLButtonElement {
     name: /^rehydrate$|^submitting/i,
   }) as HTMLButtonElement
 }
+
+describe('interpretResult', () => {
+  it('closes and flips on a 202 (new restore)', () => {
+    expect(
+      interpretResult({
+        __typename: 'RestoreObjectSuccess',
+        alreadyRestored: false,
+      } as $TSFixMe),
+    ).toEqual({ _tag: 'close', flip: true })
+  })
+
+  it('closes without flipping on a 200 (already restored)', () => {
+    expect(
+      interpretResult({
+        __typename: 'RestoreObjectSuccess',
+        alreadyRestored: true,
+      } as $TSFixMe),
+    ).toEqual({ _tag: 'close', flip: false })
+  })
+
+  it('closes and flips on RestoreAlreadyInProgress', () => {
+    expect(
+      interpretResult({
+        __typename: 'OperationError',
+        name: 'RestoreAlreadyInProgress',
+      } as $TSFixMe),
+    ).toEqual({ _tag: 'close', flip: true })
+  })
+
+  it('fails with the IAM hint on RestoreAccessDenied', () => {
+    const o = interpretResult({
+      __typename: 'OperationError',
+      name: 'RestoreAccessDenied',
+    } as $TSFixMe)
+    expect(o._tag).toBe('failed')
+    expect(o).toMatchObject({ iam: true })
+  })
+
+  it('fails (no IAM hint) on ObjectNotFound', () => {
+    const o = interpretResult({
+      __typename: 'OperationError',
+      name: 'ObjectNotFound',
+    } as $TSFixMe)
+    expect(o._tag).toBe('failed')
+    expect((o as $TSFixMe).iam).toBeUndefined()
+  })
+
+  it('fails with the field message on InvalidInput', () => {
+    expect(
+      interpretResult({
+        __typename: 'InvalidInput',
+        errors: [{ message: 'days must be between 1 and 90' }],
+      } as $TSFixMe),
+    ).toEqual({ _tag: 'failed', message: 'days must be between 1 and 90' })
+  })
+})
 
 describe('components/Preview/RehydrateDialog', () => {
   beforeEach(() => {
@@ -157,8 +213,9 @@ describe('components/Preview/RehydrateDialog', () => {
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onClose).toHaveBeenCalled())
-      // No optimistic flip on 200; the page stays archived until reloaded.
-      expect(onSubmitted).toHaveBeenCalledWith(true)
+      // No optimistic flip on 200: the dialog just closes and the page stays
+      // archived until reloaded (onSubmitted is only called to flip).
+      expect(onSubmitted).not.toHaveBeenCalled()
     })
 
     it('flips to in-progress and closes on RestoreAlreadyInProgress', async () => {
