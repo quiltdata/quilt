@@ -22,7 +22,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { useData } from 'utils/Data'
+import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import Log from 'utils/Logging'
@@ -774,14 +774,6 @@ function FileDisplay({
   // Ensure the file bucket's region is cached for correct presigned URLs.
   // For same-bucket files this is instant (already cached by BucketLayout).
   const fileBucketExistence = useBucketExistence(handle.bucket)
-  const bucketReady = fileBucketExistence.case({ Ok: () => true, _: () => false })
-
-  // Defer the existence HEAD until the bucket resolves (skip inaccessible buckets).
-  const existenceData = useData(
-    requests.getObjectExistence,
-    { s3, ...handle },
-    { noAutoFetch: !bucketReady },
-  )
 
   const bucketNotReady = fileBucketExistence.case({
     Ok: () => null,
@@ -816,131 +808,136 @@ function FileDisplay({
   })
   if (bucketNotReady) return bucketNotReady
 
-  return existenceData.case({
-    _: () => <FileDisplaySkeleton crumbs={crumbs} />,
-    Err: (e: $TSFixMe) => {
-      if (e.code === 'Forbidden') {
-        return (
-          <FileDisplayError
-            headline="Access Denied"
-            detail="You don't have access to this object"
-            crumbs={crumbs}
-          />
-        )
-      }
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return (
-        <FileDisplayError
-          headline="Error loading file"
-          detail="Something went wrong"
-          crumbs={crumbs}
-        />
-      )
-    },
-    Ok: requests.ObjectExistence.case({
-      Exists: ({
-        archived,
-        deleted,
-        lastModified,
-        size,
-        restore,
-        storageClass,
-      }: ObjectAttrs) => (
-        <>
-          <FileContext file={file} pkg={packageHandle} />
-          <TopBar crumbs={crumbs}>
-            <FileProperties
-              className={classes.fileProperties}
-              lastModified={lastModified}
-              size={size}
-            />
-            {BucketPreferences.Result.match(
-              {
-                Ok: ({ ui: { actions } }) =>
-                  FileEditor.isSupportedFileType(path) &&
-                  hashOrTag === 'latest' &&
-                  actions.revisePackage && (
-                    <Buttons.Iconized
-                      className={classes.button}
-                      icon="edit"
-                      label="Edit"
-                      onClick={handleEdit}
-                    />
-                  ),
-                Pending: () => (
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                ),
-                Init: () => null,
-              },
-              prefs,
-            )}
-            {!!viewModes.modes.length && (
-              <FileView.ViewModeSelector
-                className={classes.button}
-                // @ts-expect-error
-                options={viewModes.modes.map(viewModeToSelectOption)}
-                // @ts-expect-error
-                value={viewModeToSelectOption(viewModes.mode)}
-                onChange={onViewModeChange}
+  return (
+    // @ts-expect-error
+    <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
+      {AsyncResult.case({
+        _: () => <FileDisplaySkeleton crumbs={crumbs} />,
+        Err: (e: $TSFixMe) => {
+          if (e.code === 'Forbidden') {
+            return (
+              <FileDisplayError
+                headline="Access Denied"
+                detail="You don't have access to this object"
+                crumbs={crumbs}
               />
-            )}
-            {BucketPreferences.Result.match(
-              {
-                Ok: ({ ui: { actions, blocks } }) => (
-                  <>
-                    {!cfg.noDownload &&
-                      !deleted &&
-                      !archived &&
-                      actions.downloadPackage && (
-                        <Download.Button className={classes.button} label="Get file">
-                          <Download.PackageOptions
-                            fileHandle={handle}
-                            hashOrTag={hashOrTag}
-                            uri={packageUri}
-                            hideCode={!blocks.code}
-                          />
-                        </Download.Button>
-                      )}
-                    {blocks.qurator && !deleted && !archived && <AssistButton />}
-                  </>
-                ),
-                Pending: () => (
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                ),
-                Init: () => null,
-              },
-              prefs,
-            )}
-          </TopBar>
-          {BucketPreferences.Result.match(
-            {
-              Ok: ({ ui: { blocks } }) =>
-                blocks.meta && (
-                  <>
-                    <FileView.ObjectMetaSection meta={file.metadata} />
-                    <FileView.ObjectTags handle={handle} />
-                  </>
-                ),
-              _: () => null,
-            },
-            prefs,
-          )}
-          <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-            <div className={classes.preview}>
-              {withPreview(
-                { archived, deleted, restore, storageClass },
-                handle,
-                viewModes.mode,
-                renderPreview(viewModes.handlePreviewResult),
+            )
+          }
+          // eslint-disable-next-line no-console
+          console.error(e)
+          return (
+            <FileDisplayError
+              headline="Error loading file"
+              detail="Something went wrong"
+              crumbs={crumbs}
+            />
+          )
+        },
+        Ok: requests.ObjectExistence.case({
+          Exists: ({
+            archived,
+            deleted,
+            lastModified,
+            size,
+            restore,
+            storageClass,
+          }: ObjectAttrs) => (
+            <>
+              <FileContext file={file} pkg={packageHandle} />
+              <TopBar crumbs={crumbs}>
+                <FileProperties
+                  className={classes.fileProperties}
+                  lastModified={lastModified}
+                  size={size}
+                />
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      FileEditor.isSupportedFileType(path) &&
+                      hashOrTag === 'latest' &&
+                      actions.revisePackage && (
+                        <Buttons.Iconized
+                          className={classes.button}
+                          icon="edit"
+                          label="Edit"
+                          onClick={handleEdit}
+                        />
+                      ),
+                    Pending: () => (
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
+                )}
+                {!!viewModes.modes.length && (
+                  <FileView.ViewModeSelector
+                    className={classes.button}
+                    // @ts-expect-error
+                    options={viewModes.modes.map(viewModeToSelectOption)}
+                    // @ts-expect-error
+                    value={viewModeToSelectOption(viewModes.mode)}
+                    onChange={onViewModeChange}
+                  />
+                )}
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions, blocks } }) => (
+                      <>
+                        {!cfg.noDownload &&
+                          !deleted &&
+                          !archived &&
+                          actions.downloadPackage && (
+                            <Download.Button className={classes.button} label="Get file">
+                              <Download.PackageOptions
+                                fileHandle={handle}
+                                hashOrTag={hashOrTag}
+                                uri={packageUri}
+                                hideCode={!blocks.code}
+                              />
+                            </Download.Button>
+                          )}
+                        {blocks.qurator && !deleted && !archived && <AssistButton />}
+                      </>
+                    ),
+                    Pending: () => (
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
+                )}
+              </TopBar>
+              {BucketPreferences.Result.match(
+                {
+                  Ok: ({ ui: { blocks } }) =>
+                    blocks.meta && (
+                      <>
+                        <FileView.ObjectMetaSection meta={file.metadata} />
+                        <FileView.ObjectTags handle={handle} />
+                      </>
+                    ),
+                  _: () => null,
+                },
+                prefs,
               )}
-            </div>
-          </Section>
-        </>
-      ),
-      _: () => <FileDisplayError headline="No Such Object" crumbs={crumbs} />,
-    }),
-  })
+              <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+                <div className={classes.preview}>
+                  {withPreview(
+                    { archived, deleted, restore, storageClass },
+                    handle,
+                    viewModes.mode,
+                    renderPreview(viewModes.handlePreviewResult),
+                  )}
+                </div>
+              </Section>
+            </>
+          ),
+          _: () => <FileDisplayError headline="No Such Object" crumbs={crumbs} />,
+        }),
+      })}
+    </Data>
+  )
 }
 
 interface ResolverProviderProps {
