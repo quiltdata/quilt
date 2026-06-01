@@ -1,8 +1,8 @@
-// Helpers for S3 Glacier / Deep Archive restore state: parsing the
-// `x-amz-restore` HEAD header, deriving whether an object is effectively
-// archived, and the retrieval-tier type the restore API accepts. In utils so it
-// can be used from any layer without importing across the components/containers
-// boundary.
+// Helpers for S3 Glacier / Deep Archive restore state: reading restore status,
+// deriving whether an object is effectively archived, and the retrieval-tier
+// type the restore API accepts.
+
+import type { S3 } from 'aws-sdk'
 
 export interface RestoreStatus {
   ongoing: boolean
@@ -27,6 +27,20 @@ export function parseRestoreHeader(value: string | undefined): RestoreStatus | u
   const parsed = new Date(expiryMatch[1])
   if (Number.isNaN(parsed.getTime())) return { ongoing: false }
   return { ongoing: false, expiresAt: parsed }
+}
+
+// Read the per-object `RestoreStatus` element S3 returns in a LIST response when
+// the request opts in via OptionalObjectAttributes=RestoreStatus:
+//   IsRestoreInProgress=true                      -> { ongoing: true }
+//   IsRestoreInProgress=false, RestoreExpiryDate  -> { ongoing: false, expiresAt }
+// Absent / unrestored -> undefined.
+export function restoreFromListStatus(
+  rs: S3.RestoreStatus | undefined,
+): RestoreStatus | undefined {
+  if (rs?.IsRestoreInProgress == null) return undefined
+  return rs.IsRestoreInProgress
+    ? { ongoing: true }
+    : { ongoing: false, expiresAt: rs.RestoreExpiryDate }
 }
 
 export const isArchiveStorageClass = (storageClass: string | undefined): boolean =>

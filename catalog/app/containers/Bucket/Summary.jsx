@@ -21,8 +21,6 @@ const SUMMARIZE_RE = /^quilt_summarize\.json$/i
 
 const findFile = (re) => R.find((f) => re.test(getBasename(f.logicalKey || f.key)))
 
-// NOTE: LIST-derived `f.archived` (see bucketListing.ts) filters a restored
-// image out of the gallery; the file-detail page is authoritative.
 const extractSummary = R.applySpec({
   readme: findFile(README_RE),
   summarize: findFile(SUMMARIZE_RE),

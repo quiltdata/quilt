@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 
-import { parseRestoreHeader, isEffectivelyArchived } from './glacier'
+import {
+  parseRestoreHeader,
+  isEffectivelyArchived,
+  restoreFromListStatus,
+} from './glacier'
 
 describe('utils/glacier', () => {
   describe('parseRestoreHeader', () => {
@@ -72,6 +76,27 @@ describe('utils/glacier', () => {
 
     it('returns true when ongoing=false but no expiresAt (defensive)', () => {
       expect(isEffectivelyArchived('GLACIER', { ongoing: false })).toBe(true)
+    })
+  })
+
+  describe('restoreFromListStatus', () => {
+    const expiry = new Date('2099-01-01T00:00:00Z')
+
+    it('returns undefined when absent or unrestored', () => {
+      expect(restoreFromListStatus(undefined)).toBeUndefined()
+      expect(restoreFromListStatus({})).toBeUndefined()
+    })
+
+    it('maps in-progress restore', () => {
+      expect(restoreFromListStatus({ IsRestoreInProgress: true })).toEqual({
+        ongoing: true,
+      })
+    })
+
+    it('maps a completed restore with expiry', () => {
+      expect(
+        restoreFromListStatus({ IsRestoreInProgress: false, RestoreExpiryDate: expiry }),
+      ).toEqual({ ongoing: false, expiresAt: expiry })
     })
   })
 })

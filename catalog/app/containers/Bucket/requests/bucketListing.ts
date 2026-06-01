@@ -7,6 +7,7 @@ import * as R from 'ramda'
 
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { isEffectivelyArchived, restoreFromListStatus } from 'utils/glacier'
 import * as s3paths from 'utils/s3paths'
 
 import * as errors from '../errors'
@@ -49,6 +50,7 @@ const drainObjectList = async ({
         ContinuationToken: ContinuationToken || continuationToken,
         EncodingType: 'url',
         MaxKeys: maxKeys,
+        OptionalObjectAttributes: ['RestoreStatus'], // so restores show as available
       })
       .promise()
     Contents = Contents.concat(r.Contents || [])
@@ -122,15 +124,16 @@ export const bucketListing = async ({
         .map(R.evolve({ Key: decodeS3Key }))
         // filter-out "directory-files" (files that match prefixes)
         .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
-        // LIST has no `x-amz-restore`, so restoring/restored objects still show as
-        // archived here; the HEAD-based file page reflects the real state.
         .map((i: S3.Object) => ({
           bucket,
           key: i.Key!,
           modified: i.LastModified!,
           size: i.Size!,
           etag: i.ETag!,
-          archived: i.StorageClass === 'GLACIER' || i.StorageClass === 'DEEP_ARCHIVE',
+          archived: isEffectivelyArchived(
+            i.StorageClass,
+            restoreFromListStatus(i.RestoreStatus),
+          ),
         }))
       if (prev && prev.files) files = prev.files.concat(files)
 
