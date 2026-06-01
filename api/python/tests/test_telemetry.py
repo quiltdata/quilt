@@ -60,3 +60,20 @@ class TelemetryTest(unittest.TestCase):
 
         decorated = ApiTelemetry(mock.sentinel.API_NAME)(func)
         assert inspect.signature(decorated) == inspect.signature(func)
+
+    def test_unintrospectable_signature(self):
+        """
+        When the wrapped function's signature can't be introspected, the
+        decorator swallows the error and returns a working callable that
+        simply doesn't expose an explicit __signature__.
+        """
+
+        def func():
+            pass
+
+        with mock.patch('quilt3.telemetry.inspect.signature', side_effect=ValueError):
+            decorated = ApiTelemetry(mock.sentinel.API_NAME)(func)
+
+        assert not hasattr(decorated, '__signature__')
+        decorated()
+        self.mock_report_api_use.assert_called_once_with(mock.sentinel.API_NAME, mock.ANY)
