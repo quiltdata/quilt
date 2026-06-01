@@ -95,6 +95,17 @@ export default function RehydrateDialog({
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [showIamHint, setShowIamHint] = React.useState(false)
 
+  // A successful submit calls onSubmitted, which unmounts this dialog (the parent
+  // switches to "Restore in progress"). Track mounted state so the post-await
+  // updates below don't fire on an unmounted component.
+  const mountedRef = React.useRef(true)
+  React.useEffect(
+    () => () => {
+      mountedRef.current = false
+    },
+    [],
+  )
+
   // Reset state when the dialog opens.
   React.useEffect(() => {
     if (open) {
@@ -150,6 +161,7 @@ export default function RehydrateDialog({
     setShowIamHint(false)
     try {
       const r = await restoreObject({ handle, tier, days: parsedDays })
+      if (!mountedRef.current) return
       switch (r.__typename) {
         case 'RestoreObjectSuccess':
           // 202 (alreadyRestored=false): onSubmitted(false) flips ArchivedMessage
@@ -205,12 +217,14 @@ export default function RehydrateDialog({
     } catch (e) {
       // Transport/network failure (the mutation itself rejected).
       Log.error(e)
-      setErrorMessage(
-        (e instanceof Error && e.message) ||
-          'Failed to start restore. Please try again later.',
-      )
+      if (mountedRef.current) {
+        setErrorMessage(
+          (e instanceof Error && e.message) ||
+            'Failed to start restore. Please try again later.',
+        )
+      }
     } finally {
-      setSubmitting(false)
+      if (mountedRef.current) setSubmitting(false)
     }
   }, [
     daysValid,
