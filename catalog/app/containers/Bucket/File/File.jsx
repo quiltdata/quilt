@@ -303,6 +303,7 @@ function File() {
 
   const path = s3paths.decode(encodedPath)
 
+  // Bump to refetch getObjectExistence below (toolbar reload, post-save).
   const [resetKey, setResetKey] = React.useState(0)
   const handleReload = React.useCallback(() => setResetKey(R.inc), [])
   const objExistsData = useData(requests.getObjectExistence, {

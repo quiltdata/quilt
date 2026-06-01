@@ -122,9 +122,8 @@ export const bucketListing = async ({
         .map(R.evolve({ Key: decodeS3Key }))
         // filter-out "directory-files" (files that match prefixes)
         .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
-        // NOTE: LIST-derived `archived` can't read `x-amz-restore`, so a restored
-        // object still shows archived in listings; the file-detail page (HEAD-based)
-        // is authoritative. See glacier-rehydration spec.
+        // LIST has no `x-amz-restore`, so restoring/restored objects still show as
+        // archived here; the HEAD-based file page reflects the real state.
         .map((i: S3.Object) => ({
           bucket,
           key: i.Key!,

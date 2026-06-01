@@ -128,9 +128,8 @@ const isDeleteMarker = (v: ListItem): v is S3.DeleteMarkerEntry =>
 const isObjectVersion = (v: ListItem): v is S3.ObjectVersion =>
   (v as S3.ObjectVersion).Size != null
 
-// NOTE: LIST-derived `archived` can't read `x-amz-restore`, so a restored
-// version still shows archived here until its StorageClass changes; the
-// file-detail page (HEAD-based) is authoritative. See glacier-rehydration spec.
+// LIST has no `x-amz-restore`, so restoring/restored objects still show as
+// archived here; the HEAD-based file page reflects the real state.
 export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) => {
   const { Versions, DeleteMarkers } = await s3
     .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })

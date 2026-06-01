@@ -1,7 +1,8 @@
-// Pure, transport-agnostic helpers for S3 Glacier / Deep Archive state, shared
-// by the request layer (getObjectExistence, package listings) and the preview
-// components (ArchivedMessage, useGate). Lives in utils so neither layer has to
-// reach into the other.
+// Helpers for S3 Glacier / Deep Archive restore state: parsing the
+// `x-amz-restore` HEAD header, deriving whether an object is effectively
+// archived, and the retrieval-tier type the restore API accepts. In utils so it
+// can be used from any layer without importing across the components/containers
+// boundary.
 
 export interface RestoreStatus {
   ongoing: boolean

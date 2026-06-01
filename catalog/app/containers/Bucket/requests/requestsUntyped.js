@@ -74,7 +74,6 @@ const MAX_IMGS = 100
 
 export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
 
-// `resetKey` is accepted only to bust the `useData` cache; ignored in the body.
 export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
