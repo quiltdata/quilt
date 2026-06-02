@@ -61,6 +61,26 @@ class TelemetryTest(unittest.TestCase):
         decorated = ApiTelemetry(mock.sentinel.API_NAME)(func)
         assert inspect.signature(decorated) == inspect.signature(func)
 
+    def test_signature_does_not_require_following_wrapped(self):
+        """
+        Regression guard for the real fix. ``functools.wraps`` only sets
+        ``__wrapped__``, so ``inspect.signature()`` recovers the original
+        parameters *only* when it follows that chain. The explicit
+        ``__signature__`` assignment is what makes the signature resolvable
+        without following ``__wrapped__`` — the path pydoc-markdown's gendocs
+        build takes for ``@classmethod``-wrapped APIs like ``Package.install``.
+
+        Without the fix this asserts ``(*args, **kwargs)``; with it, the real
+        signature. (The default ``follow_wrapped=True`` masks the bug, which
+        is why the test above passes either way.)
+        """
+
+        def func(a, b, c=1, *, d=2):
+            pass
+
+        decorated = ApiTelemetry(mock.sentinel.API_NAME)(func)
+        assert inspect.signature(decorated, follow_wrapped=False) == inspect.signature(func)
+
     def test_unintrospectable_signature(self):
         """
         When the wrapped function's signature can't be introspected, the
