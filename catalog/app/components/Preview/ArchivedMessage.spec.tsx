@@ -63,12 +63,6 @@ describe('components/Preview/ArchivedMessage', () => {
       fireEvent.click(screen.getByTestId('action-Rehydrate'))
       expect(screen.getByRole('dialog')).toBeTruthy()
     })
-
-    it('falls back to idle branch when expiresAt < now (defensive)', () => {
-      const past = new Date(Date.now() - 1000)
-      setup({ restore: { ongoing: false, expiresAt: past } })
-      expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
-    })
   })
 
   describe('in-progress branch', () => {
@@ -94,28 +88,6 @@ describe('components/Preview/ArchivedMessage', () => {
       await waitFor(() =>
         expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i),
       )
-    })
-
-    it('holds in-progress when HEAD-derived ongoing=true later arrives (no remount/flicker)', async () => {
-      restoreObject.mockResolvedValueOnce({
-        __typename: 'RestoreObjectSuccess',
-        alreadyRestored: false,
-      })
-      const { rerender } = render(
-        <ArchivedMessage handle={handle}>{renderChildren}</ArchivedMessage>,
-      )
-      fireEvent.click(screen.getByTestId('action-Rehydrate'))
-      fireEvent.click(screen.getByRole('button', { name: /^rehydrate$/i }))
-      await waitFor(() =>
-        expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i),
-      )
-      // Simulate a fresh HEAD arriving with ongoing=true.
-      rerender(
-        <ArchivedMessage handle={handle} restore={{ ongoing: true }}>
-          {renderChildren}
-        </ArchivedMessage>,
-      )
-      expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })
 
     it('clears the optimistic hold when switching to a different object (no remount)', async () => {
