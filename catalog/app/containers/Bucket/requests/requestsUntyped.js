@@ -11,7 +11,7 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
-import { parseRestoreHeader, isEffectivelyArchived } from 'utils/glacier'
+import { restoreStateFromHeader } from 'utils/glacier'
 import { decodeS3Key } from './utils'
 
 const parseDate = (d) => d && new Date(d)
@@ -78,14 +78,14 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
-    const restore = parseRestoreHeader(h.Restore)
+    const { restore, archived } = restoreStateFromHeader(h.StorageClass, h.Restore)
     return ObjectExistence.Exists({
       bucket,
       key,
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
-      archived: isEffectivelyArchived(h.StorageClass, restore),
+      archived,
       restore,
       storageClass: h.StorageClass,
       lastModified: parseDate(h.LastModified),

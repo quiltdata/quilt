@@ -1,6 +1,6 @@
-// Helpers for S3 Glacier / Deep Archive restore state: reading restore status,
-// deriving whether an object is effectively archived, and the retrieval-tier
-// type the restore API accepts.
+// Helpers for S3 Glacier / Deep Archive restore state: reading restore status
+// from a HEAD header or a LIST response, deriving whether an object is
+// effectively archived, and the retrieval-tier type the restore API accepts.
 
 import type { S3 } from 'aws-sdk'
 
@@ -13,9 +13,7 @@ export interface RestoreStatus {
 //   ongoing-request="true"                          -> { ongoing: true }
 //   ongoing-request="false", expiry-date="<http>"   -> { ongoing: false, expiresAt }
 // Missing / malformed -> undefined.
-export function parseRestoreHeader(
-  value: S3.Restore | undefined,
-): RestoreStatus | undefined {
+function parseRestoreHeader(value: S3.Restore | undefined): RestoreStatus | undefined {
   if (!value) return undefined
 
   const ongoingMatch = value.match(/ongoing-request="(true|false)"/)
@@ -36,7 +34,7 @@ export function parseRestoreHeader(
 //   IsRestoreInProgress=true                      -> { ongoing: true }
 //   IsRestoreInProgress=false, RestoreExpiryDate  -> { ongoing: false, expiresAt }
 // Absent / unrestored -> undefined.
-export function parseRestoreStatus(
+function parseRestoreStatus(
   value: S3.RestoreStatus | undefined,
 ): RestoreStatus | undefined {
   if (value?.IsRestoreInProgress == null) return undefined
@@ -45,19 +43,35 @@ export function parseRestoreStatus(
     : { ongoing: false, expiresAt: value.RestoreExpiryDate }
 }
 
-export const isArchiveStorageClass = (
-  storageClass: S3.StorageClass | undefined,
-): boolean => storageClass === 'GLACIER' || storageClass === 'DEEP_ARCHIVE'
+const isArchiveStorageClass = (storageClass: S3.StorageClass | undefined): boolean =>
+  storageClass === 'GLACIER' || storageClass === 'DEEP_ARCHIVE'
 
-const hasLiveRestoredCopy = (restore: RestoreStatus | undefined, now: Date): boolean =>
-  !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > now
+const hasLiveRestoredCopy = (restore: RestoreStatus | undefined): boolean =>
+  !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > new Date()
 
-export function isEffectivelyArchived(
+const isEffectivelyArchived = (
   storageClass: S3.StorageClass | undefined,
   restore: RestoreStatus | undefined,
-  now: Date = new Date(),
-): boolean {
-  return isArchiveStorageClass(storageClass) && !hasLiveRestoredCopy(restore, now)
+): boolean => isArchiveStorageClass(storageClass) && !hasLiveRestoredCopy(restore)
+
+// An object's restore state: the parsed restore status plus whether it's still
+// effectively archived (archive storage class with no live restored copy). Two
+// entry points for S3's two sources — the HEAD `x-amz-restore` header and the
+// LIST `RestoreStatus` element — each parses once and classifies.
+export function restoreStateFromHeader(
+  storageClass: S3.StorageClass | undefined,
+  value: S3.Restore | undefined,
+): { restore?: RestoreStatus; archived: boolean } {
+  const restore = parseRestoreHeader(value)
+  return { restore, archived: isEffectivelyArchived(storageClass, restore) }
+}
+
+export function restoreStateFromList(
+  storageClass: S3.StorageClass | undefined,
+  value: S3.RestoreStatus | undefined,
+): { restore?: RestoreStatus; archived: boolean } {
+  const restore = parseRestoreStatus(value)
+  return { restore, archived: isEffectivelyArchived(storageClass, restore) }
 }
 
 // Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
