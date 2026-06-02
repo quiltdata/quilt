@@ -48,9 +48,6 @@ export default function ArchivedMessage({
   const closeDialog = React.useCallback(() => setDialogOpen(false), [])
 
   const handleSubmitted = React.useCallback((alreadyRestored: boolean) => {
-    // 202: a new restore started — hold the in-progress message optimistically.
-    // 200 (already restored): a later page load re-reads the HEAD and flips out
-    // of "archived".
     if (!alreadyRestored) setOptimisticRestoring(true)
   }, [])
 
