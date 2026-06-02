@@ -147,13 +147,21 @@ already emits the `:443`-explicit metadata Databricks requires — see
 
 > **Serverless egress caveat.** Databricks Apps and serving endpoints run
 > on a serverless network plane that blocks outbound traffic by default.
-> Even after OAuth succeeds, tool listing will fail with
-> `Access to <connect-host> is denied because of serverless network policy`
-> until a Databricks **account admin** updates the serverless network
-> policy attached to the workspace to allow outbound HTTPS to both
-> `<connect-host>` and `<catalog-host>` (the latter serves
-> `/connect/authorize`). This is not a per-connection or per-app setting;
-> the connection creator cannot fix it.
+> Two distinct outbound legs need egress, and a Databricks **account admin**
+> must allow both in the serverless network policy attached to the workspace:
+>
+> - `<connect-host>` — the **tool-calling** leg. Without it, tool listing
+>   fails with
+>   `Access to <connect-host> is denied because of serverless network policy`
+>   (the host named in this error).
+> - `<catalog-host>` — the **OAuth authorize-redirect** leg. The authorize
+>   endpoint is cross-served: `<connect-host>/connect/authorize` returns a
+>   302 to the catalog UI on `<catalog-host>`, which the client follows
+>   during sign-in. This leg does not surface the error above, so allowing
+>   only `<connect-host>` is not enough.
+>
+> This is not a per-connection or per-app setting; the connection creator
+> cannot fix it.
 >
 > Confirm the block from a Databricks SQL warehouse:
 >
