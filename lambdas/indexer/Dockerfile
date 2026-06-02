@@ -14,6 +14,8 @@ ENV UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=${FUNCTION_DIR}
 
+COPY pyproject.toml /src/pyproject.toml
+COPY uv.lock /src/uv.lock
 COPY py-shared /src/py-shared
 COPY lambdas/shared /src/lambdas/shared
 COPY lambdas/indexer /src/lambdas/indexer
