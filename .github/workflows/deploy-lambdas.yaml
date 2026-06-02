@@ -81,11 +81,17 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build Docker image
         run: |
-          if [ "${{ matrix.path }}" = "indexer" ]; then
-            docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f lambdas/${{ matrix.path }}/Dockerfile .
+          # Workspace-member lambdas need the repo root as the build context so
+          # their Dockerfile can COPY the workspace root pyproject.toml/uv.lock
+          # and sibling members (py-shared, lambdas/shared). Standalone lambdas
+          # build from their own directory. Decide via the packaging helper
+          # instead of hard-coding individual lambda names.
+          if python .github/scripts/python_packaging.py uses-workspace "lambdas/${{ matrix.path }}"; then
+            context="."
           else
-            docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f lambdas/${{ matrix.path }}/Dockerfile ./lambdas/${{ matrix.path }}
+            context="./lambdas/${{ matrix.path }}"
           fi
+          docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f lambdas/${{ matrix.path }}/Dockerfile "$context"
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v6
         with:
