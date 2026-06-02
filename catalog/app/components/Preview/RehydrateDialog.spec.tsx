@@ -25,6 +25,8 @@ const opError = (name: string) => ({
 })
 
 vi.mock('constants/config', () => ({ default: {} }))
+const logError = vi.hoisted(() => vi.fn())
+vi.mock('utils/Logging', () => ({ default: { error: logError } }))
 
 vi.mock('./restoreObject', async () => {
   const actual: $TSFixMe = await vi.importActual('./restoreObject')
@@ -119,6 +121,37 @@ describe('interpretResult', () => {
       } as $TSFixMe),
     ).toEqual({ _tag: 'failed', message: 'days must be between 1 and 90' })
   })
+
+  it('fails suggesting another tier on GlacierExpeditedUnavailable', () => {
+    const o = interpretResult({
+      __typename: 'OperationError',
+      name: 'GlacierExpeditedUnavailable',
+    } as $TSFixMe)
+    expect(o._tag).toBe('failed')
+    expect((o as $TSFixMe).message).toMatch(/Expedited capacity unavailable/i)
+  })
+
+  it('fails with a calm message on InvalidObjectState (not archived)', () => {
+    const o = interpretResult({
+      __typename: 'OperationError',
+      name: 'InvalidObjectState',
+    } as $TSFixMe)
+    expect(o._tag).toBe('failed')
+    expect((o as $TSFixMe).message).toMatch(/not archived/i)
+  })
+
+  it('logs and fails with the server message on an unknown OperationError', () => {
+    logError.mockClear()
+    expect(
+      interpretResult({
+        __typename: 'OperationError',
+        name: 'SomethingNew',
+        message: 'whatever the server said',
+      } as $TSFixMe),
+    ).toEqual({ _tag: 'failed', message: 'whatever the server said' })
+    // Unknown errors are unexpected — they must be reported, not swallowed.
+    expect(logError).toHaveBeenCalled()
+  })
 })
 
 describe('components/Preview/RehydrateDialog', () => {
@@ -131,13 +164,6 @@ describe('components/Preview/RehydrateDialog', () => {
     setup()
     expect(getTierSelect().value).toBe('Standard')
     expect(getDaysInput().value).toBe('7')
-  })
-
-  it('allows selecting Expedited tier', () => {
-    setup()
-    const tier = getTierSelect()
-    fireEvent.change(tier, { target: { value: 'Expedited' } })
-    expect(tier.value).toBe('Expedited')
   })
 
   it('offers Expedited for GLACIER', () => {
@@ -153,36 +179,23 @@ describe('components/Preview/RehydrateDialog', () => {
   })
 
   describe('days validation', () => {
-    it('disables submit when input is empty', () => {
+    it.each([
+      ['empty', ''],
+      ['below min', '0'],
+      ['above max', '9999'],
+      ['non-integer', '7.5'],
+    ])('disables submit for an invalid value (%s)', (_label, value) => {
       setup()
-      const days = getDaysInput()
-      fireEvent.change(days, { target: { value: '' } })
+      fireEvent.change(getDaysInput(), { target: { value } })
       expect(getRehydrateButton().disabled).toBe(true)
-      expect(screen.getByText(/Enter a value between 1 and 90/i)).toBeTruthy()
     })
 
-    it('keeps the typed value and disables submit when above max', () => {
+    it('keeps the typed (out-of-range) value and shows the range hint', () => {
       setup()
       const days = getDaysInput()
       fireEvent.change(days, { target: { value: '9999' } })
       expect(days.value).toBe('9999')
-      expect(getRehydrateButton().disabled).toBe(true)
       expect(screen.getByText(/Enter a value between 1 and 90/i)).toBeTruthy()
-    })
-
-    it('keeps the typed value and disables submit when below min', () => {
-      setup()
-      const days = getDaysInput()
-      fireEvent.change(days, { target: { value: '0' } })
-      expect(days.value).toBe('0')
-      expect(getRehydrateButton().disabled).toBe(true)
-    })
-
-    it('disables submit for a non-integer value', () => {
-      setup()
-      const days = getDaysInput()
-      fireEvent.change(days, { target: { value: '7.5' } })
-      expect(getRehydrateButton().disabled).toBe(true)
     })
 
     it('enables submit for an in-range value (90)', () => {
@@ -194,8 +207,11 @@ describe('components/Preview/RehydrateDialog', () => {
     })
   })
 
+  // interpretResult (tested above) owns the union -> outcome mapping. These
+  // tests only verify the form wires each Outcome shape to the right effect:
+  // close+flip, close-no-flip, and failed (stays open, renders the message).
   describe('submit', () => {
-    it('flips to in-progress and closes on a new restore', async () => {
+    it('on close+flip: calls the mutation with the form values, flips, and closes', async () => {
       restoreObject.mockResolvedValueOnce(success(false))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
@@ -208,26 +224,15 @@ describe('components/Preview/RehydrateDialog', () => {
       expect(onClose).toHaveBeenCalled()
     })
 
-    it('closes silently when already restored (200 — no page feedback by design)', async () => {
+    it('on close-no-flip: closes without flipping (200 already restored)', async () => {
       restoreObject.mockResolvedValueOnce(success(true))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
       await waitFor(() => expect(onClose).toHaveBeenCalled())
-      // No optimistic flip on 200: the dialog just closes and the page stays
-      // archived until reloaded (onSubmitted is only called to flip).
       expect(onSubmitted).not.toHaveBeenCalled()
     })
 
-    it('flips to in-progress and closes on RestoreAlreadyInProgress', async () => {
-      restoreObject.mockResolvedValueOnce(opError('RestoreAlreadyInProgress'))
-      const { onClose, onSubmitted } = setup()
-      fireEvent.click(getRehydrateButton())
-      await waitFor(() => expect(onClose).toHaveBeenCalled())
-      // already running → trigger the in-progress flip (treated like a new restore).
-      expect(onSubmitted).toHaveBeenCalledWith(false)
-    })
-
-    it('stays open and surfaces the error + IAM hint on RestoreAccessDenied', async () => {
+    it('on failed: stays open and renders the message (+ IAM hint when set)', async () => {
       restoreObject.mockResolvedValueOnce(opError('RestoreAccessDenied'))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
@@ -238,37 +243,6 @@ describe('components/Preview/RehydrateDialog', () => {
       expect(within(dialog).getByText(/s3:RestoreObject/)).toBeTruthy()
       expect(onClose).not.toHaveBeenCalled()
       expect(onSubmitted).not.toHaveBeenCalled()
-    })
-
-    it('stays open and suggests another tier on GlacierExpeditedUnavailable', async () => {
-      restoreObject.mockResolvedValueOnce(opError('GlacierExpeditedUnavailable'))
-      const { onClose } = setup()
-      fireEvent.click(getRehydrateButton())
-      const dialog = screen.getByRole('dialog')
-      await waitFor(() =>
-        expect(within(dialog).getByText(/Expedited capacity unavailable/i)).toBeTruthy(),
-      )
-      expect(onClose).not.toHaveBeenCalled()
-    })
-
-    it('shows a calm message on InvalidObjectState (not archived)', async () => {
-      restoreObject.mockResolvedValueOnce(opError('InvalidObjectState'))
-      const { onClose } = setup()
-      fireEvent.click(getRehydrateButton())
-      const dialog = screen.getByRole('dialog')
-      await waitFor(() => expect(within(dialog).getByText(/not archived/i)).toBeTruthy())
-      expect(onClose).not.toHaveBeenCalled()
-    })
-
-    it('shows a calm message on ObjectNotFound (deleted)', async () => {
-      restoreObject.mockResolvedValueOnce(opError('ObjectNotFound'))
-      const { onClose } = setup()
-      fireEvent.click(getRehydrateButton())
-      const dialog = screen.getByRole('dialog')
-      await waitFor(() =>
-        expect(within(dialog).getByText(/no longer exists/i)).toBeTruthy(),
-      )
-      expect(onClose).not.toHaveBeenCalled()
     })
   })
 })
