@@ -29,15 +29,26 @@ def _run_command(*argv: str) -> subprocess.CompletedProcess[str]:
 
 def _render_pdf_page_with_pdfium(*, path: str, page: int, dpi: int) -> Image.Image:
     document = pypdfium2.PdfDocument(path)
-    page_index = page - 1
-    if page_index < 0 or page_index >= len(document):
-        raise PDFThumbError(f"Page {page} is out of range for {path}")
-    bitmap = document[page_index].render(scale=dpi / 72)
-    return bitmap.to_pil()
+    try:
+        page_index = page - 1
+        if page_index < 0 or page_index >= len(document):
+            raise PDFThumbError(f"Page {page} is out of range for {path}")
+        pdf_page = document[page_index]
+        try:
+            bitmap = pdf_page.render(scale=dpi / 72)
+            return bitmap.to_pil()
+        finally:
+            pdf_page.close()
+    finally:
+        document.close()
 
 
 def _count_pdf_pages_with_pdfium(path: str) -> int:
-    return len(pypdfium2.PdfDocument(path))
+    document = pypdfium2.PdfDocument(path)
+    try:
+        return len(document)
+    finally:
+        document.close()
 
 
 def get_pdf_render_dpi() -> int:
