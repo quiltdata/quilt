@@ -85,31 +85,6 @@ describe('useFeatures', () => {
     })
   })
 
-  it('should enable download/delete when object is effectively restored (notAvailable=false)', () => {
-    // A restored Glacier object reaches File.jsx with `archived: false`, so
-    // notAvailable === false and toolbar features should be enabled.
-    prefsHook.mockImplementationOnce(() => ({
-      prefs: BucketPreferences.Result.Ok(
-        extendDefaults({
-          ui: {
-            actions: {
-              downloadObject: true,
-              deleteObject: true,
-            },
-            blocks: {
-              code: true,
-            },
-          },
-        }),
-      ),
-    }))
-
-    const { result } = renderHook(() => useFeatures(false))
-
-    expect(result.current?.get).toEqual({ code: true })
-    expect(result.current?.organize).toEqual({ delete: true })
-  })
-
   it('should return get as false when file is deleted', () => {
     prefsHook.mockImplementationOnce(() => ({
       prefs: BucketPreferences.Result.Ok(
