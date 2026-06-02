@@ -51,8 +51,10 @@ class TelemetryTest(unittest.TestCase):
 
     def test_preserves_signature(self):
         """
-        The decorator exposes the wrapped function's signature so that
-        inspect.signature() works (e.g. through @classmethod, as pydoc-markdown relies on).
+        The decorator exposes the wrapped function's signature to
+        inspect.signature(). Note this passes even without the fix, since
+        inspect.signature() follows __wrapped__ by default; see
+        test_signature_does_not_require_following_wrapped for the real guard.
         """
 
         def func(a, b, c=1, *, d=2):
