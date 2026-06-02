@@ -165,7 +165,9 @@ The backend test coverage for this flow lives in
 
 ```bash
 cd api/python
-uv run --python 3.11 --no-default-groups --group local-catalog-test --extra catalog pytest tests/test_local_mode.py
+uv run --python 3.11 --no-default-groups \
+  --group local-catalog-test --extra catalog \
+  pytest tests/test_local_mode.py
 ```
 
 Make sure that any images you check into the repository are

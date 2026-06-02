@@ -33,8 +33,16 @@ STARTUP_TIMEOUT = 30.0
 STOP_GRACE_PERIOD = 5.0
 _POLL_INTERVAL = 0.25
 
+# How many times to re-pick a port and relaunch if Voila exits immediately
+# (the symptom of losing the _pick_free_port TOCTOU race for the chosen port).
+_PORT_RETRIES = 3
+
 # Provided by the opt-in "local-voila" extra; kept in sync with pyproject.toml.
 _KERNEL_MANAGER_CLASS = "quilt3_local.voila_kernel.QuiltKernelManager"
+
+# Render-query keys that carry AWS credentials. These must never appear in a
+# render URL — they are injected into the per-session kernel env instead.
+_CREDENTIAL_PARAMS = frozenset({"access_key", "secret_key", "session_token"})
 
 
 def voila_available() -> bool:
@@ -98,6 +106,22 @@ class VoilaProcess:
         if not self.notebook_dir.exists():
             self.notebook_dir.mkdir(parents=True, exist_ok=True)
 
+        # _pick_free_port closes the probe socket before Voila binds, so there is
+        # an unavoidable TOCTOU window where another process can claim the port.
+        # Rather than try to hold the socket open across the handoff, retry with a
+        # fresh port if Voila exits immediately (the symptom of a bind collision).
+        for attempt in range(1, _PORT_RETRIES + 1):
+            await self._start_once()
+            if self.is_ready():
+                return
+            if attempt < _PORT_RETRIES:
+                logger.warning(
+                    "[voila] Startup failed (attempt %s/%s); retrying on a new port",
+                    attempt,
+                    _PORT_RETRIES,
+                )
+
+    async def _start_once(self) -> None:
         # Voila prints no readiness line; choose an explicit free port up front.
         self.port = _pick_free_port()
         self._ready = False
@@ -233,14 +257,23 @@ class VoilaManager:
     def build_render_url(self, params: dict[str, str]) -> str:
         """Build the upstream render URL for a set of query params.
 
-        The credential/pkg translation into kernel env is performed by
-        QuiltKernelManager at render time; this is a convenience hook.
+        Credentials are deliberately stripped from the query string here:
+        AWS keys must not travel through the render URL (where they would surface
+        in access logs, browser history, and proxy logs). QuiltKernelManager
+        injects them into the per-session kernel ``env`` at render time instead
+        (see translate_render_params / voila_kernel.QuiltKernelManager).
+
+        NOTE: the live render URL is currently still assembled on the frontend
+        (catalog/app/components/Preview/loaders/Voila.ts) and does include the
+        credential params; moving that to a server-side token-keyed store is the
+        intended follow-up. This server-side helper already models that end state.
         """
         from urllib.parse import urlencode
 
         port = self.get_port()
         base = f"http://127.0.0.1:{port}{self._process.base_url}voila/render/"
-        query = urlencode(params)
+        safe_params = {k: v for k, v in params.items() if k not in _CREDENTIAL_PARAMS}
+        query = urlencode(safe_params)
         return f"{base}?{query}" if query else base
 
     def inject_session_env(self, params: dict[str, str]) -> dict[str, str]:

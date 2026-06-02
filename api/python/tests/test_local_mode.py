@@ -1068,6 +1068,40 @@ def test_voila_translate_render_params_builds_kernel_env(monkeypatch, tmp_path):
     assert "url" not in env
 
 
+def test_voila_build_render_url_strips_credentials(tmp_path):
+    """Credentials must never appear in the render URL (they go into kernel env)."""
+    from quilt3_local.voila_subprocess import VoilaManager
+
+    manager = VoilaManager(
+        repo_root=tmp_path,
+        notebook_dir=tmp_path,
+        base_url="/__reg/voila/",
+    )
+    # Pretend the process is up on a known port without launching Voila.
+    manager._process._process = type("P", (), {"returncode": None})()
+    manager._process.port = 12345
+
+    url = manager.build_render_url(
+        {
+            "pkg_bucket": "demo-bucket",
+            "url": "http://testserver/__s3proxy/demo-bucket/nb.ipynb",
+            "access_key": "AKIA-LOCAL",
+            "secret_key": "secret-local",
+            "session_token": "token-local",
+        }
+    )
+
+    assert "AKIA-LOCAL" not in url
+    assert "secret-local" not in url
+    assert "token-local" not in url
+    assert "access_key" not in url
+    assert "secret_key" not in url
+    assert "session_token" not in url
+    # Non-credential params still flow through.
+    assert "pkg_bucket=demo-bucket" in url
+    assert url.startswith("http://127.0.0.1:12345/__reg/voila/voila/render/")
+
+
 def test_voila_notebook_dir_honors_override_and_default(monkeypatch, tmp_path):
     from quilt3_local import settings
 
