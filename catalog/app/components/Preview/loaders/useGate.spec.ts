@@ -80,20 +80,11 @@ describe('components/Preview/loaders/useGate', () => {
         )
       })
     })
+    // `getArchiveState` owns the storage-class / expiry classification matrix
+    // (see utils/glacier.spec). Here we only check the two wirings `gate` adds:
+    // archived -> throw Archived (forwarding `restore`), not-archived -> proceed.
     describe('handles archived', () => {
-      it('using glacier storage class', () => {
-        const s3 = mockS3(() => ({ StorageClass: 'GLACIER' }))
-        return expect(gate({ s3, handle })).rejects.toMatchObject(
-          PreviewError.Archived({ handle }),
-        )
-      })
-      it('handles deep archive storage class', () => {
-        const s3 = mockS3(() => ({ StorageClass: 'DEEP_ARCHIVE' }))
-        return expect(gate({ s3, handle })).rejects.toMatchObject(
-          PreviewError.Archived({ handle }),
-        )
-      })
-      it('stays archived while restore is in progress', () => {
+      it('throws Archived and forwards the restore status', () => {
         const s3 = mockS3(() => ({
           StorageClass: 'GLACIER',
           Restore: 'ongoing-request="true"',
@@ -102,25 +93,14 @@ describe('components/Preview/loaders/useGate', () => {
           PreviewError.Archived({ handle, restore: { ongoing: true } }),
         )
       })
-      it('loads when restore is complete with future expiry', async () => {
+      it('proceeds to the size path when a live restored copy exists', async () => {
         const future = new Date(Date.now() + 24 * 60 * 60 * 1000)
         const s3 = mockS3(() => ({
           ContentLength: 50,
           StorageClass: 'GLACIER',
           Restore: `ongoing-request="false", expiry-date="${future.toUTCString()}"`,
         }))
-        // Reaches the size/threshold path without throwing.
         await expect(gate({ s3, handle })).resolves.toBe(false)
-      })
-      it('stays archived when restore expiry is in the past', () => {
-        const past = new Date(Date.now() - 24 * 60 * 60 * 1000)
-        const s3 = mockS3(() => ({
-          StorageClass: 'GLACIER',
-          Restore: `ongoing-request="false", expiry-date="${past.toUTCString()}"`,
-        }))
-        return expect(gate({ s3, handle })).rejects.toMatchObject(
-          PreviewError.Archived({ handle }),
-        )
       })
     })
     describe('handles not found', () => {
