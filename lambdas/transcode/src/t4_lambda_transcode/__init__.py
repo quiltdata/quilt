@@ -10,6 +10,11 @@ from urllib.parse import urlparse
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
+# Only S3 virtual-host URLs over HTTPS are accepted, matching the preview
+# lambda. This keeps ffmpeg (and the passthrough redirect) from being pointed
+# at arbitrary hosts — i.e. closes an SSRF / open-redirect vector.
+S3_DOMAIN_SUFFIX = '.amazonaws.com'
+
 # Map of supported content types and corresponding FFMPEG formats
 FORMATS = {
     'video/mp4': 'mp4',
@@ -57,6 +62,17 @@ def _find_ffmpeg() -> str | None:
 
 FFMPEG = _find_ffmpeg()
 
+
+def _is_valid_source_url(url: str) -> bool:
+    parsed_url = urlparse(url, allow_fragments=False)
+    return (
+        parsed_url.scheme == 'https'
+        and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
+        and parsed_url.username is None
+        and parsed_url.password is None
+    )
+
+
 # Lambda has a 6MB limit for request and response, however, base64 adds 33% overhead.
 # Also, leave a few KB for the headers.
 MAX_FILE_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
@@ -86,11 +102,14 @@ def lambda_handler(request):
     """
     Generate previews for videos in S3
     """
-    if FFMPEG is None:
-        return _passthrough(request)
-
     url = request.args['url']
     format = request.args['format']
+
+    if not _is_valid_source_url(url):
+        return make_json_response(400, {'error': 'Invalid url=. Expected an S3 virtual-host HTTPS URL.'})
+
+    if FFMPEG is None:
+        return _passthrough(request)
 
     def _parse_param(name, default_value, min_value, max_value):
         value_str = request.args.get(name)

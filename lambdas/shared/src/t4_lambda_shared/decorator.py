@@ -21,6 +21,7 @@ class Request:
     Wraps a lambda event in an object similar to a Flask Request:
     http://flask.pocoo.org/docs/1.0/api/#flask.Request
     """
+
     def __init__(self, event, context):
         self.event = event
         self.context = context
@@ -39,14 +40,7 @@ class ELBRequest(Request):
     def __init__(self, event, context):
         super().__init__(event, context)
         # ELB pass queryStringParameters escaped.
-        self.args = dict(
-            urllib.parse.parse_qsl(
-                '&'.join(
-                    f'{k}={v}'
-                    for k, v in self.args.items()
-                )
-            )
-        )
+        self.args = dict(urllib.parse.parse_qsl('&'.join(f'{k}={v}' for k, v in self.args.items())))
 
 
 def api(cors_origins=(), *, request_class=Request):
@@ -66,18 +60,14 @@ def api(cors_origins=(), *, request_class=Request):
                     traceback.print_exc()
                     status = 500
                     body = str(ex)
-                    response_headers = {
-                        'Content-Type': 'text/plain'
-                    }
+                    response_headers = {'Content-Type': 'text/plain'}
 
                 content_type = response_headers.get('Content-Type')
                 if len(body) >= GZIP_MIN_LENGTH and content_type in GZIP_TYPES:
                     if isinstance(body, str):
                         body = body.encode()
                     body = gzip.compress(body)
-                    response_headers.update({
-                        'Content-Encoding': 'gzip'
-                    })
+                    response_headers.update({'Content-Encoding': 'gzip'})
 
                 if isinstance(body, bytes | bytearray | memoryview):
                     body = b64encode(body).decode()
@@ -87,27 +77,22 @@ def api(cors_origins=(), *, request_class=Request):
 
             origin = request.headers.get('origin')
             if origin is not None and origin in cors_origins:
-                response_headers.update({
-                    'access-control-allow-origin': '*',
-                    'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
-                    'access-control-allow-headers': (
-                        request.headers.get('access-control-request-headers', '')
-                    ),
-                    # for preflight checks, not sure we need it for header to work?
-                    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
-                    'access-control-expose-headers': (
-                        f"*, Authorization, {QUILT_INFO_HEADER}"
-                    ),
-                    'access-control-max-age': '86400',
-                })
+                response_headers.update(
+                    {
+                        'access-control-allow-origin': '*',
+                        'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
+                        'access-control-allow-headers': (request.headers.get('access-control-request-headers', '')),
+                        # for preflight checks, not sure we need it for header to work?
+                        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
+                        'access-control-expose-headers': (f"*, Authorization, {QUILT_INFO_HEADER}"),
+                        'access-control-max-age': '86400',
+                    }
+                )
 
-            return {
-                "statusCode": status,
-                "body": body,
-                "isBase64Encoded": encoded,
-                "headers": response_headers
-            }
+            return {"statusCode": status, "body": body, "isBase64Encoded": encoded, "headers": response_headers}
+
         return wrapper
+
     return innerdec
 
 
@@ -124,5 +109,7 @@ def validate(schema):
                 return 400, str(ex), {'Content-Type': 'text/plain'}
 
             return f(request)
+
         return wrapper
+
     return innerdec
