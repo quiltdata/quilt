@@ -257,11 +257,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
     # These readers are specific for n dimensional images
     if isinstance(
         img.reader,
-        (
-            bioio_czi.reader.Reader,
-            bioio_ome_tiff.reader.Reader,
-            bioio_tifffile.reader.Reader,
-        ),
+        bioio_czi.reader.Reader | bioio_ome_tiff.reader.Reader | bioio_tifffile.reader.Reader,
     ):
         return _format_n_dim_ndarray(img)
 

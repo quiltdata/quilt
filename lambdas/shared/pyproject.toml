@@ -11,7 +11,7 @@ mem = [
     "psutil>=6",
 ]
 preview = [
-    "flowio>=1.4",
+    "fcsparser~=0.2.1",
     "numpy>=1.26,<3",
     "openpyxl>=3.1",
     "pandas>=2.2",
