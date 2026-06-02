@@ -13,7 +13,9 @@ export interface RestoreStatus {
 //   ongoing-request="true"                          -> { ongoing: true }
 //   ongoing-request="false", expiry-date="<http>"   -> { ongoing: false, expiresAt }
 // Missing / malformed -> undefined.
-export function parseRestoreHeader(value: string | undefined): RestoreStatus | undefined {
+export function parseRestoreHeader(
+  value: S3.Restore | undefined,
+): RestoreStatus | undefined {
   if (!value) return undefined
 
   const ongoingMatch = value.match(/ongoing-request="(true|false)"/)
@@ -43,14 +45,15 @@ export function parseRestoreStatus(
     : { ongoing: false, expiresAt: value.RestoreExpiryDate }
 }
 
-export const isArchiveStorageClass = (storageClass: string | undefined): boolean =>
-  storageClass === 'GLACIER' || storageClass === 'DEEP_ARCHIVE'
+export const isArchiveStorageClass = (
+  storageClass: S3.StorageClass | undefined,
+): boolean => storageClass === 'GLACIER' || storageClass === 'DEEP_ARCHIVE'
 
 const hasLiveRestoredCopy = (restore: RestoreStatus | undefined, now: Date): boolean =>
   !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > now
 
 export function isEffectivelyArchived(
-  storageClass: string | undefined,
+  storageClass: S3.StorageClass | undefined,
   restore: RestoreStatus | undefined,
   now: Date = new Date(),
 ): boolean {
