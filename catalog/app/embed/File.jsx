@@ -267,6 +267,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const previewOptions = { context: Preview.CONTEXT.FILE }
+
 export default function File() {
   const { bucket, path: encodedPath } = useParams()
   const location = useLocation()
@@ -278,13 +280,7 @@ export default function File() {
 
   const path = s3paths.decode(encodedPath)
 
-  const previewOptions = React.useMemo(() => ({ context: Preview.CONTEXT.FILE }), [])
-
-  const objExistsData = useData(requests.getObjectExistence, {
-    s3,
-    bucket,
-    key: path,
-  })
+  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
@@ -405,7 +401,7 @@ export default function File() {
                     Err: (e) => {
                       throw e
                     },
-                    Ok: withPreview(renderPreview(undefined)),
+                    Ok: withPreview(renderPreview()),
                   })}
                 </div>
               </Section>
