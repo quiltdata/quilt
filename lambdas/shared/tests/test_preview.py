@@ -3,13 +3,20 @@ Preview helper functions
 """
 import os
 import pathlib
+import tempfile
 from unittest import TestCase
 from unittest.mock import patch
 
+import pandas
 import pyarrow.parquet as pq
 from py_w3c.validators.html.validator import HTMLValidator
 
 from t4_lambda_shared.preview import (
+    FCS_SCATTER_LIMIT,
+    FCS_SCATTER_RANDOM_SEED,
+    _build_fcs_scatter_spec,
+    _extract_fcs_channel_names,
+    _parse_fcs_text_segment,
     extract_excel,
     extract_fcs,
     extract_parquet,
@@ -19,6 +26,8 @@ from t4_lambda_shared.preview import (
 
 TEST_EXTRACT_PARQUET_MAX_BYTES = 10_000
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
+PREVIEW_FCS_DIR = BASE_DIR.parents[2] / 'preview' / 'test' / 'data' / 'fcs'
+FCS_COLUMNS_STRING = 'FSC-A,SSC-A,FL1-A,FL2-A,FL3-A,FL4-A,FSC-H,SSC-H,FL1-H,FL2-H,FL3-H,FL4-H,Width,Time'
 ACCEPTABLE_ERROR_MESSAGES = [
     'Start tag seen without seeing a doctype first. Expected "<!DOCTYPE html>".',
     'Element "head" is missing a required instance of child element "title".',
@@ -128,40 +137,150 @@ class TestPreview(TestCase):
 
     def test_fcs(self):
         """test FCS parsing"""
-        # store test files and expectations
-        test_files = {
-            'normal.fcs': {
-                'columns_string': 'FSC-A,SSC-A,FL1-A,FL2-A,FL3-A,FL4-A,FSC-H,SSC-H,FL1-H,FL2-H,FL3-H,FL4-H,Width,Time',
-                'in_body': '<th>FL3-H</th>',
-                'in_meta_keys': '#P1MaxUsefulDataChannel',
-                'in_meta_values': '491519',
-                'has_warnings': False,
+        plotted_files = [
+            {
+                'path': BASE_DIR / 'fcs' / 'normal.fcs',
+                'metadata_key': '#P1MaxUsefulDataChannel',
+                'metadata_value': '491519',
             },
-            'meta_only.fcs': {
-                'in_meta_keys': '_channel_names_',
-                'in_meta_values': 'Compensation Controls_G710 Stained Control.fcs',
-                'has_warnings': True,
+            {
+                'path': PREVIEW_FCS_DIR / 'accuri-ao1.fcs',
+                'metadata_key': '#P1MaxUsefulDataChannel',
+                'metadata_value': '491519',
             },
-        }
-        for file, expected_data in test_files.items():
-            in_file = os.path.join(BASE_DIR, 'fcs', file)
-
-            with open(in_file, mode='rb') as fcs:
+        ]
+        for expected_data in plotted_files:
+            with open(expected_data['path'], mode='rb') as fcs:
                 body, info = extract_fcs(fcs)
-                if body != "":
-                    assert expected_data['in_body'] in body
-                    assert not expected_data.get('has_warnings')
-                else:
-                    assert expected_data['has_warnings']
-                    assert info['warnings']
-                assert expected_data['in_meta_keys'] in info['metadata'].keys()
-                assert expected_data['in_meta_values'] in info['metadata'].values()
-                # when there's a body, check if columns only works
-                if expected_data.get('in_body'):
-                    # move to start so we can use the file-like a second time
-                    fcs.seek(0)
-                    body, info = extract_fcs(fcs, as_html=False)
-                    assert body == expected_data['columns_string']
+
+                assert '<th>FL3-H</th>' in body
+                assert 'warnings' not in info
+                assert info['vegaLite']['title']['text'] == 'FSC-A vs SSC-A'
+                assert info['vegaLite']['title']['subtitle'] == 'Showing 191 events'
+                assert info['vegaLite']['encoding']['x']['title'] == 'FSC-A'
+                assert info['vegaLite']['encoding']['y']['title'] == 'SSC-A'
+                assert len(info['vegaLite']['data']['values']) == 191
+                assert expected_data['metadata_key'].lower() in {
+                    key.lower() for key in info['metadata'].keys()
+                }
+                assert expected_data['metadata_value'] in info['metadata'].values()
+
+                fcs.seek(0)
+                body, _ = extract_fcs(fcs, as_html=False)
+                assert body == FCS_COLUMNS_STRING
+
+        metadata_only_files = [
+            {
+                'path': BASE_DIR / 'fcs' / 'meta_only.fcs',
+                'metadata_key': '$FIL',
+                'metadata_value': 'Compensation Controls_G710 Stained Control.fcs',
+                'channel_names': 'FSC-A,FSC-H,SSC-A,R780-A,B515-A,V450-A,V545-A,G560-A,G610-A,G660-A,G710-A,Time',
+            },
+            {
+                'path': PREVIEW_FCS_DIR / '3215apc 100004.fcs',
+                'metadata_key': 'creator',
+                'metadata_value': 'FlowJoCollectorsEdition 7.5.109.8',
+            },
+        ]
+        for expected_data in metadata_only_files:
+            with open(expected_data['path'], mode='rb') as fcs:
+                body, info = extract_fcs(fcs)
+
+                assert body == ""
+                assert info['warnings'].startswith('Metadata only. Parse exception:')
+                assert 'vegaLite' not in info
+                assert expected_data['metadata_key'].lower() in {
+                    key.lower() for key in info['metadata'].keys()
+                }
+                assert expected_data['metadata_value'] in info['metadata'].values()
+                if expected_data.get('channel_names'):
+                    assert info['metadata']['_channel_names_'] == expected_data['channel_names']
+
+        with open(PREVIEW_FCS_DIR / 'bad.fcs', mode='rb') as fcs:
+            body, info = extract_fcs(fcs)
+
+        assert body == ""
+        assert info['warnings'].startswith('Unable to parse data or metadata:')
+        assert 'metadata' not in info
+        assert 'vegaLite' not in info
+
+    def test_fcs_scatter_spec_downsamples(self):
+        data = pandas.DataFrame(
+            {
+                'alpha': range(FCS_SCATTER_LIMIT * 2),
+                'beta': range(FCS_SCATTER_LIMIT * 2, FCS_SCATTER_LIMIT * 4),
+            }
+        )
+
+        spec = _build_fcs_scatter_spec(data)
+
+        assert spec['title']['text'] == 'alpha vs beta'
+        assert spec['title']['subtitle'] == f'Downsampled to {FCS_SCATTER_LIMIT} events'
+        assert spec['encoding']['x']['title'] == 'alpha'
+        assert spec['encoding']['y']['title'] == 'beta'
+        assert len(spec['data']['values']) == FCS_SCATTER_LIMIT
+        expected = data[['alpha', 'beta']].sample(
+            n=FCS_SCATTER_LIMIT,
+            random_state=FCS_SCATTER_RANDOM_SEED,
+        )
+        assert spec['data']['values'][:5] == [
+            {'x': alpha, 'y': beta}
+            for alpha, beta in expected.head(5).itertuples(index=False, name=None)
+        ]
+
+    def test_fcs_scatter_spec_downsampling_is_seeded(self):
+        data = pandas.DataFrame(
+            {
+                'alpha': range(FCS_SCATTER_LIMIT + 37),
+                'beta': range(FCS_SCATTER_LIMIT + 37, (FCS_SCATTER_LIMIT * 2) + 74),
+            }
+        )
+
+        first = _build_fcs_scatter_spec(data)
+        second = _build_fcs_scatter_spec(data)
+
+        assert first['data']['values'] == second['data']['values']
+
+    def test_fcs_scatter_spec_filters_invalid_values(self):
+        data = pandas.DataFrame(
+            {
+                'alpha': [1, float('nan'), float('inf'), float('-inf')],
+                'beta': [10, 20, 30, float('nan')],
+            }
+        )
+
+        spec = _build_fcs_scatter_spec(data, limit=10)
+
+        assert spec['title']['subtitle'] == 'Showing 1 events'
+        assert spec['data']['values'] == [{'x': 1.0, 'y': 10.0}]
+        assert _build_fcs_scatter_spec(
+            pandas.DataFrame(
+                {
+                    'alpha': [float('nan'), float('inf')],
+                    'beta': [float('nan'), float('-inf')],
+                }
+            )
+        ) is None
+
+    def test_parse_fcs_text_segment(self):
+        text_segment = b'|$PAR|2|$P1N|FSC-A|$P2S|SSC||A|'
+        text_start = 58
+        text_end = text_start + len(text_segment) - 1
+        header = bytearray(b' ' * 58)
+        header[:6] = b'FCS3.0'
+        header[10:18] = f'{text_start:>8}'.encode('ascii')
+        header[18:26] = f'{text_end:>8}'.encode('ascii')
+
+        with tempfile.NamedTemporaryFile() as fcs:
+            fcs.write(header)
+            fcs.write(text_segment)
+            fcs.flush()
+
+            metadata = _parse_fcs_text_segment(fcs.name)
+
+        assert metadata['$P1N'] == 'FSC-A'
+        assert metadata['$P2S'] == 'SSC|A'
+        assert _extract_fcs_channel_names(metadata) == 'FSC-A,SSC|A'
 
     def test_long(self):
         """test a text file with lots of lines"""

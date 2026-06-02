@@ -22,6 +22,12 @@ Entries inside each section should be ordered by type:
 
 * [Changed] Drop support for Python 3.9 and 3.10; `quilt3` now requires Python >=3.11
 
+### Lambdas
+
+* [Added] FCS (`.fcs`) indexer support: column names, metadata, Vega-Lite scatter specs, and warning info, with fallback paths for "Metadata only" and "Unable to parse"
+* [Added] Transcode lambda support for video previews (mp4/webm) via ffmpeg, with passthrough handling
+* [Changed] Thumbnail lambda renders PDFs page-by-page via a dedicated `pdf_thumbnail` helper
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API

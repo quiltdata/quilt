@@ -6,24 +6,15 @@ Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
 import os
+import re
 import warnings
+import zlib
+from io import BytesIO
 from urllib.parse import urlparse
 
-import pandas
 import requests
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.preview import (
-    CATALOG_LIMIT_BYTES,
-    CATALOG_LIMIT_LINES,
-    TRUNCATED,
-    extract_excel,
-    extract_fcs,
-    extract_parquet,
-    get_bytes,
-    get_preview_lines,
-    remove_pandas_footer,
-)
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
@@ -41,6 +32,115 @@ TEXT_TYPES = ["bed", "txt"]
 FILE_EXTENSIONS.extend(TEXT_TYPES)
 
 EXTRACT_PARQUET_MAX_BYTES = 10_000
+
+# Keep the text/VCF paths independent of t4_lambda_shared.preview. That module
+# loads pandas/numpy/flowio for richer previews, and a bad native wheel should
+# not prevent plain text fallback from serving.
+CATALOG_LIMIT_BYTES = 1024*1024
+CATALOG_LIMIT_LINES = 512
+TRUNCATED = (
+    'Rows and columns truncated for preview. '
+    'S3 object may contain more data than shown.'
+)
+
+# How many bytes of the head to scan for binary signatures.
+BINARY_SNIFF_BYTES = 8 * 1024
+
+# Magic bytes -> human-readable label.
+BINARY_MAGIC_SIGNATURES = (
+    (b'\x89HDF\r\n\x1a\n', 'hdf5'),
+    (b'\x1f\x8b', 'gzip'),
+    (b'PK\x03\x04', 'zip'),
+    (b'%PDF', 'pdf'),
+)
+
+
+class BinaryContentError(Exception):
+    """Raised when text extraction detects binary content."""
+
+    def __init__(self, detected: str):
+        super().__init__(f'binary content detected: {detected}')
+        self.detected = detected
+
+
+class NoopDecompressObj:
+    @property
+    def eof(self):
+        return False
+
+    def decompress(self, chunk):
+        return chunk
+
+
+def decompress_stream(chunk_iterator, compression):
+    if compression is None:
+        dec = NoopDecompressObj()
+    elif compression == 'gz':
+        dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
+    else:
+        raise ValueError('Only gzip compression is supported')
+
+    for chunk in chunk_iterator:
+        yield dec.decompress(chunk)
+        if dec.eof:
+            break
+
+
+def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
+    buffer = []
+    size = 0
+    line_count = 0
+
+    for chunk in decompress_stream(chunk_iterator, compression):
+        buffer.append(chunk)
+        size += len(chunk)
+        line_count += chunk.count(b'\n')
+
+        if size > max_bytes or line_count > max_lines:
+            break
+
+    lines = b''.join(buffer).splitlines()
+
+    if size > max_bytes and len(lines) > 1:
+        lines.pop()
+
+    del lines[max_lines:]
+
+    return [line.decode('utf-8', 'ignore') for line in lines]
+
+
+def get_bytes(chunk_iterator, compression):
+    buffer = BytesIO()
+    buffer.writelines(decompress_stream(chunk_iterator, compression))
+    buffer.seek(0)
+    return buffer
+
+
+def remove_pandas_footer(html: str) -> str:
+    return re.sub(
+        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
+        r'\1\2',
+        html,
+    )
+
+
+def _sniff_binary(sample: bytes, skip_labels=()):
+    """Return a label string if `sample` looks binary, else None.
+
+    `skip_labels` suppresses specific magic-byte and heuristic checks, by
+    label: pass 'gzip' to skip the gzip magic prefix, 'nul-byte' to skip the
+    embedded-NUL heuristic, etc. Callers that have declared
+    `compression='gz'` should pass both (the preamble is the raw gzipped
+    stream, which routinely contains NUL bytes throughout).
+    """
+    for magic, label in BINARY_MAGIC_SIGNATURES:
+        if label in skip_labels:
+            continue
+        if sample.startswith(magic):
+            return label
+    if 'nul-byte' not in skip_labels and b'\x00' in sample[:BINARY_SNIFF_BYTES]:
+        return 'nul-byte'
+    return None
 
 SCHEMA = {
     'type': 'object',
@@ -76,8 +176,15 @@ SCHEMA = {
     'additionalProperties': False
 }
 
-# global option for pandas
-pandas.set_option('min_rows', 50)
+
+def _is_valid_source_url(url: str) -> bool:
+    parsed_url = urlparse(url, allow_fragments=False)
+    return (
+        parsed_url.scheme == 'https' and
+        parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
+        parsed_url.username is None and
+        parsed_url.password is None
+    )
 
 
 @api(cors_origins=get_default_origins())
@@ -103,11 +210,7 @@ def lambda_handler(request):
             'detail': str(error)
         })
 
-    parsed_url = urlparse(url, allow_fragments=False)
-    if not (parsed_url.scheme == 'https' and
-            parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-            parsed_url.username is None and
-            parsed_url.password is None):
+    if not _is_valid_source_url(url):
         return make_json_response(400, {
             'title': 'Invalid url=. Expected S3 virtual-host URL.'
         })
@@ -128,18 +231,40 @@ def lambda_handler(request):
     resp = requests.get(url, stream=True)
     if resp.ok:
         content_iter = resp.iter_content(CHUNK)
+        # For text-mode inputs, sniff the raw (still possibly compressed) bytes
+        # for binary signatures before lossy UTF-8 decoding strips NUL bytes.
+        binary_preamble = b''
+        if input_type in TEXT_TYPES:
+            try:
+                first_chunk = next(content_iter)
+            except StopIteration:
+                first_chunk = b''
+            binary_preamble = first_chunk[:BINARY_SNIFF_BYTES]
+
+            def _prepend(chunk, rest):
+                if chunk:
+                    yield chunk
+                yield from rest
+
+            content_iter = _prepend(first_chunk, content_iter)
         if input_type == 'csv':
             html, info = extract_csv(
                 get_preview_lines(content_iter, compression, line_count, max_bytes),
                 separator
             )
         elif input_type == 'excel':
+            from t4_lambda_shared.preview import extract_excel
+
             html, info = extract_excel(get_bytes(content_iter, compression))
         elif input_type == 'fcs':
+            from t4_lambda_shared.preview import extract_fcs
+
             html, info = extract_fcs(get_bytes(content_iter, compression))
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
+            from t4_lambda_shared.preview import extract_parquet
+
             # TODO: shouldn't we pass max_bytes variable as max_bytes parameter?
             html, info = extract_parquet(get_bytes(content_iter, compression), max_bytes=EXTRACT_PARQUET_MAX_BYTES)
         elif input_type == 'vcf':
@@ -147,9 +272,22 @@ def lambda_handler(request):
                 get_preview_lines(content_iter, compression, line_count, max_bytes)
             )
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(
-                get_preview_lines(content_iter, compression, line_count, max_bytes)
-            )
+            skip_labels = ('gzip', 'nul-byte') if compression == 'gz' else ()
+            try:
+                html, info = extract_txt(
+                    get_preview_lines(content_iter, compression, line_count, max_bytes),
+                    raw_preamble=binary_preamble,
+                    skip_sniff_labels=skip_labels,
+                )
+            except BinaryContentError as binary_err:
+                return make_json_response(415, {
+                    'info': {
+                        'data': {'head': [], 'tail': []},
+                        'error': 'binary',
+                        'detected': binary_err.detected,
+                    },
+                    'html': '',
+                })
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -178,6 +316,9 @@ def extract_csv(head, separator):
         html - html version of *first sheet only* in workbook
         info - metadata
     """
+    import pandas
+
+    pandas.set_option('min_rows', 50)
     warnings_ = []
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
@@ -282,13 +423,28 @@ def extract_vcf(head):
     return '', info
 
 
-def extract_txt(head):
+def extract_txt(head, raw_preamble: bytes, skip_sniff_labels=()):
     """
     dummy formatting function
+
+    Raises BinaryContentError if `raw_preamble` looks like binary content:
+    NUL byte anywhere in the first 8 KB, or known binary magic bytes at the
+    start (HDF5/gzip/zip/PDF). `raw_preamble` is required because sniffing
+    already-decoded text would only catch surviving NUL bytes; the magic-
+    byte checks need the undecoded stream.
+
+    `skip_sniff_labels` lets callers suppress specific magic-byte / heuristic
+    checks (e.g. 'gzip' and 'nul-byte' when gzip compression was explicitly
+    declared and the preamble is the raw gzipped stream).
     """
+    sample = raw_preamble[:BINARY_SNIFF_BYTES]
+    detected = _sniff_binary(sample, skip_labels=skip_sniff_labels)
+    if detected is not None:
+        raise BinaryContentError(detected)
+
     info = {
         'data': {
-            'head': head,
+            'head': list(head),
             # retain tail for backwards compatibility with client
             'tail': []
         }

@@ -25,20 +25,21 @@ import bioio_ome_tiff
 import bioio_tifffile
 import dask.array as da
 import numpy as np
-import pdf2image
 import pptx
 import requests
 from bioio import BioImage
-from pdf2image.exceptions import (
-    PDFInfoNotInstalledError,
-    PDFPageCountError,
-    PDFSyntaxError,
-    PopplerNotInstalledError,
-)
 from PIL import Image
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
+
+from .pdf_thumbnail import (
+    PDFThumbError,
+    count_pdf_pages,
+    get_pdf_render_dpi,
+    render_pdf_page,
+    resize_pdf_page,
+)
 
 # See https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open.
 # Use 0 to disable the limit.
@@ -178,52 +179,41 @@ def norm_img(img: da.Array) -> da.Array:
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:
-    # Even though the reader was n-dim, check if the actual data is simply greyscale and return
-    if len(img.reader.dask_data.shape) == 2:
-        return img.reader.dask_data
+    # Eagerly compute to numpy to avoid bioio-tifffile/dask lazy transpose bugs
+    data = np.asarray(img.data)
+    reader_shape = img.reader.data.shape
 
-    # Even though the reader was n-dim,
-    # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
-    if (len(img.reader.dask_data.shape) == 3 and (
-            img.reader.dask_data.shape[2] == 3 or img.reader.dask_data.shape[2] == 4)):
-        return img.reader.dask_data
+    if len(reader_shape) == 2:
+        return da.from_array(img.reader.data)
 
-    # Check which dimensions are available
-    # BioImage makes strong assumptions about dimension ordering
+    if len(reader_shape) == 3 and reader_shape[2] in (3, 4):
+        return da.from_array(img.reader.data)
 
     # Reduce the array down to 2D + Channels when possible
-    # Always choose middle time slice
     if "T" in img.reader.dims.order:
-        img = BioImage(img.dask_data[img.dask_data.shape[0] // 2 : img.dask_data.shape[0] // 2 + 1, :, :, :, :])
+        t_mid = data.shape[0] // 2
+        data = data[t_mid : t_mid + 1]
 
-    # Keep Channel data, but max project when possible
-    if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
+    if "C" in img.reader.dims.order and data.shape[1] > 1:
         projections = []
         s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
-        for i in range(img.dask_data.shape[1]):
+        for i in range(data.shape[1]):
             if "Z" in img.reader.dims.order:
-                # Add padding to the top and left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
+                padded = np.pad(
+                    norm_img(da.from_array(data[0, i, :, :, :].max(axis=0))).compute(),
                     ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
+                    mode="constant",
                 )
-                projections.append(padded)
             else:
-                # Add padding to the top and the left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, 0, :, :]),
+                padded = np.pad(
+                    norm_img(da.from_array(data[0, i, 0, :, :])).compute(),
                     ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
+                    mode="constant",
                 )
-                projections.append(padded)
+            projections.append(padded)
 
-        # Get min grid shape
-        # For 6 channels this returns (2, 3)
         min_grid_shape = choose_min_grid(len(projections))
 
-        # Make rows of images
-        # Use a counter so that we don't have to use `projections.pop` which is O(N)
         rows = []
         proj_counter = 0
         for y_i in range(min_grid_shape[0]):
@@ -231,22 +221,17 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
             for x_i in range(min_grid_shape[1]):
                 row.append(projections[proj_counter])
                 proj_counter += 1
-
             rows.append(row)
 
-        # Concatenate each row then concatenate all rows together into a single 2D image
-        merged = [da.concatenate(row, axis=1) for row in rows]
+        merged = [np.concatenate(row, axis=1) for row in rows]
+        return da.from_array(
+            np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
+        )
 
-        # Add padding on the entire bottom and entire right side of the thumbnail
-        return da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
-
-    # If there is a Z dimension we need to do _something_ the get a 2D out.
-    # Without causing a war about which projection method is best
-    # we will simply use a max projection on files that contain a Z dimension
     if "Z" in img.reader.dims.order:
-        return norm_img(img.dask_data[0, 0, :, :, :].max(axis=0))
+        return norm_img(da.from_array(data[0, 0, :, :, :].max(axis=0)))
 
-    return norm_img(img.dask_data[0, 0, 0, :, :])
+    return norm_img(da.from_array(data[0, 0, 0, :, :]))
 
 
 def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
@@ -257,11 +242,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
     # These readers are specific for n dimensional images
     if isinstance(
         img.reader,
-        (
-            bioio_czi.reader.Reader,
-            bioio_ome_tiff.reader.Reader,
-            bioio_tifffile.reader.Reader,
-        ),
+        bioio_czi.reader.Reader | bioio_ome_tiff.reader.Reader | bioio_tifffile.reader.Reader,
     ):
         return _format_n_dim_ndarray(img)
 
@@ -272,22 +253,25 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
 def pptx_to_pdf(*, path: str, page: int):
     with tempfile.TemporaryDirectory() as out_dir:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            subprocess.run(
-                (
-                    "libreoffice",
-                    "--convert-to",
-                    'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"%s-%s"}}' % (page, page),
-                    "--outdir",
-                    out_dir,
-                    path,
-                ),
-                check=True,
-                env={
-                    **os.environ,
-                    # This is needed because LibreOffice writes some stuff to $HOME/.config.
-                    "HOME": tmp_dir,
-                },
-            )
+            try:
+                subprocess.run(
+                    (
+                        "libreoffice",
+                        "--convert-to",
+                        'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"%s-%s"}}' % (page, page),
+                        "--outdir",
+                        out_dir,
+                        path,
+                    ),
+                    check=True,
+                    env={
+                        **os.environ,
+                        # This is needed because LibreOffice writes some stuff to $HOME/.config.
+                        "HOME": tmp_dir,
+                    },
+                )
+            except FileNotFoundError as exc:
+                raise PDFThumbError("Missing required command: libreoffice") from exc
         yield os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ".pdf")
 
 
@@ -305,40 +289,23 @@ def handle_exceptions(*exception_types):
     return decorator
 
 
-class PDFThumbError(Exception):
-    pass
-
-
 def pdf_thumb(*, path: str, page: int, size: int):
-    try:
-        pages = pdf2image.convert_from_path(
-            path,
-            # respect width but not necessarily height to preserve aspect ratio
-            size=(size, None),
-            fmt="JPEG",
-            first_page=page,
-            last_page=page,
-        )
-        return pages[0]
-    except (
-        IndexError,
-        PDFInfoNotInstalledError,
-        PDFPageCountError,
-        PDFSyntaxError,
-        PopplerNotInstalledError
-    ) as e:
-        raise PDFThumbError(str(e))
+    render_dpi = get_pdf_render_dpi()
+    page_image = render_pdf_page(path=path, page=page, dpi=render_dpi)
+    return resize_pdf_page(page_image, size=size), render_dpi
 
 
 def handle_pdf(*, path: str, page: int, size: int, count_pages: bool):
     fmt = "JPEG"
-    thumb = pdf_thumb(path=path, page=page, size=size)
+    thumb, render_dpi = pdf_thumb(path=path, page=page, size=size)
     info = {
         "thumbnail_format": fmt,
         "thumbnail_size": thumb.size,
+        "pdf_render_dpi": render_dpi,
+        "pdf_resize_filter": "LANCZOS",
     }
     if count_pages:
-        info["page_count"] = pdf2image.pdfinfo_from_path(path)["Pages"]
+        info["page_count"] = count_pdf_pages(path)
 
     thumbnail_bytes = BytesIO()
     thumb.save(thumbnail_bytes, fmt)

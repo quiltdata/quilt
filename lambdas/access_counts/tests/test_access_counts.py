@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from io import BytesIO
 from unittest import TestCase
 from unittest.mock import patch
@@ -61,7 +61,7 @@ class TestAccessCounts(TestCase):
             self._end_query()
 
     def test_access_counts(self):
-        now = datetime.fromtimestamp(1234567890, timezone.utc)
+        now = datetime.fromtimestamp(1234567890, UTC)
         end_ts = now - timedelta(minutes=15)
         start_ts = now - timedelta(days=1)
 

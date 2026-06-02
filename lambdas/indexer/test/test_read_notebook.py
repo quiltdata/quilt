@@ -4,6 +4,7 @@ Test functions for text extraction from Jupyter notebooks
 import os
 
 import pytest
+from jsonschema.exceptions import ValidationError
 from nbformat.reader import NotJSONError
 
 from t4_lambda_es_indexer.index import extract_text
@@ -12,7 +13,7 @@ from .constants import NORMAL_EXTRACT
 
 NB_RAISES = {
     '404.ipynb': NotJSONError,
-    'attribute-error.ipynb': AttributeError,
+    'attribute-error.ipynb': (AttributeError, ValidationError),
     'empty.ipynb': NotJSONError,
     'malformed-json.ipynb': NotJSONError,
 }

@@ -51,6 +51,13 @@ MAX_COPY_FILE_LIST_RETRIES = 3
 MAX_FIX_HASH_RETRIES = 3
 MAX_CONCURRENCY = util.get_pos_int_from_env('QUILT_TRANSFER_MAX_CONCURRENCY') or 10
 
+# Keep checksum helpers available from quilt3.data_transfer for existing
+# lambda callers while the implementation lives in quilt3.checksums.
+CHECKSUM_MULTIPART_THRESHOLD = checksums.CHECKSUM_MULTIPART_THRESHOLD
+CHECKSUM_MAX_PARTS = checksums.CHECKSUM_MAX_PARTS
+get_checksum_chunksize = checksums.get_checksum_chunksize
+is_mpu = checksums.is_mpu
+
 
 logger = logging.getLogger(__name__)
 

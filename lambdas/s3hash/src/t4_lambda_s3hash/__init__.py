@@ -299,7 +299,7 @@ def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
                         context.get_remaining_time_in_millis() / 1000 - SECONDS_TO_CLEANUP,
                     )
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 raise LambdaError("Timeout")
             except pydantic.v1.ValidationError as e:
                 # XXX: make it .info()?

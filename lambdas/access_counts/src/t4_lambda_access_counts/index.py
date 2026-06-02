@@ -6,7 +6,7 @@ and creates summaries of object and package access events.
 import os
 import textwrap
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import boto3
 from boto3.s3.transfer import TransferConfig
@@ -377,7 +377,7 @@ def delete_dir(bucket, prefix):
 
 def now():
     """Only exists for unit testing, cause patching datetime.utcnow() is pretty much impossible."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def handler(event, context):
@@ -388,7 +388,7 @@ def handler(event, context):
     # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
     try:
         timestamp_str = s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()
-        start_ts = datetime.fromtimestamp(float(timestamp_str), timezone.utc)
+        start_ts = datetime.fromtimestamp(float(timestamp_str), UTC)
     except s3.exceptions.NoSuchKey:
         start_ts = end_ts - timedelta(days=365)
         # We start from scratch, so make sure we don't have any old data.
@@ -452,7 +452,7 @@ def handler(event, context):
 
     execution_ids = run_multiple_queries([query for _, query in queries])
 
-    for (filename, _), execution_id in zip(queries, execution_ids):
+    for (filename, _), execution_id in zip(queries, execution_ids, strict=True):
         src_key = f'{QUERY_TEMP_DIR}/{execution_id}.csv'
         dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
 
