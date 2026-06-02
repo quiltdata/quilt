@@ -15,6 +15,18 @@ def patch_urlopen(data: bytes):
     return mock.patch("t4_lambda_tabular_preview.urlopen", return_value=io.BytesIO(data))
 
 
+def _make_event(query, headers=None):
+    return {
+        "httpMethod": "POST",
+        "path": "/foo",
+        "pathParameters": {},
+        "queryStringParameters": query or None,
+        "headers": headers or None,
+        "body": None,
+        "isBase64Encoded": False,
+    }
+
+
 @pytest.mark.parametrize(
     "data, handler_name",
     [
@@ -108,7 +120,7 @@ def test_preview_h5ad(mocker, meta_only):
             "t4_lambda_tabular_preview.H5AD_META_ONLY_SIZE",
             0,  # Force providing only meta
         )
-        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview.sc.pp.calculate_qc_metrics")
+        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview._calculate_h5ad_qc_metrics")
 
     code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
         url=str(pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"),
@@ -197,3 +209,108 @@ def test_preview_simple_parquet():
             b"1,2\n"
             b"x,y\n"
         )
+
+
+def test_is_s3_url_rejects_local_proxy_url():
+    assert not t4_lambda_tabular_preview.is_s3_url(
+        "http://localhost:3000/__s3proxy/example-bucket/sample.csv"
+    )
+
+
+def test_lambda_handler_rejects_local_url():
+    response = t4_lambda_tabular_preview.lambda_handler(
+        _make_event({"url": "http://localhost:3000/not-a-proxy/sample.csv", "input": "csv"}),
+        None,
+    )
+
+    assert response["statusCode"] == 400
+    assert "S3 virtual-host URL" in json.loads(response["body"])["title"]
+
+
+def test_preview_h5ad_includes_matrix_preview_and_telemetry():
+    """The h5ad handler should now expose a bounded matrix preview
+    plus read-telemetry counters in the response meta."""
+    code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
+        url=str(pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"),
+        compression=None,
+        max_out_size=None,
+    )
+    assert code == 200
+    info = json.loads(headers[QUILT_INFO_HEADER])
+    # telemetry present and recorded at least one range read
+    telemetry = info["telemetry"]
+    assert telemetry["range_request_count"] > 0
+    assert telemetry["total_bytes_read"] > 0
+    assert telemetry["max_single_read"] > 0
+
+    # matrix_preview should be a bounded sample (<= 5x5)
+    mp = info["meta"]["matrix_preview"]
+    assert mp is not None, info["meta"].get("matrix_preview_error")
+    assert "values" in mp
+    assert "dtype" in mp
+    assert len(mp["values"]) <= 5
+    for row in mp["values"]:
+        assert len(row) <= 5
+
+
+def test_preview_h5ad_error_envelope_on_bad_file():
+    """A malformed input should produce a structured meta.error envelope
+    rather than raising out of the handler."""
+    bad_bytes = b"this is not a valid h5ad file at all"
+    with mock.patch(
+        "t4_lambda_tabular_preview.urlopen",
+        return_value=io.BytesIO(bad_bytes),
+    ):
+        code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
+            url=mock.sentinel.URL,
+            compression=None,
+            max_out_size=None,
+        )
+    assert code == 200
+    info = json.loads(headers[QUILT_INFO_HEADER])
+    assert info["meta"]["error"]["type"]
+    assert info["meta"]["error"]["message"]
+    # telemetry still reported
+    assert "telemetry" in info
+
+
+def test_preview_h5ad_retries_once_on_oserror(mocker):
+    """A torn HTTP read (OSError from h5py) should retry once and succeed
+    on the second attempt rather than going straight to the error envelope."""
+    real_h5ad = pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"
+    real_bytes = real_h5ad.read_bytes()
+
+    # First attempt: hand h5py a stream that truncates after 512 bytes
+    # (the same signature as the production bug). Second attempt: real file.
+    sources = [
+        io.BytesIO(real_bytes[:512]),
+        io.BytesIO(real_bytes),
+    ]
+    mocker.patch(
+        "t4_lambda_tabular_preview.urlopen",
+        side_effect=lambda *a, **kw: sources.pop(0),
+    )
+
+    code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
+        url="https://example.com/x.h5ad?Signature=redacted",
+        compression=None,
+        max_out_size=None,
+    )
+    assert code == 200
+    info = json.loads(headers[QUILT_INFO_HEADER])
+    assert "error" not in info["meta"], info["meta"]
+    assert info["meta"]["n_cells"] >= 1
+    assert sources == []  # both attempts consumed
+
+
+def test_extract_matrix_preview_handles_sparse(mocker):
+    """_extract_matrix_preview should densify sparse matrices."""
+    import numpy
+    import scipy.sparse
+
+    fake_adata = mocker.Mock()
+    fake_adata.X = scipy.sparse.csr_matrix(numpy.arange(36).reshape(6, 6))
+    preview, err = t4_lambda_tabular_preview._extract_matrix_preview(fake_adata)
+    assert err is None
+    assert preview["values"][0] == [0, 1, 2, 3, 4]
+    assert len(preview["values"]) == 5
