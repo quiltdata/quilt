@@ -40,12 +40,12 @@ async function loadPdf({ url, handle }) {
     console.warn('error loading pdf preview', { ...e })
     // eslint-disable-next-line no-console
     console.error(e)
-    throw PreviewError.Unexpected({
-      handle,
-      retry: null,
-      message: e.message || String(e),
-      originalError: e,
-    })
+    // Re-throw the raw error so useErrorHandling wraps it into
+    // PreviewError.Unexpected with `retry: data.fetch` attached. Building the
+    // PreviewError here would bake in `retry: null` and pass through
+    // useErrorHandling's `R.unless(PreviewError.is, …)` unchanged, leaving
+    // transient failures (timeouts, temporary 5xx) with no retry button.
+    throw e
   }
 }
 

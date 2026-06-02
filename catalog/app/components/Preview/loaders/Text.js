@@ -79,6 +79,13 @@ export const Loader = function TextLoader({ handle, forceLang = null, children }
           message: `Binary file${detected} — no text preview available`,
         })
       }
+      if (!info) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: fetch,
+          message: 'preview lambda returned an unexpected envelope (missing info)',
+        })
+      }
       const { data, note, warnings } = info
       if (!data || !data.head) {
         throw PreviewError.Unexpected({
