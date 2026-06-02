@@ -334,7 +334,7 @@ function File() {
     Ok: requests.ObjectExistence.case({
       _: () => ({ notAvailable: true }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        notAvailable: deleted || archived,
+        notAvailable: deleted || !!archived,
         fileVersionId: versionId,
       }),
     }),
@@ -375,7 +375,7 @@ function File() {
               Preview.PreviewError.Archived({
                 handle,
                 restore: h.restore,
-                storageClass: h.storageClass,
+                storageClass: h.archived,
               }),
             ),
           )

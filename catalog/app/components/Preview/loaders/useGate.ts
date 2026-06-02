@@ -38,7 +38,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
     const { restore, archived } = getArchiveState(head.StorageClass, head.Restore)
     if (archived) {
-      throw PreviewError.Archived({ handle, restore, storageClass: head.StorageClass })
+      throw PreviewError.Archived({ handle, restore, storageClass: archived })
     }
   } catch (e) {
     if (PreviewError.is(e)) throw e

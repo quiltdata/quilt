@@ -148,7 +148,7 @@ export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) =
       id: v.VersionId,
       deleteMarker: isDeleteMarker(v),
       archived: isObjectVersion(v)
-        ? getArchiveState(v.StorageClass, v.RestoreStatus).archived
+        ? !!getArchiveState(v.StorageClass, v.RestoreStatus).archived
         : false,
     }))
     .toSorted(({ lastModified: left }, { lastModified: right }) => {

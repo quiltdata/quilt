@@ -325,7 +325,7 @@ export default function File() {
               Preview.PreviewError.Archived({
                 handle,
                 restore: h.restore,
-                storageClass: h.storageClass,
+                storageClass: h.archived,
               }),
             ),
           )

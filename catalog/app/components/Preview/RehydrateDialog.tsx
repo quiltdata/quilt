@@ -2,13 +2,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import type { S3 } from 'aws-sdk'
-
 import * as URLS from 'constants/urls'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
-import { RetrievalTier } from 'utils/glacier'
+import { RetrievalTier, StorageClass } from 'utils/glacier'
 import type * as Model from 'model'
 
 import { useRestoreObject } from './restoreObject'
@@ -143,7 +141,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface RehydrateFormProps {
   handle: Model.S3.S3ObjectLocation
-  storageClass?: S3.StorageClass
+  storageClass?: StorageClass
   onClose: () => void
   onSubmitted: (alreadyRestored: boolean) => void
 }
@@ -338,7 +336,7 @@ interface RehydrateDialogProps {
   open: boolean
   onClose: () => void
   handle: Model.S3.S3ObjectLocation
-  storageClass?: S3.StorageClass
+  storageClass?: StorageClass
   onSubmitted: (alreadyRestored: boolean) => void
 }
 

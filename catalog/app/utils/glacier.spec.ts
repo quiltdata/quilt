@@ -37,16 +37,18 @@ describe('utils/glacier', () => {
       })
     })
 
-    describe('archived (classification)', () => {
+    describe('archived (effective tier, or false)', () => {
       it('is false for non-archive storage classes', () => {
         expect(getArchiveState('STANDARD', undefined).archived).toBe(false)
         expect(getArchiveState(undefined, undefined).archived).toBe(false)
       })
 
-      it('is true for GLACIER / DEEP_ARCHIVE with no or ongoing restore', () => {
-        expect(getArchiveState('GLACIER', undefined).archived).toBe(true)
-        expect(getArchiveState('DEEP_ARCHIVE', undefined).archived).toBe(true)
-        expect(getArchiveState('GLACIER', 'ongoing-request="true"').archived).toBe(true)
+      it('returns the tier for GLACIER / DEEP_ARCHIVE with no or ongoing restore', () => {
+        expect(getArchiveState('GLACIER', undefined).archived).toBe('GLACIER')
+        expect(getArchiveState('DEEP_ARCHIVE', undefined).archived).toBe('DEEP_ARCHIVE')
+        expect(getArchiveState('GLACIER', 'ongoing-request="true"').archived).toBe(
+          'GLACIER',
+        )
       })
 
       it('is false with a live restored copy (future expiry)', () => {
@@ -57,12 +59,12 @@ describe('utils/glacier', () => {
         ).toBe(false)
       })
 
-      it('is true with an expired restored copy (past expiry)', () => {
+      it('returns the tier with an expired restored copy (past expiry)', () => {
         const past = new Date('2001-01-01T00:00:00Z').toUTCString()
         expect(
           getArchiveState('GLACIER', `ongoing-request="false", expiry-date="${past}"`)
             .archived,
-        ).toBe(true)
+        ).toBe('GLACIER')
       })
     })
   })
@@ -78,7 +80,7 @@ describe('utils/glacier', () => {
         IsRestoreInProgress: true,
       })
       expect(restore).toEqual({ ongoing: true })
-      expect(archived).toBe(true)
+      expect(archived).toBe('GLACIER')
     })
 
     it('maps a completed restore with future expiry (not archived)', () => {

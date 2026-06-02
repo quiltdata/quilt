@@ -130,7 +130,7 @@ export const bucketListing = async ({
           modified: i.LastModified!,
           size: i.Size!,
           etag: i.ETag!,
-          archived: getArchiveState(i.StorageClass, i.RestoreStatus).archived,
+          archived: !!getArchiveState(i.StorageClass, i.RestoreStatus).archived,
         }))
       if (prev && prev.files) files = prev.files.concat(files)
 

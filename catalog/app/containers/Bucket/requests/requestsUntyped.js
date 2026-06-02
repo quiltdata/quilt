@@ -85,9 +85,9 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
+      // `archived` carries the storage class (or `false`) — no separate field.
       archived,
       restore,
-      storageClass: h.StorageClass,
       lastModified: parseDate(h.LastModified),
     })
   } catch (e) {

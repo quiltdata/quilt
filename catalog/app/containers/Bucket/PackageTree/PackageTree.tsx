@@ -1,4 +1,3 @@
-import type { S3 } from 'aws-sdk'
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -35,7 +34,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
-import type { RestoreStatus } from 'utils/glacier'
+import type { RestoreStatus, StorageClass } from 'utils/glacier'
 
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
@@ -529,7 +528,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
 }
 
 const withPreview = (
-  { archived, deleted, restore, storageClass }: ObjectAttrs,
+  { archived, deleted, restore }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
@@ -541,7 +540,9 @@ const withPreview = (
     // Carries restore/storageClass so ArchivedMessage can show the Rehydrate
     // flow / in-progress state.
     return callback(
-      AsyncResult.Err(Preview.PreviewError.Archived({ handle, restore, storageClass })),
+      AsyncResult.Err(
+        Preview.PreviewError.Archived({ handle, restore, storageClass: archived }),
+      ),
     )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
@@ -549,12 +550,11 @@ const withPreview = (
 }
 
 interface ObjectAttrs {
-  archived: boolean
+  archived: StorageClass | false
   deleted: boolean
   lastModified?: Date
   size?: number
   restore?: RestoreStatus
-  storageClass?: S3.StorageClass
 }
 
 type CrumbProp = $TSFixMe
@@ -834,14 +834,7 @@ function FileDisplay({
           )
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({
-            archived,
-            deleted,
-            lastModified,
-            size,
-            restore,
-            storageClass,
-          }: ObjectAttrs) => (
+          Exists: ({ archived, deleted, lastModified, size, restore }: ObjectAttrs) => (
             <>
               <FileContext file={file} pkg={packageHandle} />
               <TopBar crumbs={crumbs}>
@@ -924,7 +917,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {withPreview(
-                    { archived, deleted, restore, storageClass },
+                    { archived, deleted, restore },
                     handle,
                     viewModes.mode,
                     renderPreview(viewModes.handlePreviewResult),

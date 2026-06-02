@@ -43,28 +43,42 @@ function parseRestoreStatus(
     : { ongoing: false, expiresAt: value.RestoreExpiryDate }
 }
 
-const isArchiveStorageClass = (storageClass: S3.StorageClass | undefined): boolean =>
+// The S3 archive storage classes. Narrower than the SDK's `S3.StorageClass`
+// (whose `| string` member erases literal narrowing), so it stays exhaustive
+// and catches typos.
+export type StorageClass = 'GLACIER' | 'DEEP_ARCHIVE'
+
+const isArchiveStorageClass = (
+  storageClass: S3.StorageClass | undefined,
+): storageClass is StorageClass =>
   storageClass === 'GLACIER' || storageClass === 'DEEP_ARCHIVE'
 
 const hasLiveRestoredCopy = (restore: RestoreStatus | undefined): boolean =>
   !!restore && !restore.ongoing && !!restore.expiresAt && restore.expiresAt > new Date()
 
-const isEffectivelyArchived = (
+// The archive tier an object is *effectively* stored in: an archive storage
+// class with no live restored copy. Returns `false` when the object is readable
+// as-is — a non-archive class, or an archive class with a live restored copy.
+const effectiveArchiveClass = (
   storageClass: S3.StorageClass | undefined,
   restore: RestoreStatus | undefined,
-): boolean => isArchiveStorageClass(storageClass) && !hasLiveRestoredCopy(restore)
+): StorageClass | false => {
+  if (!isArchiveStorageClass(storageClass)) return false
+  if (hasLiveRestoredCopy(restore)) return false
+  return storageClass
+}
 
-// An object's archive state: whether it's still effectively archived (archive
-// storage class with no live restored copy) plus the parsed restore status.
-// `value` is S3's restore for the object from either source — the HEAD
-// `x-amz-restore` header (a string) or the LIST `RestoreStatus` element.
+// An object's archive state: the effective archive tier (`false` when the object
+// is not effectively archived) plus the parsed restore status. `value` is S3's
+// restore for the object from either source — the HEAD `x-amz-restore` header
+// (a string) or the LIST `RestoreStatus` element.
 export function getArchiveState(
   storageClass: S3.StorageClass | undefined,
   value: S3.Restore | S3.RestoreStatus | undefined,
-): { restore?: RestoreStatus; archived: boolean } {
+): { restore?: RestoreStatus; archived: StorageClass | false } {
   const restore =
     typeof value === 'string' ? parseRestoreHeader(value) : parseRestoreStatus(value)
-  return { restore, archived: isEffectivelyArchived(storageClass, restore) }
+  return { restore, archived: effectiveArchiveClass(storageClass, restore) }
 }
 
 // Narrows the SDK's `S3.Tier`, whose `| string` member erases literal

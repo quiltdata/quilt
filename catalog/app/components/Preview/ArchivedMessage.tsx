@@ -1,9 +1,8 @@
-import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 
 import type * as Model from 'model'
 
-import type { RestoreStatus } from 'utils/glacier'
+import type { RestoreStatus, StorageClass } from 'utils/glacier'
 import RehydrateDialog from './RehydrateDialog'
 
 interface MessageAction {
@@ -20,7 +19,7 @@ interface MessageData {
 interface ArchivedMessageProps {
   handle: Model.S3.S3ObjectLocation
   restore?: RestoreStatus
-  storageClass?: S3.StorageClass
+  storageClass?: StorageClass
   // The host (PreviewDisplay) owns how the message looks and whether to surface
   // the action (e.g. it drops it when downloads are disabled); this component
   // only manages the rehydrate dialog + optimistic state and hands back content.
