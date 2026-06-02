@@ -27,9 +27,16 @@ options:
 
 Run the Quilt catalog on your machine. Running `quilt3 catalog` launches a
 Python webserver on your local machine that serves a catalog web app and
-provides required backend services using temporary AWS credentials.
-Temporary credentials are derived from your default AWS credentials
-(or active `AWS_PROFILE`) using `boto3.sts.get_session_token`.
+provides required backend services.
+
+LOCAL mode supports two object backends:
+- aws: uses your active AWS credentials and real S3 objects
+- filesystem: reads objects and package metadata from a local directory tree
+
+When using the default AWS object backend, temporary credentials are derived
+from your default AWS credentials (or active `AWS_PROFILE`) using
+`boto3.sts.get_session_token`.
+
 For more details about configuring and using AWS credentials in `boto3`,
 see the AWS documentation:
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
