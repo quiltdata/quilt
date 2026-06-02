@@ -35,7 +35,7 @@ const TIER_OPTIONS: TierOption[] = [
   {
     value: 'Standard',
     label: 'Standard',
-    hint: 'Minutes to hours (GLACIER) / up to 12 hours (DEEP_ARCHIVE). Default.',
+    hint: 'Minutes to hours (GLACIER) / up to 12 hours (DEEP_ARCHIVE).',
   },
   {
     value: 'Bulk',
