@@ -302,14 +302,13 @@ function RehydrateForm({
           <Lab.Alert severity="error" className={classes.permissionHint}>
             {status.message}
             {status.iam && (
-              <>
-                <br />
+              <M.Typography variant="body2">
                 Your IAM role needs <code>s3:RestoreObject</code> on this bucket.{' '}
                 <StyledLink href={REHYDRATE_PERMISSION_DOC} target="_blank">
                   Ask your admin to enable rehydration
                 </StyledLink>
                 .
-              </>
+              </M.Typography>
             )}
           </Lab.Alert>
         )}
