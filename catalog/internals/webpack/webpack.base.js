@@ -41,12 +41,12 @@ module.exports = (options) => ({
       },
       {
         test: /\.[jt]sx?$/,
-        exclude: /node_modules/,
+        exclude: /node_modules(?!\/katex)/,
         use: {
           loader: 'ts-loader',
           options: {
-            // disable type checking - we use ForkTsCheckerWebpackPlugin for that
             transpileOnly: true,
+            allowTsInNodeModules: true,
           },
         },
       },
@@ -136,7 +136,9 @@ module.exports = (options) => ({
       inject: true,
     }),
 
-    new ForkTsCheckerWebpackPlugin(),
+    new ForkTsCheckerWebpackPlugin({
+      devServer: false,
+    }),
 
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({

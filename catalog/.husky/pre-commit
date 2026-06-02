@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
-cd catalog
-npx lint-staged
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$script_dir/.." || exit 1
+
+if [ -x node_modules/.bin/lint-staged ]; then
+	node_modules/.bin/lint-staged
+else
+	echo "Skipping catalog pre-commit: lint-staged is not installed" >&2
+fi

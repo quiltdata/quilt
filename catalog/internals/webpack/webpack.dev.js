@@ -25,6 +25,16 @@ module.exports = require('./webpack.base')({
       ],
     },
     watchFiles: ['app/**/*', 'static-dev/*'],
+    client: {
+      overlay: {
+        runtimeErrors: (error) => {
+          if (error?.message === 'ResizeObserver loop completed with undelivered notifications.') {
+            return false
+          }
+          return true
+        },
+      },
+    },
   },
 
   optimization: {
