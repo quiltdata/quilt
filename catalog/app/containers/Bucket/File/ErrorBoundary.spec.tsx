@@ -5,7 +5,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-function ThrowingChild({ error }: { error: Error }) {
+function ThrowingChild({ error }: { error: Error }): never {
   throw error
 }
 
