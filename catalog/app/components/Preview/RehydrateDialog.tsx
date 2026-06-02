@@ -8,7 +8,7 @@ import * as URLS from 'constants/urls'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
-import { GlacierTier } from 'utils/glacier'
+import { RetrievalTier } from 'utils/glacier'
 import type * as Model from 'model'
 
 import { useRestoreObject } from './restoreObject'
@@ -16,7 +16,7 @@ import { useRestoreObject } from './restoreObject'
 const MIN_DAYS = 1
 const MAX_DAYS = 90
 const DEFAULT_DAYS = 7
-const DEFAULT_TIER: GlacierTier = 'Standard'
+const DEFAULT_TIER: RetrievalTier = 'Standard'
 
 const S3_RESTORE_DOC =
   'https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects.html'
@@ -26,7 +26,7 @@ const S3_RESTORE_DOC =
 const REHYDRATE_PERMISSION_DOC = `${URLS.docs}/advanced/s3-prefix-permissions`
 
 interface TierOption {
-  value: GlacierTier
+  value: RetrievalTier
   label: string
   hint: string
 }
@@ -159,7 +159,7 @@ function RehydrateForm({
   const classes = useStyles()
   const restoreObject = useRestoreObject()
 
-  const [tier, setTier] = React.useState<GlacierTier>(DEFAULT_TIER)
+  const [tier, setTier] = React.useState<RetrievalTier>(DEFAULT_TIER)
   const [daysInput, setDaysInput] = React.useState<string>(String(DEFAULT_DAYS))
   const [status, setStatus] = React.useState<Status>(IDLE)
 
@@ -194,7 +194,7 @@ function RehydrateForm({
 
   const handleTierChange = React.useCallback(
     (e: React.ChangeEvent<{ value: unknown }>) => {
-      setTier(e.target.value as GlacierTier)
+      setTier(e.target.value as RetrievalTier)
     },
     [],
   )

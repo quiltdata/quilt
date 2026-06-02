@@ -3,7 +3,7 @@ import * as React from 'react'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 
-import type { GlacierTier } from 'utils/glacier'
+import type { RetrievalTier } from 'utils/glacier'
 import { GlacierRestoreTier } from 'model/graphql/types.generated'
 
 import RESTORE_OBJECT from './gql/RestoreObject.generated'
@@ -12,11 +12,11 @@ type MutationData = GQL.DataForDoc<typeof RESTORE_OBJECT>
 
 interface UseRestoreObjectArgs {
   handle: Model.S3.S3ObjectLocation
-  tier: GlacierTier
+  tier: RetrievalTier
   days: number
 }
 
-const TIER_TO_ENUM: Record<GlacierTier, GlacierRestoreTier> = {
+const TIER_TO_ENUM: Record<RetrievalTier, GlacierRestoreTier> = {
   Standard: GlacierRestoreTier.STANDARD,
   Bulk: GlacierRestoreTier.BULK,
   Expedited: GlacierRestoreTier.EXPEDITED,

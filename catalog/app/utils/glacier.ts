@@ -69,4 +69,4 @@ export function getArchiveState(
 
 // Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
 // narrowing. Our own union keeps exhaustiveness and catches typos.
-export type GlacierTier = 'Standard' | 'Bulk' | 'Expedited'
+export type RetrievalTier = 'Standard' | 'Bulk' | 'Expedited'
