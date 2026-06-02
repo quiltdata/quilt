@@ -36,15 +36,19 @@ interface NotebookLoaderProps {
 function NotebookLoader({ handle, children }: NotebookLoaderProps) {
   const voilaAvailable = useVoila()
   const data = utils.usePreview({ type: 'ipynb', handle, query: undefined })
+  const modes = React.useMemo(
+    () =>
+      !!handle.packageHandle && voilaAvailable
+        ? [FileType.Jupyter, FileType.Json, FileType.Voila, FileType.Text]
+        : [FileType.Jupyter, FileType.Json, FileType.Text],
+    [handle.packageHandle, voilaAvailable],
+  )
   const processed = utils.useProcessing(data.result, (json: PreviewResult) =>
     PreviewData.Notebook({
       preview: json.html,
       note: json.info.note,
       warnings: json.info.warnings,
-      modes:
-        !!handle.packageHandle && voilaAvailable
-          ? [FileType.Jupyter, FileType.Json, FileType.Voila, FileType.Text]
-          : [FileType.Jupyter, FileType.Json, FileType.Text],
+      modes,
     }),
   )
   return <>{children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))}</>

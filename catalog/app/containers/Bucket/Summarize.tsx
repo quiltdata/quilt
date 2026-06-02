@@ -418,6 +418,30 @@ function EnsureAvailability({ s3, handle, children }: EnsureAvailabilityProps) {
   })
 }
 
+class PreviewErrorBoundary extends React.Component<
+  { handle: Model.S3.S3ObjectLocation; children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <Section heading={this.props.handle.key}>
+          <M.Typography variant="body2" color="textSecondary">
+            Preview unavailable
+          </M.Typography>
+        </Section>
+      )
+    }
+    return this.props.children
+  }
+}
+
 interface FileHandleProps {
   file: SummarizeFile
   mkUrl?: MakeURL
@@ -436,13 +460,15 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
-        <FilePreview
-          handle={file.handle}
-          headingOverride={getHeadingOverride(file, mkUrl)}
-          file={file}
-          expanded={file.expand}
-          packageHandle={packageHandle}
-        />
+        <PreviewErrorBoundary handle={file.handle}>
+          <FilePreview
+            handle={file.handle}
+            headingOverride={getHeadingOverride(file, mkUrl)}
+            file={file}
+            expanded={file.expand}
+            packageHandle={packageHandle}
+          />
+        </PreviewErrorBoundary>
       )}
     </EnsureAvailability>
   )

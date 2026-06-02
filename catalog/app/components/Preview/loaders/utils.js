@@ -115,8 +115,7 @@ export function useObjectGetter(handle, opts) {
   return Data.use(getObject, { s3, handle }, opts)
 }
 
-const fetchPreview = async ({ handle, sign, type, compression, query }) => {
-  const url = sign(handle)
+const fetchPreview = async ({ handle, url, type, compression, query }) => {
   const r = await fetch(
     `${cfg.apiGatewayEndpoint}/preview${mkSearch({
       url,
@@ -144,9 +143,12 @@ const fetchPreview = async ({ handle, sign, type, compression, query }) => {
 }
 
 export function usePreview({ type, handle, query }, options) {
-  const sign = AWS.Signer.useS3Signer()
+  const sign = AWS.Signer.useS3Signer({ forceProxy: cfg.mode === 'LOCAL' })
   const compression = getCompression(handle.key)
-  return Data.use(fetchPreview, { handle, sign, type, compression, query }, options)
+  const url = useMemoEq([sign, handle.bucket, handle.key, handle.version], () =>
+    sign(handle),
+  )
+  return Data.use(fetchPreview, { handle, url, type, compression, query }, options)
 }
 
 export function useProcessing(asyncResult, process, deps = []) {

@@ -104,7 +104,7 @@ const useVoilaUrl = (handle: FileHandle) => {
     [credentialsQuery, handle, packageQuery, sign],
     () =>
       `${cfg.registryUrl}/voila/voila/render/${mkSearch({
-        url: sign(handle),
+        url: sign(handle, {}),
         ...credentialsQuery,
         ...packageQuery,
       })}`,

@@ -18,7 +18,7 @@ interface VideoLoaderProps {
 
 function useVideoSrc(handle: Model.S3.S3ObjectLocation): string {
   const sign = AWS.Signer.useS3Signer()
-  const url = React.useMemo(() => sign(handle), [handle, sign])
+  const url = React.useMemo(() => sign(handle, {}), [handle, sign])
   const query = new URLSearchParams({ format: 'video/webm', url })
   return `${cfg.apiGatewayEndpoint}/transcode?${query.toString()}`
 }
