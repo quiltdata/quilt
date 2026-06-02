@@ -46,7 +46,7 @@ Canonical example covering the common web, desktop, and local MCP clients
 custom schemes):
 
 ```text
-127.0.0.1,localhost,.benchling.com,.cloud.databricks.com,chat.openai.com,chatgpt.com,claude.ai,claude.com,cursor://,gemini.google.com,vscode.dev,windsurf://
+localhost,.benchling.com,.cloud.databricks.com,chat.openai.com,chatgpt.com,claude.ai,claude.com,cursor://,gemini.google.com,vscode.dev,windsurf://
 ```
 
 Entries are case-insensitive. Trailing dots on hostnames are ignored.
