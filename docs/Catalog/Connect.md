@@ -41,10 +41,12 @@ Each comma-separated entry can be one of:
 | **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; either loopback enables both) |
 <!-- markdownlint-enable line-length -->
 
-Example covering web, desktop, and local clients:
+Canonical example covering the common web, desktop, and local MCP clients
+(loopback first, then suffix wildcards, then alphabetized hostnames and
+custom schemes):
 
 ```text
-claude.ai, claude.com, cursor://, localhost
+localhost,.benchling.com,.cloud.databricks.com,chat.openai.com,chatgpt.com,claude.ai,claude.com,cursor://,gemini.google.com,vscode.dev,windsurf://
 ```
 
 Entries are case-insensitive. Trailing dots on hostnames are ignored.
@@ -65,6 +67,42 @@ Connect subdomain (typically `<stack-name>-connect.<your-domain>`):
 
 The final Connect Server hostname is available in the `ConnectHost`
 CloudFormation output.
+
+## OAuth Metadata
+
+Connect Server publishes OAuth authorization server metadata at
+`/.well-known/oauth-authorization-server` and OpenID metadata at
+`/.well-known/openid-configuration`. The `issuer` value is the Connect
+Server origin with the explicit HTTPS default port
+(`https://<connect-host>:443`), and all advertised endpoints
+(`/auth/token`, `/auth/register`, `/auth/revoke`,
+`/auth/.well-known/jwks.json`, and the cross-served
+`/connect/authorize`) include the same explicit `:443`.
+
+> **Compatibility note.** Per RFC 3986, `https://host` and `https://host:443`
+> identify the same origin and are equivalent. However, some strict OAuth
+> clients — notably Databricks Apps — perform string-sensitive origin
+> comparisons against the issuer and reject DCR when the issuer omits the
+> default port. Quilt Connect emits `https://<connect-host>:443` to remain
+> compatible with these clients; well-behaved clients that normalize per
+> RFC 3986 are unaffected.
+
+### Protected Resource Identifier
+
+Connect Server registers exactly one OAuth `resource` identifier for the
+Platform MCP server:
+
+```text
+https://<connect-host>/mcp/platform
+```
+
+Connect normalizes inbound `resource` parameters by stripping a trailing
+`/mcp` before the membership check, so clients that submit the full MCP
+transport URL (`https://<connect-host>/mcp/platform/mcp`, as ChatGPT does)
+are accepted alongside clients that derive the canonical resource from
+[RFC 9728 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728)
+(as Claude.ai and Cursor do). The token `aud` claim is always the
+canonical `/mcp/platform` identifier regardless of input form.
 
 ## IP Allowlisting (Optional)
 

@@ -24,7 +24,7 @@ HEADER_403 = {
     'Content-Type': 'application/xml',
     'Transfer-Encoding': 'chunked',
     'Date': 'Tue, 08 Sep 2020 00:01:06 GMT',
-    'Server': 'AmazonS3'
+    'Server': 'AmazonS3',
 }
 
 
@@ -66,9 +66,7 @@ def test_403():
         status=403,
         headers=HEADER_403,
     )
-    params = {
-        "size": "w32h32"
-    }
+    params = {"size": "w32h32"}
     event = _make_event({"url": url, **params})
     # Get the response
     response = t4_lambda_thumbnail.lambda_handler(event, None)
@@ -126,70 +124,79 @@ def test_pptx_to_pdf_surfaces_missing_libreoffice(mocker):
         pytest.param(
             "empty.png",
             {"size": "w32h32"},
-            None, None, None, None, 500,
-            marks=pytest.mark.xfail(raises=AssertionError)
+            None,
+            None,
+            None,
+            None,
+            500,
+            marks=pytest.mark.xfail(raises=AssertionError),
         ),
         # Test known bad file
         pytest.param(
-            "cell.png",
-            {"size": "w1h1"},
-            None, None, None, None, 400,
-            marks=pytest.mark.xfail(raises=AssertionError)
+            "cell.png", {"size": "w1h1"}, None, None, None, None, 400, marks=pytest.mark.xfail(raises=AssertionError)
         ),
         # The following PDF tests should only run if poppler-utils is installed;
         # then call `pytest --poppler` to execute
         pytest.param(
             "MUMmer.pdf",
             {"size": "w1024h768", "input": "pdf", "page": "4"},
-            "pdf-page4-1024w.jpeg", None, [1024, 1450], None, 200,
-            marks=pytest.mark.poppler
+            "pdf-page4-1024w.jpeg",
+            None,
+            [1024, 1450],
+            None,
+            200,
+            marks=pytest.mark.poppler,
         ),
         pytest.param(
             "MUMmer.pdf",
             {"size": "w256h256", "input": "pdf", "page": "8"},
-            "pdf-page8-256w.jpeg", None, [256, 363], None, 200,
-            marks=pytest.mark.poppler
+            "pdf-page8-256w.jpeg",
+            None,
+            [256, 363],
+            None,
+            200,
+            marks=pytest.mark.poppler,
         ),
         pytest.param(
             "MUMmer.pdf",
             {"size": "w1024h768", "input": "pdf", "page": "4", "countPages": "true"},
-            "pdf-page4-1024w.jpeg", None, [1024, 1450], 8, 200,
-            marks=pytest.mark.poppler
+            "pdf-page4-1024w.jpeg",
+            None,
+            [1024, 1450],
+            8,
+            200,
+            marks=pytest.mark.poppler,
         ),
         pytest.param(
             "pptx/in.pptx",
             {"size": "w1024h768", "input": "pptx", "page": "1", "countPages": "true"},
-            "pptx/out-page1-1024w.jpeg", None, [1024, 1450], 2, 200,
+            "pptx/out-page1-1024w.jpeg",
+            None,
+            [1024, 1450],
+            2,
+            200,
             marks=(pytest.mark.poppler, pytest.mark.loffice),
         ),
         pytest.param(
             "pptx/in.pptx",
             {"size": "w1024h768", "input": "pptx", "page": "2", "countPages": "true"},
-            "pptx/out-page2-1024w.jpeg", None, [1024, 1450], 2, 200,
+            "pptx/out-page2-1024w.jpeg",
+            None,
+            [1024, 1450],
+            2,
+            200,
             marks=(pytest.mark.poppler, pytest.mark.loffice),
         ),
-    ]
+    ],
 )
 def test_generate_thumbnail(
-        data_dir,
-        input_file,
-        params,
-        expected_thumb,
-        expected_original_size,
-        expected_thumb_size,
-        num_pages,
-        status
+    data_dir, input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status
 ):
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
     url = f"https://example.com/{input_file}"
-    responses.add(
-        responses.GET,
-        url=url,
-        body=input_file.read_bytes(),
-        status=200
-    )
+    responses.add(responses.GET, url=url, body=input_file.read_bytes(), status=200)
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
@@ -365,8 +372,20 @@ SIZE = (1024, 768)
         (CZI_PKG, "c1_gray8_s2_non_overlapping_bounding_boxes.czi"),
         (CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi"),
         pytest.param(
-            CZI_PKG, "c2_gray8_gray16.czi",
-            marks=pytest.mark.xfail(reason="pixel-level diff after bioio/numpy upgrade; reference package needs refresh"),
+            CZI_PKG,
+            "c2_gray8_gray16.czi",
+            marks=pytest.mark.xfail(
+                reason=(
+                    "NOT an off-by-one: after the bioio/numpy upgrade the gray16 "
+                    "channel of this mixed gray8+gray16 image renders with a "
+                    "genuinely different normalization — 14.3% of pixels differ "
+                    "with a max absolute delta of 65535 (full uint16 range), so "
+                    "the committed reference thumbnail is stale and must be "
+                    "regenerated (and visually verified) before this can be "
+                    "asserted exactly. Tracked as a reference-package refresh."
+                ),
+                strict=True,
+            ),
         ),
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
@@ -397,7 +416,8 @@ SIZE = (1024, 768)
         #     )
         # ValueError: different number of dimensions on data and dims: 4 vs 5
         pytest.param(
-            CZI_PKG, "rgb-image.czi",
+            CZI_PKG,
+            "rgb-image.czi",
             marks=pytest.mark.xfail(reason="reference thumbnail missing from test package after pylibczirw upgrade"),
         ),
     ],

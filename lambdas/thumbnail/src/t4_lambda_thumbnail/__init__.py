@@ -66,7 +66,7 @@ SUPPORTED_SIZES = [
     (640, 480),
     (960, 640),
     (1024, 768),
-    (2048, 1536)
+    (2048, 1536),
 ]
 # Map URL parameters to actual sizes, e.g. 'w128h128' -> (128, 128)
 SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
@@ -74,27 +74,19 @@ SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
 SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {
-            'type': 'string'
-        },
-        'size': {
-            'enum': list(SIZE_PARAMETER_MAP)
-        },
-        'input': {
-            'enum': ['pdf', 'pptx']
-        },
+        'url': {'type': 'string'},
+        'size': {'enum': list(SIZE_PARAMETER_MAP)},
+        'input': {'enum': ['pdf', 'pptx']},
         'page': {
             'type': 'string',
             'pattern': r'^\d+$',
         },
         # not boolean because URL params like "true" always get converted to strings
         # clients should do this ONCE per document because it incurs latency and memory
-        'countPages': {
-            'enum': ['true', 'false']
-        }
+        'countPages': {'enum': ['true', 'false']},
     },
     'required': ['url', 'size'],
-    'additionalProperties': False
+    'additionalProperties': False,
 }
 
 
@@ -124,7 +116,7 @@ def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
 
     for i in range(1, int(sqrt(x) + 1), step):
         if x % i == 0:
-            pairs.append((i, x//i))
+            pairs.append((i, x // i))
 
     return pairs
 
@@ -179,8 +171,6 @@ def norm_img(img: da.Array) -> da.Array:
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:
-    # Eagerly compute to numpy to avoid bioio-tifffile/dask lazy transpose bugs
-    data = np.asarray(img.data)
     reader_shape = img.reader.data.shape
 
     if len(reader_shape) == 2:
@@ -188,6 +178,11 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
 
     if len(reader_shape) == 3 and reader_shape[2] in (3, 4):
         return da.from_array(img.reader.data)
+
+    # Eagerly compute to numpy to avoid bioio-tifffile/dask lazy transpose bugs.
+    # Done after the 2D/3D early returns above so those paths don't pay to
+    # materialize the whole image.
+    data = np.asarray(img.data)
 
     # Reduce the array down to 2D + Channels when possible
     if "T" in img.reader.dims.order:
@@ -224,9 +219,7 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
             rows.append(row)
 
         merged = [np.concatenate(row, axis=1) for row in rows]
-        return da.from_array(
-            np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
-        )
+        return da.from_array(np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant"))
 
     if "Z" in img.reader.dims.order:
         return norm_img(da.from_array(data[0, 0, :, :, :].max(axis=0)))
@@ -275,7 +268,6 @@ def pptx_to_pdf(*, path: str, page: int):
         yield os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ".pdf")
 
 
-
 def handle_exceptions(*exception_types):
     def decorator(f):
         @functools.wraps(f)
@@ -286,6 +278,7 @@ def handle_exceptions(*exception_types):
                 return make_json_response(500, {'error': str(e)})
 
         return wrapper
+
     return decorator
 
 
@@ -455,8 +448,5 @@ def lambda_handler(request):
                 thumbnail_format=thumbnail_format,
             )
 
-    headers = {
-        'Content-Type': Image.MIME[thumbnail_format],
-        QUILT_INFO_HEADER: json.dumps(info)
-    }
+    headers = {'Content-Type': Image.MIME[thumbnail_format], QUILT_INFO_HEADER: json.dumps(info)}
     return 200, data, headers

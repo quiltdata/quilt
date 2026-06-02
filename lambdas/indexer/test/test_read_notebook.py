@@ -1,6 +1,7 @@
 """
 Test functions for text extraction from Jupyter notebooks
 """
+
 import os
 
 import pytest
@@ -13,6 +14,9 @@ from .constants import NORMAL_EXTRACT
 
 NB_RAISES = {
     '404.ipynb': NotJSONError,
+    # nbformat>=5.2 surfaces a notebook missing the top-level "metadata" key as a
+    # ValidationError (older versions raised AttributeError). Either way it is
+    # correctly rejected rather than indexed.
     'attribute-error.ipynb': (AttributeError, ValidationError),
     'empty.ipynb': NotJSONError,
     'malformed-json.ipynb': NotJSONError,
@@ -25,7 +29,7 @@ NB_EXTRACTS = {
 
 
 def test_extract_text():
-    """ test extraction of code + markdown with format_notebook
+    """test extraction of code + markdown with format_notebook
     this code was developed after running format_notebook on ~6400 notebooks
     found here s3://alpha-quilt-storage/tree/notebook-search/
     """
