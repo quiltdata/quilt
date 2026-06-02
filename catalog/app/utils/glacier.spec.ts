@@ -41,9 +41,6 @@ describe('utils/glacier', () => {
   })
 
   describe('isEffectivelyArchived', () => {
-    const future = new Date('2099-01-01T00:00:00Z')
-    const past = new Date('2001-01-01T00:00:00Z')
-
     it('returns false for non-archive storage classes', () => {
       expect(isEffectivelyArchived('STANDARD', undefined)).toBe(false)
       expect(isEffectivelyArchived(undefined, undefined)).toBe(false)
@@ -59,12 +56,14 @@ describe('utils/glacier', () => {
     })
 
     it('returns false for archived storage class with live restored copy', () => {
+      const future = new Date('2099-01-01T00:00:00Z')
       expect(
         isEffectivelyArchived('GLACIER', { ongoing: false, expiresAt: future }),
       ).toBe(false)
     })
 
     it('returns true for archived storage class with expired restored copy', () => {
+      const past = new Date('2001-01-01T00:00:00Z')
       expect(isEffectivelyArchived('GLACIER', { ongoing: false, expiresAt: past })).toBe(
         true,
       )
@@ -76,8 +75,6 @@ describe('utils/glacier', () => {
   })
 
   describe('parseRestoreStatus', () => {
-    const expiry = new Date('2099-01-01T00:00:00Z')
-
     it('returns undefined when absent or unrestored', () => {
       expect(parseRestoreStatus(undefined)).toBeUndefined()
       expect(parseRestoreStatus({})).toBeUndefined()
@@ -90,6 +87,7 @@ describe('utils/glacier', () => {
     })
 
     it('maps a completed restore with expiry', () => {
+      const expiry = new Date('2099-01-01T00:00:00Z')
       expect(
         parseRestoreStatus({ IsRestoreInProgress: false, RestoreExpiryDate: expiry }),
       ).toEqual({ ongoing: false, expiresAt: expiry })
