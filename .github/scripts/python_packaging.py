@@ -74,7 +74,6 @@ def install_targets_for(project_dir: Path) -> list[Path]:
         targets.append(target)
         seen.add(target)
 
-    sources = ((pyproject.get("tool") or {}).get("uv") or {}).get("sources") or {}
     for source in sources.values():
         if not isinstance(source, dict):
             continue
