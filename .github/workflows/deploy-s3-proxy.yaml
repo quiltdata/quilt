@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-      # TEMP: build s3-proxy image for the glacier dev stack; revert before merge.
-      - max/glacier-rehydration-ux
     paths:
       - .github/workflows/deploy-s3-proxy.yaml
       - 's3-proxy/**'
