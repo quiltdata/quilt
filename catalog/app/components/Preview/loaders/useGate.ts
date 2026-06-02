@@ -5,7 +5,7 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import log from 'utils/Logging'
 
-import { restoreStateFromHeader } from 'utils/glacier'
+import { getArchiveState } from 'utils/glacier'
 import { PreviewError } from '../types'
 
 interface SizeThresholds {
@@ -36,7 +36,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     const head = await req.promise()
     length = head.ContentLength
     if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
-    const { restore, archived } = restoreStateFromHeader(head.StorageClass, head.Restore)
+    const { restore, archived } = getArchiveState(head.StorageClass, head.Restore)
     if (archived) {
       throw PreviewError.Archived({ handle, restore, storageClass: head.StorageClass })
     }

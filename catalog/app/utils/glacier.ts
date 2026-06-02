@@ -54,23 +54,16 @@ const isEffectivelyArchived = (
   restore: RestoreStatus | undefined,
 ): boolean => isArchiveStorageClass(storageClass) && !hasLiveRestoredCopy(restore)
 
-// An object's restore state: the parsed restore status plus whether it's still
-// effectively archived (archive storage class with no live restored copy). Two
-// entry points for S3's two sources — the HEAD `x-amz-restore` header and the
-// LIST `RestoreStatus` element — each parses once and classifies.
-export function restoreStateFromHeader(
+// An object's archive state: whether it's still effectively archived (archive
+// storage class with no live restored copy) plus the parsed restore status.
+// `value` is S3's restore for the object from either source — the HEAD
+// `x-amz-restore` header (a string) or the LIST `RestoreStatus` element.
+export function getArchiveState(
   storageClass: S3.StorageClass | undefined,
-  value: S3.Restore | undefined,
+  value: S3.Restore | S3.RestoreStatus | undefined,
 ): { restore?: RestoreStatus; archived: boolean } {
-  const restore = parseRestoreHeader(value)
-  return { restore, archived: isEffectivelyArchived(storageClass, restore) }
-}
-
-export function restoreStateFromList(
-  storageClass: S3.StorageClass | undefined,
-  value: S3.RestoreStatus | undefined,
-): { restore?: RestoreStatus; archived: boolean } {
-  const restore = parseRestoreStatus(value)
+  const restore =
+    typeof value === 'string' ? parseRestoreHeader(value) : parseRestoreStatus(value)
   return { restore, archived: isEffectivelyArchived(storageClass, restore) }
 }
 

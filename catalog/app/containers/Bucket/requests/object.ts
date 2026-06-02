@@ -1,7 +1,7 @@
 import type { S3 } from 'aws-sdk'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
-import { restoreStateFromList } from 'utils/glacier'
+import { getArchiveState } from 'utils/glacier'
 import Log from 'utils/Logging'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
@@ -148,7 +148,7 @@ export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) =
       id: v.VersionId,
       deleteMarker: isDeleteMarker(v),
       archived: isObjectVersion(v)
-        ? restoreStateFromList(v.StorageClass, v.RestoreStatus).archived
+        ? getArchiveState(v.StorageClass, v.RestoreStatus).archived
         : false,
     }))
     .toSorted(({ lastModified: left }, { lastModified: right }) => {
