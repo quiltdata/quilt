@@ -87,6 +87,22 @@ jobs:
       - name: Test codeblocks
         run: uv run poe testdocs
 
+  test-local-catalog:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v7
+      - name: Run LOCAL catalog backend tests
+        run: uv run --python 3.11 --no-default-groups --group local-catalog-test --extra catalog pytest tests/test_local_mode.py
+
   test-client:
     strategy:
       matrix:

@@ -2,9 +2,12 @@ import type AWSSDK from 'aws-sdk'
 import * as React from 'react'
 import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import * as urql from 'urql'
 
 import cfg from 'constants/config'
 import type * as Model from 'model'
+import * as Types from 'model/graphql/types.generated'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -18,6 +21,30 @@ import * as requests from '../requests'
 
 import Header from './Header'
 import BUCKET_QUERY from './gql/Bucket.generated'
+
+type ProductBucketQuery = GQL.DataForDoc<typeof BUCKET_QUERY>
+type ProductBucketQueryVariables = GQL.VariablesForDoc<typeof BUCKET_QUERY>
+
+type LocalBucketQuery = {
+  readonly __typename: 'Query'
+  readonly bucket: Types.Maybe<
+    { readonly __typename: 'BucketConfig' } & Pick<
+      Types.BucketConfig,
+      'name' | 'description'
+    >
+  >
+}
+
+type SupportedBucketQuery = ProductBucketQuery | LocalBucketQuery
+
+const LOCAL_BUCKET_QUERY = urql.gql`
+  query containers_Bucket_Overview_gql_LocalBucket($bucket: String!) {
+    bucket: bucketConfig(name: $bucket) {
+      name
+      description
+    }
+  }
+` as DocumentNode<LocalBucketQuery, ProductBucketQueryVariables>
 
 interface ReadmesProps {
   s3: AWSSDK.S3
@@ -98,7 +125,15 @@ export default function Overview() {
   const { bucket } = useParams<{ bucket: string }>()
 
   const s3 = AWS.S3.use()
-  const { bucket: bucketData } = GQL.useQueryS(BUCKET_QUERY, { bucket })
+  const query = cfg.mode === 'LOCAL' ? LOCAL_BUCKET_QUERY : BUCKET_QUERY
+  const { bucket: rawBucketData } = GQL.useQueryS<
+    SupportedBucketQuery,
+    ProductBucketQueryVariables
+  >(query, { bucket })
+  const bucketData =
+    rawBucketData && rawBucketData.__typename !== 'Bucket'
+      ? { ...rawBucketData, __typename: 'Bucket' as const }
+      : rawBucketData
   const inStack = !!bucketData
   const description = bucketData?.description
   const { prefs } = BucketPreferences.use()

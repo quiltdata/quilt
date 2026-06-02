@@ -17,6 +17,7 @@ const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
 export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
+  const useProxy = forceProxy || cfg.mode === 'LOCAL'
   Credentials.use().suspend()
   const s3Factory = S3.useS3Factory()
   const shouldSign = useShouldSign()
@@ -30,17 +31,17 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
           Key: key,
           VersionId: version,
           Expires: urlExpiration,
-          forceProxy,
+          forceProxy: useProxy,
           ...opts,
         })
       }
       // TODO: handle ResponseContentDisposition for unsigned case
       return handleToHttpsUri(
         { bucket, key, version },
-        { proxy: forceProxy && cfg.s3Proxy, region: getRegion(bucket) },
+        { proxy: useProxy && cfg.s3Proxy, region: getRegion(bucket) },
       )
     },
-    [shouldSign, s3Factory, urlExpiration, forceProxy, getRegion],
+    [shouldSign, s3Factory, urlExpiration, useProxy, getRegion],
   )
 }
 

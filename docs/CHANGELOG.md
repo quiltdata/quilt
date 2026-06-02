@@ -20,6 +20,7 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
+* [Added] Filesystem-backed LOCAL catalog mode: `quilt3 catalog` can serve objects and package metadata from a local directory tree (`QUILT_LOCAL_OBJECT_BACKEND=filesystem`), with in-repo `quilt3_local` backend (s3proxy, GraphQL, search, isolated uv-subprocess lambda runner). Interactive Voila dashboards are available behind the opt-in `quilt3[local-voila]` extra.
 * [Changed] Drop support for Python 3.9 and 3.10; `quilt3` now requires Python >=3.11
 
 ### Lambdas

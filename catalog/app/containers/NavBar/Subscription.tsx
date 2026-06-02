@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as GQL from 'utils/GraphQL'
 
 import SUBSCRIPTION_QUERY from './gql/Subscription.generated'
@@ -13,13 +14,18 @@ interface SubscriptionState {
 }
 
 export function useState(): SubscriptionState {
-  const data = GQL.useQuery(SUBSCRIPTION_QUERY)
-
-  const invalid = GQL.fold(data, {
-    fetching: () => false,
-    error: () => false,
-    data: (d) => !d.subscription.active,
+  const data = GQL.useQuery(SUBSCRIPTION_QUERY, undefined, {
+    pause: cfg.mode === 'LOCAL',
   })
+
+  const invalid =
+    cfg.mode === 'LOCAL'
+      ? false
+      : GQL.fold(data, {
+          fetching: () => false,
+          error: () => false,
+          data: (d) => !d.subscription.active,
+        })
 
   const [dismissed, setDismissedState] = React.useState(
     () => window.sessionStorage.getItem('quilt-license-error-dismissed') === 'true',
