@@ -93,7 +93,7 @@ describe('components/Preview/loaders/useGate', () => {
           PreviewError.Archived({ handle, restore: { ongoing: true } }),
         )
       })
-      it('proceeds to the size path when a live restored copy exists', async () => {
+      it('does not throw Archived when a live restored copy exists', async () => {
         const future = new Date(Date.now() + 24 * 60 * 60 * 1000)
         const s3 = mockS3(() => ({
           ContentLength: 50,
