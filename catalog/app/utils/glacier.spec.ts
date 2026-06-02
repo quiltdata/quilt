@@ -90,9 +90,7 @@ describe('utils/glacier', () => {
       expect(restore).toEqual({ ongoing: false, expiresAt: expiry })
       expect(archived).toBe(false)
     })
-
-    it('is not archived for a non-archive storage class', () => {
-      expect(getArchiveState('STANDARD', undefined).archived).toBe(false)
-    })
+    // `archived` classification is source-independent (runs on the parsed
+    // `restore`); the storage-class matrix is covered by the HEAD section above.
   })
 })
