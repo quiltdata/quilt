@@ -441,7 +441,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "awslambdaric", marker = "extra == 'lambda'", specifier = ">=3,<4" },
-    { name = "fcsparser", marker = "extra == 'preview'", specifier = "~=0.2.1" },
+    { name = "flowio", marker = "extra == 'preview'", specifier = "~=1.4" },
     { name = "jsonschema", specifier = ">=4,<5" },
     { name = "numpy", marker = "extra == 'preview'", specifier = ">=1.26,<3" },
     { name = "openpyxl", marker = "extra == 'preview'", specifier = ">=3.1" },
