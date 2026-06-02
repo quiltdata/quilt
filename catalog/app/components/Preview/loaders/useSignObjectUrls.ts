@@ -47,8 +47,8 @@ export const createUrlProcessor = (
       Web: async (url) => url,
       S3: async ({ bucket, ...h }) =>
         (sign as any)({ bucket: bucket || handle.bucket, ...h }),
-      S3Rel: async (path) => (sign as any)(await resolvePath(path)),
-      Path: async (path) => (sign as any)(await resolvePath(path)),
+      S3Rel: async (path) => sign(await resolvePath(path)),
+      Path: async (path) => sign(await resolvePath(path)),
     }),
   )
 

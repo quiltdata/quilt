@@ -19,16 +19,21 @@ declare module '@material-ui/core/styles/createTypography' {
   }
 }
 
+// We loosen MUI@4's makeStyles only in the dimensions that fight TS@5 here:
+// the props/theme typing (callback styles get an untyped theme) and the
+// options bag. Class-key inference is preserved — the returned `classes`
+// object is keyed by the actual style names, so a typo like `classes.heder`
+// is still a type error rather than silently `undefined`.
 declare module '@material-ui/styles/makeStyles' {
-  export default function makeStyles(
-    styles: Record<string, any> | ((theme: Theme) => Record<string, any>),
+  export default function makeStyles<ClassKey extends string = string>(
+    styles: Record<ClassKey, any> | ((theme: Theme) => Record<ClassKey, any>),
     options?: any,
-  ): (props?: any) => Record<string, string>
+  ): (props?: any) => Record<ClassKey, string>
 }
 
 declare module '@material-ui/core/styles' {
-  export function makeStyles(
-    styles: Record<string, any> | ((theme: Theme) => Record<string, any>),
+  export function makeStyles<ClassKey extends string = string>(
+    styles: Record<ClassKey, any> | ((theme: Theme) => Record<ClassKey, any>),
     options?: any,
-  ): (props?: any) => Record<string, string>
+  ): (props?: any) => Record<ClassKey, string>
 }

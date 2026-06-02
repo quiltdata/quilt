@@ -11,10 +11,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketIconProps extends React.DetailedHTMLProps<
-  React.ImgHTMLAttributes<HTMLImageElement>,
-  HTMLImageElement
-> {
+interface BucketIconProps
+  extends React.DetailedHTMLProps<
+    React.ImgHTMLAttributes<HTMLImageElement>,
+    HTMLImageElement
+  > {
   alt: string
   className?: string
   classes?: {

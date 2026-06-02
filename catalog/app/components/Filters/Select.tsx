@@ -17,7 +17,8 @@ interface SelectFilterProps<T> {
 }
 
 interface SelectProps<T>
-  extends Omit<M.SelectProps, keyof SelectFilterProps<T>>, SelectFilterProps<T> {}
+  extends Omit<M.SelectProps, keyof SelectFilterProps<T>>,
+    SelectFilterProps<T> {}
 
 export default function Select<T extends string>({
   className,
