@@ -322,7 +322,7 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
             invisible={!bookmarks?.hasUpdates}
             color="primary"
             variant="dot"
-            overlap="circular"
+            overlap="circle"
           >
             <M.Icon fontSize="small">account_circle</M.Icon>
           </M.Badge>
@@ -457,7 +457,7 @@ function MobileMenu({ auth }: MobileMenuProps) {
             invisible={!bookmarks?.hasUpdates}
             color="primary"
             variant="dot"
-            overlap="circular"
+            overlap="circle"
           >
             <M.Icon>menu</M.Icon>
           </M.Badge>
