@@ -326,7 +326,7 @@ SIZE = (1024, 768)
         #     ...<2 lines>...
         #     )
         # ValueError: different number of dimensions on data and dims: 3 vs 4
-        pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=(ValueError, TypeError))),
+        pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=ValueError)),
         # RuntimeError: Sorry, this pixeltype isn't implemented yet.
         pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=(RuntimeError, ValueError))),
         (CZI_PKG, "c1_gray16.czi"),
@@ -334,22 +334,7 @@ SIZE = (1024, 768)
         (CZI_PKG, "c1_gray8.czi"),
         (CZI_PKG, "c1_gray8_s2_non_overlapping_bounding_boxes.czi"),
         (CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi"),
-        pytest.param(
-            CZI_PKG,
-            "c2_gray8_gray16.czi",
-            marks=pytest.mark.xfail(
-                reason=(
-                    "NOT an off-by-one: after the bioio/numpy upgrade the gray16 "
-                    "channel of this mixed gray8+gray16 image renders with a "
-                    "genuinely different normalization — 14.3% of pixels differ "
-                    "with a max absolute delta of 65535 (full uint16 range), so "
-                    "the committed reference thumbnail is stale and must be "
-                    "regenerated (and visually verified) before this can be "
-                    "asserted exactly. Tracked as a reference-package refresh."
-                ),
-                strict=True,
-            ),
-        ),
+        (CZI_PKG, "c2_gray8_gray16.czi"),
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
@@ -378,11 +363,7 @@ SIZE = (1024, 768)
         #     ...<2 lines>...
         #     )
         # ValueError: different number of dimensions on data and dims: 4 vs 5
-        pytest.param(
-            CZI_PKG,
-            "rgb-image.czi",
-            marks=pytest.mark.xfail(reason="reference thumbnail missing from test package after pylibczirw upgrade"),
-        ),
+        pytest.param(CZI_PKG, "rgb-image.czi", marks=pytest.mark.xfail(raises=ValueError)),
     ],
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):
