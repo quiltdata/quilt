@@ -40,6 +40,7 @@ ignore = [
     "B007",  # Loop control variable not used within loop body
     "B011",  # Do not assert False
     "B018",  # Found useless expression
+    "B905",  # zip() without an explicit strict= (behavioral; clean up separately)
     "B028",  # No explicit stacklevel keyword argument found
     "C408",  # Unnecessary dict() call (rewrite as a literal)
     "E402",  # Module level import not at top of file
@@ -54,6 +55,7 @@ ignore = [
     "UP031", # Use format specifiers instead of percent format
     "UP032", # Use f-string instead of format call
     "UP035", # typing.Tuple is deprecated, use tuple instead
+    "UP007", # Use `X | Y` for type annotations (PEP 604; sibling of UP045)
     "UP045", # Use `X | None` for type annotations
 ]
 
