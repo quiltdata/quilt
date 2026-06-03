@@ -526,8 +526,8 @@ wheels = [
 
 [[package]]
 name = "pydoc-markdown"
-version = "2.0.5+quilt3.2"
-source = { git = "https://github.com/quiltdata/pydoc-markdown.git?rev=5d3de6ec7929e9c0a6ab3781e37718f22dafa12d#5d3de6ec7929e9c0a6ab3781e37718f22dafa12d" }
+version = "2.0.5+quilt3.3"
+source = { git = "https://github.com/quiltdata/pydoc-markdown.git?tag=v2.0.5%2Bquilt3.3#bf8d90f9e1ae84a648d1c87cd818288258b076de" }
 dependencies = [
     { name = "markdown" },
     { name = "mkdocs" },
@@ -681,7 +681,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "nbconvert", specifier = "~=7.17" },
-    { name = "pydoc-markdown", git = "https://github.com/quiltdata/pydoc-markdown.git?rev=5d3de6ec7929e9c0a6ab3781e37718f22dafa12d" },
+    { name = "pydoc-markdown", git = "https://github.com/quiltdata/pydoc-markdown.git?tag=v2.0.5%2Bquilt3.3" },
     { name = "quilt3", editable = "../api/python" },
 ]
 

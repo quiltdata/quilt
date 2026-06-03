@@ -12,5 +12,4 @@ dependencies = [
 
 [tool.uv.sources]
 quilt3 = { path = "../api/python", editable = true }
-# TODO: pin to tag v2.0.5+quilt3.3 once quiltdata/pydoc-markdown#1 is merged and tagged
-pydoc-markdown = { git = "https://github.com/quiltdata/pydoc-markdown.git", rev = "5d3de6ec7929e9c0a6ab3781e37718f22dafa12d" }
+pydoc-markdown = { git = "https://github.com/quiltdata/pydoc-markdown.git", tag = "v2.0.5+quilt3.3" }
