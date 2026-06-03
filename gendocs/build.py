@@ -35,6 +35,10 @@ def _patch_pydocmd_classmethod_signatures():
         if isinstance(function, staticmethod):
             function = function.__func__
         elif isinstance(function, classmethod):
+            # Bind to the owner class so `cls` is dropped from the rendered
+            # signature (matching Python 3.9 output). Fall back to __func__
+            # (which retains `cls`) when no owner is known — unreachable for
+            # documented API methods, since pydocmd always passes owner_class.
             function = function.__get__(None, owner_class) if owner_class is not None else function.__func__
         return original(function, owner_class, show_module)
 
