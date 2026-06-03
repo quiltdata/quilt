@@ -6,7 +6,7 @@ import * as URLS from 'constants/urls'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
-import { RetrievalTier, StorageClass } from 'utils/glacier'
+import type { RetrievalTier, StorageClass } from 'utils/glacier'
 import type * as Model from 'model'
 
 import { useRestoreObject } from './restoreObject'
@@ -21,7 +21,7 @@ const S3_RESTORE_DOC =
 
 // Quilt docs explaining the IAM permissions an admin grants per bucket — where a
 // user blocked on s3:RestoreObject learns what to ask their admin to enable.
-const REHYDRATE_PERMISSION_DOC = `${URLS.docs}/advanced/s3-prefix-permissions`
+const REHYDRATE_PERMISSION_DOC = `${URLS.docs}/quilt-platform-administrator/advanced/s3-prefix-permissions`
 
 interface TierOption {
   value: RetrievalTier
