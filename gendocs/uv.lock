@@ -898,7 +898,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "nbconvert", specifier = ">=7.16" },
+    { name = "nbconvert", specifier = ">=7.16,<9" },
     { name = "pydoc-markdown", git = "https://github.com/quiltdata/pydoc-markdown.git?tag=v2.0.5%2Bquilt3.2" },
     { name = "quilt3", editable = "../api/python" },
 ]
