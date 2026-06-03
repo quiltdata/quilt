@@ -124,7 +124,7 @@ __Raises__
 Do not use Quilt credentials. Useful if you have existing AWS credentials.
 
 
-## search(query: Union[str, dict], limit: int = 10) -> List[dict]  {#search}
+## search(query: str | dict, limit: int = 10) -> List[dict]  {#search}
 
 Execute a search against the configured search endpoint.
 
@@ -149,13 +149,13 @@ search results
 # quilt3.api_keys
 API for managing your own API keys.
 
-## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: Optional[datetime.datetime], status: Literal['ACTIVE', 'EXPIRED'], user\_email: str) -> None  {#APIKey}
+## APIKey(id: str, name: str, fingerprint: str, created\_at: datetime.datetime, expires\_at: datetime.datetime, last\_used\_at: datetime.datetime | None, status: Literal['ACTIVE', 'EXPIRED'], user\_email: str) -> None  {#APIKey}
 An API key for programmatic access.
 
 ## APIKeyError(result)  {#APIKeyError}
 Error during API key operation.
 
-## list(name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+## list(name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> List[quilt3.api\_keys.APIKey]  {#list}
 
 List your API keys. Optionally filter by name, fingerprint, or status.
 
@@ -170,7 +170,7 @@ __Returns__
 List of your API keys matching the filters.
 
 
-## get(id: str) -> Optional[quilt3.api\_keys.APIKey]  {#get}
+## get(id: str) -> quilt3.api\_keys.APIKey | None  {#get}
 
 Get a specific API key by ID.
 
@@ -201,7 +201,7 @@ __Raises__
 * `APIKeyError`:  If the operation fails.
 
 
-## revoke(id: Optional[str] = None, secret: Optional[str] = None) -> None  {#revoke}
+## revoke(id: str | None = None, secret: str | None = None) -> None  {#revoke}
 
 Revoke an API key. Provide either the key ID or the secret.
 

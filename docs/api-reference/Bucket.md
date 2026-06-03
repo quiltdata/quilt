@@ -14,7 +14,7 @@ __Returns__
 
 A new Bucket
 
-## Bucket.search(self, query: Union[str, dict], limit: int = 10) -> List[dict]  {#Bucket.search}
+## Bucket.search(self, query: str | dict, limit: int = 10) -> List[dict]  {#Bucket.search}
 
 Execute a search against the configured search endpoint.
 
