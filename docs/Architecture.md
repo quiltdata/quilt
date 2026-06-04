@@ -74,9 +74,10 @@ new as of June 2023. The configuration is similar to the
 
 #### Subnet division when Quilt creates the VPC
 
-- 2 public subnets for NAT gateways and an internet-facing application load balancer
-for accessing the validation server, which also sends password reset emails
-(1/4 the VPC CIDR)
+- 2 public subnets (1/4 the VPC CIDR), needed for:
+    - an internet-facing application load balancer
+    - NAT gateways, which provide outbound access to the validation server (which
+    also handles sending password reset emails)
 - 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
 application load balancer
 (1/2 of the VPC CIDR)
