@@ -3,11 +3,7 @@ name = "quilt3-gendocs"
 version = "0.1.0"
 description = "Documentation generator for quilt3"
 readme = "README.md"
-<<<<<<< HEAD
-requires-python = ">=3.11"
-=======
 requires-python = "==3.14.*"
->>>>>>> master
 dependencies = [
     "quilt3",
     "pydoc-markdown",
