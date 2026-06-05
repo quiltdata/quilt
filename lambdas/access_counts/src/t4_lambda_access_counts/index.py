@@ -292,7 +292,7 @@ def start_query(query_string):
     response = athena.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext=dict(Database=ATHENA_DATABASE),
-        ResultConfiguration=dict(OutputLocation=output)
+        ResultConfiguration=dict(OutputLocation=output),
     )
     print("Started query:", response)
 
@@ -362,12 +362,7 @@ def delete_dir(bucket, prefix):
             break
 
         delete_response = s3.delete_objects(
-            Bucket=QUERY_RESULT_BUCKET,
-            Delete=dict(
-                Objects=[dict(
-                    Key=obj['Key']
-                ) for obj in contents]
-            )
+            Bucket=QUERY_RESULT_BUCKET, Delete=dict(Objects=[dict(Key=obj['Key']) for obj in contents])
         )
         errors = delete_response.get('Errors')
         if errors:
@@ -397,15 +392,16 @@ def handler(event, context):
     # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
     # Moreover, we don't want the lambda to time out, so just process 100 days
     # and let the next invocation handle the rest.
-    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
+    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS - 1))
 
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
     # Find all accounts in the CloudTrail.
     accounts = []
-    for account_response in s3.list_objects_v2(
-            Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
+    for account_response in (
+        s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []
+    ):
         account = account_response['Prefix'].split('/')[1]
         accounts.append(account)
 
@@ -440,14 +436,15 @@ def handler(event, context):
 
     # Save the end timestamp.
     s3.put_object(
-        Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
+        Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain'
+    )
 
     queries = [
         ('Objects', OBJECT_ACCESS_COUNTS),
         ('Packages', PACKAGE_ACCESS_COUNTS),
         ('PackageVersions', PACKAGE_VERSION_ACCESS_COUNTS),
         ('Bucket', BUCKET_ACCESS_COUNTS),
-        ('Exts', EXTS_ACCESS_COUNTS)
+        ('Exts', EXTS_ACCESS_COUNTS),
     ]
 
     execution_ids = run_multiple_queries([query for _, query in queries])
@@ -457,10 +454,7 @@ def handler(event, context):
         dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
 
         s3.copy(
-            CopySource=dict(
-                Bucket=QUERY_RESULT_BUCKET,
-                Key=src_key
-            ),
+            CopySource=dict(Bucket=QUERY_RESULT_BUCKET, Key=src_key),
             Bucket=QUERY_RESULT_BUCKET,
             Key=dest_key,
             Config=S3_COPY_CONFIG,

@@ -4,6 +4,7 @@ disk and RAM pressure.
 
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
+
 import io
 import os
 import warnings
@@ -28,7 +29,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
-CHUNK = 1024*8
+CHUNK = 1024 * 8
 # We can pump a max of 6MB out of Lambda
 LAMBDA_MAX_OUT = 6_000_000
 MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines
@@ -45,14 +46,9 @@ EXTRACT_PARQUET_MAX_BYTES = 10_000
 SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {
-            'type': 'string'
-        },
+        'url': {'type': 'string'},
         # separator for CSV files
-        'sep': {
-            'minLength': 1,
-            'maxLength': 1
-        },
+        'sep': {'minLength': 1, 'maxLength': 1},
         'max_bytes': {
             'type': 'string',
         },
@@ -62,18 +58,12 @@ SCHEMA = {
         'line_count': {
             'type': 'string',
         },
-        'input': {
-            'enum': FILE_EXTENSIONS
-        },
-        'exclude_output': {
-            'enum': ['true', 'false']
-        },
-        'compression': {
-            'enum': ['gz']
-        }
+        'input': {'enum': FILE_EXTENSIONS},
+        'exclude_output': {'enum': ['true', 'false']},
+        'compression': {'enum': ['gz']},
     },
     'required': ['url', 'input'],
-    'additionalProperties': False
+    'additionalProperties': False,
 }
 
 # global option for pandas
@@ -98,41 +88,29 @@ def lambda_handler(request):
     try:
         max_bytes = int(request.args.get('max_bytes', CATALOG_LIMIT_BYTES))
     except ValueError as error:
-        return make_json_response(400, {
-            'title': 'Unexpected max_bytes= value',
-            'detail': str(error)
-        })
+        return make_json_response(400, {'title': 'Unexpected max_bytes= value', 'detail': str(error)})
 
     parsed_url = urlparse(url, allow_fragments=False)
-    if not (parsed_url.scheme == 'https' and
-            parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-            parsed_url.username is None and
-            parsed_url.password is None):
-        return make_json_response(400, {
-            'title': 'Invalid url=. Expected S3 virtual-host URL.'
-        })
+    if not (
+        parsed_url.scheme == 'https'
+        and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
+        and parsed_url.username is None
+        and parsed_url.password is None
+    ):
+        return make_json_response(400, {'title': 'Invalid url=. Expected S3 virtual-host URL.'})
 
     try:
         line_count = _str_to_line_count(request.args.get('line_count', str(CATALOG_LIMIT_LINES)))
     except ValueError as error:
         # format https://jsonapi.org/format/1.1/#error-objects
-        return make_json_response(
-            400,
-            {
-                'title': 'Unexpected line_count= value',
-                'detail': str(error)
-            }
-        )
+        return make_json_response(400, {'title': 'Unexpected line_count= value', 'detail': str(error)})
 
     # stream=True saves memory almost equal to file size
     resp = requests.get(url, stream=True)
     if resp.ok:
         content_iter = resp.iter_content(CHUNK)
         if input_type == 'csv':
-            html, info = extract_csv(
-                get_preview_lines(content_iter, compression, line_count, max_bytes),
-                separator
-            )
+            html, info = extract_csv(get_preview_lines(content_iter, compression, line_count, max_bytes), separator)
         elif input_type == 'excel':
             html, info = extract_excel(get_bytes(content_iter, compression))
         elif input_type == 'fcs':
@@ -143,13 +121,9 @@ def lambda_handler(request):
             # TODO: shouldn't we pass max_bytes variable as max_bytes parameter?
             html, info = extract_parquet(get_bytes(content_iter, compression), max_bytes=EXTRACT_PARQUET_MAX_BYTES)
         elif input_type == 'vcf':
-            html, info = extract_vcf(
-                get_preview_lines(content_iter, compression, line_count, max_bytes)
-            )
+            html, info = extract_vcf(get_preview_lines(content_iter, compression, line_count, max_bytes))
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(
-                get_preview_lines(content_iter, compression, line_count, max_bytes)
-            )
+            html, info = extract_txt(get_preview_lines(content_iter, compression, line_count, max_bytes))
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -181,10 +155,7 @@ def extract_csv(head, separator):
     warnings_ = []
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
-        data = pandas.read_csv(
-            io.StringIO('\n'.join(head)),
-            sep=separator
-        )
+        data = pandas.read_csv(io.StringIO('\n'.join(head)), sep=separator)
 
     except pandas.errors.ParserError:
         with warnings.catch_warnings(record=True, category=pandas.errors.ParserWarning) as warnings_:
@@ -192,15 +163,12 @@ def extract_csv(head, separator):
                 io.StringIO('\n'.join(head)),
                 on_bad_lines="warn",
                 # sep=None is slower (doesn't use C), deduces the separator
-                sep=None
+                sep=None,
             )
 
     html = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
 
-    return html, {
-        'note': TRUNCATED,
-        'warnings': "\n".join(map(str, warnings_))
-    }
+    return html, {'note': TRUNCATED, 'warnings': "\n".join(map(str, warnings_))}
 
 
 def extract_ipynb(file_, exclude_output: bool):
@@ -268,15 +236,8 @@ def extract_vcf(head):
             columns = line.split()[:limit]
             data.append(columns)
     info = {
-        'data': {
-            'meta': meta,
-            'header': header,
-            'data': data
-        },
-        'metadata': {
-            'variants': variants,
-            'variant_count': len(variants)
-        }
+        'data': {'meta': meta, 'header': header, 'data': data},
+        'metadata': {'variants': variants, 'variant_count': len(variants)},
     }
 
     return '', info
@@ -290,7 +251,7 @@ def extract_txt(head):
         'data': {
             'head': head,
             # retain tail for backwards compatibility with client
-            'tail': []
+            'tail': [],
         }
     }
 

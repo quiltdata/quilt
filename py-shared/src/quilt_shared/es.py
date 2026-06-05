@@ -80,9 +80,9 @@ class Batcher:
                 filter(None.__ne__, elasticsearch.helpers.expand_action(doc)),
             )
         )
-        assert (
-            len(data) < self.batch_max_bytes
-        ), f"Document size {len(data)} exceeds max batch size {self.batch_max_bytes}"
+        assert len(data) < self.batch_max_bytes, (
+            f"Document size {len(data)} exceeds max batch size {self.batch_max_bytes}"
+        )
 
         if (
             len(self.current_batch) >= self.batch_max_docs

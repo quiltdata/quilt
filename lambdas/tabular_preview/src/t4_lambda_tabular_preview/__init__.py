@@ -90,7 +90,8 @@ class GzipOutputBuffer(gzip.GzipFile):
 
     def write(self, data):
         if (
-            (self.max_size is not None and self.size + len(data) > self.max_size) or
+            (self.max_size is not None and self.size + len(data) > self.max_size)
+            or
             # We don't know exact size of compressed data before real compression occurs,
             # so this assumes we can fit compressed data if there is enough space for uncompressed data.
             (self.compressed_max_size is not None and self.fileobj.tell() + len(data) > self.compressed_max_size)
@@ -110,7 +111,8 @@ def write_data_as_arrow(data, schema, max_size):
             for batch in data:
                 batch_size = pyarrow.ipc.get_record_batch_size(batch)
                 if (
-                    (max_size is not None and sink.tell() + batch_size > max_size) or
+                    (max_size is not None and sink.tell() + batch_size > max_size)
+                    or
                     # See a similar comment in GzipOutputBuffer.write().
                     buf.tell() + batch_size > MAX_OUT
                 ):
@@ -174,14 +176,20 @@ def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
     )
     output_data, output_truncated = write_data_as_arrow(t, t.schema, None)
 
-    return 200, output_data, {
-        "Content-Type": "application/vnd.apache.arrow.file",
-        "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps({
-            "truncated": input_truncated or output_truncated,
-            "rows_skipped": rows_skipped,
-        }),
-    }
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "application/vnd.apache.arrow.file",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": input_truncated or output_truncated,
+                    "rows_skipped": rows_skipped,
+                }
+            ),
+        },
+    )
 
 
 def preview_jsonl(url, compression, max_out_size):
@@ -193,13 +201,19 @@ def preview_jsonl(url, compression, max_out_size):
     df = pandas.read_json(io.BytesIO(input_data), lines=True)
     output_data, output_truncated = write_pandas_as_csv(df, max_out_size)
 
-    return 200, output_data, {
-        "Content-Type": "text/csv",
-        "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps({
-            "truncated": input_truncated or output_truncated,
-        }),
-    }
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "text/csv",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": input_truncated or output_truncated,
+                }
+            ),
+        },
+    )
 
 
 def preview_excel(url, compression, max_out_size):
@@ -208,13 +222,19 @@ def preview_excel(url, compression, max_out_size):
     df = pandas.read_excel(data)
     output_data, output_truncated = write_pandas_as_csv(df, max_out_size)
 
-    return 200, output_data, {
-        "Content-Type": "text/csv",
-        "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps({
-            "truncated": output_truncated,
-        }),
-    }
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "text/csv",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": output_truncated,
+                }
+            ),
+        },
+    )
 
 
 def preview_parquet(url, compression, max_out_size):

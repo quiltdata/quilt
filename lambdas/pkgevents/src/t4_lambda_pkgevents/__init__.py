@@ -73,8 +73,13 @@ def pkg_created_event(s3_event):
         logger.warning('pointer is created in bucket %r at %r, but not found', bucket, key)
         return
     if resp['ContentLength'] != EXPECTED_POINTER_SIZE:
-        logger.warning('pointer in bucket %r at %r has %d bytes, but %d bytes expected',
-                       bucket, key, resp['ContentLength'], EXPECTED_POINTER_SIZE)
+        logger.warning(
+            'pointer in bucket %r at %r has %d bytes, but %d bytes expected',
+            bucket,
+            key,
+            resp['ContentLength'],
+            EXPECTED_POINTER_SIZE,
+        )
         return
 
     return {
@@ -84,21 +89,20 @@ def pkg_created_event(s3_event):
         'Resources': [
             # TODO: add stack ARN?
         ],
-        'Detail': json.dumps({
-            'version': '0.1',
-            'type': 'created',
-            'bucket': bucket,
-            'handle': pkg_name,
-            'topHash': resp['Body'].read().decode(),
-        }),
+        'Detail': json.dumps(
+            {
+                'version': '0.1',
+                'type': 'created',
+                'bucket': bucket,
+                'handle': pkg_name,
+                'topHash': resp['Body'].read().decode(),
+            }
+        ),
     }
 
 
 def handler(event, context):
-    s3_events = itertools.chain.from_iterable(
-        json.loads(record['body'])['Records']
-        for record in event['Records']
-    )
+    s3_events = itertools.chain.from_iterable(json.loads(record['body'])['Records'] for record in event['Records'])
     queue = EventsQueue()
     for event in filter(None, map(pkg_created_event, s3_events)):
         queue.append(event)

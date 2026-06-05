@@ -19,12 +19,9 @@ from t4_lambda_pkgevents import (
     'key',
     itertools.chain.from_iterable(
         (x, f'{x}/')
-        for x in
-        (
-            ''
+        for x in (
             'a',
-            '.quilt'
-            '.quilt/named_packages',
+            '.quilt.quilt/named_packages',
             '.quilt/named_packages/a',
             '.quilt/named_packages/a/b',
             '.quilt/named_packages/a/b/aaaaaaaaaa',
@@ -35,22 +32,25 @@ from t4_lambda_pkgevents import (
             '.quilt/named_packages/a//1451631600',
             '.quilt/named_packages/a/b/145163160߀',
         )
-    )
+    ),
 )
 def test_pkg_created_event_bad_key(key):
-    assert pkg_created_event(
-        {
-            'eventName': 'ObjectCreated:Put',
-            's3': {
-                'object': {
-                    'key': key,
+    assert (
+        pkg_created_event(
+            {
+                'eventName': 'ObjectCreated:Put',
+                's3': {
+                    'object': {
+                        'key': key,
+                    },
+                    "bucket": {
+                        "name": "test-bucket",
+                    },
                 },
-                "bucket": {
-                    "name": "test-bucket",
-                },
-            },
-        }
-    ) is None
+            }
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize(
@@ -90,12 +90,10 @@ def test_pkg_created_event(pointer_file):
                 'Bucket': bucket_name,
                 'Key': key,
                 'Range': 'bytes=0-63',
-            }
+            },
         )
 
-        assert pkg_created_event(
-            event
-        ) == {
+        assert pkg_created_event(event) == {
             'Time': event_time,
             'Source': 'com.quiltdata',
             'DetailType': 'package-revision',
@@ -124,7 +122,7 @@ def test_pkg_created_event(pointer_file):
                     'Bucket': bucket_name,
                     'Key': key,
                     'Range': 'bytes=0-63',
-                }
+                },
             )
 
             assert pkg_created_event(event) is None
@@ -139,7 +137,7 @@ def test_pkg_created_event(pointer_file):
                 'Bucket': bucket_name,
                 'Key': key,
                 'Range': 'bytes=0-63',
-            }
+            },
         )
 
         assert pkg_created_event(event) is None
@@ -150,22 +148,7 @@ def test_pkg_created_event(pointer_file):
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
-    event = {
-        'Records': [
-            {
-                'body': json.dumps(
-                    {
-                        'Records': records
-                    }
-                )
-            }
-            for records in (
-                (0, 1),
-                (2, 3, 4),
-                (5,)
-            )
-        ]
-    }
+    event = {'Records': [{'body': json.dumps({'Records': records})} for records in ((0, 1), (2, 3, 4), (5,))]}
     handler(event, None)
     assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(6)]
     assert queue_append_mock.call_args_list == [((str(x),),) for x in range(6)]

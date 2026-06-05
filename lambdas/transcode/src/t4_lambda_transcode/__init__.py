@@ -1,6 +1,7 @@
 """
 Generate video previews for videos in S3.
 """
+
 import subprocess
 import tempfile
 from urllib.parse import urlparse
@@ -19,30 +20,18 @@ FORMATS = {
 SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {
-            'type': 'string'
-        },
-        'format': {
-            'enum': list(FORMATS)
-        },
-        'width': {
-            'type': 'string'
-        },
-        'height': {
-            'type': 'string'
-        },
-        'duration': {
-            'type': 'string'
-        },
+        'url': {'type': 'string'},
+        'format': {'enum': list(FORMATS)},
+        'width': {'type': 'string'},
+        'height': {'type': 'string'},
+        'duration': {'type': 'string'},
         'audio_bitrate': {
             'type': 'string',
         },
-        'file_size': {
-            'type': 'string'
-        }
+        'file_size': {'type': 'string'},
     },
     'required': ['url', 'format'],
-    'additionalProperties': False
+    'additionalProperties': False,
 }
 
 FFMPEG = '/opt/bin/ffmpeg'
@@ -87,31 +76,50 @@ def lambda_handler(request):
 
     format_params = []
     if category == 'audio':
-        format_params.extend([
-            '-b:a', f'{audio_bitrate}k',
-            '-vn',  # Drop the video stream
-        ])
+        format_params.extend(
+            [
+                '-b:a',
+                f'{audio_bitrate}k',
+                '-vn',  # Drop the video stream
+            ]
+        )
     elif category == 'video':
-        format_params.extend([
-            "-vf", ','.join([
-                f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
-                "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
-            ]),
-        ])
+        format_params.extend(
+            [
+                "-vf",
+                ','.join(
+                    [
+                        f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
+                        "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
+                    ]
+                ),
+            ]
+        )
 
     with tempfile.NamedTemporaryFile() as output_file:
-        p = subprocess.run([
-            FFMPEG,
-            "-t", str(duration),
-            "-i", url,
-            "-f", FORMATS[format],
-            *format_params,
-            "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
-            "-fs", str(file_size),
-            "-y",  # Overwrite output file
-            "-v", "error",  # Only print errors
-            output_file.name
-        ], check=False, stdin=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        p = subprocess.run(
+            [
+                FFMPEG,
+                "-t",
+                str(duration),
+                "-i",
+                url,
+                "-f",
+                FORMATS[format],
+                *format_params,
+                "-timelimit",
+                str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
+                "-fs",
+                str(file_size),
+                "-y",  # Overwrite output file
+                "-v",
+                "error",  # Only print errors
+                output_file.name,
+            ],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
 
         if p.returncode != 0:
             return make_json_response(403, {'error': p.stderr.decode()})
