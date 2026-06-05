@@ -42,13 +42,13 @@ jobs:
         run: python .github/scripts/python_packaging.py guardrails
 
   # Enable once the rest of the codebase is formatted
-  # format-rest:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: astral-sh/setup-uv@v7
-  #     - name: Check formatting (rest of codebase)
-  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
+  format-rest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - name: Check formatting (rest of codebase)
+        run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
