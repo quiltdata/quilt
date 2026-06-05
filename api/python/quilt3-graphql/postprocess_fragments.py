@@ -26,11 +26,7 @@ def _iter_annotation_refs(node: ast.AST, sibling_names: set[str]) -> Iterable[st
 
 
 def _get_class_dependencies(class_def: ast.ClassDef, sibling_names: set[str]) -> set[str]:
-    dependencies = {
-        base.id
-        for base in class_def.bases
-        if isinstance(base, ast.Name) and base.id in sibling_names
-    }
+    dependencies = {base.id for base in class_def.bases if isinstance(base, ast.Name) and base.id in sibling_names}
 
     for statement in class_def.body:
         if isinstance(statement, ast.AnnAssign):
@@ -59,10 +55,7 @@ class _AnnotationRefResolver(ast.NodeTransformer):
 
 def _stable_toposort(class_defs: list[ast.ClassDef]) -> list[ast.ClassDef]:
     sibling_names = {class_def.name for class_def in class_defs}
-    dependencies = {
-        class_def.name: _get_class_dependencies(class_def, sibling_names)
-        for class_def in class_defs
-    }
+    dependencies = {class_def.name: _get_class_dependencies(class_def, sibling_names) for class_def in class_defs}
     original_order = {class_def.name: index for index, class_def in enumerate(class_defs)}
     remaining = {class_def.name: class_def for class_def in class_defs}
     ordered: list[ast.ClassDef] = []
@@ -109,7 +102,9 @@ def main() -> None:
     if not class_defs:
         return
 
-    first_class_index = next(index for index, statement in enumerate(module.body) if isinstance(statement, ast.ClassDef))
+    first_class_index = next(
+        index for index, statement in enumerate(module.body) if isinstance(statement, ast.ClassDef)
+    )
     last_class_index = max(index for index, statement in enumerate(module.body) if isinstance(statement, ast.ClassDef))
 
     ordered_class_defs = _resolve_annotations(_stable_toposort(class_defs))
