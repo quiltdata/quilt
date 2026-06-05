@@ -38,10 +38,6 @@ class BucketConfigSelection(BaseModel):
     prefixes: list[str]
 
 
-class InvalidInputSelection(BaseModel):
-    errors: list["InvalidInputSelectionErrors"]
-
-
 class InvalidInputSelectionErrors(BaseModel):
     path: Optional[str]
     message: str
@@ -49,13 +45,21 @@ class InvalidInputSelectionErrors(BaseModel):
     context: Optional[Any]
 
 
-class PermissionSelection(BaseModel):
-    bucket: "PermissionSelectionBucket"
-    level: BucketPermissionLevel
+class InvalidInputSelection(BaseModel):
+    errors: list[InvalidInputSelectionErrors]
 
 
 class PermissionSelectionBucket(BaseModel):
     name: str
+
+
+class PermissionSelection(BaseModel):
+    bucket: PermissionSelectionBucket
+    level: BucketPermissionLevel
+
+
+class PolicySummarySelectionPermissions(PermissionSelection):
+    pass
 
 
 class PolicySummarySelection(BaseModel):
@@ -63,29 +67,16 @@ class PolicySummarySelection(BaseModel):
     title: str
     arn: str
     managed: bool
-    permissions: list["PolicySummarySelectionPermissions"]
-
-
-class PolicySummarySelectionPermissions(PermissionSelection):
-    pass
-
-
-class RoleBucketPermissionSelection(BaseModel):
-    bucket: "RoleBucketPermissionSelectionBucket"
-    level: BucketPermissionLevel
+    permissions: list[PolicySummarySelectionPermissions]
 
 
 class RoleBucketPermissionSelectionBucket(BaseModel):
     name: str
 
 
-class ManagedRoleSelection(BaseModel):
-    typename__: str = Field(alias="__typename")
-    id: str
-    name: str
-    arn: str
-    policies: list["ManagedRoleSelectionPolicies"]
-    permissions: list["ManagedRoleSelectionPermissions"]
+class RoleBucketPermissionSelection(BaseModel):
+    bucket: RoleBucketPermissionSelectionBucket
+    level: BucketPermissionLevel
 
 
 class ManagedRoleSelectionPolicies(PolicySummarySelection):
@@ -96,19 +87,19 @@ class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
     pass
 
 
+class ManagedRoleSelection(BaseModel):
+    typename__: str = Field(alias="__typename")
+    id: str
+    name: str
+    arn: str
+    policies: list[ManagedRoleSelectionPolicies]
+    permissions: list[ManagedRoleSelectionPermissions]
+
+
 class OperationErrorSelection(BaseModel):
     message: str
     name: str
     context: Optional[Any]
-
-
-class PolicySelection(BaseModel):
-    id: str
-    title: str
-    arn: str
-    managed: bool
-    permissions: list["PolicySelectionPermissions"]
-    roles: list["PolicySelectionRoles"]
 
 
 class PolicySelectionPermissions(PermissionSelection):
@@ -119,37 +110,20 @@ class PolicySelectionRoles(ManagedRoleSelection):
     pass
 
 
+class PolicySelection(BaseModel):
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: list[PolicySelectionPermissions]
+    roles: list[PolicySelectionRoles]
+
+
 class UnmanagedRoleSelection(BaseModel):
     typename__: str = Field(alias="__typename")
     id: str
     name: str
     arn: str
-
-
-class UserSelection(BaseModel):
-    name: str
-    email: str
-    date_joined: datetime = Field(alias="dateJoined")
-    last_login: datetime = Field(alias="lastLogin")
-    is_active: bool = Field(alias="isActive")
-    is_admin: bool = Field(alias="isAdmin")
-    is_sso_only: bool = Field(alias="isSsoOnly")
-    is_service: bool = Field(alias="isService")
-    role: Optional[
-        Annotated[
-            Union["UserSelectionRoleUnmanagedRole", "UserSelectionRoleManagedRole"],
-            Field(discriminator="typename__"),
-        ]
-    ]
-    extra_roles: list[
-        Annotated[
-            Union[
-                "UserSelectionExtraRolesUnmanagedRole",
-                "UserSelectionExtraRolesManagedRole",
-            ],
-            Field(discriminator="typename__"),
-        ]
-    ] = Field(alias="extraRoles")
 
 
 class UserSelectionRoleUnmanagedRole(UnmanagedRoleSelection):
@@ -168,25 +142,54 @@ class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
     typename__: Literal["ManagedRole"] = Field(alias="__typename")
 
 
-class SsoConfigSelection(BaseModel):
-    text: str
-    timestamp: datetime
-    uploader: "SsoConfigSelectionUploader"
+class UserSelection(BaseModel):
+    name: str
+    email: str
+    date_joined: datetime = Field(alias="dateJoined")
+    last_login: datetime = Field(alias="lastLogin")
+    is_active: bool = Field(alias="isActive")
+    is_admin: bool = Field(alias="isAdmin")
+    is_sso_only: bool = Field(alias="isSsoOnly")
+    is_service: bool = Field(alias="isService")
+    role: Optional[
+        Annotated[
+            Union[UserSelectionRoleUnmanagedRole, UserSelectionRoleManagedRole],
+            Field(discriminator="typename__"),
+        ]
+    ]
+    extra_roles: list[
+        Annotated[
+            Union[
+                UserSelectionExtraRolesUnmanagedRole,
+                UserSelectionExtraRolesManagedRole,
+            ],
+            Field(discriminator="typename__"),
+        ]
+    ] = Field(alias="extraRoles")
 
 
 class SsoConfigSelectionUploader(UserSelection):
     pass
 
 
-APIKeySelection.model_rebuild()
-BucketConfigSelection.model_rebuild()
-InvalidInputSelection.model_rebuild()
-PermissionSelection.model_rebuild()
-PolicySummarySelection.model_rebuild()
-RoleBucketPermissionSelection.model_rebuild()
-ManagedRoleSelection.model_rebuild()
-OperationErrorSelection.model_rebuild()
-PolicySelection.model_rebuild()
-UnmanagedRoleSelection.model_rebuild()
-UserSelection.model_rebuild()
-SsoConfigSelection.model_rebuild()
+class SsoConfigSelection(BaseModel):
+    text: str
+    timestamp: datetime
+    uploader: SsoConfigSelectionUploader
+
+
+_types_namespace = globals()
+
+APIKeySelection.model_rebuild(_types_namespace=_types_namespace)
+BucketConfigSelection.model_rebuild(_types_namespace=_types_namespace)
+InvalidInputSelection.model_rebuild(_types_namespace=_types_namespace)
+InvalidInputSelectionErrors.model_rebuild(_types_namespace=_types_namespace)
+PermissionSelection.model_rebuild(_types_namespace=_types_namespace)
+PolicySummarySelection.model_rebuild(_types_namespace=_types_namespace)
+RoleBucketPermissionSelection.model_rebuild(_types_namespace=_types_namespace)
+ManagedRoleSelection.model_rebuild(_types_namespace=_types_namespace)
+OperationErrorSelection.model_rebuild(_types_namespace=_types_namespace)
+PolicySelection.model_rebuild(_types_namespace=_types_namespace)
+UnmanagedRoleSelection.model_rebuild(_types_namespace=_types_namespace)
+UserSelection.model_rebuild(_types_namespace=_types_namespace)
+SsoConfigSelection.model_rebuild(_types_namespace=_types_namespace)
