@@ -1,17 +1,17 @@
 [project]
 name = "t4_lambda_preview"
-version = "0.1.0"
-requires-python = "==3.13.*"
+version = "0.2.0"
+requires-python = ">=3.13"
 dependencies = [
-    "nbconvert~=7.17",
-    "nbformat ~= 5.10",
-    "pandas ~= 2.2",
-    "requests ~= 2.32",
+    "nbconvert>=7.17",
+    "nbformat>=5.10",
+    "pandas>=2.2",
+    "requests>=2.32,<3",
     "t4-lambda-shared[mem,preview]",
 ]
 
 [build-system]
-requires = ["uv_build==0.9.*"]
+requires = ["uv_build>=0.9,<0.12"]
 build-backend = "uv_build"
 
 [dependency-groups]
@@ -27,4 +27,4 @@ test = [
 default-groups = ["test"]
 
 [tool.uv.sources]
-t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
+t4-lambda-shared = { path = "../shared" }

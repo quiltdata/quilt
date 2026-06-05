@@ -52,7 +52,7 @@ def test_403():
         {"file_size": ""},
         {"file_size": "0"},
         {"file_size": "100000000"},
-    ]
+    ],
 )
 def test_bad_params(params):
     """test invalid input"""
@@ -75,7 +75,7 @@ def test_bad_params(params):
         'video/webm',
         'audio/mpeg',
         'audio/ogg',
-    ]
+    ],
 )
 def test_format(format):
     url = "https://example.com/folder/file.ext"

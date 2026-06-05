@@ -65,7 +65,7 @@ SUPPORTED_SIZES = [
     (640, 480),
     (960, 640),
     (1024, 768),
-    (2048, 1536)
+    (2048, 1536),
 ]
 # Map URL parameters to actual sizes, e.g. 'w128h128' -> (128, 128)
 SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
@@ -73,27 +73,19 @@ SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
 SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {
-            'type': 'string'
-        },
-        'size': {
-            'enum': list(SIZE_PARAMETER_MAP)
-        },
-        'input': {
-            'enum': ['pdf', 'pptx']
-        },
+        'url': {'type': 'string'},
+        'size': {'enum': list(SIZE_PARAMETER_MAP)},
+        'input': {'enum': ['pdf', 'pptx']},
         'page': {
             'type': 'string',
             'pattern': r'^\d+$',
         },
         # not boolean because URL params like "true" always get converted to strings
         # clients should do this ONCE per document because it incurs latency and memory
-        'countPages': {
-            'enum': ['true', 'false']
-        }
+        'countPages': {'enum': ['true', 'false']},
     },
     'required': ['url', 'size'],
-    'additionalProperties': False
+    'additionalProperties': False,
 }
 
 
@@ -123,7 +115,7 @@ def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
 
     for i in range(1, int(sqrt(x) + 1), step):
         if x % i == 0:
-            pairs.append((i, x//i))
+            pairs.append((i, x // i))
 
     return pairs
 
@@ -184,8 +176,9 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
 
     # Even though the reader was n-dim,
     # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
-    if (len(img.reader.dask_data.shape) == 3 and (
-            img.reader.dask_data.shape[2] == 3 or img.reader.dask_data.shape[2] == 4)):
+    if len(img.reader.dask_data.shape) == 3 and (
+        img.reader.dask_data.shape[2] == 3 or img.reader.dask_data.shape[2] == 4
+    ):
         return img.reader.dask_data
 
     # Check which dimensions are available
@@ -204,18 +197,12 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
             if "Z" in img.reader.dims.order:
                 # Add padding to the top and left of the projection
                 padded = da.pad(
-                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
-                    ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
+                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)), ((5, 0), (5, 0)) + s_pad, mode="constant"
                 )
                 projections.append(padded)
             else:
                 # Add padding to the top and the left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, 0, :, :]),
-                    ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
-                )
+                padded = da.pad(norm_img(img.dask_data[0, i, 0, :, :]), ((5, 0), (5, 0)) + s_pad, mode="constant")
                 projections.append(padded)
 
         # Get min grid shape
@@ -257,11 +244,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
     # These readers are specific for n dimensional images
     if isinstance(
         img.reader,
-        (
-            bioio_czi.reader.Reader,
-            bioio_ome_tiff.reader.Reader,
-            bioio_tifffile.reader.Reader,
-        ),
+        bioio_czi.reader.Reader | bioio_ome_tiff.reader.Reader | bioio_tifffile.reader.Reader,
     ):
         return _format_n_dim_ndarray(img)
 
@@ -291,7 +274,6 @@ def pptx_to_pdf(*, path: str, page: int):
         yield os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ".pdf")
 
 
-
 def handle_exceptions(*exception_types):
     def decorator(f):
         @functools.wraps(f)
@@ -302,6 +284,7 @@ def handle_exceptions(*exception_types):
                 return make_json_response(500, {'error': str(e)})
 
         return wrapper
+
     return decorator
 
 
@@ -320,13 +303,7 @@ def pdf_thumb(*, path: str, page: int, size: int):
             last_page=page,
         )
         return pages[0]
-    except (
-        IndexError,
-        PDFInfoNotInstalledError,
-        PDFPageCountError,
-        PDFSyntaxError,
-        PopplerNotInstalledError
-    ) as e:
+    except (IndexError, PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError, PopplerNotInstalledError) as e:
         raise PDFThumbError(str(e))
 
 
@@ -488,8 +465,5 @@ def lambda_handler(request):
                 thumbnail_format=thumbnail_format,
             )
 
-    headers = {
-        'Content-Type': Image.MIME[thumbnail_format],
-        QUILT_INFO_HEADER: json.dumps(info)
-    }
+    headers = {'Content-Type': Image.MIME[thumbnail_format], QUILT_INFO_HEADER: json.dumps(info)}
     return 200, data, headers

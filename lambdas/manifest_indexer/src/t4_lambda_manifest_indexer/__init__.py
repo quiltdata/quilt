@@ -75,7 +75,7 @@ def _get_metadata_fields(path: tuple, d: dict):
                     type_ = "keyword" if len(v) <= MAX_KEYWORD_LEN else "text"
             elif isinstance(v, bool):
                 type_ = "boolean"
-            elif isinstance(v, (int, float)):
+            elif isinstance(v, int | float):
                 # XXX: do something on ints that can't be converted to float without loss?
                 type_ = "double"
             elif isinstance(v, list):
@@ -141,7 +141,7 @@ def index_manifest(
     bucket: str,
     key: str,
 ):
-    manifest_hash = key[len(MANIFESTS_PREFIX):]
+    manifest_hash = key[len(MANIFESTS_PREFIX) :]
     to_index = False
     try:
         to_index = manifest_hash.islower() and len(bytes.fromhex(manifest_hash)) == 32

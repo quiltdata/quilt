@@ -1,6 +1,7 @@
 """
 Decorator tests
 """
+
 import gzip
 from base64 import b64decode, b64encode
 from unittest import TestCase
@@ -51,6 +52,7 @@ class TestDecorator(TestCase):
 
     def test_api_get(self):
         """Test a GET request with a query string"""
+
         @api()
         def handler(request):
             assert request.method == 'GET'
@@ -69,6 +71,7 @@ class TestDecorator(TestCase):
 
     def test_api_query_headers(self):
         """Test a POST request with headers and no query string"""
+
         @api()
         def handler(request):
             assert request.method == 'POST'
@@ -78,10 +81,7 @@ class TestDecorator(TestCase):
             assert request.data == b'hello'
             return 200, 'foo', {'Content-Type': 'text/plain'}
 
-        resp = handler(self._make_post(
-            b'hello',
-            {'content-length': '123'}
-        ), None)
+        resp = handler(self._make_post(b'hello', {'content-length': '123'}), None)
 
         assert resp['statusCode'] == 200
         assert resp['isBase64Encoded'] is False
@@ -90,6 +90,7 @@ class TestDecorator(TestCase):
 
     def test_api_binary_response(self):
         """Test a GET request that returns binary"""
+
         @api()
         def handler(request):
             data = b'\x04\xb0\x07'
@@ -104,30 +105,26 @@ class TestDecorator(TestCase):
 
     def test_api_cors(self):
         """Test the CORS headers for different origins"""
+
         @api(cors_origins=['https://example.com'])
         def handler(request):
             return 200, 'foo', {'Content-Type': 'text/plain'}
 
         # Request with a correct origin.
-        resp = handler(self._make_get(
-            {
-                'foo': 'bar'
-            },
-            {
-                'origin': 'https://example.com',
-                'access-control-request-headers': 'X-Quilt-Info'
-            },
-        ), None)
+        resp = handler(
+            self._make_get(
+                {'foo': 'bar'},
+                {'origin': 'https://example.com', 'access-control-request-headers': 'X-Quilt-Info'},
+            ),
+            None,
+        )
 
         assert resp['statusCode'] == 200
         assert resp['body'] == 'foo'
         assert resp['headers'] == self._get_expected_cors_headers('X-Quilt-Info')
 
         # Request with a bad origin.
-        resp = handler(self._make_get(
-            {'foo': 'bar'},
-            {'origin': 'https://quiltdata.com'}
-        ), None)
+        resp = handler(self._make_get({'foo': 'bar'}, {'origin': 'https://quiltdata.com'}), None)
 
         assert resp['statusCode'] == 200
         assert resp['body'] == 'foo'
@@ -136,10 +133,7 @@ class TestDecorator(TestCase):
         }
 
         # Request with no origin.
-        resp = handler(self._make_get(
-            {'foo': 'bar'},
-            {}
-        ), None)
+        resp = handler(self._make_get({'foo': 'bar'}, {}), None)
 
         assert resp['statusCode'] == 200
         assert resp['body'] == 'foo'
@@ -149,14 +143,12 @@ class TestDecorator(TestCase):
 
     def test_api_exception(self):
         """Test that exceptions are converted into 500s"""
+
         @api(cors_origins=['https://example.com'])
         def handler(request):
             raise TypeError("Fail!")
 
-        resp = handler(self._make_get(
-            {'foo': 'bar'},
-            {'origin': 'https://example.com'}
-        ), None)
+        resp = handler(self._make_get({'foo': 'bar'}, {'origin': 'https://example.com'}), None)
 
         assert resp['statusCode'] == 500
         assert resp['body'] == 'Fail!'
@@ -167,12 +159,10 @@ class TestDecorator(TestCase):
         schema = {
             'type': 'object',
             'properties': {
-                'foo': {
-                    'type': 'string'
-                },
+                'foo': {'type': 'string'},
             },
             'required': ['foo'],
-            'additionalProperties': False
+            'additionalProperties': False,
         }
 
         @validate(schema)
@@ -207,7 +197,4 @@ class TestDecorator(TestCase):
         assert resp['statusCode'] == 200
         assert resp['isBase64Encoded'] is True
         assert gzip.decompress(b64decode(resp['body'].encode())).decode() == long_data
-        assert resp['headers'] == {
-            'Content-Type': 'text/plain',
-            'Content-Encoding': 'gzip'
-        }
+        assert resp['headers'] == {'Content-Type': 'text/plain', 'Content-Encoding': 'gzip'}

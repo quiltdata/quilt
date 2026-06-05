@@ -5,41 +5,42 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "quilt-shared"
 description = "Shared code for Quilt backend and lambdas"
-version = "0.1.0"
-requires-python = ">= 3.9, < 4"
+version = "0.2.0"
+requires-python = ">=3.13"
 dependencies = [
 ]
 
 [project.optional-dependencies]
 pydantic = [
-  "pydantic ~= 2.10",
-  "typing-extensions ~= 4.9",
+  "pydantic>=2.7,<3",
+  "typing-extensions>=4.9",
 ]
 boto = [
-  "boto3 ~= 1.34",
-  "types-boto3[athena,s3,sts] ~= 1.34",
-  "types-aiobotocore[s3] ~= 2.11",
+  "boto3>=1.35",
+  "types-boto3[athena,s3,sts]>=1.35",
+  "types-aiobotocore[s3]>=2.15",
 ]
 quilt = [
-  "quilt3 >= 7, < 8",
+  "quilt3>=7,<8",
 ]
 es = [
-  "aws-requests-auth ~= 0.4.2",
-  "elasticsearch ~= 6.8",
-  "orjson ~= 3.10",
+  "aws-requests-auth>=0.4.2",
+  "elasticsearch>=6.8,<8",
+  "numpy>=1.26,<3",
+  "orjson>=3.10",
 ]
 
 [dependency-groups]
 test = [
-    "pytest~=8.4",
-    "pytest-cov~=6.2",
+    "pytest~=9.0",
+    "pytest-cov~=7.0",
     "pytest-env~=1.1",
     "pytest-mock~=3.15",
     "quilt-shared[pydantic,boto,quilt,es]",
 ]
 
 [tool.uv]
-default-groups = ["test"]
+default-groups = []
 
 [tool.black]
 line-length = 119

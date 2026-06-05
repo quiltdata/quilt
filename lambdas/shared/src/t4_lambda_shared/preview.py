@@ -1,6 +1,7 @@
 """
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
+
 import re
 import tempfile
 import zlib
@@ -17,16 +18,13 @@ from .utils import get_available_memory, get_quilt_logger
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
 # by pandas or by exclude_output='true'
-CATALOG_LIMIT_BYTES = 1024*1024
+CATALOG_LIMIT_BYTES = 1024 * 1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_LINES = 100_000
 READ_CHUNK = 1024
 SKIPPED = "Skipped rows; insufficient memory"
 # common string used to explain truncation to user
-TRUNCATED = (
-    'Rows and columns truncated for preview. '
-    'S3 object may contain more data than shown.'
-)
+TRUNCATED = 'Rows and columns truncated for preview. S3 object may contain more data than shown.'
 
 
 class NoopDecompressObj:
@@ -95,7 +93,6 @@ def extract_fcs(file_, as_html=True):
     # FCS files typically < 500MB (Lambda disk)
     # per Lambda docs we can use tmp/*, OK to overwrite
     with tempfile.NamedTemporaryFile() as tmp:
-
         chunk = file_.read(READ_CHUNK)
         while chunk:
             tmp.write(chunk)
@@ -168,7 +165,7 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
     available = get_available_memory()
     iter_batches = None
     # 10MB heuristic; should never happen, e.g. with current default of 512MB
-    if (available < 10E6) or skip_rows:
+    if (available < 10e6) or skip_rows:
         logger_.warning("Insufficient memory to index parquet file: %s", info)
         info['warnings'] = SKIPPED
     elif meta.num_rows and meta.num_row_groups:
@@ -254,11 +251,7 @@ def get_bytes(chunk_iterator, compression):
 def remove_pandas_footer(html: str) -> str:
     """don't include table dimensions in footer as it's confusing to the user,
     since preview dimensions may be much smaller than file shape"""
-    return re.sub(
-        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
-        r'\1\2',
-        html
-    )
+    return re.sub(r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$', r'\1\2', html)
 
 
 def trim_to_bytes(string, limit):

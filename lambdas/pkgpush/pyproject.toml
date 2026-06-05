@@ -1,7 +1,7 @@
 [project]
 name = "t4_lambda_pkgpush"
-version = "0.1.0"
-requires-python = "==3.13.*"
+version = "0.2.0"
+requires-python = ">=3.13"
 dependencies = [
     "boto3 ~= 1.35",
     "boto3-stubs[full] ~= 1.35",
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["uv_build==0.9.*"]
+requires = ["uv_build>=0.9,<0.12"]
 build-backend = "uv_build"
 
 [dependency-groups]
@@ -24,7 +24,7 @@ test = [
 ]
 
 [tool.uv]
-default-groups = ["test"]
+default-groups = []
 
 [tool.uv.sources]
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/a4b310300bfe1cd5f2b319930b03f5264e82d5e5.zip", subdirectory = "py-shared" }
+quilt3 = { path = "../../api/python", editable = true }

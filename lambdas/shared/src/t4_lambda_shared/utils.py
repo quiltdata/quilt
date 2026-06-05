@@ -1,6 +1,7 @@
 """
 Helper functions.
 """
+
 import gzip
 import json
 import logging
@@ -10,16 +11,11 @@ from typing import Iterable
 
 LOGGER_NAME = "quilt-lambda"
 
-LAMBDA_TMP_SPACE = 512 * 2 ** 20
+LAMBDA_TMP_SPACE = 512 * 2**20
 
 
 def separated_env_to_iter(
-        env_var: str,
-        *,
-        deduplicate=True,
-        lower=True,
-        predicate=None,
-        separator=","
+    env_var: str, *, deduplicate=True, lower=True, predicate=None, separator=","
 ) -> Iterable[str]:
     """turn a comma-separated string in the environment into a python list"""
     candidate = os.getenv(env_var, "")
@@ -40,10 +36,7 @@ def get_default_origins():
     """
     Returns a list of origins that should normally be passed into the @api decorator.
     """
-    return [
-        'http://localhost:3000',
-        os.environ.get('WEB_ORIGIN')
-    ]
+    return ['http://localhost:3000', os.environ.get('WEB_ORIGIN')]
 
 
 def get_quilt_logger():
@@ -67,9 +60,7 @@ def make_json_response(status_code, json_object, extra_headers=None, add_status=
     """
     Helper function to serialize a JSON object and add the JSON content type header.
     """
-    headers = {
-        "Content-Type": 'application/json'
-    }
+    headers = {"Content-Type": 'application/json'}
     if extra_headers is not None:
         headers.update(extra_headers)
     if add_status:

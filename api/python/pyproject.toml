@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "quilt3"
-version = "7.3.0"
+version = "7.4.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.10"
@@ -115,6 +115,7 @@ _gql-clean.shell = "rm -rf quilt3/_graphql_client"
 
 _gql-gen.cmd = "uv run ariadne-codegen client"
 _gql-gen.cwd = "quilt3-graphql"
+_gql-postprocess.cmd = "uv run python quilt3-graphql/postprocess_fragments.py"
 
 _gql-fmt.cmd = "ruff format quilt3/_graphql_client"
 _gql-lint-fix.cmd = "ruff check --fix quilt3/_graphql_client"
@@ -123,6 +124,7 @@ gql-gen.help = "Generate GraphQL client code for quilt3"
 gql-gen.sequence = [
     "_gql-clean",
     "_gql-gen",
+    "_gql-postprocess",
     "_gql-lint-fix",
     "_gql-fmt",
 ]

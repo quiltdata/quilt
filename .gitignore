@@ -45,3 +45,4 @@ _build
 
 .aider*
 /.codex
+.playwright-mcp/**

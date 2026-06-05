@@ -7,7 +7,7 @@ requires-python = "==3.14.*"
 dependencies = [
     "quilt3",
     "pydoc-markdown",
-    "nbconvert~=7.17",
+    "nbconvert>=7.16,<9",
 ]
 
 [tool.uv.sources]
