@@ -38,6 +38,10 @@ class BucketConfigSelection(BaseModel):
     prefixes: list[str]
 
 
+class InvalidInputSelection(BaseModel):
+    errors: list["InvalidInputSelectionErrors"]
+
+
 class InvalidInputSelectionErrors(BaseModel):
     path: Optional[str]
     message: str
@@ -45,21 +49,13 @@ class InvalidInputSelectionErrors(BaseModel):
     context: Optional[Any]
 
 
-class InvalidInputSelection(BaseModel):
-    errors: list[InvalidInputSelectionErrors]
+class PermissionSelection(BaseModel):
+    bucket: "PermissionSelectionBucket"
+    level: BucketPermissionLevel
 
 
 class PermissionSelectionBucket(BaseModel):
     name: str
-
-
-class PermissionSelection(BaseModel):
-    bucket: PermissionSelectionBucket
-    level: BucketPermissionLevel
-
-
-class PolicySummarySelectionPermissions(PermissionSelection):
-    pass
 
 
 class PolicySummarySelection(BaseModel):
@@ -67,16 +63,29 @@ class PolicySummarySelection(BaseModel):
     title: str
     arn: str
     managed: bool
-    permissions: list[PolicySummarySelectionPermissions]
+    permissions: list["PolicySummarySelectionPermissions"]
+
+
+class PolicySummarySelectionPermissions(PermissionSelection):
+    pass
+
+
+class RoleBucketPermissionSelection(BaseModel):
+    bucket: "RoleBucketPermissionSelectionBucket"
+    level: BucketPermissionLevel
 
 
 class RoleBucketPermissionSelectionBucket(BaseModel):
     name: str
 
 
-class RoleBucketPermissionSelection(BaseModel):
-    bucket: RoleBucketPermissionSelectionBucket
-    level: BucketPermissionLevel
+class ManagedRoleSelection(BaseModel):
+    typename__: str = Field(alias="__typename")
+    id: str
+    name: str
+    arn: str
+    policies: list["ManagedRoleSelectionPolicies"]
+    permissions: list["ManagedRoleSelectionPermissions"]
 
 
 class ManagedRoleSelectionPolicies(PolicySummarySelection):
@@ -87,19 +96,19 @@ class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
     pass
 
 
-class ManagedRoleSelection(BaseModel):
-    typename__: str = Field(alias="__typename")
-    id: str
-    name: str
-    arn: str
-    policies: list[ManagedRoleSelectionPolicies]
-    permissions: list[ManagedRoleSelectionPermissions]
-
-
 class OperationErrorSelection(BaseModel):
     message: str
     name: str
     context: Optional[Any]
+
+
+class PolicySelection(BaseModel):
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: list["PolicySelectionPermissions"]
+    roles: list["PolicySelectionRoles"]
 
 
 class PolicySelectionPermissions(PermissionSelection):
@@ -110,20 +119,37 @@ class PolicySelectionRoles(ManagedRoleSelection):
     pass
 
 
-class PolicySelection(BaseModel):
-    id: str
-    title: str
-    arn: str
-    managed: bool
-    permissions: list[PolicySelectionPermissions]
-    roles: list[PolicySelectionRoles]
-
-
 class UnmanagedRoleSelection(BaseModel):
     typename__: str = Field(alias="__typename")
     id: str
     name: str
     arn: str
+
+
+class UserSelection(BaseModel):
+    name: str
+    email: str
+    date_joined: datetime = Field(alias="dateJoined")
+    last_login: datetime = Field(alias="lastLogin")
+    is_active: bool = Field(alias="isActive")
+    is_admin: bool = Field(alias="isAdmin")
+    is_sso_only: bool = Field(alias="isSsoOnly")
+    is_service: bool = Field(alias="isService")
+    role: Optional[
+        Annotated[
+            Union["UserSelectionRoleUnmanagedRole", "UserSelectionRoleManagedRole"],
+            Field(discriminator="typename__"),
+        ]
+    ]
+    extra_roles: list[
+        Annotated[
+            Union[
+                "UserSelectionExtraRolesUnmanagedRole",
+                "UserSelectionExtraRolesManagedRole",
+            ],
+            Field(discriminator="typename__"),
+        ]
+    ] = Field(alias="extraRoles")
 
 
 class UserSelectionRoleUnmanagedRole(UnmanagedRoleSelection):
@@ -142,36 +168,10 @@ class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
     typename__: Literal["ManagedRole"] = Field(alias="__typename")
 
 
-class UserSelection(BaseModel):
-    name: str
-    email: str
-    date_joined: datetime = Field(alias="dateJoined")
-    last_login: datetime = Field(alias="lastLogin")
-    is_active: bool = Field(alias="isActive")
-    is_admin: bool = Field(alias="isAdmin")
-    is_sso_only: bool = Field(alias="isSsoOnly")
-    is_service: bool = Field(alias="isService")
-    role: Optional[
-        Annotated[
-            Union[UserSelectionRoleUnmanagedRole, UserSelectionRoleManagedRole],
-            Field(discriminator="typename__"),
-        ]
-    ]
-    extra_roles: list[
-        Annotated[
-            Union[
-                UserSelectionExtraRolesUnmanagedRole,
-                UserSelectionExtraRolesManagedRole,
-            ],
-            Field(discriminator="typename__"),
-        ]
-    ] = Field(alias="extraRoles")
-
-
 class SsoConfigSelection(BaseModel):
     text: str
     timestamp: datetime
-    uploader: UserSelection
+    uploader: "SsoConfigSelectionUploader"
 
 
 class SsoConfigSelectionUploader(UserSelection):
