@@ -6,8 +6,6 @@ on:
       - "*"
   pull_request:
   merge_group:
-permissions:
-  contents: read
 env:
   UV_LOCKED: 1
 jobs:
@@ -40,17 +38,6 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - name: Run Ruff linter on entire codebase
         run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
-
-  python-packaging-guardrails:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - name: Validate Python packaging guardrails
-        run: |
-          python .github/scripts/python_packaging.py guardrails
 
   # Enable once the rest of the codebase is formatted
   # format-rest:
@@ -91,7 +78,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -179,30 +166,19 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - name: Export requirements.txt from uv.lock
         run: |
-          package_name=$(python .github/scripts/python_packaging.py package-name "lambdas/${{ matrix.path }}")
-          req_dir="$RUNNER_TEMP/lambda-requirements/${{ matrix.path }}"
-          mkdir -p "$req_dir"
-          if python .github/scripts/python_packaging.py uses-workspace "lambdas/${{ matrix.path }}"; then
-            uv export --locked --project . --package "$package_name" --no-emit-project --no-emit-workspace --no-emit-local --no-hashes -o "$req_dir/requirements.txt" --no-default-groups
-            uv export --locked --project . --package "$package_name" --no-emit-project --no-emit-workspace --no-emit-local --no-hashes -o "$req_dir/test-requirements.txt" --only-group test
-          else
-            uv export --locked --no-emit-project --no-emit-local --no-hashes --directory "lambdas/${{ matrix.path }}" -o "$req_dir/requirements.txt" --no-default-groups
-            uv export --locked --no-emit-project --no-emit-local --no-hashes --directory "lambdas/${{ matrix.path }}" -o "$req_dir/test-requirements.txt" --only-group test
-          fi
+          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt --no-default-groups
+          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o test-requirements.txt --only-group test
       - name: Install dependencies
         run: |
-          req_dir="$RUNNER_TEMP/lambda-requirements/${{ matrix.path }}"
-          mapfile -t local_targets < <(python .github/scripts/python_packaging.py install-targets "lambdas/${{ matrix.path }}")
-
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r "$req_dir/requirements.txt" "${local_targets[@]}" lambdas/${{ matrix.path }}
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
-          python -m pip install -r "$req_dir/test-requirements.txt"
+          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
         run: |
           python -m pytest --cov=lambdas lambdas/${{ matrix.path }}

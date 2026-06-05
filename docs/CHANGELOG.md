@@ -16,11 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
-## unreleased
+## unreleased - YYYY-MM-DD
 
 ### Python API
 
-* [Changed] Drop support for Python 3.9 and 3.10; `quilt3` now requires Python >=3.11
+* [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
+* [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
 
 ## 7.3.0 - 2026-04-07
 

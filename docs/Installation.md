@@ -10,7 +10,7 @@ Quilt has two user-facing components:
 
 ## Python client
 
-Python 3.9 or higher is required.
+Python 3.10 or higher is required.
 
 ```bash
 $ pip install 'quilt3[pyarrow]'

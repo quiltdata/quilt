@@ -24,4 +24,11 @@ test = [
 ]
 
 [tool.uv]
+<<<<<<< HEAD
 default-groups = []
+=======
+default-groups = ["test"]
+
+[tool.uv.sources]
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/12bb4a331a46b3b4eb0388e81e5f2546cf17e0b4.zip", subdirectory = "py-shared" }
+>>>>>>> master
