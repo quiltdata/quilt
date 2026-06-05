@@ -942,10 +942,10 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "nbconvert", specifier = ">=7.16" },
+    { name = "nbconvert", specifier = ">=7.17" },
     { name = "nbformat", specifier = ">=5.10" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "requests", specifier = ">=2.31,<3" },
+    { name = "requests", specifier = ">=2.32,<3" },
     { name = "t4-lambda-shared", extras = ["mem", "preview"], directory = "../shared" },
 ]
 
