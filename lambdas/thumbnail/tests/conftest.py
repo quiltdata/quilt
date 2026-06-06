@@ -7,14 +7,10 @@ def pytest_addoption(parser):
         action='store_true',
         dest='poppler',
         default=False,
-        help="Indicates poppler tools (incl. pdftoppm) installed"
+        help="Indicates poppler tools (incl. pdftoppm) installed",
     )
     parser.addoption(
-        '--loffice',
-        action='store_true',
-        dest='loffice',
-        default=False,
-        help="Indicates LibreOffice installed"
+        '--loffice', action='store_true', dest='loffice', default=False, help="Indicates LibreOffice installed"
     )
     parser.addoption(
         "--large-files",

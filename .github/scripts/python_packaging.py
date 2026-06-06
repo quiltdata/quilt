@@ -173,10 +173,17 @@ def guardrails() -> int:
     ):
         if needle not in build_zip:
             failures.append(f"lambdas/scripts/build_zip.sh is missing expected workspace export contract: {needle}")
-    if 'uv pip install --no-compile --no-deps --target . -r "$requirements_file" "${install_targets[@]}"' not in build_zip:
-        failures.append("lambdas/scripts/build_zip.sh no longer installs from the exported requirements.txt in the build directory")
+    if (
+        'uv pip install --no-compile --no-deps --target . -r "$requirements_file" "${install_targets[@]}"'
+        not in build_zip
+    ):
+        failures.append(
+            "lambdas/scripts/build_zip.sh no longer installs from the exported requirements.txt in the build directory"
+        )
 
-    shared_target = ((load_toml(REPO_ROOT / "lambdas/shared/pyproject.toml").get("project") or {}).get("requires-python")) or ""
+    shared_target = (
+        (load_toml(REPO_ROOT / "lambdas/shared/pyproject.toml").get("project") or {}).get("requires-python")
+    ) or ""
     if "3.12" not in shared_target:
         failures.append("lambdas/shared must remain compatible with Python 3.12 for the local-source pilot")
 
@@ -250,7 +257,9 @@ def main() -> int:
         "uses-workspace",
         help="Exit successfully if the package path is managed by the root uv workspace.",
     )
-    uses_workspace_parser.add_argument("package_path", help="Repo-relative package path (for example: lambdas/preview)")
+    uses_workspace_parser.add_argument(
+        "package_path", help="Repo-relative package path (for example: lambdas/preview)"
+    )
 
     args = parser.parse_args()
 

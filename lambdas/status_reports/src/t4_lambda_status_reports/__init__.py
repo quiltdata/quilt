@@ -27,9 +27,7 @@ def create_syn():
 
 async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
     result = []
-    async for page in cfn.get_paginator("list_stack_resources").paginate(
-        StackName=stack_name
-    ):
+    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
         for r in page["StackResourceSummaries"]:
             if r["ResourceType"] == "AWS::Synthetics::Canary":
                 result.append(r["PhysicalResourceId"])
@@ -37,13 +35,8 @@ async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
 
 
 async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
-    chunks = [
-        names[i:i + CANARIES_PER_REQUEST]
-        for i in range(0, len(names), CANARIES_PER_REQUEST)
-    ]
-    pages = await asyncio.gather(
-        *[getattr(syn, method)(Names=chunk) for chunk in chunks]
-    )
+    chunks = [names[i : i + CANARIES_PER_REQUEST] for i in range(0, len(names), CANARIES_PER_REQUEST)]
+    pages = await asyncio.gather(*[getattr(syn, method)(Names=chunk) for chunk in chunks])
     return list(itertools.chain.from_iterable(p[key] for p in pages))
 
 
@@ -103,9 +96,7 @@ async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
 
 async def get_resources(cfn, stack_name: str) -> T.List[dict]:
     result = []
-    async for page in cfn.get_paginator("list_stack_resources").paginate(
-        StackName=stack_name
-    ):
+    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
         result.extend(page["StackResourceSummaries"])
     return result
 
@@ -131,11 +122,7 @@ async def generate_status_report(stack_name: str):
             get_resources(cfn, stack_name),
             get_stack_data(cfn, stack_name),
         )
-        catalog_url = next(
-            o["OutputValue"]
-            for o in stack_data["Outputs"]
-            if o["OutputKey"] == "QuiltWebHost"
-        )
+        catalog_url = next(o["OutputValue"] for o in stack_data["Outputs"] if o["OutputKey"] == "QuiltWebHost")
         html = tmpl.render(
             stack_name=stack_name,
             aws_region=AWS_REGION,

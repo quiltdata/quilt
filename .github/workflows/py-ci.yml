@@ -6,8 +6,6 @@ on:
       - "*"
   pull_request:
   merge_group:
-permissions:
-  contents: read
 env:
   UV_LOCKED: 1
 jobs:
@@ -40,26 +38,17 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - name: Run Ruff linter on entire codebase
         run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+      - name: Validate Python packaging guardrails
+        run: python .github/scripts/python_packaging.py guardrails
 
-  python-packaging-guardrails:
+  # Enable once the rest of the codebase is formatted
+  format-rest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - name: Validate Python packaging guardrails
-        run: |
-          python .github/scripts/python_packaging.py guardrails
-
-  # Enable once the rest of the codebase is formatted
-  # format-rest:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: astral-sh/setup-uv@v7
-  #     - name: Check formatting (rest of codebase)
-  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
+      - uses: astral-sh/setup-uv@v7
+      - name: Check formatting (rest of codebase)
+        run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
@@ -91,7 +80,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -191,13 +180,12 @@ jobs:
           fi
       - name: Install dependencies
         run: |
-          req_dir="$RUNNER_TEMP/lambda-requirements/${{ matrix.path }}"
-          mapfile -t local_targets < <(python .github/scripts/python_packaging.py install-targets "lambdas/${{ matrix.path }}")
-
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
+          req_dir="$RUNNER_TEMP/lambda-requirements/${{ matrix.path }}"
+          mapfile -t local_targets < <(python .github/scripts/python_packaging.py install-targets "lambdas/${{ matrix.path }}")
           python -m pip install -t deps --no-deps -r "$req_dir/requirements.txt" "${local_targets[@]}" lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+

@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Move this lambda to the shared uv workspace packaging flow; access-count query behavior is otherwise unchanged ([#4933](https://github.com/quiltdata/quilt/pull/4933))
 - [Added] Make `s3.copy()` chunk size and concurrency configurable via env vars ([#4746](https://github.com/quiltdata/quilt/pull/4746))
 - [Added] Bundle `awscrt` via `boto3[crt]` for improved S3 transfer performance ([#4746](https://github.com/quiltdata/quilt/pull/4746))
 - [Changed] Migrate to proper package structure ([#4618](https://github.com/quiltdata/quilt/pull/4618))

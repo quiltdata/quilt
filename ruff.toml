@@ -41,6 +41,7 @@ ignore = [
     "B011",  # Do not assert False
     "B018",  # Found useless expression
     "B028",  # No explicit stacklevel keyword argument found
+    "B905",  # zip() without an explicit strict= (behavioral; clean up separately)
     "C408",  # Unnecessary dict() call (rewrite as a literal)
     "E402",  # Module level import not at top of file
     "F401",  # Imported but unused
@@ -51,7 +52,7 @@ ignore = [
     "S606",  # Starting a process without a shell
     "S608",  # Possible SQL injection vector through string-based query construction
     "UP006", # Use list instead of List for type annotation
-    "UP007", # Use X | Y for union type annotations (too many in generated/existing code)
+    "UP007", # Use X | Y for union type annotations (PEP 604)
     "UP017", # Use datetime.UTC alias (existing code uses datetime.timezone.utc)
     "UP031", # Use format specifiers instead of percent format
     "UP032", # Use f-string instead of format call
@@ -59,7 +60,6 @@ ignore = [
     "UP041", # Replace aliased errors with TimeoutError
     "UP042", # Use enum.StrEnum (generated code uses str+Enum pattern)
     "UP045", # Use `X | None` for type annotations
-    "B905",  # zip() without strict= (existing code)
 
 ]
 

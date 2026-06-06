@@ -17,7 +17,7 @@ Policy without back-references to roles (avoids circular nesting).
 ## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[quilt3.admin.types.ManagedRole]) -> None  {#Policy}
 
 
-## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: list[typing.Annotated[typing.Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
+## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Annotated[quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole, FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')] | None, extra\_roles: list[typing.Annotated[quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole, FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
 
 ## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
@@ -26,13 +26,13 @@ Policy without back-references to roles (avoids circular nesting).
 ## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
 
 
-## Bucket(name: str, title: str, icon\_url: Optional[str], description: Optional[str], overview\_url: Optional[str], tags: Optional[list[str]], relevance\_score: int, last\_indexed: Optional[datetime.datetime], sns\_notification\_arn: Optional[str], scanner\_parallel\_shards\_depth: Optional[int], skip\_meta\_data\_indexing: Optional[bool], file\_extensions\_to\_index: Optional[list[str]], index\_content\_bytes: Optional[int], prefixes: list[str]) -> None  {#Bucket}
+## Bucket(name: str, title: str, icon\_url: str | None, description: str | None, overview\_url: str | None, tags: list[str] | None, relevance\_score: int, last\_indexed: datetime.datetime | None, sns\_notification\_arn: str | None, scanner\_parallel\_shards\_depth: int | None, skip\_meta\_data\_indexing: bool | None, file\_extensions\_to\_index: list[str] | None, index\_content\_bytes: int | None, prefixes: list[str]) -> None  {#Bucket}
 
 
 # quilt3.admin.api_keys
 Admin API for managing API keys.
 
-## list(email: Optional[str] = None, key\_name: Optional[str] = None, fingerprint: Optional[str] = None, status: Optional[Literal['ACTIVE', 'EXPIRED']] = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+## list(email: str | None = None, key\_name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> List[quilt3.api\_keys.APIKey]  {#list}
 
 List API keys. Optionally filter by user email, key name, fingerprint, or status.
 
@@ -48,7 +48,7 @@ __Returns__
 List of API keys matching the filters.
 
 
-## get(id: str) -> Optional[quilt3.api\_keys.APIKey]  {#get}
+## get(id: str) -> quilt3.api\_keys.APIKey | None  {#get}
 
 Get a specific API key by ID.
 
@@ -77,7 +77,7 @@ __Raises__
 # quilt3.admin.buckets
 
 
-## get(name: str) -> Optional[quilt3.admin.types.Bucket]  {#get}
+## get(name: str) -> quilt3.admin.types.Bucket | None  {#get}
 
 Get a specific bucket configuration from the registry.
 Returns `None` if the bucket does not exist.
@@ -92,7 +92,7 @@ __Arguments__
 List all bucket configurations in the registry.
 
 
-## add(name: str, title: str, \*, description: Optional[str] = None, icon\_url: Optional[str] = None, overview\_url: Optional[str] = None, tags: Optional[List[str]] = None, relevance\_score: Optional[int] = None, sns\_notification\_arn: Optional[str] = None, scanner\_parallel\_shards\_depth: Optional[int] = None, skip\_meta\_data\_indexing: Optional[bool] = None, file\_extensions\_to\_index: Optional[List[str]] = None, index\_content\_bytes: Optional[int] = None, delay\_scan: Optional[bool] = None, browsable: Optional[bool] = None, prefixes: Optional[List[str]] = None) -> quilt3.admin.types.Bucket  {#add}
+## add(name: str, title: str, \*, description: str | None = None, icon\_url: str | None = None, overview\_url: str | None = None, tags: List[str] | None = None, relevance\_score: int | None = None, sns\_notification\_arn: str | None = None, scanner\_parallel\_shards\_depth: int | None = None, skip\_meta\_data\_indexing: bool | None = None, file\_extensions\_to\_index: List[str] | None = None, index\_content\_bytes: int | None = None, delay\_scan: bool | None = None, browsable: bool | None = None, prefixes: List[str] | None = None) -> quilt3.admin.types.Bucket  {#add}
 
 Add a new bucket to the registry.
 
@@ -116,7 +116,7 @@ __Arguments__
     If provided, only these prefixes will be indexed and verified for access.
 
 
-## update(name: str, title: str, \*, description: Optional[str] = None, icon\_url: Optional[str] = None, overview\_url: Optional[str] = None, tags: Optional[List[str]] = None, relevance\_score: Optional[int] = None, sns\_notification\_arn: Optional[str] = None, scanner\_parallel\_shards\_depth: Optional[int] = None, skip\_meta\_data\_indexing: Optional[bool] = None, file\_extensions\_to\_index: Optional[List[str]] = None, index\_content\_bytes: Optional[int] = None, browsable: Optional[bool] = None, prefixes: Optional[List[str]] = None) -> quilt3.admin.types.Bucket  {#update}
+## update(name: str, title: str, \*, description: str | None = None, icon\_url: str | None = None, overview\_url: str | None = None, tags: List[str] | None = None, relevance\_score: int | None = None, sns\_notification\_arn: str | None = None, scanner\_parallel\_shards\_depth: int | None = None, skip\_meta\_data\_indexing: bool | None = None, file\_extensions\_to\_index: List[str] | None = None, index\_content\_bytes: int | None = None, browsable: bool | None = None, prefixes: List[str] | None = None) -> quilt3.admin.types.Bucket  {#update}
 
 Update an existing bucket configuration.
 
@@ -152,7 +152,7 @@ __Arguments__
 # quilt3.admin.roles
 
 
-## get(id\_or\_name: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get}
+## get(id\_or\_name: str) -> quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole | None  {#get}
 
 Get a role by ID or name. Return `None` if the role does not exist.
 
@@ -161,12 +161,12 @@ __Arguments__
 * __id_or_name__:  Role ID or name.
 
 
-## get\_default() -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole, NoneType]  {#get\_default}
+## get\_default() -> quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole | None  {#get\_default}
 
 Get the default role from the registry. Return `None` if no default role is set.
 
 
-## list() -> List[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]]  {#list}
+## list() -> List[quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole]  {#list}
 
 Get a list of all roles in the registry.
 
@@ -213,7 +213,7 @@ __Arguments__
 * __arn__:  Existing IAM role ARN.
 
 
-## patch\_managed(id\_or\_name: str, \*, name: Optional[str] = None, policies: Optional[List[str]] = None) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
+## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: List[str] | None = None) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
 
 Partially update a managed role — only specified fields are changed.
 
@@ -224,7 +224,7 @@ __Arguments__
 * __policies__:  Policy IDs to attach (keeps current if not specified).
 
 
-## patch\_unmanaged(id\_or\_name: str, \*, name: Optional[str] = None, arn: Optional[str] = None) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
+## patch\_unmanaged(id\_or\_name: str, \*, name: str | None = None, arn: str | None = None) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
 
 Partially update an unmanaged role — only specified fields are changed.
 
@@ -244,7 +244,7 @@ __Arguments__
 * __id_or_name__:  Role ID or name.
 
 
-## set\_default(id\_or\_name: str) -> Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]  {#set\_default}
+## set\_default(id\_or\_name: str) -> quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole  {#set\_default}
 
 Set the default role in the registry.
 
@@ -256,7 +256,7 @@ __Arguments__
 # quilt3.admin.users
 
 
-## get(name: str) -> Optional[quilt3.admin.types.User]  {#get}
+## get(name: str) -> quilt3.admin.types.User | None  {#get}
 
 Get a specific user from the registry. Return `None` if the user does not exist.
 
@@ -270,7 +270,7 @@ __Arguments__
 Get a list of all users in the registry.
 
 
-## create(name: str, email: str, role: str, extra\_roles: Optional[List[str]] = None) -> quilt3.admin.types.User  {#create}
+## create(name: str, email: str, role: str, extra\_roles: List[str] | None = None) -> quilt3.admin.types.User  {#create}
 
 Create a new user in the registry.
 
@@ -330,7 +330,7 @@ __Arguments__
 * __name__:  Username of user to update.
 
 
-## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> quilt3.admin.types.User  {#set\_role}
+## set\_role(name: str, role: str, extra\_roles: List[str] | None = None, \*, append: bool = False) -> quilt3.admin.types.User  {#set\_role}
 
 Set the active and extra roles for a user.
 
@@ -352,7 +352,7 @@ __Arguments__
 * __roles__:  Roles to add to the user.
 
 
-## remove\_roles(name: str, roles: List[str], fallback: Optional[str] = None) -> quilt3.admin.types.User  {#remove\_roles}
+## remove\_roles(name: str, roles: List[str], fallback: str | None = None) -> quilt3.admin.types.User  {#remove\_roles}
 
 Remove roles from a user.
 
@@ -366,12 +366,12 @@ __Arguments__
 # quilt3.admin.sso_config
 
 
-## get() -> Optional[quilt3.admin.types.SSOConfig]  {#get}
+## get() -> quilt3.admin.types.SSOConfig | None  {#get}
 
 Get the current SSO configuration.
 
 
-## set(config: Optional[str]) -> Optional[quilt3.admin.types.SSOConfig]  {#set}
+## set(config: str | None) -> quilt3.admin.types.SSOConfig | None  {#set}
 
 Set the SSO configuration. Pass `None` to remove SSO configuration.
 
@@ -384,7 +384,7 @@ Set the SSO configuration. Pass `None` to remove SSO configuration.
 List all tabulator tables in a bucket.
 
 
-## set\_table(bucket\_name: str, table\_name: str, config: Optional[str]) -> None  {#set\_table}
+## set\_table(bucket\_name: str, table\_name: str, config: str | None) -> None  {#set\_table}
 
 Set the tabulator table configuration. Pass `None` to remove the table.
 

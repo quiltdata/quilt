@@ -171,18 +171,21 @@ def norm_img(img: da.Array) -> da.Array:
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:
+    # Eagerly compute to numpy to avoid bioio-tifffile/dask lazy transpose bugs.
+    data = np.asarray(img.data)
     reader_shape = img.reader.data.shape
 
+    # Even though the reader was n-dim, check if the actual data is simply greyscale and return
     if len(reader_shape) == 2:
         return da.from_array(img.reader.data)
 
+    # Even though the reader was n-dim,
+    # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
     if len(reader_shape) == 3 and reader_shape[2] in (3, 4):
         return da.from_array(img.reader.data)
 
-    # Eagerly compute to numpy to avoid bioio-tifffile/dask lazy transpose bugs.
-    # Done after the 2D/3D early returns above so those paths don't pay to
-    # materialize the whole image.
-    data = np.asarray(img.data)
+    # Check which dimensions are available
+    # BioImage makes strong assumptions about dimension ordering
 
     # Reduce the array down to 2D + Channels when possible
     if "T" in img.reader.dims.order:
@@ -194,12 +197,14 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
         s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
         for i in range(data.shape[1]):
             if "Z" in img.reader.dims.order:
+                # Add padding to the top and left of the projection
                 padded = np.pad(
                     norm_img(da.from_array(data[0, i, :, :, :].max(axis=0))).compute(),
                     ((5, 0), (5, 0)) + s_pad,
                     mode="constant",
                 )
             else:
+                # Add padding to the top and the left of the projection
                 padded = np.pad(
                     norm_img(da.from_array(data[0, i, 0, :, :])).compute(),
                     ((5, 0), (5, 0)) + s_pad,

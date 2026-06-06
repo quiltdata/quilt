@@ -1,6 +1,7 @@
 """
 Tests for the ES indexer. This function consumes events from SQS.
 """
+
 import datetime
 import io
 import json
@@ -42,12 +43,9 @@ CREATE_EVENT_TYPES = {
     "ObjectCreated:Put",
     "ObjectCreated:Copy",
     "ObjectCreated:Post",
-    "ObjectCreated:CompleteMultipartUpload"
+    "ObjectCreated:CompleteMultipartUpload",
 }
-DELETE_EVENT_TYPES = {
-    "ObjectRemoved:Delete",
-    "ObjectRemoved:DeleteMarkerCreated"
-}
+DELETE_EVENT_TYPES = {"ObjectRemoved:Delete", "ObjectRemoved:DeleteMarkerCreated"}
 ES_ENVIRONMENT = {
     'ES_ENDPOINT': 'https://example.com',
     'AWS_ACCESS_KEY_ID': 'test_key',
@@ -61,15 +59,9 @@ EVENTBRIDGE_CORE = {
     'eventName': 'PutObject',
     'eventTime': '2020-12-30T21:29:41Z',
     's3': {
-        'bucket': {
-            'name': 'quilt-s3-eventbridge'
-        },
-        'object': {
-            'isDeleteMarker': '',
-            'key': 'clear/README.md',
-            'versionId': ''
-        }
-    }
+        'bucket': {'name': 'quilt-s3-eventbridge'},
+        'object': {'isDeleteMarker': '', 'key': 'clear/README.md', 'versionId': ''},
+    },
 }
 # See for event structure:
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
@@ -82,24 +74,19 @@ EVENT_CORE = {
     "requestParameters": {"sourceIPAddress": "127.0.0.1"},
     "responseElements": {
         "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
-        "x-amz-request-id": "EXAMPLE123456789"
+        "x-amz-request-id": "EXAMPLE123456789",
     },
     "s3": {
         "bucket": {
             "arn": "arn:aws:s3:::test-bucket",
             "name": "test-bucket",
-            "ownerIdentity": {
-                "principalId": "EXAMPLE"
-            }
+            "ownerIdentity": {"principalId": "EXAMPLE"},
         },
         "configurationId": "testConfigRule",
-        "object": {
-            "key": "hello+world.txt",
-            "sequencer": "0A1B2C3D4E5F678901"
-        },
-        "s3SchemaVersion": "1.0"
+        "object": {"key": "hello+world.txt", "sequencer": "0A1B2C3D4E5F678901"},
+        "s3SchemaVersion": "1.0",
     },
-    "userIdentity": {"principalId": "EXAMPLE"}
+    "userIdentity": {"principalId": "EXAMPLE"},
 }
 # typical response to head_object or get_object
 OBJECT_RESPONSE = {
@@ -110,20 +97,13 @@ OBJECT_RESPONSE = {
     'ETag': '"8dbf7b98d5458a46327fb58f27b9af6e"',
     'VersionId': 'wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_',
     'ContentType': 'binary/octet-stream',
-    'Metadata': {
-        'helium': '{"user_meta": {}}'
-    }
+    'Metadata': {'helium': '{"user_meta": {}}'},
 }
 # Simulated first line of manifest
 MANIFEST_DATA = {
     "version": "v0",
-    "user_meta": {
-        "arbitrary": "metadata",
-        "list": [5, 9, 19],
-        "int": 42,
-        "object": {"treble": "is", "a": "friend"}
-    },
-    "message": "interesting comment with interesting symbols #$%@☮ 😎!"
+    "user_meta": {"arbitrary": "metadata", "list": [5, 9, 19], "int": 42, "object": {"treble": "is", "a": "friend"}},
+    "message": "interesting comment with interesting symbols #$%@☮ 😎!",
 }
 
 
@@ -140,14 +120,12 @@ def _check_event(synthetic, organic):
     # same keys at top level
     assert organic.keys() == synthetic.keys()
     # same value types (values might differ and that's OK)
-    assert {type(v) for v in organic.values()} == \
-        {type(v) for v in synthetic.values()}
+    assert {type(v) for v in organic.values()} == {type(v) for v in synthetic.values()}
     # same keys and nested under "s3"
     assert organic["s3"].keys() == synthetic["s3"].keys()
     assert organic["s3"]["bucket"].keys() == synthetic["s3"]["bucket"].keys()
     # same value types under S3 (values might differ and that's OK)
-    assert {type(v) for v in organic["s3"].values()} == \
-        {type(v) for v in synthetic["s3"].values()}
+    assert {type(v) for v in organic["s3"].values()} == {type(v) for v in synthetic["s3"].values()}
     # spot checks for overridden properties
     # size absent on delete
     if "size" in organic["s3"]["bucket"]:
@@ -164,56 +142,33 @@ def _check_event(synthetic, organic):
 
 
 def make_event(
-        name,
-        *,
-        bucket="test-bucket",
-        eTag="123456",
-        key="hello+world.txt",
-        region="us-east-1",
-        size=100,
-        versionId="1313131313131.Vier50HdNbi7ZirO65",
-        bucket_versioning=True
+    name,
+    *,
+    bucket="test-bucket",
+    eTag="123456",
+    key="hello+world.txt",
+    region="us-east-1",
+    size=100,
+    versionId="1313131313131.Vier50HdNbi7ZirO65",
+    bucket_versioning=True,
 ):
     """create an event based on EVENT_CORE, add fields to match organic AWS events"""
     if name in CREATE_EVENT_TYPES:
-        args = {
-            "bucket": bucket,
-            "eTag": eTag,
-            "key": key,
-            "region": region,
-            "size": size
-        }
+        args = {"bucket": bucket, "eTag": eTag, "key": key, "region": region, "size": size}
         if bucket_versioning:
             args["versionId"] = versionId
-        return _make_event(
-            name,
-            **args
-        )
+        return _make_event(name, **args)
     # no versionId or eTag in this case
     elif name == "ObjectRemoved:Delete":
-        return _make_event(
-            name,
-            bucket=bucket,
-            key=key,
-            region=region
-        )
+        return _make_event(name, bucket=bucket, key=key, region=region)
     elif name == "ObjectRemoved:DeleteMarkerCreated":
         # these events are possible in both versioned and unversioned buckets
         # (e.g. bucket now unversioned that was versioned will generate a
         # delete marker on `aws s3 rm`)
-        args = {
-            "bucket": bucket,
-            "eTag": eTag,
-            "key": key,
-            "region": region,
-            "size": size
-        }
+        args = {"bucket": bucket, "eTag": eTag, "key": key, "region": region, "size": size}
         if bucket_versioning:
             args["versionId"] = versionId
-        return _make_event(
-            name,
-            **args
-        )
+        return _make_event(name, **args)
     elif name == UNKNOWN_EVENT_TYPE:
         return _make_event(UNKNOWN_EVENT_TYPE)
 
@@ -221,16 +176,7 @@ def make_event(
         raise ValueError(f"Unexpected event type: {name}")
 
 
-def _make_event(
-        name,
-        *,
-        bucket="",
-        eTag="",
-        key="",
-        region="",
-        size=0,
-        versionId=""
-):
+def _make_event(name, *, bucket="", eTag="", key="", region="", size=0, versionId=""):
     """make events in the pattern of
     https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
     and
@@ -271,7 +217,7 @@ def _make_event(
                 "size": 0,
                 "text": "",
                 "s3_tags": None,
-            }
+            },
         ),
         (
             "ObjectCreated:Copy",
@@ -285,9 +231,9 @@ def _make_event(
                 "text": "iajsoeqroieurqwiuro•",
                 "version_id": "abc",
                 "s3_tags": {"key": "value"},
-            }
+            },
         ),
-    ]
+    ],
 )
 @patch.object(index.DocumentQueue, 'append_document')
 def test_append(_append_mock, event_type, kwargs):
@@ -298,19 +244,21 @@ def test_append(_append_mock, event_type, kwargs):
 
 
 @pytest.mark.parametrize(
-    "ext, expected", [
+    "ext, expected",
+    [
         (".gz", "gz"),
         (".bz2", None),
         (".zip", None),
         (".csv", None),
-    ]
+    ],
 )
 def test_get_compression(ext, expected):
     assert index.get_compression(ext) == expected
 
 
 @pytest.mark.parametrize(
-    "key, expected", (
+    "key, expected",
+    (
         ("foo/bar.baz/hello world.txt", ("", ".txt")),
         ("foo/bar.baz/hello.world.csv", (".world", ".csv")),
         ("foo/bar.baz/hello-world.csv.gz", (".csv", ".gz")),
@@ -320,14 +268,15 @@ def test_get_compression(ext, expected):
         ("..", ("", "")),
         (".", ("", "")),
         ("", ("", "")),
-    )
+    ),
 )
 def test_get_normalized_extensions(key, expected):
     assert index.get_normalized_extensions(key) == expected
 
 
 @pytest.mark.parametrize(
-    "key, compression, expected", [
+    "key, compression, expected",
+    [
         # parquet
         ("s3/some/file.c000", None, ".parquet"),
         # parquet, nonzero part number
@@ -345,8 +294,8 @@ def test_get_normalized_extensions(key, expected):
         ("s3/to.path/a/file.with.lots.of.dots.h5ad.json", None, ".json"),
         ("s3/to.path/a/file.csv.gz", "gz", ".csv"),
         # we dont' support .bz2
-        ("s3/to.path/a/file.csv.bz2", None, ".bz2")
-    ]
+        ("s3/to.path/a/file.csv.bz2", None, ".bz2"),
+    ],
 )
 def test_infer_extensions(key, compression, expected):
     """ensure we are guessing file types well"""
@@ -391,13 +340,14 @@ def test_map_event_name_and_validate():
 
 
 @pytest.mark.parametrize(
-    "env_var, check, expected", [
+    "env_var, check, expected",
+    [
         (".txt,.csv", ".parquet", False),
         (".txt,.csv", ".csv", True),
         (".txt,.csv", ".txt", True),
         (".parquet,.tsvl", ".parquet", True),
         (".parquet,.tsvl", ".csv", False),
-    ]
+    ],
 )
 def test_skip_rows_env(env_var, check, expected):
     """test whether or not index skips rows per SKIP_ROWS_EXTS=LIST"""
@@ -429,10 +379,7 @@ class TestIndex(TestCase):
         # Create a dummy S3 client that (hopefully) can't do anything.
         self.s3_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
-        self.s3_client_patcher = patch(
-            __name__ + '.index.make_s3_client',
-            return_value=self.s3_client
-        )
+        self.s3_client_patcher = patch(__name__ + '.index.make_s3_client', return_value=self.s3_client)
         self.s3_client_patcher.start()
 
         self.s3_stubber = Stubber(self.s3_client)
@@ -459,50 +406,30 @@ class TestIndex(TestCase):
             version_id=None,
             s3_client=self.s3_client,
             size=size,
-            compression=compression
+            compression=compression,
         )
 
-    def _make_es_callback(
-            self,
-            *,
-            errors=False,
-            status=200,
-            unknown_items=False
-    ):
+    def _make_es_callback(self, *, errors=False, status=200, unknown_items=False):
         """
         create a callback that checks the shape of the response
         TODO: handle errors and delete actions
         """
+
         def check_response(request):
             raw = [json.loads(line) for line in request.body.splitlines()]
             # drop the optional source and isolate the actions
             # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
             actions = [line for line in raw if len(line.keys()) == 1]
             items = [
-                {
-                    top_key: {
-                        "_id": values["_id"],
-                        "_index": values["_index"],
-                        "_type": "_doc",
-                        "status": 200
-                    }
-                }
+                {top_key: {"_id": values["_id"], "_index": values["_index"], "_type": "_doc", "status": 200}}
                 for action in actions
                 for top_key, values in action.items()
             ]
             if unknown_items:
-                items = [
-                    {"event_we_never_heard_of": value}
-                    for item in items
-                    for value in item.values()
-                ]
+                items = [{"event_we_never_heard_of": value} for item in items for value in item.values()]
             # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
             # for response format
-            response = {
-                "took": 5*len(actions),
-                "errors": errors,
-                "items": items
-            }
+            response = {"took": 5 * len(actions), "errors": errors, "items": items}
             self.actual_es_calls = self.actual_es_calls + 1
 
             return (status, {}, json.dumps(response))
@@ -510,17 +437,16 @@ class TestIndex(TestCase):
         return check_response
 
     def _test_index_events(
-            self,
-            event_names,
-            *,
-            bucket_versioning=True,
-            errors=False,
-            expected_es_calls=0,
-            mock_elastic=True,
-            mock_overrides=None,
-            status=200,
-            unknown_items=False,
-
+        self,
+        event_names,
+        *,
+        bucket_versioning=True,
+        errors=False,
+        expected_es_calls=0,
+        mock_elastic=True,
+        mock_overrides=None,
+        status=200,
+        unknown_items=False,
     ):
         """
         Reusable helper function to test indexing files based on on or more
@@ -562,17 +488,14 @@ class TestIndex(TestCase):
                         'ContentLength': event["s3"]["object"]["size"],
                         'LastModified': now,
                     },
-                    expected_params=expected_params
+                    expected_params=expected_params,
                 )
 
             if mock_object:
                 if mock_overrides and mock_overrides.get('skip_byte_range'):
                     expected = expected_params.copy()
                 else:
-                    expected = {
-                        **expected_params,
-                        'Range': 'bytes=0-99'
-                    }
+                    expected = {**expected_params, 'Range': 'bytes=0-99'}
                 self.s3_stubber.add_response(
                     method='get_object',
                     service_response={
@@ -581,7 +504,7 @@ class TestIndex(TestCase):
                         'LastModified': now,
                         'Body': BytesIO(b'Hello World!'),
                     },
-                    expected_params=expected
+                    expected_params=expected,
                 )
 
             if mock_get_object_tagging:
@@ -605,30 +528,16 @@ class TestIndex(TestCase):
             self.requests_mock.add_callback(
                 responses.POST,
                 'https://example.com:443/_bulk',
-                callback=self._make_es_callback(
-                    errors=errors,
-                    status=status,
-                    unknown_items=unknown_items
-                ),
-                content_type='application/json'
+                callback=self._make_es_callback(errors=errors, status=status, unknown_items=unknown_items),
+                content_type='application/json',
             )
 
-        records = {
-            "Records": [{
-                "body": json.dumps({
-                    "Message": json.dumps({
-                        "Records": inner_records
-                    })
-                })
-            }]
-        }
+        records = {"Records": [{"body": json.dumps({"Message": json.dumps({"Records": inner_records})})}]}
 
         index.handler(records, MockContext())
-        assert self.actual_es_calls == expected_es_calls, \
-            (
-                f"Expected ES endpoint to be called {expected_es_calls} times, "
-                f"got {self.actual_es_calls} calls instead"
-            )
+        assert self.actual_es_calls == expected_es_calls, (
+            f"Expected ES endpoint to be called {expected_es_calls} times, got {self.actual_es_calls} calls instead"
+        )
 
     @patch.object(index.DocumentQueue, 'send_all')
     @patch.object(index.DocumentQueue, 'append')
@@ -681,15 +590,7 @@ class TestIndex(TestCase):
                     versionId=version_id,
                 )
 
-                records = {
-                    "Records": [{
-                        "body": json.dumps({
-                            "Message": json.dumps({
-                                "Records": [event]
-                            })
-                        })
-                    }]
-                }
+                records = {"Records": [{"body": json.dumps({"Message": json.dumps({"Records": [event]})})}]}
 
                 index.handler(records, None)
 
@@ -697,64 +598,41 @@ class TestIndex(TestCase):
                 assert contents_mock.call_count == 0
                 assert append_mock.call_count == 0
 
-        assert send_mock.call_count == len(error_codes)*len(version_ids)
+        assert send_mock.call_count == len(error_codes) * len(version_ids)
 
     def test_create_event_failure(self):
         """
         Check that the indexer doesn't blow up on create event failures.
         """
         with pytest.raises(RetryError, match="Failed to load"):
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                errors=True,
-                status=400
-            )
+            self._test_index_events(["ObjectCreated:Put"], errors=True, status=400)
 
     def test_create_copy_index(self):
         """test indexing a single file from copy event"""
-        self._test_index_events(
-            ["ObjectCreated:Copy"],
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectCreated:Copy"], expected_es_calls=1)
         # Elastic only needs to be mocked once per test
 
     def test_create_put_index(self):
         """test indexing a single file from put event"""
-        self._test_index_events(
-            ["ObjectCreated:Put"],
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectCreated:Put"], expected_es_calls=1)
 
     def test_create_put_index_unversioned(self):
         """test indexing a single file from put event"""
-        self._test_index_events(
-            ["ObjectCreated:Put"],
-            bucket_versioning=False,
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectCreated:Put"], bucket_versioning=False, expected_es_calls=1)
 
     def test_create_post_index(self):
         """test indexing a single file from post event"""
-        self._test_index_events(
-            ["ObjectCreated:Post"],
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectCreated:Post"], expected_es_calls=1)
 
     def test_create_multipart_index(self):
         """test indexing a single file from post event"""
-        self._test_index_events(
-            ["ObjectCreated:CompleteMultipartUpload"],
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectCreated:CompleteMultipartUpload"], expected_es_calls=1)
 
     def test_delete_event(self):
         """
         Check that the indexer doesn't blow up on delete events.
         """
-        self._test_index_events(
-            ["ObjectRemoved:Delete"],
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectRemoved:Delete"], expected_es_calls=1)
 
     def test_delete_event_failure(self):
         """
@@ -762,30 +640,19 @@ class TestIndex(TestCase):
         """
         # TODO, why does pytest.raises(RetryError not work?)
         with pytest.raises(RetryError, match="Failed to load"):
-            self._test_index_events(
-                ["ObjectRemoved:Delete"],
-                errors=True,
-                status=400
-            )
+            self._test_index_events(["ObjectRemoved:Delete"], errors=True, status=400)
 
     def test_delete_event_no_versioning(self):
         """
         Check that the indexer doesn't blow up on delete events.
         """
-        self._test_index_events(
-            ["ObjectRemoved:Delete"],
-            bucket_versioning=False,
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectRemoved:Delete"], bucket_versioning=False, expected_es_calls=1)
 
     def test_delete_marker_event(self):
         """
         common event in versioned buckets
         """
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectRemoved:DeleteMarkerCreated"], expected_es_calls=1)
 
     def test_delete_marker_event_no_versioning(self):
         """
@@ -793,11 +660,7 @@ class TestIndex(TestCase):
         `aws s3 rm`
         """
         # don't mock head or get; this event should never call them
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            bucket_versioning=False,
-            expected_es_calls=1
-        )
+        self._test_index_events(["ObjectRemoved:DeleteMarkerCreated"], bucket_versioning=False, expected_es_calls=1)
 
     def test_extract_pdf(self):
         """test pdf extraction to text"""
@@ -807,8 +670,7 @@ class TestIndex(TestCase):
                 "Alignment of whole genomes",
                 "When the genome sequence of two closely related organisms",
                 # 2 lines as one string
-                "; the result is a very detailed and inclusive base-to-base mapping "
-                "between the two sequences.",
+                "; the result is a very detailed and inclusive base-to-base mapping between the two sequences.",
                 # 4 lines as one string
                 "Although our alignment does not contain all the details generated "
                 "and displayed by the combination of methods used in Ansari-Lari "
@@ -830,8 +692,8 @@ class TestIndex(TestCase):
                     "key": "obscure_path/long-complicated-name-c000",
                 },
                 # no byte ranges for parquet files
-                "skip_byte_range": True
-            }
+                "skip_byte_range": True,
+            },
         )
         extract_mock.assert_called_once()
 
@@ -853,8 +715,8 @@ class TestIndex(TestCase):
                 # we patch get_contents so _test_index_events doesn't need to
                 "mock_object": False,
                 # no byte ranges for parquet files
-                "skip_byte_range": True
-            }
+                "skip_byte_range": True,
+            },
         )
         get_mock.assert_called_once()
         # ensure parquet data is getting to elastic
@@ -874,17 +736,13 @@ class TestIndex(TestCase):
     @patch.object(index, 'maybe_get_contents')
     def test_index_exception(self, get_mock):
         """test indexing a single file that throws an exception"""
+
         class ContentException(Exception):
             pass
+
         get_mock.side_effect = ContentException("Unable to get contents in Glacier")
         # get_mock already mocks get_object, so don't mock it in _test_index_event
-        self._test_index_events(
-            ["ObjectCreated:Put"],
-            expected_es_calls=1,
-            mock_overrides={
-                "mock_object": False
-            }
-        )
+        self._test_index_events(["ObjectCreated:Put"], expected_es_calls=1, mock_overrides={"mock_object": False})
 
     @patch.object(index, "es")
     @patch.object(index.DocumentQueue, "append_document")
@@ -934,13 +792,13 @@ class TestIndex(TestCase):
         # none of these should index due to bad file path
         good_timestamp = floor(time())
         for key in [
-                f".quilt/named_packages//{good_timestamp}.txt",
-                f".quilt/named_packages/{good_timestamp}",
-                f".quilt/named_packages/not-deep-enough/{good_timestamp}",
-                ".quilt/named_packages/usr/pkg/",
-                ".quilt/named_packages/usr/",
-                ".quilt/named_packages/",
-                f"somewhere/else/foo/bar/{floor(time())}",
+            f".quilt/named_packages//{good_timestamp}.txt",
+            f".quilt/named_packages/{good_timestamp}",
+            f".quilt/named_packages/not-deep-enough/{good_timestamp}",
+            ".quilt/named_packages/usr/pkg/",
+            ".quilt/named_packages/usr/",
+            ".quilt/named_packages/",
+            f"somewhere/else/foo/bar/{floor(time())}",
         ]:
             assert not index.index_if_pointer(
                 self.s3_client,
@@ -962,14 +820,12 @@ class TestIndex(TestCase):
             # we're mocking append so ES will never get called
             mock_elastic=False,
             mock_overrides={
-                "event_kwargs": {
-                    "key": "obscure_path/long-complicated-name-c000"
-                },
+                "event_kwargs": {"key": "obscure_path/long-complicated-name-c000"},
                 # we patch maybe_get_contents so _test_index_events doesn't need to
                 "mock_object": False,
                 # no byte ranges for parquet files
-                "skip_byte_range": True
-            }
+                "skip_byte_range": True,
+            },
         )
         get_mock.assert_called_once()
         index_mock.assert_called_once()
@@ -997,7 +853,7 @@ class TestIndex(TestCase):
                     "key": MANIFESTS_PREFIX + "a" * 64,
                 },
                 "mock_object": False,
-            }
+            },
         )
 
         send_message_mock.assert_called_once()
@@ -1018,9 +874,9 @@ class TestIndex(TestCase):
                 "ObjectCreated:Copy",
                 "ObjectCreated:Copy",
                 "ObjectCreated:Copy",
-                "ObjectRemoved:Delete"
+                "ObjectRemoved:Delete",
             ],
-            expected_es_calls=1
+            expected_es_calls=1,
         )
 
     def test_extension_overrides(self):
@@ -1038,7 +894,7 @@ class TestIndex(TestCase):
                     'Key': 'foo.unique1',
                     'IfMatch': 'etag',
                     'Range': 'bytes=0-122',
-                }
+                },
             )
             self.s3_stubber.add_response(
                 method='get_object',
@@ -1052,7 +908,7 @@ class TestIndex(TestCase):
                     'Key': 'foo.unique2',
                     'IfMatch': 'etag',
                     'Range': 'bytes=0-122',
-                }
+                },
             )
             # only these two file types should be indexed
             assert self._get_contents('foo.unique1', '.unique1') == "Hello World!"
@@ -1072,7 +928,7 @@ class TestIndex(TestCase):
             size=73499,
             eTag="7b4b71116bb21d3ea7138dfe7aabf036",
             region="us-west-1",
-            versionId="Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g"
+            versionId="Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g",
         )
         # actual event from S3 with a few obfuscations to protect the innocent
         organic = {
@@ -1081,34 +937,28 @@ class TestIndex(TestCase):
             "awsRegion": "us-west-1",
             "eventTime": "2020-05-26T22:15:10.906Z",
             "eventName": "ObjectCreated:Copy",
-            "userIdentity": {
-                "principalId": "AWS:EXAMPLEDUDE"
-            },
-            "requestParameters": {
-                "sourceIPAddress": "12.999.99.999"
-            },
+            "userIdentity": {"principalId": "AWS:EXAMPLEDUDE"},
+            "requestParameters": {"sourceIPAddress": "12.999.99.999"},
             "responseElements": {
                 "x-amz-request-id": "CEF0E4FD6D0944D7",
-                "x-amz-id-2": "EXAMPLE/+GUID/m/HAApWP+3arsz0QPph7OBVdl1"
+                "x-amz-id-2": "EXAMPLE/+GUID/m/HAApWP+3arsz0QPph7OBVdl1",
             },
             "s3": {
                 "s3SchemaVersion": "1.0",
                 "configurationId": "YmJkYWUyYmYtNzg5OC00NGRiLTk0NmItNDMxNzA4NzhiZDNk",
                 "bucket": {
                     "name": "somebucket",
-                    "ownerIdentity": {
-                        "principalId": "SAMPLE"
-                    },
-                    "arn": "arn:aws:s3:::somebucket"
+                    "ownerIdentity": {"principalId": "SAMPLE"},
+                    "arn": "arn:aws:s3:::somebucket",
                 },
                 "object": {
                     "key": "events/copy-one/0.png",
                     "size": 73499,
                     "eTag": "7b4b71116bb21d3ea7138dfe7aabf036",
                     "versionId": "Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g",
-                    "sequencer": "005ECD94EFA9B09DD8"
-                }
-            }
+                    "sequencer": "005ECD94EFA9B09DD8",
+                },
+            },
         }
         _check_event(synthetic, organic)
 
@@ -1133,24 +983,22 @@ class TestIndex(TestCase):
             "eventName": "ObjectCreated:Copy",
             "userIdentity": {"principalId": "AWS:boombomakasdfsdf"},
             "requestParameters": {"sourceIPAddress": "07.123.45.899"},
-            "responseElements": {
-                "x-amz-request-id": "DECF307B5F55C78D",
-                "x-amz-id-2": "guid/hash/tG++guid/stuff"
-            },
+            "responseElements": {"x-amz-request-id": "DECF307B5F55C78D", "x-amz-id-2": "guid/hash/tG++guid/stuff"},
             "s3": {
                 "s3SchemaVersion": "1.0",
                 "configurationId": "stuff",
                 "bucket": {
                     "name": "somebucket",
                     "ownerIdentity": {"principalId": "B3ASKDFASDFAF"},
-                    "arn": "arn:aws:s3:::somebucket"},
+                    "arn": "arn:aws:s3:::somebucket",
+                },
                 "object": {
                     "key": "events/copy-one-noversioning/0.png",
                     "size": 73499,
                     "eTag": "7b4b71116bb21d3ea7138dfe7aabf036",
-                    "sequencer": "005ECECE336C7A4715"
-                }
-            }
+                    "sequencer": "005ECECE336C7A4715",
+                },
+            },
         }
         _check_event(synthetic, organic)
 
@@ -1177,7 +1025,7 @@ class TestIndex(TestCase):
             "requestParameters": {"sourceIPAddress": "12.888.91.910"},
             "responseElements": {
                 "x-amz-request-id": "35781DEB9DA7612E",
-                "x-amz-id-2": "Qguid+Oguid+WRa/guid/guid+AwtLbBepO7QEBNbwguid/LfQguid"
+                "x-amz-id-2": "Qguid+Oguid+WRa/guid/guid+AwtLbBepO7QEBNbwguid/LfQguid",
             },
             "s3": {
                 "s3SchemaVersion": "1.0",
@@ -1185,14 +1033,14 @@ class TestIndex(TestCase):
                 "bucket": {
                     "name": "test-bucket",
                     "ownerIdentity": {"principalId": "adflkjasdklfjadf"},
-                    "arn": "arn:aws:s3:::test-bucket"
+                    "arn": "arn:aws:s3:::test-bucket",
                 },
                 "object": {
                     "key": "events/copy-many-noversioning/0.png",
                     "eTag": "d41d8cd98f00b204e9800998ecf8427e",
-                    "sequencer": "005ED04EF537DAB0EE"
-                }
-            }
+                    "sequencer": "005ED04EF537DAB0EE",
+                },
+            },
         }
         _check_event(synthetic, organic)
 
@@ -1206,7 +1054,7 @@ class TestIndex(TestCase):
             size=923078,
             eTag="502f21cfc143fb0c35f563eda5699fa9",
             region="us-west-1",
-            versionId="yYSoQSg3.BfosdUxnRSv9vFg.WAPMmfn"
+            versionId="yYSoQSg3.BfosdUxnRSv9vFg.WAPMmfn",
         )
         # actual event from S3 with a few obfuscations to protect the innocent
         organic = {
@@ -1219,7 +1067,7 @@ class TestIndex(TestCase):
             "requestParameters": {"sourceIPAddress": "12.345.67.890"},
             "responseElements": {
                 "x-amz-request-id": "371A83BCE4341D7D",
-                "x-amz-id-2": "a+example+morestuff+01343413434234234234"
+                "x-amz-id-2": "a+example+morestuff+01343413434234234234",
             },
             "s3": {
                 "s3SchemaVersion": "1.0",
@@ -1227,16 +1075,16 @@ class TestIndex(TestCase):
                 "bucket": {
                     "name": "anybucket",
                     "ownerIdentity": {"principalId": "myidhere"},
-                    "arn": "arn:aws:s3:::anybucket"
+                    "arn": "arn:aws:s3:::anybucket",
                 },
                 "object": {
                     "key": "events/put-one/storms.parquet",
                     "size": 923078,
                     "eTag": "502f21cfc143fb0c35f563eda5699fa9",
                     "versionId": "yYSoQSg3.BfosdUxnRSv9vFg.WAPMmfn",
-                    "sequencer": "005ECEB81C34962CFC"
-                }
-            }
+                    "sequencer": "005ECEB81C34962CFC",
+                },
+            },
         }
         _check_event(synthetic, organic)
 
@@ -1250,7 +1098,7 @@ class TestIndex(TestCase):
             size=135397292,
             eTag="0eb149127d0277326dedcf0c530ca966-17",
             region="us-west-1",
-            versionId="bKufwe3zvJ3SQn3F9Z.akBkenOYl_SIz"
+            versionId="bKufwe3zvJ3SQn3F9Z.akBkenOYl_SIz",
         )
 
     def test_test_event(self):
@@ -1258,18 +1106,24 @@ class TestIndex(TestCase):
         Check that the indexer does not barf when it gets an S3 test notification.
         """
         event = {
-            "Records": [{
-                "body": json.dumps({
-                    "Message": json.dumps({
-                        "Service": "Amazon S3",
-                        "Event": "s3:TestEvent",
-                        "Time": "2014-10-13T15:57:02.089Z",
-                        "Bucket": "test-bucket",
-                        "RequestId": "5582815E1AEA5ADF",
-                        "HostId": "fakeGUIDhere+YstdA6Knx4Ip8EXAMPLE"
-                    })
-                })
-            }]
+            "Records": [
+                {
+                    "body": json.dumps(
+                        {
+                            "Message": json.dumps(
+                                {
+                                    "Service": "Amazon S3",
+                                    "Event": "s3:TestEvent",
+                                    "Time": "2014-10-13T15:57:02.089Z",
+                                    "Bucket": "test-bucket",
+                                    "RequestId": "5582815E1AEA5ADF",
+                                    "HostId": "fakeGUIDhere+YstdA6Knx4Ip8EXAMPLE",
+                                }
+                            )
+                        }
+                    )
+                }
+            ]
         }
 
         index.handler(event, None)
@@ -1288,12 +1142,7 @@ class TestIndex(TestCase):
         with pytest.raises(RetryError, match="Failed to load"):
             # we don't set expected_es_calls here because the assert is never hit
             # because of the exceptions, but we do check it directly
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                errors=True,
-                status=400,
-                unknown_items=True
-            )
+            self._test_index_events(["ObjectCreated:Put"], errors=True, status=400, unknown_items=True)
         assert self.actual_es_calls == 2, "Two failures should have called _bulk twice"
 
     def test_unsupported_contents(self):
@@ -1311,7 +1160,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(parquet),
-            }
+            },
         )
         contents = index.maybe_get_contents(
             'test-bucket',
@@ -1323,8 +1172,9 @@ class TestIndex(TestCase):
             version_id='abcde',
         )
         # test return val
-        assert len(contents.encode()) == mocked_get_content_index_bytes.return_value, \
+        assert len(contents.encode()) == mocked_get_content_index_bytes.return_value, (
             'contents return more data than expected'
+        )
         # we know from ELASTIC_LIMIT_BYTES=1000 that column_k is the last one
         present, _, absent = ascii_lowercase.partition('l')
         for letter in present:
@@ -1338,14 +1188,7 @@ class TestIndex(TestCase):
     @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
     def test_get_contents_fcs(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
         del mocked_get_content_index_extensions, mocked_get_content_index_bytes
-        fcs = (
-            BASE_DIR.parents[2]
-            / 'shared'
-            / 'tests'
-            / 'data'
-            / 'fcs'
-            / 'normal.fcs'
-        ).read_bytes()
+        fcs = (BASE_DIR.parents[2] / 'shared' / 'tests' / 'data' / 'fcs' / 'normal.fcs').read_bytes()
         size = len(fcs)
         self.s3_stubber.add_response(
             method='get_object',
@@ -1353,7 +1196,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(fcs),
-            }
+            },
         )
 
         contents = index.maybe_get_contents(
@@ -1374,14 +1217,7 @@ class TestIndex(TestCase):
     @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
     def test_get_contents_fcs_warnings(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
         del mocked_get_content_index_extensions, mocked_get_content_index_bytes
-        fcs = (
-            BASE_DIR.parents[2]
-            / 'shared'
-            / 'tests'
-            / 'data'
-            / 'fcs'
-            / 'meta_only.fcs'
-        ).read_bytes()
+        fcs = (BASE_DIR.parents[2] / 'shared' / 'tests' / 'data' / 'fcs' / 'meta_only.fcs').read_bytes()
         size = len(fcs)
         self.s3_stubber.add_response(
             method='get_object',
@@ -1389,7 +1225,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(fcs),
-            }
+            },
         )
 
         contents = index.maybe_get_contents(
@@ -1410,14 +1246,7 @@ class TestIndex(TestCase):
     @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
     def test_get_contents_fcs_unparseable(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
         del mocked_get_content_index_extensions, mocked_get_content_index_bytes
-        fcs = (
-            BASE_DIR.parents[2]
-            / 'preview'
-            / 'test'
-            / 'data'
-            / 'fcs'
-            / 'bad.fcs'
-        ).read_bytes()
+        fcs = (BASE_DIR.parents[2] / 'preview' / 'test' / 'data' / 'fcs' / 'bad.fcs').read_bytes()
         size = len(fcs)
         self.s3_stubber.add_response(
             method='get_object',
@@ -1425,7 +1254,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(fcs),
-            }
+            },
         )
 
         contents = index.maybe_get_contents(
@@ -1452,7 +1281,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(json_),
-            }
+            },
         )
         contents = index.maybe_get_contents(
             'test-bucket',
@@ -1462,7 +1291,7 @@ class TestIndex(TestCase):
             etag='11223344',
             size=size,
             version_id='abcde',
-            compression='gz'
+            compression='gz',
         )
         dict_ = json.loads(contents)
         assert dict_["input"] == "dummy"
@@ -1501,7 +1330,7 @@ class TestIndex(TestCase):
                     'Metadata': {},
                     'ContentLength': size,
                     'Body': BytesIO(parquet),
-                }
+                },
             )
             contents = index.maybe_get_contents(
                 'test-bucket',
@@ -1512,8 +1341,7 @@ class TestIndex(TestCase):
                 size=size,
                 version_id='abcde',
             )
-            assert len(contents.encode()) <= 64_000, \
-                'contents return more data than expected'
+            assert len(contents.encode()) <= 64_000, 'contents return more data than expected'
 
     def test_get_plain_text(self):
         self.s3_stubber.add_response(
@@ -1528,7 +1356,7 @@ class TestIndex(TestCase):
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
                 'Range': 'bytes=0-122',
-            }
+            },
         )
 
         contents = index.get_plain_text(
@@ -1538,7 +1366,7 @@ class TestIndex(TestCase):
             etag='etag',
             version_id=None,
             s3_client=self.s3_client,
-            size=123
+            size=123,
         )
         assert contents == "Hello World!\nThere is more to know."
 
@@ -1555,7 +1383,7 @@ class TestIndex(TestCase):
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
                 'Range': 'bytes=0-122',
-            }
+            },
         )
 
         assert self._get_contents('foo.txt', '.txt') == "Hello World!"
@@ -1573,7 +1401,7 @@ class TestIndex(TestCase):
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
                 'Range': 'bytes=0-122',
-            }
+            },
         )
 
         assert self._get_contents('foo.txt.gz', '.txt', compression='gz') == "Hello World!"
@@ -1592,7 +1420,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.ipynb',
                 'IfMatch': 'etag',
-            }
+            },
         )
 
         assert "model.fit" in self._get_contents('foo.ipynb', '.ipynb')
@@ -1611,7 +1439,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.ipynb.gz',
                 'IfMatch': 'etag',
-            }
+            },
         )
 
         assert "Model results visualization" in self._get_contents('foo.ipynb.gz', '.ipynb', compression='gz')
@@ -1629,7 +1457,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.parquet',
                 'IfMatch': 'etag',
-            }
+            },
         )
 
         contents = self._get_contents('foo.parquet', '.parquet')
@@ -1658,7 +1486,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.parquet',
                     'IfMatch': 'etag',
-                }
+                },
             )
             contents = self._get_contents('foo.parquet', '.parquet')
             size = len(contents.encode('utf-8', 'ignore'))
@@ -1682,11 +1510,9 @@ class TestIndex(TestCase):
             },
         )
 
-        assert index.get_object_tagging(
-            s3_client=self.s3_client,
-            bucket=bucket, key=key,
-            version_id=version_id
-        ) == {"test-key": "test-value"}
+        assert index.get_object_tagging(s3_client=self.s3_client, bucket=bucket, key=key, version_id=version_id) == {
+            "test-key": "test-value"
+        }
 
     def test_get_object_tagging_version_id(self):
         bucket = "test-bucket"
@@ -1707,11 +1533,9 @@ class TestIndex(TestCase):
             },
         )
 
-        assert index.get_object_tagging(
-            s3_client=self.s3_client,
-            bucket=bucket, key=key,
-            version_id=version_id
-        ) == {"test-key": "test-value"}
+        assert index.get_object_tagging(s3_client=self.s3_client, bucket=bucket, key=key, version_id=version_id) == {
+            "test-key": "test-value"
+        }
 
     def test_get_object_tagging_access_denied(self):
         bucket = "test-bucket"
@@ -1727,11 +1551,9 @@ class TestIndex(TestCase):
             },
         )
 
-        assert index.get_object_tagging(
-            s3_client=self.s3_client,
-            bucket=bucket, key=key,
-            version_id=version_id
-        ) is None
+        assert (
+            index.get_object_tagging(s3_client=self.s3_client, bucket=bucket, key=key, version_id=version_id) is None
+        )
 
     def test_get_object_tagging_no_such_key(self):
         bucket = "test-bucket"
@@ -1748,11 +1570,7 @@ class TestIndex(TestCase):
         )
 
         with pytest.raises(botocore.exceptions.ClientError):
-            assert index.get_object_tagging(
-                s3_client=self.s3_client,
-                bucket=bucket, key=key,
-                version_id=version_id
-            )
+            assert index.get_object_tagging(s3_client=self.s3_client, bucket=bucket, key=key, version_id=version_id)
 
 
 @pytest.mark.parametrize(
@@ -1802,19 +1620,21 @@ def test_index_if_pointer(append_mock, es_mock, s3_client, pointer_file):
                 }
             },
         )
-        append_mock.assert_called_once_with({
-            "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_op_type": "index",
-            "_id": get_ptr_doc_id(handle, pointer_file),
-            "join_field": {
-                "name": "ptr",
-                "parent": get_manifest_doc_id(pkg_hash),
-            },
-            "routing": get_manifest_doc_id(pkg_hash),
-            "ptr_name": handle,
-            "ptr_tag": pointer_file,
-            "ptr_last_modified": last_modified,
-        })
+        append_mock.assert_called_once_with(
+            {
+                "_index": bucket + PACKAGE_INDEX_SUFFIX,
+                "_op_type": "index",
+                "_id": get_ptr_doc_id(handle, pointer_file),
+                "join_field": {
+                    "name": "ptr",
+                    "parent": get_manifest_doc_id(pkg_hash),
+                },
+                "routing": get_manifest_doc_id(pkg_hash),
+                "ptr_name": handle,
+                "ptr_tag": pointer_file,
+                "ptr_last_modified": last_modified,
+            }
+        )
 
     s3_stubber.assert_no_pending_responses()
 
