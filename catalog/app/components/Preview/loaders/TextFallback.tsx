@@ -79,7 +79,7 @@ export const Loader = function TextFallbackLoader({ handle, children }: LoaderPr
           message: 'preview lambda returned an unexpected envelope (missing info)',
         })
       }
-      const data = textResponse.info.data
+      const { data, note, warnings } = textResponse.info
       if (!data || !data.head) {
         throw PreviewError.Unexpected({
           handle,
@@ -97,8 +97,8 @@ export const Loader = function TextFallbackLoader({ handle, children }: LoaderPr
         tail,
         lang,
         highlighted,
-        note: textResponse.info.note,
-        warnings: textResponse.info.warnings,
+        note,
+        warnings,
       })
     },
     [handle.logicalKey, handle.key],

@@ -424,8 +424,24 @@ class PreviewErrorBoundary extends React.Component<
 > {
   state = { error: null }
 
+  static getHandleIdentity(handle: Model.S3.S3ObjectLocation) {
+    return `${handle.bucket}/${handle.key}/${handle.version || ''}`
+  }
+
   static getDerivedStateFromError(error: Error) {
     return { error }
+  }
+
+  componentDidUpdate(
+    prevProps: Readonly<{ handle: Model.S3.S3ObjectLocation; children: React.ReactNode }>,
+  ) {
+    if (
+      this.state.error &&
+      PreviewErrorBoundary.getHandleIdentity(prevProps.handle) !==
+        PreviewErrorBoundary.getHandleIdentity(this.props.handle)
+    ) {
+      this.setState({ error: null })
+    }
   }
 
   render() {

@@ -13,6 +13,13 @@ vi.mock('../types', () => ({
     Text: (value: unknown) => ({ tag: 'Text', value }),
   },
   PreviewError: {
+    Unexpected: (value: unknown) => {
+      const err: Error & { tag: string; value: unknown } = Object.assign(
+        new Error('Unexpected'),
+        { tag: 'Unexpected', value },
+      )
+      return err
+    },
     Unsupported: (value: unknown) => {
       const err: Error & { tag: string; value: unknown } = Object.assign(
         new Error('Unsupported'),
@@ -86,5 +93,27 @@ describe('components/Preview/loaders/TextFallback', () => {
     expect(err.tag).toBe('Unsupported')
     expect(String(err.value.message)).toMatch(/Binary file/)
     expect(String(err.value.message)).toMatch(/hdf5/)
+  })
+
+  it('surfaces a null info.data envelope as Unexpected PreviewError', () => {
+    previewState.value = {
+      info: { data: null },
+      html: '',
+    }
+    let received: unknown
+    render(
+      <Loader
+        handle={{ key: 'foo.weird' } as never}
+        children={(value: unknown) => {
+          received = value
+          return null
+        }}
+      />,
+    )
+    expect((received as $TSFixMe).ok).toBe(false)
+    const err = (received as $TSFixMe).value
+    expect(err.tag).toBe('Unexpected')
+    expect(String(err.value.message)).toMatch(/missing info\.data/)
+    expect(err.value.retry).toBe(fetch)
   })
 })
