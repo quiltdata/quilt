@@ -1,4 +1,3 @@
-import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as xlsx from 'xlsx'
 
@@ -100,6 +99,11 @@ const isObject = (value: MetadataValue) => R.is(Object, value)
 const getSchemaItem = (key: string, schema?: JsonSchema) =>
   schema && schema.properties && schema.properties[key]
 
+function formatDateValue(value: MetadataValue): string {
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  return String(value)
+}
+
 export function postProcessValue(
   value: MetadataValue,
   schema?: JsonSchema,
@@ -107,7 +111,7 @@ export function postProcessValue(
   if (Array.isArray(value) && value.length === 1)
     return postProcessValue(value[0], schema)
 
-  if (isDate(value, schema)) return dateFns.formatISO(value, { representation: 'date' })
+  if (isDate(value, schema)) return formatDateValue(value)
 
   if (isArray(value, schema)) return value.split(',').map(parseJSON)
 
@@ -122,8 +126,7 @@ export function postProcessArrayValue(
   value: MetadataValue,
   schema?: JsonSchema,
 ): MetadataValue {
-  if (isArrayOfDates(value, schema))
-    return dateFns.formatISO(value, { representation: 'date' })
+  if (isArrayOfDates(value, schema)) return formatDateValue(value)
 
   if (isArrayOfArrays(value, schema)) return value.split(',').map(parseJSON)
 
