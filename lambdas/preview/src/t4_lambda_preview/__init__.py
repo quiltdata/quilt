@@ -37,12 +37,9 @@ EXTRACT_PARQUET_MAX_BYTES = 10_000
 # Keep the text/VCF paths independent of t4_lambda_shared.preview. That module
 # loads pandas/numpy/flowio for richer previews, and a bad native wheel should
 # not prevent plain text fallback from serving.
-CATALOG_LIMIT_BYTES = 1024*1024
+CATALOG_LIMIT_BYTES = 1024 * 1024
 CATALOG_LIMIT_LINES = 512
-TRUNCATED = (
-    'Rows and columns truncated for preview. '
-    'S3 object may contain more data than shown.'
-)
+TRUNCATED = 'Rows and columns truncated for preview. S3 object may contain more data than shown.'
 
 # How many bytes of the head to scan for binary signatures.
 BINARY_SNIFF_BYTES = 8 * 1024
@@ -143,6 +140,7 @@ def _sniff_binary(sample: bytes, skip_labels=()):
         return 'nul-byte'
     return None
 
+
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -170,10 +168,10 @@ SCHEMA = {
 def _is_valid_source_url(url: str) -> bool:
     parsed_url = urlparse(url, allow_fragments=False)
     return (
-        parsed_url.scheme == 'https' and
-        parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-        parsed_url.username is None and
-        parsed_url.password is None
+        parsed_url.scheme == 'https'
+        and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
+        and parsed_url.username is None
+        and parsed_url.password is None
     )
 
 
@@ -198,9 +196,7 @@ def lambda_handler(request):
         return make_json_response(400, {'title': 'Unexpected max_bytes= value', 'detail': str(error)})
 
     if not _is_valid_source_url(url):
-        return make_json_response(400, {
-            'title': 'Invalid url=. Expected S3 virtual-host URL.'
-        })
+        return make_json_response(400, {'title': 'Invalid url=. Expected S3 virtual-host URL.'})
 
     try:
         line_count = _str_to_line_count(request.args.get('line_count', str(CATALOG_LIMIT_LINES)))
@@ -256,14 +252,17 @@ def lambda_handler(request):
                     skip_sniff_labels=skip_labels,
                 )
             except BinaryContentError as binary_err:
-                return make_json_response(415, {
-                    'info': {
-                        'data': {'head': [], 'tail': []},
-                        'error': 'binary',
-                        'detected': binary_err.detected,
+                return make_json_response(
+                    415,
+                    {
+                        'info': {
+                            'data': {'head': [], 'tail': []},
+                            'error': 'binary',
+                            'detected': binary_err.detected,
+                        },
+                        'html': '',
                     },
-                    'html': '',
-                })
+                )
         else:
             assert False, f'unexpected input_type: {input_type}'
 

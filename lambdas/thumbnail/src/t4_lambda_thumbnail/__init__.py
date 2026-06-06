@@ -224,9 +224,7 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
             rows.append(row)
 
         merged = [np.concatenate(row, axis=1) for row in rows]
-        return da.from_array(
-            np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
-        )
+        return da.from_array(np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant"))
 
     if "Z" in img.reader.dims.order:
         return norm_img(da.from_array(data[0, 0, :, :, :].max(axis=0)))

@@ -333,6 +333,7 @@ def _extract_matrix_preview(adata, *, rows: int = 5, cols: int = 5):
             sample = sample.compute()
         try:
             import numpy
+
             arr = numpy.asarray(sample)
             dtype = str(arr.dtype)
             if numpy.issubdtype(arr.dtype, numpy.integer):
@@ -361,24 +362,28 @@ def _h5ad_error_response(exc: BaseException, telemetry: dict, url: str):
     safe_url = str(url).split("?", 1)[0]
     logger.warning(
         "h5ad preview failed: %s: %s (url=%s)",
-        err_type, exc, safe_url,
+        err_type,
+        exc,
+        safe_url,
     )
     return (
         200,
         b"",
         {
             "Content-Type": "application/octet-stream",
-            QUILT_INFO_HEADER: json.dumps({
-                "truncated": False,
-                "meta_only": True,
-                "meta": {
-                    "error": {
-                        "type": err_type,
-                        "message": str(exc),
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": False,
+                    "meta_only": True,
+                    "meta": {
+                        "error": {
+                            "type": err_type,
+                            "message": str(exc),
+                        },
                     },
-                },
-                "telemetry": telemetry,
-            }),
+                    "telemetry": telemetry,
+                }
+            ),
         },
     )
 
@@ -406,18 +411,24 @@ def preview_h5ad(url, compression, max_out_size):
             last_counter = getattr(exc, "_h5ad_counter", None)
             logger.warning(
                 "h5ad preview attempt %d failed: %s: %s",
-                attempt + 1, type(exc).__name__, exc,
+                attempt + 1,
+                type(exc).__name__,
+                exc,
             )
             continue
         except Exception as exc:  # noqa: BLE001 - non-retryable; fall through to error envelope
             last_exc = exc
             last_counter = getattr(exc, "_h5ad_counter", None)
             break
-    telemetry = last_counter.stats() if last_counter is not None else {
-        "range_request_count": 0,
-        "total_bytes_read": 0,
-        "max_single_read": 0,
-    }
+    telemetry = (
+        last_counter.stats()
+        if last_counter is not None
+        else {
+            "range_request_count": 0,
+            "total_bytes_read": 0,
+            "max_single_read": 0,
+        }
+    )
     return _h5ad_error_response(last_exc, telemetry, url)
 
 
@@ -436,7 +447,8 @@ def _preview_h5ad_once(url, compression, max_out_size):
                 if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
                     logger.warning(
                         "Getting only meta for large matrix (%d x %d) to avoid OOM/timeout",
-                        n_obs, n_vars,
+                        n_obs,
+                        n_vars,
                     )
                     var_df = pandas.DataFrame(columns=list(adata.var.keys()))
                 else:
@@ -444,13 +456,9 @@ def _preview_h5ad_once(url, compression, max_out_size):
                     _calculate_h5ad_qc_metrics(adata)
                     var_df = adata.var.copy()
 
-                var_df_with_index = var_df.reset_index().rename(
-                    columns={"index": "gene_id"}
-                )
+                var_df_with_index = var_df.reset_index().rename(columns={"index": "gene_id"})
                 table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
-                output_data, output_truncated = write_data_as_arrow(
-                    table, table.schema, max_out_size
-                )
+                output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
 
                 matrix_preview, matrix_preview_error = _extract_matrix_preview(adata)
 

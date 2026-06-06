@@ -202,9 +202,7 @@ def test_preview_simple_parquet():
 
 
 def test_is_s3_url_rejects_local_proxy_url():
-    assert not t4_lambda_tabular_preview.is_s3_url(
-        "http://localhost:3000/__s3proxy/example-bucket/sample.csv"
-    )
+    assert not t4_lambda_tabular_preview.is_s3_url("http://localhost:3000/__s3proxy/example-bucket/sample.csv")
 
 
 def test_lambda_handler_rejects_local_url():

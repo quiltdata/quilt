@@ -1188,14 +1188,7 @@ class TestIndex(TestCase):
     @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
     def test_get_contents_fcs(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
         del mocked_get_content_index_extensions, mocked_get_content_index_bytes
-        fcs = (
-            BASE_DIR.parents[2]
-            / 'shared'
-            / 'tests'
-            / 'data'
-            / 'fcs'
-            / 'normal.fcs'
-        ).read_bytes()
+        fcs = (BASE_DIR.parents[2] / 'shared' / 'tests' / 'data' / 'fcs' / 'normal.fcs').read_bytes()
         size = len(fcs)
         self.s3_stubber.add_response(
             method='get_object',
@@ -1203,7 +1196,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(fcs),
-            }
+            },
         )
 
         contents = index.maybe_get_contents(
@@ -1224,14 +1217,7 @@ class TestIndex(TestCase):
     @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
     def test_get_contents_fcs_warnings(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
         del mocked_get_content_index_extensions, mocked_get_content_index_bytes
-        fcs = (
-            BASE_DIR.parents[2]
-            / 'shared'
-            / 'tests'
-            / 'data'
-            / 'fcs'
-            / 'meta_only.fcs'
-        ).read_bytes()
+        fcs = (BASE_DIR.parents[2] / 'shared' / 'tests' / 'data' / 'fcs' / 'meta_only.fcs').read_bytes()
         size = len(fcs)
         self.s3_stubber.add_response(
             method='get_object',
@@ -1239,7 +1225,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(fcs),
-            }
+            },
         )
 
         contents = index.maybe_get_contents(
@@ -1260,14 +1246,7 @@ class TestIndex(TestCase):
     @patch(__name__ + '.index.get_content_index_extensions', return_value=frozenset({'.fcs'}))
     def test_get_contents_fcs_unparseable(self, mocked_get_content_index_extensions, mocked_get_content_index_bytes):
         del mocked_get_content_index_extensions, mocked_get_content_index_bytes
-        fcs = (
-            BASE_DIR.parents[2]
-            / 'preview'
-            / 'test'
-            / 'data'
-            / 'fcs'
-            / 'bad.fcs'
-        ).read_bytes()
+        fcs = (BASE_DIR.parents[2] / 'preview' / 'test' / 'data' / 'fcs' / 'bad.fcs').read_bytes()
         size = len(fcs)
         self.s3_stubber.add_response(
             method='get_object',
@@ -1275,7 +1254,7 @@ class TestIndex(TestCase):
                 'Metadata': {},
                 'ContentLength': size,
                 'Body': BytesIO(fcs),
-            }
+            },
         )
 
         contents = index.maybe_get_contents(

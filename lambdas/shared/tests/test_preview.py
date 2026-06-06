@@ -156,9 +156,7 @@ class TestPreview(TestCase):
                 assert info['vegaLite']['encoding']['x']['title'] == 'FSC-A'
                 assert info['vegaLite']['encoding']['y']['title'] == 'SSC-A'
                 assert len(info['vegaLite']['data']['values']) == 191
-                assert expected_data['metadata_key'].lower() in {
-                    key.lower() for key in info['metadata'].keys()
-                }
+                assert expected_data['metadata_key'].lower() in {key.lower() for key in info['metadata'].keys()}
                 assert expected_data['metadata_value'] in info['metadata'].values()
 
                 fcs.seek(0)
@@ -185,9 +183,7 @@ class TestPreview(TestCase):
                 assert body == ""
                 assert info['warnings'].startswith('Metadata only. Parse exception:')
                 assert 'vegaLite' not in info
-                assert expected_data['metadata_key'].lower() in {
-                    key.lower() for key in info['metadata'].keys()
-                }
+                assert expected_data['metadata_key'].lower() in {key.lower() for key in info['metadata'].keys()}
                 assert expected_data['metadata_value'] in info['metadata'].values()
                 if expected_data.get('channel_names'):
                     assert info['metadata']['_channel_names_'] == expected_data['channel_names']
@@ -220,8 +216,7 @@ class TestPreview(TestCase):
             random_state=FCS_SCATTER_RANDOM_SEED,
         )
         assert spec['data']['values'][:5] == [
-            {'x': alpha, 'y': beta}
-            for alpha, beta in expected.head(5).itertuples(index=False, name=None)
+            {'x': alpha, 'y': beta} for alpha, beta in expected.head(5).itertuples(index=False, name=None)
         ]
 
     def test_fcs_scatter_spec_downsampling_is_seeded(self):
@@ -249,14 +244,17 @@ class TestPreview(TestCase):
 
         assert spec['title']['subtitle'] == 'Showing 1 events'
         assert spec['data']['values'] == [{'x': 1.0, 'y': 10.0}]
-        assert _build_fcs_scatter_spec(
-            pandas.DataFrame(
-                {
-                    'alpha': [float('nan'), float('inf')],
-                    'beta': [float('nan'), float('-inf')],
-                }
+        assert (
+            _build_fcs_scatter_spec(
+                pandas.DataFrame(
+                    {
+                        'alpha': [float('nan'), float('inf')],
+                        'beta': [float('nan'), float('-inf')],
+                    }
+                )
             )
-        ) is None
+            is None
+        )
 
     def test_parse_fcs_text_segment(self):
         text_segment = b'|$PAR|2|$P1N|FSC-A|$P2S|SSC||A|'

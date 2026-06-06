@@ -140,6 +140,7 @@ def _parse_fcs_flowio_full(path):
     import numpy
     import pandas
     from flowio import FlowData
+
     fd = FlowData(path, ignore_offset_discrepancy=True, ignore_offset_error=True)
     channel_names = []
     for idx in range(1, fd.channel_count + 1):
@@ -169,6 +170,7 @@ def _parse_fcs_flowio_full(path):
 
 def _parse_fcs_flowio_meta(path):
     from flowio import FlowData
+
     try:
         fd = FlowData(
             path,
@@ -259,6 +261,7 @@ def _extract_fcs_channel_names(metadata):
 def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
     import numpy
     import pandas
+
     if data.shape[1] < 2:
         return None
 
@@ -276,21 +279,14 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
     if downsampled:
         sampled = sampled.sample(n=limit, random_state=FCS_SCATTER_RANDOM_SEED)
 
-    values = [
-        {'x': x_value, 'y': y_value}
-        for x_value, y_value in sampled.itertuples(index=False, name=None)
-    ]
+    values = [{'x': x_value, 'y': y_value} for x_value, y_value in sampled.itertuples(index=False, name=None)]
 
     return {
         '$schema': 'https://vega.github.io/schema/vega-lite/v5.json',
         'description': 'FCS scatter plot preview',
         'title': {
             'text': f'{x_axis} vs {y_axis}',
-            'subtitle': (
-                f'Downsampled to {len(values)} events'
-                if downsampled else
-                f'Showing {len(values)} events'
-            ),
+            'subtitle': (f'Downsampled to {len(values)} events' if downsampled else f'Showing {len(values)} events'),
         },
         'width': 'container',
         'height': 320,
