@@ -1,5 +1,6 @@
-""" core logic for fetching documents from S3 and queueing them locally before
+"""core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
+
 import functools
 import json
 import os
@@ -23,10 +24,7 @@ ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES'))
 assert 'CONTENT_INDEX_EXTS' in os.environ
 CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS")
 
-EVENT_PREFIX = {
-    "Created": "ObjectCreated:",
-    "Removed": "ObjectRemoved:"
-}
+EVENT_PREFIX = {"Created": "ObjectCreated:", "Removed": "ObjectRemoved:"}
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
@@ -62,12 +60,14 @@ def get_content_index_bytes(*, bucket_name: str):
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
+
     def __init__(self, message):
         pass
 
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
+
     def __init__(self, context):
         """constructor"""
         self.queue = []
@@ -216,7 +216,7 @@ class DocumentQueue:
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
     logger_ = get_quilt_logger()
-    time_remaining = floor(context.get_remaining_time_in_millis()/1000)
+    time_remaining = floor(context.get_remaining_time_in_millis() / 1000)
     if time_remaining < 30:
         logger_.warning("Lambda function has %s sec remaining. Reduce batch size?", time_remaining)
 
@@ -242,5 +242,5 @@ def bulk_send(elastic, list_):
         max_retries=RETRY_429,
         # we'll process errors on our own
         raise_on_error=False,
-        raise_on_exception=False
+        raise_on_exception=False,
     )

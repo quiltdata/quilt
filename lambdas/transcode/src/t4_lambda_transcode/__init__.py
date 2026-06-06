@@ -1,12 +1,19 @@
 """
 Generate video previews for videos in S3.
 """
+
+import shutil
 import subprocess
 import tempfile
 from urllib.parse import urlparse
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
+
+# Only S3 virtual-host URLs over HTTPS are accepted, matching the preview
+# lambda. This keeps ffmpeg (and the passthrough redirect) from being pointed
+# at arbitrary hosts — i.e. closes an SSRF / open-redirect vector.
+S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
 # Map of supported content types and corresponding FFMPEG formats
 FORMATS = {
@@ -19,37 +26,74 @@ FORMATS = {
 SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {
-            'type': 'string'
-        },
-        'format': {
-            'enum': list(FORMATS)
-        },
-        'width': {
-            'type': 'string'
-        },
-        'height': {
-            'type': 'string'
-        },
-        'duration': {
-            'type': 'string'
-        },
+        'url': {'type': 'string'},
+        'format': {'enum': list(FORMATS)},
+        'width': {'type': 'string'},
+        'height': {'type': 'string'},
+        'duration': {'type': 'string'},
         'audio_bitrate': {
             'type': 'string',
         },
-        'file_size': {
-            'type': 'string'
-        }
+        'file_size': {'type': 'string'},
     },
     'required': ['url', 'format'],
-    'additionalProperties': False
+    'additionalProperties': False,
 }
 
-FFMPEG = '/opt/bin/ffmpeg'
+
+def _find_ffmpeg() -> str | None:
+    """Find ffmpeg binary: Lambda layer, system PATH, or imageio-ffmpeg package."""
+    # Lambda layer location (production)
+    if shutil.which('/opt/bin/ffmpeg'):
+        return '/opt/bin/ffmpeg'
+    # System PATH (preferred locally — typically faster/more complete)
+    system = shutil.which('ffmpeg')
+    if system:
+        return system
+    # Python-managed ffmpeg fallback (imageio-ffmpeg)
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except (ImportError, RuntimeError):
+        pass
+    return None
+
+
+FFMPEG = _find_ffmpeg()
+
+
+def _is_valid_source_url(url: str) -> bool:
+    parsed_url = urlparse(url, allow_fragments=False)
+    return (
+        parsed_url.scheme == 'https'
+        and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
+        and parsed_url.username is None
+        and parsed_url.password is None
+    )
+
 
 # Lambda has a 6MB limit for request and response, however, base64 adds 33% overhead.
 # Also, leave a few KB for the headers.
 MAX_FILE_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
+
+
+def _passthrough(request):
+    """Serve a redirect to the raw source URL when ffmpeg is unavailable."""
+    import sys
+
+    url = request.args['url']
+    format = request.args['format']
+    print(
+        "ffmpeg not found; serving raw media passthrough (no transcoding)",
+        file=sys.stderr,
+    )
+    headers = {
+        'Content-Type': format,
+        'Location': url,
+        'X-Quilt-Info': '{"transcoded": false, "reason": "ffmpeg not available"}',
+    }
+    return 302, b'', headers
 
 
 @api(cors_origins=get_default_origins())
@@ -60,6 +104,12 @@ def lambda_handler(request):
     """
     url = request.args['url']
     format = request.args['format']
+
+    if not _is_valid_source_url(url):
+        return make_json_response(400, {'error': 'Invalid url=. Expected an S3 virtual-host HTTPS URL.'})
+
+    if FFMPEG is None:
+        return _passthrough(request)
 
     def _parse_param(name, default_value, min_value, max_value):
         value_str = request.args.get(name)
@@ -87,31 +137,50 @@ def lambda_handler(request):
 
     format_params = []
     if category == 'audio':
-        format_params.extend([
-            '-b:a', f'{audio_bitrate}k',
-            '-vn',  # Drop the video stream
-        ])
+        format_params.extend(
+            [
+                '-b:a',
+                f'{audio_bitrate}k',
+                '-vn',  # Drop the video stream
+            ]
+        )
     elif category == 'video':
-        format_params.extend([
-            "-vf", ','.join([
-                f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
-                "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
-            ]),
-        ])
+        format_params.extend(
+            [
+                "-vf",
+                ','.join(
+                    [
+                        f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
+                        "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
+                    ]
+                ),
+            ]
+        )
 
     with tempfile.NamedTemporaryFile() as output_file:
-        p = subprocess.run([
-            FFMPEG,
-            "-t", str(duration),
-            "-i", url,
-            "-f", FORMATS[format],
-            *format_params,
-            "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
-            "-fs", str(file_size),
-            "-y",  # Overwrite output file
-            "-v", "error",  # Only print errors
-            output_file.name
-        ], check=False, stdin=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        p = subprocess.run(
+            [
+                FFMPEG,
+                "-t",
+                str(duration),
+                "-i",
+                url,
+                "-f",
+                FORMATS[format],
+                *format_params,
+                "-timelimit",
+                str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
+                "-fs",
+                str(file_size),
+                "-y",  # Overwrite output file
+                "-v",
+                "error",  # Only print errors
+                output_file.name,
+            ],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
 
         if p.returncode != 0:
             return make_json_response(403, {'error': p.stderr.decode()})

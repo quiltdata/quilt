@@ -3,7 +3,7 @@ import { basename } from 'path'
 import hljs from 'highlight.js'
 import * as R from 'ramda'
 
-import { PreviewData } from '../types'
+import { PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
 import * as utils from './utils'
@@ -59,9 +59,9 @@ const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (n
 
 export const detect = R.pipe(findLang, Boolean)
 
-const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
+export const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
 
-const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
+export const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
 export const Loader = function TextLoader({ handle, forceLang = null, children }) {
   const { result, fetch } = utils.usePreview({
@@ -71,9 +71,31 @@ export const Loader = function TextLoader({ handle, forceLang = null, children }
   })
   const processed = utils.useProcessing(
     result,
-    ({ info: { data, note, warnings } }) => {
+    ({ info }) => {
+      if (info && info.error === 'binary') {
+        const detected = info.detected ? ` (${info.detected})` : ''
+        throw PreviewError.Unsupported({
+          handle,
+          message: `Binary file${detected} — no text preview available`,
+        })
+      }
+      if (!info) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: fetch,
+          message: 'preview lambda returned an unexpected envelope (missing info)',
+        })
+      }
+      const { data, note, warnings } = info
+      if (!data || !data.head) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: fetch,
+          message: 'preview lambda returned an unexpected envelope (missing info.data)',
+        })
+      }
       const head = data.head.join('\n')
-      const tail = data.tail.join('\n')
+      const tail = (data.tail || []).join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
       // TODO: move highlightjs call to renderer
       const highlighted = R.map(hl(lang), { head, tail })

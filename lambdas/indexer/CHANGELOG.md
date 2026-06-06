@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Added] Index `.fcs` files with FlowIO-derived metadata and bounded Vega-Lite scatter specs for package search previews ([#4936](https://github.com/quiltdata/quilt/pull/4936))
+- [Changed] Build the indexer from the uv workspace on the Python 3.13 Lambda base image; indexing behavior is otherwise unchanged ([#4933](https://github.com/quiltdata/quilt/pull/4933))
 - [Fixed] Process package pointers from year 2026+ ([#4683](https://github.com/quiltdata/quilt/pull/4683))
 - [Changed] Switch to uv ([#4616](https://github.com/quiltdata/quilt/pull/4616))
 - [Changed] Upgrade to Python 3.12 ([#4616](https://github.com/quiltdata/quilt/pull/4616))

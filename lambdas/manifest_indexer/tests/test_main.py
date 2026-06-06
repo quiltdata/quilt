@@ -110,7 +110,7 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
         },
     ]
 
-    last_modified = datetime.datetime(2023, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+    last_modified = datetime.datetime(2023, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
     mock_s3_client.get_object.return_value = {
         "Body": MagicMock(iter_lines=lambda: map(json.dumps, mnfst_entries)),
         "LastModified": last_modified,

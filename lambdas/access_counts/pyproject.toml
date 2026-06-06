@@ -1,14 +1,14 @@
 [project]
 name = "t4_lambda_access_counts"
-version = "0.1.0"
-requires-python = "==3.13.*"
+version = "0.2.0"
+requires-python = ">=3.13"
 dependencies = [
     "boto3[crt]~=1.40",
-    "t4_lambda_shared",
+    "t4-lambda-shared",
 ]
 
 [build-system]
-requires = ["uv_build==0.9.*"]
+requires = ["uv_build>=0.9,<0.12"]
 build-backend = "uv_build"
 
 [dependency-groups]
@@ -23,4 +23,4 @@ test = [
 default-groups = ["test"]
 
 [tool.uv.sources]
-t4_lambda_shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
+t4-lambda-shared = { path = "../shared" }

@@ -16,6 +16,19 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` continues to support Python 3.10+ ([#4941](https://github.com/quiltdata/quilt/pull/4941))
+* [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
+
+### Lambdas
+
+* [Added] FCS (`.fcs`) indexer support: column names, metadata, Vega-Lite scatter specs, and warning info, with fallback paths for "Metadata only" and "Unable to parse"
+* [Added] Transcode lambda support for video previews (mp4/webm) via ffmpeg, with passthrough handling
+* [Changed] Thumbnail lambda renders PDFs page-by-page via a dedicated `pdf_thumbnail` helper
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API

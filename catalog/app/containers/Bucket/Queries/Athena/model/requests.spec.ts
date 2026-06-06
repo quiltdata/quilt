@@ -980,23 +980,20 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       })
     })
 
-    it('return "not ready" if database is not ready', async () => {
+    it('return "not ready" if database is not ready', () => {
       startQueryExecution.mockImplementation(
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
-      await act(async () => {
-        const { result, unmount, waitForNextUpdate } = renderHook(() =>
-          requests.useQueryRun({
-            workgroup: 'a',
-            catalogName: 'b',
-            database: Model.Loading,
-            queryBody: 'd',
-          }),
-        )
-        await waitForNextUpdate()
-        expect(result.current[0]).toBeUndefined()
-        unmount()
-      })
+      const { result, unmount } = renderHook(() =>
+        requests.useQueryRun({
+          workgroup: 'a',
+          catalogName: 'b',
+          database: Model.Loading,
+          queryBody: 'd',
+        }),
+      )
+      expect(result.current[0]).toBeUndefined()
+      unmount()
     })
 
     it('mark as ready to run but return error for confirmation if database is empty', async () => {
@@ -1004,7 +1001,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
       await act(async () => {
-        const { result, unmount, waitForValueToChange } = renderHook(() =>
+        const { result, unmount, waitFor } = renderHook(() =>
           requests.useQueryRun({
             workgroup: 'a',
             catalogName: 'b',
@@ -1012,9 +1009,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitForValueToChange(() => result.current, { timeout: 5000 })
-        await waitForValueToChange(() => result.current[0])
-        expect(result.current[0]).toBeNull()
+        // Poll until the query state settles to null. waitForValueToChange only
+        // fires on a *change*, which races: the tuple ref can update while
+        // result.current[0] is still undefined (observed as a flaky CI failure
+        // "expected undefined to be null").
+        await waitFor(() => expect(result.current[0]).toBeNull())
         const run = await result.current[1](false)
         expect(run).toBeInstanceOf(Error)
         expect(run).toBe(requests.NO_DATABASE)

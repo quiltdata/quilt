@@ -20,7 +20,7 @@ PreviewStatus: {
 export const PreviewData = tagged([
   'Audio', // { src: string }
   'ECharts', // { option: object }
-  'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
+  'Fcs', // { preview: string, metadata: object, vegaLite?: object, ...PreviewStatus }
   'IFrame', // { src: string, modes, sandbox }
   'Igv', // { options: object }
   'Image', // { handle: object }
@@ -45,7 +45,7 @@ export const PreviewError = tagged([
   'Forbidden', // { handle }
   'Gated', // { handle, load }
   'TooLarge', // { handle }
-  'Unsupported', // { handle }
+  'Unsupported', // { handle, message? }
   'DoesNotExist', // { handle }
   'SrcDoesNotExist', // { handle }
   'MalformedJson', // { handle, message }

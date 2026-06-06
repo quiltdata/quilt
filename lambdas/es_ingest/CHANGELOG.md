@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Move this lambda to the shared uv workspace packaging flow; ingest behavior is otherwise unchanged ([#4933](https://github.com/quiltdata/quilt/pull/4933))
 - [Changed] Upgrade to Python 3.13 ([#4656](https://github.com/quiltdata/quilt/pull/4656))
 - [Changed] Switch to EventBridge S3 events ([#4471](https://github.com/quiltdata/quilt/pull/4471))
 - [Added] Bootstrap the change log ([#4422](https://github.com/quiltdata/quilt/pull/4422))

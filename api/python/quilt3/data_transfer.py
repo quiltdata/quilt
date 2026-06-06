@@ -47,9 +47,25 @@ from . import checksums, hooks, util
 from .session import get_boto3_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
+# Backwards-compatible re-exports. These checksum helpers/constants used to live
+# in this module and are imported from here by downstream lambdas (pkgpush,
+# s3hash). They moved to quilt3.checksums; keep the public names available on
+# quilt3.data_transfer so consumers pinned to `quilt3 >= 7, < 8` keep working.
+CHECKSUM_MULTIPART_THRESHOLD = checksums.CHECKSUM_MULTIPART_THRESHOLD
+CHECKSUM_MAX_PARTS = checksums.CHECKSUM_MAX_PARTS
+get_checksum_chunksize = checksums.get_checksum_chunksize
+is_mpu = checksums.is_mpu
+
 MAX_COPY_FILE_LIST_RETRIES = 3
 MAX_FIX_HASH_RETRIES = 3
 MAX_CONCURRENCY = util.get_pos_int_from_env('QUILT_TRANSFER_MAX_CONCURRENCY') or 10
+
+# Keep checksum helpers available from quilt3.data_transfer for existing
+# lambda callers while the implementation lives in quilt3.checksums.
+CHECKSUM_MULTIPART_THRESHOLD = checksums.CHECKSUM_MULTIPART_THRESHOLD
+CHECKSUM_MAX_PARTS = checksums.CHECKSUM_MAX_PARTS
+get_checksum_chunksize = checksums.get_checksum_chunksize
+is_mpu = checksums.is_mpu
 
 
 logger = logging.getLogger(__name__)

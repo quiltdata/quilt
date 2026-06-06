@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Move this lambda to the shared uv workspace packaging flow; package-event emission behavior is otherwise unchanged ([#4933](https://github.com/quiltdata/quilt/pull/4933))
 - [Fixed] Process package pointers from year 2026+ ([#4683](https://github.com/quiltdata/quilt/pull/4683))
 - [Changed] Migrate to proper package structure ([#4647](https://github.com/quiltdata/quilt/pull/4647))
 - [Changed] Switch to uv ([#4647](https://github.com/quiltdata/quilt/pull/4647))

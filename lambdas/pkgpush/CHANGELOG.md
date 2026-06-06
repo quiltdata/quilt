@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Move this lambda to the shared uv workspace packaging flow; package-push behavior is otherwise unchanged ([#4933](https://github.com/quiltdata/quilt/pull/4933))
 - [Changed] Switch to uv ([#4649](https://github.com/quiltdata/quilt/pull/4649))
 - [Changed] Upgrade to Python 3.13 ([#4649](https://github.com/quiltdata/quilt/pull/4649))
 - [Added] CRC64NVME checksum support with priority-based multi-algorithm selection and optimized precomputed checksum retrieval ([#4625](https://github.com/quiltdata/quilt/pull/4625))
