@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 vi.mock('utils/AWS', () => ({
@@ -31,13 +31,14 @@ vi.mock('./types', () => ({
 
 import PreviewDisplay from './Display'
 
+afterEach(() => {
+  cleanup()
+})
+
 describe('components/Preview/Display', () => {
   it('renders the custom Unsupported message when provided', () => {
-    const renderMessage = vi.fn(() => null)
-
     render(
       <PreviewDisplay
-        noDownload
         data={{
           tag: 'Err',
           value: {
@@ -46,24 +47,18 @@ describe('components/Preview/Display', () => {
             message: 'Binary file (hdf5) — no text preview available',
           },
         }}
-        renderMessage={renderMessage}
       />,
     )
 
-    expect(renderMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        heading: 'Preview Not Supported',
-        body: 'Binary file (hdf5) — no text preview available',
-      }),
-    )
+    expect(screen.getByText('Preview Not Supported')).toBeTruthy()
+    expect(
+      screen.getByText('Binary file (hdf5) — no text preview available'),
+    ).toBeTruthy()
   })
 
   it('falls back to the default Unsupported message', () => {
-    const renderMessage = vi.fn(() => null)
-
     render(
       <PreviewDisplay
-        noDownload
         data={{
           tag: 'Err',
           value: {
@@ -71,15 +66,10 @@ describe('components/Preview/Display', () => {
             handle: { bucket: 'demo', key: 'foo.bin' },
           },
         }}
-        renderMessage={renderMessage}
       />,
     )
 
-    expect(renderMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        heading: 'Preview Not Supported',
-        body: 'Previewing this data type is not supported',
-      }),
-    )
+    expect(screen.getByText('Preview Not Supported')).toBeTruthy()
+    expect(screen.getByText('Previewing this data type is not supported')).toBeTruthy()
   })
 })
