@@ -4,6 +4,7 @@ The examples in this section use the `aleksey/hurdat` [demo package](https://ope
 
 ```python
 import quilt3
+
 p = quilt3.Package.browse('aleksey/hurdat', 's3://quilt-example')
 p
 ```
@@ -139,6 +140,7 @@ To apply a custom deserializer to your data, pass the function as a parameter to
 
 ```python
 import yaml
+
 # returns a dict
 p["quilt_summarize.json"].deserialize(yaml.safe_load)
 ```

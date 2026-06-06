@@ -1,8 +1,6 @@
 """
 Generate video previews for videos in S3.
 """
-
-import shutil
 import subprocess
 import tempfile
 from urllib.parse import urlparse

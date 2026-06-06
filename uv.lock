@@ -665,14 +665,14 @@ wheels = [
 
 [[package]]
 name = "jsonlines"
-version = "4.0.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs" },
+    { name = "six" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/35/87/bcda8e46c88d0e34cad2f09ee2d0c7f5957bccdb9791b0b934ec84d84be4/jsonlines-4.0.0.tar.gz", hash = "sha256:0c6d2c09117550c089995247f605ae4cf77dd1533041d366351f6f298822ea74", size = 11359, upload-time = "2023-09-01T12:34:44.187Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/cd/0beacbcfdf9b3af9e7c615cb3dba7ec4be1030d4b283e3c9717e3fd9af3c/jsonlines-1.2.0.tar.gz", hash = "sha256:43b8d5588a9d4862c8a4a49580e38e20ec595aee7ad6fe469b10fb83fbefde88", size = 6075, upload-time = "2017-08-17T10:11:03.319Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/62/d9ba6323b9202dd2fe166beab8a86d29465c41a0288cbe229fac60c1ab8d/jsonlines-4.0.0-py3-none-any.whl", hash = "sha256:185b334ff2ca5a91362993f42e83588a360cf95ce4b71a73548502bda52a7c55", size = 8701, upload-time = "2023-09-01T12:34:42.563Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/9a/ab96291470e305504aa4b7a2e0ec132e930da89eb3ca7a82fbe03167c131/jsonlines-1.2.0-py2.py3-none-any.whl", hash = "sha256:0ebd5b0c3efe0d4b5018b320fb0ee1a7b680ab39f6eb853715859f818d386cc8", size = 7645, upload-time = "2017-08-17T10:11:01.487Z" },
 ]
 
 [[package]]
@@ -1502,55 +1502,37 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", marker = "extra == 'catalog'", specifier = ">=3.11" },
-    { name = "anndata", marker = "extra == 'anndata'", specifier = ">=0.10" },
-    { name = "ariadne", marker = "extra == 'catalog'", specifier = ">=0.23" },
-    { name = "asgiproxy", marker = "extra == 'catalog'", specifier = ">=0.2,<0.3" },
-    { name = "awscrt", specifier = ">=0.31" },
-    { name = "boto3", specifier = ">=1.35" },
-    { name = "cachetools", marker = "extra == 'catalog'", specifier = ">=5.5" },
-    { name = "fastapi", marker = "extra == 'catalog'", specifier = ">=0.115" },
-    { name = "ipykernel", marker = "extra == 'local-voila'", specifier = ">=6" },
-    { name = "jsonlines", specifier = ">=4,<5" },
-    { name = "jsonschema", specifier = ">=4,<5" },
-    { name = "jupyter-client", marker = "extra == 'local-voila'", specifier = ">=8" },
-    { name = "jupyter-server", marker = "extra == 'local-voila'", specifier = ">=2.0,<3" },
-    { name = "nbclient", marker = "extra == 'local-voila'", specifier = ">=0.10" },
-    { name = "nbconvert", marker = "extra == 'local-voila'", specifier = ">=7" },
-    { name = "numpy", marker = "extra == 'pyarrow'", specifier = ">=1.26" },
-    { name = "pandas", marker = "extra == 'pyarrow'", specifier = ">=2.1" },
-    { name = "platformdirs", specifier = ">=4" },
-    { name = "pyarrow", marker = "extra == 'pyarrow'", specifier = ">=15" },
-    { name = "pydantic", specifier = ">=2.7,<3" },
-    { name = "pyyaml", specifier = ">=6" },
-    { name = "requests", specifier = ">=2.31" },
-    { name = "requests-futures", specifier = ">=1.0,<2" },
-    { name = "tenacity", specifier = ">=9" },
-    { name = "tqdm", specifier = ">=4.66" },
-    { name = "uvicorn", marker = "extra == 'catalog'", specifier = ">=0.34" },
-    { name = "voila", marker = "extra == 'local-voila'", specifier = ">=0.5,<0.6" },
+    { name = "aiobotocore", extras = ["boto3"], marker = "extra == 'catalog'", specifier = ">=2" },
+    { name = "anndata", marker = "extra == 'anndata'", specifier = ">=0.8.0" },
+    { name = "awscrt", specifier = ">=0.31.0" },
+    { name = "boto3", specifier = ">=1.21.7" },
+    { name = "jsonlines", specifier = "==1.2.0" },
+    { name = "jsonschema", specifier = ">=3,<5" },
+    { name = "numpy", marker = "extra == 'pyarrow'", specifier = ">=1.14.0" },
+    { name = "pandas", marker = "extra == 'pyarrow'", specifier = ">=0.19.2" },
+    { name = "platformdirs", specifier = ">=2" },
+    { name = "pyarrow", marker = "extra == 'pyarrow'", specifier = ">=0.14.1" },
+    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
+    { name = "pyyaml", specifier = ">=5.1" },
+    { name = "quilt3-local", marker = "extra == 'catalog'", specifier = ">=2,<3" },
+    { name = "requests", specifier = ">=2.12.4" },
+    { name = "requests-futures", specifier = "==1.0.0" },
+    { name = "tenacity", specifier = ">=5.1.1,!=8.4.0" },
+    { name = "tqdm", specifier = ">=4.32" },
+    { name = "uvicorn", marker = "extra == 'catalog'", specifier = ">=0.15,<0.18" },
 ]
-provides-extras = ["pyarrow", "anndata", "catalog", "local-voila"]
+provides-extras = ["pyarrow", "anndata", "catalog"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "lxml-html-clean", specifier = ">=0.4" },
-    { name = "poethepoet", specifier = ">=0.37" },
+    { name = "poethepoet", specifier = ">=0.37.0" },
     { name = "pytest", specifier = "~=8.4" },
-    { name = "pytest-cov", specifier = ">=6" },
-    { name = "pytest-env", specifier = ">=1.1" },
-    { name = "pytest-subtests", specifier = ">=0.13" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+    { name = "pytest-subtests" },
     { name = "quilt3", extras = ["pyarrow", "anndata"] },
-    { name = "responses", specifier = ">=0.25" },
-    { name = "ruff", specifier = ">=0.12" },
-]
-local-catalog-test = [
-    { name = "graphql-core", specifier = ">=3.2" },
-    { name = "pytest", specifier = "~=8.4" },
-    { name = "pytest-cov", specifier = ">=6" },
-    { name = "pytest-env", specifier = ">=1.1" },
-    { name = "pytest-subtests", specifier = ">=0.13" },
-    { name = "quilt3", extras = ["catalog"] },
+    { name = "responses" },
+    { name = "ruff", specifier = ">=0.12.11" },
 ]
 
 [[package]]

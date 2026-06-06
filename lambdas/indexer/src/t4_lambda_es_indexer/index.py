@@ -45,7 +45,6 @@ counterintuitive things:
 See docs/EventBridge.md for more
 """
 
-
 import datetime
 import json
 import os
@@ -115,55 +114,36 @@ EVENTBRIDGE_TO_S3 = {
 EVENT_SCHEMA = {
     'type': 'object',
     'properties': {
-        'awsRegion': {
-            'type': 'string'
-        },
-        'eventName': {
-            'type': 'string'
-        },
-        'eventTime': {
-            'type': 'string',
-            'format': 'date-time'
-        },
+        'awsRegion': {'type': 'string'},
+        'eventName': {'type': 'string'},
+        'eventTime': {'type': 'string', 'format': 'date-time'},
         's3': {
             'type': 'object',
             'properties': {
                 'bucket': {
                     'type': 'object',
-                    'properties': {
-                        'name': {
-                            'type': 'string'
-                        }
-                    },
+                    'properties': {'name': {'type': 'string'}},
                     'required': ['name'],
-                    'additionalProperties': True
+                    'additionalProperties': True,
                 },
                 'object': {
                     'type': 'object',
                     'properties': {
-                        'eTag': {
-                            'type': 'string'
-                        },
-                        'isDeleteMarker': {
-                            'type': 'string'
-                        },
-                        'key': {
-                            'type': 'string'
-                        },
-                        'versionId': {
-                            'type': 'string'
-                        }
+                        'eTag': {'type': 'string'},
+                        'isDeleteMarker': {'type': 'string'},
+                        'key': {'type': 'string'},
+                        'versionId': {'type': 'string'},
                     },
                     'required': ['key'],
-                    'additionalProperties': True
+                    'additionalProperties': True,
                 },
             },
             'required': ['bucket', 'object'],
-            'additionalProperties': True
+            'additionalProperties': True,
         },
     },
     'required': ['s3', 'eventName'],
-    'additionalProperties': True
+    'additionalProperties': True,
 }
 # Max number of PDF pages to extract because it can be slow
 MAX_PDF_PAGES = 100
@@ -216,10 +196,11 @@ def infer_extensions(key, exts: Tuple[str, str], compression):
     long_ext = "".join(exts)
     # pylint: disable=too-many-boolean-expressions)
     if (
-            re.fullmatch(r".c\d{3,5}", long_ext) or re.fullmatch(r".*-c\d{3,5}$", key)
-            or key.endswith("_0")
-            or exts[-1] == ".pq"
-            or (compression and exts[0] == ".pq")
+        re.fullmatch(r".c\d{3,5}", long_ext)
+        or re.fullmatch(r".*-c\d{3,5}$", key)
+        or key.endswith("_0")
+        or exts[-1] == ".pq"
+        or (compression and exts[0] == ".pq")
     ):
         return ".parquet"
     elif compression:
@@ -237,19 +218,19 @@ def should_retry_exception(exception):
 
 
 def do_index(
-        s3_client,
-        doc_queue: DocumentQueue,
-        event_type: str,
-        *,
-        bucket: str,
-        etag: str,
-        ext: str,
-        key: str,
-        last_modified: str,
-        text: str = '',
-        size: int = 0,
-        version_id: Optional[str] = None,
-        s3_tags: Optional[dict] = None,
+    s3_client,
+    doc_queue: DocumentQueue,
+    event_type: str,
+    *,
+    bucket: str,
+    etag: str,
+    ext: str,
+    key: str,
+    last_modified: str,
+    text: str = '',
+    size: int = 0,
+    version_id: Optional[str] = None,
+    s3_tags: Optional[dict] = None,
 ):
     """wrap dual indexing of packages and objects"""
     logger_ = get_quilt_logger()
@@ -278,25 +259,25 @@ def do_index(
 
 
 def index_if_pointer(
-        s3_client,
-        doc_queue: DocumentQueue,
-        *,
-        bucket: str,
-        key: str,
+    s3_client,
+    doc_queue: DocumentQueue,
+    *,
+    bucket: str,
+    key: str,
 ) -> bool:
     """index manifest pointer files as documents in ES
-        Returns:
-            - True if pointer to manifest (and passes to doc_queue for indexing)
-            - False if not a manifest (no attempt at indexing)
+    Returns:
+        - True if pointer to manifest (and passes to doc_queue for indexing)
+        - False if not a manifest (no attempt at indexing)
     """
     logger_ = get_quilt_logger()
     pointer_prefix, pointer_file = split(key)
-    handle = pointer_prefix[len(NAMED_PACKAGES_PREFIX):]
+    handle = pointer_prefix[len(NAMED_PACKAGES_PREFIX) :]
     if (
-            not pointer_file
-            or not pointer_prefix.startswith(NAMED_PACKAGES_PREFIX)
-            or len(handle) < 3
-            or '/' not in handle
+        not pointer_file
+        or not pointer_prefix.startswith(NAMED_PACKAGES_PREFIX)
+        or len(handle) < 3
+        or '/' not in handle
     ):
         logger_.debug("Not indexing as pointer s3://%s/%s", bucket, key)
         return False
@@ -350,12 +331,14 @@ def index_if_pointer(
         },
     )
     if data is not None:
-        doc_queue.append_document({
-            "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_id": get_ptr_doc_id(handle, pointer_file),
-            "_op_type": "index" if data else "delete",
-            **data,
-        })
+        doc_queue.append_document(
+            {
+                "_index": bucket + PACKAGE_INDEX_SUFFIX,
+                "_id": get_ptr_doc_id(handle, pointer_file),
+                "_op_type": "index" if data else "delete",
+                **data,
+            }
+        )
 
     return True
 
@@ -385,11 +368,10 @@ def extract_pptx(fileobj, max_size: int) -> str:
 def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client, size, compression=None):
     """get the byte contents of a file if it's a target for deep indexing"""
     logger_ = get_quilt_logger()
-    logger_.debug(
-        "Entering maybe_get_contents (could run out of mem.) %s %s %s", bucket, key, version_id
-    )
+    logger_.debug("Entering maybe_get_contents (could run out of mem.) %s %s %s", bucket, key, version_id)
     content = ""
     if inferred_ext in get_content_index_extensions(bucket_name=bucket):
+
         def _get_obj():
             return retry_s3(
                 "get",
@@ -413,13 +395,7 @@ def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client
                 # are going to parse it
                 # warning: huge notebooks could spike memory here
                 get_notebook_cells(
-                    bucket,
-                    key,
-                    size,
-                    compression,
-                    etag=etag,
-                    s3_client=s3_client,
-                    version_id=version_id
+                    bucket, key, size, compression, etag=etag, s3_client=s3_client, version_id=version_id
                 ),
                 get_content_index_bytes(bucket_name=bucket),
             )
@@ -458,13 +434,7 @@ def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client
             content = extract_pptx(get_bytes(obj["Body"], compression), get_content_index_bytes(bucket_name=bucket))
         else:
             content = get_plain_text(
-                bucket,
-                key,
-                size,
-                compression,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
+                bucket, key, size, compression, etag=etag, s3_client=s3_client, version_id=version_id
             )
 
     return content
@@ -487,7 +457,7 @@ def extract_pdf(file_):
 
 
 def extract_text(notebook_str):
-    """ Extract code and markdown
+    """Extract code and markdown
     Args:
         * nb - notebook as a string
     Returns:
@@ -521,15 +491,7 @@ def get_notebook_cells(bucket, key, size, compression, *, etag, s3_client, versi
     """extract cells for ipynb notebooks for indexing"""
     text = ""
     try:
-        obj = retry_s3(
-            "get",
-            bucket,
-            key,
-            size,
-            etag=etag,
-            s3_client=s3_client,
-            version_id=version_id
-        )
+        obj = retry_s3("get", bucket, key, size, etag=etag, s3_client=s3_client, version_id=version_id)
         data = get_bytes(obj["Body"], compression)
         notebook = data.getvalue().decode("utf-8")
         try:
@@ -548,16 +510,7 @@ def get_notebook_cells(bucket, key, size, compression, *, etag, s3_client, versi
     return text
 
 
-def get_plain_text(
-        bucket,
-        key,
-        size,
-        compression,
-        *,
-        etag,
-        s3_client,
-        version_id
-) -> str:
+def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_id) -> str:
     """get plain text object contents"""
     text = ""
     try:
@@ -569,7 +522,7 @@ def get_plain_text(
             etag=etag,
             s3_client=s3_client,
             limit=get_content_index_bytes(bucket_name=bucket),
-            version_id=version_id
+            version_id=version_id,
         )
         lines = get_preview_lines(
             obj["Body"],
@@ -675,9 +628,7 @@ def handler(event, context):
                 # ObjectRemoved:Delete does not include "eTag"
                 etag = event_["s3"]["object"].get("eTag", "")
                 # synthetic events from bulk scanner might define lastModified
-                last_modified = (
-                    event_["s3"]["object"].get("lastModified") or event_["eventTime"]
-                )
+                last_modified = event_["s3"]["object"].get("lastModified") or event_["eventTime"]
                 # Get two levels of extensions to handle files like .csv.gz
                 ext_next_last, ext_last = get_normalized_extensions(key)
                 compression = get_compression(ext_last)
@@ -694,33 +645,18 @@ def handler(event, context):
                         ext=ext,
                         key=key,
                         last_modified=last_modified,
-                        version_id=version_id
+                        version_id=version_id,
                     )
                     continue
                 try:
-                    head = retry_s3(
-                        "head",
-                        bucket,
-                        key,
-                        s3_client=s3_client,
-                        version_id=version_id,
-                        etag=etag
-                    )
+                    head = retry_s3("head", bucket, key, s3_client=s3_client, version_id=version_id, etag=etag)
                 except botocore.exceptions.ClientError as first:
                     logger_.warning("head_object error: %s", first)
                     # "null" version sometimes results in 403s for buckets
                     # that have changed versioning, retry without it
-                    if (first.response.get('Error', {}).get('Code') == "403"
-                            and version_id == "null"):
+                    if first.response.get('Error', {}).get('Code') == "403" and version_id == "null":
                         try:
-                            head = retry_s3(
-                                "head",
-                                bucket,
-                                key,
-                                s3_client=s3_client,
-                                version_id=None,
-                                etag=etag
-                            )
+                            head = retry_s3("head", bucket, key, s3_client=s3_client, version_id=None, etag=etag)
                         except botocore.exceptions.ClientError as second:
                             # this will bypass the DLQ but that's the right thing to do
                             # as some listed objects may NEVER succeed head requests
@@ -743,7 +679,7 @@ def handler(event, context):
                         version_id=version_id,
                         s3_client=s3_client,
                         size=size,
-                        compression=compression
+                        compression=compression,
                     )
                 # we still want an entry for this document in elastic so that, e.g.,
                 # the file counts from elastic are correct
@@ -788,17 +724,7 @@ def handler(event, context):
     batch_processor.send_all()
 
 
-def retry_s3(
-        operation,
-        bucket,
-        key,
-        size=None,
-        limit=None,
-        *,
-        etag,
-        version_id,
-        s3_client
-):
+def retry_s3(operation, bucket, key, size=None, limit=None, *, etag, version_id, s3_client):
     """retry head or get operation to S3 with; stop before we run out of time.
     retry is necessary since, due to eventual consistency, we may not
     always get the required version of the object.
@@ -812,10 +738,7 @@ def retry_s3(
     else:
         raise ValueError(f"unexpected operation: {operation}")
     # Keyword arguments to function_
-    arguments = {
-        "Bucket": bucket,
-        "Key": key
-    }
+    arguments = {"Bucket": bucket, "Key": key}
     if operation == 'get' and size and limit:
         # can only request range if file is not empty
         arguments['Range'] = f"bytes=0-{min(size, limit) - 1}"
@@ -831,7 +754,7 @@ def retry_s3(
         reraise=True,
         stop=stop_after_attempt(MAX_RETRY),
         wait=wait_exponential(multiplier=2, min=4, max=10),
-        retry=(retry_if_exception(should_retry_exception))
+        retry=(retry_if_exception(should_retry_exception)),
     )
     def call():
         """local function so we can set stop_after_delay dynamically"""
@@ -856,7 +779,6 @@ def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional
         if e.response["Error"]["Code"] != "AccessDenied":
             raise
         get_quilt_logger().error(
-            "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s",
-            bucket, key, version_id
+            "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s", bucket, key, version_id
         )
         return None

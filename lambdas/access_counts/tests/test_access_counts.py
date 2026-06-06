@@ -12,6 +12,7 @@ from t4_lambda_access_counts import index
 
 class TestAccessCounts(TestCase):
     """Tests S3 Select"""
+
     def setUp(self):
         self.s3_stubber = Stubber(index.s3)
         self.s3_stubber.activate()
@@ -27,30 +28,18 @@ class TestAccessCounts(TestCase):
         self.athena_stubber.add_response(
             method='start_query_execution',
             expected_params={
-                'QueryExecutionContext': {
-                    'Database': 'athena-db'
-                },
+                'QueryExecutionContext': {'Database': 'athena-db'},
                 'QueryString': query,
-                'ResultConfiguration': {'OutputLocation': 's3://results-bucket/AthenaQueryResults/'}
+                'ResultConfiguration': {'OutputLocation': 's3://results-bucket/AthenaQueryResults/'},
             },
-            service_response={
-                'QueryExecutionId': execution_id
-            },
+            service_response={'QueryExecutionId': execution_id},
         )
 
     def _end_query(self, execution_id=None):
         self.athena_stubber.add_response(
             method='get_query_execution',
-            expected_params={
-                'QueryExecutionId': execution_id
-            } if execution_id is not None else None,
-            service_response={
-                'QueryExecution': {
-                    'Status': {
-                        'State': 'SUCCEEDED'
-                    }
-                }
-            }
+            expected_params={'QueryExecutionId': execution_id} if execution_id is not None else None,
+            service_response={'QueryExecution': {'Status': {'State': 'SUCCEEDED'}}},
         )
 
     def _run_queries(self, queries):
@@ -73,7 +62,7 @@ class TestAccessCounts(TestCase):
             },
             service_response={
                 'Body': BytesIO(str(start_ts.timestamp()).encode()),
-            }
+            },
         )
 
         self.s3_stubber.add_response(
@@ -83,7 +72,7 @@ class TestAccessCounts(TestCase):
                 'Prefix': 'AthenaQueryResults',
                 'MaxKeys': 1000,
             },
-            service_response={}
+            service_response={},
         )
 
         self.s3_stubber.add_response(
@@ -93,11 +82,7 @@ class TestAccessCounts(TestCase):
                 'Prefix': 'AWSLogs/',
                 'Delimiter': '/',
             },
-            service_response={
-                'CommonPrefixes': [{
-                    'Prefix': 'AWSLogs/123456/'
-                }]
-            }
+            service_response={'CommonPrefixes': [{'Prefix': 'AWSLogs/123456/'}]},
         )
 
         self._run_queries([index.DROP_CLOUDTRAIL, index.DROP_OBJECT_ACCESS_LOG, index.DROP_PACKAGE_HASHES])
@@ -119,12 +104,14 @@ class TestAccessCounts(TestCase):
                 'Bucket': 'results-bucket',
                 'Key': 'ObjectAccessLog.last_updated_ts.txt',
             },
-            service_response={}
+            service_response={},
         )
 
-        self._run_queries([
-            index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp()),
-        ])
+        self._run_queries(
+            [
+                index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp()),
+            ]
+        )
 
         self.s3_stubber.add_response(
             method='put_object',
@@ -134,16 +121,18 @@ class TestAccessCounts(TestCase):
                 'ContentType': 'text/plain',
                 'Body': str(end_ts.timestamp()),
             },
-            service_response={}
+            service_response={},
         )
 
-        self._run_queries([
-            index.OBJECT_ACCESS_COUNTS,
-            index.PACKAGE_ACCESS_COUNTS,
-            index.PACKAGE_VERSION_ACCESS_COUNTS,
-            index.BUCKET_ACCESS_COUNTS,
-            index.EXTS_ACCESS_COUNTS
-        ])
+        self._run_queries(
+            [
+                index.OBJECT_ACCESS_COUNTS,
+                index.PACKAGE_ACCESS_COUNTS,
+                index.PACKAGE_VERSION_ACCESS_COUNTS,
+                index.BUCKET_ACCESS_COUNTS,
+                index.EXTS_ACCESS_COUNTS,
+            ]
+        )
 
         for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
             self.s3_stubber.add_response(
@@ -152,9 +141,7 @@ class TestAccessCounts(TestCase):
                     'Bucket': 'results-bucket',
                     'Key': f'AthenaQueryResults/{idx}.csv',
                 },
-                service_response={
-                    'ContentLength': 123
-                }
+                service_response={'ContentLength': 123},
             )
             self.s3_stubber.add_response(
                 method='copy_object',
@@ -166,9 +153,8 @@ class TestAccessCounts(TestCase):
                     'Bucket': 'results-bucket',
                     'Key': f'AccessCounts/{name}.csv',
                 },
-                service_response={}
+                service_response={},
             )
 
-        with patch('t4_lambda_access_counts.index.now', return_value=now), \
-             patch('time.sleep', return_value=None):
+        with patch('t4_lambda_access_counts.index.now', return_value=now), patch('time.sleep', return_value=None):
             index.handler(None, None)

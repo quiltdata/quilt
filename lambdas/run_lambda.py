@@ -26,13 +26,11 @@ class Handler(BaseHTTPRequestHandler):
             args = {
                 'httpMethod': self.command,
                 'path': path,
-                'pathParameters': {
-                    'proxy': path[len(LAMBDA_PATH) + 1:]
-                },
+                'pathParameters': {'proxy': path[len(LAMBDA_PATH) + 1 :]},
                 'queryStringParameters': query or None,
                 'headers': headers or None,
                 'body': b64encode(req_body or b''),
-                'isBase64Encoded': True
+                'isBase64Encoded': True,
             }
 
             result = lambda_handler(args, None)

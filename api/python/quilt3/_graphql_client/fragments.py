@@ -14,32 +14,28 @@ class APIKeySelection(BaseModel):
     id: str
     name: str
     fingerprint: str
-    created_at: datetime = Field(alias="createdAt")
-    expires_at: datetime = Field(alias="expiresAt")
-    last_used_at: Optional[datetime] = Field(alias="lastUsedAt")
+    created_at: datetime = Field(alias='createdAt')
+    expires_at: datetime = Field(alias='expiresAt')
+    last_used_at: Optional[datetime] = Field(alias='lastUsedAt')
     status: APIKeyStatus
-    user_email: str = Field(alias="userEmail")
+    user_email: str = Field(alias='userEmail')
 
 
 class BucketConfigSelection(BaseModel):
     name: str
     title: str
-    icon_url: Optional[str] = Field(alias="iconUrl")
+    icon_url: Optional[str] = Field(alias='iconUrl')
     description: Optional[str]
-    overview_url: Optional[str] = Field(alias="overviewUrl")
+    overview_url: Optional[str] = Field(alias='overviewUrl')
     tags: Optional[list[str]]
-    relevance_score: int = Field(alias="relevanceScore")
-    last_indexed: Optional[datetime] = Field(alias="lastIndexed")
-    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn")
-    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth")
-    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing")
-    file_extensions_to_index: Optional[list[str]] = Field(alias="fileExtensionsToIndex")
-    index_content_bytes: Optional[int] = Field(alias="indexContentBytes")
+    relevance_score: int = Field(alias='relevanceScore')
+    last_indexed: Optional[datetime] = Field(alias='lastIndexed')
+    sns_notification_arn: Optional[str] = Field(alias='snsNotificationArn')
+    scanner_parallel_shards_depth: Optional[int] = Field(alias='scannerParallelShardsDepth')
+    skip_meta_data_indexing: Optional[bool] = Field(alias='skipMetaDataIndexing')
+    file_extensions_to_index: Optional[list[str]] = Field(alias='fileExtensionsToIndex')
+    index_content_bytes: Optional[int] = Field(alias='indexContentBytes')
     prefixes: list[str]
-
-
-class InvalidInputSelection(BaseModel):
-    errors: list["InvalidInputSelectionErrors"]
 
 
 class InvalidInputSelectionErrors(BaseModel):
@@ -49,51 +45,12 @@ class InvalidInputSelectionErrors(BaseModel):
     context: Optional[Any]
 
 
-class PermissionSelection(BaseModel):
-    bucket: "PermissionSelectionBucket"
-    level: BucketPermissionLevel
-
-
 class PermissionSelectionBucket(BaseModel):
     name: str
 
 
-class PolicySummarySelection(BaseModel):
-    id: str
-    title: str
-    arn: str
-    managed: bool
-    permissions: list["PolicySummarySelectionPermissions"]
-
-
-class PolicySummarySelectionPermissions(PermissionSelection):
-    pass
-
-
-class RoleBucketPermissionSelection(BaseModel):
-    bucket: "RoleBucketPermissionSelectionBucket"
-    level: BucketPermissionLevel
-
-
 class RoleBucketPermissionSelectionBucket(BaseModel):
     name: str
-
-
-class ManagedRoleSelection(BaseModel):
-    typename__: str = Field(alias="__typename")
-    id: str
-    name: str
-    arn: str
-    policies: list["ManagedRoleSelectionPolicies"]
-    permissions: list["ManagedRoleSelectionPermissions"]
-
-
-class ManagedRoleSelectionPolicies(PolicySummarySelection):
-    pass
-
-
-class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
-    pass
 
 
 class OperationErrorSelection(BaseModel):
@@ -102,80 +59,119 @@ class OperationErrorSelection(BaseModel):
     context: Optional[Any]
 
 
-class PolicySelection(BaseModel):
+class UnmanagedRoleSelection(BaseModel):
+    typename__: str = Field(alias='__typename')
     id: str
-    title: str
+    name: str
     arn: str
-    managed: bool
-    permissions: list["PolicySelectionPermissions"]
-    roles: list["PolicySelectionRoles"]
+
+
+class InvalidInputSelection(BaseModel):
+    errors: list[InvalidInputSelectionErrors]
+
+
+class PermissionSelection(BaseModel):
+    bucket: PermissionSelectionBucket
+    level: BucketPermissionLevel
+
+
+class RoleBucketPermissionSelection(BaseModel):
+    bucket: RoleBucketPermissionSelectionBucket
+    level: BucketPermissionLevel
+
+
+class UserSelectionRoleUnmanagedRole(UnmanagedRoleSelection):
+    typename__: Literal['UnmanagedRole'] = Field(alias='__typename')
+
+
+class UserSelectionExtraRolesUnmanagedRole(UnmanagedRoleSelection):
+    typename__: Literal['UnmanagedRole'] = Field(alias='__typename')
+
+
+class PolicySummarySelectionPermissions(PermissionSelection):
+    pass
+
+
+class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
+    pass
 
 
 class PolicySelectionPermissions(PermissionSelection):
     pass
 
 
+class PolicySummarySelection(BaseModel):
+    id: str
+    title: str
+    arn: str
+    managed: bool
+    permissions: list[PolicySummarySelectionPermissions]
+
+
+class ManagedRoleSelectionPolicies(PolicySummarySelection):
+    pass
+
+
+class ManagedRoleSelection(BaseModel):
+    typename__: str = Field(alias='__typename')
+    id: str
+    name: str
+    arn: str
+    policies: list[ManagedRoleSelectionPolicies]
+    permissions: list[ManagedRoleSelectionPermissions]
+
+
 class PolicySelectionRoles(ManagedRoleSelection):
     pass
 
 
-class UnmanagedRoleSelection(BaseModel):
-    typename__: str = Field(alias="__typename")
+class UserSelectionRoleManagedRole(ManagedRoleSelection):
+    typename__: Literal['ManagedRole'] = Field(alias='__typename')
+
+
+class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
+    typename__: Literal['ManagedRole'] = Field(alias='__typename')
+
+
+class PolicySelection(BaseModel):
     id: str
-    name: str
+    title: str
     arn: str
+    managed: bool
+    permissions: list[PolicySelectionPermissions]
+    roles: list[PolicySelectionRoles]
 
 
 class UserSelection(BaseModel):
     name: str
     email: str
-    date_joined: datetime = Field(alias="dateJoined")
-    last_login: datetime = Field(alias="lastLogin")
-    is_active: bool = Field(alias="isActive")
-    is_admin: bool = Field(alias="isAdmin")
-    is_sso_only: bool = Field(alias="isSsoOnly")
-    is_service: bool = Field(alias="isService")
+    date_joined: datetime = Field(alias='dateJoined')
+    last_login: datetime = Field(alias='lastLogin')
+    is_active: bool = Field(alias='isActive')
+    is_admin: bool = Field(alias='isAdmin')
+    is_sso_only: bool = Field(alias='isSsoOnly')
+    is_service: bool = Field(alias='isService')
     role: Optional[
         Annotated[
-            Union["UserSelectionRoleUnmanagedRole", "UserSelectionRoleManagedRole"],
-            Field(discriminator="typename__"),
+            Union[UserSelectionRoleUnmanagedRole, UserSelectionRoleManagedRole], Field(discriminator='typename__')
         ]
     ]
     extra_roles: list[
         Annotated[
-            Union[
-                "UserSelectionExtraRolesUnmanagedRole",
-                "UserSelectionExtraRolesManagedRole",
-            ],
-            Field(discriminator="typename__"),
+            Union[UserSelectionExtraRolesUnmanagedRole, UserSelectionExtraRolesManagedRole],
+            Field(discriminator='typename__'),
         ]
-    ] = Field(alias="extraRoles")
+    ] = Field(alias='extraRoles')
 
 
-class UserSelectionRoleUnmanagedRole(UnmanagedRoleSelection):
-    typename__: Literal["UnmanagedRole"] = Field(alias="__typename")
-
-
-class UserSelectionRoleManagedRole(ManagedRoleSelection):
-    typename__: Literal["ManagedRole"] = Field(alias="__typename")
-
-
-class UserSelectionExtraRolesUnmanagedRole(UnmanagedRoleSelection):
-    typename__: Literal["UnmanagedRole"] = Field(alias="__typename")
-
-
-class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
-    typename__: Literal["ManagedRole"] = Field(alias="__typename")
+class SsoConfigSelectionUploader(UserSelection):
+    pass
 
 
 class SsoConfigSelection(BaseModel):
     text: str
     timestamp: datetime
-    uploader: "SsoConfigSelectionUploader"
-
-
-class SsoConfigSelectionUploader(UserSelection):
-    pass
+    uploader: SsoConfigSelectionUploader
 
 
 APIKeySelection.model_rebuild()
