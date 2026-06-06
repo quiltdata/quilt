@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Move this lambda to the shared uv workspace packaging flow and refresh Python 3.13 compatibility shims without changing hash behavior ([#4933](https://github.com/quiltdata/quilt/pull/4933))
 - [Changed] Switch to uv ([#4651](https://github.com/quiltdata/quilt/pull/4651))
 - [Changed] Upgrade to Python 3.13 ([#4651](https://github.com/quiltdata/quilt/pull/4651))
 - [Added] Add CRC64NVME checksum support with algorithm-agnostic MPU computation ([#4624](https://github.com/quiltdata/quilt/pull/4624))

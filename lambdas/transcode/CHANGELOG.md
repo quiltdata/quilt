@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Restrict transcode inputs to S3 HTTPS URLs and fall back to a raw-media redirect when ffmpeg is unavailable ([#4936](https://github.com/quiltdata/quilt/pull/4936))
 - [Changed] Migrate to proper package structure ([#4655](https://github.com/quiltdata/quilt/pull/4655))
 - [Changed] Switch to uv ([#4655](https://github.com/quiltdata/quilt/pull/4655))
 - [Changed] Upgrade to Python 3.13 ([#4655](https://github.com/quiltdata/quilt/pull/4655))

@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Reject binary payloads for text previews instead of returning garbled output, while keeping text and VCF fallbacks independent of heavy preview dependencies ([#4936](https://github.com/quiltdata/quilt/pull/4936))
 - [Changed] Switch to uv ([#4650](https://github.com/quiltdata/quilt/pull/4650))
 - [Changed] Upgrade to Python 3.13 ([#4650](https://github.com/quiltdata/quilt/pull/4650))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))

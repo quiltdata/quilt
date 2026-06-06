@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Expose h5ad matrix samples and read telemetry, with retry and structured error handling for lazy remote reads ([#4936](https://github.com/quiltdata/quilt/pull/4936))
 - [Added] Preview h5ad (anndata) files ([#4636](https://github.com/quiltdata/quilt/pull/4636))
 - [Changed] Switch to uv ([#4654](https://github.com/quiltdata/quilt/pull/4654))
 - [Changed] Upgrade to Python 3.13 ([#4654](https://github.com/quiltdata/quilt/pull/4654))
