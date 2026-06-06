@@ -7,7 +7,7 @@ export type DataGridProps = Omit<DG.GridComponentProps, 'licenseStatus'>
 
 export const DataGrid = React.memo(
   React.forwardRef<HTMLDivElement, DataGridProps>(function DataGrid(inProps, ref) {
-    const props = DG.useThemeProps({ props: inProps, name: 'MuiDataGrid' })
+    const props = inProps
     return <DG.GridComponent ref={ref} {...props} licenseStatus="Valid" />
   }),
 )

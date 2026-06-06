@@ -21,10 +21,10 @@ describe('components/Markdown', () => {
 <img src="anything"/>`
       expect(render(input)).toMatchInlineSnapshot(`
         "<p>Something</p>
-        <p><a rel="nofollow" href="https://link/anything">link</a>
-        <img alt="" src="https://image/anything"></p>
-        <p><span src="anything" href="anything">don’t touch</span>
-        <a rel="nofollow" href="https://link/anything">link</a>
+        <p><a href="https://link/anything" rel="nofollow">link</a>
+        <img src="https://image/anything" alt=""></p>
+        <p><span href="anything" src="anything">don’t touch</span>
+        <a href="https://link/anything" rel="nofollow">link</a>
         <img src="https://image/anything"></p>
         "
       `)
@@ -41,11 +41,11 @@ describe('components/Markdown', () => {
 <img alt="Alternative text" src="anything"/>`
       expect(render(input)).toMatchInlineSnapshot(`
         "<p>Something</p>
-        <p><a rel="nofollow" href="https://link/anything">link</a>
-        <img alt="Alternative text" src="https://image/anything"></p>
-        <p><span data-dont-touch="" src="anything" href="anything">don’t touch</span>
-        <a href="https://link/anything" title="Link title" rel="nofollow base nofollow">link</a>
+        <p><a href="https://link/anything" rel="nofollow">link</a>
         <img src="https://image/anything" alt="Alternative text"></p>
+        <p><span href="anything" src="anything" data-dont-touch="">don’t touch</span>
+        <a rel="nofollow base nofollow" title="Link title" href="https://link/anything">link</a>
+        <img alt="Alternative text" src="https://image/anything"></p>
         "
       `)
     })
@@ -92,7 +92,7 @@ describe('components/Markdown', () => {
     it('Autolinks bare URLs', () => {
       const input = 'see https://example.com'
       expect(render(input)).toMatchInlineSnapshot(`
-        "<p>see <a rel="nofollow" href="https://link/https://example.com">https://example.com</a></p>
+        "<p>see <a href="https://link/https://example.com" rel="nofollow">https://example.com</a></p>
         "
       `)
     })
@@ -100,7 +100,7 @@ describe('components/Markdown', () => {
     it('Adds nofollow rel to links', () => {
       const input = '[x](https://example.com)'
       expect(render(input)).toMatchInlineSnapshot(`
-        "<p><a rel="nofollow" href="https://link/https://example.com">x</a></p>
+        "<p><a href="https://link/https://example.com" rel="nofollow">x</a></p>
         "
       `)
     })
@@ -152,7 +152,7 @@ describe('components/Markdown', () => {
     it('Renders tasklist nested inside image label', () => {
       const input = '![ [x] image](url)'
       expect(render(input)).toMatchInlineSnapshot(`
-        "<p><img alt="image" src="https://image/url"></p>
+        "<p><img src="https://image/url" alt="image"></p>
         "
       `)
     })

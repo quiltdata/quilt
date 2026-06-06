@@ -25,7 +25,7 @@ function stringify(num?: number | null): RangeField.InputState<number> {
 }
 
 const formatLabel = (number: number) =>
-  formatQuantity(number, { fallback: (n: number) => Math.round(n * 100) / 100 })
+  formatQuantity(number) || String(Math.round(number * 100) / 100)
 
 type NumbersRangeProps = Pick<
   Range.FormControlProps<number>,
