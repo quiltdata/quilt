@@ -248,9 +248,22 @@ def lambda_handler(request):
         elif input_type == 'vcf':
             html, info = extract_vcf(get_preview_lines(content_iter, compression, line_count, max_bytes))
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(
-                get_preview_lines(content_iter, compression, line_count, max_bytes)
-            )
+            skip_labels = ('gzip', 'nul-byte') if compression == 'gz' else ()
+            try:
+                html, info = extract_txt(
+                    get_preview_lines(content_iter, compression, line_count, max_bytes),
+                    raw_preamble=binary_preamble,
+                    skip_sniff_labels=skip_labels,
+                )
+            except BinaryContentError as binary_err:
+                return make_json_response(415, {
+                    'info': {
+                        'data': {'head': [], 'tail': []},
+                        'error': 'binary',
+                        'detected': binary_err.detected,
+                    },
+                    'html': '',
+                })
         else:
             assert False, f'unexpected input_type: {input_type}'
 
