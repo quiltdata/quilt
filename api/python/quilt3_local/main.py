@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -85,8 +86,7 @@ class SPA(starlette.staticfiles.StaticFiles):
         return full_path, stat_result
 
 
-@app.get("/config.json")
-def config():
+def _catalog_config() -> dict[str, Any]:
     return {
         "alwaysRequiresAuth": False,
         "analyticsBucket": "",
@@ -118,6 +118,22 @@ def config():
         "ssoProviders": "",
         "stackVersion": "local-dev",
     }
+
+
+@app.get("/config.json")
+def config():
+    return _catalog_config()
+
+
+@app.get("/config.js")
+def config_js():
+    # The catalog's index.html loads /config.js synchronously to populate
+    # window.QUILT_CATALOG_CONFIG before the app boots (production generates
+    # this from config.json in the Dockerfile). Built bundles don't ship it,
+    # so serve it here or the SPA fallback returns index.html and the app
+    # fails to initialize with "Unexpected token '<'".
+    body = f"window.QUILT_CATALOG_CONFIG = {json.dumps(_catalog_config())}"
+    return starlette.responses.Response(body, media_type="application/javascript")
 
 
 # Order matters: mount the Voila proxy BEFORE the /__reg api mount. Starlette
