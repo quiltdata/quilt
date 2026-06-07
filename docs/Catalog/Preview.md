@@ -52,7 +52,8 @@ currently supported.
 * AnnData (.h5ad) — annotated matrix metadata, with QC metrics and a
   small matrix preview for small files
 * FCS Flow Cytometry files (.fcs) — channel metadata plus a Vega-Lite
-  scatter plot of the first two channels when available
+  scatter plot (forward/side scatter channels when present, otherwise the
+  first two channels)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * Jupyter notebooks (.ipynb)
 * .parquet
