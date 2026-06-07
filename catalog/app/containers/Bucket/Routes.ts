@@ -38,12 +38,13 @@ const BucketPathParams = S.Struct({
   bucket: S.String,
 })
 
-const fromBucketPathParams = <A extends Record<string, unknown>>(
+const fromBucketPathParams = <A extends Nav.PathParams>(
   schema: S.Schema<A, any, any>,
-) =>
-  Nav.fromPathParams(
-    schema as unknown as S.Schema<A, typeof Nav.PathParams.Type>,
-  ) as S.Schema<A, typeof Nav.PathParams.Type>
+): S.Schema<A, Nav.PathParams> =>
+  Nav.fromPathParams(schema as unknown as S.Schema<A>) as unknown as S.Schema<
+    A,
+    Nav.PathParams
+  >
 
 export const overview = Nav.makeRoute({
   name: 'bucket.overview',
