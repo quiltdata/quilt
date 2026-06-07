@@ -816,7 +816,7 @@ wheels = [
 
 [package.optional-dependencies]
 toml = [
-    { name = "tomli", marker = "python_full_version <= '3.11'" },
+    { name = "tomli", marker = "python_full_version <= '3.11' or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
 ]
 
 [[package]]
@@ -2727,13 +2727,13 @@ name = "pytest"
 version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
     { name = "pygments" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/5c/00a0e072241553e1a7496d638deababa67c5058571567b92a7eaa258397c/pytest-8.4.2.tar.gz", hash = "sha256:86c0d0b93306b961d58d62a4db4879f27fe25513d4b969df351abdddb3c30e01", size = 1519618, upload-time = "2025-09-04T14:34:22.711Z" }
 wheels = [
@@ -2745,7 +2745,7 @@ name = "pytest-cov"
 version = "7.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "coverage", extra = ["toml"], marker = "extra == 'group-6-quilt3-dev'" },
+    { name = "coverage", extra = ["toml"] },
     { name = "pluggy" },
     { name = "pytest" },
 ]
@@ -2760,7 +2760,7 @@ version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytest" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/13/12/9c87d0ca45d5992473208bcef2828169fa7d39b8d7fc6e3401f5c08b8bf7/pytest_env-1.2.0.tar.gz", hash = "sha256:475e2ebe8626cee01f491f304a74b12137742397d6c784ea4bc258f069232b80", size = 8973, upload-time = "2025-10-09T19:15:47.42Z" }
 wheels = [
@@ -2989,6 +2989,11 @@ dev = [
     { name = "responses" },
     { name = "ruff" },
 ]
+local-catalog-test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -3023,6 +3028,11 @@ dev = [
     { name = "quilt3", extras = ["pyarrow", "anndata"] },
     { name = "responses" },
     { name = "ruff", specifier = ">=0.12.11" },
+]
+local-catalog-test = [
+    { name = "pytest", specifier = "~=8.4" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
 ]
 
 [[package]]

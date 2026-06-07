@@ -77,6 +77,16 @@ dev = [
     "ruff>=0.12.11",
     "quilt3[pyarrow,anndata]",
 ]
+# Test tooling for the LOCAL catalog backend tests (tests/test_local_mode.py).
+# Kept separate from `dev` because those tests run with `--extra catalog`,
+# which conflicts with `dev`'s `quilt3[pyarrow,anndata]` (see [tool.uv].conflicts).
+# Runtime deps the tests import (aiohttp, starlette, asgiproxy, graphql) are
+# supplied by the `catalog` extra; this group only adds the test runner.
+local-catalog-test = [
+    "pytest~=8.4",
+    "pytest-env",
+    "pytest-cov",
+]
 
 [tool.uv]
 conflicts = [
@@ -94,13 +104,16 @@ extend = "../../ruff.toml"
 _ensure-clean.cmd = "git diff --exit-code"
 
 test.help = "Run test suite"
-test.cmd = "pytest --disable-warnings"
+# test_local_mode.py needs the `catalog` extra (graphql/quilt3_local); it is
+# run by the dedicated `test-local-catalog` CI job, so exclude it here where
+# the default `dev` env can't import it.
+test.cmd = "pytest --disable-warnings --ignore=tests/test_local_mode.py"
 
 test-verbose.help = "Run tests with verbose output"
-test-verbose.cmd = "pytest -v"
+test-verbose.cmd = "pytest -v --ignore=tests/test_local_mode.py"
 
 test-cov.help = "Run tests with coverage report"
-test-cov.cmd = "pytest --cov=. --cov-report=term-missing"
+test-cov.cmd = "pytest --cov=. --cov-report=term-missing --ignore=tests/test_local_mode.py"
 
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
