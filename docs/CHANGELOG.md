@@ -29,6 +29,16 @@ Entries inside each section should be ordered by type:
 * [Added] Transcode lambda support for video previews (mp4/webm) via ffmpeg, with passthrough handling
 * [Changed] Thumbnail lambda renders PDFs page-by-page via a dedicated `pdf_thumbnail` helper
 
+### Catalog
+
+* [Added] Render Vega-Lite scatter charts in FCS (`.fcs`) previews when the preview lambda emits a spec ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Added] Always-on text fallback preview: files not claimed by a type-specific loader are previewed as text, with a clear "Binary file" message when the lambda detects binary content ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Added] Surface AnnData (`.h5ad`) matrix preview, parse errors, and matrix-preview errors in the Perspective metadata panel instead of rendering a blank view ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Changed] Request webm transcoding for video previews ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Changed] Raise PDF/PPTX preview resolution to w2048h1536 ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Fixed] Isolate preview crashes behind error boundaries on the File page and in Summarize so one failing preview no longer blanks the whole view ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Fixed] Preserve the retry button on transient PDF preview failures (timeouts, temporary 5xx) and fix an infinite re-render loop in the PDF loader ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+
 ## 7.3.0 - 2026-04-07
 
 ### Python API

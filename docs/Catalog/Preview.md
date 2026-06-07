@@ -15,6 +15,11 @@ Quilt can display any plaintext file format, including the following.
   (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
+Files without a dedicated preview type fall back to a plain-text preview.
+When a file's contents are detected as binary, the catalog shows a
+"Binary file — no text preview available" message instead of rendering raw
+bytes; use **Download** to retrieve the file.
+
 ## Chemical structures
 
 The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl)
@@ -44,8 +49,10 @@ currently supported.
 
 ## Binary and special file format previews
 
-* AnnData (.h5ad) — annotated matrix metadata, with QC metrics for small files
-* FCS Flow Cytometry files (.fcs)
+* AnnData (.h5ad) — annotated matrix metadata, with QC metrics and a
+  small matrix preview for small files
+* FCS Flow Cytometry files (.fcs) — channel metadata plus a Vega-Lite
+  scatter plot of the first two channels when available
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * Jupyter notebooks (.ipynb)
 * .parquet

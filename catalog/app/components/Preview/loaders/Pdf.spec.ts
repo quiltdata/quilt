@@ -132,7 +132,10 @@ describe('components/Preview/loaders/Pdf', () => {
       fetchMock.mockResolvedValue(new Response(blob, { status: 200, headers }))
 
       const handle = { bucket: 'demo', key: 'report.pdf', version: '123' }
-      const handled = { tag: 'Handled' }
+      const handled = {
+        value: { tag: 'Handled' },
+        options: { handle, retry: 'retry-fetch' },
+      }
       const children = vi.fn(() => null)
       useErrorHandling.mockReturnValueOnce(handled)
       render(
