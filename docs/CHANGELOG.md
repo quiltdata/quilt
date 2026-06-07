@@ -28,6 +28,8 @@ Entries inside each section should be ordered by type:
 * [Added] FCS (`.fcs`) indexer support: column names, metadata, Vega-Lite scatter specs, and warning info, with fallback paths for "Metadata only" and "Unable to parse"
 * [Added] Transcode lambda support for video previews (mp4/webm) via ffmpeg, with passthrough handling
 * [Changed] Thumbnail lambda renders PDFs page-by-page via a dedicated `pdf_thumbnail` helper
+* [Changed] FCS previews now emit a multi-panel gating grid (cells → singlets → fluorescence pairs) with `$PnS` marker labels instead of a single scatter ([#4938](https://github.com/quiltdata/quilt/pull/4938))
+* [Fixed] Thumbnail lambda resolves LibreOffice as `libreoffice` or `soffice` and runs it headless for `.pptx` previews ([#4938](https://github.com/quiltdata/quilt/pull/4938))
 
 ### Catalog
 
@@ -38,6 +40,9 @@ Entries inside each section should be ordered by type:
 * [Changed] Raise PDF/PPTX preview resolution to w2048h1536 ([#4937](https://github.com/quiltdata/quilt/pull/4937))
 * [Fixed] Isolate preview crashes behind error boundaries on the File page and in Summarize so one failing preview no longer blanks the whole view ([#4937](https://github.com/quiltdata/quilt/pull/4937))
 * [Fixed] Preserve the retry button on transient PDF preview failures (timeouts, temporary 5xx) and fix an infinite re-render loop in the PDF loader ([#4937](https://github.com/quiltdata/quilt/pull/4937))
+* [Added] Filesystem-backed LOCAL catalog mode (`quilt3 catalog`): serve a working catalog from a local directory tree without an AWS stack ([#4938](https://github.com/quiltdata/quilt/pull/4938))
+* [Fixed] Route presigned preview URLs through the LOCAL s3proxy so previews work in `quilt3 catalog` ([#4938](https://github.com/quiltdata/quilt/pull/4938))
+* [Fixed] Size small tabular previews to their content instead of a fixed-height datagrid ([#4938](https://github.com/quiltdata/quilt/pull/4938))
 
 ## 7.3.0 - 2026-04-07
 
