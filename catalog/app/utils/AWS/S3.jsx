@@ -48,7 +48,13 @@ function useSmartS3() {
 
       customRequestHandler(req) {
         if (req.params.Bucket) {
-          const endpoint = new AWS.Endpoint(cfg.s3Proxy)
+          // cfg.s3Proxy may be a relative path (e.g. '/__s3proxy' in LOCAL mode);
+          // AWS.Endpoint needs an absolute URL with a host, so resolve it against
+          // the page origin first. An already-absolute proxy URL is left as-is.
+          const proxyUrl = /^https?:\/\//.test(cfg.s3Proxy)
+            ? cfg.s3Proxy
+            : `${window.location.origin}${cfg.s3Proxy}`
+          const endpoint = new AWS.Endpoint(proxyUrl)
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
 

@@ -120,6 +120,34 @@ catalog.help = "Run a filesystem-backed LOCAL catalog with demo data (extra args
 # with poe's `dev` group (see [tool.uv].conflicts); poe itself runs in `dev`.
 catalog.cmd = "uv run --no-default-groups --extra catalog python -m scripts.run_local_catalog"
 
+catalog-health.help = "Probe a running LOCAL catalog and print [OK]/[FAIL] per component (PORT/BUCKET env override)"
+catalog-health.verbosity = -1
+catalog-health.shell = """
+b="http://127.0.0.1:${PORT:-3000}"; bk=${BUCKET:-demo-bucket}
+p="$b/__s3proxy/$bk.s3.amazonaws.com"; rc=0
+echo; echo "LOCAL catalog health — $b/b/$bk"; echo
+# rows: label | url | "" for GET or curl args after a tab
+while IFS='|' read -r label url args; do
+  [ -z "$label" ] && continue
+  code=$(eval curl -s -m 25 -o /dev/null -w '%{http_code}' $args "'$url'")
+  [ "$code" = 200 ] && st="[ OK ]" || { st="[FAIL]"; rc=1; }
+  printf '  %s %-18s HTTP %s\\n' "$st" "$label" "$code"
+done <<EOF
+config.json|$b/config.json|
+config.js|$b/config.js|
+SPA bundle|$b/b/$bk|
+GraphQL|$b/__reg/graphql/|-X POST -H 'content-type: application/json' -d '{"query":"{ bucketConfigs { name } }"}'
+S3 proxy|$b/__s3proxy/$bk.s3.amazonaws.com?list-type=2&prefix=preview/|
+preview (txt)|$b/__lambda/preview?input=txt&url=$p/preview/text/short.txt|
+preview (fcs)|$b/__lambda/preview?input=fcs&url=$p/preview/scientific/normal.fcs|
+tabular (csv)|$b/__lambda/tabular-preview?input=csv&size=small&url=$p/preview/tabular/sample.csv|
+thumbnail (pdf)|$b/__lambda/thumbnail?input=pdf&size=w256h256&url=$p/preview/documents/MUMmer.pdf|
+transcode (webm)|$b/__lambda/transcode?format=video/webm&url=$p/preview/media/object-expand.webm|
+EOF
+echo; [ $rc = 0 ] && echo "  all components healthy." || echo "  one or more FAILED."
+exit $rc
+"""
+
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
 
