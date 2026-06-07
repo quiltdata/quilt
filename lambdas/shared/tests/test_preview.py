@@ -13,11 +13,16 @@ import pyarrow.parquet as pq
 from py_w3c.validators.html.validator import HTMLValidator
 
 from t4_lambda_shared.preview import (
+    FCS_MAX_PANELS,
+    FCS_PANEL_COLUMNS,
     FCS_SCATTER_LIMIT,
     FCS_SCATTER_RANDOM_SEED,
+    _axis_label,
     _build_fcs_scatter_spec,
     _extract_fcs_channel_names,
+    _fcs_channel_markers,
     _parse_fcs_text_segment,
+    _select_fcs_panels,
     extract_excel,
     extract_fcs,
     extract_parquet,
@@ -283,6 +288,70 @@ class TestPreview(TestCase):
 
         assert spec['encoding']['x']['title'] == 'CD3 (FSC-A)'
         assert spec['encoding']['y']['title'] == 'CD4 (SSC-A)'
+
+    def test_select_fcs_panels_canonical_order(self):
+        # Only canonical pairs whose BOTH channels exist, in workflow order.
+        cols = ['FSC-A', 'SSC-A', 'FSC-H', 'FL1-A', 'FL2-A']
+        panels = _select_fcs_panels(cols)
+        assert panels[0] == ('FSC-A', 'SSC-A', 'Cells')
+        assert panels[1] == ('FSC-H', 'FSC-A', 'Singlets')
+        assert ('FL1-A', 'FL2-A', None) in panels
+        # SSC-H is absent, so the "Singlets (SSC)" panel must not appear.
+        assert all(p[:2] != ('SSC-H', 'SSC-A') for p in panels)
+
+    def test_select_fcs_panels_caps_at_max(self):
+        # All canonical channels present -> capped at FCS_MAX_PANELS.
+        cols = ['FSC-A', 'SSC-A', 'FSC-H', 'SSC-H', 'FL1-A', 'FL2-A', 'FL3-A', 'FL4-A']
+        panels = _select_fcs_panels(cols)
+        assert len(panels) == FCS_MAX_PANELS
+
+    def test_select_fcs_panels_fallback_to_first_two(self):
+        # Non-standard channel names -> fall back to the first two columns.
+        assert _select_fcs_panels(['alpha', 'beta', 'gamma']) == [('alpha', 'beta', None)]
+        # Fewer than two columns -> no panels.
+        assert _select_fcs_panels(['solo']) == []
+
+    def test_fcs_channel_markers_parsing(self):
+        # flowio lower-cases keywords to p<idx>n / p<idx>s; blanks are dropped.
+        meta = {
+            'p1n': 'FSC-A',
+            'p1s': '',  # blank marker -> omitted
+            'p2n': 'FL1-A',
+            'p2s': 'CD3',
+            'p3n': 'FL2-A',
+            'p3s': 'nan',  # sentinel -> omitted
+        }
+        assert _fcs_channel_markers(meta) == {'FL1-A': 'CD3'}
+        assert _fcs_channel_markers({}) == {}
+        # Upper-case $PnN/$PnS variant is also recognized.
+        assert _fcs_channel_markers({'$P1N': 'FL1-A', '$P1S': 'CD4'}) == {'FL1-A': 'CD4'}
+
+    def test_axis_label_dedup_and_fallback(self):
+        markers = {'FL1-A': 'CD3', 'FSC-A': 'FSC-A'}
+        assert _axis_label('FL1-A', markers) == 'CD3 (FL1-A)'  # marker shown
+        assert _axis_label('FSC-A', markers) == 'FSC-A'  # redundant marker skipped
+        assert _axis_label('SSC-A', markers) == 'SSC-A'  # no marker -> channel
+        assert _axis_label('SSC-A', None) == 'SSC-A'  # None markers tolerated
+
+    def test_fcs_scatter_spec_single_panel_has_brush(self):
+        # A 2-channel file yields one panel with the interactive brush selection.
+        data = pandas.DataFrame({'FSC-A': range(5), 'SSC-A': range(5)})
+        spec = _build_fcs_scatter_spec(data)
+        assert 'concat' not in spec
+        assert spec['params'] == [{'name': 'brush', 'select': 'interval'}]
+        assert spec['encoding']['color']['condition']['param'] == 'brush'
+
+    def test_fcs_scatter_spec_multi_panel_structure(self):
+        data = pandas.DataFrame({ch: range(10) for ch in ('FSC-A', 'SSC-A', 'FSC-H', 'FL1-A', 'FL2-A')})
+        spec = _build_fcs_scatter_spec(data, channel_markers={'FL1-A': 'CD3', 'FL2-A': 'CD4'})
+        # Grid wiring: independent scales per panel, fixed column count, no brush.
+        assert spec['columns'] == FCS_PANEL_COLUMNS
+        assert spec['resolve'] == {'scale': {'x': 'independent', 'y': 'independent'}}
+        assert 'params' not in spec
+        # Marker labels propagate into the fluorescence panel.
+        fl_panel = next(p for p in spec['concat'] if p['title']['text'].startswith('FL1-A'))
+        assert fl_panel['encoding']['x']['title'] == 'CD3 (FL1-A)'
+        assert fl_panel['encoding']['y']['title'] == 'CD4 (FL2-A)'
 
     def test_parse_fcs_text_segment(self):
         text_segment = b'|$PAR|2|$P1N|FSC-A|$P2S|SSC||A|'

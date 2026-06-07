@@ -20,6 +20,13 @@ const PROXIED = Symbol('proxied')
 const PRESIGN = Symbol('presign')
 const FORCE_PROXY = Symbol('forceProxy')
 
+// cfg.s3Proxy may be a relative path (e.g. '/__s3proxy' in LOCAL mode), but
+// AWS.Endpoint needs an absolute URL with a host. Resolve a relative proxy
+// against the page origin; leave an already-absolute proxy URL untouched.
+export function resolveProxyUrl(s3Proxy, origin = window.location.origin) {
+  return /^https?:\/\//.test(s3Proxy) ? s3Proxy : `${origin}${s3Proxy}`
+}
+
 const Ctx = React.createContext()
 
 /**
@@ -48,13 +55,7 @@ function useSmartS3() {
 
       customRequestHandler(req) {
         if (req.params.Bucket) {
-          // cfg.s3Proxy may be a relative path (e.g. '/__s3proxy' in LOCAL mode);
-          // AWS.Endpoint needs an absolute URL with a host, so resolve it against
-          // the page origin first. An already-absolute proxy URL is left as-is.
-          const proxyUrl = /^https?:\/\//.test(cfg.s3Proxy)
-            ? cfg.s3Proxy
-            : `${window.location.origin}${cfg.s3Proxy}`
-          const endpoint = new AWS.Endpoint(proxyUrl)
+          const endpoint = new AWS.Endpoint(resolveProxyUrl(cfg.s3Proxy))
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
 
