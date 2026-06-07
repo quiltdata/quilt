@@ -14,6 +14,7 @@ const VEGA_OPTIONS = {
 
 const useStyles = M.makeStyles({
   root: {
+    width: '100%',
     maxWidth: '100%',
     '&.vega-embed .vega-actions': {
       right: '38px',

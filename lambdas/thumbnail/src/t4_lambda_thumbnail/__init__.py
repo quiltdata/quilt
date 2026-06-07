@@ -260,6 +260,9 @@ def pptx_to_pdf(*, path: str, page: int):
                 subprocess.run(
                     (
                         soffice_bin,
+                        "--headless",
+                        "--invisible",
+                        "--nologo",
                         "--convert-to",
                         'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"%s-%s"}}' % (page, page),
                         "--outdir",
