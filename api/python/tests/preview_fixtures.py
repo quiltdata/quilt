@@ -50,6 +50,27 @@ CURATED_PREVIEW_FIXTURES = (
     PreviewFixture(
         "fcs", "scientific", "preview/scientific/normal.fcs", REPO_ROOT / "lambdas/shared/tests/data/fcs/normal.fcs"
     ),
+    # Flow-cytometry samples (tlnagy/fcsexamples), downsampled to ~5k events for
+    # the repo; bd-facs-aria-ii-100k is the unmodified 100k-event original for a
+    # realistic-scale gating preview. Channel/marker variety exercises the
+    # multi-panel gating grid and $PnS marker labels.
+    *(
+        PreviewFixture(
+            f"fcs_{name.replace('-', '_')}",
+            "scientific",
+            f"preview/scientific/fcs/{name}.fcs",
+            REPO_ROOT / "api/python/tests/data/fcs_samples" / f"{name}.fcs",
+        )
+        for name in (
+            "accuri-c6",
+            "attune",
+            "bd-facs-aria-ii",
+            "beckman-cyan",
+            "cytof-day3",
+            "millipore-easycyte",
+            "bd-facs-aria-ii-100k",
+        )
+    ),
     PreviewFixture(
         "image", "image", "preview/images/penguin.jpg", REPO_ROOT / "lambdas/thumbnail/tests/data/penguin.jpg"
     ),

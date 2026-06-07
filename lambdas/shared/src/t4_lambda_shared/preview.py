@@ -119,7 +119,7 @@ def extract_fcs(file_, as_html=True):
 
     if data is not None:
         assert isinstance(data, pandas.DataFrame)
-        vega_lite = _build_fcs_scatter_spec(data)
+        vega_lite = _build_fcs_scatter_spec(data, channel_markers=_fcs_channel_markers(meta))
         if vega_lite is not None:
             info['vegaLite'] = vega_lite
         # preview
@@ -257,14 +257,74 @@ def _extract_fcs_channel_names(metadata):
     return ','.join(channel_names)
 
 
-def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
+def _fcs_channel_markers(meta):
+    """Map detector name ($PnN, e.g. 'FL1-A') -> marker label ($PnS, e.g. 'CD3').
+
+    FCS keywords are $P<idx>N (detector/channel name) and $P<idx>S (the
+    biological marker/fluorophore the operator assigned). flowio lower-cases
+    them to p<idx>n / p<idx>s. The marker is optional and often blank.
+    """
+    if not meta:
+        return {}
+    markers = {}
+    idx = 1
+    while True:
+        name = meta.get(f'$P{idx}N') or meta.get(f'p{idx}n')
+        if name is None:
+            break
+        marker = meta.get(f'$P{idx}S') or meta.get(f'p{idx}s')
+        marker = str(marker).strip() if marker is not None else ''
+        if marker and marker.lower() not in ('', 'none', 'nan'):
+            markers[str(name)] = marker
+        idx += 1
+    return markers
+
+
+def _axis_label(channel, channel_markers):
+    """Prefer the biological marker (e.g. 'CD3 (FL1-A)'); fall back to the channel.
+
+    Skip the marker when it just duplicates the channel name (some instruments
+    set $PnS == $PnN), which would otherwise render 'FSC-A (FSC-A)'.
+    """
+    marker = (channel_markers or {}).get(channel)
+    if marker and marker != channel:
+        return f'{marker} ({channel})'
+    return channel
+
+
+# Canonical flow-cytometry gating panels, in workflow order: cells (size vs
+# granularity), singlet discrimination, then fluorescence marker pairs. Only
+# panels whose BOTH channels exist in the file are emitted.
+FCS_GATING_PANELS = [
+    ('FSC-A', 'SSC-A', 'Cells'),
+    ('FSC-H', 'FSC-A', 'Singlets'),
+    ('SSC-H', 'SSC-A', 'Singlets (SSC)'),
+    ('FL1-A', 'FL2-A', None),
+    ('FL3-A', 'FL4-A', None),
+    ('FL1-A', 'FL3-A', None),
+    ('FL2-A', 'FL4-A', None),
+]
+FCS_MAX_PANELS = 6
+FCS_PANEL_COLUMNS = 2
+
+
+def _select_fcs_panels(columns):
+    """Pick the canonical gating panels present in the file, capped at FCS_MAX_PANELS.
+
+    Falls back to the first two columns if none of the canonical pairs match, so
+    arbitrary/non-standard FCS files still get a plot.
+    """
+    column_set = set(columns)
+    panels = [(x, y, label) for x, y, label in FCS_GATING_PANELS if x in column_set and y in column_set]
+    if not panels and len(columns) >= 2:
+        panels = [(columns[0], columns[1], None)]
+    return panels[:FCS_MAX_PANELS]
+
+
+def _build_fcs_panel(data, x_axis, y_axis, label, channel_markers, *, limit):
     import numpy
     import pandas
 
-    if data.shape[1] < 2:
-        return None
-
-    x_axis, y_axis = _select_fcs_scatter_axes(list(data.columns))
     sampled = data[[x_axis, y_axis]].copy()
     sampled[x_axis] = pandas.to_numeric(sampled[x_axis], errors='coerce')
     sampled[y_axis] = pandas.to_numeric(sampled[y_axis], errors='coerce')
@@ -279,53 +339,65 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT):
         sampled = sampled.sample(n=limit, random_state=FCS_SCATTER_RANDOM_SEED)
 
     values = [{'x': x_value, 'y': y_value} for x_value, y_value in sampled.itertuples(index=False, name=None)]
+    x_title = _axis_label(x_axis, channel_markers)
+    y_title = _axis_label(y_axis, channel_markers)
+    title = f'{label} — {x_axis} vs {y_axis}' if label else f'{x_axis} vs {y_axis}'
 
     return {
-        '$schema': 'https://vega.github.io/schema/vega-lite/v5.json',
-        'description': 'FCS scatter plot preview',
-        'title': {
-            'text': f'{x_axis} vs {y_axis}',
-            'subtitle': (f'Downsampled to {len(values)} events' if downsampled else f'Showing {len(values)} events'),
-        },
+        'title': {'text': title, 'subtitle': f'{len(values)} events' + (' (downsampled)' if downsampled else '')},
         'width': 'container',
-        'height': 320,
+        'height': 260,
         'data': {'values': values},
-        'params': [{'name': 'brush', 'select': 'interval'}],
-        'mark': {'type': 'point', 'filled': True, 'size': 18},
+        'mark': {'type': 'point', 'filled': True, 'size': 14},
         'encoding': {
-            'x': {'field': 'x', 'type': 'quantitative', 'title': x_axis},
-            'y': {'field': 'y', 'type': 'quantitative', 'title': y_axis},
-            'color': {
-                'condition': {'param': 'brush', 'value': '#0f766e'},
-                'value': '#94a3b8',
-            },
-            'opacity': {
-                'condition': {'param': 'brush', 'value': 0.85},
-                'value': 0.18,
-            },
+            'x': {'field': 'x', 'type': 'quantitative', 'title': x_title},
+            'y': {'field': 'y', 'type': 'quantitative', 'title': y_title},
+            'opacity': {'value': 0.4},
+            'color': {'value': '#0f766e'},
             'tooltip': [
-                {'field': 'x', 'type': 'quantitative', 'title': x_axis, 'format': '.4g'},
-                {'field': 'y', 'type': 'quantitative', 'title': y_axis, 'format': '.4g'},
+                {'field': 'x', 'type': 'quantitative', 'title': x_title, 'format': '.4g'},
+                {'field': 'y', 'type': 'quantitative', 'title': y_title, 'format': '.4g'},
             ],
         },
-        'config': {'view': {'stroke': 'transparent'}},
     }
 
 
-def _select_fcs_scatter_axes(columns):
-    preferred_pairs = [
-        ('FSC-A', 'SSC-A'),
-        ('FSC-H', 'SSC-H'),
-        ('FSC-A', 'FL1-A'),
-        ('SSC-A', 'FL1-A'),
+def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT, channel_markers=None):
+    if data.shape[1] < 2:
+        return None
+
+    panels = _select_fcs_panels(list(data.columns))
+    sub_specs = [
+        spec
+        for x, y, label in panels
+        if (spec := _build_fcs_panel(data, x, y, label, channel_markers, limit=limit)) is not None
     ]
+    if not sub_specs:
+        return None
 
-    column_set = set(columns)
-    for x_axis, y_axis in preferred_pairs:
-        if x_axis in column_set and y_axis in column_set:
-            return x_axis, y_axis
+    base = {
+        '$schema': 'https://vega.github.io/schema/vega-lite/v5.json',
+        'description': 'FCS gating preview',
+        'config': {'view': {'stroke': 'transparent'}},
+    }
 
-    return columns[0], columns[1]
+    # A single panel keeps the brush-select interaction; multiple panels become
+    # a small-multiples gating grid (concat is more robust than a faceted brush).
+    if len(sub_specs) == 1:
+        spec = sub_specs[0]
+        spec['params'] = [{'name': 'brush', 'select': 'interval'}]
+        enc = spec['encoding']
+        enc['color'] = {'condition': {'param': 'brush', 'value': '#0f766e'}, 'value': '#94a3b8'}
+        enc['opacity'] = {'condition': {'param': 'brush', 'value': 0.85}, 'value': 0.18}
+        spec['height'] = 320
+        return {**base, **spec}
+
+    return {
+        **base,
+        'columns': FCS_PANEL_COLUMNS,
+        'concat': sub_specs,
+        'resolve': {'scale': {'x': 'independent', 'y': 'independent'}},
+    }
 
 
 def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: int) -> Tuple[str, str]:

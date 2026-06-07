@@ -151,11 +151,16 @@ class TestPreview(TestCase):
 
                 assert '<th>FL3-H</th>' in body
                 assert 'warnings' not in info
-                assert info['vegaLite']['title']['text'] == 'FSC-A vs SSC-A'
-                assert info['vegaLite']['title']['subtitle'] == 'Showing 191 events'
-                assert info['vegaLite']['encoding']['x']['title'] == 'FSC-A'
-                assert info['vegaLite']['encoding']['y']['title'] == 'SSC-A'
-                assert len(info['vegaLite']['data']['values']) == 191
+                # This file has FSC/SSC + 4 fluorescence channels, so it yields
+                # the multi-panel gating grid; the first panel is the canonical
+                # FSC-A vs SSC-A "Cells" gate.
+                panels = info['vegaLite']['concat']
+                assert len(panels) > 1
+                first = panels[0]
+                assert first['title']['text'] == 'Cells — FSC-A vs SSC-A'
+                assert first['encoding']['x']['title'] == 'FSC-A'
+                assert first['encoding']['y']['title'] == 'SSC-A'
+                assert len(first['data']['values']) == 191
                 assert expected_data['metadata_key'].lower() in {key.lower() for key in info['metadata'].keys()}
                 assert expected_data['metadata_value'] in info['metadata'].values()
 
@@ -207,7 +212,7 @@ class TestPreview(TestCase):
         spec = _build_fcs_scatter_spec(data)
 
         assert spec['title']['text'] == 'alpha vs beta'
-        assert spec['title']['subtitle'] == f'Downsampled to {FCS_SCATTER_LIMIT} events'
+        assert spec['title']['subtitle'] == f'{FCS_SCATTER_LIMIT} events (downsampled)'
         assert spec['encoding']['x']['title'] == 'alpha'
         assert spec['encoding']['y']['title'] == 'beta'
         assert len(spec['data']['values']) == FCS_SCATTER_LIMIT
@@ -242,7 +247,7 @@ class TestPreview(TestCase):
 
         spec = _build_fcs_scatter_spec(data, limit=10)
 
-        assert spec['title']['subtitle'] == 'Showing 1 events'
+        assert spec['title']['subtitle'] == '1 events'
         assert spec['data']['values'] == [{'x': 1.0, 'y': 10.0}]
         assert (
             _build_fcs_scatter_spec(
@@ -255,6 +260,29 @@ class TestPreview(TestCase):
             )
             is None
         )
+
+    def test_fcs_scatter_spec_multi_panel_gating(self):
+        # FSC/SSC + fluorescence channels -> canonical gating grid (concat).
+        data = pandas.DataFrame(
+            {ch: range(10) for ch in ('FSC-A', 'SSC-A', 'FSC-H', 'FL1-A', 'FL2-A', 'FL3-A', 'FL4-A')}
+        )
+
+        spec = _build_fcs_scatter_spec(data)
+
+        assert 'concat' in spec and 'encoding' not in spec
+        titles = [panel['title']['text'] for panel in spec['concat']]
+        assert titles[0] == 'Cells — FSC-A vs SSC-A'
+        assert titles[1] == 'Singlets — FSC-H vs FSC-A'
+        assert len(spec['concat']) <= 6  # FCS_MAX_PANELS
+
+    def test_fcs_scatter_spec_uses_marker_labels(self):
+        # $PnS markers should label axes as "<marker> (<channel>)".
+        data = pandas.DataFrame({'FSC-A': range(5), 'SSC-A': range(5)})
+
+        spec = _build_fcs_scatter_spec(data, channel_markers={'FSC-A': 'CD3', 'SSC-A': 'CD4'})
+
+        assert spec['encoding']['x']['title'] == 'CD3 (FSC-A)'
+        assert spec['encoding']['y']['title'] == 'CD4 (SSC-A)'
 
     def test_parse_fcs_text_segment(self):
         text_segment = b'|$PAR|2|$P1N|FSC-A|$P2S|SSC||A|'
