@@ -249,12 +249,17 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
 
 @contextlib.contextmanager
 def pptx_to_pdf(*, path: str, page: int):
+    # The binary is "libreoffice" on Lambda/Linux, but Homebrew (macOS) only
+    # installs it as "soffice"; both are the same LibreOffice CLI.
+    soffice_bin = shutil.which("libreoffice") or shutil.which("soffice")
+    if soffice_bin is None:
+        raise PDFThumbError("Missing required command: libreoffice")
     with tempfile.TemporaryDirectory() as out_dir:
         with tempfile.TemporaryDirectory() as tmp_dir:
             try:
                 subprocess.run(
                     (
-                        "libreoffice",
+                        soffice_bin,
                         "--convert-to",
                         'pdf:impress_pdf_Export:{"PageRange":{"type":"string","value":"%s-%s"}}' % (page, page),
                         "--outdir",

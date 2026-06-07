@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Resolve the LibreOffice binary as `libreoffice` or `soffice` for `.pptx` thumbnails, so it works under Homebrew (macOS) and the LOCAL catalog ([#4938](https://github.com/quiltdata/quilt/pull/4938))
 - [Added] Render PDF thumbnails via Poppler or pypdfium2 fallbacks and report page-count/render metadata more reliably ([#4936](https://github.com/quiltdata/quilt/pull/4936))
 - [Fixed] Clean up tmp directory to deal with tmp files persisted between invocations when lambda is killed because of OOM ([#4627](https://github.com/quiltdata/quilt/pull/4627))
 - [Fixed] Fix handling of some .tiff files ([#4609](https://github.com/quiltdata/quilt/pull/4609))
