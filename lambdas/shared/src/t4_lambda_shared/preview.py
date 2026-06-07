@@ -149,10 +149,9 @@ def _parse_fcs_flowio_full(path):
         channel_names.append(name)
 
     expected_values = fd.event_count * fd.channel_count
-    # Stream events directly into a preallocated numpy array sized for the
-    # full event table, then reshape into rows. Avoids materializing two
-    # full Python lists (raw values + chunked rows) — important for large
-    # FCS files in a memory-constrained Lambda.
+    # Stream events into a preallocated array, then reshape — avoids
+    # materializing intermediate Python lists for large FCS files in a
+    # memory-constrained Lambda.
     try:
         values = numpy.fromiter(fd.events, dtype=float, count=expected_values)
     except ValueError as exc:

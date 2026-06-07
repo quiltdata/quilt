@@ -65,12 +65,9 @@ async def package_name_valid(payload: dict):
 @api.get("/voila/")
 @api.get("/voila/{path:path}")
 async def voila_stub(path: str = ""):
-    # Disabled-state stub only. When Voila is ENABLED, main.py mounts the
-    # dedicated HTTP+WebSocket proxy (voila_proxy.py) at /__reg/voila ABOVE the
-    # /__reg api mount, so /__reg/voila/* is intercepted before reaching this
-    # route and the proxy's health shim answers 200 when the manager is ready.
-    # When DISABLED (QUILT_LOCAL_VOILA unset / extra absent) the proxy is not
-    # mounted and requests fall through here to preserve the 404 contract.
+    # Disabled-state stub only. When Voila is enabled, main.py mounts the proxy
+    # at /__reg/voila ahead of this api mount and requests never reach here; when
+    # disabled, requests fall through to preserve the 404 contract.
     raise fastapi.HTTPException(
         404,
         "Voila dashboards are not implemented in LOCAL mode; installing the Python package alone is insufficient.",

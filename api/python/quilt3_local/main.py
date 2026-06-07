@@ -120,12 +120,11 @@ def config():
     }
 
 
-# Mount the dedicated Voila HTTP+WebSocket proxy at /__reg/voila BEFORE the
-# /__reg api mount. Starlette matches mounts in registration order, so the more
-# specific longer prefix registered first intercepts /__reg/voila/* and it never
-# reaches the api sub-app (whose /voila route is the disabled-state 404 stub).
-# Only mounted when available (opted in AND the local-voila extra installed);
-# otherwise /__reg/voila/ falls through to api's 404 stub (graceful disable).
+# Order matters: mount the Voila proxy BEFORE the /__reg api mount. Starlette
+# matches mounts in registration order, so the longer prefix registered first
+# intercepts /__reg/voila/* before it reaches the api sub-app's 404 stub.
+# Only mounted when voila_available(); otherwise requests fall through to that
+# stub (graceful disable).
 if voila_available():
     app.state.voila_manager = None
     from .voila_proxy import make_voila_proxy_app

@@ -170,8 +170,7 @@ class LambdaManager:
 
 def _same_python(project_dir: Path) -> bool:
     """Check if the lambda's requires-python is compatible with the current interpreter."""
-    # For simplicity, always use "python" via uv which handles version resolution.
-    # Return False to let uv pick the right Python.
+    # Always False: let uv resolve the right Python via "python".
     return False
 
 

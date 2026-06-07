@@ -126,13 +126,9 @@ class VoilaProcess:
         self.port = _pick_free_port()
         self._ready = False
 
-        # Launch Voila in the SAME interpreter/env as the parent uvicorn process
-        # (the one the user synced with `uv sync --extra catalog --extra local-voila`).
-        # We do NOT use `uv run --with voila ...`: that would install Voila on demand
-        # and defeat the opt-in install gate. Availability is gated by voila_available()
-        # (find_spec in this same env) before the manager is ever started, so reaching
-        # start() means the extra is installed and the console script is on PATH next to
-        # the interpreter; fall back to `python -m voila` if the script is missing.
+        # Launch Voila in the parent's interpreter/env (see module docstring for
+        # why we don't `uv run --with voila`); fall back to `python -m voila` if
+        # the console script isn't next to the interpreter.
         voila_bin = Path(sys.executable).with_name("voila")
         cmd: list[str] = [str(voila_bin)] if voila_bin.exists() else [sys.executable, "-m", "voila"]
         cmd += [
