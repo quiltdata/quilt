@@ -1534,6 +1534,11 @@ dev = [
     { name = "responses" },
     { name = "ruff", specifier = ">=0.12.11" },
 ]
+local-catalog-test = [
+    { name = "pytest", specifier = "~=8.4" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+]
 
 [[package]]
 name = "referencing"
