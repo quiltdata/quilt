@@ -609,6 +609,27 @@ def test_local_main_exposes_config_registry_and_graphql_routes(monkeypatch, tmp_
     }
 
 
+def test_local_main_serves_config_js(monkeypatch, tmp_path):
+    # The catalog index.html loads /config.js synchronously to bootstrap
+    # window.QUILT_CATALOG_CONFIG before the app starts; it must be served as JS
+    # (not fall through to the SPA's HTML) and carry the same config as
+    # /config.json.
+    local_main = _reload_local_main(monkeypatch, tmp_path)
+    _patch_lambda_lifespan(monkeypatch, local_main)
+
+    with _app_lifespan(local_main.app):
+        config_js = _request_app(local_main.app, "GET", "/config.js")
+        config_json = _request_app(local_main.app, "GET", "/config.json")
+
+    assert config_js.status_code == 200
+    assert "javascript" in config_js.headers.get("content-type", "")
+    body = config_js.text
+    prefix = "window.QUILT_CATALOG_CONFIG = "
+    assert body.startswith(prefix)
+    # The JS payload is exactly the /config.json object assigned to the global.
+    assert json.loads(body[len(prefix) :]) == config_json.json()
+
+
 def test_local_main_exposes_s3proxy_routes(monkeypatch, tmp_path):
     bucket_root = tmp_path / "demo-bucket"
     bucket_root.mkdir()
