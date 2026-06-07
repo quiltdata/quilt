@@ -31,9 +31,6 @@ vi.mock('../types', () => ({
 }))
 
 vi.mock('./utils', () => ({
-  // stripCompression is consumed by Text.js's findLang pipeline at import time
-  // when we re-use its highlighting helpers; the identity function is fine
-  // for these tests since the input keys here have no compression suffix.
   stripCompression: (s: string) => s,
   usePreview: () => ({ result: previewState.value, fetch }),
   useProcessing: (result: unknown, process: (value: unknown) => unknown) => {
@@ -46,37 +43,39 @@ vi.mock('./utils', () => ({
   useErrorHandling: (value: unknown) => value,
 }))
 
-import { detect, Loader } from './TextFallback'
+import { Loader } from './Text'
 
-describe('components/Preview/loaders/TextFallback', () => {
-  it('always detects', () => {
-    expect(detect()).toBe(true)
-  })
-
-  it('renders text content from a normal preview response', () => {
+describe('components/Preview/loaders/Text', () => {
+  it('renders text content and tolerates a missing tail', () => {
     previewState.value = {
-      info: { data: { head: ['hello', 'world'], tail: [] } },
-      html: '',
+      info: {
+        data: { head: ['hello', 'world'] },
+        note: 'partial preview',
+        warnings: 'truncated',
+      },
     }
     let received: unknown
     render(
       <Loader
-        handle={{ key: 'foo.weird' } as never}
+        handle={{ key: 'foo.py' } as never}
         children={(value: unknown) => {
           received = value
           return null
         }}
       />,
     )
+
     expect((received as $TSFixMe).ok).toBe(true)
     expect((received as $TSFixMe).value.tag).toBe('Text')
     expect((received as $TSFixMe).value.value.head).toBe('hello\nworld')
+    expect((received as $TSFixMe).value.value.tail).toBe('')
+    expect((received as $TSFixMe).value.value.note).toBe('partial preview')
+    expect((received as $TSFixMe).value.value.warnings).toBe('truncated')
   })
 
   it('surfaces a binary envelope as Unsupported PreviewError', () => {
     previewState.value = {
       info: { error: 'binary', detected: 'hdf5' },
-      html: '',
     }
     let received: unknown
     render(
@@ -88,6 +87,7 @@ describe('components/Preview/loaders/TextFallback', () => {
         }}
       />,
     )
+
     expect((received as $TSFixMe).ok).toBe(false)
     const err = (received as $TSFixMe).value
     expect(err.tag).toBe('Unsupported')
@@ -95,21 +95,41 @@ describe('components/Preview/loaders/TextFallback', () => {
     expect(String(err.value.message)).toMatch(/hdf5/)
   })
 
-  it('surfaces a null info.data envelope as Unexpected PreviewError', () => {
-    previewState.value = {
-      info: { data: null },
-      html: '',
-    }
+  it('surfaces a missing info envelope as Unexpected PreviewError', () => {
+    previewState.value = { info: null }
     let received: unknown
     render(
       <Loader
-        handle={{ key: 'foo.weird' } as never}
+        handle={{ key: 'foo.txt' } as never}
         children={(value: unknown) => {
           received = value
           return null
         }}
       />,
     )
+
+    expect((received as $TSFixMe).ok).toBe(false)
+    const err = (received as $TSFixMe).value
+    expect(err.tag).toBe('Unexpected')
+    expect(String(err.value.message)).toMatch(/missing info/)
+    expect(err.value.retry).toBe(fetch)
+  })
+
+  it('surfaces a missing info.data envelope as Unexpected PreviewError', () => {
+    previewState.value = {
+      info: { data: null },
+    }
+    let received: unknown
+    render(
+      <Loader
+        handle={{ key: 'foo.txt' } as never}
+        children={(value: unknown) => {
+          received = value
+          return null
+        }}
+      />,
+    )
+
     expect((received as $TSFixMe).ok).toBe(false)
     const err = (received as $TSFixMe).value
     expect(err.tag).toBe('Unexpected')

@@ -107,5 +107,5 @@ export default function PreviewValue({
     )
   }
 
-  return value.toString()
+  return (value as any).toString()
 }

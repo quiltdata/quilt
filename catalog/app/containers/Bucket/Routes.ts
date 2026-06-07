@@ -38,11 +38,19 @@ const BucketPathParams = S.Struct({
   bucket: S.String,
 })
 
+const fromBucketPathParams = <A extends Nav.PathParams>(
+  schema: S.Schema<A, any, any>,
+): S.Schema<A, Nav.PathParams> =>
+  Nav.fromPathParams(schema as unknown as S.Schema<A>) as unknown as S.Schema<
+    A,
+    Nav.PathParams
+  >
+
 export const overview = Nav.makeRoute({
   name: 'bucket.overview',
   path: routes.bucketOverview.path,
   description: 'Bucket overview page',
-  pathParams: Nav.fromPathParams(BucketPathParams),
+  pathParams: fromBucketPathParams(BucketPathParams),
 })
 
 const PATH_SEP = '/'
@@ -66,7 +74,7 @@ export const s3Object = Nav.makeRoute({
   strict: true,
   description: 'S3 Object (aka File) page',
   waitForMarkers: ['versionsReady', 'currentVersionReady'],
-  pathParams: Nav.fromPathParams(
+  pathParams: fromBucketPathParams(
     S.extend(
       BucketPathParams,
       S.Struct({
@@ -99,7 +107,7 @@ export const s3Prefix = Nav.makeRoute({
   exact: true,
   description: 'S3 Prefix (aka Directory) page',
   waitForMarkers: ['listingReady'],
-  pathParams: Nav.fromPathParams(
+  pathParams: fromBucketPathParams(
     S.extend(
       BucketPathParams,
       S.Struct({

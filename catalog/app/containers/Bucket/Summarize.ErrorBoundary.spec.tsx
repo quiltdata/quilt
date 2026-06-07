@@ -6,20 +6,42 @@ vi.mock('constants/config', () => ({ default: {} }))
 
 // Replicate the PreviewErrorBoundary pattern from Summarize.tsx to verify behavior
 class PreviewErrorBoundary extends React.Component<
-  { handleKey: string; children: React.ReactNode },
+  {
+    handle: { bucket: string; key: string; version?: string }
+    children: React.ReactNode
+  },
   { error: Error | null }
 > {
   state: { error: Error | null } = { error: null }
 
+  static getHandleIdentity(handle: { bucket: string; key: string; version?: string }) {
+    return `${handle.bucket}/${handle.key}/${handle.version || ''}`
+  }
+
   static getDerivedStateFromError(error: Error) {
     return { error }
+  }
+
+  componentDidUpdate(
+    prevProps: Readonly<{
+      handle: { bucket: string; key: string; version?: string }
+      children: React.ReactNode
+    }>,
+  ) {
+    if (
+      this.state.error &&
+      PreviewErrorBoundary.getHandleIdentity(prevProps.handle) !==
+        PreviewErrorBoundary.getHandleIdentity(this.props.handle)
+    ) {
+      this.setState({ error: null })
+    }
   }
 
   render() {
     if (this.state.error) {
       return (
         <div data-testid="error-fallback">
-          <span>{this.props.handleKey}</span>
+          <span>{this.props.handle.key}</span>
           <span>Preview unavailable</span>
         </div>
       )
@@ -45,7 +67,7 @@ describe('containers/Bucket/Summarize PreviewErrorBoundary', () => {
 
   it('renders children normally when no error occurs', () => {
     const { getByText } = render(
-      <PreviewErrorBoundary handleKey="data/file.csv">
+      <PreviewErrorBoundary handle={{ bucket: 'demo', key: 'data/file.csv' }}>
         <div>Preview content</div>
       </PreviewErrorBoundary>,
     )
@@ -54,7 +76,7 @@ describe('containers/Bucket/Summarize PreviewErrorBoundary', () => {
 
   it('catches errors and renders fallback with file key', () => {
     const { getByText, getByTestId } = render(
-      <PreviewErrorBoundary handleKey="data/broken.pdf">
+      <PreviewErrorBoundary handle={{ bucket: 'demo', key: 'data/broken.pdf' }}>
         <ThrowingChild error={new Error('Preview render failed')} />
       </PreviewErrorBoundary>,
     )
@@ -66,10 +88,10 @@ describe('containers/Bucket/Summarize PreviewErrorBoundary', () => {
   it('isolates errors to the failing component', () => {
     const { getByText, queryByText } = render(
       <div>
-        <PreviewErrorBoundary handleKey="good.csv">
+        <PreviewErrorBoundary handle={{ bucket: 'demo', key: 'good.csv' }}>
           <div>Good preview</div>
         </PreviewErrorBoundary>
-        <PreviewErrorBoundary handleKey="bad.pdf">
+        <PreviewErrorBoundary handle={{ bucket: 'demo', key: 'bad.pdf' }}>
           <ThrowingChild error={new Error('crash')} />
         </PreviewErrorBoundary>
       </div>,
@@ -77,5 +99,28 @@ describe('containers/Bucket/Summarize PreviewErrorBoundary', () => {
     expect(getByText('Good preview')).toBeTruthy()
     expect(getByText('Preview unavailable')).toBeTruthy()
     expect(queryByText('Good preview')).toBeTruthy()
+  })
+
+  it('resets the fallback when the handle version changes', () => {
+    const { getByText, queryByTestId, rerender } = render(
+      <PreviewErrorBoundary
+        handle={{ bucket: 'demo', key: 'data/file.csv', version: '1' }}
+      >
+        <ThrowingChild error={new Error('crash')} />
+      </PreviewErrorBoundary>,
+    )
+
+    expect(getByText('Preview unavailable')).toBeTruthy()
+
+    rerender(
+      <PreviewErrorBoundary
+        handle={{ bucket: 'demo', key: 'data/file.csv', version: '2' }}
+      >
+        <div>Recovered preview</div>
+      </PreviewErrorBoundary>,
+    )
+
+    expect(queryByTestId('error-fallback')).toBeNull()
+    expect(getByText('Recovered preview')).toBeTruthy()
   })
 })

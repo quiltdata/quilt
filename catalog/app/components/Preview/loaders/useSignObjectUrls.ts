@@ -37,7 +37,7 @@ export const createPathResolver = (
         })
 
 export const createUrlProcessor = (
-  sign: (handle: Model.S3.S3ObjectLocation) => string,
+  sign: (handle: Model.S3.S3ObjectLocation, opts?: any) => string,
   resolvePath: (path: string) => Promise<Model.S3.S3ObjectLocation>,
   handle: Model.S3.S3ObjectLocation,
 ) =>
@@ -45,7 +45,8 @@ export const createUrlProcessor = (
     Resource.parse,
     Resource.Pointer.case({
       Web: async (url) => url,
-      S3: async ({ bucket, ...h }) => sign({ bucket: bucket || handle.bucket, ...h }),
+      S3: async ({ bucket, ...h }) =>
+        (sign as any)({ bucket: bucket || handle.bucket, ...h }),
       S3Rel: async (path) => sign(await resolvePath(path)),
       Path: async (path) => sign(await resolvePath(path)),
     }),
@@ -81,7 +82,7 @@ export default function useSignObjectUrls(
   opts?: { asyncReady?: boolean },
 ) {
   const resolveLogicalKey = LogicalKeyResolver.use()
-  // @ts-expect-error
+  // @ts-expect-error useS3Signer is untyped JS; urlExpiration is optional at runtime
   const sign = AWS.Signer.useS3Signer({ forceProxy: true })
   const resolvePath = React.useMemo(
     () => createPathResolver(resolveLogicalKey, handle),

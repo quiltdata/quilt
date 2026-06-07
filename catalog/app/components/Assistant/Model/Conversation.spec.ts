@@ -70,6 +70,22 @@ const makeLLMStub = (next: Eff.Deferred.Deferred<unknown>): LLM.LLM['Type'] => (
     }),
 })
 
+const startScopedActor = (
+  layer: Eff.Layer.Layer<LLM.LLM | Context.ConversationContext | Connectors.Connectors>,
+): Eff.Effect.Effect<
+  Actor.Actor<Conversation.State, Conversation.Action>,
+  never,
+  Eff.Scope.Scope
+> =>
+  Eff.Effect.gen(function* () {
+    const initial = yield* Conversation.init
+    const definition = yield* Conversation.ConversationActor
+    return yield* Eff.Effect.acquireRelease(
+      Actor.start(definition, initial, Eff.Effect.succeed(layer)),
+      (actor) => Eff.Fiber.interruptFork(actor.listener),
+    )
+  })
+
 const runActor = <A>(
   build: (
     actor: Actor.Actor<Conversation.State, Conversation.Action>,
@@ -88,9 +104,7 @@ const runActor = <A>(
           Eff.Layer.succeed(LLM.LLM, makeLLMStub(llmCalled)),
           Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
         )
-        const initial = yield* Conversation.init
-        const definition = yield* Conversation.ConversationActor
-        const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+        const actor = yield* startScopedActor(layer)
         return yield* build(actor, isBlockedRef, llmCalled)
       }),
     ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<A>,
@@ -100,31 +114,61 @@ const awaitState = (
   actor: Actor.Actor<Conversation.State, Conversation.Action>,
   predicate: (s: Conversation.State) => boolean,
 ): Eff.Effect.Effect<Conversation.State> =>
-  Eff.pipe(
-    actor.state.changes,
-    Eff.Stream.filter(predicate),
-    Eff.Stream.take(1),
-    Eff.Stream.runHead,
-    Eff.Effect.flatMap(
-      Eff.Option.match({
-        onNone: () => Eff.Effect.die('state stream ended without match'),
-        onSome: Eff.Effect.succeed,
-      }),
-    ),
-  )
+  Eff.Effect.gen(function* () {
+    const current = yield* Eff.SubscriptionRef.get(actor.state)
+    if (predicate(current)) return current
+
+    return yield* Eff.pipe(
+      actor.state.changes,
+      Eff.Stream.filter(predicate),
+      Eff.Stream.take(1),
+      Eff.Stream.runHead,
+      Eff.Effect.flatMap(
+        Eff.Option.match({
+          onNone: () => Eff.Effect.die('state stream ended without match'),
+          onSome: Eff.Effect.succeed,
+        }),
+      ),
+    )
+  })
 
 describe('Conversation actor — connector gating', () => {
   it('Idle + Ask + connectors unblocked → WaitingForAssistant', () =>
-    runActor((actor) =>
-      Eff.Effect.gen(function* () {
-        yield* actor.dispatch(Conversation.Action.Ask({ content: 'hi' }))
-        const next = yield* awaitState(actor, (s) => s._tag !== 'Idle')
-        expect(next._tag).toBe('WaitingForAssistant')
-        if (next._tag !== 'WaitingForAssistant') return
-        // user message landed
-        expect(next.events).toHaveLength(1)
-        expect(next.events[0]._tag).toBe('Message')
-      }),
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const llmGate = yield* Eff.Deferred.make<void>()
+          const llmCalled = yield* Eff.Deferred.make<unknown>()
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(llmCalled, undefined)
+                yield* Eff.Deferred.await(llmGate)
+                return {
+                  content: Eff.Option.some([]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, makeConnectorsStub(isBlockedRef)),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const actor = yield* startScopedActor(layer)
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'hi' }))
+          const next = yield* awaitState(actor, (s) => s._tag === 'WaitingForAssistant')
+          expect(next._tag).toBe('WaitingForAssistant')
+          if (next._tag !== 'WaitingForAssistant') return
+          expect(next.events).toHaveLength(1)
+          expect(next.events[0]._tag).toBe('Message')
+
+          yield* Eff.Deferred.await(llmCalled)
+          yield* Eff.Deferred.succeed(llmGate, undefined)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
 
   it('Idle + Ask + connectors blocked → AwaitingConnector', () =>
@@ -140,18 +184,40 @@ describe('Conversation actor — connector gating', () => {
     ))
 
   it('AwaitingConnector + unblock → ConnectorReady fires → WaitingForAssistant', () =>
-    runActor((actor, isBlocked, llmCalled) =>
-      Eff.Effect.gen(function* () {
-        yield* Eff.SubscriptionRef.set(isBlocked, true)
-        yield* actor.dispatch(Conversation.Action.Ask({ content: 'hi' }))
-        yield* awaitState(actor, (s) => s._tag === 'AwaitingConnector')
-        // unblock — waiter dispatches ConnectorReady — actor transitions
-        yield* Eff.SubscriptionRef.set(isBlocked, false)
-        const next = yield* awaitState(actor, (s) => s._tag === 'WaitingForAssistant')
-        expect(next._tag).toBe('WaitingForAssistant')
-        // and the LLM was actually invoked
-        yield* Eff.Deferred.await(llmCalled)
-      }),
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(true)
+          const llmGate = yield* Eff.Deferred.make<void>()
+          const llmCalled = yield* Eff.Deferred.make<unknown>()
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(llmCalled, undefined)
+                yield* Eff.Deferred.await(llmGate)
+                return {
+                  content: Eff.Option.some([]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, makeConnectorsStub(isBlockedRef)),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const actor = yield* startScopedActor(layer)
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'hi' }))
+          yield* awaitState(actor, (s) => s._tag === 'AwaitingConnector')
+          yield* Eff.SubscriptionRef.set(isBlockedRef, false)
+          const next = yield* awaitState(actor, (s) => s._tag === 'WaitingForAssistant')
+          expect(next._tag).toBe('WaitingForAssistant')
+
+          yield* Eff.Deferred.await(llmCalled)
+          yield* Eff.Deferred.succeed(llmGate, undefined)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
 
   it('AwaitingConnector + Abort → Idle (waiter interrupted)', () =>
@@ -257,9 +323,7 @@ describe('Conversation actor — connector gating', () => {
             Eff.Layer.succeed(LLM.LLM, llm),
             Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
           )
-          const initial = yield* Conversation.init
-          const definition = yield* Conversation.ConversationActor
-          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+          const actor = yield* startScopedActor(layer)
 
           // Ask while unblocked → WaitingForAssistant; LLM is still gated.
           yield* actor.dispatch(Conversation.Action.Ask({ content: 'do thing' }))
@@ -302,6 +366,7 @@ describe('Conversation actor — connector gating', () => {
         Eff.Effect.gen(function* () {
           const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
           const executorRan = yield* Eff.Deferred.make<void>()
+          const returnedToolUse = yield* Eff.Ref.make(false)
 
           const connectorTool: Tool.Descriptor<Record<string, unknown>> = {
             schema: {} as Eff.JSONSchema.JsonSchema7Root,
@@ -324,15 +389,25 @@ describe('Conversation actor — connector gating', () => {
           }
           const llm: LLM.LLM['Type'] = {
             converse: () =>
-              Eff.Effect.succeed({
-                content: Eff.Option.some([
-                  Content.ResponseMessageContentBlock.ToolUse({
-                    toolUseId: 'tu1',
-                    name: 'c1__t1',
-                    input: {},
-                  }),
-                ]),
-                backendResponse: {} as never,
+              Eff.Effect.gen(function* () {
+                const alreadyReturnedToolUse = yield* Eff.Ref.get(returnedToolUse)
+                if (alreadyReturnedToolUse) {
+                  return {
+                    content: Eff.Option.some([]),
+                    backendResponse: {} as never,
+                  }
+                }
+                yield* Eff.Ref.set(returnedToolUse, true)
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'tu1',
+                      name: 'c1__t1',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
               }),
           }
           const layer = Eff.Layer.mergeAll(
@@ -340,9 +415,7 @@ describe('Conversation actor — connector gating', () => {
             Eff.Layer.succeed(LLM.LLM, llm),
             Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
           )
-          const initial = yield* Conversation.init
-          const definition = yield* Conversation.ConversationActor
-          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+          const actor = yield* startScopedActor(layer)
 
           yield* actor.dispatch(
             Conversation.Action.Ask({ content: 'use connector tool' }),

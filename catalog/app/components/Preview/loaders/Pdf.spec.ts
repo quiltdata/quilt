@@ -1,4 +1,18 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import * as React from 'react'
+import { render } from '@testing-library/react'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { dataUse, fetchMock, memoEq, pending, sign, useErrorHandling, warnSpy, errorSpy } =
+  vi.hoisted(() => ({
+    dataUse: vi.fn(),
+    fetchMock: vi.fn(),
+    memoEq: vi.fn(),
+    pending: [] as Promise<unknown>[],
+    sign: vi.fn(),
+    useErrorHandling: vi.fn((value: unknown, options: unknown) => ({ value, options })),
+    warnSpy: vi.spyOn(console, 'warn').mockImplementation(() => {}),
+    errorSpy: vi.spyOn(console, 'error').mockImplementation(() => {}),
+  }))
 
 vi.mock('constants/config', () => ({
   default: { apiGatewayEndpoint: 'https://api.example.com' },
@@ -21,9 +35,9 @@ vi.mock('utils/APIConnector', () => ({
   },
 }))
 vi.mock('utils/AWS', () => ({
-  Signer: { useS3Signer: () => vi.fn() },
+  Signer: { useS3Signer: () => sign },
 }))
-vi.mock('utils/Data', () => ({ use: vi.fn() }))
+vi.mock('utils/Data', () => ({ use: dataUse }))
 vi.mock('utils/NamedRoutes', () => ({
   mkSearch: (params: Record<string, unknown>) =>
     `?${Object.entries(params)
@@ -31,12 +45,44 @@ vi.mock('utils/NamedRoutes', () => ({
       .join('&')}`,
 }))
 vi.mock('utils/useMemoEq', () => ({
-  default: (_deps: unknown[], fn: () => unknown) => fn(),
+  default: memoEq,
+}))
+vi.mock('../types', () => ({
+  PreviewData: {
+    Pdf: (value: unknown) => ({ tag: 'Pdf', value }),
+  },
+  PreviewError: {
+    Archived: (value: unknown) => {
+      const err: Error & { tag: string; value: unknown } = Object.assign(
+        new Error('Archived'),
+        { tag: 'Archived', value },
+      )
+      return err
+    },
+    Forbidden: (value: unknown) => {
+      const err: Error & { tag: string; value: unknown } = Object.assign(
+        new Error('Forbidden'),
+        { tag: 'Forbidden', value },
+      )
+      return err
+    },
+  },
+}))
+vi.mock('./utils', () => ({
+  GLACIER_ERROR_RE: /storage class/i,
+  extIn: (extensions: string[]) => (key: string) =>
+    extensions.some((ext) => key.toLowerCase().endsWith(ext)),
+  useErrorHandling,
 }))
 
-import { detect } from './Pdf'
+import { detect, Loader } from './Pdf'
 
 describe('components/Preview/loaders/Pdf', () => {
+  afterAll(() => {
+    warnSpy.mockRestore()
+    errorSpy.mockRestore()
+  })
+
   describe('detect', () => {
     it('detects .pdf files', () => {
       expect(detect('report.pdf')).toBe(true)
@@ -61,49 +107,171 @@ describe('components/Preview/loaders/Pdf', () => {
 
   describe('loadPdf', () => {
     beforeEach(() => {
-      vi.restoreAllMocks()
+      pending.length = 0
+      dataUse.mockReset()
+      fetchMock.mockReset()
+      memoEq.mockReset()
+      sign.mockReset()
+      useErrorHandling.mockClear()
+      warnSpy.mockClear()
+      errorSpy.mockClear()
+      memoEq.mockImplementation((_deps: unknown[], fn: () => unknown) => fn())
+      dataUse.mockImplementation(
+        (fn: (value: unknown) => Promise<unknown>, value: unknown) => {
+          pending.push(fn(value))
+          return { result: { tag: 'Loading' }, fetch: 'retry-fetch' }
+        },
+      )
+      sign.mockReturnValue('https://signed-url.example.com/doc.pdf')
+      vi.stubGlobal('fetch', fetchMock)
     })
 
     it('fetches thumbnail with correct parameters for pdf', async () => {
       const blob = new Blob(['fake-pdf'], { type: 'application/pdf' })
       const headers = new Headers({ 'X-Quilt-Info': JSON.stringify({ page_count: 3 }) })
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response(blob, { status: 200, headers }),
+      fetchMock.mockResolvedValue(new Response(blob, { status: 200, headers }))
+
+      const handle = { bucket: 'demo', key: 'report.pdf', version: '123' }
+      const handled = { tag: 'Handled' }
+      const children = vi.fn(() => null)
+      useErrorHandling.mockReturnValueOnce(handled)
+      render(
+        React.createElement(Loader, {
+          handle: handle as never,
+          children: children as never,
+        }),
       )
 
-      // Import the module to get at loadPdf indirectly via Loader
-      // Since loadPdf is not exported, we test it through the Loader component
-      // Instead, let's verify the fetch call shape
-      const { mkSearch } = await import('utils/NamedRoutes')
-      const search = mkSearch({
+      expect(memoEq).toHaveBeenCalledWith(
+        [sign, handle.bucket, handle.key, handle.version],
+        expect.any(Function),
+      )
+      expect(sign).toHaveBeenCalledWith(handle)
+      expect(dataUse).toHaveBeenCalledWith(expect.any(Function), {
         url: 'https://signed-url.example.com/doc.pdf',
-        input: 'pdf',
-        size: 'w2048h1536',
-        countPages: true,
+        handle,
       })
-      expect(search).toContain('size=w2048h1536')
-      expect(search).toContain('countPages=true')
-      expect(search).toContain('input=pdf')
+      expect(useErrorHandling).toHaveBeenCalledWith(
+        { tag: 'Loading' },
+        { handle, retry: 'retry-fetch' },
+      )
+      expect(children).toHaveBeenCalledWith(handled)
+
+      await expect(pending[0]).resolves.toMatchObject({
+        tag: 'Pdf',
+        value: expect.objectContaining({
+          handle,
+          pages: 3,
+          type: 'pdf',
+        }),
+      })
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const requestUrl = new URL(fetchMock.mock.calls[0][0])
+      expect(requestUrl.pathname).toBe('/thumbnail')
+      expect(requestUrl.searchParams.get('url')).toBe(
+        'https://signed-url.example.com/doc.pdf',
+      )
+      expect(requestUrl.searchParams.get('input')).toBe('pdf')
+      expect(requestUrl.searchParams.get('size')).toBe('w2048h1536')
+      expect(requestUrl.searchParams.get('countPages')).toBe('true')
+      expect(Array.from(requestUrl.searchParams.keys()).sort()).toEqual([
+        'countPages',
+        'input',
+        'size',
+        'url',
+      ])
     })
 
-    it('determines type as pptx for .pptx keys', () => {
-      const key = 'presentations/deck.pptx'
-      const type = key.toLowerCase().endsWith('.pptx') ? 'pptx' : 'pdf'
-      expect(type).toBe('pptx')
+    it('loads pptx previews based on the logical key extension', async () => {
+      fetchMock.mockResolvedValue(
+        new Response(new Blob(['fake-pptx'], { type: 'application/pdf' }), {
+          status: 200,
+          headers: new Headers({ 'X-Quilt-Info': JSON.stringify({ page_count: 7 }) }),
+        }),
+      )
+
+      render(
+        React.createElement(Loader, {
+          handle: {
+            bucket: 'demo',
+            key: 'hashed/asset',
+            logicalKey: 'slides.pptx',
+          } as never,
+          children: () => null,
+        }),
+      )
+
+      await expect(pending[0]).resolves.toEqual(
+        expect.objectContaining({
+          tag: 'Pdf',
+          value: expect.objectContaining({ type: 'pptx', pages: 7 }),
+        }),
+      )
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const requestUrl = new URL(fetchMock.mock.calls[0][0])
+      expect(requestUrl.searchParams.get('input')).toBe('pptx')
     })
 
-    it('determines type as pdf for .pdf keys', () => {
-      const key = 'documents/report.pdf'
-      const type = key.toLowerCase().endsWith('.pptx') ? 'pptx' : 'pdf'
-      expect(type).toBe('pdf')
+    it('maps forbidden glacier responses to Archived PreviewError', async () => {
+      fetchMock.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: 'Forbidden',
+            text: "The operation is not valid for the object's storage class",
+          }),
+          { status: 403 },
+        ),
+      )
+
+      render(
+        React.createElement(Loader, {
+          handle: { bucket: 'demo', key: 'report.pdf' } as never,
+          children: () => null,
+        }),
+      )
+
+      await expect(pending[0]).rejects.toMatchObject({ tag: 'Archived' })
     })
 
-    it('uses logicalKey over key when available for type detection', () => {
-      const handle = { key: 'hash/abc123', logicalKey: 'slides.pptx' }
-      const type = (handle.logicalKey || handle.key).toLowerCase().endsWith('.pptx')
-        ? 'pptx'
-        : 'pdf'
-      expect(type).toBe('pptx')
+    it('maps non-glacier forbidden responses to Forbidden PreviewError', async () => {
+      fetchMock.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: 'Forbidden',
+            text: 'Access denied',
+          }),
+          { status: 403 },
+        ),
+      )
+
+      render(
+        React.createElement(Loader, {
+          handle: { bucket: 'demo', key: 'report.pdf' } as never,
+          children: () => null,
+        }),
+      )
+
+      await expect(pending[0]).rejects.toMatchObject({ tag: 'Forbidden' })
+    })
+
+    it('rethrows unexpected errors so retry handling can wrap them later', async () => {
+      fetchMock.mockRejectedValue(new Error('boom'))
+
+      render(
+        React.createElement(Loader, {
+          handle: { bucket: 'demo', key: 'report.pdf' } as never,
+          children: () => null,
+        }),
+      )
+
+      await expect(pending[0]).rejects.toThrow('boom')
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+      expect(warnSpy).toHaveBeenCalledWith(
+        'error loading pdf preview',
+        expect.any(Object),
+      )
+      expect(errorSpy).toHaveBeenCalledTimes(1)
+      expect((errorSpy.mock.calls[0][0] as Error).message).toBe('boom')
     })
   })
 })

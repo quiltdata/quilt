@@ -183,7 +183,7 @@ export default function Column({
     columns,
     data: data.items,
     defaultColumn: {
-      Cell,
+      Cell: Cell as any,
     },
     updateMyData,
   })

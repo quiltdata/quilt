@@ -16,12 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
-## unreleased
+## unreleased - YYYY-MM-DD
 
 ### Python API
 
-* [Added] Filesystem-backed LOCAL catalog mode: `quilt3 catalog` can serve objects and package metadata from a local directory tree (`QUILT_LOCAL_OBJECT_BACKEND=filesystem`), with in-repo `quilt3_local` backend (s3proxy, GraphQL, search, isolated uv-subprocess lambda runner). Interactive Voila dashboards are available behind the opt-in `quilt3[local-voila]` extra.
-* [Changed] Drop support for Python 3.9 and 3.10; `quilt3` now requires Python >=3.11
+* [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` continues to support Python 3.10+ ([#4941](https://github.com/quiltdata/quilt/pull/4941))
+* [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
 
 ### Lambdas
 

@@ -267,7 +267,7 @@ function addMetadataSchema(
     () => !!metadata_schema,
     addSchema(bucket, metadata_schema as string),
     R.identity,
-  )
+  ) as (j: JsonRecord) => JsonRecord
 }
 
 function addEntriesSchema(
@@ -278,7 +278,7 @@ function addEntriesSchema(
     () => !!entries_schema,
     addSchema(bucket, entries_schema as string),
     R.identity,
-  )
+  ) as (j: JsonRecord) => JsonRecord
 }
 
 function createSlug(name: string): string {

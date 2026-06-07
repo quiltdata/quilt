@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.9,<1"]
+requires = ["uv_build>=0.8.15,<0.9.0"]
 build-backend = "uv_build"
 
 [project]
@@ -7,7 +7,7 @@ name = "quilt3"
 version = "7.4.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
@@ -17,49 +17,39 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "platformdirs>=4",
-    "boto3>=1.35",
-    "jsonlines>=4,<5",
-    "PyYAML>=6",
-    "requests>=2.31",
-    "tenacity>=9",
-    "tqdm>=4.66",
-    "requests_futures>=1.0,<2",
-    "jsonschema>=4,<5",
-    "pydantic>=2.7,<3",
-    "awscrt>=0.31",
+    "platformdirs>=2",
+    "boto3>=1.21.7",
+    "jsonlines==1.2.0",
+    "PyYAML>=5.1",
+    "requests>=2.12.4",
+    "tenacity>=5.1.1,!=8.4.0",
+    "tqdm>=4.32",
+    "requests_futures==1.0.0",
+    "jsonschema>=3,<5",
+    "pydantic>=2.0.0,<3.0.0",
+    "awscrt>=0.31.0",
 ]
 
 [project.optional-dependencies]
 pyarrow = [
-    "numpy>=1.26",
-    "pandas>=2.1",
-    "pyarrow>=15",
+    "numpy>=1.14.0",
+    "pandas>=0.19.2",
+    "pyarrow>=0.14.1",
 ]
 anndata = [
-    "anndata>=0.10",
+    "anndata>=0.8.0",
 ]
 catalog = [
-    "fastapi>=0.115",
-    "aiohttp>=3.11",
-    "ariadne>=0.23",
-    "cachetools>=5.5",
-    "asgiproxy>=0.2,<0.3",
-    "uvicorn>=0.34",
-]
-local-voila = [
-    "voila>=0.5,<0.6",
-    "jupyter-server>=2.0,<3",
-    "jupyter-client>=8",
-    "nbclient>=0.10",
-    "nbconvert>=7",
-    "ipykernel>=6",
+    "quilt3_local>=2,<3",
+    "uvicorn>=0.15,<0.18",
+    "aiobotocore[boto3]>=2",
 ]
 
 [project.urls]
@@ -78,26 +68,23 @@ module-name = "quilt3"
 
 [dependency-groups]
 dev = [
-    "poethepoet>=0.37",
-    "pytest-cov>=6",
-    "pytest-env>=1.1",
-    "pytest-subtests>=0.13",
+    "poethepoet>=0.37.0",
+    "pytest-cov",
+    "pytest-env",
+    "pytest-subtests",
     "pytest~=8.4",
-    "responses>=0.25",
-    "ruff>=0.12",
-    "lxml-html-clean>=0.4",
+    "responses",
+    "ruff>=0.12.11",
     "quilt3[pyarrow,anndata]",
-]
-local-catalog-test = [
-    "graphql-core>=3.2",
-    "pytest~=8.4",
-    "pytest-cov>=6",
-    "pytest-env>=1.1",
-    "pytest-subtests>=0.13",
-    "quilt3[catalog]",
 ]
 
 [tool.uv]
+conflicts = [
+    [
+        { group = "dev" },
+        { extra = "catalog" },
+    ],
+]
 
 [tool.ruff]
 # Extends from root configuration
@@ -107,13 +94,13 @@ extend = "../../ruff.toml"
 _ensure-clean.cmd = "git diff --exit-code"
 
 test.help = "Run test suite"
-test.cmd = "pytest --disable-warnings --ignore=tests/test_local_mode.py"
+test.cmd = "pytest --disable-warnings"
 
 test-verbose.help = "Run tests with verbose output"
-test-verbose.cmd = "pytest -v --ignore=tests/test_local_mode.py"
+test-verbose.cmd = "pytest -v"
 
 test-cov.help = "Run tests with coverage report"
-test-cov.cmd = "pytest --cov=. --cov-report=term-missing --ignore=tests/test_local_mode.py"
+test-cov.cmd = "pytest --cov=. --cov-report=term-missing"
 
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
@@ -128,6 +115,7 @@ _gql-clean.shell = "rm -rf quilt3/_graphql_client"
 
 _gql-gen.cmd = "uv run ariadne-codegen client"
 _gql-gen.cwd = "quilt3-graphql"
+_gql-postprocess.cmd = "uv run python quilt3-graphql/postprocess_fragments.py"
 
 _gql-fmt.cmd = "ruff format quilt3/_graphql_client"
 _gql-lint-fix.cmd = "ruff check --fix quilt3/_graphql_client"
@@ -136,6 +124,7 @@ gql-gen.help = "Generate GraphQL client code for quilt3"
 gql-gen.sequence = [
     "_gql-clean",
     "_gql-gen",
+    "_gql-postprocess",
     "_gql-lint-fix",
     "_gql-fmt",
 ]
@@ -170,53 +159,3 @@ gendocs-check.sequence = [
 testdocs.help = "Test documentation code blocks"
 testdocs.cmd = "uv run --locked pytest --codeblocks ../docs"
 testdocs.cwd = "../../testdocs"
-
-_catalog-test-config.help = "Write LOCAL frontend config for filesystem catalog testing"
-_catalog-test-config.shell = """
-mkdir -p ../../catalog/static-dev
-cat > ../../catalog/static-dev/config.js <<'EOF'
-window.QUILT_CATALOG_CONFIG = {
-  region: 'us-east-1',
-  registryUrl: '/__reg',
-  alwaysRequiresAuth: false,
-  apiGatewayEndpoint: '/__lambda',
-  s3Proxy: '/__s3proxy',
-  passwordAuth: 'DISABLED',
-  ssoAuth: 'DISABLED',
-  ssoProviders: '',
-  stackVersion: 'local-dev',
-  mode: 'LOCAL',
-  mixpanelToken: '',
-  serviceBucket: '',
-  noDownload: false,
-}
-EOF
-"""
-
-_catalog-test-frontend.help = "Install catalog frontend dependencies"
-_catalog-test-frontend.cmd = "npm install"
-_catalog-test-frontend.cwd = "../../catalog"
-
-_catalog-test-stage.help = "Reset LOCAL fixture bucket and stage preview fixtures"
-_catalog-test-stage.shell = """
-rm -rf /tmp/quilt-local-data
-mkdir -p /tmp/quilt-local-data/demo-bucket
-uv run --no-dev --extra catalog python -m tests.preview_fixtures /tmp/quilt-local-data/demo-bucket
-"""
-
-_catalog-test-print.help = "Print next-step commands for LOCAL catalog testing"
-_catalog-test-print.shell = """
-printf '%s\\n' \
-  '' \
-  'Prepared LOCAL catalog test state.' \
-  'Frontend: cd ../../catalog && PORT=3001 npm start' \
-  'Backend: cd . && PYTHONPATH=$PWD QUILT_LOCAL_OBJECT_BACKEND=filesystem QUILT_LOCAL_DATA_DIR=/tmp/quilt-local-data QUILT_CATALOG_URL=http://localhost:3001 uv run --no-dev --extra catalog quilt3 catalog --host localhost --port 3000 --no-browser'
-"""
-
-catalog-test.help = "Prepare the LOCAL catalog filesystem test state"
-catalog-test.sequence = [
-    "_catalog-test-config",
-    "_catalog-test-frontend",
-    "_catalog-test-stage",
-    "_catalog-test-print",
-]

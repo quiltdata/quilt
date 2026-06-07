@@ -50,7 +50,7 @@ function CustomLogo({ className, src, height, width }: LogoProps & { src: string
       if (!parsed.key) {
         return { _tag: 'error', error: new Error('S3 URL has no key'), src }
       }
-      return { _tag: 'ok', src: sign(parsed) }
+      return { _tag: 'ok', src: sign(parsed, {}) }
     } catch (error) {
       return { _tag: 'error', error, src }
     }

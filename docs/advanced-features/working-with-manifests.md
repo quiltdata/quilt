@@ -61,6 +61,7 @@ In almost all cases you should be using registries and `push` to handle sending 
 
 ```python
 import quilt3
+
 p = quilt3.Package().set("data.csv", "data.csv")
 p.set_meta({"key": "value"})
 

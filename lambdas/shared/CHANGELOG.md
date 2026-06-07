@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Generate FlowIO-backed FCS previews with metadata fallback and a bounded Vega-Lite scatter plot for preview consumers ([#4936](https://github.com/quiltdata/quilt/pull/4936))
 - [Changed] Migrate to proper package structure ([#4652](https://github.com/quiltdata/quilt/pull/4652))
 - [Changed] Switch to uv ([#4652](https://github.com/quiltdata/quilt/pull/4652))
 - [Changed] Upgrade to Python 3.13 ([#4652](https://github.com/quiltdata/quilt/pull/4652))
