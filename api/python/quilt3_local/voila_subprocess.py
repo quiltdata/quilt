@@ -59,7 +59,11 @@ def voila_available() -> bool:
     """
     if not settings.voila_enabled():
         return False
-    return importlib.util.find_spec("voila") is not None and importlib.util.find_spec("jupyter_server") is not None
+    # All three are required to actually mount the proxy: voila + jupyter_server
+    # run the dashboards, and asgiproxy backs the HTTP/WS proxy app (imported by
+    # voila_proxy.py). Gate on all of them so main.py never mounts a proxy whose
+    # import would crash.
+    return all(importlib.util.find_spec(pkg) is not None for pkg in ("voila", "jupyter_server", "asgiproxy"))
 
 
 def _pick_free_port() -> int:

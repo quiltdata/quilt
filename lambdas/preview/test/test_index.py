@@ -107,7 +107,14 @@ class TestIndex:
                 assert body['html'].endswith('</div>')
                 assert body['info']['metadata'].keys()
                 if 'vegaLite' in body['info']:
-                    assert body['info']['vegaLite']['title']['text']
+                    vega = body['info']['vegaLite']
+                    # Single-panel specs carry a top-level title; multi-panel
+                    # gating grids title each sub-panel instead.
+                    if 'concat' in vega:
+                        assert vega['concat']
+                        assert all(panel['title']['text'] for panel in vega['concat'])
+                    else:
+                        assert vega['title']['text']
             else:
                 assert not body['html']
                 if 'metadata' not in body['info']:

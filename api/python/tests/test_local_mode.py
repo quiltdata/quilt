@@ -1038,21 +1038,35 @@ def test_voila_available_requires_flag_and_packages(monkeypatch):
 
     real_find_spec = _ilu.find_spec
 
+    _voila_pkgs = {"voila", "jupyter_server", "asgiproxy"}
+
     def fake_find_spec(name, *args, **kwargs):
-        if name in {"voila", "jupyter_server"}:
+        if name in _voila_pkgs:
             return None
         return real_find_spec(name, *args, **kwargs)
 
     monkeypatch.setattr(voila_subprocess.importlib.util, "find_spec", fake_find_spec)
     assert voila_subprocess.voila_available() is False
 
+    # All required packages present (voila + jupyter_server + asgiproxy) => True.
     def present_find_spec(name, *args, **kwargs):
-        if name in {"voila", "jupyter_server"}:
+        if name in _voila_pkgs:
             return object()  # truthy non-None spec stand-in
         return real_find_spec(name, *args, **kwargs)
 
     monkeypatch.setattr(voila_subprocess.importlib.util, "find_spec", present_find_spec)
     assert voila_subprocess.voila_available() is True
+
+    # Missing just asgiproxy keeps the gate closed (the proxy import would crash).
+    def no_asgiproxy(name, *args, **kwargs):
+        if name == "asgiproxy":
+            return None
+        if name in _voila_pkgs:
+            return object()
+        return real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(voila_subprocess.importlib.util, "find_spec", no_asgiproxy)
+    assert voila_subprocess.voila_available() is False
 
 
 def test_voila_translate_render_params_builds_kernel_env(monkeypatch, tmp_path):
@@ -1366,7 +1380,7 @@ def _simulate_voila_installed(monkeypatch):
     real_find_spec = importlib.util.find_spec
 
     def fake_find_spec(name, *args, **kwargs):
-        if name in {"voila", "jupyter_server"}:
+        if name in {"voila", "jupyter_server", "asgiproxy"}:
             return object()  # truthy non-None spec stand-in
         return real_find_spec(name, *args, **kwargs)
 
@@ -1375,6 +1389,9 @@ def _simulate_voila_installed(monkeypatch):
 
 def test_voila_enabled_serves_health_render_and_channel(monkeypatch, tmp_path):
     """ENABLED state: health 200, render proxied (query preserved), WS channel live."""
+    # The mounted proxy imports asgiproxy for real (the local-voila extra); skip
+    # where that opt-in dep isn't installed rather than fail.
+    pytest.importorskip("asgiproxy", exc_type=ImportError)
     bucket_root = tmp_path / "demo-bucket"
     bucket_root.mkdir()
     # Reuse the curated ipynb fixture as the staged dashboard notebook.
@@ -1476,6 +1493,9 @@ def test_voila_enabled_serves_health_render_and_channel(monkeypatch, tmp_path):
 
 def test_voila_enabled_but_not_ready_returns_404_and_rejects_ws(monkeypatch, tmp_path):
     """ENABLED flag but manager not ready (e.g. voila still starting/crashed) => 404 + WS reject."""
+    # The mounted proxy imports asgiproxy for real (the local-voila extra); skip
+    # where that opt-in dep isn't installed rather than fail.
+    pytest.importorskip("asgiproxy", exc_type=ImportError)
     bucket_root = tmp_path / "demo-bucket"
     bucket_root.mkdir()
     stage_preview_fixtures(bucket_root)
