@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
   dataUse,
@@ -76,8 +76,13 @@ vi.mock('./utils', () => ({
 import { detect, Loader } from './Pdf'
 
 describe('components/Preview/loaders/Pdf', () => {
+  afterAll(() => {
+    warnSpy.mockRestore()
+    errorSpy.mockRestore()
+  })
+
   beforeEach(() => {
-    pending.length = 0
+    pending.splice(0, pending.length)
     dataUse.mockReset()
     fetchMock.mockReset()
     sign.mockReset()
@@ -88,8 +93,8 @@ describe('components/Preview/loaders/Pdf', () => {
 
     sign.mockReturnValue('https://signed-url.example.com/file')
     dataUse.mockImplementation(
-      (fn: (value: unknown) => Promise<unknown>, value: unknown) => {
-        pending.push(fn(value))
+      (loadFn: (value: unknown) => Promise<unknown>, value: unknown) => {
+        pending.push(loadFn(value))
         return { result: { tag: 'Loading' }, fetch: retryFetch }
       },
     )
@@ -114,6 +119,8 @@ describe('components/Preview/loaders/Pdf', () => {
 
   it('loads pdf thumbnail with exact request contract and wraps result', async () => {
     const handle = { bucket: 'demo', key: 'report.pdf' }
+    const handled = { tag: 'Handled' }
+    const children = vi.fn(() => null)
     const firstPageBlob = new Blob(['pdf'], { type: 'application/pdf' })
     fetchMock.mockResolvedValue(
       new Response(firstPageBlob, {
@@ -121,8 +128,14 @@ describe('components/Preview/loaders/Pdf', () => {
         headers: new Headers({ 'X-Quilt-Info': JSON.stringify({ page_count: 3 }) }),
       }),
     )
+    useErrorHandling.mockReturnValueOnce(handled)
 
-    render(React.createElement(Loader, { handle: handle as never, children: () => null }))
+    render(
+      React.createElement(Loader, {
+        handle: handle as never,
+        children: children as never,
+      }),
+    )
 
     expect(pending).toHaveLength(1)
     expect(sign).toHaveBeenCalledTimes(1)
@@ -134,11 +147,17 @@ describe('components/Preview/loaders/Pdf', () => {
       { tag: 'Loading' },
       { handle, retry: retryFetch },
     )
+    expect(children).toHaveBeenCalledTimes(1)
+    expect(children).toHaveBeenCalledWith(handled)
 
-    await expect(pending[0]).resolves.toMatchObject({
+    const loaded = await pending[0]
+    expect(loaded).toMatchObject({
       tag: 'Pdf',
       value: expect.objectContaining({ handle, pages: 3, type: 'pdf' }),
     })
+    const loadedBlob = (loaded as { value: { firstPageBlob: Blob } }).value.firstPageBlob
+    expect(loadedBlob).toBeInstanceOf(Blob)
+    expect(loadedBlob.size).toBeGreaterThan(0)
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const requestUrl = new URL(fetchMock.mock.calls[0][0])
@@ -234,6 +253,8 @@ describe('components/Preview/loaders/Pdf', () => {
     expect(pending).toHaveLength(1)
     await expect(pending[0]).rejects.toThrow('boom')
     expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(warnSpy).toHaveBeenCalledWith('error loading pdf preview', expect.any(Object))
     expect(errorSpy).toHaveBeenCalledTimes(1)
+    expect((errorSpy.mock.calls[0][0] as Error).message).toBe('boom')
   })
 })
