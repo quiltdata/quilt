@@ -1,17 +1,18 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { dataUse, fetchMock, memoEq, pending, sign, useErrorHandling } = vi.hoisted(
-  () => ({
+const { dataUse, fetchMock, memoEq, pending, sign, useErrorHandling, warnSpy, errorSpy } =
+  vi.hoisted(() => ({
     dataUse: vi.fn(),
     fetchMock: vi.fn(),
     memoEq: vi.fn(),
     pending: [] as Promise<unknown>[],
     sign: vi.fn(),
     useErrorHandling: vi.fn((value: unknown, options: unknown) => ({ value, options })),
-  }),
-)
+    warnSpy: vi.spyOn(console, 'warn').mockImplementation(() => {}),
+    errorSpy: vi.spyOn(console, 'error').mockImplementation(() => {}),
+  }))
 
 vi.mock('constants/config', () => ({
   default: { apiGatewayEndpoint: 'https://api.example.com' },
@@ -77,6 +78,11 @@ vi.mock('./utils', () => ({
 import { detect, Loader } from './Pdf'
 
 describe('components/Preview/loaders/Pdf', () => {
+  afterAll(() => {
+    warnSpy.mockRestore()
+    errorSpy.mockRestore()
+  })
+
   describe('detect', () => {
     it('detects .pdf files', () => {
       expect(detect('report.pdf')).toBe(true)
@@ -107,6 +113,8 @@ describe('components/Preview/loaders/Pdf', () => {
       memoEq.mockReset()
       sign.mockReset()
       useErrorHandling.mockClear()
+      warnSpy.mockClear()
+      errorSpy.mockClear()
       memoEq.mockImplementation((_deps: unknown[], fn: () => unknown) => fn())
       dataUse.mockImplementation(
         (fn: (value: unknown) => Promise<unknown>, value: unknown) => {
@@ -124,14 +132,13 @@ describe('components/Preview/loaders/Pdf', () => {
       fetchMock.mockResolvedValue(new Response(blob, { status: 200, headers }))
 
       const handle = { bucket: 'demo', key: 'report.pdf', version: '123' }
-      let received: unknown
+      const handled = { tag: 'Handled' }
+      const children = vi.fn(() => null)
+      useErrorHandling.mockReturnValueOnce(handled)
       render(
         React.createElement(Loader, {
           handle: handle as never,
-          children: (value: unknown) => {
-            received = value
-            return null
-          },
+          children: children as never,
         }),
       )
 
@@ -144,10 +151,11 @@ describe('components/Preview/loaders/Pdf', () => {
         url: 'https://signed-url.example.com/doc.pdf',
         handle,
       })
-      expect(received).toEqual({
-        value: { tag: 'Loading' },
-        options: { handle, retry: 'retry-fetch' },
-      })
+      expect(useErrorHandling).toHaveBeenCalledWith(
+        { tag: 'Loading' },
+        { handle, retry: 'retry-fetch' },
+      )
+      expect(children).toHaveBeenCalledWith(handled)
 
       await expect(pending[0]).resolves.toMatchObject({
         tag: 'Pdf',
@@ -157,34 +165,21 @@ describe('components/Preview/loaders/Pdf', () => {
           type: 'pdf',
         }),
       })
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining(
-          '/thumbnail?url=https%3A%2F%2Fsigned-url.example.com%2Fdoc.pdf',
-        ),
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const requestUrl = new URL(fetchMock.mock.calls[0][0])
+      expect(requestUrl.pathname).toBe('/thumbnail')
+      expect(requestUrl.searchParams.get('url')).toBe(
+        'https://signed-url.example.com/doc.pdf',
       )
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('input=pdf'))
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('size=w2048h1536'))
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('countPages=true'))
-    })
-
-    it('determines type as pptx for .pptx keys', () => {
-      const key = 'presentations/deck.pptx'
-      const type = key.toLowerCase().endsWith('.pptx') ? 'pptx' : 'pdf'
-      expect(type).toBe('pptx')
-    })
-
-    it('determines type as pdf for .pdf keys', () => {
-      const key = 'documents/report.pdf'
-      const type = key.toLowerCase().endsWith('.pptx') ? 'pptx' : 'pdf'
-      expect(type).toBe('pdf')
-    })
-
-    it('uses logicalKey over key when available for type detection', () => {
-      const handle = { key: 'hash/abc123', logicalKey: 'slides.pptx' }
-      const type = (handle.logicalKey || handle.key).toLowerCase().endsWith('.pptx')
-        ? 'pptx'
-        : 'pdf'
-      expect(type).toBe('pptx')
+      expect(requestUrl.searchParams.get('input')).toBe('pdf')
+      expect(requestUrl.searchParams.get('size')).toBe('w2048h1536')
+      expect(requestUrl.searchParams.get('countPages')).toBe('true')
+      expect(Array.from(requestUrl.searchParams.keys()).sort()).toEqual([
+        'countPages',
+        'input',
+        'size',
+        'url',
+      ])
     })
 
     it('loads pptx previews based on the logical key extension', async () => {
@@ -212,7 +207,9 @@ describe('components/Preview/loaders/Pdf', () => {
           value: expect.objectContaining({ type: 'pptx', pages: 7 }),
         }),
       )
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('input=pptx'))
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const requestUrl = new URL(fetchMock.mock.calls[0][0])
+      expect(requestUrl.searchParams.get('input')).toBe('pptx')
     })
 
     it('maps forbidden glacier responses to Archived PreviewError', async () => {
@@ -236,6 +233,27 @@ describe('components/Preview/loaders/Pdf', () => {
       await expect(pending[0]).rejects.toMatchObject({ tag: 'Archived' })
     })
 
+    it('maps non-glacier forbidden responses to Forbidden PreviewError', async () => {
+      fetchMock.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: 'Forbidden',
+            text: 'Access denied',
+          }),
+          { status: 403 },
+        ),
+      )
+
+      render(
+        React.createElement(Loader, {
+          handle: { bucket: 'demo', key: 'report.pdf' } as never,
+          children: () => null,
+        }),
+      )
+
+      await expect(pending[0]).rejects.toMatchObject({ tag: 'Forbidden' })
+    })
+
     it('rethrows unexpected errors so retry handling can wrap them later', async () => {
       fetchMock.mockRejectedValue(new Error('boom'))
 
@@ -247,6 +265,13 @@ describe('components/Preview/loaders/Pdf', () => {
       )
 
       await expect(pending[0]).rejects.toThrow('boom')
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+      expect(warnSpy).toHaveBeenCalledWith(
+        'error loading pdf preview',
+        expect.any(Object),
+      )
+      expect(errorSpy).toHaveBeenCalledTimes(1)
+      expect((errorSpy.mock.calls[0][0] as Error).message).toBe('boom')
     })
   })
 })
