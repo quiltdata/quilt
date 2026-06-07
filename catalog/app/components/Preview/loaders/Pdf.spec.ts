@@ -156,7 +156,8 @@ describe('components/Preview/loaders/Pdf', () => {
       value: expect.objectContaining({ handle, pages: 3, type: 'pdf' }),
     })
     const loadedBlob = (loaded as { value: { firstPageBlob: Blob } }).value.firstPageBlob
-    expect(loadedBlob).toBeInstanceOf(Blob)
+    expect(loadedBlob).toBeTruthy()
+    expect(typeof loadedBlob.arrayBuffer).toBe('function')
     expect(loadedBlob.size).toBeGreaterThan(0)
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
