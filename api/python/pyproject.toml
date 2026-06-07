@@ -115,6 +115,11 @@ test-verbose.cmd = "pytest -v --ignore=tests/test_local_mode.py"
 test-cov.help = "Run tests with coverage report"
 test-cov.cmd = "pytest --cov=. --cov-report=term-missing --ignore=tests/test_local_mode.py"
 
+catalog.help = "Run a filesystem-backed LOCAL catalog with demo data (extra args pass through, e.g. `poe catalog --port 8080`)"
+# Shells out via `uv run --extra catalog` because the catalog extra conflicts
+# with poe's `dev` group (see [tool.uv].conflicts); poe itself runs in `dev`.
+catalog.cmd = "uv run --no-default-groups --extra catalog python -m scripts.run_local_catalog"
+
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
 

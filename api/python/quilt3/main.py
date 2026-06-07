@@ -6,6 +6,7 @@ import _thread
 import argparse
 import functools
 import json
+import os
 import sys
 import time
 
@@ -112,6 +113,11 @@ cloud services aside of S3.
 
 
 def _launch_local_catalog(*, host: str, port: int):
+    # The local backend validates that preview/thumbnail/transcode lambda source
+    # URLs point at the catalog's own S3 proxy, keyed on QUILT_LOCAL_ORIGIN's
+    # port. Default it to the port we're actually binding so a non-default
+    # --port doesn't make every preview fail; respect an explicit override.
+    os.environ.setdefault("QUILT_LOCAL_ORIGIN", f"http://{host}:{port}")
     try:
         import uvicorn
 

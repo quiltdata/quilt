@@ -3,6 +3,9 @@ import gzip
 import importlib
 import importlib.util
 import json
+import os
+import sys
+import types
 from contextlib import contextmanager
 from urllib.parse import urlencode
 
@@ -1482,3 +1485,30 @@ def test_voila_enabled_but_not_ready_returns_404_and_rejects_ws(monkeypatch, tmp
     # WS upgrade is rejected (the proxy closes with 1011, never accepts).
     assert accepted is False
     assert close == 1011
+
+
+def test_launch_local_catalog_defaults_origin_to_bound_port(monkeypatch):
+    # The lambda URL-validation patch only accepts proxy URLs on QUILT_LOCAL_ORIGIN's
+    # port, so a non-default --port must propagate into the origin or every preview
+    # fails. Stub the heavy bits; we only care about the env side effect.
+    import quilt3.main as quilt3_main
+
+    monkeypatch.delenv("QUILT_LOCAL_ORIGIN", raising=False)
+    monkeypatch.setitem(sys.modules, "uvicorn", types.SimpleNamespace(run=lambda *a, **k: None))
+    monkeypatch.setitem(sys.modules, "quilt3_local.main", types.SimpleNamespace(app=object()))
+    monkeypatch.setattr(quilt3_main._thread, "start_new_thread", lambda *a, **k: None)
+
+    quilt3_main._launch_local_catalog(host="127.0.0.1", port=8123)
+    assert os.environ["QUILT_LOCAL_ORIGIN"] == "http://127.0.0.1:8123"
+
+
+def test_launch_local_catalog_respects_explicit_origin(monkeypatch):
+    import quilt3.main as quilt3_main
+
+    monkeypatch.setenv("QUILT_LOCAL_ORIGIN", "http://localhost:3000")
+    monkeypatch.setitem(sys.modules, "uvicorn", types.SimpleNamespace(run=lambda *a, **k: None))
+    monkeypatch.setitem(sys.modules, "quilt3_local.main", types.SimpleNamespace(app=object()))
+    monkeypatch.setattr(quilt3_main._thread, "start_new_thread", lambda *a, **k: None)
+
+    quilt3_main._launch_local_catalog(host="127.0.0.1", port=8123)
+    assert os.environ["QUILT_LOCAL_ORIGIN"] == "http://localhost:3000"
