@@ -6,7 +6,7 @@ and creates summaries of object and package access events.
 import os
 import textwrap
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time as dt_time, timedelta, timezone
 
 import boto3
 from boto3.s3.transfer import TransferConfig
@@ -42,6 +42,11 @@ USER_ACCESS_COUNTS_OUTPUT_DIR = 'UserAccessCounts'
 
 # Timestamp for the dir above.
 LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
+
+# Increment when the persistent ObjectAccessLog schema changes and existing
+# partitions must be rebuilt from CloudTrail.
+OBJECT_ACCESS_LOG_SCHEMA_VERSION = '2'
+SCHEMA_VERSION_KEY = f'{OBJECT_ACCESS_LOG_DIR}.schema_version.txt'
 
 # Athena does not allow us to write more than 100 partitions at once.
 MAX_OPEN_PARTITIONS = 100
@@ -419,6 +424,55 @@ def delete_dir(bucket, prefix):
             raise Exception(f"Failed to delete dir: bucket={bucket!r}, prefix={prefix!r}")
 
 
+def read_s3_text(bucket, key):
+    return s3.get_object(Bucket=bucket, Key=key)['Body'].read().decode()
+
+
+def object_access_log_schema_is_current():
+    try:
+        return read_s3_text(QUERY_RESULT_BUCKET, SCHEMA_VERSION_KEY) == OBJECT_ACCESS_LOG_SCHEMA_VERSION
+    except s3.exceptions.NoSuchKey:
+        return False
+
+
+def get_cloudtrail_date_from_key(prefix, key):
+    parts = key[len(prefix):].split('/')
+    if len(parts) < 3:
+        return None
+    try:
+        return datetime(
+            year=int(parts[0]),
+            month=int(parts[1]),
+            day=int(parts[2]),
+            tzinfo=timezone.utc,
+        ).date()
+    except ValueError:
+        return None
+
+
+def get_earliest_cloudtrail_ts(accounts, regions):
+    """Return the first day with CloudTrail logs, or None if no logs exist."""
+    earliest = None
+    for account in accounts:
+        for region in regions:
+            prefix = f'AWSLogs/{account}/CloudTrail/{region}/'
+            response = s3.list_objects_v2(
+                Bucket=CLOUDTRAIL_BUCKET,
+                Prefix=prefix,
+                MaxKeys=10,
+            )
+            for obj in response.get('Contents') or []:
+                date = get_cloudtrail_date_from_key(prefix, obj['Key'])
+                if date is None:
+                    continue
+                if earliest is None or date < earliest:
+                    earliest = date
+                break
+    if earliest is None:
+        return None
+    return datetime.combine(earliest, dt_time.min, timezone.utc)
+
+
 def now():
     """Only exists for unit testing, cause patching datetime.utcnow() is pretty much impossible."""
     return datetime.now(timezone.utc)
@@ -429,22 +483,17 @@ def handler(event, context):
     # because events can be delayed by that much.
     end_ts = now() - timedelta(minutes=15)
 
-    # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
+    rebuild_object_access_log = False
+
+    # Start of the CloudTrail time range: the end timestamp from the previous run,
+    # or the earliest available CloudTrail object if it's the first run or the
+    # persistent access-log schema changed.
     try:
-        timestamp_str = s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()
-        start_ts = datetime.fromtimestamp(float(timestamp_str), timezone.utc)
+        start_ts = datetime.fromtimestamp(float(read_s3_text(QUERY_RESULT_BUCKET, LAST_UPDATE_KEY)), timezone.utc)
+        rebuild_object_access_log = not object_access_log_schema_is_current()
     except s3.exceptions.NoSuchKey:
-        start_ts = end_ts - timedelta(days=365)
-        # We start from scratch, so make sure we don't have any old data.
-        delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
-
-    # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
-    # Moreover, we don't want the lambda to time out, so just process 100 days
-    # and let the next invocation handle the rest.
-    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
-
-    # Delete the temporary directory where Athena query results are written to.
-    delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
+        rebuild_object_access_log = True
+        start_ts = None
 
     # Find all accounts in the CloudTrail.
     accounts = []
@@ -455,6 +504,20 @@ def handler(event, context):
 
     # Does not make network calls; appears to be hardcoded in the botocore library.
     regions = boto3.Session().get_available_regions('s3')
+
+    if rebuild_object_access_log:
+        earliest_cloudtrail_ts = get_earliest_cloudtrail_ts(accounts, regions)
+        start_ts = earliest_cloudtrail_ts or (end_ts - timedelta(days=MAX_OPEN_PARTITIONS-1))
+        # We start from scratch, so make sure we don't have any old data.
+        delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
+
+    # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
+    # Moreover, we don't want the lambda to time out, so just process 100 days
+    # and let the next invocation handle the rest.
+    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
+
+    # Delete the temporary directory where Athena query results are written to.
+    delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
     # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
@@ -485,6 +548,12 @@ def handler(event, context):
     # Save the end timestamp.
     s3.put_object(
         Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
+    s3.put_object(
+        Bucket=QUERY_RESULT_BUCKET,
+        Key=SCHEMA_VERSION_KEY,
+        Body=OBJECT_ACCESS_LOG_SCHEMA_VERSION,
+        ContentType='text/plain',
+    )
 
     queries = [
         (ACCESS_COUNTS_OUTPUT_DIR, 'Objects', OBJECT_ACCESS_COUNTS),

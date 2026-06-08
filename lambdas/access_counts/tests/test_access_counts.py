@@ -81,13 +81,14 @@ class TestAccessCounts(TestCase):
         )
 
         self.s3_stubber.add_response(
-            method='list_objects_v2',
+            method='get_object',
             expected_params={
                 'Bucket': 'results-bucket',
-                'Prefix': 'AthenaQueryResults',
-                'MaxKeys': 1000,
+                'Key': 'ObjectAccessLog.schema_version.txt',
             },
-            service_response={}
+            service_response={
+                'Body': BytesIO(index.OBJECT_ACCESS_LOG_SCHEMA_VERSION.encode()),
+            }
         )
 
         self.s3_stubber.add_response(
@@ -102,6 +103,16 @@ class TestAccessCounts(TestCase):
                     'Prefix': 'AWSLogs/123456/'
                 }]
             }
+        )
+
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Prefix': 'AthenaQueryResults',
+                'MaxKeys': 1000,
+            },
+            service_response={}
         )
 
         self._run_queries([index.DROP_CLOUDTRAIL, index.DROP_OBJECT_ACCESS_LOG, index.DROP_PACKAGE_HASHES])
@@ -137,6 +148,16 @@ class TestAccessCounts(TestCase):
                 'Key': 'ObjectAccessLog.last_updated_ts.txt',
                 'ContentType': 'text/plain',
                 'Body': str(end_ts.timestamp()),
+            },
+            service_response={}
+        )
+        self.s3_stubber.add_response(
+            method='put_object',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Key': 'ObjectAccessLog.schema_version.txt',
+                'ContentType': 'text/plain',
+                'Body': index.OBJECT_ACCESS_LOG_SCHEMA_VERSION,
             },
             service_response={}
         )
@@ -198,3 +219,37 @@ class TestAccessCounts(TestCase):
         assert 'GROUP BY 5, 4, 3, 2, 1' in user_counts_sql
         assert 'GROUP BY 4, 3, 2, 1' in user_counts_sql
         assert 'AccessCounts' != index.USER_ACCESS_COUNTS_OUTPUT_DIR
+
+    def test_get_earliest_cloudtrail_ts(self):
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            expected_params={
+                'Bucket': 'cloudtrail-bucket',
+                'Prefix': 'AWSLogs/123456/CloudTrail/us-east-1/',
+                'MaxKeys': 10,
+            },
+            service_response={
+                'Contents': [
+                    {'Key': 'AWSLogs/123456/CloudTrail/us-east-1/'},
+                    {'Key': 'AWSLogs/123456/CloudTrail/us-east-1/2020/06/01/log.json.gz'},
+                ],
+            },
+        )
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            expected_params={
+                'Bucket': 'cloudtrail-bucket',
+                'Prefix': 'AWSLogs/123456/CloudTrail/us-west-2/',
+                'MaxKeys': 10,
+            },
+            service_response={
+                'Contents': [
+                    {'Key': 'AWSLogs/123456/CloudTrail/us-west-2/2019/05/31/log.json.gz'},
+                ],
+            },
+        )
+
+        assert index.get_earliest_cloudtrail_ts(
+            ['123456'],
+            ['us-east-1', 'us-west-2'],
+        ) == datetime(2019, 5, 31, tzinfo=timezone.utc)
