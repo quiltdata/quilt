@@ -1,10 +1,10 @@
 
-# get\_build\_s3\_client\_hook() -> Optional[quilt3.hooks.BuildClientHook]  {#get\_build\_s3\_client\_hook}
+# get\_build\_s3\_client\_hook() -> quilt3.hooks.BuildClientHook | None  {#get\_build\_s3\_client\_hook}
 
 Return build S3 client hook.
 
 
-# set\_build\_s3\_client\_hook(hook: Optional[quilt3.hooks.BuildClientHook]) -> Optional[quilt3.hooks.BuildClientHook]  {#set\_build\_s3\_client\_hook}
+# set\_build\_s3\_client\_hook(hook: quilt3.hooks.BuildClientHook | None) -> quilt3.hooks.BuildClientHook | None  {#set\_build\_s3\_client\_hook}
 
 Set build S3 client hook.
 
