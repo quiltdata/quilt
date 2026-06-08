@@ -3,7 +3,7 @@ name = "t4_lambda_tabular_preview"
 version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
-    "pyarrow ~= 18.0",
+    "pyarrow~=23.0",
     "pandas ~= 2.2",
     "xlrd >=2,< 3",
     "openpyxl >=3,<4 ",
