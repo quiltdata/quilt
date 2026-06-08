@@ -35,8 +35,9 @@ QUERY_TEMP_DIR = 'AthenaQueryResults'
 # Pre-processed CloudTrail logs, persistent across different runs of the lambda.
 OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
 
-# Username-bearing access counts are kept out of AccessCounts/ because public
-# stacks may grant anonymous reads on that prefix.
+# Username-bearing access counts are intentionally kept out of AccessCounts/
+# because public stacks may grant anonymous reads on that prefix. Downstream
+# consumers must add an explicit admin-only read policy for this prefix.
 USER_ACCESS_COUNTS_OUTPUT_DIR = 'UserAccessCounts'
 
 # Timestamp for the dir above.
@@ -264,6 +265,8 @@ USER_PACKAGE_ACCESS_COUNTS = textwrap.dedent(f"""\
             SELECT
                 eventname,
                 bucket,
+                -- Legacy Parquet partitions written before this column existed
+                -- read as NULL; keep those clearly unattributed in the output.
                 coalesce(username, 'unknown') AS username,
                 substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
                 date,

@@ -10,6 +10,10 @@ from botocore.stub import Stubber
 from t4_lambda_access_counts import index
 
 
+def _normalize_sql(sql):
+    return ' '.join(sql.split())
+
+
 class TestAccessCounts(TestCase):
     """Tests S3 Select"""
     def setUp(self):
@@ -182,7 +186,15 @@ class TestAccessCounts(TestCase):
             index.handler(None, None)
 
     def test_username_sql(self):
-        assert 'username STRING' in index.CREATE_OBJECT_ACCESS_LOG
-        assert 'coalesce(nullif(split_part(useridentity.principalId' in index.INSERT_INTO_OBJECT_ACCESS_LOG
-        assert 'username' in index.USER_PACKAGE_ACCESS_COUNTS
+        object_access_sql = _normalize_sql(index.CREATE_OBJECT_ACCESS_LOG)
+        assert 'eventname STRING, bucket STRING, key STRING, username STRING' in object_access_sql
+
+        insert_sql = _normalize_sql(index.INSERT_INTO_OBJECT_ACCESS_LOG)
+        assert 'SELECT eventname, bucket, key, username, date_format(eventtime' in insert_sql
+        assert "coalesce(nullif(split_part(useridentity.principalId, ':', 2), ''), 'unknown') AS username" in insert_sql
+
+        user_counts_sql = _normalize_sql(index.USER_PACKAGE_ACCESS_COUNTS)
+        assert 'eventname, bucket, username, name, CAST(map_agg(date, count) AS JSON) AS counts' in user_counts_sql
+        assert 'GROUP BY 5, 4, 3, 2, 1' in user_counts_sql
+        assert 'GROUP BY 4, 3, 2, 1' in user_counts_sql
         assert 'AccessCounts' != index.USER_ACCESS_COUNTS_OUTPUT_DIR
