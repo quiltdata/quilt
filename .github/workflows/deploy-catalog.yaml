@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - max/glacier-rehydration-ux # TEMP: build catalog image for glacier dev stack; revert before merge
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
