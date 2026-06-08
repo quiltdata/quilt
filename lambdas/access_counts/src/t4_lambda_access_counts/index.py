@@ -35,6 +35,10 @@ QUERY_TEMP_DIR = 'AthenaQueryResults'
 # Pre-processed CloudTrail logs, persistent across different runs of the lambda.
 OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
 
+# Username-bearing access counts are kept out of AccessCounts/ because public
+# stacks may grant anonymous reads on that prefix.
+USER_ACCESS_COUNTS_OUTPUT_DIR = 'UserAccessCounts'
+
 # Timestamp for the dir above.
 LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
@@ -116,7 +120,8 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     CREATE EXTERNAL TABLE object_access_log (
         eventname STRING,
         bucket  STRING,
-        key STRING
+        key STRING,
+        username STRING
     )
     PARTITIONED BY (date STRING)
     ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
@@ -132,13 +137,14 @@ REPAIR_OBJECT_ACCESS_LOG = textwrap.dedent("""
 
 INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
     INSERT INTO object_access_log
-    SELECT eventname, bucket, key, date_format(eventtime, '%Y-%m-%d') AS date
+    SELECT eventname, bucket, key, username, date_format(eventtime, '%Y-%m-%d') AS date
     FROM (
         SELECT
             eventname,
             from_iso8601_timestamp(eventtime) AS eventtime,
             json_extract_scalar(requestparameters, '$.bucketName') AS bucket,
-            json_extract_scalar(requestparameters, '$.key') AS key
+            json_extract_scalar(requestparameters, '$.key') AS key,
+            coalesce(nullif(split_part(useridentity.principalId, ':', 2), ''), 'unknown') AS username
         FROM cloudtrail
         WHERE useragent != 'athena.amazonaws.com' AND useragent NOT LIKE '%quilt3-lambdas-es-indexer%'
     )
@@ -237,6 +243,41 @@ PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent(f"""\
         GROUP BY 3, 2, 1
     ) access_counts JOIN package_hashes
     ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
+""")
+
+USER_PACKAGE_ACCESS_COUNTS = textwrap.dedent(f"""\
+    SELECT
+        eventname,
+        bucket,
+        username,
+        name,
+        CAST(map_agg(date, count) AS JSON) AS counts
+    FROM (
+        SELECT
+            eventname,
+            access_counts.bucket AS bucket,
+            username,
+            name,
+            date,
+            sum(count) AS count
+        FROM (
+            SELECT
+                eventname,
+                bucket,
+                coalesce(username, 'unknown') AS username,
+                substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
+                date,
+                count(*) AS count
+            FROM object_access_log
+            WHERE
+                eventname = 'GetObject' AND
+                substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+            GROUP BY 5, 4, 3, 2, 1
+        ) access_counts JOIN package_hashes
+        ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
+        GROUP BY 5, 4, 3, 2, 1
+    )
+    GROUP BY 4, 3, 2, 1
 """)
 
 BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
@@ -443,18 +484,19 @@ def handler(event, context):
         Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
 
     queries = [
-        ('Objects', OBJECT_ACCESS_COUNTS),
-        ('Packages', PACKAGE_ACCESS_COUNTS),
-        ('PackageVersions', PACKAGE_VERSION_ACCESS_COUNTS),
-        ('Bucket', BUCKET_ACCESS_COUNTS),
-        ('Exts', EXTS_ACCESS_COUNTS)
+        (ACCESS_COUNTS_OUTPUT_DIR, 'Objects', OBJECT_ACCESS_COUNTS),
+        (ACCESS_COUNTS_OUTPUT_DIR, 'Packages', PACKAGE_ACCESS_COUNTS),
+        (ACCESS_COUNTS_OUTPUT_DIR, 'PackageVersions', PACKAGE_VERSION_ACCESS_COUNTS),
+        (ACCESS_COUNTS_OUTPUT_DIR, 'Bucket', BUCKET_ACCESS_COUNTS),
+        (ACCESS_COUNTS_OUTPUT_DIR, 'Exts', EXTS_ACCESS_COUNTS),
+        (USER_ACCESS_COUNTS_OUTPUT_DIR, 'Users', USER_PACKAGE_ACCESS_COUNTS),
     ]
 
-    execution_ids = run_multiple_queries([query for _, query in queries])
+    execution_ids = run_multiple_queries([query for _, _, query in queries])
 
-    for (filename, _), execution_id in zip(queries, execution_ids):
+    for (output_dir, filename, _), execution_id in zip(queries, execution_ids):
         src_key = f'{QUERY_TEMP_DIR}/{execution_id}.csv'
-        dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
+        dest_key = f'{output_dir}/{filename}.csv'
 
         s3.copy(
             CopySource=dict(

@@ -142,10 +142,18 @@ class TestAccessCounts(TestCase):
             index.PACKAGE_ACCESS_COUNTS,
             index.PACKAGE_VERSION_ACCESS_COUNTS,
             index.BUCKET_ACCESS_COUNTS,
-            index.EXTS_ACCESS_COUNTS
+            index.EXTS_ACCESS_COUNTS,
+            index.USER_PACKAGE_ACCESS_COUNTS,
         ])
 
-        for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
+        for idx, (output_dir, name) in enumerate([
+            ('AccessCounts', 'Objects'),
+            ('AccessCounts', 'Packages'),
+            ('AccessCounts', 'PackageVersions'),
+            ('AccessCounts', 'Bucket'),
+            ('AccessCounts', 'Exts'),
+            ('UserAccessCounts', 'Users'),
+        ]):
             self.s3_stubber.add_response(
                 method='head_object',
                 expected_params={
@@ -164,7 +172,7 @@ class TestAccessCounts(TestCase):
                         'Key': f'AthenaQueryResults/{idx}.csv',
                     },
                     'Bucket': 'results-bucket',
-                    'Key': f'AccessCounts/{name}.csv',
+                    'Key': f'{output_dir}/{name}.csv',
                 },
                 service_response={}
             )
@@ -172,3 +180,9 @@ class TestAccessCounts(TestCase):
         with patch('t4_lambda_access_counts.index.now', return_value=now), \
              patch('time.sleep', return_value=None):
             index.handler(None, None)
+
+    def test_username_sql(self):
+        assert 'username STRING' in index.CREATE_OBJECT_ACCESS_LOG
+        assert 'coalesce(nullif(split_part(useridentity.principalId' in index.INSERT_INTO_OBJECT_ACCESS_LOG
+        assert 'username' in index.USER_PACKAGE_ACCESS_COUNTS
+        assert 'AccessCounts' != index.USER_ACCESS_COUNTS_OUTPUT_DIR
