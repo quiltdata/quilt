@@ -253,3 +253,29 @@ class TestAccessCounts(TestCase):
             ['123456'],
             ['us-east-1', 'us-west-2'],
         ) == datetime(2019, 5, 31, tzinfo=timezone.utc)
+
+    def test_object_access_log_schema_is_current(self):
+        self.s3_stubber.add_response(
+            method='get_object',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Key': 'ObjectAccessLog.schema_version.txt',
+            },
+            service_response={
+                'Body': BytesIO(index.OBJECT_ACCESS_LOG_SCHEMA_VERSION.encode()),
+            },
+        )
+        assert index.object_access_log_schema_is_current()
+
+    def test_cloudtrail_date_from_key(self):
+        prefix = 'AWSLogs/123456/CloudTrail/us-east-1/'
+
+        assert index.get_cloudtrail_date_from_key(
+            prefix,
+            'AWSLogs/123456/CloudTrail/us-east-1/2020/06/01/log.json.gz',
+        ) == datetime(2020, 6, 1, tzinfo=timezone.utc).date()
+        assert index.get_cloudtrail_date_from_key(prefix, 'AWSLogs/123456/CloudTrail/us-east-1/') is None
+        assert index.get_cloudtrail_date_from_key(
+            prefix,
+            'AWSLogs/123456/CloudTrail/us-east-1/not-a-date/06/01/log.json.gz',
+        ) is None
