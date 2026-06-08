@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 
+import * as BucketPreferences from 'utils/BucketPreferences'
 import type { RestoreStatus, StorageClass } from 'utils/glacier'
 import RehydrateDialog from './RehydrateDialog'
 
@@ -32,6 +33,13 @@ export default function ArchivedMessage({
   storageClass,
   children,
 }: ArchivedMessageProps) {
+  const { prefs } = BucketPreferences.use()
+  // Per-bucket button control (default on); hidden until prefs resolve Ok.
+  const canRestore = BucketPreferences.Result.match(
+    { Ok: ({ ui: { actions } }) => actions.restore, _: () => false },
+    prefs,
+  )
+
   const [dialogOpen, setDialogOpen] = React.useState(false)
   // Optimistic hold: a 202 flips to "in progress" and stays. Rehydration takes
   // hours and the HEAD is browser-cached, so there's no in-session polling — a
@@ -68,7 +76,7 @@ export default function ArchivedMessage({
       {children({
         heading: 'Object Archived',
         body: 'This file is in S3 Glacier — preview is not available until you rehydrate it.',
-        action: { label: 'Rehydrate', onClick: openDialog },
+        action: canRestore ? { label: 'Rehydrate', onClick: openDialog } : undefined,
       })}
       <RehydrateDialog
         open={dialogOpen}

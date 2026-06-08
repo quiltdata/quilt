@@ -1,10 +1,27 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
+
+import * as BucketPreferences from 'utils/BucketPreferences'
+import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import ArchivedMessage from './ArchivedMessage'
 
 const restoreObject = vi.fn()
+
+// The Rehydrate CTA is gated on ui.actions.restore (default on). Drive prefs
+// through a controllable mock; default to Ok+restore:true so the existing
+// button-bearing tests below keep exercising the action.
+const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
+  prefs: BucketPreferences.Result.Ok(
+    extendDefaults({ ui: { actions: { restore: true } } }),
+  ),
+}))
+
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual('utils/BucketPreferences')),
+  use: () => prefsHook(),
+}))
 
 vi.mock('constants/config', () => ({ default: {} }))
 // RehydrateDialog calls useRestoreObject() (urql-backed). Mock the hook so the
@@ -45,9 +62,14 @@ function setup(props: Partial<React.ComponentProps<typeof ArchivedMessage>> = {}
   )
 }
 
+const okWithRestore = (restore: boolean) => ({
+  prefs: BucketPreferences.Result.Ok(extendDefaults({ ui: { actions: { restore } } })),
+})
+
 describe('components/Preview/ArchivedMessage', () => {
   beforeEach(() => {
     restoreObject.mockReset()
+    prefsHook.mockReturnValue(okWithRestore(true))
   })
   afterEach(cleanup)
 
@@ -125,6 +147,29 @@ describe('components/Preview/ArchivedMessage', () => {
       // "Object Archived" until reloaded — a later HEAD sees the live copy.
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
       expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
+    })
+  })
+
+  describe('ui.actions.restore gate', () => {
+    it('hides the Rehydrate button when the preference is off', () => {
+      prefsHook.mockReturnValue(okWithRestore(false))
+      setup()
+      // The message still renders; only the CTA is dropped.
+      expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
+      expect(screen.queryByTestId('action-Rehydrate')).toBeNull()
+    })
+
+    it('hides the Rehydrate button while preferences are unresolved (shown only once Ok)', () => {
+      prefsHook.mockReturnValue({ prefs: BucketPreferences.Result.Pending() })
+      setup()
+      expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
+      expect(screen.queryByTestId('action-Rehydrate')).toBeNull()
+    })
+
+    it('shows "Restore in progress" regardless of the flag', () => {
+      prefsHook.mockReturnValue(okWithRestore(false))
+      setup({ restore: { ongoing: true } })
+      expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })
   })
 })

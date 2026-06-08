@@ -172,6 +172,8 @@ const I18N_FIELDS = {
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
   'ui.actions.downloadObject': 'Download buttons under the "BUCKET" tab',
   'ui.actions.downloadPackage': 'Download buttons under the "PACKAGES" tab',
+  'ui.actions.restore':
+    '"REHYDRATE" button for archived S3 Glacier / Deep Archive objects',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
   'ui.actions.writeFile': 'Buttons to create or edit files',
 
