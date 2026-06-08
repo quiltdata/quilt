@@ -113,6 +113,15 @@ describe('interpretResult', () => {
     expect((o as $TSFixMe).iam).toBeUndefined()
   })
 
+  it('fails with a not-accessible message on BucketNotFound', () => {
+    const o = interpretResult({
+      __typename: 'OperationError',
+      name: 'BucketNotFound',
+    } as $TSFixMe)
+    expect(o._tag).toBe('failed')
+    expect((o as $TSFixMe).message).toMatch(/bucket no longer exists|not accessible/i)
+  })
+
   it('fails with the field message on InvalidInput', () => {
     expect(
       interpretResult({

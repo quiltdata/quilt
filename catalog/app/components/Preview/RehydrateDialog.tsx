@@ -103,6 +103,11 @@ export function interpretResult(r: RestoreResult): Outcome {
             _tag: 'failed',
             message: 'This object no longer exists — it may have been deleted.',
           }
+        case 'BucketNotFound':
+          return {
+            _tag: 'failed',
+            message: 'This bucket no longer exists or is not accessible.',
+          }
         default:
           Log.error(new Error(`restoreObject: ${r.name}: ${r.message}`))
           return {
