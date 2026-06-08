@@ -75,13 +75,9 @@ You may also provide custom policies via ARN:
 The resulting permission set is equivalent to a union of all permissions
 provided by the policies attached to that role.
 
-> **Note:** a managed role's IAM policy is (re)generated when that role's bucket
-> permissions are saved. So when a Quilt release adds a new S3 capability to
-> managed roles — for example Glacier / Deep Archive restore (`s3:RestoreObject`) —
-> an existing managed role gains it only after its bucket permissions are next
-> saved. To apply such a capability to an existing managed role immediately after
-> upgrading, re-save the role's bucket access here in the admin UI. Built-in roles
-> such as `ReadWriteQuiltBucket` pick up the new capability automatically on deploy.
+> **Note:** a managed role's IAM policy is regenerated when its bucket permissions
+> are saved, so permissions added in a newer Quilt release reach existing managed
+> roles on their next save.
 
 
 ## Buckets
