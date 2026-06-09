@@ -28,6 +28,39 @@ which includes descriptions of all the fields.
 > Warning: In schemas don't forget to add claims you want to check to `required`,
 because otherwise the schema will match any ID token even if these claims are missing.
 
+### Which claims are matched
+
+Each mapping's `schema` is validated against the **decoded ID token** only.
+Quilt does **not** read the access token, call the provider's userinfo
+endpoint, or resolve OIDC distributed/overage claims (the `_claim_sources`
+pointer Entra emits when a user belongs to more than ~200 groups) — if a
+value is not present directly in the ID token, a mapping cannot match on it.
+
+A mapping can match on **any** claim in the ID token, not just `email` or
+`groups`. For example, to map on an Entra **app-role** `roles` claim (often
+more reliable than `groups` for guest/cross-tenant users, since app roles
+are defined on the resource application itself):
+
+```yaml
+mappings:
+  - schema:
+      type: object
+      properties:
+        roles:
+          type: array
+          contains:
+            const: QuiltReadWrite
+      required:
+        - roles
+    roles:
+      - ReadWriteQuiltBucket
+```
+
+> Tip: To confirm exactly which claims arrive in the token, decode it at
+[jwt.ms](https://jwt.ms). The registry also logs which mappings matched at
+`DEBUG` log level (`QUILT_LOG_LEVEL=DEBUG`), though it does not log raw
+claim values.
+
 > Note: By default, mappings are evaluated in order and **only the first
 matching mapping is applied** — to assign multiple roles to a user this way,
 include all roles in the `roles` array of a single mapping. Alternatively,
