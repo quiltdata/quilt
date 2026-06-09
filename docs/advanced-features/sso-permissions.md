@@ -36,6 +36,23 @@ to grant the union of roles from **all** matching mappings; users can switch
 between the assigned roles via the role switcher, and any role no longer in
 the match set is revoked on next login.
 
+> Note: Under `union_roles: true`, the `admin` flag is **tri-state** and is
+**not** simply unioned the way `roles` are:
+>
+> - omitted — the mapping does not vote on admin,
+> - `true` — the mapping grants admin,
+> - `false` — the mapping **vetoes** admin.
+>
+> A user is made admin only if **at least one** matching mapping sets
+`admin: true` **and no** matching mapping sets `admin: false`. An explicit
+`admin: false` on any matching mapping therefore blocks admin even when
+another matching mapping sets `admin: true`. This matters for broad
+catch-all mappings (e.g. a domain-wide `pattern`) that a privileged user
+also matches: to avoid demoting such users, **omit** `admin` on the
+catch-all rather than setting `admin: false` — reserve `admin: false` for
+when you intend to actively deny admin. (With `union_roles: false`, only the
+first matching mapping applies, so its `admin` value alone is used.)
+
 ### Example
 
 ```yaml
@@ -69,9 +86,12 @@ mappings:
 By default (or with `union_roles: false`), only the first matching mapping
 applies — the `admin@example.com` user above would receive `AdminTools` only.
 With `union_roles: true`, that same user is granted both `AdminTools` and
-`ReadWriteQuiltBucket` (admin flag true) and can switch between them via the
-role switcher; a user with group `rw` only is granted `ReadWriteQuiltBucket`
-in either mode.
+`ReadWriteQuiltBucket` and can switch between them via the role switcher; a
+user with group `rw` only is granted `ReadWriteQuiltBucket` in either mode.
+The `admin@example.com` user remains admin because the first mapping sets
+`admin: true` and the second mapping **omits** `admin` (a non-vote) rather
+than setting `admin: false` — had it set `admin: false`, admin would be
+vetoed (see the tri-state note above).
 
 > Note: Users matching no mapping receive the `default_role`
 (`ReadQuiltBucket` in this example). Their admin flag is unchanged.
