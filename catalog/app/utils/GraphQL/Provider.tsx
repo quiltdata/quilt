@@ -53,6 +53,17 @@ function refetchRootField(clientRef: React.RefObject<urql.Client>, query: RootQu
   })
 }
 
+// `cache.updateQuery` updater that applies `R.evolve(transformations)` only
+// when the cached read is non-nil. Bare `R.evolve(_, null)` returns `{}` (the
+// `for..in null` body never runs), and graphcache's `updateQuery` only skips
+// the write when the updater returns null — so `{}` is written, each
+// selected field absent from the input becomes a null link, and
+// schema-NON_NULL list fields return `null` on the next read (the schema
+// nullability check only catches `undefined`). On an uncached read this
+// helper makes the write a no-op; the next read refetches via Suspense.
+const evolveCached = (transformations: any) =>
+  R.unless(R.isNil, R.evolve(transformations))
+
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
@@ -196,23 +207,12 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             // nudges the role-scoped list.
             bucketAdd: (result, _vars, cache) => {
               if ((result.bucketAdd as any)?.__typename !== 'BucketAddSuccess') return
-              // R.unless(R.isNil, ...) skips the write when bucketConfigs was
-              // never fetched (e.g. user lands on /admin/buckets?add=true via
-              // a landing-page link). Without the guard, R.evolve(_, null)
-              // returns {} and graphcache writes Query.bucketConfigs as a
-              // null link, which sticks: the next read returns
-              // {bucketConfigs: null} (the non-null schema check only catches
-              // `undefined`, not explicit `null`) and crashes List.tsx in
-              // R.sortBy. Same pattern as the roleDelete updater below.
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 // XXX: sort?
-                R.unless(
-                  R.isNil,
-                  R.evolve({
-                    bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
-                  }),
-                ),
+                evolveCached({
+                  bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
+                }),
               )
               // Query.buckets unchanged: a new bucket has no policy
               // attachments yet, so no managed-role user's set changes.
@@ -227,23 +227,13 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             bucketRemove: (result, vars, cache) => {
               if ((result.bucketRemove as any)?.__typename !== 'BucketRemoveSuccess')
                 return
-              // R.unless(R.isNil, ...): see bucketAdd above. The buckets
-              // query in particular may be uncached on bookmarked
-              // /admin/buckets navigation — without the guard, that path
-              // would corrupt the cache the same way.
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
-                R.unless(
-                  R.isNil,
-                  R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
-                ),
+                evolveCached({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
               cache.updateQuery(
                 { query: BUCKETS_QUERY },
-                R.unless(
-                  R.isNil,
-                  R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
-                ),
+                evolveCached({ buckets: R.reject(R.propEq('name', vars.name)) }),
               )
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
               // Server cascade-deletes the PolicyBucketPermission /
@@ -257,23 +247,17 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ policies { id permissions { bucket { name } } } }`,
                 },
-                R.unless(
-                  R.isNil,
-                  R.evolve({
-                    policies: R.map(R.evolve({ permissions: stripBucket })),
-                  }),
-                ),
+                evolveCached({
+                  policies: R.map(R.evolve({ permissions: stripBucket })),
+                }),
               )
               cache.updateQuery(
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { permissions { bucket { name } } } } }`,
                 },
-                R.unless(
-                  R.isNil,
-                  R.evolve({
-                    roles: R.map(R.evolve({ permissions: stripBucket })),
-                  }),
-                ),
+                evolveCached({
+                  roles: R.map(R.evolve({ permissions: stripBucket })),
+                }),
               )
             },
             policyCreateManaged: (result, _vars, cache) => {
@@ -392,16 +376,13 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ bucketConfigs { name associatedRoles { role { id } bucket { name } } } }`,
                 },
-                R.unless(
-                  R.isNil,
-                  R.evolve({
-                    bucketConfigs: R.map(
-                      R.evolve({
-                        associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
-                      }),
-                    ),
-                  }),
-                ),
+                evolveCached({
+                  bucketConfigs: R.map(
+                    R.evolve({
+                      associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
+                    }),
+                  ),
+                }),
               )
 
               // Remove deleted Role from root roles
