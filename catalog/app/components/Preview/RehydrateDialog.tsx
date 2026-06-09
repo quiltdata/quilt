@@ -201,8 +201,10 @@ function RehydrateForm({
     [],
   )
 
-  // Expedited is GLACIER-only; offer it only when the class is known to be
-  // GLACIER, so an unknown class (edge loader paths) fails safe to no Expedited.
+  // Expedited is GLACIER-only, so offer it only when the class resolves to
+  // GLACIER. Some loaders never HEAD the object — they learn it's archived only
+  // because fetching its bytes errors, and that error carries no class. We accept
+  // hiding Expedited for those rather than add a HEAD to recover the class.
   const tierOptions = React.useMemo(
     () =>
       storageClass === 'GLACIER'
