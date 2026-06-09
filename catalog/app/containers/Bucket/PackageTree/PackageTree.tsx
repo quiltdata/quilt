@@ -835,7 +835,7 @@ function FileDisplay({
           )
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({ archived, deleted, lastModified, size, restore }: ObjectAttrs) => (
+          Exists: ({ archived, deleted, lastModified, size, restoring }: ObjectAttrs) => (
             <>
               <FileContext file={file} pkg={packageHandle} />
               <TopBar crumbs={crumbs}>
@@ -918,7 +918,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {withPreview(
-                    { archived, deleted, restore },
+                    { archived, deleted, restoring },
                     handle,
                     viewModes.mode,
                     renderPreview(viewModes.handlePreviewResult),
