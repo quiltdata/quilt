@@ -227,13 +227,23 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             bucketRemove: (result, vars, cache) => {
               if ((result.bucketRemove as any)?.__typename !== 'BucketRemoveSuccess')
                 return
+              // R.unless(R.isNil, ...): see bucketAdd above. The buckets
+              // query in particular may be uncached on bookmarked
+              // /admin/buckets navigation — without the guard, that path
+              // would corrupt the cache the same way.
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
-                R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
+                R.unless(
+                  R.isNil,
+                  R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
+                ),
               )
               cache.updateQuery(
                 { query: BUCKETS_QUERY },
-                R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
+                R.unless(
+                  R.isNil,
+                  R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
+                ),
               )
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
               // Server cascade-deletes the PolicyBucketPermission /
@@ -247,17 +257,23 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ policies { id permissions { bucket { name } } } }`,
                 },
-                R.evolve({
-                  policies: R.map(R.evolve({ permissions: stripBucket })),
-                }),
+                R.unless(
+                  R.isNil,
+                  R.evolve({
+                    policies: R.map(R.evolve({ permissions: stripBucket })),
+                  }),
+                ),
               )
               cache.updateQuery(
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { permissions { bucket { name } } } } }`,
                 },
-                R.evolve({
-                  roles: R.map(R.evolve({ permissions: stripBucket })),
-                }),
+                R.unless(
+                  R.isNil,
+                  R.evolve({
+                    roles: R.map(R.evolve({ permissions: stripBucket })),
+                  }),
+                ),
               )
             },
             policyCreateManaged: (result, _vars, cache) => {
