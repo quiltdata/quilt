@@ -17,7 +17,7 @@ For each bucket registered with Quilt, four per-bucket tables are maintained in
 the Iceberg Glue database (the `IcebergDatabase` resource in your stack):
 
 - `{bucket}_package_revision` — package revisions with timestamps
-- `{bucket}_package_tag` — named package tags (e.g., `latest`, `v1.0`)
+- `{bucket}_package_tag` — named package tags (currently only `latest`)
 - `{bucket}_package_manifest` — package-level metadata and commit messages
 - `{bucket}_package_entry` — individual file entries within packages
 
