@@ -54,8 +54,6 @@ export default function ArchivedMessage({
   const openDialog = React.useCallback(() => setDialogOpen(true), [])
   const closeDialog = React.useCallback(() => setDialogOpen(false), [])
 
-  // A 202 (or already-in-progress) flips us to "in progress"; interpretResult
-  // already filtered out the 200 "already restored" case before calling back.
   const handleSubmitted = React.useCallback(() => setOptimisticRestoring(true), [])
 
   const showInProgress = optimisticRestoring || restore?.ongoing === true
