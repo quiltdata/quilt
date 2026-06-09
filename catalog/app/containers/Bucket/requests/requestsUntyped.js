@@ -120,7 +120,8 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
 export const ensureObjectIsPresent = (...args) =>
   getObjectExistence(...args).then(
     ObjectExistence.case({
-      Exists: ({ deleted, archived, ...h }) => (deleted || archived ? null : h),
+      Exists: ({ deleted, archived, restoring, ...h }) =>
+        deleted || archived ? null : h,
       _: () => null,
     }),
   )
