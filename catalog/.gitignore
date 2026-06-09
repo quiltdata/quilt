@@ -7,7 +7,6 @@ coverage
 build
 quilt_packages
 stats.json
-.playwright-mcp
 
 # Cruft
 .DS_Store
