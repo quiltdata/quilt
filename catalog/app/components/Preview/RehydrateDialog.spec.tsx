@@ -187,6 +187,12 @@ describe('components/Preview/RehydrateDialog', () => {
     expect(values).toEqual(['Standard', 'Bulk'])
   })
 
+  it('hides Expedited when the storage class is unknown (fails safe)', () => {
+    setup({ storageClass: undefined })
+    const values = Array.from(getTierSelect().options).map((o) => o.value)
+    expect(values).toEqual(['Standard', 'Bulk'])
+  })
+
   describe('days validation', () => {
     it.each([
       ['empty', ''],

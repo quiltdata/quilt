@@ -71,8 +71,8 @@ export default function PreviewDisplay({
               </>
             ),
           }),
-        Archived: ({ handle, restore, storageClass }) => (
-          <ArchivedMessage handle={handle} restore={restore} storageClass={storageClass}>
+        Archived: ({ handle, archive }) => (
+          <ArchivedMessage handle={handle} archive={archive}>
             {({ heading, body, action }) =>
               renderMessage({
                 heading,

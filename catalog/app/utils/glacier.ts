@@ -84,3 +84,10 @@ export function getArchiveState(
 // Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
 // narrowing. Our own union keeps exhaustiveness and catches typos.
 export type RetrievalTier = 'Standard' | 'Bulk' | 'Expedited'
+
+// What we know about an archived object: its storage class and, when a restore
+// has been requested, its status.
+export interface ArchiveInfo {
+  storageClass: StorageClass
+  restore?: RestoreStatus
+}

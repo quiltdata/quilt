@@ -537,11 +537,12 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
-    // Carries restore/storageClass so ArchivedMessage can show the Rehydrate
-    // flow / in-progress state.
     return callback(
       AsyncResult.Err(
-        Preview.PreviewError.Archived({ handle, restore, storageClass: archived }),
+        Preview.PreviewError.Archived({
+          handle,
+          archive: { storageClass: archived, restore },
+        }),
       ),
     )
   }

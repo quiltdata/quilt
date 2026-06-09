@@ -318,14 +318,11 @@ export default function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
-          // Carries restore/storageClass so ArchivedMessage can show the
-          // Rehydrate flow / in-progress state.
           return callback(
             AsyncResult.Err(
               Preview.PreviewError.Archived({
                 handle,
-                restore: h.restore,
-                storageClass: h.archived,
+                archive: { storageClass: h.archived, restore: h.restore },
               }),
             ),
           )

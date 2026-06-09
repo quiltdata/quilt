@@ -201,12 +201,13 @@ function RehydrateForm({
     [],
   )
 
-  // Expedited is GLACIER-only (not DEEP_ARCHIVE); hide it for Deep Archive.
+  // Expedited is GLACIER-only; offer it only when the class is known to be
+  // GLACIER, so an unknown class (edge loader paths) fails safe to no Expedited.
   const tierOptions = React.useMemo(
     () =>
-      storageClass === 'DEEP_ARCHIVE'
-        ? TIER_OPTIONS.filter((o) => o.value !== 'Expedited')
-        : TIER_OPTIONS,
+      storageClass === 'GLACIER'
+        ? TIER_OPTIONS
+        : TIER_OPTIONS.filter((o) => o.value !== 'Expedited'),
     [storageClass],
   )
 

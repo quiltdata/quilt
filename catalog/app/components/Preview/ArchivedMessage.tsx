@@ -3,7 +3,7 @@ import * as React from 'react'
 import type * as Model from 'model'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
-import type { RestoreStatus, StorageClass } from 'utils/glacier'
+import type { ArchiveInfo } from 'utils/glacier'
 import RehydrateDialog from './RehydrateDialog'
 
 interface MessageAction {
@@ -19,8 +19,7 @@ interface MessageData {
 
 interface ArchivedMessageProps {
   handle: Model.S3.S3ObjectLocation
-  restore?: RestoreStatus
-  storageClass?: StorageClass
+  archive?: ArchiveInfo
   // The host (PreviewDisplay) owns how the message looks and whether to surface
   // the action (e.g. it drops it when downloads are disabled); this component
   // only manages the rehydrate dialog + optimistic state and hands back content.
@@ -29,8 +28,7 @@ interface ArchivedMessageProps {
 
 export default function ArchivedMessage({
   handle,
-  restore,
-  storageClass,
+  archive,
   children,
 }: ArchivedMessageProps) {
   const { prefs } = BucketPreferences.use()
@@ -56,7 +54,7 @@ export default function ArchivedMessage({
 
   const handleSubmitted = React.useCallback(() => setOptimisticRestoring(true), [])
 
-  const showInProgress = optimisticRestoring || restore?.ongoing === true
+  const showInProgress = optimisticRestoring || archive?.restore?.ongoing === true
 
   if (showInProgress) {
     return (
@@ -80,7 +78,7 @@ export default function ArchivedMessage({
         open={dialogOpen}
         onClose={closeDialog}
         handle={handle}
-        storageClass={storageClass}
+        storageClass={archive?.storageClass}
         onSubmitted={handleSubmitted}
       />
     </>

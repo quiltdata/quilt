@@ -82,15 +82,18 @@ describe('components/Preview/loaders/useGate', () => {
     })
     // `getArchiveState` owns the storage-class / expiry classification matrix
     // (see utils/glacier.spec). Here we only check the two wirings `gate` adds:
-    // archived -> throw Archived (forwarding `restore`), not-archived -> proceed.
+    // archived -> throw Archived (forwarding the archive info), not-archived -> proceed.
     describe('handles archived', () => {
-      it('throws Archived and forwards the restore status', () => {
+      it('throws Archived and forwards the archive info', () => {
         const s3 = mockS3(() => ({
           StorageClass: 'GLACIER',
           Restore: 'ongoing-request="true"',
         }))
         return expect(gate({ s3, handle })).rejects.toMatchObject(
-          PreviewError.Archived({ handle, restore: { ongoing: true } }),
+          PreviewError.Archived({
+            handle,
+            archive: { storageClass: 'GLACIER', restore: { ongoing: true } },
+          }),
         )
       })
       it('does not throw Archived when a live restored copy exists', async () => {
