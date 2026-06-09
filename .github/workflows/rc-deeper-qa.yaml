@@ -1,6 +1,14 @@
 name: RC deeper QA
 
 on:
+  push:
+    branches:
+      - 260528-image-gallery--catalog
+    paths:
+      - ".github/workflows/rc-deeper-qa.yaml"
+      - "catalog/qa/deeper-rc/**"
+      - "catalog/package.json"
+      - "catalog/package-lock.json"
   workflow_dispatch:
     inputs:
       expected_stack_version:
