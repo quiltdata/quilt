@@ -411,16 +411,6 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
             )
             .filter(Boolean)
 
-          const sourceFiles = d.package?.revision?.contentsFlatMap
-            ? Object.entries(d.package.revision.contentsFlatMap).map(
-                ([logicalKey, entry]) => ({
-                  ...s3paths.parseS3Url(entry.physicalKey),
-                  logicalKey,
-                  size: entry.size,
-                }),
-              )
-            : summaryHandles
-
           return (
             <>
               {prompt.render()}
@@ -520,7 +510,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
                           files={summaryHandles}
                           mkUrl={mkUrl}
                           packageHandle={packageHandle}
-                          sourceFiles={sourceFiles}
+                          sourceFiles={summaryHandles}
                         />
                       </M.Box>
                     </>

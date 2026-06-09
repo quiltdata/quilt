@@ -185,12 +185,12 @@ Supported gallery options:
 - `source.recursive`: include nested files under the prefix; defaults to `true`.
 - `columns` and `rows`: thumbnail grid size; `pageSize` can override their product.
 - `arrows`: `overlay`, `inside`, `outside`, or `none`; controls both gallery page arrows and lightbox arrows.
-- `captions`: `filename`, `path`, `title`, or `none`.
+- `captions`: `filename`, `path`, or `none`.
 - `counter`: show the current lightbox position.
 - `fullscreen`: open the lightbox as a full-screen dialog.
 - `zoom`: show a lightbox zoom toggle.
 - `thumbnailFit`: `contain` or `cover`.
-- `sort`: `path`, `filename`, or `modified`.
+- `sort`: `path` or `filename`.
 
 Package galleries use the package manifest when it is available, so they can
 include images outside the currently selected folder. Bucket-directory galleries

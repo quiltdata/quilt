@@ -31,6 +31,7 @@ import * as requests from './requests'
 import * as errors from './errors'
 import * as Gallery from './Gallery'
 import * as GallerySource from './GallerySource'
+import * as PackageManifest from './PackageDialog/Manifest'
 
 interface S3Handle extends LogicalKeyResolver.S3SummarizeHandle {
   error?: errors.BucketError
@@ -508,7 +509,7 @@ function Row({ file, mkUrl, packageHandle, s3, sourceFiles }: RowProps) {
     const images = GallerySource.resolveGalleryItems(file.gallery, sourceFiles)
     return (
       <Gallery.Thumbnails
-        arrows={file.gallery.arrows}
+        arrows={file.gallery.arrows || 'overlay'}
         captions={file.gallery.captions}
         columns={file.gallery.columns}
         counter={file.gallery.counter}
@@ -601,6 +602,52 @@ function SummaryEntries({
   )
 }
 
+function manifestSourceFiles(
+  entries: Model.PackageContentsFlatMap,
+): LogicalKeyResolver.S3SummarizeHandle[] {
+  return Object.entries(entries).map(([logicalKey, entry]) => ({
+    ...s3paths.parseS3Url(entry.physicalKey),
+    logicalKey,
+    size: entry.size,
+  }))
+}
+
+interface SummaryEntriesWithSourceFilesProps extends SummaryEntriesProps {}
+
+function SummaryEntriesWithSourceFiles(props: SummaryEntriesWithSourceFilesProps) {
+  const needsPackageManifest = props.entries.some(GallerySource.isGalleryBlock)
+  if (needsPackageManifest && props.packageHandle) {
+    return (
+      <SummaryEntriesWithPackageManifest {...props} packageHandle={props.packageHandle} />
+    )
+  }
+  return <SummaryEntries {...props} />
+}
+
+function SummaryEntriesWithPackageManifest({
+  sourceFiles,
+  packageHandle,
+  ...props
+}: SummaryEntriesWithSourceFilesProps & { packageHandle: PackageHandle }) {
+  const manifest = PackageManifest.useManifest({
+    bucket: packageHandle.bucket,
+    name: packageHandle.name,
+    hashOrTag: packageHandle.hash,
+  })
+  const gallerySourceFiles = manifest.case({
+    Ok: ({ entries }: PackageManifest.Manifest) =>
+      entries ? manifestSourceFiles(entries) : sourceFiles,
+    _: () => sourceFiles,
+  })
+  return (
+    <SummaryEntries
+      {...props}
+      packageHandle={packageHandle}
+      sourceFiles={gallerySourceFiles}
+    />
+  )
+}
+
 function getSummaryEntryKey(file: SummaryEntry): string {
   if (GallerySource.isGalleryBlock(file)) return `gallery:${file.title || ''}`
   if (Array.isArray(file)) return file.map((f) => f.handle.key).join('')
@@ -626,7 +673,9 @@ export function SummaryRoot({ s3, bucket, inStack }: SummaryRootProps) {
           console.error(e)
           return null
         },
-        Ok: (entries: SummaryEntry[]) => <SummaryEntries entries={entries} s3={s3} />,
+        Ok: (entries: SummaryEntry[]) => (
+          <SummaryEntriesWithSourceFiles entries={entries} s3={s3} />
+        ),
         Pending: () => <FilePreviewSkel />,
         _: () => null,
       })}
@@ -698,7 +747,7 @@ export function SummaryNested({
   return data.case({
     Err: (e: Error) => <SummaryFailed error={e} />,
     Ok: (entries: SummaryEntry[]) => (
-      <SummaryEntries
+      <SummaryEntriesWithSourceFiles
         entries={entries}
         s3={s3}
         mkUrl={mkUrl}

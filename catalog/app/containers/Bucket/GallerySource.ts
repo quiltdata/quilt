@@ -38,7 +38,8 @@ function isImage(handle: ImageHandle): boolean {
 }
 
 function normalPrefix(gallery: Summarize.Gallery): string {
-  return gallery.source.resolvedPrefix || gallery.source.prefix || ''
+  const prefix = gallery.source.resolvedPrefix || gallery.source.prefix || ''
+  return prefix && !prefix.endsWith('/') ? `${prefix}/` : prefix
 }
 
 function inPrefix(path: string, prefix: string): boolean {
@@ -50,22 +51,12 @@ function isDirectChild(path: string, prefix: string): boolean {
   return !!rest && !rest.includes('/')
 }
 
-function captionFor(
-  mode: Summarize.GalleryCaptions | undefined,
-  path: string,
-  handle: ImageHandle,
-): string {
+function captionFor(mode: Summarize.GalleryCaptions | undefined, path: string): string {
   switch (mode || 'filename') {
     case 'none':
       return ''
     case 'path':
       return path
-    case 'title':
-      return `${
-        (handle as ImageHandle & { title?: string; name?: string }).title ||
-        (handle as ImageHandle & { title?: string; name?: string }).name ||
-        basename(path)
-      }`
     case 'filename':
     default:
       return basename(path)
@@ -79,12 +70,6 @@ function sortItems(
   switch (sort || 'path') {
     case 'filename':
       return R.sortBy((item) => item.filename.toLocaleLowerCase(), items)
-    case 'modified':
-      return [...items].sort(
-        (a, b) =>
-          (b.handle.lastModified?.getTime() || 0) -
-          (a.handle.lastModified?.getTime() || 0),
-      )
     case 'path':
     default:
       return R.sortBy((item) => item.path.toLocaleLowerCase(), items)
@@ -109,7 +94,7 @@ export function resolveGalleryItems(
       .map((handle) => {
         const path = imagePath(handle)
         return {
-          caption: captionFor(gallery.captions, path, handle),
+          caption: captionFor(gallery.captions, path),
           filename: basename(path),
           handle,
           path,

@@ -134,7 +134,7 @@
         },
         "captions": {
           "type": "string",
-          "enum": ["filename", "path", "title", "none"],
+          "enum": ["filename", "path", "none"],
           "default": "filename"
         },
         "counter": {
@@ -148,7 +148,7 @@
         },
         "sort": {
           "type": "string",
-          "enum": ["path", "filename", "modified"],
+          "enum": ["path", "filename"],
           "default": "path"
         },
         "zoom": {

@@ -50,9 +50,9 @@ export type File = FileShortcut | FileExtended
 
 export type GallerySourceScope = 'package' | 'folder'
 export type GalleryArrows = 'inside' | 'outside' | 'overlay' | 'none'
-export type GalleryCaptions = 'filename' | 'path' | 'title' | 'none'
+export type GalleryCaptions = 'filename' | 'path' | 'none'
 export type GalleryThumbnailFit = 'contain' | 'cover'
-export type GallerySort = 'path' | 'filename' | 'modified'
+export type GallerySort = 'path' | 'filename'
 
 export interface GallerySource {
   scope?: GallerySourceScope

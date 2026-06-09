@@ -362,16 +362,16 @@ function Lightbox({
       }
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
-        move(-1)
+        if (canNavigate) move(-1)
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault()
-        move(1)
+        if (canNavigate) move(1)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [active, move, onClose])
+  }, [active, canNavigate, move, onClose])
 
   if (!activeHandle) return null
 
@@ -412,7 +412,7 @@ function Lightbox({
       classes={{ paper: classes.paper }}
     >
       <M.DialogTitle disableTypography>
-        <M.Box display="flex" alignItems="center">
+        <M.Box display="flex" alignItems="center" justifyContent="space-between">
           <M.Typography variant="h6">{caption || 'Image preview'}</M.Typography>
           <M.IconButton aria-label="Close image preview" onClick={onClose}>
             <M.Icon>close</M.Icon>
