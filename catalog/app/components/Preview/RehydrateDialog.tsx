@@ -10,6 +10,7 @@ import type { RetrievalTier, StorageClass } from 'utils/glacier'
 import type * as Model from 'model'
 
 import { useRestoreObject } from './restoreObject'
+import type { RestoreResult } from './restoreObject'
 
 const MIN_DAYS = 1
 const MAX_DAYS = 90
@@ -46,8 +47,6 @@ const TIER_OPTIONS: TierOption[] = [
     hint: '1–5 minutes (GLACIER only). Most expensive; may be unavailable.',
   },
 ]
-
-type RestoreResult = Awaited<ReturnType<ReturnType<typeof useRestoreObject>>>
 
 interface Failure {
   message: string

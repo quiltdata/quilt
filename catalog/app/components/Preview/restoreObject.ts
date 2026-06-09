@@ -10,6 +10,10 @@ import RESTORE_OBJECT from './gql/RestoreObject.generated'
 
 type MutationData = GQL.DataForDoc<typeof RESTORE_OBJECT>
 
+// The restoreObject mutation union (RestoreObjectSuccess | OperationError |
+// InvalidInput). RehydrateDialog's interpretResult branches on it.
+export type RestoreResult = MutationData['restoreObject']
+
 interface UseRestoreObjectArgs {
   handle: Model.S3.S3ObjectLocation
   tier: RetrievalTier
