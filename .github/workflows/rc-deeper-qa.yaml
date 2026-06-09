@@ -1,0 +1,156 @@
+name: RC deeper QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_stack_version:
+        description: "Expected Quilt stack/version string"
+        required: true
+        default: "1.70"
+      target_url:
+        description: "Catalog URL to test"
+        required: true
+        default: "https://nightly.quilttest.com"
+      results_bucket:
+        description: "Bucket used for QA packages and evidence"
+        required: true
+        default: "quilt-example-bucket"
+      qa_package_name:
+        description: "Optional package name for the deeper QA report"
+        required: false
+        default: ""
+      skip_wait:
+        description: "Reserved for future environment readiness waits"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  rc-deeper-qa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: catalog
+    env:
+      QA_TARGET_URL: ${{ inputs.target_url }}
+      QA_BUCKET: ${{ inputs.results_bucket }}
+      QA_EXPECTED_VERSION: ${{ inputs.expected_stack_version }}
+      QA_PACKAGE_NAME: ${{ inputs.qa_package_name }}
+      QA_OUTPUT_ROOT: ${{ github.workspace }}/catalog/.playwright-mcp
+      QA_SKIP_WAIT: ${{ inputs.skip_wait }}
+      QA_AUTH_MODE: profile
+      QA_BROWSER_PROFILE_GPG: ${{ github.workspace }}/catalog/qa/deeper-rc/secrets/deeper-rc-browser-profile.tgz.gpg
+      QA_BROWSER_PROFILE_TGZ: ${{ github.workspace }}/catalog/.playwright-mcp/deeper-rc-browser-profile.tgz
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: "catalog/package.json"
+          cache: "npm"
+          cache-dependency-path: "catalog/package-lock.json"
+
+      - run: npm ci
+
+      - name: Install Playwright Chrome
+        run: npx playwright install --with-deps chrome
+
+      - name: Decrypt QA browser profile
+        shell: bash
+        env:
+          QUILT_QA_BROWSER_PROFILE_PASSPHRASE: ${{ secrets.QUILT_QA_BROWSER_PROFILE_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "$QA_BROWSER_PROFILE_GPG" ]; then
+            echo "::error::Encrypted QA browser profile not found at $QA_BROWSER_PROFILE_GPG. Bootstrap locally, encrypt the profile archive, and commit only the .tgz.gpg file."
+            exit 1
+          fi
+          if [ -z "$QUILT_QA_BROWSER_PROFILE_PASSPHRASE" ]; then
+            echo "::error::Repository secret QUILT_QA_BROWSER_PROFILE_PASSPHRASE is required to decrypt the QA browser profile."
+            exit 1
+          fi
+          mkdir -p "$(dirname "$QA_BROWSER_PROFILE_TGZ")"
+          gpg --batch --yes --pinentry-mode loopback \
+            --passphrase "$QUILT_QA_BROWSER_PROFILE_PASSPHRASE" \
+            --output "$QA_BROWSER_PROFILE_TGZ" \
+            --decrypt "$QA_BROWSER_PROFILE_GPG"
+          chmod 600 "$QA_BROWSER_PROFILE_TGZ"
+
+      - name: Run RC deeper QA
+        id: qa
+        shell: bash
+        run: |
+          set +e
+          npm run qa:deeper-rc
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Locate QA report
+        id: locate
+        if: always()
+        shell: bash
+        run: |
+          latest_dir="$(ls -td .playwright-mcp/nightly-*-deeper-qa-* 2>/dev/null | head -n 1 || true)"
+          if [ -n "$latest_dir" ]; then
+            echo "result_dir=$latest_dir" >> "$GITHUB_OUTPUT"
+            if [ -f "$latest_dir/publish-result.json" ]; then
+              echo "result_json=$latest_dir/publish-result.json" >> "$GITHUB_OUTPUT"
+            elif [ -f "$latest_dir/qa-summary.json" ]; then
+              echo "result_json=$latest_dir/qa-summary.json" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Upload QA artifacts
+        if: always() && steps.locate.outputs.result_dir != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc-deeper-qa-${{ github.run_id }}
+          path: ${{ github.workspace }}/catalog/${{ steps.locate.outputs.result_dir }}
+          if-no-files-found: error
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          result_json="${{ steps.locate.outputs.result_json }}"
+          if [ -z "$result_json" ] || [ ! -f "$result_json" ]; then
+            {
+              echo "## RC deeper QA"
+              echo
+              echo "No local QA report was produced. Runner exit code: ${{ steps.qa.outputs.exit_code || 'not-run' }}."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          RESULT_JSON="$result_json" node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require("fs");
+          const result = JSON.parse(fs.readFileSync(process.env.RESULT_JSON, "utf8"));
+          const counts = result.counts || {};
+          console.log("## RC deeper QA");
+          console.log("");
+          console.log(`- Target: ${result.target || "unknown"}`);
+          console.log(`- Results bucket: ${result.bucket || "unknown"}`);
+          console.log(`- Package: ${result.packageName || "unknown"}`);
+          console.log(`- Package URL: ${result.packageUrl || "not published"}`);
+          console.log(`- Package revision: ${result.packageRevision || "not published"}`);
+          console.log(`- Passed checks: ${counts.passed ?? "unknown"}`);
+          console.log(`- Failed checks: ${counts.failed ?? "unknown"}`);
+          console.log(`- Findings: ${counts.findings ?? "unknown"}`);
+          console.log(`- Blockers / limitations: ${counts.blockers ?? "unknown"}`);
+          console.log(`- Runner exit code: ${process.env.QA_EXIT_CODE || "0"}`);
+          if (result.runnerError) {
+            console.log("");
+            console.log("### Runner Error");
+            console.log("");
+            console.log("```");
+            console.log(String(result.runnerError).slice(0, 4000));
+            console.log("```");
+          }
+          NODE
+        env:
+          QA_EXIT_CODE: ${{ steps.qa.outputs.exit_code || 'not-run' }}
+
+      - name: Fail on runner failure
+        if: always() && steps.qa.outputs.exit_code != '0'
+        run: exit 1
