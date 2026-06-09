@@ -196,12 +196,23 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             // nudges the role-scoped list.
             bucketAdd: (result, _vars, cache) => {
               if ((result.bucketAdd as any)?.__typename !== 'BucketAddSuccess') return
+              // R.unless(R.isNil, ...) skips the write when bucketConfigs was
+              // never fetched (e.g. user lands on /admin/buckets?add=true via
+              // a landing-page link). Without the guard, R.evolve(_, null)
+              // returns {} and graphcache writes Query.bucketConfigs as a
+              // null link, which sticks: the next read returns
+              // {bucketConfigs: null} (the non-null schema check only catches
+              // `undefined`, not explicit `null`) and crashes List.tsx in
+              // R.sortBy. Same pattern as the roleDelete updater below.
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 // XXX: sort?
-                R.evolve({
-                  bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
-                }),
+                R.unless(
+                  R.isNil,
+                  R.evolve({
+                    bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
+                  }),
+                ),
               )
               // Query.buckets unchanged: a new bucket has no policy
               // attachments yet, so no managed-role user's set changes.
