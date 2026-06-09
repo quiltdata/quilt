@@ -19,9 +19,6 @@ import * as utils from './utils'
 export const FILE_TYPE = FileType.Markdown
 
 // TODO: resolve relative paths inside packages?
-// this will require async processing and remarkable@1 doesnt support that,
-// so we either come up with some workaround or migrate to remarkable@2 or some other markdown renderer
-// (probably the one that will output react instead of html string).
 function useImgProcessor(handle) {
   const sign = AWS.Signer.useS3Signer()
   return useMemoEq([sign, handle], () =>

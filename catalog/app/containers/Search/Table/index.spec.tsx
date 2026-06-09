@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
 
@@ -80,6 +80,8 @@ vi.mock('./Table', () => ({
 const TablePage = () => <TableView emptySlot={<div>No results</div>} onRefine={noop} />
 
 describe('containers/Search/Table/index', () => {
+  afterEach(cleanup)
+
   describe('when no results', () => {
     beforeEach(() => {
       vi.clearAllMocks()
@@ -89,14 +91,14 @@ describe('containers/Search/Table/index', () => {
       useResults.mockReturnValue([{ _tag: 'idle' }])
 
       const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toBe(null)
     })
 
     it('renders skeleton for in-progress state', () => {
       useResults.mockReturnValue([{ _tag: 'in-progress' }])
 
       const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      expect(container.textContent).toBe('Loading…')
     })
 
     it('renders error for general fail state', () => {
@@ -110,8 +112,9 @@ describe('containers/Search/Table/index', () => {
         },
       ])
 
-      const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<TablePage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(getByText('Something went wrong')).toBeTruthy()
     })
 
     it('renders error for page fail state', () => {
@@ -125,8 +128,9 @@ describe('containers/Search/Table/index', () => {
         },
       ])
 
-      const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<TablePage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(getByText('Page loading failed')).toBeTruthy()
     })
 
     it('renders error for InputError data fail state', () => {
@@ -143,8 +147,9 @@ describe('containers/Search/Table/index', () => {
         },
       ])
 
-      const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<TablePage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(getByText('We can not handle this input')).toBeTruthy()
     })
 
     it('renders error for QuerySyntaxError data fail state', () => {
@@ -163,8 +168,10 @@ describe('containers/Search/Table/index', () => {
         },
       ])
 
-      const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<TablePage />)
+      expect(getByText('Syntax error')).toBeTruthy()
+      expect(getByText('search.query')).toBeTruthy()
+      expect(getByText('Syntax error in query')).toBeTruthy()
     })
 
     it('renders timeout error for OperationError data fail state', () => {
@@ -183,7 +190,7 @@ describe('containers/Search/Table/index', () => {
       ])
 
       const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      expect(container.textContent).toBe('Timeout error')
     })
 
     it('renders operation error for other OperationError data fail state', () => {
@@ -200,15 +207,16 @@ describe('containers/Search/Table/index', () => {
         },
       ])
 
-      const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<TablePage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(getByText('Operation error: Internal server error')).toBeTruthy()
     })
 
     it('renders empty slot for empty state', () => {
       useResults.mockReturnValue([{ _tag: 'empty' }])
 
       const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      expect(container.textContent).toBe('No results')
     })
   })
 
@@ -226,8 +234,9 @@ describe('containers/Search/Table/index', () => {
         },
       ])
 
-      const { container } = render(<TablePage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<TablePage />)
+      expect(getByText('package-1')).toBeTruthy()
+      expect(getByText('package-2')).toBeTruthy()
     })
   })
 })

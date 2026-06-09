@@ -16,6 +16,36 @@ enum SortDirection {
   DESC
 }
 
+enum APIKeyStatus {
+  ACTIVE
+  EXPIRED
+}
+
+type APIKey {
+  id: ID!
+  name: String!
+  fingerprint: String!
+  createdAt: Datetime!
+  expiresAt: Datetime!
+  lastUsedAt: Datetime
+  userEmail: String!
+  status: APIKeyStatus!
+}
+
+type APIKeyCreated {
+  apiKey: APIKey!
+  secret: String!
+}
+
+input APIKeyCreateInput {
+  name: String!
+  expiresInDays: Int! = 90
+}
+
+union APIKeyCreateResult = APIKeyCreated | InvalidInput
+
+union APIKeyRevokeResult = Ok | InvalidInput
+
 type OperationError {
   message: String!
   name: String!
@@ -143,10 +173,25 @@ type BucketConfig {
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
   indexContentBytes: Int @admin
+  prefixes: [String!]! @admin
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
-  collaborators: [CollaboratorBucketConnection!]!
   tabulatorTables: [TabulatorTable!]!
+}
+
+# Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
+# Subject to the caller's active role — no admin bypass (unlike
+# `bucketConfigs` / `bucketConfig`). `ALLOW_ANONYMOUS_ACCESS` stacks and
+# unmanaged roles see every in-stack bucket, same as the admin-bypass path.
+type Bucket {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  tags: [String!]
+  relevanceScore: Int!
+  browsable: Boolean!
+  collaborators: [CollaboratorBucketConnection!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -566,12 +611,18 @@ type PackagerAdminQueries {
   eventRule(name: String!): PackagerEventRule
 }
 
+type APIKeyAdminQueries {
+  list(email: String, name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
+  get(id: ID!): APIKey
+}
+
 type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
+  apiKeys: APIKeyAdminQueries!
 }
 
 type MyRole {
@@ -584,6 +635,8 @@ type Me {
   isAdmin: Boolean!
   role: MyRole!
   roles: [MyRole!]!
+  apiKeys(name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
+  apiKey(id: ID!): APIKey
 }
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
@@ -594,6 +647,8 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
+  buckets: [Bucket!]!
+  bucket(name: String!): Bucket
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
@@ -642,6 +697,7 @@ input BucketAddInput {
   indexContentBytes: Int
   delayScan: Boolean
   browsable: Boolean
+  prefixes: [String!]
 }
 
 input BucketUpdateInput {
@@ -658,6 +714,7 @@ input BucketUpdateInput {
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
   browsable: Boolean
+  prefixes: [String!]
 }
 
 type BucketAddSuccess {
@@ -697,7 +754,7 @@ type NotificationTopicNotFound {
 }
 
 type InsufficientPermissions {
-  _: Boolean
+  message: String!
 }
 
 type IndexingInProgress {
@@ -729,6 +786,7 @@ union BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
@@ -961,6 +1019,10 @@ type PackagerAdminMutations {
   toggleEventRule(name: String!, enabled: Boolean!): PackagerEventRuleToggleResult!
 }
 
+type APIKeyAdminMutations {
+  revoke(id: ID!): APIKeyRevokeResult!
+}
+
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
@@ -968,10 +1030,14 @@ type AdminMutations {
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult! @deprecated
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
+  apiKeys: APIKeyAdminMutations!
 }
 
 type Mutation {
   switchRole(roleName: String!): SwitchRoleResult!
+
+  apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
+  apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
 
   packageConstruct(
     params: PackagePushParams!

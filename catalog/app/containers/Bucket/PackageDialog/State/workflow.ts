@@ -10,11 +10,11 @@ import { ManifestStatus } from './manifest'
 
 export type WorkflowsConfigStatus =
   | { _tag: 'idle' }
-  | { _tag: 'loading'; config: /*empty config as fallback*/ workflows.WorkflowsConfig }
+  | { _tag: 'loading'; config: /* null config as fallback */ workflows.WorkflowsConfig }
   | {
       _tag: 'error'
       error: Error
-      config: /*empty config as fallback*/ workflows.WorkflowsConfig
+      config: /* null config as fallback */ workflows.WorkflowsConfig
     }
   | { _tag: 'ready'; config: workflows.WorkflowsConfig }
 
@@ -49,10 +49,10 @@ export function useWorkflowsConfig(
     return { _tag: 'idle' }
   }
   if (result === Request.Loading) {
-    return { _tag: 'loading', config: workflows.emptyConfig }
+    return { _tag: 'loading', config: workflows.nullConfig }
   }
   if (result instanceof Error) {
-    return { _tag: 'error', error: result, config: workflows.emptyConfig }
+    return { _tag: 'error', error: result, config: workflows.nullConfig }
   }
 
   return { _tag: 'ready', config: result }

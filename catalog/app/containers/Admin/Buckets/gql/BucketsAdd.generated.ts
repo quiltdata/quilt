@@ -24,7 +24,10 @@ export type containers_Admin_Buckets_gql_BucketsAddMutation = {
     | { readonly __typename: 'BucketDoesNotExist' }
     | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
     | { readonly __typename: 'BucketIndexContentBytesInvalid' }
-    | { readonly __typename: 'InsufficientPermissions' }
+    | ({ readonly __typename: 'InsufficientPermissions' } & Pick<
+        Types.InsufficientPermissions,
+        'message'
+      >)
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }
     | { readonly __typename: 'SnsInvalid' }
@@ -86,6 +89,19 @@ export const containers_Admin_Buckets_gql_BucketsAddDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'InsufficientPermissions' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                     ],
                   },
                 },

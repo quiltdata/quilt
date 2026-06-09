@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 
 import noop from 'utils/noop'
 
@@ -77,12 +77,14 @@ vi.mock('./Hit', () => ({
 const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={noop} />
 
 describe('containers/Search/List/index', () => {
+  afterEach(cleanup)
+
   describe('when no results', () => {
     it('renders skeleton for fetching state', () => {
       firstPageQuery = { _tag: 'fetching' }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('Loading…')).toBeTruthy()
     })
 
     it('renders error for error state', () => {
@@ -91,8 +93,9 @@ describe('containers/Search/List/index', () => {
         error: new Error('Network error'),
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(getByText('Network error')).toBeTruthy()
     })
 
     it('renders empty slot for EmptySearchResultSet', () => {
@@ -103,8 +106,8 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('No results')).toBeTruthy()
     })
 
     it('renders error for InputError', () => {
@@ -122,8 +125,9 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText, container } = render(<ListPage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(container.textContent).toContain('Invalid search syntax')
     })
 
     it('renders syntax error for QuerySyntaxError', () => {
@@ -141,8 +145,9 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('Syntax error')).toBeTruthy()
+      expect(getByText('Syntax error in query')).toBeTruthy()
     })
 
     it('renders timeout error for OperationError with Timeout', () => {
@@ -155,8 +160,8 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('Timeout error')).toBeTruthy()
     })
 
     it('renders operation error for other OperationError', () => {
@@ -169,8 +174,9 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText, container } = render(<ListPage />)
+      expect(getByText('Unexpected error')).toBeTruthy()
+      expect(container.textContent).toContain('Internal server error')
     })
   })
 
@@ -188,8 +194,13 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('This is secure search.')).toBeTruthy()
+      expect(
+        getByText(
+          "We don't know in advance if users have access to each individual result",
+        ),
+      ).toBeTruthy()
     })
 
     it('renders PackagesSearchResultSet with package hits', () => {
@@ -220,8 +231,9 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('Package: package-1#abc123')).toBeTruthy()
+      expect(getByText('Package: package-2#def456')).toBeTruthy()
     })
 
     it('renders ObjectsSearchResultSet with object hits', () => {
@@ -250,8 +262,9 @@ describe('containers/Search/List/index', () => {
         },
       }
 
-      const { container } = render(<ListPage />)
-      expect(container).toMatchSnapshot()
+      const { getByText } = render(<ListPage />)
+      expect(getByText('Object: data/file1.csv')).toBeTruthy()
+      expect(getByText('Object: data/file2.json')).toBeTruthy()
     })
   })
 })

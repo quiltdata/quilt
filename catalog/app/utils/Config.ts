@@ -25,16 +25,12 @@ export interface ConfigJson {
   registryUrl: string
   s3Proxy: string
 
+  hubspotId?: string
   intercomAppId?: string
   mixpanelToken: string
   sentryDSN?: string
 
   legacyPackagesRedirect?: string
-
-  linkedData?: {
-    name?: string
-    description?: string
-  }
 
   noDownload?: boolean
   noOverviewImages?: boolean
@@ -48,6 +44,7 @@ export interface ConfigJson {
   crc64Checksums?: boolean
 
   qurator?: boolean
+  quratorDefaultModel?: string
 
   build_version?: string // not sure where this comes from
   stackVersion: string

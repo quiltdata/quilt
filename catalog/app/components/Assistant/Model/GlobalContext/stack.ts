@@ -1,17 +1,17 @@
 import * as React from 'react'
 
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import * as XML from 'utils/XML'
 
 export function useStackInfo() {
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const buckets = Buckets.useRelevantBuckets()
 
   return React.useMemo(() => {
-    const buckets = XML.tag(
+    const bucketsXml = XML.tag(
       'buckets',
       {},
       'Buckets attached to this stack:',
-      ...bucketConfigs.map((b) =>
+      ...buckets.map((b) =>
         XML.tag(
           'bucket',
           {},
@@ -28,6 +28,6 @@ export function useStackInfo() {
         ),
       ),
     )
-    return XML.tag('quilt-stack-info', {}, buckets).toString()
-  }, [bucketConfigs])
+    return XML.tag('quilt-stack-info', {}, bucketsXml).toString()
+  }, [buckets])
 }

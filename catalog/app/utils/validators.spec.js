@@ -1,5 +1,5 @@
 import { Map } from 'immutable'
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 
 import validate, * as validators from './validators'
 
@@ -64,6 +64,35 @@ describe('utils/validators', () => {
       expect(matchesPassword('test', Map({ password: null }))).toBe(true)
       expect(matchesPassword('test', Map({ password: 'test' }))).toBe(true)
       expect(matchesPassword('sup', Map({ password: 'test' }))).toBe(false)
+    })
+  })
+
+  describe('logoUrl', () => {
+    it('should return undefined for empty value', () => {
+      expect(validators.logoUrl('')).toBeUndefined()
+      expect(validators.logoUrl(null)).toBeUndefined()
+    })
+
+    it('should accept http(s) URLs and s3 URLs with a key', () => {
+      expect(validators.logoUrl('https://example.com')).toBeUndefined()
+      expect(validators.logoUrl('https://example.com/logo.png')).toBeUndefined()
+      expect(validators.logoUrl('s3://bucket/key')).toBeUndefined()
+      expect(validators.logoUrl('s3://bucket/path/to/logo.png')).toBeUndefined()
+    })
+
+    it('should reject malformed URLs', () => {
+      expect(validators.logoUrl('not a url')).toBe('logoUrl')
+      expect(validators.logoUrl('https:////')).toBe('logoUrl')
+    })
+
+    it('should reject URLs without a hostname (non-special schemes)', () => {
+      // new URL('s3://') does not throw — non-special schemes allow empty host.
+      expect(validators.logoUrl('s3://')).toBe('logoUrl')
+    })
+
+    it('should reject s3 URLs without a key', () => {
+      expect(validators.logoUrl('s3://bucket')).toBe('logoUrl')
+      expect(validators.logoUrl('s3://bucket/')).toBe('logoUrl')
     })
   })
 

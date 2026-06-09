@@ -1,5 +1,3 @@
-import { join as pathJoin } from 'path'
-
 import * as Eff from 'effect'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
@@ -15,14 +13,7 @@ import tagged from 'utils/tagged'
 
 import { decodeS3Key } from './utils'
 
-const promiseProps = (obj) =>
-  Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
-
 const parseDate = (d) => d && new Date(d)
-
-const getOverviewBucket = (url) => s3paths.parseS3Url(url).bucket
-const getOverviewPrefix = (url) => s3paths.parseS3Url(url).key
-const getOverviewKey = (url, path) => pathJoin(getOverviewPrefix(url), path)
 
 const processStats = R.applySpec({
   exts: R.pipe(
@@ -38,24 +29,7 @@ const processStats = R.applySpec({
   totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
 })
 
-export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
-  if (overviewUrl) {
-    try {
-      const r = await s3
-        .getObject({
-          Bucket: getOverviewBucket(overviewUrl),
-          Key: getOverviewKey(overviewUrl, 'stats.json'),
-        })
-        .promise()
-      return processStats(JSON.parse(r.Body.toString('utf-8')))
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-
+export const bucketStats = async ({ req, bucket }) => {
   try {
     const qs = mkSearch({ index: bucket, action: 'stats' })
     const result = await req(`/search${qs}`)
@@ -150,7 +124,7 @@ export const ensureObjectIsPresent = (...args) =>
 export const ensureQuiltSummarizeIsPresent = ({ s3, bucket }) =>
   ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
 
-export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
+export const bucketSummary = async ({ s3, req, bucket, inStack }) => {
   const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
   if (handle) {
     try {
@@ -159,40 +133,6 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
       const display = `${handle.bucket}/${handle.key}`
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch configured summary from '${display}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-  if (overviewUrl) {
-    try {
-      const r = await s3
-        .getObject({
-          Bucket: getOverviewBucket(overviewUrl),
-          Key: getOverviewKey(overviewUrl, 'summary.json'),
-        })
-        .promise()
-      return Eff.pipe(
-        JSON.parse(r.Body.toString('utf-8')),
-        R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          // eslint-disable-next-line no-underscore-dangle
-          version: b.latestVersion.hits.hits[0]._source.version_id,
-          lastModified: parseDate(b.lastModified),
-          // eslint-disable-next-line no-underscore-dangle
-          ext: b.latestVersion.hits.hits[0]._source.ext,
-        })),
-        R.sortWith([
-          R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
-          R.descend(R.prop('lastModified')),
-        ]),
-        R.take(SAMPLE_SIZE),
-        R.map(R.objOf('handle')),
-      )
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
       // eslint-disable-next-line no-console
       console.error(e)
     }
@@ -252,46 +192,12 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   return []
 }
 
-export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
-  promiseProps({
-    forced:
-      overviewUrl &&
-      ensureObjectIsPresent({
-        s3,
-        bucket: getOverviewBucket(overviewUrl),
-        key: getOverviewKey(overviewUrl, 'README.md'),
-      }),
-    discovered: Promise.all(
-      README_KEYS.map((key) => ensureObjectIsPresent({ s3, bucket, key })),
-    ).then(R.filter(Boolean)),
-  })
+export const bucketReadmes = ({ s3, bucket }) =>
+  Promise.all(README_KEYS.map((key) => ensureObjectIsPresent({ s3, bucket, key }))).then(
+    R.filter(Boolean),
+  )
 
-export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
-  if (overviewUrl) {
-    try {
-      const r = await s3
-        .getObject({
-          Bucket: getOverviewBucket(overviewUrl),
-          Key: getOverviewKey(overviewUrl, 'summary.json'),
-        })
-        .promise()
-      return Eff.pipe(
-        JSON.parse(r.Body.toString('utf-8')),
-        R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          // eslint-disable-next-line no-underscore-dangle
-          version: b.latestVersion.hits.hits[0]._source.version_id,
-        })),
-      )
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch images sample from '${overviewUrl}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
+export const bucketImgs = async ({ req, s3, bucket, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })

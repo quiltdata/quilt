@@ -2,9 +2,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import { CloseOnClick } from 'components/Buttons'
 import * as Format from 'utils/format'
 import assertNever from 'utils/assertNever'
 
+import type { Features } from '../useFeatures'
 import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
@@ -34,7 +36,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function OrganizeOptions() {
+interface OrganizeOptionsProps {
+  features: Exclude<Features['organize'], false>
+}
+
+export default function OrganizeOptions({ features }: OrganizeOptionsProps) {
   const classes = useStyles()
   const {
     toggleBookmarks,
@@ -72,7 +78,7 @@ export default function OrganizeOptions() {
   }, [bookmarkStatus])
 
   return (
-    <>
+    <CloseOnClick>
       <M.ListSubheader inset component="div" disableSticky>
         <Format.Plural
           value={selectionCount}
@@ -102,16 +108,20 @@ export default function OrganizeOptions() {
         />
       </M.List>
 
-      <M.Divider />
+      {features.delete && (
+        <>
+          <M.Divider />
 
-      <M.List dense>
-        <MenuItem
-          className={classes.error}
-          icon={<Icons.DeleteOutlined color="error" />}
-          onClick={confirmDeleteSelected}
-          primary="Delete selected items"
-        />
-      </M.List>
-    </>
+          <M.List dense>
+            <MenuItem
+              className={classes.error}
+              icon={<Icons.DeleteOutlined color="error" />}
+              onClick={confirmDeleteSelected}
+              primary="Delete selected items"
+            />
+          </M.List>
+        </>
+      )}
+    </CloseOnClick>
   )
 }

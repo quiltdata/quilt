@@ -31,7 +31,6 @@ from t4_lambda_pkgevents import (
             '.quilt/named_packages/a/b/1451631599',
             '.quilt/named_packages/a/b/1451631600/',
             '.quilt/named_packages/a/b/1767250800/',
-            '.quilt/named_packages/a/b/1767250801',
             '.quilt/named_packages//b/1451631600',
             '.quilt/named_packages/a//1451631600',
             '.quilt/named_packages/a/b/145163160߀',
@@ -46,15 +45,25 @@ def test_pkg_created_event_bad_key(key):
                 'object': {
                     'key': key,
                 },
+                "bucket": {
+                    "name": "test-bucket",
+                },
             },
         }
     ) is None
 
 
-def test_pkg_created_event():
+@pytest.mark.parametrize(
+    "pointer_file",
+    (
+        "1451631600",
+        "9999999999",
+    ),
+)
+def test_pkg_created_event(pointer_file):
     bucket_name = 'test-bucket'
     handle = 'a/b'
-    key = f'.quilt/named_packages/{handle}/1451631600'
+    key = f".quilt/named_packages/{handle}/{pointer_file}"
     event_time = '2021-03-11T14:29:19.277067Z'
     top_hash = b'a' * 64
     event = {

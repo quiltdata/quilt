@@ -21,10 +21,12 @@ We recommend that all users do one or more of the following:
 * [Schedule a Quilt engineer](https://calendly.com/d/g6f-vnd-qf3/engineering-team)
 to guide you through the installation
 
-* [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
-connect with other users
+* [Join Quilt on Slack][quilt-slack] to ask questions and connect with other
+users
 
-* [Email Quilt](mailto:contact@quiltdata.io)
+* [Email Quilt](mailto:support@quilt.bio)
+
+[quilt-slack]: https://slack.quilt.bio
 
 ## Requirements and Prerequisites
 
@@ -59,7 +61,7 @@ Service Catalog).
     > Ensure that your service role is up-to-date with the example before every
     stack update so as to prevent installation failures.
 
-1. The **ability to create DNS entries**, such as CNAME records,
+1. The **ability to create DNS entries** (Route 53 alias records or CNAMEs)
 for your company's domain.
 1. **An SSL certificate in the same region as your Quilt instance** to secure the
 domain where your users will access your Quilt instance.
@@ -106,7 +108,7 @@ recommend that you [contact us first](#help-and-advice).
 
 ### AWS Service Catalog
 
-1. Email [contact@quiltdata.io](mailto:contact@quiltdata.io)
+1. Email [support@quilt.bio](mailto:support@quilt.bio)
 with your AWS account ID to request access to Quilt through the
 AWS Service Catalog and to obtain a license key.
 1. Click the service catalog link that you received from Quilt.
@@ -137,6 +139,11 @@ you see in Service Catalog.
 
 You can perform stack update and creation with the AWS Console, AWS CLI,
 Terraform, or other means.
+
+> **Important:** Use Quilt-provided CloudFormation templates without modification.
+> Customizing templates may result in deployment issues and can affect your service
+> agreement coverage. If you require specific customizations, please contact your
+> Quilt account manager to discuss supported options.
 
 In all cases it is **highly recommended** that you set the `--on-failure` policy
 to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
@@ -185,6 +192,12 @@ Terraform users **must** request a compatible CloudFormation template from Quilt
 > Contact your account manager to obtain a template that works with Terraform and
 includes necessary variables.
 
+> **Important:** Use Quilt-provided Terraform modules and CloudFormation templates
+> without modification. Customizing these resources may result in deployment issues
+> and can affect your service agreement coverage. If you require specific
+> customizations, please contact your Quilt account manager to discuss supported
+> options.
+
 1. Set up your project directory as follows:
 
     ```bash
@@ -224,17 +237,29 @@ and not storing passwords in version control.
 > For detailed configuration options, including search sizing and common pitfalls,
 see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md).
 
-### CNAMEs
+### DNS records
 
-In order for your users to reach the Quilt catalog you must set three CNAMEs
-that point to the `LoadBalancerDNSName` as shown below and in the Outputs
-of your stack.
+<!-- markdownlint-disable-next-line no-inline-html -->
+<a id="cnames"></a>
 
-| CNAME | Value |
-| ------ | ------- |
-| `<QuiltWebHost>` Key | `LoadBalancerDNSName` |
-| `<RegistryHostName>` Key | `LoadBalancerDNSName` |
-| `<S3ProxyHost>` Key | `LoadBalancerDNSName` |
+In order for your users to reach the Quilt catalog you must create three DNS
+records pointing to the `LoadBalancerDNSName` as shown below and in the
+Outputs of your stack.
+
+| Hostname         | Target                  |
+| ---------------- | ----------------------- |
+| `<QuiltWebHost>` | `<LoadBalancerDNSName>` |
+| `<RegistryHost>` | `<LoadBalancerDNSName>` |
+| `<S3ProxyHost>`  | `<LoadBalancerDNSName>` |
+
+If your hosted zone is in **Route 53**, we recommend Route 53 alias
+records (record type `A`, alias target = `LoadBalancerDNSName`,
+hosted zone ID = `LoadBalancerCanonicalHostedZoneID`). Route 53 doesn't
+charge for alias queries to AWS resources like ALBs, and aliases work at
+the zone apex (which CNAMEs cannot).
+
+If your DNS is hosted elsewhere, use **CNAME** records pointing to
+`LoadBalancerDNSName`.
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
@@ -269,7 +294,7 @@ of isolated subnets and a preference for private routing.
 
 An upgrade to the 2.0 network, unlike routine Quilt upgrades, requires you to create
 a new stack with a new load balancer. You must therefore also update your
-[CNAMEs](#cnames) to point to the new load balancer.
+[DNS records](#dns-records) to point to the new load balancer.
 
 ## Create a new stack with an existing configuration
 

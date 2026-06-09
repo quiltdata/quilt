@@ -1,7 +1,11 @@
 import * as React from 'react'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
-import { render, act } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { render, act, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+}))
 
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 
@@ -16,13 +20,15 @@ const EmptyContainer = () => (
 )
 
 describe('components/Layout/Container', () => {
+  afterEach(cleanup)
+
   it('requires Provider', () => {
     const errorHandler = vi.fn((event) => event.preventDefault())
     window.addEventListener('error', errorHandler)
 
-    const { container } = render(<EmptyContainer />)
+    const { getByText } = render(<EmptyContainer />)
 
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByText('Error: Context must be used within a Provider')).toBeTruthy()
 
     expect(errorHandler).toHaveBeenCalledTimes(1)
     expect(errorHandler).toHaveBeenCalledWith(
@@ -42,7 +48,9 @@ describe('components/Layout/Container', () => {
         <EmptyContainer />
       </FullWidthProvider>,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('maxWidthLg')
+    expect(element.className).not.toContain('fullWidth')
   })
 
   it('has full width once set', () => {
@@ -58,7 +66,9 @@ describe('components/Layout/Container', () => {
       </FullWidthProvider>,
     )
     act(() => {})
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('fullWidth')
+    expect(element.className).not.toContain('maxWidthLg')
   })
 
   it('still has full width when other remove full width', () => {
@@ -90,6 +100,8 @@ describe('components/Layout/Container', () => {
       </FullWidthProvider>,
     )
     act(() => {})
-    expect(container.firstChild).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('fullWidth')
+    expect(element.className).not.toContain('maxWidthLg')
   })
 })

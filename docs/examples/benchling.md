@@ -23,14 +23,21 @@ stack via the `@quiltdata/benchling-webhook`
 
 ### Auto-Packaging
 
-![Packaged Notebook](imgs/benchling-package.png)
+![Packaged Notebook](../imgs/benchling-package.png)
 
 When scientists create notebook entries in Benchling, this webhook
 automatically:
 
 - **Creates a dedicated Quilt package** for each notebook entry
-- **Synchronizes metadata** from Benchling (experiment IDs, authors, etc.)
-  into that package
+- **Synchronizes metadata** from Benchling into that package, e.g.:
+  - `authors` (list)
+  - `created_at` (ISO timestamp)
+  - `creator` (e.g. `"First Last <user_id@ent_XXXX>"`)
+  - `display_id` (e.g. `"EXP0000XXXXXX"`)
+  - `entry_id` (e.g. `"etr_XXXXXX"`)
+  - `files` (list)
+  - `modified_at` (ISO timestamp)
+  - `web_url` (URL string)
 - **Copies attachments** from that notebook into Amazon S3 as part of the
   package.
 - **Enables organizational data discovery** by making contents available in
@@ -38,7 +45,7 @@ automatically:
 
 ### Package Linking
 
-![experiment_id](imgs/benchling-link.png)
+![experiment_id](../imgs/benchling-link.png)
 
 In addition, Quilt users can 'tag' additional packages by setting the
 `experiment_id` (or a custom metadata key) to the display ID of a Benchling
@@ -55,7 +62,7 @@ From inside the Quilt Catalog:
 
 ### Benchling App Canvas
 
-![App Canvas - Home](imgs/benchling-canvas.png)
+![App Canvas - Home](../imgs/benchling-canvas.png)
 
 The webhook includes a Benchling App Canvas, which allows Benchling users to
 view, browse, and sync the associated Quilt packages.
@@ -63,16 +70,22 @@ view, browse, and sync the associated Quilt packages.
 - Clicking the package name opens it in the Quilt Catalog
 - The `sync` button will open the package or file in
   [QuiltSync](https://www.quilt.bio/quiltsync), if you have it installed.
-- The `Update` button refreshes the package, as Benchling only notifies Quilt
-  of changes when the metadata fields are modified.
+- The `Update` button manually refreshes the package. The canvas stays
+  browsable while Quilt re-exports in the background, showing a "pending"
+  badge that flips to "complete" when the new revision is ready.
+- Package updates also happen automatically: any metadata change to the
+  linked entry triggers a refresh, as does a Benchling `reviewRecord` event
+  (e.g. when a notebook entry is submitted for review).
+
+![App Canvas - Updated](../imgs/benchling-updated.png)
 
 The canvas also allows you to browse package contents:
 
-![App Canvas - Browse](imgs/benchling-browse.png)
+![App Canvas - Browse](../imgs/benchling-browse.png)
 
 and view package metadata:
 
-![App Canvas - Metadata](imgs/benchling-metadata.png)
+![App Canvas - Metadata](../imgs/benchling-metadata.png)
 
 #### Inserting a Canvas
 
@@ -84,7 +97,7 @@ Benchling users can add it themselves:
 3. Choose "Quilt Package"
 4. After it is inserted, click the "Create" button
 
-![App Canvas - Insert](imgs/benchling-insert.png)
+![App Canvas - Insert](../imgs/benchling-insert.png)
 
 ## Installation
 

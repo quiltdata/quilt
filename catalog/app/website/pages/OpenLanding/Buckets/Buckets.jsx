@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
-import * as BucketConfig from 'utils/BucketConfig'
+import { useRelevantBuckets } from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import scrollIntoView from 'utils/scrollIntoView'
@@ -53,7 +53,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Buckets() {
   const classes = useStyles()
   // XXX: consider using graphql directly
-  const buckets = BucketConfig.useRelevantBucketConfigs()
+  const buckets = useRelevantBuckets()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const [page, setPage] = React.useState(1)

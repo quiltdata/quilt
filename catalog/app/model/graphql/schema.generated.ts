@@ -12,6 +12,285 @@ export default {
     types: [
       {
         kind: 'OBJECT',
+        name: 'APIKey',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'fingerprint',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'createdAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'expiresAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'lastUsedAt',
+            type: {
+              kind: 'SCALAR',
+              name: 'Datetime',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'userEmail',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'status',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'ID',
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
+      },
+      {
+        kind: 'OBJECT',
+        name: 'APIKeyAdminMutations',
+        fields: [
+          {
+            name: 'revoke',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'APIKeyRevokeResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'APIKeyAdminQueries',
+        fields: [
+          {
+            name: 'list',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'APIKey',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'email',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'name',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'fingerprint',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'status',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+          {
+            name: 'get',
+            type: {
+              kind: 'OBJECT',
+              name: 'APIKey',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Int',
+      },
+      {
+        kind: 'UNION',
+        name: 'APIKeyCreateResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'APIKeyCreated',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'APIKeyCreated',
+        fields: [
+          {
+            name: 'apiKey',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'APIKey',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'secret',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'APIKeyRevokeResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
         name: 'AccessCountForDate',
         fields: [
           {
@@ -40,10 +319,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Int',
       },
       {
         kind: 'OBJECT',
@@ -112,10 +387,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
       },
       {
         kind: 'OBJECT',
@@ -276,6 +547,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'apiKeys',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'APIKeyAdminMutations',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -344,6 +627,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'apiKeys',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'APIKeyAdminQueries',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -403,10 +698,6 @@ export default {
         interfaces: [],
       },
       {
-        kind: 'SCALAR',
-        name: 'ID',
-      },
-      {
         kind: 'UNION',
         name: 'BrowsingSessionCreateResult',
         possibleTypes: [
@@ -455,6 +746,112 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Bucket',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'iconUrl',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'description',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'tags',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'relevanceScore',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'browsable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'collaborators',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'CollaboratorBucketConnection',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',
@@ -747,6 +1144,24 @@ export default {
             args: [],
           },
           {
+            name: 'prefixes',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
             name: 'associatedPolicies',
             type: {
               kind: 'NON_NULL',
@@ -775,24 +1190,6 @@ export default {
                   ofType: {
                     kind: 'OBJECT',
                     name: 'RoleBucketPermission',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'collaborators',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'CollaboratorBucketConnection',
                     ofType: null,
                   },
                 },
@@ -996,6 +1393,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'BucketNotFound',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InsufficientPermissions',
           },
           {
             kind: 'OBJECT',
@@ -1466,11 +1867,14 @@ export default {
         name: 'InsufficientPermissions',
         fields: [
           {
-            name: '_',
+            name: 'message',
             type: {
-              kind: 'SCALAR',
-              name: 'Boolean',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -1720,6 +2124,69 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'apiKeys',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'APIKey',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'fingerprint',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'status',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+          {
+            name: 'apiKey',
+            type: {
+              kind: 'OBJECT',
+              name: 'APIKey',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -1967,6 +2434,58 @@ export default {
                     name: 'String',
                     ofType: null,
                   },
+                },
+              },
+            ],
+          },
+          {
+            name: 'apiKeyCreate',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'APIKeyCreateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'apiKeyRevoke',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'APIKeyRevokeResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'ID',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'secret',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
                 },
               },
             ],
@@ -4307,6 +4826,45 @@ export default {
             type: {
               kind: 'OBJECT',
               name: 'BucketConfig',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'buckets',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Bucket',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bucket',
+            type: {
+              kind: 'OBJECT',
+              name: 'Bucket',
               ofType: null,
             },
             args: [

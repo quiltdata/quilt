@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import noop from 'utils/noop'
 
@@ -42,10 +42,14 @@ vi.mock('react-router-dom', async () => ({
 }))
 
 describe('components/FileEditor/HelpLinks', () => {
+  afterEach(cleanup)
+
   describe('WorkflowsConfigLink', () => {
     it('should render', () => {
-      const { container } = render(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
-      expect(container.firstChild).toMatchSnapshot()
+      const { getByText } = render(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
+      expect(getByText('Test').getAttribute('href')).toContain(
+        '/b/buck/tree/k/.quilt/workflows/config.yml?edit=true&next=%2Fa%2Fb%2Fc%3Ffoo%3Dbar',
+      )
     })
 
     it('should throw outside bucket', () => {

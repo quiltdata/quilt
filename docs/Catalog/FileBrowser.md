@@ -6,14 +6,35 @@ that displays all files in the bucket.
 
 > If desired, [this tab can be hidden](./Preferences.md).
 
+## Uploading and deleting files
+
+You can upload files directly to a bucket by dragging them onto the file
+listing or using the **Add Files** button (including into a new
+subfolder). One or more files can also be deleted from the listing or via
+the **Organize** menu without leaving the Catalog. On
+versioning-enabled buckets, deletion adds a delete marker so prior
+versions remain available from packages; on unversioned buckets the
+object is permanently removed.
+
+File and directory delete buttons are hidden by default. Administrators
+can enable them by setting `ui.actions.deleteObject` in the
+[Catalog configuration](./Preferences.md).
+
 ## Creating packages from bucket files
 
 You can create packages directly from files already stored in S3 buckets
-without downloading and re-uploading them.
+without downloading and re-uploading them. Even without a workflow
+configuration file, users can create packages from files in the current
+bucket, either by selecting them directly or by using **Add Files from
+Bucket** when revising a package. To disable adding files from any
+bucket (including the current one), set `ui.sourceBuckets` to an empty
+dictionary `{}` in the [Catalog configuration](./Preferences.md).
 
-By default, this functionality is available for all files in the current bucket.
-To restrict package creation from files, administrators can configure
-an empty `successors: {}` in the bucket's [workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog).
+Package creation uses the current bucket by default.
+With workflow configuration,
+only explicit `successors` are available as destinations. See
+[workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog)
+for details.
 
 ![Create package](../imgs/catalog-filesbrowser-create-package.png)
 
@@ -54,6 +75,12 @@ format (the default is README.md), enter your content, and click save.
 ![Choose name](../imgs/catalog-texteditor-name.png)
 
 ![Edit file](../imgs/catalog-texteditor-main.png)
+
+## Copy URI button
+
+Files and directories include a copy-URI action on the download button,
+making it easy to copy an `s3://` URI for use in scripts, notebooks, and
+CLI workflows.
 
 ## Working with Amazon S3 Glacier storage classes
 

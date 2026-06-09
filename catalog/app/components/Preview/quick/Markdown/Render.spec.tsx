@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import AsyncResult from 'utils/AsyncResult'
 
@@ -31,27 +31,29 @@ const handle = {
 }
 
 describe('app/components/Preview/quick/Render.spec.tsx', () => {
+  afterEach(cleanup)
+
   it('it shows the error for Init state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Init())
-    const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('Error: Unexpected state')).toBeTruthy()
   })
 
   it('it shows the error for Pending state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Pending())
-    const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('Error: Unexpected state')).toBeTruthy()
   })
 
   it('returns error on Err', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Err(new Error('some error')))
-    const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('Error: some error')).toBeTruthy()
   })
 
   it('returns markdown on data', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Ok('<h1>It works</h1>'))
-    const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('It works')).toBeTruthy()
   })
 })

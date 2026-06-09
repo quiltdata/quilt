@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import { ConfigureAppearance } from './Summarize'
 
@@ -47,11 +47,13 @@ vi.mock('react-router-dom', async () => ({
 }))
 
 describe('containers/Buckets/Summarize', () => {
+  afterEach(cleanup)
+
   describe('ConfigureAppearance', () => {
     const packageHandle = { bucket: 'b', name: 'n', hash: 'h' }
 
     it('should not render buttons when there are files out there', () => {
-      const { container } = render(
+      const { container, queryByText } = render(
         <ConfigureAppearance
           hasReadme
           hasSummarizeJson
@@ -59,11 +61,13 @@ describe('containers/Buckets/Summarize', () => {
           path=""
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(queryByText('Add README')).toBeFalsy()
+      expect(queryByText('Configure Summary')).toBeFalsy()
+      expect((container.firstChild as HTMLElement).children).toHaveLength(0)
     })
 
     it('should render readme link', () => {
-      const { container } = render(
+      const { getByText } = render(
         <ConfigureAppearance
           hasReadme={false}
           hasSummarizeJson
@@ -71,11 +75,13 @@ describe('containers/Buckets/Summarize', () => {
           path=""
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByText('Add README').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/README.md {"add":"quilt+s3://b#package=n&path=README.md","edit":true}',
+      )
     })
 
     it('should render quilt_summarize link', () => {
-      const { container } = render(
+      const { getByText } = render(
         <ConfigureAppearance
           hasReadme
           hasSummarizeJson={false}
@@ -83,11 +89,13 @@ describe('containers/Buckets/Summarize', () => {
           path=""
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByText('Configure Summary').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/quilt_summarize.json {"add":"quilt+s3://b#package=n&path=quilt_summarize.json","edit":true}',
+      )
     })
 
     it('should render both links', () => {
-      const { container } = render(
+      const { getByText } = render(
         <ConfigureAppearance
           hasReadme={false}
           hasSummarizeJson={false}
@@ -95,7 +103,13 @@ describe('containers/Buckets/Summarize', () => {
           path="some/path"
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByText('Configure Summary').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/some/path/quilt_summarize.json {"add":"quilt+s3://b#package=n&path=some%2Fpath%2Fquilt_summarize.json","edit":true}',
+      )
+
+      expect(getByText('Add README').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/some/path/README.md {"add":"quilt+s3://b#package=n&path=some%2Fpath%2FREADME.md","edit":true}',
+      )
     })
   })
 })

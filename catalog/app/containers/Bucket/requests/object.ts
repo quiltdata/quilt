@@ -1,6 +1,7 @@
 import type { S3 } from 'aws-sdk'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
+import Log from 'utils/Logging'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
@@ -206,23 +207,23 @@ export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows
 interface WorkflowsConfigArgs {
   s3: S3
   bucket: string
+  strict?: boolean
 }
 
-export const workflowsConfig = async ({ s3, bucket }: WorkflowsConfigArgs) => {
+export const workflowsConfig = async ({ s3, bucket, strict }: WorkflowsConfigArgs) => {
   try {
     const response = await fetchFile({
       s3,
       handle: { bucket, key: WORKFLOWS_CONFIG_PATH },
     })
-    return workflows.parse(response.body?.toString('utf-8') || '')
+    return workflows.parse(response.body?.toString('utf-8') || '', bucket, { strict })
   } catch (e) {
-    if (e instanceof FileNotFound || e instanceof VersionNotFound)
-      return workflows.emptyConfig
+    if (e instanceof FileNotFound || e instanceof VersionNotFound) {
+      return strict ? workflows.nullConfig : workflows.emptyConfig(bucket)
+    }
 
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    Log.info('Unable to fetch')
+    Log.error(e)
     throw e
   }
 }

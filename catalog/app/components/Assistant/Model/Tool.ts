@@ -60,6 +60,12 @@ function convertSchema(schema: any) {
   }
 }
 
+/**
+ * Build a draft-2020-12 JSON Schema from an Effect-Schema. Effect emits
+ * draft-07 with array-`items`; Bedrock rejects that shape, so override
+ * `$schema` and run `convertSchema` (rewrites array `items` →
+ * `prefixItems`, etc.).
+ */
 export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
   const out = Eff.JSONSchema.make(schema)
   out.$schema = 'https://json-schema.org/draft/2020-12/schema'
@@ -71,7 +77,10 @@ export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
 ): Descriptor<A> {
-  const jsonSchema = makeJSONSchema(schema)
+  // Lift `description` out of the schema body so Bedrock doesn't ship
+  // it twice (once as `toolSpec.description`, once inside
+  // `inputSchema.json.description`).
+  const { description, ...jsonSchema } = makeJSONSchema(schema)
 
   const decode = Eff.Schema.decodeUnknown(schema, {
     errors: 'all',
@@ -98,7 +107,7 @@ export function make<A, I>(
     )
 
   return {
-    description: jsonSchema.description,
+    description,
     schema: jsonSchema,
     executor: wrappedFn,
   }
