@@ -78,7 +78,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
-    const { restore, archived } = getArchiveState(h.StorageClass, h.Restore)
+    const { restoring, archived } = getArchiveState(h.StorageClass, h.Restore)
     return ObjectExistence.Exists({
       bucket,
       key,
@@ -87,7 +87,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       deleted: !!h.DeleteMarker,
       // `archived` carries the storage class (or `false`) — no separate field.
       archived,
-      restore,
+      restoring,
       lastModified: parseDate(h.LastModified),
     })
   } catch (e) {

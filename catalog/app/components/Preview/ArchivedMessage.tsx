@@ -54,7 +54,7 @@ export default function ArchivedMessage({
 
   const handleSubmitted = React.useCallback(() => setOptimisticRestoring(true), [])
 
-  const showInProgress = optimisticRestoring || archive?.restore?.ongoing === true
+  const showInProgress = optimisticRestoring || archive?.restoring === true
 
   if (showInProgress) {
     return (

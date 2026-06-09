@@ -4,36 +4,24 @@ import { getArchiveState } from './glacier'
 
 describe('utils/glacier', () => {
   describe('getArchiveState (from HEAD x-amz-restore header)', () => {
-    describe('restore (parsing x-amz-restore)', () => {
-      it('is undefined for missing / empty / malformed header', () => {
-        expect(getArchiveState('GLACIER', undefined).restore).toBeUndefined()
-        expect(getArchiveState('GLACIER', '').restore).toBeUndefined()
-        expect(getArchiveState('GLACIER', 'garbage').restore).toBeUndefined()
+    describe('restoring (in-progress flag)', () => {
+      it('is false for missing / empty / malformed header', () => {
+        expect(getArchiveState('GLACIER', undefined).restoring).toBe(false)
+        expect(getArchiveState('GLACIER', '').restoring).toBe(false)
+        expect(getArchiveState('GLACIER', 'garbage').restoring).toBe(false)
       })
 
-      it('parses ongoing-request="true"', () => {
-        expect(getArchiveState('GLACIER', 'ongoing-request="true"').restore).toEqual({
-          ongoing: true,
-        })
+      it('is true for ongoing-request="true"', () => {
+        expect(getArchiveState('GLACIER', 'ongoing-request="true"').restoring).toBe(true)
       })
 
-      it('parses ongoing-request="false" with expiry-date', () => {
-        const { restore } = getArchiveState(
-          'GLACIER',
-          'ongoing-request="false", expiry-date="Fri, 21 Dec 2012 00:00:00 GMT"',
-        )
-        expect(restore?.ongoing).toBe(false)
-        expect(restore?.expiresAt?.toISOString()).toBe('2012-12-21T00:00:00.000Z')
-      })
-
-      it('is ongoing=false without expiresAt when expiry-date is missing/malformed', () => {
-        expect(getArchiveState('GLACIER', 'ongoing-request="false"').restore).toEqual({
-          ongoing: false,
-        })
+      it('is false for a completed restore (ongoing-request="false")', () => {
         expect(
-          getArchiveState('GLACIER', 'ongoing-request="false", expiry-date="nope"')
-            .restore,
-        ).toEqual({ ongoing: false })
+          getArchiveState(
+            'GLACIER',
+            'ongoing-request="false", expiry-date="Fri, 21 Dec 2012 00:00:00 GMT"',
+          ).restoring,
+        ).toBe(false)
       })
     })
 
@@ -70,26 +58,26 @@ describe('utils/glacier', () => {
   })
 
   describe('getArchiveState (from LIST RestoreStatus element)', () => {
-    it('has no restore when absent / unrestored', () => {
-      expect(getArchiveState('GLACIER', undefined).restore).toBeUndefined()
-      expect(getArchiveState('GLACIER', {}).restore).toBeUndefined()
+    it('is not restoring when absent / unrestored', () => {
+      expect(getArchiveState('GLACIER', undefined).restoring).toBe(false)
+      expect(getArchiveState('GLACIER', {}).restoring).toBe(false)
     })
 
-    it('maps an in-progress restore (archived)', () => {
-      const { restore, archived } = getArchiveState('GLACIER', {
+    it('maps an in-progress restore (restoring + archived)', () => {
+      const { restoring, archived } = getArchiveState('GLACIER', {
         IsRestoreInProgress: true,
       })
-      expect(restore).toEqual({ ongoing: true })
+      expect(restoring).toBe(true)
       expect(archived).toBe('GLACIER')
     })
 
-    it('maps a completed restore with future expiry (not archived)', () => {
+    it('maps a completed restore with future expiry (not restoring, not archived)', () => {
       const expiry = new Date('2099-01-01T00:00:00Z')
-      const { restore, archived } = getArchiveState('GLACIER', {
+      const { restoring, archived } = getArchiveState('GLACIER', {
         IsRestoreInProgress: false,
         RestoreExpiryDate: expiry,
       })
-      expect(restore).toEqual({ ongoing: false, expiresAt: expiry })
+      expect(restoring).toBe(false)
       expect(archived).toBe(false)
     })
     // `archived` classification is source-independent (runs on the parsed

@@ -36,11 +36,11 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     const head = await req.promise()
     length = head.ContentLength
     if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
-    const { restore, archived } = getArchiveState(head.StorageClass, head.Restore)
+    const { restoring, archived } = getArchiveState(head.StorageClass, head.Restore)
     if (archived) {
       throw PreviewError.Archived({
         handle,
-        archive: { storageClass: archived, restore },
+        archive: { storageClass: archived, restoring },
       })
     }
   } catch (e) {

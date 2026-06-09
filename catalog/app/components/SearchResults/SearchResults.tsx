@@ -333,7 +333,7 @@ function PreviewDisplay({
                   AsyncResult.Err(
                     Preview.PreviewError.Archived({
                       handle,
-                      archive: { storageClass: h.archived, restore: h.restore },
+                      archive: { storageClass: h.archived, restoring: h.restoring },
                     }),
                   ),
                 )

@@ -89,7 +89,7 @@ describe('components/Preview/ArchivedMessage', () => {
 
   describe('in-progress branch', () => {
     it('renders Restore in progress heading with no action (rehydration is async)', () => {
-      setup({ archive: { storageClass: 'GLACIER', restore: { ongoing: true } } })
+      setup({ archive: { storageClass: 'GLACIER', restoring: true } })
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
       // No in-app refresh control — restore takes hours; a later page load
       // reflects the real state.
@@ -168,7 +168,7 @@ describe('components/Preview/ArchivedMessage', () => {
 
     it('shows "Restore in progress" regardless of the flag', () => {
       prefsHook.mockReturnValue(okWithRestore(false))
-      setup({ archive: { storageClass: 'GLACIER', restore: { ongoing: true } } })
+      setup({ archive: { storageClass: 'GLACIER', restoring: true } })
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })
   })

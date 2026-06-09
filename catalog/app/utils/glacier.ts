@@ -4,7 +4,7 @@
 
 import type { S3 } from 'aws-sdk'
 
-export interface RestoreStatus {
+interface RestoreStatus {
   ongoing: boolean
   expiresAt?: Date
 }
@@ -69,25 +69,26 @@ const effectiveArchiveClass = (
 }
 
 // An object's archive state: the effective archive tier (`false` when the object
-// is not effectively archived) plus the parsed restore status. `value` is S3's
-// restore for the object from either source — the HEAD `x-amz-restore` header
-// (a string) or the LIST `RestoreStatus` element.
+// is not effectively archived) plus whether a restore is currently in progress.
+// `value` is S3's restore for the object from either source — the HEAD
+// `x-amz-restore` header (a string) or the LIST `RestoreStatus` element.
 export function getArchiveState(
   storageClass: S3.StorageClass | undefined,
   value: S3.Restore | S3.RestoreStatus | undefined,
-): { restore?: RestoreStatus; archived: StorageClass | false } {
+): { restoring: boolean; archived: StorageClass | false } {
   const restore =
     typeof value === 'string' ? parseRestoreHeader(value) : parseRestoreStatus(value)
-  return { restore, archived: effectiveArchiveClass(storageClass, restore) }
+  return {
+    restoring: restore?.ongoing === true,
+    archived: effectiveArchiveClass(storageClass, restore),
+  }
 }
 
 // Narrows the SDK's `S3.Tier`, whose `| string` member erases literal
 // narrowing. Our own union keeps exhaustiveness and catches typos.
 export type RetrievalTier = 'Standard' | 'Bulk' | 'Expedited'
 
-// What we know about an archived object: its storage class and, when a restore
-// has been requested, its status.
 export interface ArchiveInfo {
   storageClass: StorageClass
-  restore?: RestoreStatus
+  restoring: boolean
 }

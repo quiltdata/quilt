@@ -92,7 +92,7 @@ describe('components/Preview/loaders/useGate', () => {
         return expect(gate({ s3, handle })).rejects.toMatchObject(
           PreviewError.Archived({
             handle,
-            archive: { storageClass: 'GLACIER', restore: { ongoing: true } },
+            archive: { storageClass: 'GLACIER', restoring: true },
           }),
         )
       })
