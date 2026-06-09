@@ -22,10 +22,14 @@ the Iceberg Glue database (the `IcebergDatabase` resource in your stack):
 - `{bucket}_package_entry` — individual file entries within packages
 
 The bucket is encoded in the table name, so the tables do not carry a
-`bucket` column. Every Quilt role automatically receives Athena read access to
-the per-bucket tables for the buckets it can read — managed users are scoped
-to their readable buckets via the registry-applied session policy; non-managed
-roles have stack-wide access by design.
+`bucket` column. Because S3 bucket names can contain hyphens, the resulting
+Glue table names (e.g. `my-bucket_package_tag`) must be double-quoted in
+Athena SQL, as shown in the examples below.
+
+Every Quilt role automatically receives Athena read access to the per-bucket
+tables for the buckets it can read — managed users are scoped to their
+readable buckets via the registry-applied session policy; non-managed roles
+have stack-wide access by design.
 
 ## Example: Get entries and metadata for the latest version of a package
 
