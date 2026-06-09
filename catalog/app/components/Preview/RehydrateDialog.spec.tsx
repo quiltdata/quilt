@@ -224,7 +224,7 @@ describe('components/Preview/RehydrateDialog', () => {
       restoreObject.mockResolvedValueOnce(success(false))
       const { onClose, onSubmitted } = setup()
       fireEvent.click(getRehydrateButton())
-      await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(false))
+      await waitFor(() => expect(onSubmitted).toHaveBeenCalled())
       expect(restoreObject).toHaveBeenCalledWith({
         handle,
         tier: 'Standard',

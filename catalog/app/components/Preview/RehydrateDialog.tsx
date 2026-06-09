@@ -148,7 +148,7 @@ interface RehydrateFormProps {
   handle: Model.S3.S3ObjectLocation
   storageClass?: StorageClass
   onClose: () => void
-  onSubmitted: (alreadyRestored: boolean) => void
+  onSubmitted: () => void
 }
 
 // The form body. Mounted only while the dialog is open (M.Dialog unmounts its
@@ -234,7 +234,7 @@ function RehydrateForm({
     }
     if (!mountedRef.current) return
     if (outcome._tag === 'close') {
-      if (outcome.flip) onSubmitted(false)
+      if (outcome.flip) onSubmitted()
       onClose()
     } else {
       setStatus(outcome)
@@ -342,7 +342,7 @@ interface RehydrateDialogProps {
   onClose: () => void
   handle: Model.S3.S3ObjectLocation
   storageClass?: StorageClass
-  onSubmitted: (alreadyRestored: boolean) => void
+  onSubmitted: () => void
 }
 
 export default function RehydrateDialog({
