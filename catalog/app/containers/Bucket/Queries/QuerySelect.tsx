@@ -46,12 +46,13 @@ export default function QuerySelect<T>({
     const order: string[] = []
     const byGroup = new Map<string, (T & AbstractQuery)[]>()
     queries.forEach((query) => {
+      // '' = ungrouped: renders flat with no subheader
       const g = query.group || ''
       if (!byGroup.has(g)) {
         byGroup.set(g, [])
         order.push(g)
       }
-      byGroup.get(g)!.push(query)
+      byGroup.get(g)?.push(query)
     })
     return order.map((g) => ({ group: g, items: byGroup.get(g)! }))
   }, [queries])

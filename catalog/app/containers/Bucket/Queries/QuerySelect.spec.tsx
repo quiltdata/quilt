@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { render, fireEvent, screen, within } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 
 import noop from 'utils/noop'
@@ -32,6 +32,14 @@ describe('containers/Bucket/Queries/QuerySelect', () => {
     const { container } = render(
       <QuerySelect label="Label" queries={queries} onChange={noop} value={null} />,
     )
-    expect(container.firstChild).toMatchSnapshot()
+
+    // open the Select (MUI v4 opens on mousedown of the role=button trigger)
+    fireEvent.mouseDown(within(container).getByRole('button'))
+
+    expect(screen.getByText('Saved queries')).toBeTruthy()
+    expect(screen.getByText('Tables')).toBeTruthy()
+    expect(screen.getByText('Saved A')).toBeTruthy()
+    expect(screen.getByText('Saved B')).toBeTruthy()
+    expect(screen.getByText('metrics')).toBeTruthy()
   })
 })
