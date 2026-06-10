@@ -31,6 +31,7 @@ const emptyState: Model.State = {
   execution: undefined,
   executions: { data: undefined, loadMore: noop },
   queries: { data: undefined, loadMore: noop },
+  tables: undefined,
   query: { value: undefined, setValue: noop },
   queryBody: { value: undefined, setValue: noop },
   results: { data: undefined, loadMore: noop },
@@ -38,6 +39,7 @@ const emptyState: Model.State = {
   workgroup: { data: undefined, loadMore: noop },
 
   submit: () => Promise.resolve({ id: 'bar' }),
+  submitTablePreview: () => Promise.resolve({ id: 'bar' }),
   queryRun: undefined,
 }
 
