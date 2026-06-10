@@ -208,17 +208,28 @@ def test_convert_I16_to_L_rescales_by_range():
 
 
 def test_convert_I16_to_L_constant():
+    # Constant images keep their brightness level instead of being rescaled.
     arr = np.full((4, 4), 1234, dtype=np.uint16)
     out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
     assert out.dtype == np.uint8
-    assert (out == 0).all()
+    assert (out == 1234 >> 8).all()
+
+
+def test_convert_I16_to_L_clips_outliers():
+    # A single hot pixel must not compress the rest of the range to black.
+    arr = np.linspace(3000, 4096, 10000, dtype=np.uint16).reshape(100, 100)
+    arr[0, 0] = 65535
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) > 100
 
 
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "ecd8797645a825e765010cce2958452696032078262cb4981aa8e03c0a7ca7d5"
+THUMBS_PKG = "images/thumbs", "c72b7f23716f9a446e9ffc6cf0bf19dfe2bf8dee9b5fd0dd11f7e7691eb54dfc"
 SIZE = (1024, 768)
 
 

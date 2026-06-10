@@ -386,12 +386,17 @@ def _convert_I16_to_L(arr):
     # separated out for testing
     # Rescale by the actual value range instead of `arr // 256`: low-range
     # data (e.g. 12-bit microscopy stored as uint16) would otherwise produce
-    # a nearly black thumbnail.
-    lo, hi = arr.min(), arr.max()
+    # a nearly black thumbnail. Like norm_img, clip extreme percentiles so
+    # a few hot/dead pixels don't compress the rest of the range.
+    lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
     if hi == lo:
-        return Image.fromarray(np.zeros_like(arr, dtype=np.uint8))
-    arr = (arr.astype(np.float64) - lo) / (hi - lo) * 255
-    return Image.fromarray(arr.round().astype(np.uint8))
+        return Image.fromarray((arr >> 8).astype(np.uint8))
+    arr = arr.astype(np.float32)
+    np.clip(arr, lo, hi, out=arr)
+    arr -= lo
+    arr *= 255 / (hi - lo)
+    np.rint(arr, out=arr)
+    return Image.fromarray(arr.astype(np.uint8))
 
 
 def generate_thumbnail(arr, size):
