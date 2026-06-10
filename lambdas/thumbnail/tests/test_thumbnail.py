@@ -85,6 +85,8 @@ def test_403():
         # BUG: lambda doesn't preserve source format.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128-fallback.png", [650, 650], [128, 128], None, 200),
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
+        # low-range uint16: pins the contrast stretch end-to-end
+        ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
@@ -251,6 +253,16 @@ def test_convert_I16_to_L_clips_outliers():
     assert out.min() == 0
     assert out.max() == 255
     assert np.median(out) > 100
+
+
+def test_convert_I16_to_L_clips_dead_pixels():
+    # A single dead pixel must not compress the rest of the range to white.
+    arr = np.linspace(60000, 65535, 10000, dtype=np.uint16).reshape(100, 100)
+    arr[0, 0] = 0
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) < 155
 
 
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
