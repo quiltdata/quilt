@@ -283,7 +283,7 @@ aws cloudwatch get-metric-statistics \
   --namespace AWS/Events \
   --metric-name TriggeredRules \
   --dimensions Name=RuleName,Value=quilt-s3-events-rule \
-  --start-time $(date -u -d '5 minutes ago' '+%Y-%m-%dT%H:%M:%S') \
+  --start-time $(date -u -v-5M '+%Y-%m-%dT%H:%M:%S' 2>/dev/null || date -u -d '5 minutes ago' '+%Y-%m-%dT%H:%M:%S') \
   --end-time $(date -u '+%Y-%m-%dT%H:%M:%S') \
   --period 300 \
   --statistics Sum \
@@ -323,7 +323,7 @@ Event not flowing? Start here:
 ├─ 4. Is Input Transformer configured correctly?
 │   ├─ Check EventBridge rule → Targets → Input transformer
 │   ├─ ❌ "Matched event" selected → Events in wrong format!
-│   ├─ ❌ Missing transformer → Configure per Step 6 above
+│   ├─ ❌ Missing transformer → Configure per "Set Up Input Transformer"
 │   └─ ✅ Transformer configured → Continue to step 5
 │
 ├─ 5. Files indexing but packages NOT appearing?
@@ -426,7 +426,8 @@ EventBridge rule is configured with "Matched event" instead of using an Input Tr
 **Solution:**
 1. Go to EventBridge Console → Rules → `quilt-s3-events-rule`
 2. Edit the rule → Targets
-3. **Critical**: Configure Input Transformer as shown in Step 6 above
+3. **Critical**: Configure Input Transformer as shown in
+   [Set Up Input Transformer](#step-6-set-up-input-transformer)
 4. Save the rule
 
 **Validation:**
