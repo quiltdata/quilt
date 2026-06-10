@@ -213,14 +213,17 @@ export function Form({ className, open, onToggle }: FormProps) {
         Query editor
       </M.Button>
 
+      {/* Outside the Collapse: a table preview that fails to start sets
+          queryRun to an error but never opens the editor, so the alert must
+          stay visible even when folded. */}
+      {Model.isError(queryRun) && (
+        <Lab.Alert className={classes.error} severity="error">
+          {queryRun.message}
+        </Lab.Alert>
+      )}
+
       <M.Collapse in={open}>
         <EditorField />
-
-        {Model.isError(queryRun) && (
-          <Lab.Alert className={classes.error} severity="error">
-            {queryRun.message}
-          </Lab.Alert>
-        )}
 
         <div className={classes.actions}>
           <Database className={classes.database} />
