@@ -175,6 +175,7 @@ export interface Bucket {
   readonly relevanceScore: Scalars['Int']
   readonly browsable: Scalars['Boolean']
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
+  readonly tabulatorTables: ReadonlyArray<TabulatorTable>
 }
 
 export interface BucketAccessCounts {

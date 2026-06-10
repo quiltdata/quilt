@@ -192,6 +192,7 @@ type Bucket {
   relevanceScore: Int!
   browsable: Boolean!
   collaborators: [CollaboratorBucketConnection!]!
+  tabulatorTables: [TabulatorTable!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
