@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - master
-      # TEMP workaround: build & push this branch's catalog image to ECR for
-      # pre-merge review/testing. REVERT before merging to master.
-      - max/glacier-rehydration-ux
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
