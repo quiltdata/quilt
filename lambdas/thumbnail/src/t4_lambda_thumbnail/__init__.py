@@ -384,7 +384,14 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
 
 def _convert_I16_to_L(arr):
     # separated out for testing
-    return Image.fromarray((arr // 256).astype('uint8'))
+    # Rescale by the actual value range instead of `arr // 256`: low-range
+    # data (e.g. 12-bit microscopy stored as uint16) would otherwise produce
+    # a nearly black thumbnail.
+    lo, hi = arr.min(), arr.max()
+    if hi == lo:
+        return Image.fromarray(np.zeros_like(arr, dtype=np.uint8))
+    arr = (arr.astype(np.float64) - lo) / (hi - lo) * 255
+    return Image.fromarray(arr.round().astype(np.uint8))
 
 
 def generate_thumbnail(arr, size):

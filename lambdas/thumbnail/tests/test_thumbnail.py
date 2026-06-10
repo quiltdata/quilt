@@ -197,11 +197,28 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
+def test_convert_I16_to_L_rescales_by_range():
+    # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
+    # contrast-stretched, not truncated to a nearly black image.
+    arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.dtype == np.uint8
+    assert out.min() == 0
+    assert out.max() == 255
+
+
+def test_convert_I16_to_L_constant():
+    arr = np.full((4, 4), 1234, dtype=np.uint16)
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.dtype == np.uint8
+    assert (out == 0).all()
+
+
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "8b3e9fea2049fc381c7e364b64cabf52e40c9c9fb9da2434bc6744ef292a1914"
+THUMBS_PKG = "images/thumbs", "ecd8797645a825e765010cce2958452696032078262cb4981aa8e03c0a7ca7d5"
 SIZE = (1024, 768)
 
 
