@@ -190,9 +190,11 @@ const useFormStyles = M.makeStyles((t) => ({
 
 interface FormProps {
   className: string
+  open: boolean
+  onToggle: () => void
 }
 
-export function Form({ className }: FormProps) {
+export function Form({ className, open, onToggle }: FormProps) {
   const classes = useFormStyles()
 
   const { submit, queryRun } = Model.use()
@@ -207,25 +209,31 @@ export function Form({ className }: FormProps) {
 
   return (
     <div className={className}>
-      <EditorField />
+      <M.Button size="small" onClick={onToggle} startIcon={<M.Icon>{open ? 'expand_less' : 'expand_more'}</M.Icon>}>
+        Query editor
+      </M.Button>
 
-      {Model.isError(queryRun) && (
-        <Lab.Alert className={classes.error} severity="error">
-          {queryRun.message}
-        </Lab.Alert>
-      )}
+      <M.Collapse in={open}>
+        <EditorField />
 
-      <div className={classes.actions}>
-        <Database className={classes.database} />
-        <M.Button
-          variant="contained"
-          color="primary"
-          disabled={!Model.isReady(queryRun)}
-          onClick={handleSubmit}
-        >
-          Run query
-        </M.Button>
-      </div>
+        {Model.isError(queryRun) && (
+          <Lab.Alert className={classes.error} severity="error">
+            {queryRun.message}
+          </Lab.Alert>
+        )}
+
+        <div className={classes.actions}>
+          <Database className={classes.database} />
+          <M.Button
+            variant="contained"
+            color="primary"
+            disabled={!Model.isReady(queryRun)}
+            onClick={handleSubmit}
+          >
+            Run query
+          </M.Button>
+        </div>
+      </M.Collapse>
     </div>
   )
 }

@@ -375,6 +375,7 @@ const useStyles = M.makeStyles((t) => ({
 
 function AthenaContainer() {
   const { bucket, queryExecutionId, workgroup } = Model.use()
+  const [editorOpen, setEditorOpen] = React.useState(false)
 
   const classes = useStyles()
   return (
@@ -388,9 +389,12 @@ function AthenaContainer() {
       {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
           <div className={classes.section}>
-            {/* TODO(Task 6): wire editor fold state */}
-            <QueryConstructor onOpenEditor={() => {}} />
-            <QueryEditor.Form className={classes.form} />
+            <QueryConstructor onOpenEditor={() => setEditorOpen(true)} />
+            <QueryEditor.Form
+              className={classes.form}
+              open={editorOpen}
+              onToggle={() => setEditorOpen((o) => !o)}
+            />
           </div>
           {queryExecutionId ? (
             <ResultsContainer className={classes.section} />
