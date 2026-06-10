@@ -290,6 +290,38 @@ def test_rescale_float_to_uint8_constant():
     assert (out == 128).all()
 
 
+def test_rescale_float_to_uint8_inf():
+    # ±inf are excluded from the range and saturate to its ends.
+    arr = np.array([[np.inf, -np.inf], [np.nan, 0.0], [0.5, 1.0]], dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert np.array_equal(out, [[255, 0], [0, 0], [128, 255]])
+
+
+def test_rescale_float_to_uint8_all_non_finite():
+    arr = np.array([[np.inf, -np.inf], [np.nan, np.inf]], dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == 0).all()
+
+
+def test_rescale_float_to_uint8_float64_precision():
+    # High-offset low-contrast float64: sub-float32-ulp differences must
+    # not collapse in the working copy.
+    arr = np.linspace(1e6, 1e6 + 0.01, 256, dtype=np.float64).reshape(16, 16)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert len(np.unique(out)) >= 250
+
+
+def test_rescale_float_to_uint8_constant_just_above_one():
+    # Float error nudging a [0, 1]-convention constant past 1.0 keeps it
+    # white instead of flipping to a near-black absolute level.
+    arr = np.full((4, 4), 1.0000001, dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert (out == 255).all()
+
+
 def test_rescale_float_to_uint8_empty():
     out = t4_lambda_thumbnail._rescale_float_to_uint8(np.empty((0, 4), dtype=np.float32))
     assert out.dtype == np.uint8
@@ -310,6 +342,36 @@ def test_generate_thumbnail_color_dtypes(arr):
     out = np.asarray(img)
     assert out.min() == 0
     assert out.max() == 255
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 1000, 48, dtype=np.float32).reshape(4, 4, 3),
+                np.ones((4, 4), dtype=np.float32),
+            ]),
+            id="float32-rgba",
+        ),
+        pytest.param(
+            np.dstack([
+                np.linspace(3000, 4096, 48, dtype=np.uint16).reshape(4, 4, 3),
+                np.full((4, 4), 65535, dtype=np.uint16),
+            ]),
+            id="uint16-rgba",
+        ),
+    ],
+)
+def test_generate_thumbnail_rgba(arr):
+    # Opaque alpha must stay opaque and must not skew the color channels'
+    # contrast range.
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (4, 4))
+    assert img.mode == "RGBA"
+    out = np.asarray(img)
+    assert (out[..., 3] == 255).all()
+    assert out[..., :3].min() == 0
+    assert out[..., :3].max() == 255
 
 
 def test_generate_thumbnail_float_greyscale_saves_png():
