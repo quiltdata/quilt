@@ -388,28 +388,35 @@ def _convert_I16_to_L(arr):
     # data (e.g. 12-bit microscopy stored as uint16) would otherwise produce
     # a nearly black thumbnail. Like norm_img, clip extreme percentiles so
     # a few hot/dead pixels don't compress the rest of the range.
-    lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
+    lo = hi = 0.0
+    if arr.size:
+        lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
+        if hi == lo:
+            # Percentiles collapse when almost all pixels share one value;
+            # fall back to min/max so sparse data (e.g. label masks) stays
+            # visible.
+            lo, hi = float(arr.min()), float(arr.max())
     if hi == lo:
-        # Percentiles collapse when almost all pixels share one value;
-        # fall back to min/max so sparse data (e.g. label masks) stays visible.
-        lo, hi = float(arr.min()), float(arr.max())
-    if hi == lo:
-        # Constant image: keep its brightness level.
+        # Empty or constant image: keep the brightness level.
         return Image.fromarray((arr >> 8).astype(np.uint8))
-    arr = arr.astype(np.float32)
-    np.clip(arr, lo, hi, out=arr)
-    arr -= lo
-    arr *= 255 / (hi - lo)
-    np.rint(arr, out=arr)
-    return Image.fromarray(arr.astype(np.uint8))
+    # Rescale via a lookup table over the 65536 possible values: much lower
+    # peak memory than a float copy of the full-resolution array (OOM kills
+    # are a known failure mode of this lambda).
+    lut = np.arange(65536, dtype=np.float64)
+    np.clip(lut, lo, hi, out=lut)
+    lut = (lut - lo) * (255 / (hi - lo))
+    # guard against float overshoot past 255, which would wrap in uint8
+    np.clip(lut.round(), 0, 255, out=lut)
+    return Image.fromarray(lut.astype(np.uint8)[arr])
 
 
 def generate_thumbnail(arr, size):
     # Send to Image object for thumbnail generation and saving to bytes
     img = Image.fromarray(arr)
 
-    # The mode I;16 has limited resamplers for scaling, and throws an error.
-    # Rather than use a non-default poor-quality resampler, convert to a better-handled mode.
+    # Convert uint16 greyscale to L: the conversion contrast-stretches by
+    # the actual value range, which low-range data (e.g. 12-bit microscopy)
+    # needs to stay visible.
     if img.mode == 'I;16':
         img = _convert_I16_to_L(arr)
 

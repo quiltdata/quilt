@@ -203,8 +203,7 @@ def test_convert_I16_to_L_rescales_by_range():
     arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
     out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
     assert out.dtype == np.uint8
-    assert out.min() == 0
-    assert out.max() == 255
+    assert np.array_equal(out, [[0, 116], [233, 255]])
 
 
 def test_convert_I16_to_L_constant():
@@ -212,7 +211,23 @@ def test_convert_I16_to_L_constant():
     arr = np.full((4, 4), 1234, dtype=np.uint16)
     out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
     assert out.dtype == np.uint8
-    assert (out == 1234 >> 8).all()
+    assert (out == (1234 >> 8)).all()
+
+
+def test_convert_I16_to_L_empty():
+    arr = np.empty((0, 4), dtype=np.uint16)
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.dtype == np.uint8
+    assert out.size == 0
+
+
+def test_convert_I16_to_L_no_uint8_wraparound():
+    # A narrow range near the top of the uint16 scale must not overshoot
+    # 255 and wrap around in the uint8 cast, rendering bright pixels dark.
+    arr = np.full((200, 200), 65000, dtype=np.uint16)
+    arr[0, :2] = 65535
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.max() == 255
 
 
 def test_convert_I16_to_L_sparse():
