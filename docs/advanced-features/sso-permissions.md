@@ -36,6 +36,11 @@ endpoint, or resolve OIDC distributed/overage claims (the `_claim_sources`
 pointer Entra emits when a user belongs to more than ~200 groups) — if a
 value is not present directly in the ID token, a mapping cannot match on it.
 
+Quilt also requests only the `openid` and `email` scopes at login, so group
+or role claims are never pulled in via a scope — they must be configured to
+be emitted into the ID token directly (e.g. via the provider's token/claim
+configuration), or the mapping will have nothing to match.
+
 A mapping can match on **any** claim in the ID token, not just `email` or
 `groups`. For example, to map on an Entra **app-role** `roles` claim (often
 more reliable than `groups` for guest/cross-tenant users, since app roles
