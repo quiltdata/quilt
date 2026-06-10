@@ -86,13 +86,40 @@ from whatever it was before.
 
 A common symptom is users receiving the `default_role` even though they belong
 to the groups referenced in the mappings. Verify by pasting their ID token into
-[jwt.io](https://jwt.io/) and confirming the expected claims are present.
+[jwt.io](https://jwt.io/) and confirming the expected claims are present — or,
+if the stack has `store_last_login_context: true` set in the SSO config, by
+reading the `idTokenPayload` field of `UserLastLoginContext` via the admin
+GraphQL API.
 
 ### Okta
 
-Okta does **not** emit a `groups` claim by default. The claim name `groups` is
-also reserved, so it cannot be added via **Token claims → Add expression** on
-the application's **Sign On** tab. Use the legacy configuration instead:
+Okta does **not** emit a `groups` claim by default. Which Okta screen you use to
+add it depends on **which authorization server your Quilt stack is configured
+against**. Check the `iss` claim in an existing ID token:
+
+#### Custom authorization server (`iss` ends in `/oauth2/<id>`)
+
+**This is the typical Quilt configuration.** The legacy app-level Group Claims
+filter does **not** apply here; you must add the claim on the authorization
+server itself:
+
+1. **Security → API → Authorization Servers → `default` → Claims**.
+2. **Add Claim**:
+   - **Name:** `groups`
+   - **Include in token type:** `ID Token`, `Always`
+   - **Value type:** `Groups`
+   - **Filter:** `Matches regex` · `.*` (or a narrower expression covering the
+     groups your mappings reference — note that bare `*` is not a valid regex;
+     use `.*`)
+   - **Include in:** `Any scope`
+3. Create.
+
+#### Okta Org authorization server (`iss` has no `/oauth2/...` path)
+
+Use the legacy app-level filter. Note that the claim name `groups` is reserved,
+so it cannot be added via **Token claims → Add expression** on the **Sign On**
+tab — that restriction is app-level and does not apply to the authorization
+server Claims tab above.
 
 1. Open **Applications → [Your App] → Sign On** tab.
 2. Under **OpenID Connect ID Token**, click **Show legacy configuration**.
