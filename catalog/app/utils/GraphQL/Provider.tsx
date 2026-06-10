@@ -266,7 +266,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: POLICIES_QUERY },
                 // XXX: sort?
-                R.evolve({ policies: R.append(policy) }),
+                evolveCached({ policies: R.append(policy) }),
               )
               refetchBuckets()
             },
@@ -276,7 +276,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: POLICIES_QUERY },
                 // XXX: sort?
-                R.evolve({ policies: R.append(policy) }),
+                evolveCached({ policies: R.append(policy) }),
               )
             },
             policyUpdateManaged: (result, _vars, cache) => {
@@ -297,7 +297,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Policy from root policies
               cache.updateQuery(
                 { query: POLICIES_QUERY },
-                R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
+                evolveCached({ policies: R.reject(R.propEq('id', vars.id)) }),
               )
 
               // Remove deleted Policy from every ManagedRole's policies
@@ -306,7 +306,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
                 },
-                R.evolve({
+                evolveCached({
                   roles: R.map(R.evolve({ policies: R.reject(R.propEq('id', vars.id)) })),
                 }),
               )
@@ -320,7 +320,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: ROLES_QUERY },
                 // XXX: sort?
-                R.evolve({ roles: R.append(create.role) }),
+                evolveCached({ roles: R.append(create.role) }),
               )
             },
             roleCreateUnmanaged: (result, _vars, cache) => {
@@ -330,7 +330,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: ROLES_QUERY },
                 // XXX: sort?
-                R.evolve({ roles: R.append(create.role) }),
+                evolveCached({ roles: R.append(create.role) }),
               )
             },
             roleUpdateManaged: (result, _vars, cache) => {
@@ -341,7 +341,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               const policyIds = R.pluck('id', role.policies as { id: string }[])
               cache.updateQuery(
                 { query: urql.gql`{ policies { id roles { id } } }` },
-                R.evolve({
+                evolveCached({
                   policies: R.map((policy: any) => {
                     if (!policy.roles) return policy
                     const hasThisRole = !!policy.roles.find(R.propEq('id', role.id))
@@ -366,7 +366,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Role from every Policy's roles
               cache.updateQuery(
                 { query: urql.gql`{ policies { id roles { id } } }` },
-                R.evolve({
+                evolveCached({
                   policies: R.map(R.evolve({ roles: R.reject(R.propEq('id', vars.id)) })),
                 }),
               )
@@ -388,12 +388,12 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Role from root roles
               cache.updateQuery(
                 { query: ROLES_QUERY },
-                R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
+                evolveCached({ roles: R.reject(R.propEq('id', vars.id)) }),
               )
 
               // Unset default Role if it was deleted
               cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
-                data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
+                data?.defaultRole?.id === vars.id ? { defaultRole: null } : data,
               )
 
               refetchBuckets()
@@ -426,7 +426,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 const addUser = R.append(result.admin.user.create)
                 cache.updateQuery(
                   { query: USERS_QUERY },
-                  R.evolve({ admin: { user: { list: addUser } } }),
+                  evolveCached({ admin: { user: { list: addUser } } }),
                 )
               }
               if (result.admin?.user?.mutate?.delete?.__typename === 'Ok') {
@@ -435,7 +435,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 const rmUser = R.reject(R.propEq('name', info.variables.name))
                 cache.updateQuery(
                   { query: USERS_QUERY },
-                  R.evolve({ admin: { user: { list: rmUser } } }),
+                  evolveCached({ admin: { user: { list: rmUser } } }),
                 )
               }
               if (
@@ -454,13 +454,14 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(
                   { query: urql.gql`{ admin { tabulatorOpenQuery } }` },
-                  ({ admin }) => ({
-                    admin: {
-                      ...admin,
-                      tabulatorOpenQuery:
-                        result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
+                  (data) =>
+                    data && {
+                      admin: {
+                        ...data.admin,
+                        tabulatorOpenQuery:
+                          result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
+                      },
                     },
-                  }),
                 )
               }
             },
