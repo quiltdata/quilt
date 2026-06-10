@@ -238,9 +238,9 @@ args = ["-y", "mcp-remote", "https://<connect-host>/mcp/platform/mcp"]
 ```
 
 > `mcp-remote` completes OAuth on a loopback redirect
-> (`http://localhost:<port>/...`); your administrator must include that
-> redirect (or the relevant client scheme) in `ConnectAllowedHosts` for
-> the flow to complete.
+> (`http://localhost:<port>/...`); your administrator must add `localhost`
+> to `ConnectAllowedHosts` for the flow to complete (see
+> [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
 
 ### User Authorization
 
