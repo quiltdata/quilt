@@ -164,9 +164,12 @@ def test_generate_thumbnail(
 
     assert response["statusCode"] == status, f"response: {response}"
     if status != 200:
+        # Error bodies are plain-text messages produced by the @api/@validate
+        # decorators, unlike the JSON shape checked in test_403.
+        assert response["headers"]["Content-Type"] == "text/plain"
+        assert read_body(response)
         return
 
-    # only check the body and expected image if it's a successful call
     # Parse the body / the returned thumbnail
     body = read_body(response)
     # Assert basic metadata was filled properly
