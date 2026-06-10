@@ -55,6 +55,8 @@ export interface State {
   submit: (
     forceDefaultExecutionContext: boolean,
   ) => Promise<Model.Value<requests.QueryRun>>
+  /** Run a bounded preview for a Tabulator table; redirects to its execution */
+  submitTablePreview: (table: string) => Promise<Model.Value<requests.QueryRun>>
   /**
    * Query run is `undefined` when there is not enough data to run the query
    * It is `null` when it is ready to run
@@ -99,12 +101,24 @@ export function Provider({ preferences, children }: ProviderProps) {
   const executions = requests.useExecutions(workgroup.data, queryExecutionId)
   const results = requests.useResults(execution)
 
-  const [queryRun, submit] = requests.useQueryRun({
+  const [queryRun, submit, submitTablePreviewRaw] = requests.useQueryRun({
     workgroup: workgroup.data,
     catalogName: catalogName.value,
     database: database.value,
     queryBody: queryBody.value,
   })
+
+  const submitTablePreview = React.useCallback(
+    (table: string) => {
+      const catalogs = Model.hasData(catalogNames.data) ? catalogNames.data.list : []
+      const tabulatorCatalog = catalogs.find((c) => c.endsWith('-tabulator'))
+      if (!tabulatorCatalog) {
+        return Promise.resolve(new Error('Tabulator catalog not found'))
+      }
+      return submitTablePreviewRaw(tabulatorCatalog, bucket, table)
+    },
+    [catalogNames.data, bucket, submitTablePreviewRaw],
+  )
 
   const value: State = {
     bucket,
@@ -125,6 +139,7 @@ export function Provider({ preferences, children }: ProviderProps) {
     workgroups,
 
     submit,
+    submitTablePreview,
     queryRun,
   }
 

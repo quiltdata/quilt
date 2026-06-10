@@ -777,6 +777,7 @@ export function useQueryRun({
 }: QueryRunArgs): [
   Model.Value<QueryRun>,
   (force: boolean) => Promise<Model.Value<QueryRun>>,
+  (catalog: CatalogName, database: Database, table: string) => Promise<Model.Value<QueryRun>>,
 ] {
   const athena = AWS.Athena.use()
   // `undefined` = "is not initialized" → is not ready for run
@@ -862,5 +863,41 @@ export function useQueryRun({
     },
     [athena, prepare],
   )
-  return [value, run]
+  const runTablePreview = React.useCallback(
+    async (catalog: CatalogName, db: Database, table: string) => {
+      if (!Model.hasData(workgroup)) {
+        const error = new Error('No workgroup')
+        setValue(error)
+        return error
+      }
+      const options: Athena.Types.StartQueryExecutionInput = {
+        QueryString: `SELECT * FROM "${catalog}"."${db}"."${table}" LIMIT 100`,
+        ResultConfiguration: {
+          EncryptionConfiguration: { EncryptionOption: 'SSE_S3' },
+        },
+        WorkGroup: workgroup,
+        QueryExecutionContext: { Catalog: catalog, Database: db },
+      }
+      setValue(Model.Loading)
+      try {
+        const d = await athena?.startQueryExecution(options).promise()
+        const { QueryExecutionId } = d || {}
+        if (!QueryExecutionId) {
+          const error = new Error('No execution id')
+          Log.error(error)
+          setValue(error)
+          return error
+        }
+        const output = { id: QueryExecutionId }
+        setValue(output)
+        return output
+      } catch (error) {
+        Log.error(error)
+        if (error instanceof Error) setValue(error)
+        return error as Error
+      }
+    },
+    [athena, workgroup],
+  )
+  return [value, run, runTablePreview]
 }
