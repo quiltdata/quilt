@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Glacier rehydration: archived file previews (`GLACIER` / `DEEP_ARCHIVE`) offer a prompted Restore flow (tier + duration) and surface in-progress / restored state via the `x-amz-restore` HEAD header ([#4921](https://github.com/quiltdata/quilt/pull/4921))
 - [Changed] Replace unmaintained `remarkable` with `markdown-it` for markdown rendering; output now conforms to CommonMark + GFM ([#4884](https://github.com/quiltdata/quilt/pull/4884))
 - [Removed] Drop non-standard Pandoc / PHP-Markdown-Extra shortcut syntaxes: `==mark==`, `^sup^`, `~sub~`, `++ins++`, abbreviations (`*[HTML]: ...`), definition lists, and footnotes; raw inline HTML for these tags still renders ([#4884](https://github.com/quiltdata/quilt/pull/4884))
 - [Added] Theme editor: drag-and-drop logo upload writes to the service bucket (`catalog/logo.<ext>`); the URL field remains for externally hosted logos ([#4781](https://github.com/quiltdata/quilt/pull/4781), [#4863](https://github.com/quiltdata/quilt/pull/4863), [#4881](https://github.com/quiltdata/quilt/pull/4881))

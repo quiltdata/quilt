@@ -330,7 +330,12 @@ function PreviewDisplay({
               }
               if (h.archived) {
                 return callback(
-                  AsyncResult.Err(Preview.PreviewError.Archived({ handle })),
+                  AsyncResult.Err(
+                    Preview.PreviewError.Archived({
+                      handle,
+                      archive: { storageClass: h.archived, restoring: h.restoring },
+                    }),
+                  ),
                 )
               }
               return Preview.load(handle, callback, previewOptions)
