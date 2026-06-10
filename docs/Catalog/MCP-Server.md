@@ -81,6 +81,7 @@ The Platform MCP Server works with any MCP-compatible AI client, including:
 
 - **Claude.ai** (web)
 - **Cursor** (desktop)
+- **ChatGPT**, **Databricks**, **Benchling AI**, and **OpenAI Codex**
 - **Any client** supporting the [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Connecting Claude.ai
@@ -175,6 +176,71 @@ already emits the `:443`-explicit metadata Databricks requires — see
 > [serverless network policies overview](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)
 > and
 > [managing serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/manage-network-policies).
+
+### Connecting Benchling AI
+
+Benchling AI's [AI Connectors](https://help.benchling.com/hc/en-us/articles/42715696739341-Configure-AI-Connectors-for-Benchling-AI)
+let Chat and Deep Research query external MCP servers — including the
+Quilt Platform MCP Server — so scientists can reach Quilt data without
+leaving Benchling. Chat or Deep Research must be enabled on your tenant.
+
+A Benchling **tenant admin** adds Quilt as a Custom AI Connector:
+
+1. Go to **Tenant admin console -> Settings -> AI Connectors**
+2. Click **Add AI Connector**
+3. Complete the configuration:
+   - **Name:** `Quilt` (this is what users see)
+   - **Server:** `https://<connect-host>/mcp/platform/mcp`
+   - **Type:** `HTTP`
+4. Review the tools exposed by the server and select which ones users may
+   access (at least one must be enabled)
+5. Click **Save**
+
+Each Benchling user then enables the connector once:
+
+1. In the navigation bar, click **AI**, then the **Settings** icon
+2. Open the **AI Connectors** tab and click **Connect** next to Quilt
+3. Complete the Quilt OAuth flow in the window that opens (see
+   [User Authorization](#user-authorization) below)
+4. Return to Benchling to finalize the connector
+
+> Benchling completes its OAuth handshake from
+> `https://<tenant>.benchling.com/...`, so `.benchling.com` must be in
+> `ConnectAllowedHosts` (see
+> [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+
+### Connecting OpenAI Codex
+
+[Codex](https://developers.openai.com/codex/) (CLI and IDE extension)
+reads MCP servers from `~/.codex/config.toml`. Add Quilt as a
+streamable-HTTP MCP server:
+
+```toml
+[mcp_servers.quilt]
+url = "https://<connect-host>/mcp/platform/mcp"
+```
+
+Or register it from the command line:
+
+```bash
+codex mcp add quilt --url https://<connect-host>/mcp/platform/mcp
+```
+
+Codex starts the OAuth flow on first connect and opens a browser to the
+Quilt authorization page. For Codex builds that only support stdio MCP
+servers, bridge through [`mcp-remote`](https://www.npmjs.com/package/mcp-remote)
+instead:
+
+```toml
+[mcp_servers.quilt]
+command = "npx"
+args = ["-y", "mcp-remote", "https://<connect-host>/mcp/platform/mcp"]
+```
+
+> `mcp-remote` completes OAuth on a loopback redirect
+> (`http://localhost:<port>/...`); your administrator must include that
+> redirect (or the relevant client scheme) in `ConnectAllowedHosts` for
+> the flow to complete.
 
 ### User Authorization
 
