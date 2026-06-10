@@ -3186,6 +3186,70 @@ export default {
               },
             ],
           },
+          {
+            name: 'restoreObject',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RestoreObjectResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'key',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'version',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'tier',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'days',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -5325,6 +5389,43 @@ export default {
               ofType: {
                 kind: 'UNION',
                 name: 'StatusResult',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RestoreObjectResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'RestoreObjectSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RestoreObjectSuccess',
+        fields: [
+          {
+            name: 'alreadyRestored',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },

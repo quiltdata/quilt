@@ -13,6 +13,7 @@ const expectedDefaults = {
       downloadObject: true,
       downloadPackage: true,
       openInDesktop: true,
+      restore: true,
       revisePackage: true,
       writeFile: true,
     },
@@ -134,6 +135,7 @@ describe('utils/BucketPreferences', () => {
         downloadObject: false,
         downloadPackage: false,
         openInDesktop: false,
+        restore: false,
         revisePackage: false,
         writeFile: false,
       })

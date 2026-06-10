@@ -34,6 +34,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
+import type { StorageClass } from 'utils/glacier'
 
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
@@ -527,7 +528,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
 }
 
 const withPreview = (
-  { archived, deleted }: ObjectAttrs,
+  { archived, deleted, restoring }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
@@ -536,17 +537,25 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
-    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+    return callback(
+      AsyncResult.Err(
+        Preview.PreviewError.Archived({
+          handle,
+          archive: { storageClass: archived, restoring },
+        }),
+      ),
+    )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
   return Preview.load(handle, callback, previewOptions)
 }
 
 interface ObjectAttrs {
-  archived: boolean
+  archived: StorageClass | false
   deleted: boolean
   lastModified?: Date
   size?: number
+  restoring: boolean
 }
 
 type CrumbProp = $TSFixMe
@@ -826,7 +835,7 @@ function FileDisplay({
           )
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
+          Exists: ({ archived, deleted, lastModified, size, restoring }: ObjectAttrs) => (
             <>
               <FileContext file={file} pkg={packageHandle} />
               <TopBar crumbs={crumbs}>
@@ -909,7 +918,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {withPreview(
-                    { archived, deleted },
+                    { archived, deleted, restoring },
                     handle,
                     viewModes.mode,
                     renderPreview(viewModes.handlePreviewResult),
