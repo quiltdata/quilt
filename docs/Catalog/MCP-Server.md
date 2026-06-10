@@ -112,6 +112,8 @@ Add the following to your MCP client configuration
 
 ### Connecting ChatGPT
 
+> Requires Quilt **1.70 or later**.
+
 In ChatGPT, go to **Settings -> Apps -> Create app** (Developer mode
 required). Set:
 
@@ -125,6 +127,8 @@ Leave the OAuth endpoint fields on their auto-discovered values.
 [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
 
 ### Connecting Databricks
+
+> Requires Quilt **1.70 or later**.
 
 In the Databricks Catalog **HTTP connection** UI, fill in:
 
@@ -211,6 +215,8 @@ Each Benchling user then enables the connector once:
 
 ### Connecting OpenAI Codex
 
+> Requires Quilt **1.70 or later**.
+
 [Codex](https://developers.openai.com/codex/) (CLI and IDE extension)
 reads MCP servers from `~/.codex/config.toml`. Add Quilt as a
 streamable-HTTP MCP server:
@@ -226,21 +232,13 @@ Or register it from the command line:
 codex mcp add quilt --url https://<connect-host>/mcp/platform/mcp
 ```
 
+In the Codex IDE extension, open the same config via the gear menu:
+**MCP settings -> Open config.toml**. See
+[Codex MCP configuration](https://developers.openai.com/codex/mcp) for
+the full list of supported fields.
+
 Codex starts the OAuth flow on first connect and opens a browser to the
-Quilt authorization page. For Codex builds that only support stdio MCP
-servers, bridge through [`mcp-remote`](https://www.npmjs.com/package/mcp-remote)
-instead:
-
-```toml
-[mcp_servers.quilt]
-command = "npx"
-args = ["-y", "mcp-remote", "https://<connect-host>/mcp/platform/mcp"]
-```
-
-> `mcp-remote` completes OAuth on a loopback redirect
-> (`http://localhost:<port>/...`); your administrator must add `localhost`
-> to `ConnectAllowedHosts` for the flow to complete (see
-> [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+Quilt authorization page.
 
 ### User Authorization
 
