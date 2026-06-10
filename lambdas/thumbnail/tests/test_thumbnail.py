@@ -87,6 +87,9 @@ def test_403():
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
         # low-range uint16: pins the contrast stretch end-to-end
         ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
+        # float greyscale and color: pin the float-to-uint8 rescale end-to-end
+        ("float-grey.tiff", {"size": "w64h64"}, "float-grey-64.png", [64, 64], [64, 64], None, 200),
+        ("float-rgb.tiff", {"size": "w64h64"}, "float-rgb-64.png", [64, 64, 3], [64, 64], None, 200),
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
@@ -265,11 +268,63 @@ def test_convert_I16_to_L_clips_dead_pixels():
     assert np.median(out) < 155
 
 
+def test_rescale_float_to_uint8():
+    arr = np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [[0, 64], [128, 255]])
+
+
+def test_rescale_float_to_uint8_nan():
+    # NaNs are ignored for the range and render black.
+    arr = np.array([[np.nan, 0.25], [0.5, 1.0]], dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert np.array_equal(out, [[0, 0], [85, 255]])
+
+
+def test_rescale_float_to_uint8_constant():
+    # Constant [0, 1] floats keep their brightness level.
+    arr = np.full((4, 4), 0.5, dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == 128).all()
+
+
+def test_rescale_float_to_uint8_empty():
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(np.empty((0, 4), dtype=np.float32))
+    assert out.dtype == np.uint8
+    assert out.size == 0
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pytest.param(np.linspace(0, 1, 48, dtype=np.float16).reshape(4, 4, 3), id="float16-rgb"),
+        pytest.param(np.linspace(3000, 4096, 48, dtype=np.uint16).reshape(4, 4, 3), id="uint16-rgb"),
+    ],
+)
+def test_generate_thumbnail_color_dtypes(arr):
+    # Color arrays in dtypes PIL can't handle are contrast-stretched to uint8.
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (4, 4))
+    assert img.mode == "RGB"
+    out = np.asarray(img)
+    assert out.min() == 0
+    assert out.max() == 255
+
+
+def test_generate_thumbnail_float_greyscale_saves_png():
+    # Float greyscale used to reach PIL as mode F, which can't be saved as PNG.
+    arr = np.linspace(0, 1, 64, dtype=np.float32).reshape(8, 8)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (8, 8))
+    assert img.mode == "L"
+    img.save(BytesIO(), "PNG")
+
+
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
-TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
+TIFF_PKG = "images/bioio-tifffile", "2ddbc5ef7accb6fe8f1ef1a38b727fab667f3f907bfb6dd557250345d9785910"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "c72b7f23716f9a446e9ffc6cf0bf19dfe2bf8dee9b5fd0dd11f7e7691eb54dfc"
+THUMBS_PKG = "images/thumbs", "38e7c3406ef0828d6f9c12a7b9535f0b3425d6187a638a721ad8300043be62f8"
 SIZE = (1024, 768)
 
 
@@ -282,29 +337,10 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_10_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
-        # Traceback (most recent call last):
-        #   File "site-packages/PIL/Image.py", line 3308, in fromarray
-        #     mode, rawmode = _fromarray_typemap[typekey]
-        #                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^
-        # KeyError: ((1, 1, 3), '<u2')
-        # The above exception was the direct cause of the following exception:
-        # Traceback (most recent call last):
-        #   File "<ipython-input-5-03f7162314ed>", line 5, in <module>
-        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG', url=f'x/{lk}')
-        #                   ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 351, in handle_image
-        #     img = generate_thumbnail(img, size)
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 376, in generate_thumbnail
-        #     img = Image.fromarray(arr)
-        #   File "site-packages/PIL/Image.py", line 3312, in fromarray
-        #     raise TypeError(msg) from e
-        # TypeError: Cannot handle this data type: (1, 1, 3), <u2
-        pytest.param(
-            TIFF_PKG,
-            "s_1_t_1_c_1_z_1_RGB.tiff",
-            marks=pytest.mark.xfail(raises=TypeError),
-        ),
+        (TIFF_PKG, "s_1_t_1_c_1_z_1_RGB.tiff"),
         (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),
+        # float16 RGB photo (values in [0, 1]), from tlnagy/exampletiffs
+        (TIFF_PKG, "spring.tif"),
         (TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),
         (OME_TIFF_PKG, "3d-cell-viewer.ome.tiff"),
         (OME_TIFF_PKG, "actk.ome.tiff"),
