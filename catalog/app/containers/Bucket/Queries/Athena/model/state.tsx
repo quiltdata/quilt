@@ -110,11 +110,11 @@ export function Provider({ preferences, children }: ProviderProps) {
 
   const submitTablePreview = React.useCallback(
     (table: string) => {
+      // NOTE: Tabulator catalogs are named '<stack>-tabulator' by Quilt convention;
+      // if several match, the first is used. A missing catalog surfaces as an error
+      // via runTablePreview's setValue (handled inside the runner).
       const catalogs = Model.hasData(catalogNames.data) ? catalogNames.data.list : []
       const tabulatorCatalog = catalogs.find((c) => c.endsWith('-tabulator'))
-      if (!tabulatorCatalog) {
-        return Promise.resolve(new Error('Tabulator catalog not found'))
-      }
       return submitTablePreviewRaw(tabulatorCatalog, bucket, table)
     },
     [catalogNames.data, bucket, submitTablePreviewRaw],

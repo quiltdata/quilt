@@ -777,7 +777,7 @@ export function useQueryRun({
 }: QueryRunArgs): [
   Model.Value<QueryRun>,
   (force: boolean) => Promise<Model.Value<QueryRun>>,
-  (catalog: CatalogName, database: Database, table: string) => Promise<Model.Value<QueryRun>>,
+  (catalog: CatalogName | undefined, database: Database, table: string) => Promise<Model.Value<QueryRun>>,
 ] {
   const athena = AWS.Athena.use()
   // `undefined` = "is not initialized" → is not ready for run
@@ -864,7 +864,12 @@ export function useQueryRun({
     [athena, prepare],
   )
   const runTablePreview = React.useCallback(
-    async (catalog: CatalogName, db: Database, table: string) => {
+    async (catalog: CatalogName | undefined, db: Database, table: string) => {
+      if (!catalog) {
+        const error = new Error('Tabulator catalog not found')
+        setValue(error)
+        return error
+      }
       if (!Model.hasData(workgroup)) {
         const error = new Error('No workgroup')
         setValue(error)
