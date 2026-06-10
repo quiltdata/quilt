@@ -105,7 +105,7 @@ type TableOption = { key: string; name: string; group: 'Tables'; table: string }
 type SelectOption = SavedOption | TableOption
 
 function isTableOption(o: SelectOption): o is TableOption {
-  return (o as TableOption).table !== undefined
+  return o.group === 'Tables'
 }
 
 interface QueryConstructorProps {
