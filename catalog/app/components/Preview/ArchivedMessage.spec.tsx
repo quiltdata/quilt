@@ -23,6 +23,11 @@ vi.mock('utils/BucketPreferences', async () => ({
   use: () => prefsHook(),
 }))
 
+const useSelector = vi.fn(() => true)
+vi.mock('react-redux', () => ({
+  useSelector: () => useSelector(),
+}))
+
 vi.mock('constants/config', () => ({ default: {} }))
 // RehydrateDialog calls useRestoreObject() (urql-backed). Mock the hook so the
 // dialog gets our stub without urql trying to hit /graphql in the test env.
@@ -70,6 +75,7 @@ describe('components/Preview/ArchivedMessage', () => {
   beforeEach(() => {
     restoreObject.mockReset()
     prefsHook.mockReturnValue(okWithRestore(true))
+    useSelector.mockReturnValue(true)
   })
   afterEach(cleanup)
 
@@ -168,6 +174,22 @@ describe('components/Preview/ArchivedMessage', () => {
 
     it('shows "Restore in progress" regardless of the flag', () => {
       prefsHook.mockReturnValue(okWithRestore(false))
+      setup({ archive: { storageClass: 'GLACIER', restoring: true } })
+      expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
+    })
+  })
+
+  describe('authentication gate', () => {
+    it('hides the Rehydrate button for anonymous users (even when the pref is on)', () => {
+      useSelector.mockReturnValue(false)
+      setup()
+      // The message still renders; only the CTA is dropped.
+      expect(screen.getByTestId('heading').textContent).toMatch(/Object Archived/i)
+      expect(screen.queryByTestId('action-Rehydrate')).toBeNull()
+    })
+
+    it('shows "Restore in progress" for anonymous users (status, not an action)', () => {
+      useSelector.mockReturnValue(false)
       setup({ archive: { storageClass: 'GLACIER', restoring: true } })
       expect(screen.getByTestId('heading').textContent).toMatch(/Restore in progress/i)
     })

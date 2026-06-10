@@ -1,7 +1,9 @@
 import * as React from 'react'
+import * as redux from 'react-redux'
 
 import type * as Model from 'model'
 
+import { authenticated as authenticatedSelector } from 'containers/Auth/selectors'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import type { ArchiveInfo } from 'utils/glacier'
 import RehydrateDialog from './RehydrateDialog'
@@ -32,11 +34,14 @@ export default function ArchivedMessage({
   children,
 }: ArchivedMessageProps) {
   const { prefs } = BucketPreferences.use()
+  const authenticated = redux.useSelector(authenticatedSelector)
   // Per-bucket button control (default on); hidden until prefs resolve Ok.
-  const canRestore = BucketPreferences.Result.match(
-    { Ok: ({ ui: { actions } }) => actions.restore, _: () => false },
-    prefs,
-  )
+  const canRestore =
+    authenticated &&
+    BucketPreferences.Result.match(
+      { Ok: ({ ui: { actions } }) => actions.restore, _: () => false },
+      prefs,
+    )
 
   const [dialogOpen, setDialogOpen] = React.useState(false)
   // Optimistic hold: a 202 flips to "in progress" and stays. Rehydration takes
