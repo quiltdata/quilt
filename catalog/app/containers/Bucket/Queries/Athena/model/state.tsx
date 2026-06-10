@@ -29,7 +29,7 @@ export interface State {
   /** List of named queries, including query body for each query */
   queries: Model.DataController<Model.List<requests.Query>>
   /** Tabulator tables on the bucket, listed via GraphQL */
-  tables: Model.Data<requests.TabulatorTable[]>
+  tables: Model.Data<readonly requests.TabulatorTable[]>
   /** Selected named query */
   query: Model.ValueController<requests.Query>
   /** Query body, typed by user or set from selected named query or query execution */

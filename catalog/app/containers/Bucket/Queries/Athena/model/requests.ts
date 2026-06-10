@@ -419,10 +419,13 @@ export interface TabulatorTable {
   name: string
 }
 
-export function useTabulatorTables(bucket: string): Model.Data<TabulatorTable[]> {
+export function useTabulatorTables(
+  bucket: string,
+): Model.Data<readonly TabulatorTable[]> {
   const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
   return GQL.fold(result, {
-    data: (d) => [...(d.bucket?.tabulatorTables ?? [])],
+    // A null `bucket` (not found / no access) is treated as "no tables".
+    data: (d) => d.bucket?.tabulatorTables ?? [],
     fetching: () => Model.Loading,
     error: (e) => e,
   })
