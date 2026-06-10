@@ -222,10 +222,13 @@ def test_convert_I16_to_L_empty():
 
 
 def test_convert_I16_to_L_no_uint8_wraparound():
-    # A narrow range near the top of the uint16 scale must not overshoot
-    # 255 and wrap around in the uint8 cast, rendering bright pixels dark.
-    arr = np.full((200, 200), 65000, dtype=np.uint16)
-    arr[0, :2] = 65535
+    # A sub-grey-level percentile span near the top of the uint16 scale must
+    # not overshoot 255 and wrap around in the uint8 cast, rendering the
+    # brightest pixels dark. The outliers are spread so that the percentiles
+    # interpolate fractionally instead of collapsing to the min/max fallback.
+    arr = np.full((100, 100), 65000, dtype=np.uint16)
+    arr[0, 0] = 64999
+    arr[0, 1] = 65020
     out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
     assert out.max() == 255
 
