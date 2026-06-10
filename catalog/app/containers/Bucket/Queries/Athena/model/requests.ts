@@ -4,8 +4,10 @@ import * as Sentry from '@sentry/react'
 
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as GQL from 'utils/GraphQL'
 import Log from 'utils/Logging'
 
+import TABULATOR_TABLES_QUERY from '../gql/TabulatorTables.generated'
 import * as storage from './storage'
 import * as Model from './utils'
 
@@ -411,6 +413,19 @@ export function useQueries(
     }
   }, [athena, workgroup, prev])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+}
+
+export interface TabulatorTable {
+  name: string
+}
+
+export function useTabulatorTables(bucket: string): Model.Data<TabulatorTable[]> {
+  const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
+  return GQL.fold(result, {
+    data: (d) => [...(d.bucket?.tabulatorTables ?? [])],
+    fetching: () => Model.Loading,
+    error: (e) => e,
+  })
 }
 
 export function useResults(

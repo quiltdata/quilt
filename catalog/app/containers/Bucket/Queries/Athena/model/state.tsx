@@ -28,6 +28,8 @@ export interface State {
   workgroup: Model.DataController<requests.Workgroup>
   /** List of named queries, including query body for each query */
   queries: Model.DataController<Model.List<requests.Query>>
+  /** Tabulator tables on the bucket, listed via GraphQL */
+  tables: Model.Data<requests.TabulatorTable[]>
   /** Selected named query */
   query: Model.ValueController<requests.Query>
   /** Query body, typed by user or set from selected named query or query execution */
@@ -87,6 +89,7 @@ export function Provider({ preferences, children }: ProviderProps) {
   const workgroups = requests.useWorkgroups()
   const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
   const queries = requests.useQueries(workgroup.data)
+  const tables = requests.useTabulatorTables(bucket)
   const query = requests.useQuery(queries.data, execution)
   const queryBody = requests.useQueryBody(query.value, query.setValue, execution)
   const catalogNames = requests.useCatalogNames(workgroup.data)
@@ -115,6 +118,7 @@ export function Provider({ preferences, children }: ProviderProps) {
     execution,
     executions,
     queries,
+    tables,
     query,
     queryBody,
     results,
