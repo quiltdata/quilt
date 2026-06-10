@@ -215,6 +215,16 @@ def test_convert_I16_to_L_constant():
     assert (out == 1234 >> 8).all()
 
 
+def test_convert_I16_to_L_sparse():
+    # Percentiles collapse when almost all pixels share one value; min/max
+    # fallback keeps sparse data (e.g. label masks) visible.
+    arr = np.zeros((200, 200), dtype=np.uint16)
+    arr[0, :3] = 4000
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.min() == 0
+    assert out.max() == 255
+
+
 def test_convert_I16_to_L_clips_outliers():
     # A single hot pixel must not compress the rest of the range to black.
     arr = np.linspace(3000, 4096, 10000, dtype=np.uint16).reshape(100, 100)

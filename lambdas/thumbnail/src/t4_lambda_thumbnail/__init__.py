@@ -390,6 +390,11 @@ def _convert_I16_to_L(arr):
     # a few hot/dead pixels don't compress the rest of the range.
     lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
     if hi == lo:
+        # Percentiles collapse when almost all pixels share one value;
+        # fall back to min/max so sparse data (e.g. label masks) stays visible.
+        lo, hi = float(arr.min()), float(arr.max())
+    if hi == lo:
+        # Constant image: keep its brightness level.
         return Image.fromarray((arr >> 8).astype(np.uint8))
     arr = arr.astype(np.float32)
     np.clip(arr, lo, hi, out=arr)
