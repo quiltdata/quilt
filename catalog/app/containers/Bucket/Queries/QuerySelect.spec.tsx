@@ -23,4 +23,15 @@ describe('containers/Bucket/Queries/QuerySelect', () => {
     )
     expect(container.firstChild).toMatchSnapshot()
   })
+  it('should render grouped queries with subheaders', () => {
+    const queries = [
+      { key: 'q1', name: 'Saved A', group: 'Saved queries' },
+      { key: 'q2', name: 'Saved B', group: 'Saved queries' },
+      { key: 't1', name: 'metrics', group: 'Tables' },
+    ]
+    const { container } = render(
+      <QuerySelect label="Label" queries={queries} onChange={noop} value={null} />,
+    )
+    expect(container.firstChild).toMatchSnapshot()
+  })
 })

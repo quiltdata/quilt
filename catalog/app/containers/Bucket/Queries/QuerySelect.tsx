@@ -5,6 +5,7 @@ interface AbstractQuery {
   key: string
   name: string
   description?: string
+  group?: string
 }
 
 interface QuerySelectProps<T> {
@@ -39,6 +40,28 @@ export default function QuerySelect<T>({
     [queries, onChange, onLoadMore],
   )
 
+  // Preserve group order by first appearance. Entries without a group render
+  // flat (no subheader) — keeps the ElasticSearch usage unchanged.
+  const grouped = React.useMemo(() => {
+    const order: string[] = []
+    const byGroup = new Map<string, (T & AbstractQuery)[]>()
+    queries.forEach((query) => {
+      const g = query.group || ''
+      if (!byGroup.has(g)) {
+        byGroup.set(g, [])
+        order.push(g)
+      }
+      byGroup.get(g)!.push(query)
+    })
+    return order.map((g) => ({ group: g, items: byGroup.get(g)! }))
+  }, [queries])
+
+  const renderItem = (query: T & AbstractQuery) => (
+    <M.MenuItem key={query.key} value={query.key}>
+      <M.ListItemText primary={query.name} secondary={query.description} />
+    </M.MenuItem>
+  )
+
   return (
     <M.FormControl className={className} fullWidth>
       <M.InputLabel>{label}</M.InputLabel>
@@ -50,11 +73,16 @@ export default function QuerySelect<T>({
         <M.MenuItem disabled value="none">
           <M.ListItemText>Custom</M.ListItemText>
         </M.MenuItem>
-        {queries.map((query) => (
-          <M.MenuItem key={query.key} value={query.key}>
-            <M.ListItemText primary={query.name} secondary={query.description} />
-          </M.MenuItem>
-        ))}
+        {grouped.flatMap(({ group, items }) =>
+          group
+            ? [
+                <M.ListSubheader key={`group:${group}`} disableSticky>
+                  {group}
+                </M.ListSubheader>,
+                ...items.map(renderItem),
+              ]
+            : items.map(renderItem),
+        )}
         {!!onLoadMore && (
           <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
             <M.ListItemText>
