@@ -59,6 +59,13 @@ const AthenaApi = {
 
 vi.mock('utils/AWS', () => ({ Athena: { use: () => AthenaApi } }))
 
+// The model reads tabulator tables via GraphQL; stub it so this suite needs
+// neither window config nor a urql client (tables resolve to Loading).
+vi.mock('utils/GraphQL', () => ({
+  useQuery: () => ({ data: undefined, fetching: true, error: undefined }),
+  fold: (_result: unknown, cases: { fetching: () => unknown }) => cases.fetching(),
+}))
+
 describe('app/containers/Queries/Athena/model/state', () => {
   it('throw error when no bucket', () => {
     vi.spyOn(console, 'error').mockImplementationOnce(noop)
