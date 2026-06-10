@@ -92,20 +92,10 @@ def test_403():
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
         ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [1, 6, 40, 152, 126], [256, 205], None, 200),
-        # Test for statusCode error
-        pytest.param(
-            "empty.png",
-            {"size": "w32h32"},
-            None, None, None, None, 500,
-            marks=pytest.mark.xfail(raises=AssertionError)
-        ),
-        # Test known bad file
-        pytest.param(
-            "cell.png",
-            {"size": "w1h1"},
-            None, None, None, None, 400,
-            marks=pytest.mark.xfail(raises=AssertionError)
-        ),
+        # Unreadable image -> 500
+        ("empty.png", {"size": "w32h32"}, None, None, None, None, 500),
+        # Unsupported size -> 400
+        ("cell.png", {"size": "w1h1"}, None, None, None, None, 400),
         # The following PDF tests should only run if poppler-utils is installed;
         # then call `pytest --poppler` to execute
         pytest.param(
@@ -172,9 +162,14 @@ def test_generate_thumbnail(
     else:
         response = t4_lambda_thumbnail.lambda_handler(event, None)
 
-    # Assert the request was handled with no errors
-    assert response["statusCode"] == 200, f"response: {response}"
-    # only check the body and expected image if it's a successful call
+    assert response["statusCode"] == status, f"response: {response}"
+    if status != 200:
+        # Error bodies are plain-text messages produced by the @api/@validate
+        # decorators, unlike the JSON shape checked in test_403.
+        assert response["headers"]["Content-Type"] == "text/plain"
+        assert read_body(response)
+        return
+
     # Parse the body / the returned thumbnail
     body = read_body(response)
     # Assert basic metadata was filled properly
