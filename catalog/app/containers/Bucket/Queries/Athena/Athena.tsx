@@ -100,12 +100,21 @@ function QuerySelectSkeleton({ className }: QuerySelectSkeletonProps) {
   )
 }
 
-interface QueryConstructorProps {
-  className?: string
+type SavedOption = Model.Query & { group: 'Saved queries' }
+type TableOption = { key: string; name: string; group: 'Tables'; table: string }
+type SelectOption = SavedOption | TableOption
+
+function isTableOption(o: SelectOption): o is TableOption {
+  return (o as TableOption).table !== undefined
 }
 
-function QueryConstructor({ className }: QueryConstructorProps) {
-  const { query, queries, queryRun } = Model.use()
+interface QueryConstructorProps {
+  className?: string
+  onOpenEditor: () => void
+}
+
+function QueryConstructor({ className, onOpenEditor }: QueryConstructorProps) {
+  const { query, queries, queryRun, tables, submitTablePreview } = Model.use()
 
   if (Model.isError(queries.data)) {
     return <Alert className={className} error={queries.data} title="Select query" />
@@ -115,20 +124,51 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     return <QuerySelectSkeleton className={className} />
   }
 
-  if (!queries.data.list.length && !Model.isError(query.value)) {
-    return <M.Typography className={className}>No saved queries.</M.Typography>
+  const queriesList = queries.data.list
+  const savedOptions: SavedOption[] = queriesList.map((q) => ({
+    ...q,
+    group: 'Saved queries',
+  }))
+  const tableOptions: TableOption[] = Model.hasData(tables)
+    ? tables.map((t) => ({
+        key: `table:${t.name}`,
+        name: t.name,
+        group: 'Tables',
+        table: t.name,
+      }))
+    : []
+  const options: SelectOption[] = [...savedOptions, ...tableOptions]
+
+  if (!options.length && !Model.isError(query.value)) {
+    return <M.Typography className={className}>No saved queries or tables.</M.Typography>
+  }
+
+  const currentQuery = Model.hasData(query.value) ? query.value : null
+  const selected = currentQuery
+    ? savedOptions.find((o) => o.key === currentQuery.key) || null
+    : null
+
+  const handleChange = (option: SelectOption | null) => {
+    if (option && isTableOption(option)) {
+      submitTablePreview(option.table)
+      return
+    }
+    onOpenEditor()
+    query.setValue(
+      option ? queriesList.find((q) => q.key === option.key) || null : null,
+    )
   }
 
   return (
     <>
-      <QuerySelect<Model.Query | null>
+      <QuerySelect<SelectOption>
         label="Select a query"
         className={className}
         disabled={Model.isLoading(queryRun)}
-        onChange={query.setValue}
+        onChange={handleChange}
         onLoadMore={queries.data.next ? queries.loadMore : undefined}
-        queries={queries.data.list}
-        value={Model.isError(query.value) ? null : query.value}
+        queries={options}
+        value={selected}
       />
       {Model.isError(query.value) && (
         <M.FormHelperText error>{query.value.message}</M.FormHelperText>
@@ -348,7 +388,8 @@ function AthenaContainer() {
       {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
           <div className={classes.section}>
-            <QueryConstructor />
+            {/* TODO(Task 6): wire editor fold state */}
+            <QueryConstructor onOpenEditor={() => {}} />
             <QueryEditor.Form className={classes.form} />
           </div>
           {queryExecutionId ? (
