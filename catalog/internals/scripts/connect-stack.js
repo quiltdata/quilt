@@ -32,7 +32,11 @@ function prompt(q) {
 async function fetchConfig(url) {
   const configUrl = `${url}/config.js`
   console.log(`Fetching ${configUrl}`)
-  const res = await fetch(configUrl)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+  const res = await fetch(configUrl, { signal: controller.signal }).finally(() =>
+    clearTimeout(timeout),
+  )
   if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`)
   const body = await res.text()
   if (!body.includes('QUILT_CATALOG_CONFIG')) {
@@ -73,15 +77,6 @@ function writeBookmarks(url) {
   console.log(`Wrote ${path.relative(CATALOG_DIR, BOOKMARKS_PATH)}`)
 }
 
-function inferDefaultUrl() {
-  // Derive the catalog URL from registryUrl in the existing config.js, dropping "-registry".
-  //   https://unstable-registry.dev.quilttest.com  ->  https://unstable.dev.quilttest.com
-  let text
-  try { text = fs.readFileSync(CONFIG_PATH, 'utf8') } catch { return null }
-  const m = text.match(/["']registryUrl["']\s*:\s*["'](https?:\/\/[^"']+)["']/)
-  return m ? m[1].replace(/-registry\./, '.') : null
-}
-
 function portInUse(port) {
   return new Promise((resolve) => {
     const sock = net.createConnection({ port, host: '127.0.0.1' })
@@ -93,12 +88,8 @@ function portInUse(port) {
 async function main() {
   let url = process.argv[2]
   if (!url) {
-    const dflt = inferDefaultUrl()
-    const q = dflt
-      ? `Live catalog URL [${dflt}]: `
-      : 'Live catalog URL (e.g. https://nightly.quilttest.com): '
-    const answer = await prompt(q)
-    url = answer || dflt || ''
+    // No default: writing config.js should be a conscious choice.
+    url = await prompt('Live catalog URL (e.g. https://open.quiltdata.com): ')
   }
   url = url.replace(/\/+$/, '')
   if (!/^https?:\/\//.test(url)) throw new Error('URL must start with http(s)://')
@@ -132,7 +123,8 @@ function printInstructions(url) {
 function startDevServer() {
   return new Promise((resolve, reject) => {
     const logStream = fs.createWriteStream(LOG_PATH)
-    const env = { ...process.env, PATH: `${NODE20_BIN}:${process.env.PATH}` }
+    const extraBin = fs.existsSync(NODE20_BIN) ? `${NODE20_BIN}:` : ''
+    const env = { ...process.env, PATH: `${extraBin}${process.env.PATH}` }
     const child = spawn('npm', ['start'], { stdio: ['ignore', 'pipe', 'pipe'], cwd: CATALOG_DIR, env })
 
     // Keep child alive after this script exits? No — user will Ctrl-C the npm process.
