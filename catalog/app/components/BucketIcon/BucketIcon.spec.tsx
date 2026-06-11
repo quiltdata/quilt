@@ -4,6 +4,8 @@ import { describe, expect, it, vi, afterEach } from 'vitest'
 
 vi.mock('./bucket.svg', () => ({ default: 'IMAGE_MOCK' }))
 
+vi.mock('./bucket-white.svg', () => ({ default: 'CONTRAST_IMAGE_MOCK' }))
+
 import BucketIcon from './'
 
 describe('components/BucketIcon', () => {
@@ -12,6 +14,18 @@ describe('components/BucketIcon', () => {
   it('should render default when no src', () => {
     const { getByAltText } = render(<BucketIcon alt="No src" src="" />)
     expect(getByAltText('No src').getAttribute('src')).toBe('IMAGE_MOCK')
+  })
+
+  it('should render contrast default when no src and contrast is set', () => {
+    const { getByAltText } = render(<BucketIcon alt="Contrast" src="" contrast />)
+    expect(getByAltText('Contrast').getAttribute('src')).toBe('CONTRAST_IMAGE_MOCK')
+  })
+
+  it('should ignore contrast when src is set', () => {
+    const { getByAltText } = render(
+      <BucketIcon alt="Contrast custom" src="https://custom-src" contrast />,
+    )
+    expect(getByAltText('Contrast custom').getAttribute('src')).toBe('https://custom-src')
   })
 
   it('should render custom src', () => {

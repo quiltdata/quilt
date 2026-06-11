@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -20,6 +21,21 @@ const useBucketStyles = M.makeStyles((t) => ({
     padding: t.spacing(4),
     position: 'relative',
     overflow: 'hidden',
+  },
+  header: {
+    alignItems: 'flex-start',
+    display: 'flex',
+  },
+  headerText: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minWidth: 0,
+  },
+  icon: {
+    flexShrink: 0,
+    marginRight: t.spacing(2),
+    marginTop: t.spacing(1),
   },
   title: {
     ...t.typography.h6,
@@ -52,7 +68,7 @@ const useBucketStyles = M.makeStyles((t) => ({
   active: {},
   matching: {},
   shared: {
-    float: 'right',
+    marginLeft: t.spacing(1),
   },
   tag: {
     ...t.typography.body2,
@@ -98,23 +114,31 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}
     >
-      <div>
+      <div className={classes.header}>
+        <BucketIcon
+          alt={bucket.title}
+          className={classes.icon}
+          contrast
+          src={bucket.iconUrl || undefined}
+        />
+        <div className={classes.headerText}>
+          <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
+            {bucket.title}
+          </Link>
+          <Link
+            className={classes.name}
+            to={urls.bucketRoot(bucket.name)}
+            title={`s3://${bucket.name}`}
+          >
+            s3://{bucket.name}
+          </Link>
+        </div>
         {cfg.mode === 'PRODUCT' && (
           <div className={classes.shared}>
             <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
           </div>
         )}
-        <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
-          {bucket.title}
-        </Link>
       </div>
-      <Link
-        className={classes.name}
-        to={urls.bucketRoot(bucket.name)}
-        title={`s3://${bucket.name}`}
-      >
-        s3://{bucket.name}
-      </Link>
       {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
       <M.Box flexGrow={1} />
       {!!bucket.tags && !!bucket.tags.length && (

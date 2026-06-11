@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import bucketIcon from './bucket.svg'
+import bucketIconWhite from './bucket-white.svg'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -22,6 +23,8 @@ interface BucketIconProps
     custom?: string
     stub?: string
   }
+  // use the white default icon, for dark backgrounds
+  contrast?: boolean
   src?: string
 }
 
@@ -29,6 +32,7 @@ export default function BucketIcon({
   alt,
   className: optClassName,
   classes: optClasses,
+  contrast = false,
   src,
   ...props
 }: BucketIconProps) {
@@ -38,5 +42,7 @@ export default function BucketIcon({
     ? cx(classes.root, optClasses?.custom, optClassName)
     : cx(classes.root, optClasses?.stub, optClassName)
 
-  return <img alt={alt} className={className} src={src || bucketIcon} {...props} />
+  const defaultIcon = contrast ? bucketIconWhite : bucketIcon
+
+  return <img alt={alt} className={className} src={src || defaultIcon} {...props} />
 }
