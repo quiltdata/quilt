@@ -74,7 +74,7 @@ def test_read_image_fallback(data_dir, tmp_path, src_file, name):
     these formats.
     """
     path = tmp_path / name
-    path.write_bytes((data_dir / src_file).read_bytes())
+    path.symlink_to(data_dir / src_file)
     with pytest.raises(bioio_base.exceptions.UnsupportedFileFormatError):
         BioImage(path)
     img = t4_lambda_thumbnail.read_image(str(path))
