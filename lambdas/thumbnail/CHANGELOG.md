@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Compute the 16-bit rescale percentiles via a histogram instead of `np.percentile`, lowering peak memory on large images (output unchanged) ([#????](https://github.com/quiltdata/quilt/pull/????))
+- [Changed] Compute the 16-bit rescale percentiles via a histogram instead of `np.percentile`, lowering peak memory on large images (output unchanged) ([#4968](https://github.com/quiltdata/quilt/pull/4968))
 - [Fixed] Convert normalized greyscale thumbnails (montages, Z-projections) to 16-bit explicitly before PNG save, instead of relying on the implicit clip to 16-bit that Pillow 13 removes ([#4967](https://github.com/quiltdata/quilt/pull/4967))
 - [Fixed] 500 on image formats readable by bioio-imageio but missing from its declared extensions, e.g. `.jpeg` and `.webp` ([#4963](https://github.com/quiltdata/quilt/pull/4963))
 - [Fixed] Support float and 16-bit color images instead of failing with HTTP 500 ([#4961](https://github.com/quiltdata/quilt/pull/4961))
