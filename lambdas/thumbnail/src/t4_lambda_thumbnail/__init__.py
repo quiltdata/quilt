@@ -401,17 +401,20 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
 
 
 # Pixels per block when histogramming (below). Bounds the int64 transient
-# np.bincount allocates (8 bytes/pixel for its block) so peak memory stays
-# fixed regardless of image size; 1M pixels ≈ 8 MB.
+# np.bincount allocates (8 bytes/pixel for its block); 1M pixels ≈ 8 MB.
 _HIST_BLOCK = 1 << 20
 
 
 def _percentile_uint16(arr, qs):
+    # Caller contract: arr is a non-empty uint16 array, qs are percentiles in
+    # [0, 100]. The sole caller (_rescale_uint16_to_uint8) guards emptiness and
+    # passes constant qs, so this skips revalidating them.
+    #
     # np.percentile partitions a flattened copy of the whole array (here ~2
     # bytes/pixel, the uint16 input dtype), so its peak transient scales with
     # image size — an OOM risk on large images, the known failure mode of this
     # lambda. uint16 has only 65536 possible values, so a histogram yields the
-    # same percentiles in fixed memory. Accumulate it over blocks: a single
+    # same percentiles in bounded memory. Accumulate it over blocks: a single
     # np.bincount over the whole array would upcast all of it to int64
     # (8 bytes/pixel) and cost *more* than np.percentile, so bincount per block
     # into a fixed accumulator instead, keeping the int64 transient block-sized.
@@ -421,7 +424,9 @@ def _percentile_uint16(arr, qs):
     # Block over the first axis, not a flat view: arr may be a non-contiguous
     # slice (the color path passes arr[..., :3]), and flattening the whole
     # thing would copy all of it up front. Slicing the first axis is always a
-    # view; reshaping each slice copies only that block.
+    # view; reshaping each slice copies only that block. The per-block copy is
+    # thus bounded for any image of normal aspect ratio; only a single row
+    # wider than _HIST_BLOCK (no real image) would exceed it.
     per_row = max(arr[0].size, 1) if arr.ndim > 1 else 1
     rows = max(_HIST_BLOCK // per_row, 1)
     for start in range(0, len(arr), rows):
