@@ -20,7 +20,9 @@ from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
 
+import bioio_base.exceptions
 import bioio_czi
+import bioio_imageio
 import bioio_ome_tiff
 import bioio_tifffile
 import dask.array as da
@@ -356,9 +358,19 @@ def handle_pptx(*, path: str, page: int, size: int, count_pages: bool):
     return info, data
 
 
+def read_image(path: str) -> BioImage:
+    try:
+        return BioImage(path)
+    except bioio_base.exceptions.UnsupportedFileFormatError:
+        # BioImage picks a reader strictly by file extension, and bioio-imageio
+        # declares only a subset of the extensions it can actually read (e.g.
+        # "jpg" but not "jpeg", no "webp"), so force it as a fallback.
+        return BioImage(path, reader=bioio_imageio.Reader)
+
+
 def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     # Read image data
-    img = BioImage(path)
+    img = read_image(path)
     orig_size = list(img.reader.dask_data.shape)
     # Generate a formatted ndarray using the image data
     # Makes some assumptions for n-dim data

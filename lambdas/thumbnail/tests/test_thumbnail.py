@@ -90,6 +90,14 @@ def test_403():
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
+        # .jpeg/.webp aren't in bioio-imageio's declared extensions and need
+        # the forced-reader fallback in read_image(); .jpeg is plain JPEG,
+        # so serve the existing fixture under a different name
+        (("penguin.jpg", "penguin.jpeg"), {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None,
+         200),
+        # cell.webp is lossless-converted from cell.png, so the thumbnail is
+        # identical to cell.png's
+        ("cell.webp", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
         ("sat_greyscale.tiff", {"size": "w640h480"}, "sat_greyscale-480.png", [512, 512], [480, 480], None, 200),
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
@@ -142,10 +150,15 @@ def test_generate_thumbnail(
         num_pages,
         status
 ):
+    # input_file is either a file name or a (file name, URL name) pair when
+    # the URL must present a different extension than the fixture's
+    url_name = input_file
+    if isinstance(input_file, tuple):
+        input_file, url_name = input_file
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
-    url = f"https://example.com/{input_file}"
+    url = f"https://example.com/{url_name}"
     responses.add(
         responses.GET,
         url=url,

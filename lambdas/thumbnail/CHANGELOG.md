@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] 500 on image formats readable by bioio-imageio but missing from its declared extensions, e.g. `.jpeg` and `.webp` ([#????](https://github.com/quiltdata/quilt/pull/????))
 - [Fixed] Rescale 16-bit greyscale images by their actual value range to avoid nearly black thumbnails for low-range (e.g. 12-bit) data ([#4960](https://github.com/quiltdata/quilt/pull/4960))
 - [Fixed] Clean up tmp directory to deal with tmp files persisted between invocations when lambda is killed because of OOM ([#4627](https://github.com/quiltdata/quilt/pull/4627))
 - [Fixed] Fix handling of some .tiff files ([#4609](https://github.com/quiltdata/quilt/pull/4609))
