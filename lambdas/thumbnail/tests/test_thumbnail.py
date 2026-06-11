@@ -8,6 +8,7 @@ from pathlib import Path
 import bioio
 import bioio_base
 import bioio_czi
+import bioio_imageio
 import numpy as np
 import pytest
 import responses
@@ -57,6 +58,29 @@ def _mock(target, attr, obj):
         setattr(target, attr, orig_obj)
 
 
+@pytest.mark.parametrize(
+    "src_file, name",
+    [
+        ("penguin.jpg", "penguin.jpeg"),
+        ("cell.webp", "cell.webp"),
+    ],
+)
+def test_read_image_fallback(data_dir, tmp_path, src_file, name):
+    """Pin the mechanism behind the .jpeg/.webp cases in
+    test_generate_thumbnail: default reader selection must fail for these
+    names (the extensions aren't declared by bioio-imageio), and read_image()
+    must recover via the forced reader. If the first assertion starts failing,
+    bioio-imageio has declared the extension and the fallback no longer guards
+    these formats.
+    """
+    path = tmp_path / name
+    path.symlink_to(data_dir / src_file)
+    with pytest.raises(bioio_base.exceptions.UnsupportedFileFormatError):
+        BioImage(path)
+    img = t4_lambda_thumbnail.read_image(str(path))
+    assert isinstance(img.reader, bioio_imageio.Reader)
+
+
 @responses.activate
 def test_403():
     """test 403 cases, such as Glacier"""
@@ -94,6 +118,14 @@ def test_403():
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
+        # .jpeg/.webp aren't in bioio-imageio's declared extensions and need
+        # the forced-reader fallback in read_image(); .jpeg is plain JPEG,
+        # so serve the existing fixture under a different name
+        (("penguin.jpg", "penguin.jpeg"), {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None,
+         200),
+        # cell.webp is lossless-converted from cell.png, so the thumbnail is
+        # identical to cell.png's
+        ("cell.webp", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
         ("sat_greyscale.tiff", {"size": "w640h480"}, "sat_greyscale-480.png", [512, 512], [480, 480], None, 200),
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
@@ -146,10 +178,16 @@ def test_generate_thumbnail(
         num_pages,
         status
 ):
+    # input_file is either a file name or a (file name, URL name) pair when
+    # the URL must present a different extension than the fixture's
+    if isinstance(input_file, tuple):
+        input_file, url_name = input_file
+    else:
+        url_name = input_file
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
-    url = f"https://example.com/{input_file}"
+    url = f"https://example.com/{url_name}"
     responses.add(
         responses.GET,
         url=url,
