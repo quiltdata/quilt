@@ -1,7 +1,6 @@
 import json
 import tempfile
 import warnings
-from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
@@ -45,17 +44,6 @@ def _make_event(query, headers=None):
         'body': None,
         'isBase64Encoded': False,
     }
-
-
-@contextmanager
-def _mock(target, attr, obj):
-    """a simple mocking context manager"""
-    orig_obj = getattr(target, attr)
-    try:
-        setattr(target, attr, obj)
-        yield
-    finally:
-        setattr(target, attr, orig_obj)
 
 
 @pytest.mark.parametrize(
@@ -108,8 +96,7 @@ def test_403():
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",
     [
         # BUG: lambda doesn't preserve source format.
-        # (The resampler-fallback variant of this case lives in its own test,
-        # test_generate_thumbnail_i16_resampler_fallback, since it needs a mock.)
+        # I;16 input exercises the _convert_I16_to_L contrast-stretch end-to-end.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
         # low-range uint16: pins the contrast stretch end-to-end
         ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
@@ -233,35 +220,6 @@ def test_generate_thumbnail(
             expected = BioImage(data_dir / expected_thumb)
             assert actual.dims.items() == expected.dims.items()
             assert np.array_equal(actual.reader.data, expected.reader.data)
-
-
-@responses.activate
-def test_generate_thumbnail_i16_resampler_fallback(data_dir):
-    # With _convert_I16_to_L bypassed, the image reaches generate_thumbnail in
-    # mode I;16, which the default resampler rejects — exercising the fallback
-    # resampler chain. The mock is bound to this one case here, rather than
-    # selected by the expected-thumbnail filename inside the parametrized test
-    # (where renaming the fixture would silently change which path runs).
-    # If this fails, a better resampler may have been added for I;16, and the
-    # image or test needs updating.
-    input_file = data_dir / "I16-mode.tiff"
-    url = "https://example.com/I16-mode.tiff"
-    responses.add(responses.GET, url=url, body=input_file.read_bytes(), status=200)
-    event = _make_event({"url": url, "size": "w128h128"})
-    with _mock(t4_lambda_thumbnail, "_convert_I16_to_L", Image.fromarray):
-        response = t4_lambda_thumbnail.lambda_handler(event, None)
-
-    assert response["statusCode"] == 200, f"response: {response}"
-    info = json.loads(response["headers"][QUILT_INFO_HEADER])
-    assert info["original_size"] == [650, 650]
-    assert info["thumbnail_size"] == [128, 128]
-    with tempfile.NamedTemporaryFile(suffix=".png") as f:
-        f.write(read_body(response))
-        f.flush()
-        actual = BioImage(f.name)
-        expected = BioImage(data_dir / "I16-mode-128-fallback.png")
-        assert actual.dims.items() == expected.dims.items()
-        assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
 def test_convert_I16_to_L_rescales_by_range():

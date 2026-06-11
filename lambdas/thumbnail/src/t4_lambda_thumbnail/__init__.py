@@ -570,34 +570,8 @@ def generate_thumbnail(arr, size):
     if img.mode == 'I;16':
         img = _convert_I16_to_L(arr)
 
-    # Generate thumbnail
-    try:
-        # attempt to use the default resampler - we have test images using this.
-        img.thumbnail(size)
-        return img
-    except ValueError as err:
-        if 'image has wrong mode' in str(err):
-            # The default resampler doesn't work with this image mode.
-            # PIL does not support all resamplers with all modes.
-            # These are all of the resamplers available, Ordered highest to lowest quality.
-            fallback_resampler_order = [
-                Image.Resampling.LANCZOS,
-                Image.Resampling.BICUBIC,
-                Image.Resampling.HAMMING,
-                Image.Resampling.BILINEAR,
-                Image.Resampling.BOX,
-                Image.Resampling.NEAREST,
-            ]
-            for resampler in fallback_resampler_order:
-                try:
-                    img.thumbnail(size, resample=resampler)
-                    return img
-                except ValueError:
-                    continue
-            # If this error is raised, we need to convert the image to a mode that can scale.
-            raise ValueError(f"Exhausted all fallback resamplers for scaling mode {img.mode}")
-        else:
-            raise
+    img.thumbnail(size)
+    return img
 
 
 @api(cors_origins=get_default_origins())
