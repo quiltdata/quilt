@@ -25,7 +25,7 @@ Connect Server is disabled by default. To enable it, set the
 | ----------------------- | ------------- | --------------------------------------------------- |
 | `ConnectAllowedHosts`   | _(empty)_     | Comma-separated list of allowed OAuth redirect origins. Empty = disabled. See [Entry formats](#connectallowedhosts-entry-formats) below. |
 | `ConnectSecurityGroup`  | _(empty)_     | Optional EC2 security group ID for Connect ALB IP allowlisting. Empty = allow all. |
-| `CertificateArnConnect` | _(empty)_     | Optional ACM certificate ARN for the Connect ALB. Empty = reuses main stack TLS certificate. |
+| `CertificateArnConnect` | _(empty)_     | Optional ACM certificate ARN for the Connect ALB. Empty = reuses the main stack TLS certificate, which must then cover the Connect host (see [DNS Configuration](#dns-configuration)). |
 <!-- markdownlint-enable line-length table-column-style -->
 
 #### `ConnectAllowedHosts` Entry Formats
@@ -71,6 +71,14 @@ If your DNS is hosted elsewhere, create a `CNAME` record pointing to the
 `ConnectLoadBalancerDNSName` CloudFormation output. See the
 [Installation CNAMEs section](Installation.md#cnames) for the equivalent
 catalog DNS records.
+
+> **TLS certificate:** the certificate served by the Connect ALB must cover the
+> Connect host. By default (`CertificateArnConnect` empty) the ALB reuses the
+> main stack certificate (`CertificateArnELB`), which must therefore include the
+> Connect host — either as a wildcard (e.g. `*.<your-domain>`) or as an explicit
+> Subject Alternative Name. If it does not, set `CertificateArnConnect` to a
+> certificate that does; otherwise DNS resolves but HTTPS fails with a
+> certificate name mismatch.
 
 The final Connect Server hostname is available in the `ConnectHost`
 CloudFormation output.
