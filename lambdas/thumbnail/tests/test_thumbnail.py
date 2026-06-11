@@ -308,6 +308,27 @@ def test_convert_I16_to_L_clips_dead_pixels():
 
 
 @pytest.mark.parametrize(
+    "arr",
+    [
+        np.random.default_rng(0).integers(0, 4096, (200, 200), dtype=np.uint16),
+        np.random.default_rng(1).integers(0, 65536, (150, 150), dtype=np.uint16),
+        np.random.default_rng(2).integers(100, 400, (64, 64), dtype=np.uint16),
+        # skewed / fractional-percentile distribution
+        (np.random.default_rng(3).power(0.3, (180, 180)) * 65535).astype(np.uint16),
+        # color array: percentiles are pooled across channels
+        np.random.default_rng(4).integers(0, 4096, (40, 40, 3), dtype=np.uint16),
+    ],
+)
+def test_percentile_uint16_matches_numpy(arr):
+    # The histogram percentile must stay bit-identical to np.percentile's
+    # default "linear" method — that equivalence is what keeps _rescale output
+    # (and the checked-in thumbnails) unchanged.
+    expected = list(np.percentile(arr, (0.01, 99.99)))
+    actual = t4_lambda_thumbnail._percentile_uint16(arr, (0.01, 99.99))
+    assert np.allclose(actual, expected, rtol=0, atol=1e-9)
+
+
+@pytest.mark.parametrize(
     ("arr", "rescale"),
     [
         pytest.param(

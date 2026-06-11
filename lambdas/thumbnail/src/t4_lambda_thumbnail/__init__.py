@@ -400,6 +400,29 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     return info, data
 
 
+def _percentile_uint16(arr, qs):
+    # np.percentile on the full-resolution array allocates a float64 partition
+    # copy of every pixel (8 bytes each) — an OOM risk on large images, the
+    # known failure mode of this lambda. uint16 has only 65536 possible values,
+    # so a fixed-size histogram yields the same percentiles in O(65536) memory
+    # regardless of image size. Replicates np.percentile's default "linear"
+    # method exactly (verified bit-identical), so the rescaled output is
+    # unchanged. Channels are pooled (arr is flattened), matching the joint
+    # range np.percentile computed over the whole array.
+    cdf = np.cumsum(np.bincount(arr.reshape(-1), minlength=65536))
+    n = cdf[-1]
+    out = []
+    for q in qs:
+        # virtual 0-based index into the sorted values, then interpolate
+        # between the values at its floor and ceil (numpy's "linear" method)
+        v = q / 100 * (n - 1)
+        lo_i = int(v)
+        val_lo = int(np.searchsorted(cdf, lo_i, side="right"))
+        val_hi = int(np.searchsorted(cdf, lo_i + 1, side="right"))
+        out.append(val_lo + (val_hi - val_lo) * (v - lo_i))
+    return out
+
+
 def _rescale_uint16_to_uint8(arr):
     # Rescale by the actual value range instead of `arr // 256`: low-range
     # data (e.g. 12-bit microscopy stored as uint16) would otherwise produce
@@ -409,7 +432,7 @@ def _rescale_uint16_to_uint8(arr):
     # per-channel color skews.
     if not arr.size:
         return arr.astype(np.uint8)
-    lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
+    lo, hi = _percentile_uint16(arr, (0.01, 99.99))
     if hi == lo:
         # Percentiles collapse when almost all pixels share one value;
         # fall back to min/max so sparse data (e.g. label masks) stays
