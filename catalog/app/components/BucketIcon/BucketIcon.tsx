@@ -32,11 +32,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketIconProps
-  extends React.DetailedHTMLProps<
-    React.ImgHTMLAttributes<HTMLImageElement>,
-    HTMLImageElement
-  > {
+interface BucketIconProps {
   alt: string
   className?: string
   classes?: {
@@ -46,6 +42,7 @@ interface BucketIconProps
   // render the stub in colors suitable for dark backgrounds
   contrast?: boolean
   src?: string
+  title?: string
 }
 
 export default function BucketIcon({
@@ -55,7 +52,6 @@ export default function BucketIcon({
   contrast = false,
   src,
   title,
-  ...props
 }: BucketIconProps) {
   const classes = useStyles()
 
@@ -66,7 +62,6 @@ export default function BucketIcon({
         className={cx(classes.root, classes.crop, optClasses?.custom, optClassName)}
         src={src}
         title={title}
-        {...props}
       />
     )
   }
