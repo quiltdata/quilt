@@ -400,21 +400,37 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     return info, data
 
 
+# Pixels per block when histogramming (below). Bounds the int64 transient
+# np.bincount allocates (8 bytes/pixel for its block) so peak memory stays
+# fixed regardless of image size; 1M pixels ≈ 8 MB.
+_HIST_BLOCK = 1 << 20
+
+
 def _percentile_uint16(arr, qs):
-    # np.percentile on the full-resolution array allocates a float64 partition
-    # copy of every pixel (8 bytes each) — an OOM risk on large images, the
-    # known failure mode of this lambda. uint16 has only 65536 possible values,
-    # so a fixed-size histogram yields the same percentiles in O(65536) memory
-    # regardless of image size. Replicates np.percentile's default "linear"
-    # method exactly (verified bit-identical), so the rescaled output is
-    # unchanged. Channels are pooled (arr is flattened), matching the joint
-    # range np.percentile computed over the whole array.
-    cdf = np.cumsum(np.bincount(arr.reshape(-1), minlength=65536))
+    # np.percentile partitions a flattened copy of the whole array (here ~2
+    # bytes/pixel, the uint16 input dtype), so its peak transient scales with
+    # image size — an OOM risk on large images, the known failure mode of this
+    # lambda. uint16 has only 65536 possible values, so a histogram yields the
+    # same percentiles in fixed memory. Accumulate it over blocks: a single
+    # np.bincount over the whole array would upcast all of it to int64
+    # (8 bytes/pixel) and cost *more* than np.percentile, so bincount per block
+    # into a fixed accumulator instead, keeping the int64 transient block-sized.
+    # Channels are pooled (arr is flattened), matching the joint range
+    # np.percentile computes over the whole array.
+    counts = np.zeros(65536, dtype=np.int64)
+    flat = arr.reshape(-1)
+    for start in range(0, flat.size, _HIST_BLOCK):
+        counts += np.bincount(flat[start:start + _HIST_BLOCK], minlength=65536)
+    cdf = np.cumsum(counts)
     n = cdf[-1]
     out = []
     for q in qs:
-        # virtual 0-based index into the sorted values, then interpolate
-        # between the values at its floor and ceil (numpy's "linear" method)
+        # Replicate np.percentile's default "linear" method: a virtual 0-based
+        # index into the sorted values, interpolated between the values at its
+        # floor and ceil. Output matches np.percentile to within floating-point
+        # tolerance — not bit-exact (numpy's _lerp is asymmetric for fraction
+        # >= 0.5), but the difference is sub-ULP and vanishes in the uint8
+        # rescale, so thumbnails are unchanged.
         v = q / 100 * (n - 1)
         lo_i = int(v)
         val_lo = int(np.searchsorted(cdf, lo_i, side="right"))

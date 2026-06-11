@@ -320,9 +320,11 @@ def test_convert_I16_to_L_clips_dead_pixels():
     ],
 )
 def test_percentile_uint16_matches_numpy(arr):
-    # The histogram percentile must stay bit-identical to np.percentile's
-    # default "linear" method — that equivalence is what keeps _rescale output
-    # (and the checked-in thumbnails) unchanged.
+    # The histogram percentile must track np.percentile's default "linear"
+    # method — that equivalence is what keeps _rescale output (and the
+    # checked-in thumbnails) unchanged. Tolerance, not exact equality: numpy's
+    # _lerp is asymmetric for fraction >= 0.5, which the helper doesn't
+    # replicate; the gap is sub-ULP and vanishes in the uint8 rescale.
     expected = list(np.percentile(arr, (0.01, 99.99)))
     actual = t4_lambda_thumbnail._percentile_uint16(arr, (0.01, 99.99))
     assert np.allclose(actual, expected, rtol=0, atol=1e-9)
