@@ -268,6 +268,21 @@ def test_convert_I16_to_L_clips_dead_pixels():
     assert np.median(out) < 155
 
 
+def test_rescale_uint16_to_uint8_joint_channels():
+    # The range is shared across channels so relative intensities survive:
+    # a half-range channel must map to mid-grey, not stretch to full range
+    # on its own.
+    arr = np.dstack([
+        np.linspace(0, 2048, 16, dtype=np.uint16).reshape(4, 4),
+        np.linspace(0, 4096, 16, dtype=np.uint16).reshape(4, 4),
+        np.zeros((4, 4), dtype=np.uint16),
+    ])
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out[..., 0].max() == 128
+    assert out[..., 1].max() == 255
+    assert (out[..., 2] == 0).all()
+
+
 def test_rescale_float_to_uint8():
     arr = np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16)
     out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
@@ -322,6 +337,49 @@ def test_rescale_float_to_uint8_constant_just_above_one():
     assert (out == 255).all()
 
 
+def test_rescale_float_to_uint8_constant_absolute():
+    # Constants outside the [0, 1] convention are kept as absolute levels.
+    arr = np.full((4, 4), 100.0, dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert (out == 100).all()
+
+
+def test_rescale_float_to_uint8_sparse():
+    # Percentiles collapse when almost all pixels share one value; min/max
+    # fallback keeps sparse data (e.g. label masks) visible.
+    arr = np.zeros((100, 100), dtype=np.float32)
+    arr[50, 50] = 1.0
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out[50, 50] == 255
+    assert out[0, 0] == 0
+
+
+def test_rescale_float_to_uint8_clips_outlier_pixels():
+    # A few hot/dead pixels must not compress the rest of the range.
+    arr = np.linspace(0, 1, 10000, dtype=np.float32).reshape(100, 100)
+    arr[0, 0] = 100.0
+    arr[0, 1] = -100.0
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out[0, 0] == 255
+    assert out[0, 1] == 0
+    assert 100 < np.median(out) < 155
+
+
+def test_rescale_float_to_uint8_joint_channels():
+    # The range is shared across channels so relative intensities survive:
+    # a half-range channel must map to mid-grey, not stretch to full range
+    # on its own.
+    arr = np.dstack([
+        np.linspace(0, 0.5, 16, dtype=np.float32).reshape(4, 4),
+        np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
+        np.zeros((4, 4), dtype=np.float32),
+    ])
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out[..., 0].max() == 128
+    assert out[..., 1].max() == 255
+    assert (out[..., 2] == 0).all()
+
+
 def test_rescale_float_to_uint8_empty():
     out = t4_lambda_thumbnail._rescale_float_to_uint8(np.empty((0, 4), dtype=np.float32))
     assert out.dtype == np.uint8
@@ -372,6 +430,23 @@ def test_generate_thumbnail_rgba(arr):
     assert (out[..., 3] == 255).all()
     assert out[..., :3].min() == 0
     assert out[..., :3].max() == 255
+
+
+def test_alpha_to_uint8_float():
+    # Float alpha is scaled by the [0, 1] opacity convention; NaN renders
+    # transparent, out-of-range values clamp.
+    alpha = np.array([np.nan, -0.5, 0.0, 0.25, 1.0, 2.0], dtype=np.float32)
+    out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [0, 0, 0, 64, 255, 255])
+
+
+def test_alpha_to_uint8_uint16():
+    # uint16 alpha is scaled by the full dtype range.
+    alpha = np.array([0, 256, 32768, 65535], dtype=np.uint16)
+    out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [0, 1, 128, 255])
 
 
 def test_generate_thumbnail_float_greyscale_saves_png():
