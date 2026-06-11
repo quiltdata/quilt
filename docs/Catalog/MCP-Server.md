@@ -81,7 +81,10 @@ The Platform MCP Server works with any MCP-compatible AI client, including:
 
 - **Claude.ai** (web)
 - **Cursor** (desktop)
-- **ChatGPT**, **Databricks**, **Benchling AI**, and **OpenAI Codex**
+- **ChatGPT** (web)
+- **Databricks** (web)
+- **Benchling AI** (web)
+- **OpenAI Codex** (desktop/IDE)
 - **Any client** supporting the [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Connecting Claude.ai
