@@ -382,14 +382,15 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     return info, data
 
 
-def _convert_I16_to_L(arr):
-    # separated out for testing
+def _rescale_uint16_to_uint8(arr):
     # Rescale by the actual value range instead of `arr // 256`: low-range
     # data (e.g. 12-bit microscopy stored as uint16) would otherwise produce
     # a nearly black thumbnail. Like norm_img, clip extreme percentiles so
-    # a few hot/dead pixels don't compress the rest of the range.
+    # a few hot/dead pixels don't compress the rest of the range. For color
+    # arrays the range is computed jointly across channels to avoid
+    # per-channel color skews.
     if not arr.size:
-        return Image.fromarray(arr.astype(np.uint8))
+        return arr.astype(np.uint8)
     lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
     if hi == lo:
         # Percentiles collapse when almost all pixels share one value;
@@ -398,7 +399,7 @@ def _convert_I16_to_L(arr):
         lo, hi = float(arr.min()), float(arr.max())
     if hi == lo:
         # Constant image: keep the brightness level.
-        return Image.fromarray((arr >> 8).astype(np.uint8))
+        return (arr >> 8).astype(np.uint8)
     # Rescale via a lookup table over the 65536 possible values: much lower
     # peak memory than a float copy of the full-resolution array (OOM kills
     # are a known failure mode of this lambda).
@@ -406,10 +407,96 @@ def _convert_I16_to_L(arr):
     lut = (lut - lo) * (255 / (hi - lo))
     # values outside [lo, hi] land outside [0, 255]; clamp before the cast
     lut = np.clip(lut.round(), 0, 255)
-    return Image.fromarray(lut.astype(np.uint8)[arr])
+    return lut.astype(np.uint8)[arr]
+
+
+def _convert_I16_to_L(arr):
+    # separated out for testing
+    return Image.fromarray(_rescale_uint16_to_uint8(arr))
+
+
+def _rescale_float_to_uint8(arr):
+    # Contrast-stretch float data to uint8, with the range computed jointly
+    # across channels for color arrays to avoid per-channel color skews.
+    # Same percentile clipping and sparse-data fallback as
+    # _rescale_uint16_to_uint8. Non-finite values are excluded from the
+    # range: NaNs are treated as missing and render black, ±inf saturate
+    # to the range ends.
+    if not arr.size:
+        return arr.astype(np.uint8)
+    # Compact only when non-finite values are actually present: the copy
+    # would otherwise coexist with np.percentile's internal copy and double
+    # the ranging-phase peak memory.
+    mask = np.isfinite(arr)
+    finite = arr if mask.all() else arr[mask]
+    del mask
+    if not finite.size:
+        # No finite values to compute a range from; render black.
+        return np.zeros(arr.shape, np.uint8)
+    lo, hi = map(float, np.percentile(finite, (0.01, 99.99)))
+    if hi == lo:
+        # Percentiles collapse when almost all pixels share one value;
+        # fall back to min/max so sparse data (e.g. label masks) stays
+        # visible.
+        lo, hi = float(finite.min()), float(finite.max())
+    del finite
+    if hi == lo:
+        # Constant image: keep the level, assuming the common [0, 1] float
+        # convention when the value allows it (tolerating one output
+        # quantum of float error above 1, so a nudged 1.0 stays white).
+        level = lo * 255 if 0.0 <= lo <= 256 / 255 else lo
+        return np.full(arr.shape, np.clip(round(level), 0, 255), np.uint8)
+    # float32 math halves the working copy, but only when it can represent
+    # the data: wider floats keep their own precision so high-offset
+    # low-contrast data doesn't collapse and values beyond the float32
+    # range don't overflow in the cast.
+    out = arr.astype(np.float32 if arr.dtype.itemsize <= 4 else arr.dtype)
+    out -= lo
+    out *= 255 / (hi - lo)
+    return _saturate_to_uint8(out)
+
+
+def _saturate_to_uint8(out):
+    # Round, clamp to [0, 255] (±inf saturate to the ends), and zero the
+    # NaNs — via mask assignment: np.nan_to_num allocates much larger
+    # temporaries, and this runs at the callers' peak memory. `out` must be
+    # a private float array; every op is in place.
+    np.rint(out, out=out)
+    np.clip(out, 0, 255, out=out)
+    out[np.isnan(out)] = 0
+    return out.astype(np.uint8)
+
+
+def _alpha_to_uint8(alpha):
+    # Scale an alpha channel to uint8 by its convention — opacity in [0, 1]
+    # for floats, the full dtype range for uint16 — rather than
+    # contrast-stretching it like the color channels. NaN renders
+    # transparent.
+    if alpha.dtype.kind == "f":
+        out = alpha.astype(np.float32)
+        out *= 255
+        return _saturate_to_uint8(out)
+    return (alpha >> 8).astype(np.uint8)
 
 
 def generate_thumbnail(arr, size):
+    # PIL can't construct images from float16 arrays, has no float color
+    # modes, can't save float greyscale (mode F) as PNG, and only builds
+    # color images from uint8 — contrast-stretch such arrays to uint8.
+    if arr.dtype.kind == "f":
+        rescale = _rescale_float_to_uint8
+    elif arr.ndim == 3 and arr.dtype == np.uint16:
+        rescale = _rescale_uint16_to_uint8
+    else:
+        rescale = None
+    if rescale is not None:
+        if arr.ndim == 3 and arr.shape[2] == 4:
+            # Alpha is opacity, not intensity: keep it out of the color
+            # channels' contrast range and scale it by its own convention.
+            arr = np.dstack([rescale(arr[..., :3]), _alpha_to_uint8(arr[..., 3])])
+        else:
+            arr = rescale(arr)
+
     # Send to Image object for thumbnail generation and saving to bytes
     img = Image.fromarray(arr)
 
