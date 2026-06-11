@@ -217,11 +217,14 @@ policies to the managed user role. This is useful for granting additional
 permissions to users in your Quilt instance, which otherwise would be blocked by
 the permission boundary. 
 
-This parameter works in conjunction with Quilt role configuration in the Admin panel.
+This parameter works in conjunction with Quilt policy configuration in the Admin panel.
 You need to:
 1. Create the appropriate IAM policy
-2. Add it to `ManagedUserRoleExtraPolicies` (this step)
-3. Create a Quilt role in the Admin panel that uses the managed user role (Source=Quilt)
+2. Add its ARN to `ManagedUserRoleExtraPolicies` (this step)
+3. In the Admin panel, create a Quilt policy with the "Manually set ARN instead of
+   configuring per-bucket permissions" option enabled, and enter the same policy ARN
+4. Attach that Quilt policy to the managed (Source=Quilt) roles that should receive the
+   additional permissions
 
 In the AWS Console, go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
