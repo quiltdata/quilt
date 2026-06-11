@@ -336,8 +336,8 @@ def test_percentile_uint16_matches_numpy(arr):
         np.random.default_rng(5).integers(0, 65536, (100, 100), dtype=np.uint16),
         # non-contiguous color slice (the generate_thumbnail RGBA path)
         np.random.default_rng(6).integers(0, 4096, (60, 60, 4), dtype=np.uint16)[..., :3],
-        # degenerate aspect ratios: a single wide row / column must still be
-        # chunked (the flat iterator bounds memory regardless of shape)
+        # degenerate aspect ratios: flat-iterator chunking handles a single
+        # wide row / column the same as a balanced image
         np.random.default_rng(7).integers(0, 65536, (1, 5000), dtype=np.uint16),
         np.random.default_rng(8).integers(0, 65536, (5000, 1), dtype=np.uint16),
     ],

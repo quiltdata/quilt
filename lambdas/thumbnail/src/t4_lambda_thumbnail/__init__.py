@@ -423,11 +423,10 @@ def _percentile_uint16(arr, qs):
     counts = np.zeros(65536, dtype=np.int64)
     # Chunk a flat iterator rather than reshape(-1): arr.flat[a:b] copies only
     # the requested slice for any shape and contiguity, so the int64 bincount
-    # transient stays block-sized no matter the image dimensions — including
-    # adversarial shapes like (1, N). (reshape(-1) on the non-contiguous color
-    # slice arr[..., :3], or on a single huge row, would copy that whole span
-    # up front; this lambda thumbnails arbitrary uploads, so the bound must
-    # hold for untrusted input.)
+    # transient stays block-sized no matter the image dimensions. reshape(-1)
+    # would instead copy a whole span up front — the entire non-contiguous
+    # color slice arr[..., :3], or a single very wide row — which on odd
+    # shapes costs more than the np.percentile this replaces.
     flat = arr.flat
     for start in range(0, arr.size, _HIST_BLOCK):
         counts += np.bincount(flat[start:start + _HIST_BLOCK], minlength=65536)
