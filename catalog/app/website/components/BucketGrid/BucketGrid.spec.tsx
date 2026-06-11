@@ -36,6 +36,8 @@ vi.mock('react-router-dom', async () => ({
   ),
 }))
 
+type Buckets = React.ComponentProps<typeof BucketGrid>['buckets']
+
 const bucket = {
   name: 'bucket-name',
   title: 'Bucket Title',
@@ -45,7 +47,7 @@ const bucket = {
   collaborators: null,
 }
 
-function renderGrid(buckets: (typeof bucket)[]) {
+function renderGrid(buckets: Buckets) {
   return render(
     <M.MuiThemeProvider theme={style.websiteTheme}>
       <BucketGrid buckets={buckets} />

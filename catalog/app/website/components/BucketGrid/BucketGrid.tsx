@@ -6,6 +6,7 @@ import { fade } from '@material-ui/core/styles'
 
 import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
@@ -15,7 +16,7 @@ const useBucketStyles = M.makeStyles((t) => ({
     animation: '$slideUp 0.3s ease',
     background: 'linear-gradient(to top, #1f2151, #2f306e)',
     borderRadius: t.spacing(2),
-    boxShadow: [[0, 16, 40, 'rgba(0, 0, 0, 0.2)']],
+    boxShadow: '0px 16px 40px rgba(0, 0, 0, 0.2)',
     display: 'flex',
     flexDirection: 'column',
     padding: t.spacing(4),
@@ -39,7 +40,7 @@ const useBucketStyles = M.makeStyles((t) => ({
   },
   title: {
     ...t.typography.h6,
-    color: t.palette.tertiary.main,
+    color: (t.palette as $TSFixMe).tertiary.main,
   },
   name: {
     ...t.typography.body1,
@@ -104,7 +105,22 @@ const useBucketStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Bucket({ bucket, onTagClick, tagIsMatching }) {
+interface Bucket {
+  name: string
+  title: string
+  iconUrl: string | null
+  description: string | null
+  tags: ReadonlyArray<string> | null
+  collaborators?: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection> | null
+}
+
+interface BucketCardProps {
+  bucket: Bucket
+  onTagClick?: (tag: string) => void
+  tagIsMatching: (tag: string) => boolean
+}
+
+function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
   const classes = useBucketStyles()
   const { urls } = NamedRoutes.use()
 
@@ -135,7 +151,10 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
         </div>
         {cfg.mode === 'PRODUCT' && (
           <div className={classes.shared}>
-            <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
+            <Collaborators
+              bucket={bucket.name}
+              collaborators={bucket.collaborators ?? null}
+            />
           </div>
         )}
       </div>
@@ -152,7 +171,7 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
                 !!onTagClick && classes.active,
               )}
               type="button"
-              onClick={() => onTagClick(t)}
+              onClick={() => onTagClick?.(t)}
             >
               {t}
             </button>
@@ -181,12 +200,12 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     border: '2px dashed #2f306e',
     borderRadius: t.spacing(2),
-    color: t.palette.tertiary.main,
+    color: (t.palette as $TSFixMe).tertiary.main,
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'center',
     '&:hover': {
-      background: fade(t.palette.tertiary.main, 0.04),
+      background: fade((t.palette as $TSFixMe).tertiary.main, 0.04),
     },
     '& > span': {
       fontSize: '4rem',
@@ -194,7 +213,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default React.forwardRef(function BucketGrid(
+interface BucketGridProps {
+  buckets: ReadonlyArray<Bucket>
+  onTagClick?: (tag: string) => void
+  tagIsMatching?: (tag: string) => boolean
+  showAddLink?: boolean
+}
+
+export default React.forwardRef<HTMLDivElement, BucketGridProps>(function BucketGrid(
   { buckets, onTagClick, tagIsMatching = () => false, showAddLink = false },
   ref,
 ) {
@@ -204,7 +230,7 @@ export default React.forwardRef(function BucketGrid(
   return (
     <div className={classes.root} ref={ref}>
       {buckets.map((b) => (
-        <Bucket
+        <BucketCard
           bucket={b}
           key={b.name}
           onTagClick={onTagClick}
