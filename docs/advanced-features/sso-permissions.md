@@ -47,6 +47,8 @@ more reliable than `groups` for guest/cross-tenant users, since app roles
 are defined on the resource application itself):
 
 ```yaml
+version: "1.0"
+default_role: ReadQuiltBucket
 mappings:
   - schema:
       type: object
