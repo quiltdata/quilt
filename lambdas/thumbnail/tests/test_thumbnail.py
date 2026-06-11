@@ -85,6 +85,8 @@ def test_403():
         # BUG: lambda doesn't preserve source format.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128-fallback.png", [650, 650], [128, 128], None, 200),
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
+        # low-range uint16: pins the contrast stretch end-to-end
+        ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
@@ -92,20 +94,10 @@ def test_403():
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
         ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [1, 6, 40, 152, 126], [256, 205], None, 200),
-        # Test for statusCode error
-        pytest.param(
-            "empty.png",
-            {"size": "w32h32"},
-            None, None, None, None, 500,
-            marks=pytest.mark.xfail(raises=AssertionError)
-        ),
-        # Test known bad file
-        pytest.param(
-            "cell.png",
-            {"size": "w1h1"},
-            None, None, None, None, 400,
-            marks=pytest.mark.xfail(raises=AssertionError)
-        ),
+        # Unreadable image -> 500
+        ("empty.png", {"size": "w32h32"}, None, None, None, None, 500),
+        # Unsupported size -> 400
+        ("cell.png", {"size": "w1h1"}, None, None, None, None, 400),
         # The following PDF tests should only run if poppler-utils is installed;
         # then call `pytest --poppler` to execute
         pytest.param(
@@ -172,9 +164,14 @@ def test_generate_thumbnail(
     else:
         response = t4_lambda_thumbnail.lambda_handler(event, None)
 
-    # Assert the request was handled with no errors
-    assert response["statusCode"] == 200, f"response: {response}"
-    # only check the body and expected image if it's a successful call
+    assert response["statusCode"] == status, f"response: {response}"
+    if status != 200:
+        # Error bodies are plain-text messages produced by the @api/@validate
+        # decorators, unlike the JSON shape checked in test_403.
+        assert response["headers"]["Content-Type"] == "text/plain"
+        assert read_body(response)
+        return
+
     # Parse the body / the returned thumbnail
     body = read_body(response)
     # Assert basic metadata was filled properly
@@ -202,11 +199,77 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
+def test_convert_I16_to_L_rescales_by_range():
+    # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
+    # contrast-stretched, not truncated to a nearly black image.
+    arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [[0, 116], [233, 255]])
+
+
+def test_convert_I16_to_L_constant():
+    # Constant images keep their brightness level instead of being rescaled.
+    arr = np.full((4, 4), 1234, dtype=np.uint16)
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.dtype == np.uint8
+    assert (out == (1234 >> 8)).all()
+
+
+def test_convert_I16_to_L_empty():
+    arr = np.empty((0, 4), dtype=np.uint16)
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.dtype == np.uint8
+    assert out.size == 0
+
+
+def test_convert_I16_to_L_no_uint8_wraparound():
+    # A sub-grey-level percentile span near the top of the uint16 scale must
+    # not overshoot 255 and wrap around in the uint8 cast, rendering the
+    # brightest pixels dark. The outliers are spread so that the percentiles
+    # interpolate fractionally instead of collapsing to the min/max fallback.
+    arr = np.full((100, 100), 65000, dtype=np.uint16)
+    arr[0, 0] = 64999
+    arr[0, 1] = 65020
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.max() == 255
+
+
+def test_convert_I16_to_L_sparse():
+    # Percentiles collapse when almost all pixels share one value; min/max
+    # fallback keeps sparse data (e.g. label masks) visible.
+    arr = np.zeros((200, 200), dtype=np.uint16)
+    arr[0, :3] = 4000
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.min() == 0
+    assert out.max() == 255
+
+
+def test_convert_I16_to_L_clips_outliers():
+    # A single hot pixel must not compress the rest of the range to black.
+    arr = np.linspace(3000, 4096, 10000, dtype=np.uint16).reshape(100, 100)
+    arr[0, 0] = 65535
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) > 100
+
+
+def test_convert_I16_to_L_clips_dead_pixels():
+    # A single dead pixel must not compress the rest of the range to white.
+    arr = np.linspace(60000, 65535, 10000, dtype=np.uint16).reshape(100, 100)
+    arr[0, 0] = 0
+    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) < 155
+
+
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "8b3e9fea2049fc381c7e364b64cabf52e40c9c9fb9da2434bc6744ef292a1914"
+THUMBS_PKG = "images/thumbs", "c72b7f23716f9a446e9ffc6cf0bf19dfe2bf8dee9b5fd0dd11f7e7691eb54dfc"
 SIZE = (1024, 768)
 
 

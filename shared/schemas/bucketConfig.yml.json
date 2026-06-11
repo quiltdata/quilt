@@ -69,6 +69,11 @@
                   "type": "boolean",
                   "examples": [true, false]
                 },
+                "restore": {
+                  "description": "Hides button to restore archived S3 Glacier / Deep Archive objects",
+                  "type": "boolean",
+                  "examples": [true, false]
+                },
                 "revisePackage": {
                   "description": "Hides button triggering Revise Package dialog",
                   "type": "boolean",

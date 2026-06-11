@@ -7,6 +7,7 @@ import * as R from 'ramda'
 
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { getArchiveState } from 'utils/glacier'
 import * as s3paths from 'utils/s3paths'
 
 import * as errors from '../errors'
@@ -49,6 +50,7 @@ const drainObjectList = async ({
         ContinuationToken: ContinuationToken || continuationToken,
         EncodingType: 'url',
         MaxKeys: maxKeys,
+        OptionalObjectAttributes: ['RestoreStatus'], // so restores show as available
       })
       .promise()
     Contents = Contents.concat(r.Contents || [])
@@ -128,7 +130,7 @@ export const bucketListing = async ({
           modified: i.LastModified!,
           size: i.Size!,
           etag: i.ETag!,
-          archived: i.StorageClass === 'GLACIER' || i.StorageClass === 'DEEP_ARCHIVE',
+          archived: !!getArchiveState(i.StorageClass, i.RestoreStatus).archived,
         }))
       if (prev && prev.files) files = prev.files.concat(files)
 
