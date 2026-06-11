@@ -400,6 +400,54 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     return info, data
 
 
+# Pixels per block when histogramming (below). Bounds the int64 transient
+# np.bincount allocates (8 bytes/pixel for its block); 1M pixels ≈ 8 MB.
+_HIST_BLOCK = 1 << 20
+
+
+def _percentile_uint16(arr, qs):
+    # Caller contract: arr is a non-empty uint16 array, qs are percentiles in
+    # [0, 100]. The sole caller (_rescale_uint16_to_uint8) guards emptiness and
+    # passes constant qs, so this skips revalidating them.
+    #
+    # np.percentile partitions a flattened copy of the whole array (here ~2
+    # bytes/pixel, the uint16 input dtype), so its peak transient scales with
+    # image size — an OOM risk on large images, the known failure mode of this
+    # lambda. uint16 has only 65536 possible values, so a histogram yields the
+    # same percentiles in bounded memory. Accumulate it over blocks: a single
+    # np.bincount over the whole array would upcast all of it to int64
+    # (8 bytes/pixel) and cost *more* than np.percentile, so bincount per block
+    # into a fixed accumulator instead, keeping the int64 transient block-sized.
+    # Channels are pooled (arr is flattened), matching the joint range
+    # np.percentile computes over the whole array.
+    counts = np.zeros(65536, dtype=np.int64)
+    # Chunk a flat iterator rather than reshape(-1): arr.flat[a:b] copies only
+    # the requested slice for any shape and contiguity, so the int64 bincount
+    # transient stays block-sized no matter the image dimensions. reshape(-1)
+    # would instead copy a whole span up front — the entire non-contiguous
+    # color slice arr[..., :3], or a single very wide row — which on odd
+    # shapes costs more than the np.percentile this replaces.
+    flat = arr.flat
+    for start in range(0, arr.size, _HIST_BLOCK):
+        counts += np.bincount(flat[start:start + _HIST_BLOCK], minlength=65536)
+    cdf = np.cumsum(counts)
+    n = cdf[-1]
+    out = []
+    for q in qs:
+        # Replicate np.percentile's default "linear" method: a virtual 0-based
+        # index into the sorted values, interpolated between the values at its
+        # floor and ceil. Output matches np.percentile to within floating-point
+        # tolerance — not bit-exact (numpy's _lerp is asymmetric for fraction
+        # >= 0.5), but the difference is sub-ULP and vanishes in the uint8
+        # rescale, so thumbnails are unchanged.
+        v = q / 100 * (n - 1)
+        lo_i = int(v)
+        val_lo = int(np.searchsorted(cdf, lo_i, side="right"))
+        val_hi = int(np.searchsorted(cdf, lo_i + 1, side="right"))
+        out.append(val_lo + (val_hi - val_lo) * (v - lo_i))
+    return out
+
+
 def _rescale_uint16_to_uint8(arr):
     # Rescale by the actual value range instead of `arr // 256`: low-range
     # data (e.g. 12-bit microscopy stored as uint16) would otherwise produce
@@ -409,7 +457,7 @@ def _rescale_uint16_to_uint8(arr):
     # per-channel color skews.
     if not arr.size:
         return arr.astype(np.uint8)
-    lo, hi = map(float, np.percentile(arr, (0.01, 99.99)))
+    lo, hi = _percentile_uint16(arr, (0.01, 99.99))
     if hi == lo:
         # Percentiles collapse when almost all pixels share one value;
         # fall back to min/max so sparse data (e.g. label masks) stays
