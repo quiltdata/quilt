@@ -505,10 +505,10 @@ def test_generate_thumbnail_float_greyscale_saves_png():
 
 
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
-TIFF_PKG = "images/bioio-tifffile", "2ddbc5ef7accb6fe8f1ef1a38b727fab667f3f907bfb6dd557250345d9785910"
+TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "38e7c3406ef0828d6f9c12a7b9535f0b3425d6187a638a721ad8300043be62f8"
+THUMBS_PKG = "images/thumbs", "5ae720b35c5abc296ad5e708d3dea402bc4269c6e6f1920aa48cbc4be21ba443"
 SIZE = (1024, 768)
 
 
@@ -522,7 +522,14 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1_RGB.tiff"),
+        # all zeros; kept as a constant-input guard for the multi-channel RGB
+        # montage path (would catch e.g. a div-by-zero if normalization ever
+        # gets applied to color channels), but useless for pixel correctness
         (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),
+        # real-content variant of the above with distinct channels; this is
+        # what actually pins pixel correctness of the montage (channel order,
+        # grid placement, padding)
+        (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB_gradient.tiff"),
         # float16 RGB photo (values in [0, 1]), from tlnagy/exampletiffs
         (TIFF_PKG, "spring.tif"),
         (TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),
