@@ -36,3 +36,10 @@ prod = [
 
 [tool.uv]
 default-groups = ["test"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    # Regression guard: Pillow 13 removes saving mode "I" images as PNG, so
+    # nothing in the pipeline may rely on it (handle_image converts to I;16).
+    "error:Saving I mode images as PNG",
+]
