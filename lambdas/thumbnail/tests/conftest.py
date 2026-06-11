@@ -53,13 +53,15 @@ def isolated_quilt3_state(tmp_path_factory):
     # an unreachable catalog otherwise replaces the whole AWS credential chain
     # (quilt3.session.create_botocore_session) and breaks the package-based
     # tests with DNS/auth errors before any S3 request is made.
+    # Unlike api/python/tests (which mock platformdirs wholesale), only the
+    # login state is redirected, so the package download cache stays warm
+    # across local runs.
     base = tmp_path_factory.mktemp("quilt3-state")
-    mp = pytest.MonkeyPatch()
-    mp.setattr(quilt3.session, "AUTH_PATH", base / "auth.json")
-    mp.setattr(quilt3.session, "CREDENTIALS_PATH", base / "credentials.json")
-    mp.setattr(quilt3.util, "CONFIG_PATH", base / "config.yml")
-    yield
-    mp.undo()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(quilt3.session, "AUTH_PATH", base / "auth.json")
+        mp.setattr(quilt3.session, "CREDENTIALS_PATH", base / "credentials.json")
+        mp.setattr(quilt3.util, "CONFIG_PATH", base / "config.yml")
+        yield
 
 
 @pytest.fixture(scope="function", autouse=True)
