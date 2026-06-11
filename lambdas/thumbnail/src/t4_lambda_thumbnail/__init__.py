@@ -476,11 +476,6 @@ def _rescale_uint16_to_uint8(arr):
     return lut.astype(np.uint8)[arr]
 
 
-def _convert_I16_to_L(arr):
-    # separated out for testing
-    return Image.fromarray(_rescale_uint16_to_uint8(arr))
-
-
 def _rescale_float_to_uint8(arr):
     # Contrast-stretch float data to uint8, with the range computed jointly
     # across channels for color arrays to avoid per-channel color skews.
@@ -546,12 +541,16 @@ def _alpha_to_uint8(alpha):
 
 
 def generate_thumbnail(arr, size):
-    # PIL can't construct images from float16 arrays, has no float color
-    # modes, can't save float greyscale (mode F) as PNG, and only builds
-    # color images from uint8 — contrast-stretch such arrays to uint8.
+    # Contrast-stretch non-uint8 arrays to uint8 before building the image.
+    # PIL can't construct from float16 or save mode-F greyscale as PNG, and
+    # 16-bit greyscale decodes to an I;16 "limited support" mode
+    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes)
+    # that thumbnail() rejects with "image has wrong mode" when it reduce()s
+    # larger images. Dispatch on dtype, not the PIL mode, so big-endian uint16
+    # (whose dtype != np.uint16) is handled the same as native-order.
     if arr.dtype.kind == "f":
         rescale = _rescale_float_to_uint8
-    elif arr.ndim == 3 and arr.dtype == np.uint16:
+    elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
     else:
         rescale = None
@@ -563,21 +562,7 @@ def generate_thumbnail(arr, size):
         else:
             arr = rescale(arr)
 
-    # Send to Image object for thumbnail generation and saving to bytes
     img = Image.fromarray(arr)
-
-    # Convert 16-bit greyscale to 8-bit L before thumbnailing. The I;16 family
-    # (I;16 and the byte-order variants I;16L/I;16B/I;16N) are "limited support"
-    # modes in PIL
-    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes):
-    # thumbnail() raises "image has wrong mode" on them when it pre-shrinks
-    # larger images via reduce(). The conversion is therefore required, not
-    # cosmetic; it also contrast-stretches the value range (see
-    # _convert_I16_to_L). Readers emit native-order I;16 today, but match the
-    # whole family so the guard doesn't hinge on that.
-    if img.mode.startswith('I;16'):
-        img = _convert_I16_to_L(arr)
-
     img.thumbnail(size)
     return img
 

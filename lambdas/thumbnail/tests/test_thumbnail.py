@@ -96,7 +96,7 @@ def test_403():
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",
     [
         # BUG: lambda doesn't preserve source format. This I;16 input also
-        # exercises the _convert_I16_to_L contrast-stretch end-to-end.
+        # exercises the _rescale_uint16_to_uint8 contrast-stretch end-to-end.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
         # low-range uint16: pins the contrast stretch end-to-end
         ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
@@ -222,31 +222,31 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
-def test_convert_I16_to_L_rescales_by_range():
+def test_rescale_uint16_to_uint8_rescales_by_range():
     # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
     # contrast-stretched, not truncated to a nearly black image.
     arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [[0, 116], [233, 255]])
 
 
-def test_convert_I16_to_L_constant():
+def test_rescale_uint16_to_uint8_constant():
     # Constant images keep their brightness level instead of being rescaled.
     arr = np.full((4, 4), 1234, dtype=np.uint16)
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == (1234 >> 8)).all()
 
 
-def test_convert_I16_to_L_empty():
+def test_rescale_uint16_to_uint8_empty():
     arr = np.empty((0, 4), dtype=np.uint16)
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.dtype == np.uint8
     assert out.size == 0
 
 
-def test_convert_I16_to_L_no_uint8_wraparound():
+def test_rescale_uint16_to_uint8_no_uint8_wraparound():
     # A sub-grey-level percentile span near the top of the uint16 scale must
     # not overshoot 255 and wrap around in the uint8 cast, rendering the
     # brightest pixels dark. The outliers are spread so that the percentiles
@@ -254,35 +254,35 @@ def test_convert_I16_to_L_no_uint8_wraparound():
     arr = np.full((100, 100), 65000, dtype=np.uint16)
     arr[0, 0] = 64999
     arr[0, 1] = 65020
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.max() == 255
 
 
-def test_convert_I16_to_L_sparse():
+def test_rescale_uint16_to_uint8_sparse():
     # Percentiles collapse when almost all pixels share one value; min/max
     # fallback keeps sparse data (e.g. label masks) visible.
     arr = np.zeros((200, 200), dtype=np.uint16)
     arr[0, :3] = 4000
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
 
 
-def test_convert_I16_to_L_clips_outliers():
+def test_rescale_uint16_to_uint8_clips_outliers():
     # A single hot pixel must not compress the rest of the range to black.
     arr = np.linspace(3000, 4096, 10000, dtype=np.uint16).reshape(100, 100)
     arr[0, 0] = 65535
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert np.median(out) > 100
 
 
-def test_convert_I16_to_L_clips_dead_pixels():
+def test_rescale_uint16_to_uint8_clips_dead_pixels():
     # A single dead pixel must not compress the rest of the range to white.
     arr = np.linspace(60000, 65535, 10000, dtype=np.uint16).reshape(100, 100)
     arr[0, 0] = 0
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert np.median(out) < 155
@@ -530,12 +530,11 @@ def test_generate_thumbnail_float_greyscale_saves_png():
     img.save(BytesIO(), "PNG")
 
 
-def test_generate_thumbnail_converts_i16_byte_order_variants():
-    # Readers emit native-order I;16, but the conversion guard matches the whole
-    # I;16 family so a byte-swapped uint16 array can't slip past it unconverted
-    # and hit thumbnail()'s reduce(), which rejects the I;16* modes. A
-    # big-endian array decodes to I;16B; assert it's converted to L, not left
-    # as-is.
+def test_generate_thumbnail_handles_byte_swapped_uint16():
+    # Dispatch is by dtype (kind/itemsize), not PIL mode, so a byte-swapped
+    # uint16 array is rescaled like native-order rather than reaching PIL as an
+    # I;16B image that thumbnail()'s reduce() rejects. A big-endian array
+    # decodes to I;16B; assert it's rescaled to L, not left as-is.
     arr = np.random.default_rng(0).integers(0, 65536, (64, 64)).astype(">u2")
     assert Image.fromarray(arr).mode == "I;16B"
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
