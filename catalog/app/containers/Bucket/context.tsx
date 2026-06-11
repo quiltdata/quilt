@@ -19,9 +19,11 @@ interface BucketContextProviderProps {
 
 const Context = React.createContext<BucketContextValue | undefined>(undefined)
 
+const EMPTY_CONFIG: BucketConfig = {}
+
 export function BucketContextProvider({
   bucket: bucketProp,
-  config = {},
+  config = EMPTY_CONFIG,
   children,
 }: BucketContextProviderProps) {
   if (bucketProp) {
