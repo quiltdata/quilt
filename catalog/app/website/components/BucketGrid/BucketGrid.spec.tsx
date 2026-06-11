@@ -53,15 +53,23 @@ describe('website/components/BucketGrid', () => {
   afterEach(cleanup)
 
   it('should render the bucket icon from iconUrl', () => {
-    const { getByAltText } = renderGrid([bucket])
-    expect(getByAltText('Bucket Title').getAttribute('src')).toBe(
+    const { container } = renderGrid([bucket])
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(
       'https://example.com/icon.png',
     )
   })
 
-  it('should fall back to the inline contrast stub when iconUrl is empty', () => {
-    const { container, getByTitle } = renderGrid([{ ...bucket, iconUrl: null }])
+  it('should fall back to the inline stub when iconUrl is empty', () => {
+    const { container } = renderGrid([{ ...bucket, iconUrl: null }])
     expect(container.querySelector('img')).toBeNull()
-    expect(getByTitle('Bucket Title').closest('svg')).not.toBeNull()
+    expect(container.querySelector('.MuiSvgIcon-root')).not.toBeNull()
+  })
+
+  it('should link the icon to the bucket root, hidden from the tab order', () => {
+    const { container } = renderGrid([bucket])
+    const link = container.querySelector('img')?.closest('a')
+    expect(link?.getAttribute('href')).toBe('/b/bucket-name')
+    expect(link?.getAttribute('tabindex')).toBe('-1')
+    expect(link?.getAttribute('aria-hidden')).toBe('true')
   })
 })

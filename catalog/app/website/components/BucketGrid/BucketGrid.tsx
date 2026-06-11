@@ -34,6 +34,7 @@ const useBucketStyles = M.makeStyles((t) => ({
     minWidth: 0,
   },
   icon: {
+    display: 'flex',
     flexShrink: 0,
     marginRight: t.spacing(2),
     marginTop: t.spacing(1),
@@ -131,12 +132,14 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
       data-bucket={bucket.name}
     >
       <div className={classes.header}>
-        <BucketIcon
-          alt={bucket.title}
+        <Link
+          aria-hidden="true"
           className={classes.icon}
-          contrast
-          src={bucket.iconUrl || undefined}
-        />
+          tabIndex={-1}
+          to={urls.bucketRoot(bucket.name)}
+        >
+          <BucketIcon alt="" contrast src={bucket.iconUrl || undefined} />
+        </Link>
         <div className={classes.headerText}>
           <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
             {bucket.title}
