@@ -331,6 +331,24 @@ def test_percentile_uint16_matches_numpy(arr):
 
 
 @pytest.mark.parametrize(
+    "arr",
+    [
+        np.random.default_rng(5).integers(0, 65536, (100, 100), dtype=np.uint16),
+        # non-contiguous color slice (the generate_thumbnail RGBA path)
+        np.random.default_rng(6).integers(0, 4096, (60, 60, 4), dtype=np.uint16)[..., :3],
+    ],
+)
+def test_percentile_uint16_multi_block(monkeypatch, arr):
+    # The per-block accumulation only runs once for the small arrays above
+    # unless the block is shrunk; force many blocks so the cross-block sum
+    # (and the first-axis slicing) is actually exercised.
+    monkeypatch.setattr(t4_lambda_thumbnail, "_HIST_BLOCK", 256)
+    expected = list(np.percentile(arr, (0.01, 99.99)))
+    actual = t4_lambda_thumbnail._percentile_uint16(arr, (0.01, 99.99))
+    assert np.allclose(actual, expected, rtol=0, atol=1e-9)
+
+
+@pytest.mark.parametrize(
     ("arr", "rescale"),
     [
         pytest.param(

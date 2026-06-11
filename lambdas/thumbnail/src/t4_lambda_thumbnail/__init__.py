@@ -418,9 +418,15 @@ def _percentile_uint16(arr, qs):
     # Channels are pooled (arr is flattened), matching the joint range
     # np.percentile computes over the whole array.
     counts = np.zeros(65536, dtype=np.int64)
-    flat = arr.reshape(-1)
-    for start in range(0, flat.size, _HIST_BLOCK):
-        counts += np.bincount(flat[start:start + _HIST_BLOCK], minlength=65536)
+    # Block over the first axis, not a flat view: arr may be a non-contiguous
+    # slice (the color path passes arr[..., :3]), and flattening the whole
+    # thing would copy all of it up front. Slicing the first axis is always a
+    # view; reshaping each slice copies only that block.
+    per_row = max(arr[0].size, 1) if arr.ndim > 1 else 1
+    rows = max(_HIST_BLOCK // per_row, 1)
+    for start in range(0, len(arr), rows):
+        block = arr[start:start + rows].reshape(-1)
+        counts += np.bincount(block, minlength=65536)
     cdf = np.cumsum(counts)
     n = cdf[-1]
     out = []
