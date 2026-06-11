@@ -32,6 +32,11 @@ describe('components/BucketIcon', () => {
     expect(getByAltText('Custom src').getAttribute('src')).toBe('https://custom-src')
   })
 
+  it('should circle-crop custom icons', () => {
+    const { getByAltText } = render(<BucketIcon alt="Cropped" src="https://custom-src" />)
+    expect(getByAltText('Cropped').className).toContain('crop')
+  })
+
   it('should expose the title on the stub', () => {
     const { getByTitle } = render(<BucketIcon alt="" src="" title="Default icon" />)
     expect(getByTitle('Default icon').closest('svg')).not.toBeNull()

@@ -5,8 +5,13 @@ import { fade } from '@material-ui/core/styles'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    borderRadius: '50%',
     height: t.spacing(4),
     width: t.spacing(4),
+  },
+  // the stub artwork is an inscribed circle, so only custom icons need cropping
+  crop: {
+    objectFit: 'cover',
   },
   disc: {
     color: t.palette.common.white,
@@ -58,7 +63,7 @@ export default function BucketIcon({
     return (
       <img
         alt={alt}
-        className={cx(classes.root, optClasses?.custom, optClassName)}
+        className={cx(classes.root, classes.crop, optClasses?.custom, optClassName)}
         src={src}
         title={title}
         {...props}

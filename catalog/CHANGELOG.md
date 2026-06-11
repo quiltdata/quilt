@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Landing page: show bucket icons on the bucket cards, same as in the navbar bucket selector ([#4970](https://github.com/quiltdata/quilt/pull/4970))
+- [Added] Landing page: show bucket icons on the bucket cards, same as in the navbar bucket selector; custom icons are now circle-cropped everywhere ([#4970](https://github.com/quiltdata/quilt/pull/4970))
 - [Fixed] Admin Buckets: crash after adding a bucket when arriving at the Add page without first loading the list (e.g. via the landing-page link). The bucketAdd cache updater wrote a null `Query.bucketConfigs` link when the list was uncached at mutation time; all other admin mutation cache updaters (bucket remove, policy/role create/update/delete, user add/remove, default role, tabulator settings) carried the same uncached-read hazard and now skip the write instead ([#4956](https://github.com/quiltdata/quilt/pull/4956))
 - [Added] Glacier rehydration: archived file previews (`GLACIER` / `DEEP_ARCHIVE`) offer a prompted Restore flow (tier + duration) and surface in-progress / restored state via the `x-amz-restore` HEAD header ([#4921](https://github.com/quiltdata/quilt/pull/4921))
 - [Changed] Replace unmaintained `remarkable` with `markdown-it` for markdown rendering; output now conforms to CommonMark + GFM ([#4884](https://github.com/quiltdata/quilt/pull/4884))
