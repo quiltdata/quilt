@@ -8,6 +8,7 @@ from pathlib import Path
 import bioio
 import bioio_base
 import bioio_czi
+import bioio_imageio
 import numpy as np
 import pytest
 import responses
@@ -55,6 +56,29 @@ def _mock(target, attr, obj):
         yield
     finally:
         setattr(target, attr, orig_obj)
+
+
+@pytest.mark.parametrize(
+    "src_file, name",
+    [
+        ("penguin.jpg", "penguin.jpeg"),
+        ("cell.webp", "cell.webp"),
+    ],
+)
+def test_read_image_fallback(data_dir, tmp_path, src_file, name):
+    """Pin the mechanism behind the .jpeg/.webp cases in
+    test_generate_thumbnail: default reader selection must fail for these
+    names (the extensions aren't declared by bioio-imageio), and read_image()
+    must recover via the forced reader. If the first assertion starts failing,
+    bioio-imageio has declared the extension and the fallback no longer guards
+    these formats.
+    """
+    path = tmp_path / name
+    path.write_bytes((data_dir / src_file).read_bytes())
+    with pytest.raises(bioio_base.exceptions.UnsupportedFileFormatError):
+        BioImage(path)
+    img = t4_lambda_thumbnail.read_image(str(path))
+    assert isinstance(img.reader, bioio_imageio.Reader)
 
 
 @responses.activate
