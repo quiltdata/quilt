@@ -217,25 +217,20 @@ Each Benchling user then enables the connector once:
 
 > Requires Quilt **1.70 or later**.
 
-[Codex](https://developers.openai.com/codex/) (CLI and IDE extension)
-reads MCP servers from `~/.codex/config.toml`. Add Quilt as a
-streamable-HTTP MCP server:
+In the [Codex](https://developers.openai.com/codex/) desktop app or IDE
+extension, open **Settings -> MCP servers -> + Add server**, choose
+**Streamable HTTP**, and enter the URL:
 
-```toml
-[mcp_servers.quilt]
-url = "https://<connect-host>/mcp/platform/mcp"
+```text
+https://<connect-host>/mcp/platform/mcp
 ```
 
-Or register it from the command line:
+Leave **Bearer token env var**, **Headers**, and **Headers from environment
+variables** blank to use OAuth, then **Save** and **Authenticate**.
 
-```bash
-codex mcp add quilt --url https://<connect-host>/mcp/platform/mcp
-```
-
-In the Codex IDE extension, open the same config via the gear menu:
-**MCP settings -> Open config.toml**. See
-[Codex MCP configuration](https://developers.openai.com/codex/mcp) for
-the full list of supported fields.
+You can also configure it via the `codex mcp add` CLI or by editing
+`~/.codex/config.toml` directly; see
+[Codex MCP configuration](https://developers.openai.com/codex/mcp).
 
 Codex starts the OAuth flow on first connect and opens a browser to the
 Quilt authorization page.
