@@ -1,5 +1,6 @@
 import json
 import tempfile
+import warnings
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
@@ -268,16 +269,34 @@ def test_convert_I16_to_L_clips_dead_pixels():
     assert np.median(out) < 155
 
 
-def test_rescale_uint16_to_uint8_joint_channels():
+@pytest.mark.parametrize(
+    ("arr", "rescale"),
+    [
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 2048, 16, dtype=np.uint16).reshape(4, 4),
+                np.linspace(0, 4096, 16, dtype=np.uint16).reshape(4, 4),
+                np.zeros((4, 4), dtype=np.uint16),
+            ]),
+            t4_lambda_thumbnail._rescale_uint16_to_uint8,
+            id="uint16",
+        ),
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 0.5, 16, dtype=np.float32).reshape(4, 4),
+                np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
+                np.zeros((4, 4), dtype=np.float32),
+            ]),
+            t4_lambda_thumbnail._rescale_float_to_uint8,
+            id="float32",
+        ),
+    ],
+)
+def test_rescale_joint_channels(arr, rescale):
     # The range is shared across channels so relative intensities survive:
     # a half-range channel must map to mid-grey, not stretch to full range
     # on its own.
-    arr = np.dstack([
-        np.linspace(0, 2048, 16, dtype=np.uint16).reshape(4, 4),
-        np.linspace(0, 4096, 16, dtype=np.uint16).reshape(4, 4),
-        np.zeros((4, 4), dtype=np.uint16),
-    ])
-    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    out = rescale(arr)
     assert out[..., 0].max() == 128
     assert out[..., 1].max() == 255
     assert (out[..., 2] == 0).all()
@@ -293,16 +312,30 @@ def test_rescale_float_to_uint8():
 def test_rescale_float_to_uint8_nan():
     # NaNs are ignored for the range and render black.
     arr = np.array([[np.nan, 0.25], [0.5, 1.0]], dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    with warnings.catch_warnings():
+        # NaN must be zeroed explicitly, not rely on the undefined (but
+        # warning-emitting) NaN-to-uint8 cast happening to produce 0.
+        warnings.simplefilter("error")
+        out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
     assert np.array_equal(out, [[0, 0], [85, 255]])
 
 
-def test_rescale_float_to_uint8_constant():
-    # Constant [0, 1] floats keep their brightness level.
-    arr = np.full((4, 4), 0.5, dtype=np.float32)
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # [0, 1]-convention constants keep their brightness level
+        pytest.param(0.5, 128, id="in-01-convention"),
+        # one output quantum of tolerance above 1.0: a nudged 1.0 stays white
+        pytest.param(1.0000001, 255, id="nudged-above-one"),
+        # constants outside the convention are kept as absolute levels
+        pytest.param(100.0, 100, id="absolute-level"),
+    ],
+)
+def test_rescale_float_to_uint8_constant(value, expected):
+    arr = np.full((4, 4), value, dtype=np.float32)
     out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
     assert out.dtype == np.uint8
-    assert (out == 128).all()
+    assert (out == expected).all()
 
 
 def test_rescale_float_to_uint8_inf():
@@ -329,55 +362,29 @@ def test_rescale_float_to_uint8_float64_precision():
     assert len(np.unique(out)) >= 250
 
 
-def test_rescale_float_to_uint8_constant_just_above_one():
-    # Float error nudging a [0, 1]-convention constant past 1.0 keeps it
-    # white instead of flipping to a near-black absolute level.
-    arr = np.full((4, 4), 1.0000001, dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
-    assert (out == 255).all()
-
-
-def test_rescale_float_to_uint8_constant_absolute():
-    # Constants outside the [0, 1] convention are kept as absolute levels.
-    arr = np.full((4, 4), 100.0, dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
-    assert (out == 100).all()
-
-
 def test_rescale_float_to_uint8_sparse():
     # Percentiles collapse when almost all pixels share one value; min/max
-    # fallback keeps sparse data (e.g. label masks) visible.
-    arr = np.zeros((100, 100), dtype=np.float32)
-    arr[50, 50] = 1.0
+    # fallback keeps sparse data (e.g. label masks) visible. The hot pixels
+    # must stay below the 0.01% percentile window (here: <4 of 40000) so
+    # the percentiles actually collapse instead of interpolating.
+    arr = np.zeros((200, 200), dtype=np.float32)
+    arr[0, :3] = 1.0
     out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
-    assert out[50, 50] == 255
-    assert out[0, 0] == 0
+    assert (out[0, :3] == 255).all()
+    assert out[1, 0] == 0
 
 
 def test_rescale_float_to_uint8_clips_outlier_pixels():
-    # A few hot/dead pixels must not compress the rest of the range.
+    # A few hot/dead pixels must not compress the rest of the range: the
+    # bulk must keep (nearly) all of its distinct levels, not collapse
+    # into a few bins around the midpoint.
     arr = np.linspace(0, 1, 10000, dtype=np.float32).reshape(100, 100)
     arr[0, 0] = 100.0
     arr[0, 1] = -100.0
     out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
     assert out[0, 0] == 255
     assert out[0, 1] == 0
-    assert 100 < np.median(out) < 155
-
-
-def test_rescale_float_to_uint8_joint_channels():
-    # The range is shared across channels so relative intensities survive:
-    # a half-range channel must map to mid-grey, not stretch to full range
-    # on its own.
-    arr = np.dstack([
-        np.linspace(0, 0.5, 16, dtype=np.float32).reshape(4, 4),
-        np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
-        np.zeros((4, 4), dtype=np.float32),
-    ])
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
-    assert out[..., 0].max() == 128
-    assert out[..., 1].max() == 255
-    assert (out[..., 2] == 0).all()
+    assert len(np.unique(out)) > 200
 
 
 def test_rescale_float_to_uint8_empty():
@@ -442,11 +449,13 @@ def test_alpha_to_uint8_float():
 
 
 def test_alpha_to_uint8_uint16():
-    # uint16 alpha is scaled by the full dtype range.
-    alpha = np.array([0, 256, 32768, 65535], dtype=np.uint16)
+    # uint16 alpha is scaled by the full dtype range — the values stay
+    # below it so a contrast-stretch regression can't produce the same
+    # output (it would map 32768 to 255).
+    alpha = np.array([0, 256, 16384, 32768], dtype=np.uint16)
     out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
     assert out.dtype == np.uint8
-    assert np.array_equal(out, [0, 1, 128, 255])
+    assert np.array_equal(out, [0, 1, 64, 128])
 
 
 def test_generate_thumbnail_float_greyscale_saves_png():

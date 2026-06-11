@@ -453,10 +453,16 @@ def _rescale_float_to_uint8(arr):
     out = arr.astype(np.float32 if arr.dtype.itemsize <= 4 else arr.dtype)
     out -= lo
     out *= 255 / (hi - lo)
+    return _saturate_to_uint8(out)
+
+
+def _saturate_to_uint8(out):
+    # Round, clamp to [0, 255] (±inf saturate to the ends), and zero the
+    # NaNs — via mask assignment: np.nan_to_num allocates much larger
+    # temporaries, and this runs at the callers' peak memory. `out` must be
+    # a private float array; every op is in place.
     np.rint(out, out=out)
-    np.clip(out, 0, 255, out=out)  # ±inf saturate to 0/255 here
-    # Zero NaNs via mask assignment: np.nan_to_num allocates much larger
-    # temporaries, and this moment is the function's peak memory.
+    np.clip(out, 0, 255, out=out)
     out[np.isnan(out)] = 0
     return out.astype(np.uint8)
 
@@ -469,10 +475,7 @@ def _alpha_to_uint8(alpha):
     if alpha.dtype.kind == "f":
         out = alpha.astype(np.float32)
         out *= 255
-        np.rint(out, out=out)
-        np.clip(out, 0, 255, out=out)
-        out[np.isnan(out)] = 0
-        return out.astype(np.uint8)
+        return _saturate_to_uint8(out)
     return (alpha >> 8).astype(np.uint8)
 
 
