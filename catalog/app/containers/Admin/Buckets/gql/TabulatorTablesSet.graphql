@@ -1,27 +1,29 @@
 mutation ($bucketName: String!, $tableName: String!, $config: String) {
-  admin {
-    bucketSetTabulatorTable(
-      bucketName: $bucketName
-      tableName: $tableName
-      config: $config
-    ) {
-      __typename
-      ... on BucketConfig {
+  bucketSetTabulatorTable(
+    bucketName: $bucketName
+    tableName: $tableName
+    config: $config
+  ) {
+    __typename
+    ... on BucketConfig {
+      name
+      tabulatorTables {
         name
-        tabulatorTables {
-          name
-          config
-        }
+        config
       }
-      ... on InvalidInput {
-        errors {
-          path
-          message
-        }
-      }
-      ... on OperationError {
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        name
         message
+        context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
 }

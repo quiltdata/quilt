@@ -23,13 +23,13 @@ import 'sanitize.css'
 
 // Import the rest of our modules
 import * as Assistant from 'components/Assistant'
+import HubSpot from 'components/HubSpot'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
 import * as Auth from 'containers/Auth'
 import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
-import * as AddToPackage from 'containers/AddToPackage'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
@@ -100,7 +100,6 @@ const render = () => {
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,
-      AddToPackage.Provider,
       Bookmarks.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
@@ -116,6 +115,7 @@ const render = () => {
         },
       ],
       [Tracking.Provider, { userSelector: Auth.selectors.username }],
+      HubSpot,
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,

@@ -1,7 +1,7 @@
 // TODO: move to Bucket/Toolbar/Get/index.tsx
 
 import * as React from 'react'
-import { GetAppOutlined as IconGetAppOutlined } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Buttons from 'components/Buttons'
 
@@ -14,5 +14,5 @@ interface ButtonProps {
 }
 
 export const Button = ({ label = 'Get files', ...props }: ButtonProps) => (
-  <Buttons.WithPopover icon={IconGetAppOutlined} label={label} {...props} />
+  <Buttons.WithPopover icon={Icons.GetAppOutlined} label={label} {...props} />
 )

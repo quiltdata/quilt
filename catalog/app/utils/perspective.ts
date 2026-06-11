@@ -6,6 +6,7 @@ import perspective from '@finos/perspective'
 import type { Table, TableData, ViewConfig } from '@finos/perspective'
 import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
+import log from 'utils/Logging'
 import { themes } from 'utils/perspective-pollution'
 
 export interface State {
@@ -45,7 +46,7 @@ function usePerspective(
   config?: ViewConfig,
   onRender?: (tableEl: RegularTableElement) => void,
 ) {
-  const [state, setState] = React.useState<State | null>(null)
+  const [state, setState] = React.useState<State | Error | null>(null)
 
   React.useEffect(() => {
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
@@ -55,8 +56,15 @@ function usePerspective(
     async function renderData() {
       if (!container) return
 
-      viewer = renderViewer(container, attrs)
-      table = await renderTable(data, viewer)
+      try {
+        viewer = renderViewer(container, attrs)
+        table = await renderTable(data, viewer)
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
+        setState(error)
+        log.error(error)
+        return
+      }
 
       const regularTable: RegularTableElement | null =
         viewer.querySelector('regular-table')

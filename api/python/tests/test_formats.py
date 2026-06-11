@@ -34,7 +34,7 @@ def test_formats_for_obj():
     assert FormatRegistry.for_ext('npy')[0] is fmt
 
     expected_string_fmt_names = ['utf-8', 'unicode', 'json']
-    found_string_fmt_names = list(f.name for f in FormatRegistry.for_obj('blah'))
+    found_string_fmt_names = [f.name for f in FormatRegistry.for_obj('blah')]
     assert found_string_fmt_names == expected_string_fmt_names
 
     bytes_obj = fmt.serialize(arr)[0]

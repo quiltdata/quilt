@@ -98,6 +98,73 @@ def test_preview_simple(filename, handler_name):
         )
 
 
+@pytest.mark.parametrize(
+    "meta_only",
+    [False, True],
+)
+def test_preview_h5ad(mocker, meta_only):
+    if meta_only:
+        mocker.patch(
+            "t4_lambda_tabular_preview.H5AD_META_ONLY_SIZE",
+            0,  # Force providing only meta
+        )
+        calculate_qc_metrics_mock = mocker.patch("t4_lambda_tabular_preview.sc.pp.calculate_qc_metrics")
+
+    code, body, headers = t4_lambda_tabular_preview.handlers["h5ad"](
+        url=str(pathlib.Path(__file__).parent / "data" / "simple/test.h5ad"),
+        compression=None,
+        max_out_size=None,
+    )
+
+    assert code == 200
+    assert headers["Content-Type"] == "application/vnd.apache.arrow.file"
+    assert headers["Content-Encoding"] == "gzip"
+
+    # Parse the QUILT_INFO_HEADER to check metadata
+    info = json.loads(headers[QUILT_INFO_HEADER])
+    assert "truncated" in info
+    assert "meta" in info
+    assert info.get("meta_only") is meta_only
+    # Check H5AD-specific metadata format
+    assert "h5ad_obs_keys" in info["meta"]  # H5AD-specific fields
+    assert "h5ad_var_keys" in info["meta"]
+    # Check new H5AD-specific fields
+    assert info["meta"]["n_cells"] == 2  # 2 cells in test data
+    assert info["meta"]["n_genes"] == 2  # 2 genes in test data
+    assert "matrix_type" in info["meta"]  # sparse or dense
+    assert "has_raw" in info["meta"]  # boolean indicating raw data presence
+
+    # Check that the Arrow data can be read and contains expected content
+    with pyarrow.ipc.open_file(io.BytesIO(gzip.decompress(body))) as reader:
+        table = reader.read_all()
+
+    # Convert back to pandas to check content
+    df = table.to_pandas()
+
+    # Should have gene-level QC metrics instead of expression matrix
+    assert "gene_id" in df.columns
+    assert "highly_variable" in df.columns
+    if not meta_only:
+        assert "ENSG001" in df["gene_id"].values
+        assert "ENSG002" in df["gene_id"].values
+
+    # Should have QC metric columns added by scanpy
+    expected_qc_columns = ["total_counts", "n_cells_by_counts", "mean_counts", "pct_dropout_by_counts"]
+    if meta_only:
+        calculate_qc_metrics_mock.assert_not_called()
+        for col in expected_qc_columns:
+            assert col not in df.columns, f"Unexpected QC column {col} found in {df.columns.tolist()}"
+    else:
+        for col in expected_qc_columns:
+            assert col in df.columns, f"Expected QC column {col} not found in {df.columns.tolist()}"
+
+    # Check that we have the right number of genes (rows)
+    if meta_only:
+        assert len(df) == 0  # no tabular data
+    else:
+        assert len(df) == 2  # Should have 2 genes from our test data
+
+
 def test_preview_simple_parquet():
     data = (pathlib.Path(__file__).parent / "data" / "simple/test.parquet").read_bytes()
     with patch_urlopen(data) as urlopen_mock:

@@ -5,14 +5,14 @@ on:
     paths:
       - '.github/workflows/test-quilt3-admin-codegen.yaml'
       - 'shared/graphql/schema.graphql'
-      - 'api/python/quilt3-admin/**'
-      - 'api/python/quilt3/admin/_graphql_client/**'
+      - 'api/python/quilt3-graphql/**'
+      - 'api/python/quilt3/_graphql_client/**'
   pull_request:
     paths:
       - '.github/workflows/test-quilt3-admin-codegen.yaml'
       - 'shared/graphql/schema.graphql'
-      - 'api/python/quilt3-admin/**'
-      - 'api/python/quilt3/admin/_graphql_client/**'
+      - 'api/python/quilt3-graphql/**'
+      - 'api/python/quilt3/_graphql_client/**'
   merge_group:
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: ./api/python
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Check GraphQL client is up-to-date
         run: uv run poe gql-check

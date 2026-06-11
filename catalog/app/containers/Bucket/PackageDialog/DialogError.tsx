@@ -65,6 +65,17 @@ const errorDisplay = R.cond([
     ),
   ],
   [
+    R.is(ERRORS.FailedResolvingFiles),
+    (e: ERRORS.FailedResolvingFiles) => (
+      <>
+        <M.Typography variant="h6" gutterBottom>
+          Failed resolving files
+        </M.Typography>
+        <M.Typography gutterBottom>{e.message}</M.Typography>
+      </>
+    ),
+  ],
+  [
     R.T,
     () => (
       <>

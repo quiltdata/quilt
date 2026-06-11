@@ -1,5 +1,5 @@
-FROM amazonlinux:2023.8.20250915.0
-MAINTAINER Quilt Data, Inc. contact@quiltdata.io
+FROM amazonlinux:2023.11.20260514.0
+MAINTAINER Quilt Data, Inc. support@quilt.bio
 
 # Based on:
 # - https://hub.docker.com/r/irasnyd/nginx_s3_streaming_zip/dockerfile
@@ -8,7 +8,7 @@ MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 EXPOSE 80
 
-ENV NGINX_VERSION=1.24.0
+ENV NGINX_VERSION=1.30.2
 
 # Download and compile Nginx.
 # Dependencies:

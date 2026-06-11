@@ -30,7 +30,7 @@ You can edit existing users' attributes by clicking on underlined cells.
 
 ![](../imgs/admin-users-invite.png)
 
-Users can switch between assigned roles via the drodpwon menu in the navbar
+Users can switch between assigned roles via the dropdown menu in the navbar
 (if assigned more than one).
 
 ![](../imgs/switch-role-menu.png)
@@ -43,8 +43,8 @@ to sign in to the Quilt catalog. The default role is shown in bold.
 ![](../imgs/default-role.png)
 
 You may create roles for different groups of users by combining up to 5 policies.
-With the exception of administrators, users of managed roles can only see, list,
-and search buckets for which they are explicitly granted read access.
+Users of managed roles — including administrators — only see, list, and search
+buckets for which their role is explicitly granted read access.
 
 ![](../imgs/admin-role-managed-create.png)
 
@@ -75,6 +75,10 @@ You may also provide custom policies via ARN:
 The resulting permission set is equivalent to a union of all permissions
 provided by the policies attached to that role.
 
+> **Note:** a managed role's IAM policy is regenerated when its bucket permissions
+> are saved, so permissions added in a newer Quilt release reach existing managed
+> roles on their next save.
+
 
 ## Buckets
 
@@ -86,6 +90,14 @@ display settings.
 
 ![](../imgs/admin-buckets-add.png)
 
+### Reindexing
+
+Stack admins can reindex a bucket via `POST /api/admin/reindex/<bucket>`.
+The request accepts an optional `prefix` field; when supplied, the
+existing Elasticsearch indices are left in place and only keys under
+that prefix are re-walked. This is useful for refreshing a slice of a
+large bucket without a full reindex.
+
 ### S3 events
 
 By default, when you add a bucket to the Quilt stack one of two things will happen:
@@ -95,12 +107,14 @@ By default, when you add a bucket to the Quilt stack one of two things will happ
 
 If either of the above conditions fails, Quilt will not add the bucket in question.
 
-See [S3 Events, EventBridge](EventBridge.md) for more.
+See [S3 Events, EventBridge](../EventBridge.md) for more.
 
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links
-in the navbar, custom logo and default search mode.
+in the navbar, custom logo, and default search mode. The Theme editor accepts
+a logo as either a direct file upload (PNG, JPEG, WebP, or GIF) or a URL
+(all of those plus SVG).
 
 ![](../imgs/admin-settings.png)
 

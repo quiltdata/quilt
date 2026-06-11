@@ -3,11 +3,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import cfg from 'constants/config'
-import * as BucketPreferences from 'utils/BucketPreferences'
-
 import * as Toolbar from 'containers/Bucket/Toolbar'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog'
+import { FromHandles, useCreateDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
 import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
@@ -15,9 +12,10 @@ import * as Add from './Add'
 import * as CreatePackage from './CreatePackage'
 import * as Get from './Get'
 import * as Organize from './Organize'
+import { useFeatures, type Features } from './useFeatures'
 
 export { DirHandleCreate as CreateHandle } from 'containers/Bucket/Toolbar'
-export { Add, CreatePackage, Get, Organize }
+export { Add, CreatePackage, Get, Organize, useFeatures, type Features }
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -26,34 +24,6 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
   },
 }))
-
-interface Features {
-  add: boolean | null
-  get: false | { code: boolean } | null
-  organize: boolean | null
-  createPackage: boolean | null
-}
-
-export function useFeatures(): Features | null {
-  const { prefs } = BucketPreferences.use()
-  return React.useMemo(
-    () =>
-      BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { actions, blocks } }) => ({
-            add: actions.writeFile,
-            get:
-              !cfg.noDownload && actions.downloadObject ? { code: blocks.code } : false,
-            organize: true,
-            createPackage: actions.createPackage,
-          }),
-          _: () => null,
-        },
-        prefs,
-      ),
-    [prefs],
-  )
-}
 
 interface DirToolbarProps {
   className?: string
@@ -66,27 +36,23 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   const classes = useStyles()
   const slt = Selection.use()
 
-  const { path, bucket } = handle
-
-  const packageDirectoryDialog = usePackageCreationDialog({
-    s3Path: path,
-    bucket,
+  const dst = React.useMemo(() => ({ bucket: handle.bucket }), [handle.bucket])
+  const packageDirectoryDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
+    dst,
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor) => {
+    (successor) =>
       packageDirectoryDialog.open({
-        path,
-        selection: slt.selection,
+        files: FromHandles(Selection.toHandlesList(slt.selection)),
         successor,
-      })
-    },
-    [packageDirectoryDialog, path, slt.selection],
+      }),
+    [packageDirectoryDialog, slt.selection],
   )
 
-  const successors = CreatePackage.useSuccessors(bucket)
+  const successors = CreatePackage.useSuccessors(handle.bucket)
 
   if (!features) {
     return (
@@ -126,14 +92,14 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
         {features.get && (
           <Toolbar.Get>
-            <Get.Options handle={handle} hideCode={!features.get.code} />
+            <Get.Options handle={handle} features={features.get} />
           </Toolbar.Get>
         )}
 
         {features.organize && (
           <Organize.Context.Provider onReload={onReload}>
             <Toolbar.Organize>
-              <Organize.Options />
+              <Organize.Options features={features.organize} />
             </Toolbar.Organize>
           </Organize.Context.Provider>
         )}

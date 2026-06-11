@@ -141,7 +141,13 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       return readableBytes(hit.size)
     case 'name':
       return (
-        <StyledLink to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
+        <StyledLink
+          to={urls.bucketPackageTree(
+            hit.bucket,
+            hit.name,
+            hit.pointer === 'latest' ? hit.pointer : hit.hash,
+          )}
+        >
           <Match on={hit.matchLocations.name}>{hit.name}</Match>
         </StyledLink>
       )

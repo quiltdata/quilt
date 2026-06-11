@@ -24,6 +24,64 @@ export interface Scalars {
   S3ObjectLocation: S3ObjectLocation
 }
 
+export interface APIKey {
+  readonly __typename: 'APIKey'
+  readonly id: Scalars['ID']
+  readonly name: Scalars['String']
+  readonly fingerprint: Scalars['String']
+  readonly createdAt: Scalars['Datetime']
+  readonly expiresAt: Scalars['Datetime']
+  readonly lastUsedAt: Maybe<Scalars['Datetime']>
+  readonly userEmail: Scalars['String']
+  readonly status: APIKeyStatus
+}
+
+export interface APIKeyAdminMutations {
+  readonly __typename: 'APIKeyAdminMutations'
+  readonly revoke: APIKeyRevokeResult
+}
+
+export interface APIKeyAdminMutationsrevokeArgs {
+  id: Scalars['ID']
+}
+
+export interface APIKeyAdminQueries {
+  readonly __typename: 'APIKeyAdminQueries'
+  readonly list: ReadonlyArray<APIKey>
+  readonly get: Maybe<APIKey>
+}
+
+export interface APIKeyAdminQuerieslistArgs {
+  email: Maybe<Scalars['String']>
+  name: Maybe<Scalars['String']>
+  fingerprint: Maybe<Scalars['String']>
+  status: Maybe<APIKeyStatus>
+}
+
+export interface APIKeyAdminQueriesgetArgs {
+  id: Scalars['ID']
+}
+
+export interface APIKeyCreateInput {
+  readonly name: Scalars['String']
+  readonly expiresInDays: Scalars['Int']
+}
+
+export type APIKeyCreateResult = APIKeyCreated | InvalidInput
+
+export interface APIKeyCreated {
+  readonly __typename: 'APIKeyCreated'
+  readonly apiKey: APIKey
+  readonly secret: Scalars['String']
+}
+
+export type APIKeyRevokeResult = Ok | InvalidInput
+
+export enum APIKeyStatus {
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+}
+
 export interface AccessCountForDate {
   readonly __typename: 'AccessCountForDate'
   readonly date: Scalars['Datetime']
@@ -46,10 +104,13 @@ export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
+  /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  /** @deprecated Field no longer supported */
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
   readonly packager: PackagerAdminMutations
+  readonly apiKeys: APIKeyAdminMutations
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -79,6 +140,7 @@ export interface AdminQueries {
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
   readonly tabulatorOpenQuery: Scalars['Boolean']
   readonly packager: PackagerAdminQueries
+  readonly apiKeys: APIKeyAdminQueries
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -102,6 +164,18 @@ export type BrowsingSessionCreateResult = BrowsingSession | InvalidInput | Opera
 export type BrowsingSessionDisposeResult = Ok | OperationError
 
 export type BrowsingSessionRefreshResult = BrowsingSession | InvalidInput | OperationError
+
+export interface Bucket {
+  readonly __typename: 'Bucket'
+  readonly name: Scalars['String']
+  readonly title: Scalars['String']
+  readonly iconUrl: Maybe<Scalars['String']>
+  readonly description: Maybe<Scalars['String']>
+  readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly relevanceScore: Scalars['Int']
+  readonly browsable: Scalars['Boolean']
+  readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
+}
 
 export interface BucketAccessCounts {
   readonly __typename: 'BucketAccessCounts'
@@ -129,6 +203,7 @@ export interface BucketAddInput {
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly delayScan: Maybe<Scalars['Boolean']>
   readonly browsable: Maybe<Scalars['Boolean']>
+  readonly prefixes: Maybe<ReadonlyArray<Scalars['String']>>
 }
 
 export type BucketAddResult =
@@ -170,9 +245,9 @@ export interface BucketConfig {
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
+  readonly prefixes: ReadonlyArray<Scalars['String']>
   readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
-  readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
   readonly tabulatorTables: ReadonlyArray<TabulatorTable>
 }
 
@@ -229,6 +304,7 @@ export interface BucketUpdateInput {
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly browsable: Maybe<Scalars['Boolean']>
+  readonly prefixes: Maybe<ReadonlyArray<Scalars['String']>>
 }
 
 export type BucketUpdateResult =
@@ -236,6 +312,7 @@ export type BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
@@ -304,6 +381,12 @@ export interface EmptySearchResultSet {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export enum GlacierRestoreTier {
+  STANDARD = 'STANDARD',
+  BULK = 'BULK',
+  EXPEDITED = 'EXPEDITED',
+}
+
 export interface IPackageUserMetaFacet {
   readonly path: Scalars['String']
 }
@@ -323,7 +406,7 @@ export interface InputError {
 
 export interface InsufficientPermissions {
   readonly __typename: 'InsufficientPermissions'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly message: Scalars['String']
 }
 
 export interface InvalidInput {
@@ -374,6 +457,18 @@ export interface Me {
   readonly isAdmin: Scalars['Boolean']
   readonly role: MyRole
   readonly roles: ReadonlyArray<MyRole>
+  readonly apiKeys: ReadonlyArray<APIKey>
+  readonly apiKey: Maybe<APIKey>
+}
+
+export interface MeapiKeysArgs {
+  name: Maybe<Scalars['String']>
+  fingerprint: Maybe<Scalars['String']>
+  status: Maybe<APIKeyStatus>
+}
+
+export interface MeapiKeyArgs {
+  id: Scalars['ID']
 }
 
 export interface MutateUserAdminMutations {
@@ -418,6 +513,8 @@ export interface MutateUserAdminMutationssetActiveArgs {
 export interface Mutation {
   readonly __typename: 'Mutation'
   readonly switchRole: SwitchRoleResult
+  readonly apiKeyCreate: APIKeyCreateResult
+  readonly apiKeyRevoke: APIKeyRevokeResult
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
@@ -425,6 +522,8 @@ export interface Mutation {
   readonly bucketAdd: BucketAddResult
   readonly bucketUpdate: BucketUpdateResult
   readonly bucketRemove: BucketRemoveResult
+  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly policyCreateManaged: PolicyResult
   readonly policyCreateUnmanaged: PolicyResult
   readonly policyUpdateManaged: PolicyResult
@@ -439,10 +538,20 @@ export interface Mutation {
   readonly browsingSessionCreate: BrowsingSessionCreateResult
   readonly browsingSessionRefresh: BrowsingSessionRefreshResult
   readonly browsingSessionDispose: BrowsingSessionDisposeResult
+  readonly restoreObject: RestoreObjectResult
 }
 
 export interface MutationswitchRoleArgs {
   roleName: Scalars['String']
+}
+
+export interface MutationapiKeyCreateArgs {
+  input: APIKeyCreateInput
+}
+
+export interface MutationapiKeyRevokeArgs {
+  id: Maybe<Scalars['ID']>
+  secret: Maybe<Scalars['String']>
 }
 
 export interface MutationpackageConstructArgs {
@@ -473,6 +582,18 @@ export interface MutationbucketUpdateArgs {
 
 export interface MutationbucketRemoveArgs {
   name: Scalars['String']
+}
+
+export interface MutationbucketSetTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  config: Maybe<Scalars['String']>
+}
+
+export interface MutationbucketRenameTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  newTableName: Scalars['String']
 }
 
 export interface MutationpolicyCreateManagedArgs {
@@ -535,6 +656,14 @@ export interface MutationbrowsingSessionRefreshArgs {
 
 export interface MutationbrowsingSessionDisposeArgs {
   id: Scalars['ID']
+}
+
+export interface MutationrestoreObjectArgs {
+  bucket: Scalars['String']
+  key: Scalars['String']
+  version: Maybe<Scalars['String']>
+  tier: GlacierRestoreTier
+  days: Scalars['Int']
 }
 
 export interface MyRole {
@@ -920,6 +1049,8 @@ export interface Query {
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
+  readonly buckets: ReadonlyArray<Bucket>
+  readonly bucket: Maybe<Bucket>
   readonly potentialCollaborators: ReadonlyArray<Collaborator>
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
@@ -940,6 +1071,10 @@ export interface Query {
 }
 
 export interface QuerybucketConfigArgs {
+  name: Scalars['String']
+}
+
+export interface QuerybucketArgs {
   name: Scalars['String']
 }
 
@@ -994,6 +1129,13 @@ export interface QuerypolicyArgs {
 
 export interface QueryroleArgs {
   id: Scalars['ID']
+}
+
+export type RestoreObjectResult = RestoreObjectSuccess | InvalidInput | OperationError
+
+export interface RestoreObjectSuccess {
+  readonly __typename: 'RestoreObjectSuccess'
+  readonly alreadyRestored: Scalars['Boolean']
 }
 
 export type Role = UnmanagedRole | ManagedRole

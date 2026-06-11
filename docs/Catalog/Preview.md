@@ -44,6 +44,7 @@ currently supported.
 
 ## Binary and special file format previews
 
+* AnnData (.h5ad) — annotated matrix metadata, with QC metrics for small files
 * FCS Flow Cytometry files (.fcs)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * Jupyter notebooks (.ipynb)

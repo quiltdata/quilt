@@ -3,12 +3,12 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
 import { docs } from 'constants/urls'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
@@ -620,8 +620,8 @@ function BucketsFilter({ onChange, value }: BucketsFilterProps) {
   const initialValue = model.state.buckets
   invariant(initialValue, 'Filter not active')
 
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const buckets = Buckets.useRelevantBuckets()
+  const extents = React.useMemo(() => buckets.map((b) => b.name), [buckets])
   return <List extents={extents} value={value || initialValue} onChange={onChange} />
 }
 
@@ -1109,7 +1109,7 @@ function ColumnHeadHide({ className, column }: ColumnHeadHideProps) {
   }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter])
   return (
     <M.IconButton className={className} size="small" color="inherit" onClick={handleHide}>
-      <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
+      <Icons.VisibilityOffOutlined color="inherit" fontSize="inherit" />
     </M.IconButton>
   )
 }

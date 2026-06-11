@@ -1,9 +1,12 @@
 import type { S3, AWSError } from 'aws-sdk'
 import log from 'loglevel'
+import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 
 import { PreviewError } from '../types'
 
 import { gate } from './useGate'
+
+vi.mock('constants/config', () => ({ default: {} }))
 
 const handle = {
   bucket: 'B',
@@ -77,18 +80,30 @@ describe('components/Preview/loaders/useGate', () => {
         )
       })
     })
+    // `getArchiveState` owns the storage-class / expiry classification matrix
+    // (see utils/glacier.spec). Here we only check the two wirings `gate` adds:
+    // archived -> throw Archived (forwarding the archive info), not-archived -> proceed.
     describe('handles archived', () => {
-      it('using glacier storage class', () => {
-        const s3 = mockS3(() => ({ StorageClass: 'GLACIER' }))
+      it('throws Archived and forwards the archive info', () => {
+        const s3 = mockS3(() => ({
+          StorageClass: 'GLACIER',
+          Restore: 'ongoing-request="true"',
+        }))
         return expect(gate({ s3, handle })).rejects.toMatchObject(
-          PreviewError.Archived({ handle }),
+          PreviewError.Archived({
+            handle,
+            archive: { storageClass: 'GLACIER', restoring: true },
+          }),
         )
       })
-      it('handles deep archive storage class', () => {
-        const s3 = mockS3(() => ({ StorageClass: 'DEEP_ARCHIVE' }))
-        return expect(gate({ s3, handle })).rejects.toMatchObject(
-          PreviewError.Archived({ handle }),
-        )
+      it('does not throw Archived when a live restored copy exists', async () => {
+        const future = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        const s3 = mockS3(() => ({
+          ContentLength: 50,
+          StorageClass: 'GLACIER',
+          Restore: `ongoing-request="false", expiry-date="${future.toUTCString()}"`,
+        }))
+        await expect(gate({ s3, handle })).resolves.toBe(false)
       })
     })
     describe('handles not found', () => {

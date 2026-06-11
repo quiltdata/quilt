@@ -95,7 +95,7 @@ function RangeField<Parsed>({
       InputProps={InputProps}
       className={className}
       error={state._tag === 'error'}
-      helperText={state._tag === 'error' && state.error.message}
+      helperText={state._tag === 'error' ? state.error.message : null}
       inputProps={inputProps}
       onChange={handleChange}
       size="small"

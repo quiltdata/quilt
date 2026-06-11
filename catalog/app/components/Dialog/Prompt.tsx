@@ -3,6 +3,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as Notifications from 'containers/Notifications'
+import Log from 'utils/Logging'
+
 interface DialogProps {
   children: React.ReactNode
   initialValue?: string
@@ -27,15 +30,21 @@ function Dialog({
   const [value, setValue] = React.useState(initialValue || '')
   const [submitted, setSubmitted] = React.useState(false)
   const error = React.useMemo(() => validate(value), [validate, value])
+  const { push } = Notifications.use()
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   const handleSubmit = React.useCallback(
     (event) => {
       event.stopPropagation()
       event.preventDefault()
       setSubmitted(true)
-      if (!error) onSubmit(value)
+      try {
+        if (!error) onSubmit(value)
+      } catch (e) {
+        Log.error(e)
+        if (e instanceof Error) push(e.message)
+      }
     },
-    [error, onSubmit, value],
+    [error, onSubmit, push, value],
   )
   return (
     <M.Dialog open={open} fullWidth maxWidth="sm">

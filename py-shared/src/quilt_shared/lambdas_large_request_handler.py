@@ -12,7 +12,7 @@ from . import const
 if T.TYPE_CHECKING:
     import logging
 
-    from mypy_boto3_s3 import S3Client
+    from types_boto3_s3.client import S3Client
 
 
 class VersionId(pydantic.v1.ConstrainedStr):

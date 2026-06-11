@@ -116,12 +116,17 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
 
 const COPY_DATA_DEFAULT = true
 
-export const emptyConfig: WorkflowsConfig = {
+export const nullConfig: WorkflowsConfig = {
   isWorkflowRequired: false,
   packageName: defaultPackageNameTemplates,
   successors: [],
   workflows: [getNoWorkflow({} as WorkflowsYaml, false)],
 }
+
+export const emptyConfig = (bucket: string): WorkflowsConfig => ({
+  ...nullConfig,
+  successors: [bucketToSuccessor(bucket)],
+})
 
 function parseSchema(
   schemaSlug: string | undefined,
@@ -249,9 +254,13 @@ function prepareData(data: unknown): WorkflowsYaml {
   )
 }
 
-export function parse(workflowsYaml: string): WorkflowsConfig {
+export function parse(
+  workflowsYaml: string,
+  bucket: string,
+  { strict = false }: { strict?: boolean } = {},
+): WorkflowsConfig {
   const rawData = YAML.parse(workflowsYaml)
-  if (!rawData) return emptyConfig
+  if (!rawData) return strict ? nullConfig : emptyConfig(bucket)
 
   const data = prepareData(rawData)
 

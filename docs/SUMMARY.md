@@ -15,11 +15,13 @@
 * [Packaging Engine](Catalog/Packaging.md)
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
+* [Platform MCP Server](Catalog/MCP-Server.md) AI Assistant Integration
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
 * [Search](Catalog/Search.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
+  * [Iceberg Tables](advanced-features/iceberg-tables.md)
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
   * [Removing Stacks](Catalog/RemovingStacks.md)
 
@@ -28,6 +30,7 @@
 * [Catalog Installation](Catalog/Installation.md)
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
+* [Quilt Connect Server](Catalog/Connect.md)
 * [Cross-Account Access](CrossAccount.md)
 * [Enterprise Installs](technical-reference.md)
 * [quilt3.admin Python API](api-reference/Admin.md)
@@ -61,6 +64,7 @@
   * [Local Catalog](Catalog/LocalMode.md)
   * [CLI, Environment](api-reference/cli.md)
   * [Known Limitations](api-reference/limitations.md)
+  * [Authentication Guide](api-reference/authentication.md)
   * [Custom SSL Certificates](api-reference/custom-ssl-certificates.md)
 * **Advanced**
   * [Browsing Buckets](walkthrough/working-with-a-bucket.md)
@@ -80,3 +84,5 @@
 * [Benchling Packager](examples/benchling.md)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
+* [Platform MCP Server](Catalog/MCP-Server.md)
+* [QuiltSync Desktop Application](examples/quiltsync.md)

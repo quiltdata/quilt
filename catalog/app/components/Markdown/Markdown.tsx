@@ -4,13 +4,13 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
 import * as React from 'react'
-import * as Remarkable from 'remarkable'
-import { linkify } from 'remarkable/linkify'
+import MarkdownIt from 'markdown-it'
 import * as M from '@material-ui/core'
+import * as Sentry from '@sentry/react'
 
 import { linkStyle } from 'utils/StyledLink'
 
-import parseTasklist, { CheckboxContentToken } from './parseTasklist'
+import * as tasklist from './parseTasklist'
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
@@ -21,6 +21,15 @@ import parseTasklist, { CheckboxContentToken } from './parseTasklist'
  * I opted not to include UI tags (opt, optgroup); ditto for base, body, head,
  * meta, title
  * which shouldn't be needed
+ *
+ * NOTE: this allowlist is the union of two categories:
+ * (a) tags emitted by the markdown-it parser with the options we enable
+ *     (default preset, which already includes ~~strike~~, + linkify + typographer);
+ * (b) tags that can reach the sanitizer via raw HTML pass-through (`html: true`)
+ *     when authors embed inline HTML in markdown source.
+ * Examples in category (b): input, abbr, dd, dl, dt, ins, mark, sub, sup, del.
+ * If we add a markdown-it plugin (e.g. markdown-it-abbr, -mark, -sub, -sup,
+ * -ins, -deflist, -footnote) the corresponding tags are already covered here.
  */
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
@@ -66,6 +75,7 @@ const SANITIZE_OPTS = {
     'p',
     'param',
     'pre',
+    's',
     'section',
     'span',
     'strong',
@@ -110,19 +120,10 @@ const highlight = (str: string, lang: string) => {
   return '' // use external default escaping
 }
 
-interface RemarkableWithUtils extends Remarkable.Remarkable {
-  // NOTE: Remarkable.Remarkable doesn't export utils
-  utils: {
-    unescapeMd: (str: string) => string
-  }
-}
-
-const { unescapeMd } = (Remarkable as unknown as RemarkableWithUtils).utils
-
-const checkboxHandler = (md: Remarkable.Remarkable) => {
-  md.inline.ruler.push('tasklist', parseTasklist, {})
-  md.renderer.rules.tasklist = (tokens, idx) =>
-    (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
+const checkboxHandler = (md: MarkdownIt) => {
+  md.inline.ruler.push('tasklist', tasklist.parse)
+  md.renderer.rules[tasklist.CHECKED] = () => '☑'
+  md.renderer.rules[tasklist.UNCHECKED] = () => '☐'
 }
 
 type AttributeProcessor = (attr: string) => string
@@ -131,11 +132,11 @@ function handleImage(process: AttributeProcessor, element: Element) {
   const attributeValue = element.getAttribute('src')
   if (!attributeValue) return
 
-  element.setAttribute('src', process(attributeValue))
-
-  const alt = element.getAttribute('alt')
-  if (alt) {
-    element.setAttribute('alt', unescapeMd(alt))
+  try {
+    element.setAttribute('src', process(attributeValue))
+  } catch (e) {
+    element.removeAttribute('src')
+    Sentry.captureException(e)
   }
 }
 
@@ -143,7 +144,12 @@ function handleLink(process: AttributeProcessor, element: HTMLElement) {
   const attributeValue = element.getAttribute('href')
   if (typeof attributeValue !== 'string') return
 
-  element.setAttribute('href', process(attributeValue))
+  try {
+    element.setAttribute('href', process(attributeValue))
+  } catch (e) {
+    element.removeAttribute('href')
+    Sentry.captureException(e)
+  }
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
@@ -167,11 +173,12 @@ interface RendererArgs {
 
 export const getRenderer = memoize(
   ({ processImg, processLink, win = window }: RendererArgs) => {
-    const md = new Remarkable.Remarkable('full', {
+    const md = new MarkdownIt({
       highlight,
       html: true,
+      linkify: true,
       typographer: true,
-    }).use(linkify)
+    })
     md.use(checkboxHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(

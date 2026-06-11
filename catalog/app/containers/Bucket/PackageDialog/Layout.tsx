@@ -1,6 +1,23 @@
-import * as M from '@material-ui/core'
-import * as React from 'react'
 import cx from 'classnames'
+import * as R from 'ramda'
+import * as React from 'react'
+import * as M from '@material-ui/core'
+
+export function calcDialogHeight(windowHeight: number, metaHeight: number): number {
+  const neededSpace = 345 /* space to fit other inputs */ + metaHeight
+  const availableSpace = windowHeight - 200 /* free space for headers */
+  const minimalSpace = 420 /* minimal height */
+  if (availableSpace < minimalSpace) return minimalSpace
+  return R.clamp(minimalSpace, availableSpace, neededSpace)
+}
+
+export const useContentStyles = M.makeStyles({
+  root: {
+    height: ({ metaHeight }: { metaHeight: number }) =>
+      calcDialogHeight(window.innerHeight, metaHeight),
+    paddingTop: 0,
+  },
+})
 
 // TODO: use grid
 const useContainerStyles = M.makeStyles({
@@ -11,6 +28,12 @@ const useContainerStyles = M.makeStyles({
   },
 })
 
+/**
+ * Form layout container with adaptive height calculation.
+ *
+ * Calculates dialog height to maximize screen usage without scrolling,
+ * based on metadata editor height and available viewport space.
+ */
 export function Container({ children }: React.PropsWithChildren<{}>) {
   const classes = useContainerStyles()
 
@@ -45,6 +68,11 @@ export function Column({
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
+/**
+ * Right column for file management panel.
+ *
+ * Reusable layout component used in Create dialog for file operations.
+ */
 export const RightColumn = Column
 
 const useLeftColumnStyles = M.makeStyles((t) => ({
@@ -55,6 +83,12 @@ const useLeftColumnStyles = M.makeStyles((t) => ({
   },
 }))
 
+/**
+ * Left column for form inputs (workflow, name, message, metadata).
+ *
+ * Reusable layout component shared between Create and Copy dialogs
+ * with responsive spacing and overflow handling.
+ */
 export function LeftColumn(props: React.PropsWithChildren<{}>) {
   const classes = useLeftColumnStyles()
   return <Column className={classes.root} {...props} />

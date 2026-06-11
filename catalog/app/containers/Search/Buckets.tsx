@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Filters from 'components/Filters'
-import * as BucketConfig from 'utils/BucketConfig'
+import { useRelevantBuckets } from 'utils/Buckets'
 
 import * as SearchUIModel from './model'
 
@@ -17,8 +17,8 @@ const useStyles = M.makeStyles({
 export default function Buckets({ className }: { className?: string }) {
   const classes = useStyles()
   const model = SearchUIModel.use()
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const buckets = useRelevantBuckets()
+  const extents = React.useMemo(() => buckets.map((b) => b.name), [buckets])
   return (
     <div className={cx(classes.root, className)}>
       <Filters.Enum

@@ -1,0 +1,119 @@
+# Quilt Connect Server
+
+> Connect Server requires Quilt Platform version 1.68 or later.
+
+**Quilt Connect Server** is an identity provider and gateway that enables
+external services to securely interact with your Quilt data and perform
+actions on behalf of your users. Connect Server:
+
+- Authenticates requests using your organization's identity provider
+- Issues session tokens scoped to individual user permissions
+- Routes requests to authorized services within your AWS environment
+
+One such service is the [Platform MCP Server](MCP-Server.md), which lets
+AI assistants interact with your Quilt data through natural language.
+
+## Admin Setup
+
+Connect Server is disabled by default. To enable it, set the
+`ConnectAllowedHosts` CloudFormation parameter to a non-empty value.
+
+### CloudFormation Parameters
+
+<!-- markdownlint-disable line-length table-column-style -->
+| Parameter               | Default       | Description |
+| ----------------------- | ------------- | --------------------------------------------------- |
+| `ConnectAllowedHosts`   | _(empty)_     | Comma-separated list of allowed OAuth redirect origins. Empty = disabled. See [Entry formats](#connectallowedhosts-entry-formats) below. |
+| `ConnectSecurityGroup`  | _(empty)_     | Optional EC2 security group ID for Connect ALB IP allowlisting. Empty = allow all. |
+| `CertificateArnConnect` | _(empty)_     | Optional ACM certificate ARN for the Connect ALB. Empty = reuses main stack TLS certificate. |
+<!-- markdownlint-enable line-length table-column-style -->
+
+#### `ConnectAllowedHosts` Entry Formats
+
+Each comma-separated entry can be one of:
+
+<!-- markdownlint-disable line-length -->
+| Format | Example | Matches |
+| --- | --- | --- |
+| **Hostname** | `claude.ai` | `https://claude.ai/*` (HTTPS only) |
+| **Subdomain wildcard** | `.benchling.com` | `https://<any-subdomain>.benchling.com/*` — any subdomain at any depth (e.g. `app.benchling.com`, `app.us.benchling.com`); does **not** match the apex `https://benchling.com/*` (HTTPS only; leading dot required) |
+| **Custom scheme** | `cursor://` | `cursor://<any-host>/*` (for desktop apps with a custom URI scheme) |
+| **Localhost** | `localhost` | `http://localhost:<any-port>/*` and `http://127.0.0.1:<any-port>/*` (HTTP only; either loopback enables both) |
+<!-- markdownlint-enable line-length -->
+
+Canonical example covering the common web, desktop, and local MCP clients
+(loopback first, then suffix wildcards, then alphabetized hostnames and
+custom schemes):
+
+```text
+localhost,.benchling.com,.cloud.databricks.com,chat.openai.com,chatgpt.com,claude.ai,claude.com,cursor://,gemini.google.com,vscode.dev,windsurf://
+```
+
+Entries are case-insensitive. Trailing dots on hostnames are ignored.
+Network schemes (`http://`, `https://`, etc.) are not valid entries and are
+silently ignored — use a bare hostname (or `.`-prefixed wildcard suffix) for
+HTTPS clients and a custom scheme (`cursor://`) for desktop clients.
+
+## DNS Configuration
+
+After deploying with Connect enabled, create a DNS record for your
+Connect subdomain (typically `<stack-name>-connect.<your-domain>`).
+
+If your hosted zone is in **Route 53**, we recommend an alias record:
+
+| Route 53 Field  | Value                                                   |
+| --------------- | ------------------------------------------------------- |
+| Record type     | `A` (alias)                                             |
+| Alias target    | `ConnectLoadBalancerDNSName` CloudFormation output      |
+| Hosted zone ID  | `ConnectLoadBalancerCanonicalHostedZoneID` output       |
+
+If your DNS is hosted elsewhere, create a `CNAME` record pointing to the
+`ConnectLoadBalancerDNSName` CloudFormation output. See the
+[Installation CNAMEs section](Installation.md#cnames) for the equivalent
+catalog DNS records.
+
+The final Connect Server hostname is available in the `ConnectHost`
+CloudFormation output.
+
+## OAuth Metadata
+
+Connect Server publishes OAuth authorization server metadata at
+`/.well-known/oauth-authorization-server` and OpenID metadata at
+`/.well-known/openid-configuration`. The `issuer` value is the Connect
+Server origin with the explicit HTTPS default port
+(`https://<connect-host>:443`), and all advertised endpoints
+(`/auth/token`, `/auth/register`, `/auth/revoke`,
+`/auth/.well-known/jwks.json`, and the cross-served
+`/connect/authorize`) include the same explicit `:443`.
+
+> **Compatibility note.** Per RFC 3986, `https://host` and `https://host:443`
+> identify the same origin and are equivalent. However, some strict OAuth
+> clients — notably Databricks Apps — perform string-sensitive origin
+> comparisons against the issuer and reject DCR when the issuer omits the
+> default port. Quilt Connect emits `https://<connect-host>:443` to remain
+> compatible with these clients; well-behaved clients that normalize per
+> RFC 3986 are unaffected.
+
+### Protected Resource Identifier
+
+Connect Server registers exactly one OAuth `resource` identifier for the
+Platform MCP server:
+
+```text
+https://<connect-host>/mcp/platform
+```
+
+Connect normalizes inbound `resource` parameters by stripping a trailing
+`/mcp` before the membership check, so clients that submit the full MCP
+transport URL (`https://<connect-host>/mcp/platform/mcp`, as ChatGPT does)
+are accepted alongside clients that derive the canonical resource from
+[RFC 9728 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728)
+(as Claude.ai and Cursor do). The token `aud` claim is always the
+canonical `/mcp/platform` identifier regardless of input form.
+
+## IP Allowlisting (Optional)
+
+To restrict which IP ranges can reach the Connect Server, create an EC2
+security group with inbound rules on port 443 for your trusted CIDR ranges,
+then pass the security group ID as `ConnectSecurityGroup`. If omitted, the
+Connect ALB accepts traffic from any IP.

@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produced JSON Schema should match the snapshot 1`] = `
+exports[`components/Assistant/Model/GlobalTools/navigation > NavigateSchema > produced JSON Schema > should match the snapshot 1`] = `
 {
   "$defs": {
     "BooleanPredicateState": {

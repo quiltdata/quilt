@@ -1,16 +1,22 @@
+import errno
 import functools
 import gzip
 import io
 import json
+import os
+import tempfile
 import urllib.request
 from urllib.parse import urlparse
 
+import anndata
 import fsspec
+import h5py
 import pandas
 import pyarrow
 import pyarrow.csv
 import pyarrow.json
 import pyarrow.parquet
+import scanpy as sc
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import (
@@ -19,7 +25,11 @@ from t4_lambda_shared.utils import (
     make_json_response,
 )
 
+H5AD_META_ONLY_SIZE = int(os.getenv("H5AD_META_ONLY_SIZE", 1_000_000))
+
+
 logger = get_quilt_logger()
+
 
 # Lambda's response must fit into 6 MiB, binary data must be encoded
 # with base64 (4.5 MiB limit). It's rounded down to leave some space for headers
@@ -215,23 +225,93 @@ def preview_parquet(url, compression, max_out_size):
 
     output_data, output_truncated = write_pandas_as_csv(df, max_out_size)
 
-    return 200, output_data, {
-        "Content-Type": "text/csv",
-        "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps({
-            "truncated": output_truncated,
-            "meta": {
-                "created_by": meta.created_by,
-                "format_version": meta.format_version,
-                "num_row_groups": meta.num_row_groups,
-                "schema": {
-                    "names": meta.schema.names
-                },
-                "serialized_size": meta.serialized_size,
-                "shape": (meta.num_rows, meta.num_columns),
-            },
-        }),
-    }
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "text/csv",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": output_truncated,
+                    "meta": {
+                        "created_by": meta.created_by,
+                        "format_version": meta.format_version,
+                        "num_row_groups": meta.num_row_groups,
+                        "schema": {"names": meta.schema.names},
+                        "serialized_size": meta.serialized_size,
+                        "shape": (meta.num_rows, meta.num_columns),
+                    },
+                }
+            ),
+        },
+    )
+
+
+def preview_h5ad(url, compression, max_out_size):
+    with urlopen(url, compression=compression, seekable=True) as src:
+        with h5py.File(src, "r") as h5py_file:
+            adata = anndata.experimental.read_lazy(h5py_file)
+
+            # Get matrix dimensions to decide processing strategy
+            n_obs, n_vars = adata.shape
+
+            if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
+                # For large files, skip intensive QC calculation that requires loading full matrix
+                logger.warning("Getting only meta for large matrix (%d x %d) to avoid OOM/timeout", n_obs, n_vars)
+
+                # Create empty dataframe
+                var_df = pandas.DataFrame(columns=list(adata.var.keys()))
+            else:
+                adata = anndata.read_h5ad(src)
+                # For smaller matrices, calculate full QC metrics using scanpy
+                sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+                var_df = adata.var.copy()
+
+            # Add gene expression statistics from the QC metrics
+            # These columns are added by calculate_qc_metrics:
+            # - total_counts: total UMI counts for this gene across all cells
+            # - n_cells_by_counts: number of cells with non-zero counts for this gene
+            # - mean_counts: mean counts per cell for this gene
+            # - pct_dropout_by_counts: percentage of cells with zero counts
+
+            # Reset index to include gene IDs as a regular column
+            var_df_with_index = var_df.reset_index()
+            # XXX: doesn't that change the original column name?
+            var_df_with_index = var_df_with_index.rename(columns={"index": "gene_id"})
+
+            table = pyarrow.Table.from_pandas(var_df_with_index, preserve_index=False)
+            output_data, output_truncated = write_data_as_arrow(table, table.schema, max_out_size)
+
+    return (
+        200,
+        output_data,
+        {
+            "Content-Type": "application/vnd.apache.arrow.file",
+            "Content-Encoding": "gzip",
+            QUILT_INFO_HEADER: json.dumps(
+                {
+                    "truncated": output_truncated,
+                    "meta_only": meta_only,
+                    # H5AD-specific metadata format
+                    "meta": {
+                        "schema": {"names": list(var_df_with_index.columns)},
+                        "h5ad_obs_keys": list(adata.obs.columns),
+                        "h5ad_var_keys": list(adata.var.columns),
+                        "h5ad_uns_keys": list(adata.uns.keys()),
+                        "h5ad_obsm_keys": list(adata.obsm.keys()),
+                        "h5ad_varm_keys": list(adata.varm.keys()),
+                        "h5ad_layers_keys": list(adata.layers.keys()),
+                        "anndata_version": getattr(adata, "__version__", None),
+                        "n_cells": adata.n_obs,
+                        "n_genes": adata.n_vars,
+                        "matrix_type": "sparse" if hasattr(adata.X, "nnz") else "dense",
+                        "has_raw": adata.raw is not None,
+                    },
+                }
+            ),
+        },
+    )
 
 
 handlers = {
@@ -240,36 +320,33 @@ handlers = {
     "excel": preview_excel,
     "parquet": preview_parquet,
     "jsonl": preview_jsonl,
+    "h5ad": preview_h5ad,
 }
 
 SCHEMA = {
     "type": "object",
     "properties": {
-        "url": {
-            "type": "string"
-        },
+        "url": {"type": "string"},
         "input": {
             "enum": list(handlers),
         },
-        "compression": {
-            "enum": ["gz", "bz2"]
-        },
+        "compression": {"enum": ["gz", "bz2"]},
         "size": {
             "enum": list(OUTPUT_SIZES),
         },
     },
     "required": ["url", "input"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
 
 def is_s3_url(url: str) -> bool:
     parsed_url = urlparse(url, allow_fragments=False)
     return (
-        parsed_url.scheme == "https" and
-        parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-        parsed_url.username is None and
-        parsed_url.password is None
+        parsed_url.scheme == "https"
+        and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX)
+        and parsed_url.username is None
+        and parsed_url.password is None
     )
 
 
@@ -282,9 +359,7 @@ def lambda_handler(request):
     compression = request.args.get("compression")
 
     if not is_s3_url(url):
-        return make_json_response(400, {
-            "title": "Invalid url=. Expected S3 virtual-host URL."
-        })
+        return make_json_response(400, {"title": "Invalid url=. Expected S3 virtual-host URL."})
 
     handler = handlers[input_type]
     return handler(url, compression, OUTPUT_SIZES[output_size])

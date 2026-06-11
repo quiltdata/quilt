@@ -7,23 +7,12 @@ from unittest.mock import patch
 from botocore.session import Session
 from botocore.stub import Stubber
 
+from t4_lambda_access_counts import index
+
 
 class TestAccessCounts(TestCase):
     """Tests S3 Select"""
     def setUp(self):
-        self.env_patcher = patch.dict(os.environ, {
-            'AWS_ACCESS_KEY_ID': 'test_key',
-            'AWS_SECRET_ACCESS_KEY': 'test_secret',
-            'AWS_DEFAULT_REGION': 'ng-north-1',
-            'ATHENA_DATABASE': 'athena-db',
-            'CLOUDTRAIL_BUCKET': 'cloudtrail-bucket',
-            'QUERY_RESULT_BUCKET': 'results-bucket',
-            'ACCESS_COUNTS_OUTPUT_DIR': 'AccessCounts',
-        })
-        self.env_patcher.start()
-
-        import index
-
         self.s3_stubber = Stubber(index.s3)
         self.s3_stubber.activate()
 
@@ -33,7 +22,6 @@ class TestAccessCounts(TestCase):
     def tearDown(self):
         self.athena_stubber.deactivate()
         self.s3_stubber.deactivate()
-        self.env_patcher.stop()
 
     def _start_query(self, query, execution_id):
         self.athena_stubber.add_response(
@@ -73,8 +61,6 @@ class TestAccessCounts(TestCase):
             self._end_query()
 
     def test_access_counts(self):
-        import index
-
         now = datetime.fromtimestamp(1234567890, timezone.utc)
         end_ts = now - timedelta(minutes=15)
         start_ts = now - timedelta(days=1)
@@ -183,6 +169,6 @@ class TestAccessCounts(TestCase):
                 service_response={}
             )
 
-        with patch('index.now', return_value=now), \
+        with patch('t4_lambda_access_counts.index.now', return_value=now), \
              patch('time.sleep', return_value=None):
             index.handler(None, None)

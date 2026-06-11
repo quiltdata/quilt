@@ -2,17 +2,12 @@ import cx from 'classnames'
 import * as React from 'react'
 import { matchPath, match as Match } from 'react-router-dom'
 import * as M from '@material-ui/core'
-
-import {
-  ArrowDownwardOutlined as IconArrowDownwardOutlined,
-  DeleteOutlined as IconDeleteOutlined,
-  TurnedInOutlined as IconTurnedInOutlined,
-  TurnedInNotOutlined as IconTurnedInNotOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -49,7 +44,7 @@ function Bookmark({ className, location }: BucketButtonProps) {
       onClick={toggleBookmark}
       title="Bookmark"
     >
-      {isBookmarked ? <IconTurnedInOutlined /> : <IconTurnedInNotOutlined />}
+      {isBookmarked ? <Icons.TurnedInOutlined /> : <Icons.TurnedInNotOutlined />}
     </M.IconButton>
   )
 }
@@ -80,7 +75,7 @@ function Delete({
         title="Delete"
         onClick={handleDelete}
       >
-        <IconDeleteOutlined color="error" />
+        <Icons.DeleteOutlined color="error" />
       </M.IconButton>
     </>
   )
@@ -95,7 +90,7 @@ function BucketDirectory({ className, location: { bucket, key } }: BucketButtonP
         title="Download"
         type="submit"
       >
-        <IconArrowDownwardOutlined />
+        <Icons.ArrowDownwardOutlined />
       </M.IconButton>
     </FileView.ZipDownloadForm>
   )
@@ -111,7 +106,7 @@ function BucketFile({ className, location }: BucketButtonProps) {
       title="Download"
       download
     >
-      <IconArrowDownwardOutlined />
+      <Icons.ArrowDownwardOutlined />
     </M.IconButton>
   )
 }
@@ -139,7 +134,7 @@ function PackageDirectory({
       className={className}
     >
       <M.IconButton className={classes.root} title="Download" type="submit">
-        <IconArrowDownwardOutlined />
+        <Icons.ArrowDownwardOutlined />
       </M.IconButton>
     </FileView.ZipDownloadForm>
   )
@@ -152,7 +147,13 @@ interface PackageFileProps {
 
 function PackageFile({ className, physicalKey }: PackageFileProps) {
   const location = React.useMemo(() => s3paths.parseS3Url(physicalKey), [physicalKey])
-  return <BucketFile className={className} location={location} />
+  // Ensure the file bucket's region is cached for correct presigned URLs.
+  // For same-bucket files this is instant (already cached by BucketLayout).
+  // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
+  return useBucketExistence(location.bucket).case({
+    Ok: () => <BucketFile className={className} location={location} />,
+    _: () => null,
+  })
 }
 
 const useRowActionsStyles = M.makeStyles((t) => ({
@@ -286,7 +287,9 @@ export default function ListingRowActions({
       <div className={classes.root}>
         <div className={classes.wrapper}>
           <div className={classes.container}>
-            <Delete className={classes.item} location={location} onDelete={onReload} />
+            {prefs.deleteObject && (
+              <Delete className={classes.item} location={location} onDelete={onReload} />
+            )}
             <Bookmark className={classes.item} location={location} />
             {prefs.downloadObject && (
               <DownloadButton className={classes.item} location={location} />

@@ -24,7 +24,7 @@ class ConfigDataVersion(typing.NamedTuple):
         """
         Parse valid version string.
         """
-        return cls._make(((*map(int, version_str.split('.')), 0, 0)[:3]))
+        return cls._make((*map(int, version_str.split('.')), 0, 0)[:3])
 
     def __str__(self):
         return '%s.%s.%s' % self
@@ -57,7 +57,7 @@ class WorkflowValidationError(WorkflowErrorBase):
     pass
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _get_conf_validator():
     schema = json.loads(resources.read_text(__name__, 'config-1.schema.json'))
     return jsonschema.Draft7Validator(schema).validate

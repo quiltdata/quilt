@@ -2,11 +2,11 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { FileWithPath, useDropzone } from 'react-dropzone'
-import { Publish as IconPublish } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import useDragging from 'utils/dragging'
 
-import * as FI from './PackageDialog/FilesInput'
+import * as FI from './PackageDialog/Inputs/Files/State'
 import type * as Toolbar from './Toolbar'
 
 const useStyles = M.makeStyles((t) => ({
@@ -107,7 +107,7 @@ export default function DndWrapper({
         <div className={cx(classes.overlay, isDragActive && classes.hover)}>
           <M.Paper elevation={isDragActive ? 0 : 2} className={classes.dropMessage}>
             <div className={classes.dropMessageContent}>
-              <IconPublish className={classes.dropIcon} />
+              <Icons.Publish className={classes.dropIcon} />
               <M.Typography variant="h6" color="primary">
                 Drop files here to upload
               </M.Typography>

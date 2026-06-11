@@ -50,6 +50,9 @@ export const code = route('/code')
 
 export const activationError = route('/activation_error')
 
+// Connect OAuth
+export const connectAuthorize = route('/connect/authorize')
+
 // Profile
 export const profile = route('/profile')
 
@@ -96,10 +99,10 @@ export const bucketSearch = route(
 )
 
 interface BucketFileOpts {
-  add?: string
+  add?: string // PackageURI for adding this file to
+  next?: string
   edit?: boolean
   mode?: string
-  next?: string
   version?: string
 }
 
@@ -133,16 +136,24 @@ export const bucketPackageList = route(
 )
 export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
-interface BucketPackageDetailOpts {
-  action?: string
-}
-
 export const bucketPackageDetail = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  (bucket: string, name: string, { action }: BucketPackageDetailOpts = {}) =>
-    `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
+  (bucket: string, name: string) => `/b/${bucket}/packages/${name}`,
 )
+
 export type BucketPackageDetailArgs = Parameters<typeof bucketPackageDetail.url>
+
+interface BucketPackageAddFilesOpts {
+  [logicalKey: string]: string // S3 url
+}
+
+export const bucketPackageAddFiles = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/add`,
+  (bucket: string, name: string, files: BucketPackageAddFilesOpts = {}) =>
+    `/b/${bucket}/packages/${name}/add${mkSearch(files)}`,
+)
+
+export type BucketPackageAddFilesArgs = Parameters<typeof bucketPackageAddFiles.url>
 
 export const bucketPackageTree = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
@@ -166,6 +177,26 @@ export const bucketPackageRevisions = route(
 )
 
 export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
+
+interface BucketPackageCompareOpts {
+  showAll?: boolean
+}
+
+export const bucketPackageCompare = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/compare/:baseHash/:otherHash?/`,
+  (
+    bucket: string,
+    name: string,
+    base: string,
+    other?: string,
+    { showAll }: BucketPackageCompareOpts = {},
+  ) =>
+    other
+      ? `/b/${bucket}/packages/${name}/compare/${base}/${other}/${mkSearch({ showAll })}`
+      : `/b/${bucket}/packages/${name}/compare/${base}/${mkSearch({ showAll })}`,
+)
+
+export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
 
 export const bucketQueries = route(
   '/b/:bucket/queries',

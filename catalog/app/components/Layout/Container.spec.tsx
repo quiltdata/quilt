@@ -1,36 +1,56 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import { render, act, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { createBoundary } from 'utils/ErrorBoundary'
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+}))
 
 import { FullWidthProvider, Container, useSetFullWidth } from './Container'
 
-const ErrorBoundary = createBoundary(() => (error: Error) => (
-  <span>Error: {error.message}</span>
-))
+const FallbackComponent = ({ error }: FallbackProps) => (
+  <span>Error: {error?.message || 'Unexpected'}</span>
+)
 
 const EmptyContainer = () => (
-  <ErrorBoundary>
+  <ErrorBoundary {...{ FallbackComponent }}>
     <Container>{''}</Container>
   </ErrorBoundary>
 )
 
 describe('components/Layout/Container', () => {
+  afterEach(cleanup)
+
   it('requires Provider', () => {
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
-    const tree = renderer.create(<EmptyContainer />)
-    expect(tree).toMatchSnapshot()
+    const errorHandler = vi.fn((event) => event.preventDefault())
+    window.addEventListener('error', errorHandler)
+
+    const { getByText } = render(<EmptyContainer />)
+
+    expect(getByText('Error: Context must be used within a Provider')).toBeTruthy()
+
+    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          message: expect.stringContaining('Context must be used within a Provider'),
+        }),
+      }),
+    )
+
+    window.removeEventListener('error', errorHandler)
   })
 
   it('has restricted width by default', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <FullWidthProvider>
         <EmptyContainer />
       </FullWidthProvider>,
     )
-    expect(tree.root.findByProps({ maxWidth: 'lg' })).toBeTruthy()
-    expect(() => tree.root.findByProps({ maxWidth: false })).toThrow()
-    expect(tree).toMatchSnapshot()
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('maxWidthLg')
+    expect(element.className).not.toContain('fullWidth')
   })
 
   it('has full width once set', () => {
@@ -38,17 +58,17 @@ describe('components/Layout/Container', () => {
       useSetFullWidth()
       return <>long content</>
     }
-    const tree = renderer.create(
+    const { container } = render(
       <FullWidthProvider>
         <Container>
           <SetFullWidth />
         </Container>
       </FullWidthProvider>,
     )
-    renderer.act(() => {})
-    expect(() => tree.root.findByProps({ maxWidth: 'lg' })).toThrow()
-    expect(tree.root.findByProps({ maxWidth: false })).toBeTruthy()
-    expect(tree).toMatchSnapshot()
+    act(() => {})
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('fullWidth')
+    expect(element.className).not.toContain('maxWidthLg')
   })
 
   it('still has full width when other remove full width', () => {
@@ -68,7 +88,7 @@ describe('components/Layout/Container', () => {
       }, [])
       return x ? <SetFullWidth /> : <>short content</>
     }
-    const tree = renderer.create(
+    const { container } = render(
       <FullWidthProvider>
         <Container>
           <UnmountSetFullWidth />
@@ -79,9 +99,9 @@ describe('components/Layout/Container', () => {
         </Container>
       </FullWidthProvider>,
     )
-    renderer.act(() => {})
-    expect(() => tree.root.findByProps({ maxWidth: 'lg' })).toThrow()
-    expect(tree.root.findByProps({ maxWidth: false })).toBeTruthy()
-    expect(tree).toMatchSnapshot()
+    act(() => {})
+    const element = container.firstChild as HTMLElement
+    expect(element.className).toContain('fullWidth')
+    expect(element.className).not.toContain('maxWidthLg')
   })
 })

@@ -1,13 +1,18 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+import noop from 'utils/noop'
 
 import Results from './Results'
 
-jest.mock('@material-ui/core', () => ({
+vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
   Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
   Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
-  makeStyles: () => () => ({}),
   useTheme: () => ({
     breakpoints: { down: () => false },
     spacing: (x: number) => x * 8,
@@ -15,21 +20,25 @@ jest.mock('@material-ui/core', () => ({
   useMediaQuery: () => false,
 }))
 
-jest.mock('@material-ui/icons', () => ({
+vi.mock('@material-ui/icons', () => ({
   GridOn: () => 'table icon',
   List: () => 'list icon',
 }))
 
-jest.mock('@material-ui/lab', () => ({
+vi.mock('@material-ui/lab', () => ({
   Skeleton: () => <div>Loading…</div>,
   ToggleButtonGroup: ({
     value,
     children,
   }: React.PropsWithChildren<{ value: string }>) => (
-    <ul data-selected={value}>{children}</ul>
+    <div role="group" aria-label="toggle results view" data-selected={value}>
+      {children}
+    </div>
   ),
   ToggleButton: ({ children, value }: React.PropsWithChildren<{ value: string }>) => (
-    <li data-value={value}>{children}</li>
+    <button role="button" data-value={value}>
+      {children}
+    </button>
   ),
 }))
 
@@ -50,8 +59,8 @@ const model = {
     latestOnly: true,
   },
   actions: {
-    setView: jest.fn(),
-    setOrder: jest.fn(),
+    setView: vi.fn(),
+    setOrder: vi.fn(),
   },
   firstPageQuery: {
     _tag: 'fetching',
@@ -61,7 +70,7 @@ const model = {
   } as any,
 }
 
-jest.mock('../model', () => ({
+vi.mock('../model', () => ({
   use: () => model,
   ResultType: {
     QuiltPackage: 'p',
@@ -73,24 +82,29 @@ jest.mock('../model', () => ({
   },
 }))
 
-jest.mock('containers/Bucket/PackageDialog/PackageCreationForm', () => ({
-  usePackageCreationDialog: () => ({
-    open: jest.fn(),
+vi.mock('containers/Bucket/PackageDialog', () => ({
+  Provider: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
+  useCreateDialog: () => ({
+    open: vi.fn(),
     render: () => <>Don't forget to render dialog</>,
   }),
 }))
 
-jest.mock('containers/Bucket/Routes', () => ({
+vi.mock('containers/Bucket/Routes', () => ({
   useBucketStrict: () => 'test-bucket',
 }))
 
-jest.mock('./ColumnTitle', () => ({ children }: React.PropsWithChildren<{}>) => (
-  <div>Column Title: {children}</div>
-))
+vi.mock('./ColumnTitle', () => ({
+  default: ({ children }: React.PropsWithChildren<{}>) => (
+    <div>Column Title: {children}</div>
+  ),
+}))
 
-jest.mock('../Sort', () => () => <div>Sort Selector</div>)
+vi.mock('../Sort', () => ({
+  default: () => <div>Sort Selector</div>,
+}))
 
-jest.mock('utils/NamedRoutes', () => ({
+vi.mock('utils/NamedRoutes', () => ({
   use: () => ({
     paths: {
       bucketRoot: '/b/:bucket',
@@ -100,18 +114,20 @@ jest.mock('utils/NamedRoutes', () => ({
 
 describe('containers/Search/Layout/Results', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     model.firstPageQuery = { _tag: 'fetching' }
     model.state.resultType = 'p'
   })
 
+  afterEach(cleanup)
+
   it('renders with loading state', () => {
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Loading…')).toBeTruthy()
   })
 
   it('renders with data and shows number of results', () => {
@@ -123,12 +139,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Column Title: 5 results')).toBeTruthy()
   })
 
   it('renders with FiltersButton when onFilters prop is provided', () => {
@@ -140,12 +156,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter>
-        <Results onFilters={jest.fn()} />
+        <Results onFilters={noop} />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Filters')).toBeTruthy()
   })
 
   it('does not show ToggleResultsView for S3Object result type', () => {
@@ -158,12 +174,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { container } = render(
+    const { queryByRole } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(queryByRole('group', { name: 'toggle results view' })).toBeFalsy()
   })
 
   it('renders error state', () => {
@@ -172,12 +188,16 @@ describe('containers/Search/Layout/Results', () => {
       error: new Error('Test error'),
     }
 
-    const { container } = render(
+    const { getByText, getByRole } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    // The component still renders with basic structure
+    expect(getByText('Column Title:')).toBeTruthy()
+    expect(getByText('Sort Selector')).toBeTruthy()
+    // Toggle view should still be present for error state (PackageSearchResultSet)
+    expect(getByRole('group', { name: 'toggle results view' })).toBeTruthy()
   })
 
   it('shows Create Package button in bucket', () => {
@@ -188,11 +208,11 @@ describe('containers/Search/Layout/Results', () => {
         total: 5,
       },
     }
-    const { container } = render(
+    const { getByText } = render(
       <MemoryRouter initialEntries={['/b/test-bucket/packages/my-package']}>
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(getByText('Create new package')).toBeTruthy()
   })
 })

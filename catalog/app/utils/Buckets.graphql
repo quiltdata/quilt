@@ -1,0 +1,17 @@
+query ($includeCollaborators: Boolean! = false) {
+  buckets {
+    name
+    title
+    iconUrl
+    description
+    tags
+    relevanceScore
+    collaborators @include(if: $includeCollaborators) {
+      collaborator {
+        email
+        username
+      }
+      permissionLevel
+    }
+  }
+}

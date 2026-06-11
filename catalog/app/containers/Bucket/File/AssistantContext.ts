@@ -2,7 +2,9 @@ import * as Eff from 'effect'
 import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
+import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
 import * as XML from 'utils/XML'
+import * as S3Paths from 'utils/s3paths'
 
 import { ObjectExistence } from '../requests'
 
@@ -101,4 +103,14 @@ export const CurrentVersionContext = Assistant.Context.LazyContext(
       messages: Eff.Option.toArray(msg),
     }
   },
+)
+
+interface FileContextFilesProps {
+  bucket: string
+  path: string
+}
+
+export const FileContextFiles = Assistant.Context.LazyContext<FileContextFilesProps>(
+  ({ bucket, path }) =>
+    ContextFiles.useBucketDirContextFiles(bucket, S3Paths.getPrefix(path)),
 )

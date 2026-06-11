@@ -1,10 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import {
-  CreateOutlined as IconCreateOutlined,
-  PublishOutlined as IconPublishOutlined,
-} from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
+import { CloseOnClick } from 'components/Buttons'
 import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
@@ -30,17 +28,19 @@ function MenuItem({ icon, primary, onClick }: MenuItemProps) {
 export default function AddOptions() {
   const { createFile, openUploadDialog } = Context.use()
   return (
-    <M.List dense>
-      <MenuItem
-        icon={<IconCreateOutlined />}
-        primary="Create text file"
-        onClick={createFile}
-      />
-      <MenuItem
-        icon={<IconPublishOutlined />}
-        primary="Upload files"
-        onClick={openUploadDialog}
-      />
-    </M.List>
+    <CloseOnClick>
+      <M.List dense>
+        <MenuItem
+          icon={<Icons.CreateOutlined />}
+          primary="Create text file"
+          onClick={createFile}
+        />
+        <MenuItem
+          icon={<Icons.PublishOutlined />}
+          primary="Upload files"
+          onClick={openUploadDialog}
+        />
+      </M.List>
+    </CloseOnClick>
   )
 }

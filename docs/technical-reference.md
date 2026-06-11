@@ -49,36 +49,31 @@ to Google's OAuth 2.0 server.
 Copy the `Client ID` and `Client secret` to a safe place.
 Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
-### Active Directory
+### Microsoft Entra ID (Azure Active Directory)
 
-1. Go to Azure Portal > Active Directory > App Registrations.
-1. Click "New Registration".
-1. Name the app, select the Supported account types.
-1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
-`<QuiltWebHost>/oauth-callback`. Click "Save" at the bottom.
-1. Once the application has been created you will need both its `Application
-(client) ID` and `Directory (tenant) ID`.
-
-    ![](./imgs/azure_console_1.png)
-
-1. Go to "Client credentials" and create a new client secret. Note you will use
-the `Value` (and not the `Secret ID`).
-
-    ![](./imgs/azure_console_2.png)
-
-1. Your `AzureBaseUrl` will be of the form
-`https://ENDPOINT/TENANT_ID`. In most cases `ENDPOINT` is simply
-`login.microsoftonline.com`. Reference
-[Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
-and
-[National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
-for further details. 
-    > **If `AzureBaseUrl` doesn't end in `/v2.0`
-    then append `/v2.0` to it.**
-1. Click "Save".
-1. Copy the `Application (client) ID`, `Client secret Value`, and
-`AzureBaseUrl` to a safe place.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
+1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
+1. Name the app, select the supported account types, and click **Register**.
+   Note the **Application (client) ID** and **Directory (tenant) ID**.
+1. Go to **Authentication → Add a platform → Web**. Add the redirect URI
+   `<QuiltWebHost>/oauth-callback`. Under **Implicit grant and hybrid flows**,
+   enable **ID tokens** (required — login will fail without it). Click **Save**.
+1. Go to **Certificates & secrets → New client secret**. Copy the **Value**
+   immediately — it is not shown again. (Do not use the Secret ID.)
+1. Go to **API permissions → Add a permission → Microsoft Graph → Delegated**.
+   Add `openid`, `profile`, `email`, `offline_access`, and `User.Read`, then
+   click **Grant admin consent**. Without admin consent, each user is typically
+   prompted to grant these permissions on their first login; granting admin consent
+   approves them tenant-wide (subject to your org's policies) and avoids end-user prompts.
+1. Your `AzureBaseUrl` is `https://login.microsoftonline.com/<TENANT_ID>/v2.0`.
+   Reference [Microsoft identity platform and OpenID Connect protocol](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)
+   and [National clouds](https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud)
+   for non-standard endpoints.
+   > **`AzureBaseUrl` must end in `/v2.0`. Append it if missing.**
+1. For SSO Permissions Mapping:
+   - Create security groups in Entra and assign users.
+   - In the app registration, go to **Token configuration → Add groups claim** (or **Edit** if it already exists) and configure it to emit **Group IDs** in the **ID token**.
+   - Create a [configuration file](./advanced-features/sso-permissions.md) to map Entra Group IDs to Quilt roles.
+1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
 
@@ -97,13 +92,16 @@ for further details.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL. 
-    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked**.
+        > **Important:** `Refresh Token` must be checked. Without it, the Quilt registry cannot complete the sign-in flow and will return a 401 error.
+    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL.
+    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked** unless you need wildcard redirect URIs (e.g., for multiple subdomains). Note that wildcards only match a single subdomain level: `*.example.com` matches `app.example.com` but NOT `app.dev.example.com`.
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
-    1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
+    1. **Uncheck "Enable immediate access"** (also called Federation Broker Mode). This setting is on by default and will cause SSO to fail with `access_denied — Identity Provider: Unknown`. When unchecked, you can assign users directly.
+    1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization. Ensure at least one user or group is assigned to the app.
 1. Once you click the `Save` button you will have a new application integration to review.
     1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
     1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
+1. **Configure the authentication policy.** Go to **Security > Authentication Policies** and check which policy your new app is assigned to. The default policy ("Any two factors") requires MFA, which will block sign-in unless all users have MFA enrolled. Create or use a policy that allows password-only authentication. When creating a new policy, also edit the **Catch-all Rule** — it defaults to 2 factor types.
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
     to `api://default`, and an `Issuer URI` that looks like the
@@ -113,8 +111,9 @@ for further details.
         <MY_COMPANY>.okta.com/oauth2/default
         ```
 
+    1. Click on the `default` authorization server. Go to the **Access Policies** tab and ensure there is at least one **rule** that grants tokens for Authorization Code flow. A policy with no rules will silently deny all token requests, causing sign-in to fail.
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+1. Proceed to [Enabling SSO](#enabling-sso)
 
 ### OneLogin
 
@@ -138,28 +137,49 @@ for further details.
 
     ![](./imgs/one_login_users.png)
 
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
+1. Proceed to [Enabling SSO](#enabling-sso).
 
-### Enabling SSO in CloudFormation
+### Enabling SSO
 
-Now you can connect Quilt to your SSO provider. In the Quilt template
-(AWS Console > CloudFormation > *Quilt stack* > Update > Use current
-template > Next > Specify stack details), under `Auth Settings` set
-the `PasswordAuth` to `Enabled`.
+The SSO parameter names in your stack depend on how the CloudFormation template was built —
+not on whether you use the Console, CLI, or Terraform to deploy it. To determine which applies,
+look at your stack's parameters in CloudFormation:
 
-Next, select your `SingleSignOnProvider` from the dropdown list (one of Google, Okta, OneLogin, Azure).
+- **`SingleSignOnProvider` dropdown present** → your stack uses single-provider SSO; follow the [single-provider instructions](#single-provider-sso) below.
+- **`GoogleAuth`, `AzureAuth`, etc. present** → your stack uses multi-provider SSO; follow the [multi-provider instructions](#multi-provider-sso) below.
+
+#### Single-provider SSO
+
+Set `PasswordAuth` to `Enabled` in the Quilt template (AWS Console > CloudFormation >
+*Quilt stack* > Update > Use current template > Next > Specify stack details), then select
+your provider from the `SingleSignOnProvider` dropdown (Google, Okta, OneLogin, or Azure).
 
 ![](./imgs/auth_settings.png)
 
-Use the following settings (depending on your SSO provider):
+Use the following settings for the remaining parameters:
 
 | CFT Parameter | Google SSO | Okta SSO | OneLogin SSO | Azure SSO |
 | ------------- | ---------- | -------- | ------------ | --------- |
-| `SingleSignOnClientId` | `Client ID` | `Client ID` | `Client ID` | `Application (client) ID` |
-| `SingleSignOnClientSecret` | `Client secret` | `Secret` | `ClientSecret` | `Client secret Value` |
-| `SingleSignOnBaseUrl` | N/A | `Base URL` | `Issuer URL` | `AzureBaseUrl` |
+| `SingleSignOnClientId` | Client ID | Client ID | Client ID | Application (client) ID |
+| `SingleSignOnClientSecret` | Client secret | Secret | ClientSecret | Client secret Value |
+| `SingleSignOnBaseUrl` | N/A | Base URL | Issuer URL | AzureBaseUrl |
 
 > Be sure to set the [default role](#setting-the-default-role) as indicated above.
+
+#### Multi-provider SSO
+
+Stacks built with multi-provider SSO use per-provider parameters instead of the shared
+`SingleSignOnProvider` dropdown, allowing multiple providers to be enabled simultaneously.
+These parameters are passed the same way regardless of deployment method — Console, CLI,
+or Terraform. See [Authentication Examples](https://github.com/quiltdata/iac/blob/main/EXAMPLES.md#authentication-examples)
+for examples using the [Quilt IAC Terraform module](https://github.com/quiltdata/iac).
+
+| Function | Google | Okta | OneLogin | Azure |
+| -------- | ------ | ---- | -------- | ----- |
+| Enable | `GoogleAuth` | `OktaAuth` | `OneLoginAuth` | `AzureAuth` |
+| Client ID | `GoogleClientId` | `OktaClientId` | `OneLoginClientId` | `AzureClientId` |
+| Client Secret | `GoogleClientSecret` | `OktaClientSecret` | `OneLoginClientSecret` | `AzureClientSecret` |
+| Base URL | N/A | `OktaBaseUrl` | `OneLoginBaseUrl` | `AzureBaseUrl` |
 
 ### Preparing an AWS Role for use with Quilt
 
@@ -333,8 +353,8 @@ See [Troubleshooting](Troubleshooting.md)
 ## Support
 Support is available to all Quilt customers by:
 * online chat (in the Quilt catalog)
-* email to [support@quiltdata.io](mailto://support@quiltdata.io)
-* [Slack](https://slack.quiltdata.com/)
+* email to [support@quilt.bio](mailto:support@quilt.bio)
+* [Slack](https://slack.quilt.bio)
 
 Quilt guarantees response to support issues according to the following SLAs for Quilt Business and Quilt Enterprise customers.
 

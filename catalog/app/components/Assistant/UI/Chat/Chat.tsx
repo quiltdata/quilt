@@ -2,27 +2,31 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import * as Actor from 'utils/Actor'
+import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
 
 import DevTools from './DevTools'
 import Input from './Input'
+import MessageAction from './MessageAction'
 
 const BG = {
   intense: M.colors.indigo[900],
-  bright: M.colors.indigo[500],
-  faint: M.colors.common.white,
+  normal: M.colors.common.white,
+  faint: M.colors.grey[600],
 }
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
   align_right: {},
   color_intense: {},
-  color_bright: {},
+  color_normal: {},
   color_faint: {},
   messageContainer: {
     display: 'flex',
@@ -46,13 +50,17 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
       background: BG.intense,
       color: M.fade(t.palette.common.white, 0.8),
     },
-    '$color_bright &': {
-      background: BG.bright,
-      color: t.palette.common.white,
+    '$color_normal &': {
+      background: BG.normal,
+      color: t.palette.text.primary,
     },
     '$color_faint &': {
       background: BG.faint,
-      color: t.palette.text.primary,
+      color: t.palette.getContrastText(BG.faint),
+      opacity: 0.5,
+      '&:hover': {
+        opacity: 1,
+      },
     },
     '$align_right &': {
       borderBottomRightRadius: 0,
@@ -83,7 +91,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
 }))
 
 interface MessageContainerProps {
-  color?: 'intense' | 'bright' | 'faint'
+  color?: 'intense' | 'normal' | 'faint'
   align?: 'left' | 'right'
   children: React.ReactNode
   actions?: React.ReactNode
@@ -91,7 +99,7 @@ interface MessageContainerProps {
 }
 
 function MessageContainer({
-  color = 'faint',
+  color = 'normal',
   align = 'left',
   children,
   actions,
@@ -121,30 +129,31 @@ function MessageContainer({
   )
 }
 
-const useMessageActionStyles = M.makeStyles({
-  action: {
+const useToolMessageStyles = M.makeStyles((t) => ({
+  header: {
+    display: 'flex',
+    alignItems: 'center',
     cursor: 'pointer',
-    opacity: 0.7,
+    userSelect: 'none',
     '&:hover': {
-      opacity: 1,
+      opacity: 0.8,
     },
   },
-})
-
-interface MessageActionProps {
-  children: React.ReactNode
-  className?: string
-  onClick?: () => void
-}
-
-function MessageAction({ children, onClick }: MessageActionProps) {
-  const classes = useMessageActionStyles()
-  return (
-    <span className={classes.action} onClick={onClick}>
-      {children}
-    </span>
-  )
-}
+  icon: {
+    fontSize: '1rem',
+    color: 'inherit',
+  },
+  toolName: {
+    marginLeft: t.spacing(1),
+    marginRight: t.spacing(1),
+  },
+  spinner: {
+    color: 'inherit',
+  },
+  details: {
+    marginTop: t.spacing(1),
+  },
+}))
 
 interface ConversationDispatchProps {
   dispatch: Model.Assistant.API['dispatch']
@@ -152,6 +161,42 @@ interface ConversationDispatchProps {
 
 interface ConversationStateProps {
   state: Model.Conversation.State['_tag']
+}
+
+interface ToolMessageProps {
+  name: string
+  status?: 'success' | 'error' | 'running'
+  details: Record<string, any>
+  timestamp: Date
+  actions?: React.ReactNode
+}
+
+function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageProps) {
+  const classes = useToolMessageStyles()
+  const [expanded, setExpanded] = React.useState(false)
+
+  const toggleExpanded = React.useCallback(() => {
+    setExpanded((prev) => !prev)
+  }, [])
+
+  return (
+    <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
+      <div className={classes.header} onClick={toggleExpanded}>
+        <Icons.Build className={classes.icon} />
+        <span className={classes.toolName}>{name}</span>
+        {status === 'success' && <Icons.CheckCircleOutline className={classes.icon} />}
+        {status === 'error' && <Icons.ErrorOutline className={classes.icon} />}
+        {status === 'running' && (
+          <M.CircularProgress size={14} thickness={4} className={classes.spinner} />
+        )}
+      </div>
+      <M.Collapse in={expanded}>
+        <div className={classes.details}>
+          <JsonDisplay defaultExpanded={2} name="details" value={details} />
+        </div>
+      </M.Collapse>
+    </MessageContainer>
+  )
 }
 
 type MessageEventProps = ConversationDispatchProps &
@@ -174,7 +219,7 @@ function MessageEvent({
 
   return (
     <MessageContainer
-      color={role === 'user' ? 'intense' : 'faint'}
+      color={role === 'user' ? 'intense' : 'normal'}
       align={role === 'user' ? 'right' : 'left'}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
       timestamp={timestamp}
@@ -212,18 +257,13 @@ function ToolUseEvent({
     [toolUseId, input, result],
   )
   return (
-    <MessageContainer
-      color="bright"
+    <ToolMessage
+      name={name}
+      status={result.status}
+      details={details}
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
-    >
-      <span>
-        Tool Use: <b>{name}</b> ({result.status})
-      </span>
-      <M.Box py={0.5}>
-        <JsonDisplay name="details" value={details} />
-      </M.Box>
-    </MessageContainer>
+    />
   )
 }
 
@@ -246,18 +286,13 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
   const names = Eff.Record.collect(calls, (_k, v) => v.name)
 
   return (
-    <MessageContainer
-      color="bright"
+    <ToolMessage
+      name={names.join(', ')}
+      status="running"
+      details={details}
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
-    >
-      <span>
-        Tool Use: <b>{names.join(', ')}</b>
-      </span>
-      <M.Box py={0.5}>
-        <JsonDisplay name="details" value={details} />
-      </M.Box>
-    </MessageContainer>
+    />
   )
 }
 
@@ -276,6 +311,21 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
       Processing...
+    </MessageContainer>
+  )
+}
+
+function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
+  const abort = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Abort()),
+    [dispatch],
+  )
+  return (
+    <MessageContainer
+      timestamp={timestamp}
+      actions={<MessageAction onClick={abort}>abort</MessageAction>}
+    >
+      Waiting for connectors…
     </MessageContainer>
   )
 }
@@ -343,6 +393,66 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
   )
 }
 
+const useConnectorHelperStyles = M.makeStyles((t) => ({
+  action: {
+    fontWeight: 500,
+    marginLeft: t.spacing(0.5),
+  },
+  separator: {
+    margin: t.spacing(0, 0.5),
+    opacity: 0.5,
+  },
+}))
+
+interface ConnectorHelperLineProps {
+  connector: Model.Connectors.ConnectorRuntime
+  state: Model.Connectors.ConnectorState
+}
+
+function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
+  const classes = useConnectorHelperStyles()
+  const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
+  const onAck = React.useCallback(
+    () => runtime.runFork(connector.acknowledge),
+    [connector],
+  )
+  const reconnect = (
+    <MessageAction className={classes.action} onClick={onRetry}>
+      reconnect
+    </MessageAction>
+  )
+  const ack = (
+    <MessageAction className={classes.action} onClick={onAck}>
+      continue without
+    </MessageAction>
+  )
+  const sep = <span className={classes.separator}>•</span>
+  const title = connector.config.title
+  return Model.Connectors.ConnectorState.$match(state, {
+    Connecting: () => <>{title}: connecting…</>,
+    Ready: () => null,
+    Disconnected: () => <>{title}: reconnecting…</>,
+    Failed: ({ acked }) =>
+      acked ? (
+        <>
+          {title}: unavailable {sep} {reconnect}
+        </>
+      ) : (
+        <>
+          {title}: couldn’t connect {sep} {reconnect} {sep} {ack}
+        </>
+      ),
+  })
+}
+
+const helperSeverityFor = (
+  states: readonly Model.Connectors.ConnectorState[],
+): 'warning' | 'error' | undefined => {
+  if (states.some(Model.Connectors.stateRequiresAck)) return 'error'
+  if (states.some(Model.Connectors.stateIsUnready)) return 'warning'
+  return undefined
+}
+
 const useStyles = M.makeStyles((t) => ({
   chat: {
     display: 'flex',
@@ -388,13 +498,34 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
+  connectors: Model.Assistant.API['connectors']
 }
 
-export default function Chat({ state, dispatch, devTools }: ChatProps) {
+export default function Chat({ state, dispatch, devTools, connectors }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  const inputDisabled = state._tag !== 'Idle'
+  const blocked = Model.Connectors.useIsBlocked(connectors)
+  const inputDisabled = state._tag !== 'Idle' || blocked
+  // `connectors.byId` is built once at service allocation and never
+  // re-keyed, so this loop's length is stable per-mount and the
+  // per-connector `Actor.useState` calls satisfy rules-of-hooks.
+  const allConnectors = Object.values(connectors.byId)
+  const connectorStates = allConnectors.map((c) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    Actor.useState(c.state),
+  )
+  const helperLines = allConnectors.flatMap((c, i) =>
+    Model.Connectors.stateIsUnready(connectorStates[i])
+      ? [
+          <div key={c.id}>
+            <ConnectorHelperLine connector={c} state={connectorStates[i]} />
+          </div>,
+        ]
+      : [],
+  )
+  const helperText = helperLines.length > 0 ? helperLines : undefined
+  const helperSeverity = helperSeverityFor(connectorStates)
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
@@ -432,7 +563,7 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
       />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
-          <DevTools state={state} {...devTools} />
+          <DevTools state={state} {...devTools} connectors={connectors} />
         </M.Paper>
       </M.Slide>
       <div className={classes.historyContainer}>
@@ -481,11 +612,20 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
             ToolUse: (s) => (
               <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
             ),
+            AwaitingConnector: (s) => (
+              <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
+            ),
           })}
           <div ref={scrollRef} />
         </div>
       </div>
-      <Input className={classes.input} disabled={inputDisabled} onSubmit={ask} />
+      <Input
+        className={classes.input}
+        disabled={inputDisabled}
+        helperText={helperText}
+        helperSeverity={helperSeverity}
+        onSubmit={ask}
+      />
     </div>
   )
 }

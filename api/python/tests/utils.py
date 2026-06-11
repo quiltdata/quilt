@@ -19,6 +19,25 @@ import quilt3
 from quilt3.util import CONFIG_PATH
 
 
+def camel_to_snake(name: str) -> str:
+    """Convert camelCase to snake_case."""
+    return "".join("_" + c.lower() if c.isupper() else c for c in name).lstrip("_")
+
+
+def as_dataclass_kwargs(data: dict) -> dict:
+    """Convert GraphQL response dict to dataclass kwargs (camelCase to snake_case)."""
+    return {
+        "typename__" if k == "__typename" else camel_to_snake(k): (
+            as_dataclass_kwargs(v)
+            if isinstance(v, dict)
+            else [as_dataclass_kwargs(x) if isinstance(x, dict) else x for x in v]
+            if isinstance(v, list)
+            else v
+        )
+        for k, v in data.items()
+    }
+
+
 class QuiltTestCase(TestCase):
     """
     Base class for unittests.

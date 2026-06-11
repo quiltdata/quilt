@@ -2,7 +2,7 @@ import * as React from 'react'
 
 import Message from 'components/Message'
 import cfg from 'constants/config'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 
 interface WithPackagesSupportProps {
   bucket: string
@@ -13,7 +13,7 @@ export default function WithPackagesSupport({
   bucket,
   children,
 }: WithPackagesSupportProps) {
-  const isInStack = BucketConfig.useIsInStack()
+  const isInStack = Buckets.useIsInStack()
   const inStack = React.useMemo(() => isInStack(bucket), [bucket, isInStack])
 
   return inStack || cfg.mode === 'LOCAL' ? (

@@ -21,7 +21,7 @@ DISABLE_USAGE_METRICS_ENVVAR = "QUILT_DISABLE_USAGE_METRICS"
 MAX_CLEANUP_WAIT_SECS = 5
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def get_session_id():
     return str(uuid.uuid4())
 

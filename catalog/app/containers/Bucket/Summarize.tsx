@@ -570,12 +570,11 @@ interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
-  overviewUrl?: string | null
 }
 
-export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootProps) {
+export function SummaryRoot({ s3, bucket, inStack }: SummaryRootProps) {
   const req = APIConnector.use()
-  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
+  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack })
   return (
     <FileThemeContext.Provider value={FileThemes.Overview}>
       {data.case({

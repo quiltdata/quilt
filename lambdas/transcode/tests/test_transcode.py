@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from .. import index
+import t4_lambda_transcode
 
 
 def _make_event(query, headers=None):
@@ -29,8 +29,8 @@ def test_403():
     event = _make_event({"url": url, "format": "video/mp4"})
 
     # Get the response
-    with patch.object(index, 'FFMPEG', '/bin/false'):
-        response = index.lambda_handler(event, MockContext())
+    with patch.object(t4_lambda_transcode, 'FFMPEG', '/bin/false'):
+        response = t4_lambda_transcode.lambda_handler(event, MockContext())
 
     assert response["statusCode"] == 403
     body = json.loads(response["body"])
@@ -60,8 +60,8 @@ def test_bad_params(params):
     event = _make_event({"url": url, "format": "video/mp4", **params})
 
     # Get the response
-    with patch.object(index, 'FFMPEG', '/bin/false'):
-        response = index.lambda_handler(event, MockContext())
+    with patch.object(t4_lambda_transcode, 'FFMPEG', '/bin/false'):
+        response = t4_lambda_transcode.lambda_handler(event, MockContext())
 
     assert response["statusCode"] == 400
     body = json.loads(response["body"])
@@ -82,8 +82,8 @@ def test_format(format):
     event = _make_event({"url": url, "format": format, "file_size": "10000"})
 
     # Get the response
-    with patch.object(index, 'FFMPEG', '/bin/true'):
-        response = index.lambda_handler(event, MockContext())
+    with patch.object(t4_lambda_transcode, 'FFMPEG', '/bin/true'):
+        response = t4_lambda_transcode.lambda_handler(event, MockContext())
 
     assert response["statusCode"] == 200
     assert response["body"] == ''

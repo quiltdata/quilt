@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { Error as IconError } from '@material-ui/icons'
+import * as Icons from '@material-ui/icons'
 
 import Code from 'components/Code'
 import { deleteObject, useFilesListing } from 'containers/Bucket/requests'
@@ -113,7 +113,7 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
                   {status === 'error' && (
                     <M.Tooltip title={error.message}>
                       <M.ListItemIcon>
-                        <IconError color="error" />
+                        <Icons.Error color="error" />
                       </M.ListItemIcon>
                     </M.Tooltip>
                   )}

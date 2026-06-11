@@ -2,8 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
-import * as AddToPackage from 'containers/AddToPackage'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import { FromS3Files, useCreateDialog } from 'containers/Bucket/PackageDialog/Create'
 
 import type * as requests from './model/requests'
 import {
@@ -31,19 +30,18 @@ interface CreatePackageProps {
 export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
-  const addToPackage = AddToPackage.use()
-  const createDialog = usePackageCreationDialog({
-    bucket,
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const createDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
+    dst,
   })
   const handleConfirm = React.useCallback(
     (ok: boolean) => {
       if (!ok) return
-      addToPackage?.merge(entries.valid)
-      createDialog.open()
+      createDialog.open({ files: FromS3Files(entries.valid) })
     },
-    [addToPackage, entries, createDialog],
+    [entries, createDialog],
   )
   const confirm = Dialog.useConfirm({
     title: 'These rows will be discarded. Confirm creating package?',
@@ -57,10 +55,9 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
     if (parsed.invalid.length) {
       confirm.open()
     } else {
-      addToPackage?.merge(parsed.valid)
-      createDialog.open()
+      createDialog.open({ files: FromS3Files(parsed.valid) })
     }
-  }, [addToPackage, confirm, createDialog, queryResults])
+  }, [confirm, createDialog, queryResults])
 
   return (
     <>

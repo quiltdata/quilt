@@ -28,11 +28,29 @@ Explore production datasets with guided examples:
 pip install quilt3
 ```
 
-### 2. **Browse Public Data**
+### 2. **Authenticate (Optional for Public Data)**
+
+For public datasets like `s3://quilt-example`, no authentication is needed. For private buckets or catalogs, choose your authentication method:
+
+<!-- pytest-codeblocks:skip -->
 ```python
 import quilt3
 
-# Browse available datasets
+# Interactive login (for local development, notebooks)
+quilt3.login()  # Opens browser for OAuth/SSO
+
+# OR use an API key (for automation, CI/CD, scripts)
+import os
+quilt3.login_with_api_key(os.environ["QUILT_API_KEY"])
+```
+
+**📚 Learn more**: See the [Authentication Guide](api-reference/authentication.md) for detailed setup instructions, best practices, and use cases.
+
+### 3. **Browse Public Data**
+```python
+import quilt3
+
+# Browse available datasets (no auth needed for public data)
 packages = list(quilt3.list_packages("s3://quilt-example"))
 print(f"Found {len(packages)} public datasets")
 
@@ -41,7 +59,7 @@ pkg = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
 print(pkg)
 ```
 
-### 3. **Access Your First File**
+### 4. **Access Your First File**
 <!-- pytest-codeblocks:cont -->
 ```python
 # Download and read a file (using pkg from previous step)
@@ -50,7 +68,7 @@ content = data_file.get()
 print(content)
 ```
 
-### 4. **Create Your First Package**
+### 5. **Create Your First Package**
 ```python
 import quilt3
 import tempfile
@@ -82,8 +100,8 @@ print(f"Package created with {len(new_pkg)} files")
 4. 📝 Try the [Basic Workflows](walkthrough/uploading-a-package.md)
 
 ### **Intermediate Path**
-1. 🏗️ Set up your [AWS Integration](aws-integration.md)
-2. 👥 Configure [Team Collaboration](Catalog/Collaboration.md)
+1. 🏗️ Set up your [AWS Integration](CrossAccount.md)
+2. 👥 Configure [Team Collaboration](Catalog/Admin.md)
 3. 🔍 Learn [Advanced Search](walkthrough/working-with-elasticsearch.md)
 4. 📊 Explore [Data Visualization](Catalog/VisualizationDashboards.md)
 
@@ -125,9 +143,9 @@ Discover publicly available datasets:
 ## 🆘 Need Help?
 
 - 📖 **Documentation**: Browse the full [Quilt Documentation](/)
-- 💬 **Community**: Join our [Slack Community](https://quiltusers.slack.com/)
+- 💬 **Community**: Join our [Slack Community](https://slack.quilt.bio)
 - 🐛 **Issues**: Report bugs on [GitHub](https://github.com/quiltdata/quilt/issues)
-- 📧 **Support**: Contact [support@quiltdata.com](mailto:support@quiltdata.com)
+- 📧 **Support**: Contact [support@quilt.bio](mailto:support@quilt.bio)
 
 ---
 
