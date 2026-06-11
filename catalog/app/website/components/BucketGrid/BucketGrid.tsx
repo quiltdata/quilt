@@ -8,10 +8,11 @@ import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import type { WebsiteTheme } from 'website/theme'
 
 import Collaborators from './Collaborators'
 
-const useBucketStyles = M.makeStyles((t) => ({
+const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   bucket: {
     animation: '$slideUp 0.3s ease',
     background: 'linear-gradient(to top, #1f2151, #2f306e)',
@@ -41,7 +42,7 @@ const useBucketStyles = M.makeStyles((t) => ({
   },
   title: {
     ...t.typography.h6,
-    color: (t.palette as $TSFixMe).tertiary.main,
+    color: t.palette.tertiary.main,
   },
   name: {
     ...t.typography.body1,
@@ -185,7 +186,7 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t: WebsiteTheme) => ({
   root: {
     display: 'grid',
     gridColumnGap: t.spacing(4),
@@ -203,12 +204,12 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     border: '2px dashed #2f306e',
     borderRadius: t.spacing(2),
-    color: (t.palette as $TSFixMe).tertiary.main,
+    color: t.palette.tertiary.main,
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'center',
     '&:hover': {
-      background: fade((t.palette as $TSFixMe).tertiary.main, 0.04),
+      background: fade(t.palette.tertiary.main, 0.04),
     },
     '& > span': {
       fontSize: '4rem',
