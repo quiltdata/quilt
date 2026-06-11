@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Athena Queries tab: "Workgroup not found" on accounts with >50 workgroups in a region. The first ListWorkGroups page could be entirely access-denied for the caller's role, hiding the user's accessible workgroup on a later page; producers now drain pages until accessible workgroups appear or pagination is exhausted, and useWorkgroup keeps advancing pages while a stored / default preference is still ahead ([#4973](https://github.com/quiltdata/quilt/pull/4973))
 - [Fixed] Admin Buckets: crash after adding a bucket when arriving at the Add page without first loading the list (e.g. via the landing-page link). The bucketAdd cache updater wrote a null `Query.bucketConfigs` link when the list was uncached at mutation time; all other admin mutation cache updaters (bucket remove, policy/role create/update/delete, user add/remove, default role, tabulator settings) carried the same uncached-read hazard and now skip the write instead ([#4956](https://github.com/quiltdata/quilt/pull/4956))
 - [Added] Glacier rehydration: archived file previews (`GLACIER` / `DEEP_ARCHIVE`) offer a prompted Restore flow (tier + duration) and surface in-progress / restored state via the `x-amz-restore` HEAD header ([#4921](https://github.com/quiltdata/quilt/pull/4921))
 - [Changed] Replace unmaintained `remarkable` with `markdown-it` for markdown rendering; output now conforms to CommonMark + GFM ([#4884](https://github.com/quiltdata/quilt/pull/4884))
