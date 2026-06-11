@@ -60,22 +60,32 @@ async function fetchWorkgroup(
 async function fetchWorkgroups(
   athena: Athena,
   prev: Model.List<Workgroup> | null,
+  isMounted: () => boolean,
 ): Promise<Model.List<Workgroup>> {
   try {
-    const workgroupsOutput = await athena
-      .listWorkGroups({ NextToken: prev?.next })
-      .promise()
-    const parsed = (workgroupsOutput.WorkGroups || [])
-      .map(({ Name }) => Name || '')
-      .filter(Boolean)
-      .sort()
-    const available = (
-      await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
-    ).filter(Boolean)
-    const list = (prev?.list || []).concat(available as Workgroup[])
-    return {
-      list,
-      next: workgroupsOutput.NextToken,
+    let list = prev?.list ?? []
+    let next = prev?.next
+    // Drain pages until at least one accessible workgroup is added or
+    // pagination is exhausted — pages may contain only workgroups the caller
+    // can't getWorkGroup on, and accounts with >50 workgroups in a region
+    // can push the caller's accessible workgroup to a later page. Check
+    // `isMounted` between iterations so a navigation or workgroup switch
+    // during the drain stops issuing requests instead of just suppressing
+    // the final setState.
+    while (true) {
+      if (!isMounted()) return { list, next }
+      const out = await athena.listWorkGroups({ NextToken: next }).promise()
+      const parsed = (out.WorkGroups || []).map(({ Name }) => Name || '').filter(Boolean)
+      const available = (
+        await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
+      ).filter((w): w is Workgroup => w !== null)
+      list = list.concat(available)
+      next = out.NextToken
+      if (available.length > 0 || !next) {
+        // Sort once at the boundary so the returned list is globally
+        // ordered even when accumulated across multiple drained pages.
+        return { list: [...list].sort(), next }
+      }
     }
   } catch (e) {
     Log.error(e)
@@ -90,7 +100,7 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   React.useEffect(() => {
     let mounted = true
     if (!athena) return
-    fetchWorkgroups(athena, prev)
+    fetchWorkgroups(athena, prev, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
     return () => {
@@ -108,24 +118,31 @@ export function useWorkgroup(
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
-    setData((d) => {
-      // 1. Not loaded or failed
-      if (!Model.hasData(workgroups.data)) return d
 
-      // 2. URL parameter workgroup (user navigation)
-      if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
-        return requestedWorkgroup
-      }
+    // URL parameter workgroup (user navigation)
+    if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
+      setData(requestedWorkgroup)
+      return
+    }
 
-      // 3. Stored or default workgroup
-      const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-      if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
-        return initialWorkgroup
-      }
+    // Stored or default workgroup
+    const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
+    if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
+      setData(initialWorkgroup)
+      return
+    }
 
-      // 4. First available workgroup or error
-      return workgroups.data.list[0] || new Error('Workgroup not found')
-    })
+    // Stored preference set but not yet visible: the producer drains until
+    // the first accessible page, so a stored workgroup on a later page may
+    // not be in `list` yet. Pull another batch before falling back to
+    // list[0]; only give up when pagination is exhausted.
+    if (initialWorkgroup && workgroups.data.next) {
+      workgroups.loadMore()
+      return
+    }
+
+    // First available workgroup or error
+    setData(workgroups.data.list[0] || new Error('Workgroup not found'))
   }, [preferences, requestedWorkgroup, workgroups])
   return React.useMemo(
     () => Model.wrapData(data, workgroups.loadMore),
@@ -580,22 +597,27 @@ async function fetchCatalogNames(
   athena: Athena,
   workgroup: Workgroup,
   prev: Model.List<CatalogName> | null,
+  isMounted: () => boolean,
 ): Promise<Model.List<CatalogName>> {
   try {
-    const catalogsOutput = await athena
-      .listDataCatalogs({ NextToken: prev?.next })
-      .promise()
-    const parsed = (catalogsOutput.DataCatalogsSummary || [])
-      .map(({ CatalogName }) => CatalogName || '')
-      .filter(Boolean)
-      .sort()
-    const available = (
-      await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
-    ).filter(Boolean)
-    const list = (prev?.list || []).concat(available as CatalogName[])
-    return {
-      list,
-      next: catalogsOutput.NextToken,
+    let list = prev?.list ?? []
+    let next = prev?.next
+    // Drain pages — same shape as fetchWorkgroups, pages can be entirely
+    // access-denied.
+    while (true) {
+      if (!isMounted()) return { list, next }
+      const out = await athena.listDataCatalogs({ NextToken: next }).promise()
+      const parsed = (out.DataCatalogsSummary || [])
+        .map(({ CatalogName }) => CatalogName || '')
+        .filter(Boolean)
+      const available = (
+        await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
+      ).filter((n): n is CatalogName => n !== null)
+      list = list.concat(available)
+      next = out.NextToken
+      if (available.length > 0 || !next) {
+        return { list: [...list].sort(), next }
+      }
     }
   } catch (e) {
     Log.error(e)
@@ -609,6 +631,13 @@ export function useCatalogNames(
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
+  // Pagination cursor is workgroup-scoped (probe permissions differ per
+  // workgroup). Reset on workgroup change so the next drain starts fresh
+  // instead of carrying accumulated entries / cursors across workgroups.
+  React.useEffect(() => {
+    setPrev(null)
+    setData(undefined)
+  }, [workgroup])
   React.useEffect(() => {
     if (!Model.hasData(workgroup)) {
       setData(workgroup || undefined)
@@ -616,7 +645,7 @@ export function useCatalogNames(
     }
     let mounted = true
     if (!athena) return
-    fetchCatalogNames(athena, workgroup, prev)
+    fetchCatalogNames(athena, workgroup, prev, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
     return () => {

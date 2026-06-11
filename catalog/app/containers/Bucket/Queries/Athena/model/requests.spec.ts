@@ -744,6 +744,62 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         unmount()
       })
     })
+
+    it('drains access-denied pages until an accessible workgroup appears', async () => {
+      const pages: Record<string, A.ListWorkGroupsOutput> = {
+        '': {
+          WorkGroups: [{ Name: 'denied-1a' }, { Name: 'denied-1b' }],
+          NextToken: 't2',
+        },
+        t2: { WorkGroups: [{ Name: 'denied-2' }], NextToken: 't3' },
+        t3: { WorkGroups: [{ Name: 'allowed' }] },
+      }
+      listWorkGroups.mockImplementation(
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(
+          ({ NextToken }) => pages[NextToken ?? ''],
+        ),
+      )
+      getWorkGroup.mockImplementation(({ WorkGroup: Name }: A.GetWorkGroupInput) => ({
+        promise: () =>
+          Name === 'allowed'
+            ? Promise.resolve<A.GetWorkGroupOutput>({
+                WorkGroup: {
+                  Name,
+                  State: 'ENABLED',
+                  Configuration: { ResultConfiguration: { OutputLocation: 'any' } },
+                },
+              })
+            : Promise.reject(new AWSError('AccessDeniedException')),
+      }))
+
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() =>
+          expect(result.current.data).toMatchObject({ list: ['allowed'] }),
+        )
+        expect(listWorkGroups).toHaveBeenCalledTimes(3)
+        unmount()
+      })
+    })
+
+    it('returns an empty list once every page is denied and pagination is exhausted', async () => {
+      const pages: Record<string, A.ListWorkGroupsOutput> = {
+        '': { WorkGroups: [{ Name: 'denied-1' }], NextToken: 't2' },
+        t2: { WorkGroups: [{ Name: 'denied-2' }] },
+      }
+      listWorkGroups.mockImplementation(
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(
+          ({ NextToken }) => pages[NextToken ?? ''],
+        ),
+      )
+      getWorkGroup.mockImplementation(reqThrowWith(new AWSError('AccessDeniedException')))
+
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+        unmount()
+      })
+    })
   })
 
   describe('useExecutions', () => {
@@ -1133,6 +1189,50 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         await waitForNextUpdate()
       })
       expect(result.current.data).toBeUndefined()
+      unmount()
+    })
+
+    it('asks for more pages when a stored preference is set but not yet in the list', async () => {
+      const storageMock = getStorageKey.getMockImplementation()
+      getStorageKey.mockImplementation(() => 'stored-wg')
+      const loadMore = vi.fn()
+      const workgroups = {
+        data: { list: ['first-accessible'], next: 'next-page' },
+        loadMore,
+      }
+
+      const { result, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, undefined]),
+      )
+
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      expect(loadMore).toHaveBeenCalledTimes(1)
+      // Does not lock in list[0] while there are more pages and the stored
+      // preference might still be ahead.
+      expect(result.current.data).not.toBe('first-accessible')
+      getStorageKey.mockImplementation(storageMock!)
+      unmount()
+    })
+
+    it('falls back to list[0] when a stored preference is not found and pagination is exhausted', async () => {
+      const storageMock = getStorageKey.getMockImplementation()
+      getStorageKey.mockImplementation(() => 'never-going-to-show-up')
+      const loadMore = vi.fn()
+      const workgroups = {
+        data: { list: ['only-one'], next: undefined },
+        loadMore,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, undefined]),
+      )
+
+      await waitFor(() => expect(result.current.data).toBe('only-one'))
+      expect(loadMore).not.toHaveBeenCalled()
+      getStorageKey.mockImplementation(storageMock!)
       unmount()
     })
   })
