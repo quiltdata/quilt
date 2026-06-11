@@ -424,9 +424,12 @@ def _rescale_float_to_uint8(arr):
     # to the range ends.
     if not arr.size:
         return arr.astype(np.uint8)
-    # The boolean-mask copy is transient and no bigger than the copy
-    # np.percentile would make internally anyway.
-    finite = arr[np.isfinite(arr)]
+    # Compact only when non-finite values are actually present: the copy
+    # would otherwise coexist with np.percentile's internal copy and double
+    # the ranging-phase peak memory.
+    mask = np.isfinite(arr)
+    finite = arr if mask.all() else arr[mask]
+    del mask
     if not finite.size:
         # No finite values to compute a range from; render black.
         return np.zeros(arr.shape, np.uint8)
@@ -436,6 +439,7 @@ def _rescale_float_to_uint8(arr):
         # fall back to min/max so sparse data (e.g. label masks) stays
         # visible.
         lo, hi = float(finite.min()), float(finite.max())
+    del finite
     if hi == lo:
         # Constant image: keep the level, assuming the common [0, 1] float
         # convention when the value allows it (tolerating one output
@@ -444,13 +448,16 @@ def _rescale_float_to_uint8(arr):
         return np.full(arr.shape, np.clip(round(level), 0, 255), np.uint8)
     # float32 math halves the working copy, but only when it can represent
     # the data: wider floats keep their own precision so high-offset
-    # low-contrast data doesn't collapse and huge values don't overflow.
+    # low-contrast data doesn't collapse and values beyond the float32
+    # range don't overflow in the cast.
     out = arr.astype(np.float32 if arr.dtype.itemsize <= 4 else arr.dtype)
     out -= lo
     out *= 255 / (hi - lo)
     np.rint(out, out=out)
     np.clip(out, 0, 255, out=out)  # ±inf saturate to 0/255 here
-    np.nan_to_num(out, copy=False)
+    # Zero NaNs via mask assignment: np.nan_to_num allocates much larger
+    # temporaries, and this moment is the function's peak memory.
+    out[np.isnan(out)] = 0
     return out.astype(np.uint8)
 
 
@@ -464,7 +471,7 @@ def _alpha_to_uint8(alpha):
         out *= 255
         np.rint(out, out=out)
         np.clip(out, 0, 255, out=out)
-        np.nan_to_num(out, copy=False)
+        out[np.isnan(out)] = 0
         return out.astype(np.uint8)
     return (alpha >> 8).astype(np.uint8)
 
