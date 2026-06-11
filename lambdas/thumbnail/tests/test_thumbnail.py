@@ -156,9 +156,10 @@ def test_generate_thumbnail(
 ):
     # input_file is either a file name or a (file name, URL name) pair when
     # the URL must present a different extension than the fixture's
-    url_name = input_file
     if isinstance(input_file, tuple):
         input_file, url_name = input_file
+    else:
+        url_name = input_file
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
