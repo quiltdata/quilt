@@ -95,8 +95,8 @@ def test_403():
 @pytest.mark.parametrize(
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",
     [
-        # BUG: lambda doesn't preserve source format.
-        # I;16 input exercises the _convert_I16_to_L contrast-stretch end-to-end.
+        # BUG: lambda doesn't preserve source format. This I;16 input also
+        # exercises the _convert_I16_to_L contrast-stretch end-to-end.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
         # low-range uint16: pins the contrast stretch end-to-end
         ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
@@ -528,6 +528,18 @@ def test_generate_thumbnail_float_greyscale_saves_png():
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (8, 8))
     assert img.mode == "L"
     img.save(BytesIO(), "PNG")
+
+
+def test_generate_thumbnail_converts_i16_byte_order_variants():
+    # Readers emit native-order I;16, but the conversion guard matches the whole
+    # I;16 family so a byte-swapped uint16 array can't slip past it unconverted
+    # and hit thumbnail()'s reduce(), which rejects the I;16* modes. A
+    # big-endian array decodes to I;16B; assert it's converted to L, not left
+    # as-is.
+    arr = np.random.default_rng(0).integers(0, 65536, (64, 64)).astype(">u2")
+    assert Image.fromarray(arr).mode == "I;16B"
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "L"
 
 
 def test_norm_img_path_saves_16bit_png(data_dir):

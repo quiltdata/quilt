@@ -566,14 +566,16 @@ def generate_thumbnail(arr, size):
     # Send to Image object for thumbnail generation and saving to bytes
     img = Image.fromarray(arr)
 
-    # Convert 16-bit greyscale to 8-bit L before thumbnailing. I;16 is one of
-    # PIL's "limited support" modes
-    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes),
-    # and thumbnail() raises "image has wrong mode" on it when it pre-shrinks
+    # Convert 16-bit greyscale to 8-bit L before thumbnailing. The I;16 family
+    # (I;16 and the byte-order variants I;16L/I;16B/I;16N) are "limited support"
+    # modes in PIL
+    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes):
+    # thumbnail() raises "image has wrong mode" on them when it pre-shrinks
     # larger images via reduce(). The conversion is therefore required, not
     # cosmetic; it also contrast-stretches the value range (see
-    # _convert_I16_to_L).
-    if img.mode == 'I;16':
+    # _convert_I16_to_L). Readers emit native-order I;16 today, but match the
+    # whole family so the guard doesn't hinge on that.
+    if img.mode.startswith('I;16'):
         img = _convert_I16_to_L(arr)
 
     img.thumbnail(size)
