@@ -522,9 +522,13 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1_RGB.tiff"),
+        # all zeros; kept as a constant-input guard for the multi-channel RGB
+        # montage path (would catch e.g. a div-by-zero if normalization ever
+        # gets applied to color channels), but useless for pixel correctness
         (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),
-        # real-content variant of the above (which is all zeros, so it can't
-        # catch pixel-mangling bugs in the multi-channel RGB montage path)
+        # real-content variant of the above with distinct channels; this is
+        # what actually pins pixel correctness of the montage (channel order,
+        # grid placement, padding)
         (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB_gradient.tiff"),
         # float16 RGB photo (values in [0, 1]), from tlnagy/exampletiffs
         (TIFF_PKG, "spring.tif"),
