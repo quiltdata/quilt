@@ -8,9 +8,14 @@ describe('components/BucketIcon', () => {
   afterEach(cleanup)
 
   it('should render the inline stub when no src', () => {
-    const { container, getByTitle } = render(<BucketIcon alt="No src" src="" />)
+    const { container } = render(<BucketIcon alt="No src" src="" />)
     expect(container.querySelector('img')).toBeNull()
-    expect(getByTitle('No src').closest('svg')).not.toBeNull()
+    expect(container.querySelector('svg')).not.toBeNull()
+  })
+
+  it('should not derive the stub tooltip from alt', () => {
+    const { queryByTitle } = render(<BucketIcon alt="Some Bucket" src="" />)
+    expect(queryByTitle('Some Bucket')).toBeNull()
   })
 
   it('should mark the stub with the contrast class when contrast is set', () => {

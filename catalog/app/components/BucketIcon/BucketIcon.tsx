@@ -74,7 +74,7 @@ export default function BucketIcon({
         optClasses?.stub,
         optClassName,
       )}
-      titleAccess={title || alt || undefined}
+      titleAccess={title}
       viewBox="0 0 149 149"
     >
       <circle className={classes.disc} cx="74.5" cy="74.5" r="71" fill="currentColor" />
