@@ -1,5 +1,5 @@
 query ($bucket: String!) {
-  bucket(name: $bucket) {
+  bucketConfig(name: $bucket) {
     name
     tabulatorTables {
       name

@@ -850,24 +850,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'tabulatorTables',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'TabulatorTable',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },

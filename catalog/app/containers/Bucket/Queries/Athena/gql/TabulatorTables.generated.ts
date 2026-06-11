@@ -10,8 +10,8 @@ export type containers_Bucket_Queries_Athena_gql_TabulatorTablesQueryVariables =
 export type containers_Bucket_Queries_Athena_gql_TabulatorTablesQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly bucket: Types.Maybe<
-    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name'> & {
+  readonly bucketConfig: Types.Maybe<
+    { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
         readonly tabulatorTables: ReadonlyArray<
           { readonly __typename: 'TabulatorTable' } & Pick<Types.TabulatorTable, 'name'>
         >
@@ -44,7 +44,7 @@ export const containers_Bucket_Queries_Athena_gql_TabulatorTablesDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucket' },
+            name: { kind: 'Name', value: 'bucketConfig' },
             arguments: [
               {
                 kind: 'Argument',

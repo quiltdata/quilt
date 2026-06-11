@@ -425,7 +425,7 @@ export function useTabulatorTables(
   const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
   return GQL.fold(result, {
     // A null `bucket` (not found / no access) is treated as "no tables".
-    data: (d) => d.bucket?.tabulatorTables ?? [],
+    data: (d) => d.bucketConfig?.tabulatorTables ?? [],
     fetching: () => Model.Loading,
     error: (e) => e,
   })
