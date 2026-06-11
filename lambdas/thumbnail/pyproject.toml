@@ -41,5 +41,7 @@ default-groups = ["test"]
 filterwarnings = [
     # Regression guard: Pillow 13 removes saving mode "I" images as PNG, so
     # nothing in the pipeline may rely on it (handle_image converts to I;16).
+    # Delete this entry when the Pillow pin moves to 13 — the warning no
+    # longer exists there (the save is a hard error instead).
     "error:Saving I mode images as PNG",
 ]
