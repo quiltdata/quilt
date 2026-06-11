@@ -9,12 +9,6 @@ import BucketGrid from './'
 
 vi.mock('constants/config', () => ({ default: { mode: 'OPEN' } }))
 
-vi.mock('components/BucketIcon/bucket.svg', () => ({ default: 'DEFAULT_ICON' }))
-
-vi.mock('components/BucketIcon/bucket-white.svg', () => ({
-  default: 'CONTRAST_ICON',
-}))
-
 vi.mock('./Collaborators', () => ({ default: () => null }))
 
 vi.mock('utils/NamedRoutes', async () => ({
@@ -65,8 +59,9 @@ describe('website/components/BucketGrid', () => {
     )
   })
 
-  it('should fall back to the contrast default icon when iconUrl is empty', () => {
-    const { getByAltText } = renderGrid([{ ...bucket, iconUrl: null }])
-    expect(getByAltText('Bucket Title').getAttribute('src')).toBe('CONTRAST_ICON')
+  it('should fall back to the inline contrast stub when iconUrl is empty', () => {
+    const { container, getByTitle } = renderGrid([{ ...bucket, iconUrl: null }])
+    expect(container.querySelector('img')).toBeNull()
+    expect(getByTitle('Bucket Title').closest('svg')).not.toBeNull()
   })
 })

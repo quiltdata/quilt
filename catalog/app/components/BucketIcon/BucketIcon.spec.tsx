@@ -1,38 +1,40 @@
 import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
-import { describe, expect, it, vi, afterEach } from 'vitest'
-
-vi.mock('./bucket.svg', () => ({ default: 'IMAGE_MOCK' }))
-
-vi.mock('./bucket-white.svg', () => ({ default: 'CONTRAST_IMAGE_MOCK' }))
+import { describe, expect, it, afterEach } from 'vitest'
 
 import BucketIcon from './'
 
 describe('components/BucketIcon', () => {
   afterEach(cleanup)
 
-  it('should render default when no src', () => {
-    const { getByAltText } = render(<BucketIcon alt="No src" src="" />)
-    expect(getByAltText('No src').getAttribute('src')).toBe('IMAGE_MOCK')
+  it('should render the inline stub when no src', () => {
+    const { container, getByTitle } = render(<BucketIcon alt="No src" src="" />)
+    expect(container.querySelector('img')).toBeNull()
+    expect(getByTitle('No src').closest('svg')).not.toBeNull()
   })
 
-  it('should render contrast default when no src and contrast is set', () => {
-    const { getByAltText } = render(<BucketIcon alt="Contrast" src="" contrast />)
-    expect(getByAltText('Contrast').getAttribute('src')).toBe('CONTRAST_IMAGE_MOCK')
+  it('should mark the stub with the contrast class when contrast is set', () => {
+    const { container } = render(<BucketIcon alt="Contrast" src="" contrast />)
+    expect(container.querySelector('svg')?.getAttribute('class')).toContain('contrast')
   })
 
-  it('should ignore contrast when src is set', () => {
-    const { getByAltText } = render(
-      <BucketIcon alt="Contrast custom" src="https://custom-src" contrast />,
+  it('should not mark the stub with the contrast class by default', () => {
+    const { container } = render(<BucketIcon alt="Plain" src="" />)
+    expect(container.querySelector('svg')?.getAttribute('class')).not.toContain(
+      'contrast',
     )
-    expect(getByAltText('Contrast custom').getAttribute('src')).toBe('https://custom-src')
   })
 
-  it('should render custom src', () => {
+  it('should render custom src as an image', () => {
     const { getByAltText } = render(
       <BucketIcon alt="Custom src" src="https://custom-src" />,
     )
     expect(getByAltText('Custom src').getAttribute('src')).toBe('https://custom-src')
+  })
+
+  it('should expose the title on the stub', () => {
+    const { getByTitle } = render(<BucketIcon alt="" src="" title="Default icon" />)
+    expect(getByTitle('Default icon').closest('svg')).not.toBeNull()
   })
 
   describe('class names', () => {
@@ -65,7 +67,7 @@ describe('components/BucketIcon', () => {
     })
 
     it('should apply `stub` className if no src', () => {
-      const { getByAltText } = render(
+      const { container } = render(
         <BucketIcon
           alt="Stub className"
           className={className}
@@ -73,10 +75,10 @@ describe('components/BucketIcon', () => {
           src=""
         />,
       )
-      const img = getByAltText('Stub className')
-      expect(img.className).toContain('STUB')
-      expect(img.className).toContain('PRIMARY')
-      expect(img.className).not.toContain('CUSTOM')
+      const svgClassName = container.querySelector('svg')?.getAttribute('class')
+      expect(svgClassName).toContain('STUB')
+      expect(svgClassName).toContain('PRIMARY')
+      expect(svgClassName).not.toContain('CUSTOM')
     })
   })
 })
