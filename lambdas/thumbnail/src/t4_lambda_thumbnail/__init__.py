@@ -378,6 +378,12 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
 
     img = generate_thumbnail(img.compute(), size)
 
+    # PNG has no 32-bit depth, and Pillow 13 removes saving mode "I" images
+    # as PNG outright. Convert explicitly: I -> I;16 clamps exactly like the
+    # clip the implicit save used to apply, so the output is unchanged.
+    if img.mode == "I":
+        img = img.convert("I;16")
+
     thumbnail_size = img.size
     # Store the bytes
     thumbnail_bytes = BytesIO()

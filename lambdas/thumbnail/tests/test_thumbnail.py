@@ -504,6 +504,18 @@ def test_generate_thumbnail_float_greyscale_saves_png():
     img.save(BytesIO(), "PNG")
 
 
+def test_norm_img_path_saves_16bit_png(data_dir):
+    # Pin the output depth of the normalized (mode I) path: the golden
+    # comparisons only enforce it as long as the goldens themselves stay
+    # 16-bit, so a golden regeneration could silently change it. Shipping
+    # 8-bit instead (smaller, browsers can't use more) is a fine future
+    # choice, but it has to be made consciously — flip this then.
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / "cell.tiff"), size=(640, 480), thumbnail_format="PNG",
+    )
+    assert Image.open(BytesIO(data)).mode == "I;16"
+
+
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
