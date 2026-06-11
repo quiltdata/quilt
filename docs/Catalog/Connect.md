@@ -72,13 +72,12 @@ If your DNS is hosted elsewhere, create a `CNAME` record pointing to the
 [Installation CNAMEs section](Installation.md#cnames) for the equivalent
 catalog DNS records.
 
-> **TLS certificate:** the certificate served by the Connect ALB must cover the
-> Connect host. By default (`CertificateArnConnect` empty) the ALB reuses the
-> main stack certificate (`CertificateArnELB`), which must therefore include the
-> Connect host — either as a wildcard (e.g. `*.<your-domain>`) or as an explicit
-> Subject Alternative Name. If it does not, set `CertificateArnConnect` to a
-> certificate that does; otherwise DNS resolves but HTTPS fails with a
-> certificate name mismatch.
+> **TLS certificate:** by default (`CertificateArnConnect` empty) the Connect
+> ALB reuses the main stack certificate (`CertificateArnELB`), which must then
+> cover the Connect host (the `ConnectHost` output) — via an explicit Subject
+> Alternative Name or a wildcard at the matching level (`*` matches a single
+> label only). If it does not, set `CertificateArnConnect` to a certificate that
+> does; otherwise DNS resolves but HTTPS fails with a certificate name mismatch.
 
 The final Connect Server hostname is available in the `ConnectHost`
 CloudFormation output.
