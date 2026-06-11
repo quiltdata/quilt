@@ -1,4 +1,3 @@
-<!-- markdownlint-disable MD013 -->
 # Catalog Scripts
 
 This directory contains utility scripts for the Quilt catalog application.
@@ -12,7 +11,7 @@ A Node.js script for connecting to a Quilt stack and generating the necessary co
 - **Stack Resolver**: Reads the active stack URL via the `quilt3 config` CLI or accepts a `--stack` override
 - **Auth Manager**: Automates Chrome DevTools to capture catalog credentials with an interactive manual fallback
 - **Config Generator**: Fetches stack metadata and emits a `static-dev/config.js` compatible with the catalog `Config.ts` schema
-- **Integration**: Works with `npm run build:config` and `npm run start:connected` for local development flows
+- **Integration**: Works with `npm run build:config` and `npm run start:connected` for local development and smoke-test flows
 - **Platform Guard**: Fails fast on Windows (macOS and Linux are currently supported)
 
 ### Usage
@@ -26,7 +25,7 @@ npm run build:config
 # Generate config for a specific stack
 npm run build:config -- --stack https://your-stack.example.com
 
-# Generate config, run smoke tests, and launch the dev server
+# Generate config, then run smoke tests
 npm run start:connected
 ```
 
@@ -128,15 +127,15 @@ The `Config.ts` module then reads the configuration from `window.QUILT_CATALOG_C
 
 ### NPM Scripts
 
-The following npm scripts are available:
+This PR adds the following npm scripts:
 
-- `npm run connect:stack`: Run the connection script
-- `npm run start:connected`: Connect to stack and start dev server
-- `npm run start`: Start dev server (expects config to already be generated)
+- `npm run build:config`: Run the connection script to generate `static-dev/config.js`
+- `npm run start:test`: Run the smoke tests against a running catalog (see `test-stack.js`)
+- `npm run start:connected`: Generate the config, then run the smoke tests
 
 ### Files Generated/Modified
 
-- `static-dev/config.js`: Generated configuration file (gitignored)
-- `.catalog-config.json`: Alternative config location (gitignored)
+- `static-dev/config.js`: Generated configuration file
 
-Both files are added to `.gitignore` to prevent accidental commits of sensitive configuration data.
+The entire `static-dev/` directory is gitignored, so the generated config is
+never committed accidentally.

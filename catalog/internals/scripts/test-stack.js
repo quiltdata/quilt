@@ -3,21 +3,25 @@
 /**
  * Test Stack Script
  *
- * This script automates testing of the catalog by:
- * 1. Starting the webpack dev server (npm run start)
- * 2. Launching a browser with Chrome DevTools
- * 3. Capturing HTML, console logs, and network errors
- * 4. Reporting any issues found
+ * This script automates testing of a running catalog by:
+ * 1. Pointing a browser (via Chrome DevTools) at a target stack
+ * 2. Capturing HTML, console logs, and network errors
+ * 3. Reporting any issues found
+ *
+ * The target can be any catalog host, e.g. a local dev server
+ * (http://localhost:3000) or a deployed stack (https://nightly.quilttest.com),
+ * specified with --url. By default it tests http://localhost:PORT and will
+ * start a local webpack dev server unless --no-server is passed.
  *
  * Usage:
  *   node test-stack.js [options]
  *
  * Options:
- *   --port <port>          Port for dev server (default: 3000)
+ *   --url <url>            Test a specific host/URL (default: http://localhost:PORT)
+ *   --port <port>          Port for the local dev server (default: 3000)
  *   --timeout <seconds>    Test timeout in seconds (default: 30)
  *   --headless             Run browser in headless mode
- *   --no-server            Skip starting server (assume already running)
- *   --url <url>            Test a specific URL (default: http://localhost:PORT)
+ *   --no-server            Skip starting a local server (test an existing host)
  *   --help                 Show help
  */
 
@@ -64,17 +68,17 @@ Usage:
   node test-stack.js [options]
 
 Options:
-  --port <port>      Port for dev server (default: ${DEFAULT_PORT})
+  --url <url>        Test a specific host/URL (default: http://localhost:PORT)
+  --port <port>      Port for the local dev server (default: ${DEFAULT_PORT})
   --timeout <sec>    Test timeout in seconds (default: ${DEFAULT_TIMEOUT})
   --headless         Run browser in headless mode
-  --no-server        Skip starting server (assume already running)
-  --url <url>        Test a specific URL (default: http://localhost:PORT)
+  --no-server        Skip starting a local server (test an existing host)
   --help, -h         Show this help message
 
 Examples:
-  node test-stack.js                           # Test with default settings
-  node test-stack.js --headless --timeout 60  # Headless mode with 60s timeout
-  node test-stack.js --no-server --port 8080  # Test existing server on port 8080`);
+  node test-stack.js                                              # Local dev server, default settings
+  node test-stack.js --headless --timeout 60                      # Headless mode with 60s timeout
+  node test-stack.js --no-server --url https://nightly.quilttest.com  # Test an existing deployed stack`);
 }
 
 
