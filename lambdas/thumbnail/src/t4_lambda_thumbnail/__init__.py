@@ -541,9 +541,10 @@ def _alpha_to_uint8(alpha):
 
 
 def generate_thumbnail(arr, size):
-    # Contrast-stretch non-uint8 arrays to uint8 before building the image.
-    # PIL can't construct from float16 or save mode-F greyscale as PNG, and
-    # 16-bit greyscale decodes to an I;16 "limited support" mode
+    # Contrast-stretch non-uint8 arrays to uint8 before building the image:
+    # PIL only builds color images from uint8, can't construct from float16,
+    # can't save mode-F greyscale as PNG, and 16-bit greyscale decodes to an
+    # I;16 "limited support" mode
     # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes)
     # that thumbnail() rejects with "image has wrong mode" when it reduce()s
     # larger images. Dispatch on dtype, not the PIL mode, so big-endian uint16

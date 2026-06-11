@@ -530,15 +530,22 @@ def test_generate_thumbnail_float_greyscale_saves_png():
     img.save(BytesIO(), "PNG")
 
 
-def test_generate_thumbnail_handles_byte_swapped_uint16():
-    # Dispatch is by dtype (kind/itemsize), not PIL mode, so a byte-swapped
-    # uint16 array is rescaled like native-order rather than reaching PIL as an
-    # I;16B image that thumbnail()'s reduce() rejects. A big-endian array
-    # decodes to I;16B; assert it's rescaled to L, not left as-is.
-    arr = np.random.default_rng(0).integers(0, 65536, (64, 64)).astype(">u2")
-    assert Image.fromarray(arr).mode == "I;16B"
+@pytest.mark.parametrize(
+    "shape, expected_mode",
+    [
+        ((64, 64), "L"),       # greyscale: would otherwise reach PIL as I;16B
+        ((64, 64, 3), "RGB"),  # color: PIL can't build a color image from uint16
+        ((64, 64, 4), "RGBA"),
+    ],
+)
+def test_generate_thumbnail_handles_byte_swapped_uint16(shape, expected_mode):
+    # Dispatch is by dtype (kind/itemsize), not PIL mode, so byte-swapped uint16
+    # is rescaled to uint8 like native-order — rather than reaching PIL as an
+    # I;16B greyscale image (rejected by thumbnail()'s reduce()) or a color
+    # array PIL can't build at all (the old `== np.uint16` check missed both).
+    arr = np.random.default_rng(0).integers(0, 65536, shape).astype(">u2")
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
-    assert img.mode == "L"
+    assert img.mode == expected_mode
 
 
 def test_norm_img_path_saves_16bit_png(data_dir):
