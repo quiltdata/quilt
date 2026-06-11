@@ -61,6 +61,9 @@ def isolated_quilt3_state(tmp_path_factory):
         mp.setattr(quilt3.session, "AUTH_PATH", base / "auth.json")
         mp.setattr(quilt3.session, "CREDENTIALS_PATH", base / "credentials.json")
         mp.setattr(quilt3.util, "CONFIG_PATH", base / "config.yml")
+        # Drop any requests session quilt3 may have cached before the paths
+        # were redirected (e.g. from import- or collection-time access).
+        quilt3.session.clear_session()
         yield
 
 
