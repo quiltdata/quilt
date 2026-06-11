@@ -1,17 +1,24 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_Overview_gql_BucketQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
+export type containers_Bucket_Overview_gql_BucketQueryVariables = Exact<{
+  bucket: string
 }>
 
-export type containers_Bucket_Overview_gql_BucketQuery = {
+export interface containers_Bucket_Overview_gql_BucketQuery {
   readonly __typename: 'Query'
-} & {
-  readonly bucket: Types.Maybe<
-    { readonly __typename: 'Bucket' } & Pick<Types.Bucket, 'name' | 'description'>
-  >
+  readonly bucket: {
+    readonly __typename: 'Bucket'
+    readonly name: string
+    readonly description: string | null
+  } | null
 }
 
 export const containers_Bucket_Overview_gql_BucketDocument = {

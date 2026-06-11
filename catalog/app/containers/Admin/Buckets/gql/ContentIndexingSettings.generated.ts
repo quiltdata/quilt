@@ -1,20 +1,28 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Buckets_gql_ContentIndexingSettingsQueryVariables =
-  Types.Exact<{ [key: string]: never }>
+export type containers_Admin_Buckets_gql_ContentIndexingSettingsQueryVariables = Exact<{
+  [key: string]: never
+}>
 
-export type containers_Admin_Buckets_gql_ContentIndexingSettingsQuery = {
+export interface containers_Admin_Buckets_gql_ContentIndexingSettingsQuery {
   readonly __typename: 'Query'
-} & {
-  readonly config: { readonly __typename: 'Config' } & {
+  readonly config: {
+    readonly __typename: 'Config'
     readonly contentIndexingSettings: {
       readonly __typename: 'ContentIndexingSettings'
-    } & Pick<
-      Types.ContentIndexingSettings,
-      'extensions' | 'bytesDefault' | 'bytesMin' | 'bytesMax'
-    >
+      readonly extensions: ReadonlyArray<string>
+      readonly bytesDefault: number
+      readonly bytesMin: number
+      readonly bytesMax: number
+    }
   }
 }
 
