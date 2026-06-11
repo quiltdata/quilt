@@ -421,17 +421,16 @@ def _percentile_uint16(arr, qs):
     # Channels are pooled (arr is flattened), matching the joint range
     # np.percentile computes over the whole array.
     counts = np.zeros(65536, dtype=np.int64)
-    # Block over the first axis, not a flat view: arr may be a non-contiguous
-    # slice (the color path passes arr[..., :3]), and flattening the whole
-    # thing would copy all of it up front. Slicing the first axis is always a
-    # view; reshaping each slice copies only that block. The per-block copy is
-    # thus bounded for any image of normal aspect ratio; only a single row
-    # wider than _HIST_BLOCK (no real image) would exceed it.
-    per_row = max(arr[0].size, 1) if arr.ndim > 1 else 1
-    rows = max(_HIST_BLOCK // per_row, 1)
-    for start in range(0, len(arr), rows):
-        block = arr[start:start + rows].reshape(-1)
-        counts += np.bincount(block, minlength=65536)
+    # Chunk a flat iterator rather than reshape(-1): arr.flat[a:b] copies only
+    # the requested slice for any shape and contiguity, so the int64 bincount
+    # transient stays block-sized no matter the image dimensions — including
+    # adversarial shapes like (1, N). (reshape(-1) on the non-contiguous color
+    # slice arr[..., :3], or on a single huge row, would copy that whole span
+    # up front; this lambda thumbnails arbitrary uploads, so the bound must
+    # hold for untrusted input.)
+    flat = arr.flat
+    for start in range(0, arr.size, _HIST_BLOCK):
+        counts += np.bincount(flat[start:start + _HIST_BLOCK], minlength=65536)
     cdf = np.cumsum(counts)
     n = cdf[-1]
     out = []
