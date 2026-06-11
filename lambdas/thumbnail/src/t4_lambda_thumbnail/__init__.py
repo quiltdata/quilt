@@ -566,7 +566,11 @@ def generate_thumbnail(arr, size):
     # Send to Image object for thumbnail generation and saving to bytes
     img = Image.fromarray(arr)
 
-    # Contrast-stretch uint16 greyscale to uint8 (see _convert_I16_to_L).
+    # Convert 16-bit greyscale to 8-bit L before thumbnailing: PIL's
+    # thumbnail() raises "image has wrong mode" on I;16 when it pre-shrinks
+    # larger images (its reduce() step doesn't support the mode), so this
+    # conversion is required, not cosmetic. It also contrast-stretches the
+    # value range (see _convert_I16_to_L).
     if img.mode == 'I;16':
         img = _convert_I16_to_L(arr)
 
