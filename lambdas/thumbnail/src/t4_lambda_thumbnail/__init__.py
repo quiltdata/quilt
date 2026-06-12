@@ -476,11 +476,6 @@ def _rescale_uint16_to_uint8(arr):
     return lut.astype(np.uint8)[arr]
 
 
-def _convert_I16_to_L(arr):
-    # separated out for testing
-    return Image.fromarray(_rescale_uint16_to_uint8(arr))
-
-
 def _rescale_float_to_uint8(arr):
     # Contrast-stretch float data to uint8, with the range computed jointly
     # across channels for color arrays to avoid per-channel color skews.
@@ -546,12 +541,17 @@ def _alpha_to_uint8(alpha):
 
 
 def generate_thumbnail(arr, size):
-    # PIL can't construct images from float16 arrays, has no float color
-    # modes, can't save float greyscale (mode F) as PNG, and only builds
-    # color images from uint8 — contrast-stretch such arrays to uint8.
+    # Contrast-stretch non-uint8 arrays to uint8 before building the image:
+    # PIL only builds color images from uint8, can't construct from float16,
+    # can't save mode-F greyscale as PNG, and 16-bit greyscale decodes to an
+    # I;16 "limited support" mode
+    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes)
+    # that thumbnail() rejects with "image has wrong mode" when it reduce()s
+    # larger images. Dispatch on dtype, not the PIL mode, so big-endian uint16
+    # (whose dtype != np.uint16) is handled the same as native-order.
     if arr.dtype.kind == "f":
         rescale = _rescale_float_to_uint8
-    elif arr.ndim == 3 and arr.dtype == np.uint16:
+    elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
     else:
         rescale = None
@@ -563,41 +563,9 @@ def generate_thumbnail(arr, size):
         else:
             arr = rescale(arr)
 
-    # Send to Image object for thumbnail generation and saving to bytes
     img = Image.fromarray(arr)
-
-    # Contrast-stretch uint16 greyscale to uint8 (see _convert_I16_to_L).
-    if img.mode == 'I;16':
-        img = _convert_I16_to_L(arr)
-
-    # Generate thumbnail
-    try:
-        # attempt to use the default resampler - we have test images using this.
-        img.thumbnail(size)
-        return img
-    except ValueError as err:
-        if 'image has wrong mode' in str(err):
-            # The default resampler doesn't work with this image mode.
-            # PIL does not support all resamplers with all modes.
-            # These are all of the resamplers available, Ordered highest to lowest quality.
-            fallback_resampler_order = [
-                Image.Resampling.LANCZOS,
-                Image.Resampling.BICUBIC,
-                Image.Resampling.HAMMING,
-                Image.Resampling.BILINEAR,
-                Image.Resampling.BOX,
-                Image.Resampling.NEAREST,
-            ]
-            for resampler in fallback_resampler_order:
-                try:
-                    img.thumbnail(size, resample=resampler)
-                    return img
-                except ValueError:
-                    continue
-            # If this error is raised, we need to convert the image to a mode that can scale.
-            raise ValueError(f"Exhausted all fallback resamplers for scaling mode {img.mode}")
-        else:
-            raise
+    img.thumbnail(size)
+    return img
 
 
 @api(cors_origins=get_default_origins())

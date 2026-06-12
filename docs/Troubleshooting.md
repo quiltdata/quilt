@@ -65,7 +65,8 @@ for details.
    for details.
 1. SSL errors are often caused by misspelled names, or incomplete Subject
 Alternate Names. The ACM certificate for `CertificateArnELB` must cover all
-three Quilt [hostnames](Catalog/Installation.md#dns-records) either via a
+three Quilt [hostnames](Catalog/Installation.md#dns-records) (plus the Connect
+host if Connect is enabled and `CertificateArnConnect` is empty) either via a
 suitable `*` or explicit Subject Alternate Names.
 
 ### Changing the admin email or password
