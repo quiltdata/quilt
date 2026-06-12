@@ -464,9 +464,9 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('falls back to "Unknown" for database entries without a Name', async () => {
       listDatabases.mockImplementation(
-        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
-          DatabaseList: [{}, {}],
-        })),
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(
+          () => ({ DatabaseList: [{}, {}] }) as unknown as A.ListDatabasesOutput,
+        ),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() =>
