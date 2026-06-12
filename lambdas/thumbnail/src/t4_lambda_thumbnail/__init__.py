@@ -318,47 +318,45 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
 
     # Keep Channel data, but max project when possible
     if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
-        projections = []
-        s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
-        for i in range(img.dask_data.shape[1]):
-            if "Z" in img.reader.dims.order:
-                # Add padding to the top and left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
-                    ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
-                )
-                projections.append(padded)
-            else:
-                # Add padding to the top and the left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, 0, :, :]),
-                    ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
-                )
-                projections.append(padded)
+        n_channels = img.dask_data.shape[1]
+        has_z = "Z" in img.reader.dims.order
 
-        # Get min grid shape
-        # For 6 channels this returns (2, 3)
-        min_grid_shape = choose_min_grid(len(projections))
+        def _channel_plane(i):
+            # Normalize channel i's 2D plane (max-projected over Z when present).
+            sl = (img.dask_data[0, i, :, :, :].max(axis=0) if has_z
+                  else img.dask_data[0, i, 0, :, :])
+            return np.asarray(norm_img(sl))
 
-        # Make rows of images
-        # Use a counter so that we don't have to use `projections.pop` which is O(N)
-        rows = []
-        proj_counter = 0
-        for y_i in range(min_grid_shape[0]):
-            row = []
-            for x_i in range(min_grid_shape[1]):
-                row.append(projections[proj_counter])
-                proj_counter += 1
+        # Lay the normalized channels out in the most-square grid (rows*cols ==
+        # n_channels), each cell padded 5px on its top and left and the whole
+        # montage padded 5px on its bottom and right. Fill a preallocated montage
+        # one channel at a time and free each plane, so peak memory is ~the
+        # montage plus a single plane -- not all N planes plus the concatenation
+        # copy the previous da.pad/da.concatenate held at once (OOM is this
+        # lambda's documented failure mode on large multi-channel images). The
+        # output is identical to that construction: cells are placed at the same
+        # offsets and the unwritten borders stay at the constant-pad value 0.
+        rows, cols = choose_min_grid(n_channels)
+        first = _channel_plane(0)
+        h, w = first.shape[0], first.shape[1]
+        cell_h, cell_w = h + 5, w + 5
+        montage = np.zeros(
+            (rows * cell_h + 5, cols * cell_w + 5) + first.shape[2:],
+            dtype=first.dtype,
+        )
 
-            rows.append(row)
+        def _place(i, plane):
+            r, c = divmod(i, cols)  # row-major, matching the old grid fill order
+            top, left = r * cell_h + 5, c * cell_w + 5
+            montage[top:top + h, left:left + w] = plane
 
-        # Concatenate each row then concatenate all rows together into a single 2D image
-        merged = [da.concatenate(row, axis=1) for row in rows]
-
-        # Add padding on the entire bottom and entire right side of the thumbnail
-        return da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
+        _place(0, first)
+        del first
+        for i in range(1, n_channels):
+            plane = _channel_plane(i)
+            _place(i, plane)
+            del plane
+        return da.from_array(montage, name=False)
 
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
