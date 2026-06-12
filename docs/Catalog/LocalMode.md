@@ -27,6 +27,24 @@ npm install
 The recommended LOCAL helpers use isolated `uv run` invocations, so they do not
 mutate `api/python/.venv`.
 
+## Quick start
+
+To launch a browseable LOCAL catalog (filesystem backend, demo data staged) in
+one command:
+
+```bash
+cd quilt/api/python
+uv run poe catalog          # serves http://127.0.0.1:3000/b/demo-bucket
+uv run poe catalog --port 8080   # extra args pass through
+```
+
+This serves the built catalog bundle from `catalog/build` (run `cd catalog && npm run build`
+first if it is missing) and spawns the preview/thumbnail/tabular-preview/transcode
+lambdas as subprocesses. Probe a running instance with `uv run poe catalog-health`.
+
+Use the frontend proxy mode below instead when you are editing `catalog/` source
+and want webpack hot-reload.
+
 ## One-shot LOCAL test setup
 
 To prepare the full LOCAL catalog filesystem test state in one command:
