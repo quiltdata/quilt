@@ -1,3 +1,5 @@
+"""S3-compatible proxy: serves bucket objects (incl. multipart) for the catalog."""
+
 from __future__ import annotations
 
 import re

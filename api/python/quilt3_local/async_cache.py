@@ -1,3 +1,5 @@
+"""Async-aware memoization helpers (per-request coalescing of duplicate awaits)."""
+
 # TODO: move this to a reusable package
 import asyncio
 import functools

@@ -1,3 +1,5 @@
+"""Environment-driven settings: object backend, data dir, origin, proxy prefix."""
+
 from __future__ import annotations
 
 import ipaddress

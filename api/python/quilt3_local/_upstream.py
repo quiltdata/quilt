@@ -1,3 +1,5 @@
+"""Resolve paths to upstream repo resources (GraphQL schema, catalog bundle)."""
+
 from __future__ import annotations
 
 from pathlib import Path

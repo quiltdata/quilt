@@ -1,3 +1,5 @@
+"""Per-request context (contextvar) holding a request-scoped cache."""
+
 import contextvars
 
 from . import async_cache

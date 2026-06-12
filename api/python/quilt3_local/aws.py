@@ -1,3 +1,5 @@
+"""Object access layer: S3 and filesystem-backed bucket reads/writes for LOCAL mode."""
+
 from __future__ import annotations
 
 import asyncio

@@ -1,3 +1,5 @@
+"""Read Quilt package manifests and named-package pointers from a bucket."""
+
 from __future__ import annotations
 
 import asyncio

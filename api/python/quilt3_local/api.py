@@ -1,3 +1,5 @@
+"""FastAPI app exposing the LOCAL catalog's REST + GraphQL endpoints and STS shim."""
+
 import logging
 import re
 

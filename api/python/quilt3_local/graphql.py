@@ -1,3 +1,5 @@
+"""GraphQL resolvers backing the catalog UI (buckets, packages, search)."""
+
 import asyncio
 import dataclasses
 import datetime

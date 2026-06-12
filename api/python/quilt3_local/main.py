@@ -1,3 +1,5 @@
+"""ASGI entrypoint: mounts the API, s3proxy, lambdas, and catalog bundle."""
+
 from __future__ import annotations
 
 import json

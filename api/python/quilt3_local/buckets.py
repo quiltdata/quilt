@@ -1,3 +1,5 @@
+"""Enumerate and describe the buckets available to the LOCAL catalog."""
+
 from . import aws, context, settings
 
 FILESYSTEM_BUCKET_DESCRIPTION = "Filesystem-backed LOCAL bucket"

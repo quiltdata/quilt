@@ -1,3 +1,5 @@
+"""In-process search over filesystem buckets (no Elasticsearch in LOCAL mode)."""
+
 from __future__ import annotations
 
 import base64
