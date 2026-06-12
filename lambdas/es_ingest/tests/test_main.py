@@ -22,12 +22,15 @@ def test_bulk_ok(mocker):
 
 
 def test_bulk_error(mocker, caplog):
+    mapper_error = {"index": {"error": {"type": "mapper_parsing_exception", "reason": "failed to parse field [x]"}}}
     mock_bulk = mocker.patch(
         "elasticsearch.Elasticsearch.bulk",
         return_value={
             "errors": True,
             "items": [
-                {"index": {"error": {"type": "mapper_parsing_exception", "reason": "failed to parse field [x]"}}},
+                mapper_error,
+                # Identical to the first: must collapse into a single (x2) group.
+                mapper_error,
                 {"delete": {"error": {"type": "index_not_found_exception", "reason": "no such index [y]"}}},
             ],
         },
@@ -41,10 +44,10 @@ def test_bulk_error(mocker, caplog):
         filter_path="errors,items.*.error",
         request_timeout=mocker.ANY,
     )
-    assert "mapper_parsing_exception" in caplog.text
-    assert "failed to parse field [x]" in caplog.text
-    assert "index_not_found_exception" in caplog.text
-    assert "2 document(s) failed to index" in str(exc_info.value)
+    # The two identical errors collapse into one (x2) group; the delete stays separate.
+    assert "Bulk index failed (x2): mapper_parsing_exception: failed to parse field [x]" in caplog.text
+    assert "Bulk delete failed (x1): index_not_found_exception: no such index [y]" in caplog.text
+    assert "3 document(s) failed to index (2 distinct error(s))" in str(exc_info.value)
 
 
 def test_bulk_too_many_requests(mocker):

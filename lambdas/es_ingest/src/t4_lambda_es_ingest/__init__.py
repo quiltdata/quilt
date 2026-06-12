@@ -69,8 +69,9 @@ def bulk(context, es, data: bytes):
         logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
         time.sleep(time_to_sleep)
     if resp["errors"]:
-        # Failures are usually systematic (e.g. a single bad mapping affecting
-        # many documents), so aggregate by error to bound the log/message size.
+        # Aggregate by error: failures are usually systematic (e.g. one bad
+        # mapping affecting many documents), so this keeps the logs and message
+        # compact in the common case.
         failures = collections.Counter(
             (op, error.get("type"), error.get("reason"))
             for item in resp.get("items", [])
@@ -81,7 +82,7 @@ def bulk(context, es, data: bytes):
             logger.error("Bulk %s failed (x%s): %s: %s", op, count, error_type, reason)
         # TODO: ignore index_not_found_exception for delete operations?
         raise BulkDocumentError(
-            f"{sum(failures.values())} document(s) failed to index "
+            f"{failures.total()} document(s) failed to index "
             f"({len(failures)} distinct error(s))"
         )
 
