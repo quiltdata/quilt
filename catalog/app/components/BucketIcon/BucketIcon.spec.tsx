@@ -30,6 +30,11 @@ describe('components/BucketIcon', () => {
     )
   })
 
+  it('should render custom icons as decorative when no alt', () => {
+    const { container } = render(<BucketIcon src="https://custom-src" />)
+    expect(container.querySelector('img')?.getAttribute('alt')).toBe('')
+  })
+
   it('should render custom src as an image', () => {
     const { getByAltText } = render(
       <BucketIcon alt="Custom src" src="https://custom-src" />,

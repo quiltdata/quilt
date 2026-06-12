@@ -33,7 +33,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface BucketIconProps {
-  alt: string
+  // only applies to custom icons, the stub ignores it
+  alt?: string
   className?: string
   classes?: {
     custom?: string
@@ -46,7 +47,7 @@ interface BucketIconProps {
 }
 
 export default function BucketIcon({
-  alt,
+  alt = '',
   className: optClassName,
   classes: optClasses,
   contrast = false,

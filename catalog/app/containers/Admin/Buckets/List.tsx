@@ -102,7 +102,7 @@ interface CustomBucketIconProps {
 function CustomBucketIcon({ src }: CustomBucketIconProps) {
   const classes = useCustomBucketIconStyles()
 
-  return <BucketIcon alt="" classes={classes} src={src} title="Default icon" />
+  return <BucketIcon classes={classes} src={src} title="Default icon" />
 }
 
 const columns: Table.Column<BucketConfig>[] = [
