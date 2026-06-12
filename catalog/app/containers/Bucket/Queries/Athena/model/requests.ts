@@ -85,8 +85,7 @@ async function fetchWorkgroups(
       list.push(...available)
       token = out.NextToken
     } while (token)
-    list.sort()
-    return { list }
+    return { list: list.sort() }
   } catch (e) {
     Log.error(e)
     throw e
@@ -97,8 +96,8 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
   const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
   React.useEffect(() => {
-    let mounted = true
     if (!athena) return
+    let mounted = true
     fetchWorkgroups(athena, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
@@ -503,8 +502,7 @@ async function fetchDatabases(
       list.push(...names)
       token = out.NextToken
     } while (token)
-    list.sort()
-    return { list }
+    return { list: list.sort() }
   } catch (e) {
     Sentry.captureException(e)
     throw e
@@ -611,8 +609,7 @@ async function fetchCatalogNames(
   try {
     const list: CatalogName[] = []
     let token: string | undefined
-    // Drain to exhaustion — same shape as fetchWorkgroups. `ListDataCatalogs`
-    // defaults to 10 per page (max 50), so the explicit cap matters here.
+    // ListDataCatalogs defaults to 10 per page (max 50); explicit cap matters here.
     do {
       if (!isMounted()) return { list }
       const out = await athena
@@ -627,8 +624,7 @@ async function fetchCatalogNames(
       list.push(...available)
       token = out.NextToken
     } while (token)
-    list.sort()
-    return { list }
+    return { list: list.sort() }
   } catch (e) {
     Log.error(e)
     throw e
@@ -645,8 +641,8 @@ export function useCatalogNames(
       setData(workgroup || undefined)
       return
     }
-    let mounted = true
     if (!athena) return
+    let mounted = true
     fetchCatalogNames(athena, workgroup, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))

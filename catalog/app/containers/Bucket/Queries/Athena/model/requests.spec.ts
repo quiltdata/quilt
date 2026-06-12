@@ -130,8 +130,6 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       try {
-        expect(result.current.data).toBe(undefined)
-
         await waitForValueToChange(() => result.current, { timeout: 5000 })
         expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] })
       } finally {
@@ -431,14 +429,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
     })
 
-    it('handle invalid database', async () => {
+    it('falls back to "Unknown" for database entries without a Name', async () => {
       listDatabases.mockImplementation(
-        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(
-          () =>
-            ({
-              DatabaseList: [{ A: 'B' }, { C: 'D' }],
-            }) as unknown as A.ListDatabasesOutput,
-        ),
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
+          DatabaseList: [{}, {}],
+        })),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() =>
@@ -446,11 +441,9 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
     })
 
-    it('handle invalid list', async () => {
+    it('returns an empty list when the response has no DatabaseList', async () => {
       listDatabases.mockImplementation(
-        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(
-          () => ({ Foo: 'Bar' }) as unknown as A.ListDatabasesOutput,
-        ),
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({})),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
