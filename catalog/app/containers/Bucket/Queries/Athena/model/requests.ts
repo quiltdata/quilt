@@ -57,57 +57,61 @@ async function fetchWorkgroup(
   }
 }
 
+// Athena's list* APIs cap at 50 per page; request the max so accounts with
+// many workgroups / catalogs / databases settle in fewer round-trips.
+const MAX_RESULTS_PER_PAGE = 50
+
 async function fetchWorkgroups(
   athena: Athena,
-  prev: Model.List<Workgroup> | null,
   isMounted: () => boolean,
 ): Promise<Model.List<Workgroup>> {
   try {
-    let list = prev?.list ?? []
-    let next = prev?.next
-    // Drain pages until at least one accessible workgroup is added or
-    // pagination is exhausted — pages may contain only workgroups the caller
-    // can't getWorkGroup on, and accounts with >50 workgroups in a region
-    // can push the caller's accessible workgroup to a later page. Check
-    // `isMounted` between iterations so a navigation or workgroup switch
-    // during the drain stops issuing requests instead of just suppressing
-    // the final setState.
-    while (true) {
+    let list: Workgroup[] = []
+    let next: string | undefined
+    // Drain to exhaustion. Pages may contain only workgroups the caller can't
+    // getWorkGroup on (filtered to null), and accounts with >50 workgroups in
+    // a region can push the caller's accessible workgroup to a later page.
+    // Returning a complete list lets consumers settle the selection without a
+    // separate Load-more round-trip. Check `isMounted` between iterations so
+    // a navigation during the drain stops issuing requests.
+    do {
       if (!isMounted()) return { list, next }
-      const out = await athena.listWorkGroups({ NextToken: next }).promise()
+      const out = await athena
+        .listWorkGroups({ NextToken: next, MaxResults: MAX_RESULTS_PER_PAGE })
+        .promise()
       const parsed = (out.WorkGroups || []).map(({ Name }) => Name || '').filter(Boolean)
       const available = (
         await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
       ).filter((w): w is Workgroup => w !== null)
       list = list.concat(available)
       next = out.NextToken
-      if (available.length > 0 || !next) {
-        // Sort once at the boundary so the returned list is globally
-        // ordered even when accumulated across multiple drained pages.
-        return { list: [...list].sort(), next }
-      }
-    }
+    } while (next)
+    return { list: list.sort(), next }
   } catch (e) {
     Log.error(e)
     throw e
   }
 }
 
+// Producers drain to exhaustion, so the returned list is complete and
+// `loadMore` has nothing to do — wire a no-op to preserve the DataController
+// shape that consumers expect.
+const noop = () => {}
+
 export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
   React.useEffect(() => {
     let mounted = true
     if (!athena) return
-    fetchWorkgroups(athena, prev, () => mounted)
+    fetchWorkgroups(athena, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
     return () => {
       mounted = false
     }
-  }, [athena, prev])
-  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+  }, [athena])
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export function useWorkgroup(
@@ -132,22 +136,11 @@ export function useWorkgroup(
       return
     }
 
-    // Stored preference set but not yet visible: the producer drains until
-    // the first accessible page, so a stored workgroup on a later page may
-    // not be in `list` yet. Pull another batch before falling back to
-    // list[0]; only give up when pagination is exhausted.
-    if (initialWorkgroup && workgroups.data.next) {
-      workgroups.loadMore()
-      return
-    }
-
-    // First available workgroup or error
+    // First available workgroup or error. Producer drains to exhaustion, so
+    // an accessible workgroup that exists is in this list.
     setData(workgroups.data.list[0] || new Error('Workgroup not found'))
   }, [preferences, requestedWorkgroup, workgroups])
-  return React.useMemo(
-    () => Model.wrapData(data, workgroups.loadMore),
-    [data, workgroups.loadMore],
-  )
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export interface QueryExecution {
@@ -491,37 +484,58 @@ export function useResults(
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
+async function fetchDatabases(
+  athena: Athena,
+  catalogName: CatalogName,
+  isMounted: () => boolean,
+): Promise<Model.List<Database>> {
+  try {
+    let list: Database[] = []
+    let next: string | undefined
+    // Drain to exhaustion. ListDatabases has no per-item access filter, but
+    // the picker dropdown wants the full set; for federated catalogs (one DB
+    // per bucket) accounts with many buckets accumulate across pages.
+    do {
+      if (!isMounted()) return { list, next }
+      const out = await athena
+        .listDatabases({
+          CatalogName: catalogName,
+          NextToken: next,
+          MaxResults: MAX_RESULTS_PER_PAGE,
+        })
+        .promise()
+      const names = (out.DatabaseList || []).map(({ Name }) => Name || 'Unknown')
+      list = list.concat(names)
+      next = out.NextToken
+    } while (next)
+    return { list: list.sort(), next }
+  } catch (e) {
+    Sentry.captureException(e)
+    throw e
+  }
+}
+
 export function useDatabases(
   catalogName: Model.Value<CatalogName>,
 ): Model.DataController<Model.List<Database>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<Database> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Database>>>()
   React.useEffect(() => {
     if (!Model.hasData(catalogName)) {
       setData(catalogName || undefined)
       return
     }
+    let mounted = true
+    if (!athena) return
     setData(Model.Loading)
-    const request = athena?.listDatabases(
-      {
-        CatalogName: catalogName,
-        NextToken: prev?.next,
-      },
-      (error, d) => {
-        const { DatabaseList, NextToken: next } = d || {}
-        if (error) {
-          Sentry.captureException(error)
-          setData(error)
-          return
-        }
-        const list = DatabaseList?.map(({ Name }) => Name || 'Unknown').sort() || []
-        setData({ list: (prev?.list || []).concat(list), next })
-      },
-    )
-    return () => request?.abort()
-  }, [athena, catalogName, prev])
-  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+    fetchDatabases(athena, catalogName, () => mounted)
+      .then((d) => mounted && setData(d))
+      .catch((d) => mounted && setData(d))
+    return () => {
+      mounted = false
+    }
+  }, [athena, catalogName])
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export function useDatabase(
@@ -596,17 +610,19 @@ async function fetchCatalogName(
 async function fetchCatalogNames(
   athena: Athena,
   workgroup: Workgroup,
-  prev: Model.List<CatalogName> | null,
   isMounted: () => boolean,
 ): Promise<Model.List<CatalogName>> {
   try {
-    let list = prev?.list ?? []
-    let next = prev?.next
-    // Drain pages — same shape as fetchWorkgroups, pages can be entirely
-    // access-denied.
-    while (true) {
+    let list: CatalogName[] = []
+    let next: string | undefined
+    // Drain to exhaustion — same shape as fetchWorkgroups. Catalog lists
+    // are usually small, and `ListDataCatalogs` defaults to 10 per page
+    // (max 50), so the explicit cap is worth setting.
+    do {
       if (!isMounted()) return { list, next }
-      const out = await athena.listDataCatalogs({ NextToken: next }).promise()
+      const out = await athena
+        .listDataCatalogs({ NextToken: next, MaxResults: MAX_RESULTS_PER_PAGE })
+        .promise()
       const parsed = (out.DataCatalogsSummary || [])
         .map(({ CatalogName }) => CatalogName || '')
         .filter(Boolean)
@@ -615,10 +631,8 @@ async function fetchCatalogNames(
       ).filter((n): n is CatalogName => n !== null)
       list = list.concat(available)
       next = out.NextToken
-      if (available.length > 0 || !next) {
-        return { list: [...list].sort(), next }
-      }
-    }
+    } while (next)
+    return { list: list.sort(), next }
   } catch (e) {
     Log.error(e)
     throw e
@@ -629,15 +643,7 @@ export function useCatalogNames(
   workgroup: Model.Value<Workgroup>,
 ): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
-  // Pagination cursor is workgroup-scoped (probe permissions differ per
-  // workgroup). Reset on workgroup change so the next drain starts fresh
-  // instead of carrying accumulated entries / cursors across workgroups.
-  React.useEffect(() => {
-    setPrev(null)
-    setData(undefined)
-  }, [workgroup])
   React.useEffect(() => {
     if (!Model.hasData(workgroup)) {
       setData(workgroup || undefined)
@@ -645,14 +651,14 @@ export function useCatalogNames(
     }
     let mounted = true
     if (!athena) return
-    fetchCatalogNames(athena, workgroup, prev, () => mounted)
+    fetchCatalogNames(athena, workgroup, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
     return () => {
       mounted = false
     }
-  }, [athena, prev, workgroup])
-  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+  }, [athena, workgroup])
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export function useCatalogName(

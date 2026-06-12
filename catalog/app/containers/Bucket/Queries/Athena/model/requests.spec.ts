@@ -418,9 +418,9 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('return databases', async () => {
       listDatabases.mockImplementation(
-        req<A.ListDatabasesInput, A.ListDatabasesOutput>({
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
           DatabaseList: [{ Name: 'bar' }, { Name: 'baz' }],
-        }),
+        })),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
 
@@ -433,10 +433,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('handle invalid database', async () => {
       listDatabases.mockImplementation(
-        req<A.ListDatabasesInput, A.ListDatabasesOutput>({
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
           // @ts-expect-error
           DatabaseList: [{ A: 'B' }, { C: 'D' }],
-        }),
+        })),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() =>
@@ -446,13 +446,30 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('handle invalid list', async () => {
       listDatabases.mockImplementation(
-        req<A.ListDatabasesInput, A.ListDatabasesOutput>({
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
           // @ts-expect-error
           Foo: 'Bar',
-        }),
+        })),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+    })
+
+    it('drains pages to exhaustion', async () => {
+      const pages: Record<string, A.ListDatabasesOutput> = {
+        '': { DatabaseList: [{ Name: 'alpha' }], NextToken: 't2' },
+        t2: { DatabaseList: [{ Name: 'beta' }], NextToken: 't3' },
+        t3: { DatabaseList: [{ Name: 'gamma' }] },
+      }
+      listDatabases.mockImplementation(
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(
+          ({ NextToken }) => pages[NextToken ?? ''],
+        ),
+      )
+      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      await waitFor(() =>
+        expect(result.current.data).toMatchObject({ list: ['alpha', 'beta', 'gamma'] }),
+      )
     })
   })
 
@@ -1192,38 +1209,12 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       unmount()
     })
 
-    it('asks for more pages when a stored preference is set but not yet in the list', async () => {
-      const storageMock = getStorageKey.getMockImplementation()
-      getStorageKey.mockImplementation(() => 'stored-wg')
-      const loadMore = vi.fn()
-      const workgroups = {
-        data: { list: ['first-accessible'], next: 'next-page' },
-        loadMore,
-      }
-
-      const { result, unmount } = renderHook(() =>
-        useWrapper([workgroups, undefined, undefined]),
-      )
-
-      await act(async () => {
-        await Promise.resolve()
-      })
-
-      expect(loadMore).toHaveBeenCalledTimes(1)
-      // Does not lock in list[0] while there are more pages and the stored
-      // preference might still be ahead.
-      expect(result.current.data).not.toBe('first-accessible')
-      getStorageKey.mockImplementation(storageMock!)
-      unmount()
-    })
-
-    it('falls back to list[0] when a stored preference is not found and pagination is exhausted', async () => {
+    it('falls back to list[0] when a stored preference is not found', async () => {
       const storageMock = getStorageKey.getMockImplementation()
       getStorageKey.mockImplementation(() => 'never-going-to-show-up')
-      const loadMore = vi.fn()
       const workgroups = {
-        data: { list: ['only-one'], next: undefined },
-        loadMore,
+        data: { list: ['only-one'] },
+        loadMore: noop,
       }
 
       const { result, waitFor, unmount } = renderHook(() =>
@@ -1231,7 +1222,6 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await waitFor(() => expect(result.current.data).toBe('only-one'))
-      expect(loadMore).not.toHaveBeenCalled()
       getStorageKey.mockImplementation(storageMock!)
       unmount()
     })
