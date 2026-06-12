@@ -433,10 +433,12 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('handle invalid database', async () => {
       listDatabases.mockImplementation(
-        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
-          // @ts-expect-error
-          DatabaseList: [{ A: 'B' }, { C: 'D' }],
-        })),
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(
+          () =>
+            ({
+              DatabaseList: [{ A: 'B' }, { C: 'D' }],
+            }) as unknown as A.ListDatabasesOutput,
+        ),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() =>
@@ -446,10 +448,9 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('handle invalid list', async () => {
       listDatabases.mockImplementation(
-        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({
-          // @ts-expect-error
-          Foo: 'Bar',
-        })),
+        reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(
+          () => ({ Foo: 'Bar' }) as unknown as A.ListDatabasesOutput,
+        ),
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
