@@ -18,7 +18,7 @@ import tempfile
 import urllib.parse
 from io import BytesIO
 from math import sqrt
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import bioio_base.exceptions
 import bioio_czi
@@ -146,13 +146,17 @@ def choose_min_grid(x: int) -> Tuple[int, int]:
     return min_grid_shape
 
 
-def _finite_clip_range(arr: np.ndarray) -> "Tuple[float, float] | None":
+def _finite_clip_range(arr: np.ndarray) -> Optional[Tuple[float, float]]:
     """
     Percentile clip bounds (0.01, 99.99) over the finite values of `arr`, with a
     fallback to their full min/max when the percentiles collapse — almost all
     pixels share one value, e.g. a sparse label mask — so sparse data stays
     visible instead of clipping flat. Returns ``(lo, hi)``, or ``None`` when
     `arr` has no finite values.
+
+    A returned ``(lo, hi)`` can still have ``hi == lo`` — a genuinely constant
+    finite plane collapses both the percentiles and the min/max fallback — so
+    callers must re-check and handle the no-contrast case themselves.
 
     Shared by norm_img and _rescale_float_to_uint8 so their clip/fallback and
     non-finite filtering can't diverge (the same pixels must not render
@@ -505,7 +509,9 @@ def _rescale_uint16_to_uint8(arr):
     if hi == lo:
         # Percentiles collapse when almost all pixels share one value;
         # fall back to min/max so sparse data (e.g. label masks) stays
-        # visible.
+        # visible. (This path keeps its own clip/fallback rather than the
+        # shared _finite_clip_range: it uses the histogram percentile for
+        # bounded memory and has no non-finite values to filter.)
         lo, hi = float(arr.min()), float(arr.max())
     if hi == lo:
         # Constant image: keep the brightness level.
@@ -527,8 +533,6 @@ def _rescale_float_to_uint8(arr):
     # _rescale_uint16_to_uint8. Non-finite values are excluded from the
     # range: NaNs are treated as missing and render black, ±inf saturate
     # to the range ends.
-    if not arr.size:
-        return arr.astype(np.uint8)
     rng = _finite_clip_range(arr)
     if rng is None:
         # No finite values to compute a range from; render black.

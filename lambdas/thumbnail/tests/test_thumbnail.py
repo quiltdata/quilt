@@ -581,6 +581,7 @@ def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
     #   ch2 = grad.copy(); ch2[20:40, 20:40] = np.nan
     #   data = np.stack([grad, np.full((64, 64), 0.5, np.float32), ch2])
     #   tifffile.imwrite(path, data, metadata={"axes": "CYX"})
+    # (pixels reproduce exactly; bytes differ — tifffile injects a random OME-UUID.)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         _info, png = t4_lambda_thumbnail.handle_image(
