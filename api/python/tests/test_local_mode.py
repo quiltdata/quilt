@@ -914,6 +914,8 @@ def test_preview_lambda_subprocess_serves_curated_fixtures(tmp_path, fixture_nam
     [
         ("jsonl", "jsonl", "text/csv"),
         ("parquet", "parquet", "text/csv"),
+        # AnnData single-cell matrix preview → Arrow IPC for Perspective.
+        ("h5ad", "h5ad", "application/vnd.apache.arrow.file"),
     ],
 )
 def test_tabular_preview_lambda_subprocess_serves_curated_fixtures(
@@ -969,7 +971,9 @@ def test_tabular_preview_lambda_subprocess_serves_curated_fixtures(
         resp = requests.get(
             f"http://127.0.0.1:{lambda_port}/lambda",
             params={"url": file_url, "input": input_type, "size": "small"},
-            timeout=10,
+            # h5ad cold-starts scanpy/anndata in the lambda subprocess on the
+            # first call, which can take far longer than the tabular formats.
+            timeout=60 if input_type == "h5ad" else 10,
         )
 
         assert resp.status_code == 200
