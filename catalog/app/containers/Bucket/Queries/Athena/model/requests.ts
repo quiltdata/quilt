@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Log from 'utils/Logging'
+import noop from 'utils/noop'
 
 import * as storage from './storage'
 import * as Model from './utils'
@@ -66,37 +67,31 @@ async function fetchWorkgroups(
   isMounted: () => boolean,
 ): Promise<Model.List<Workgroup>> {
   try {
-    let list: Workgroup[] = []
-    let next: string | undefined
+    const list: Workgroup[] = []
+    let token: string | undefined
     // Drain to exhaustion. Pages may contain only workgroups the caller can't
-    // getWorkGroup on (filtered to null), and accounts with >50 workgroups in
-    // a region can push the caller's accessible workgroup to a later page.
-    // Returning a complete list lets consumers settle the selection without a
-    // separate Load-more round-trip. Check `isMounted` between iterations so
-    // a navigation during the drain stops issuing requests.
+    // getWorkGroup on (filtered to null); accounts with >50 workgroups in a
+    // region can push the caller's accessible workgroup to a later page.
+    // `isMounted` between iterations stops the drain on navigation.
     do {
-      if (!isMounted()) return { list, next }
+      if (!isMounted()) return { list }
       const out = await athena
-        .listWorkGroups({ NextToken: next, MaxResults: MAX_RESULTS_PER_PAGE })
+        .listWorkGroups({ NextToken: token, MaxResults: MAX_RESULTS_PER_PAGE })
         .promise()
       const parsed = (out.WorkGroups || []).map(({ Name }) => Name || '').filter(Boolean)
       const available = (
         await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
       ).filter((w): w is Workgroup => w !== null)
-      list = list.concat(available)
-      next = out.NextToken
-    } while (next)
-    return { list: list.sort(), next }
+      list.push(...available)
+      token = out.NextToken
+    } while (token)
+    list.sort()
+    return { list }
   } catch (e) {
     Log.error(e)
     throw e
   }
 }
-
-// Producers drain to exhaustion, so the returned list is complete and
-// `loadMore` has nothing to do — wire a no-op to preserve the DataController
-// shape that consumers expect.
-const noop = () => {}
 
 export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
@@ -490,25 +485,26 @@ async function fetchDatabases(
   isMounted: () => boolean,
 ): Promise<Model.List<Database>> {
   try {
-    let list: Database[] = []
-    let next: string | undefined
+    const list: Database[] = []
+    let token: string | undefined
     // Drain to exhaustion. ListDatabases has no per-item access filter, but
     // the picker dropdown wants the full set; for federated catalogs (one DB
     // per bucket) accounts with many buckets accumulate across pages.
     do {
-      if (!isMounted()) return { list, next }
+      if (!isMounted()) return { list }
       const out = await athena
         .listDatabases({
           CatalogName: catalogName,
-          NextToken: next,
+          NextToken: token,
           MaxResults: MAX_RESULTS_PER_PAGE,
         })
         .promise()
       const names = (out.DatabaseList || []).map(({ Name }) => Name || 'Unknown')
-      list = list.concat(names)
-      next = out.NextToken
-    } while (next)
-    return { list: list.sort(), next }
+      list.push(...names)
+      token = out.NextToken
+    } while (token)
+    list.sort()
+    return { list }
   } catch (e) {
     Sentry.captureException(e)
     throw e
@@ -613,15 +609,14 @@ async function fetchCatalogNames(
   isMounted: () => boolean,
 ): Promise<Model.List<CatalogName>> {
   try {
-    let list: CatalogName[] = []
-    let next: string | undefined
-    // Drain to exhaustion — same shape as fetchWorkgroups. Catalog lists
-    // are usually small, and `ListDataCatalogs` defaults to 10 per page
-    // (max 50), so the explicit cap is worth setting.
+    const list: CatalogName[] = []
+    let token: string | undefined
+    // Drain to exhaustion — same shape as fetchWorkgroups. `ListDataCatalogs`
+    // defaults to 10 per page (max 50), so the explicit cap matters here.
     do {
-      if (!isMounted()) return { list, next }
+      if (!isMounted()) return { list }
       const out = await athena
-        .listDataCatalogs({ NextToken: next, MaxResults: MAX_RESULTS_PER_PAGE })
+        .listDataCatalogs({ NextToken: token, MaxResults: MAX_RESULTS_PER_PAGE })
         .promise()
       const parsed = (out.DataCatalogsSummary || [])
         .map(({ CatalogName }) => CatalogName || '')
@@ -629,10 +624,11 @@ async function fetchCatalogNames(
       const available = (
         await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
       ).filter((n): n is CatalogName => n !== null)
-      list = list.concat(available)
-      next = out.NextToken
-    } while (next)
-    return { list: list.sort(), next }
+      list.push(...available)
+      token = out.NextToken
+    } while (token)
+    list.sort()
+    return { list }
   } catch (e) {
     Log.error(e)
     throw e

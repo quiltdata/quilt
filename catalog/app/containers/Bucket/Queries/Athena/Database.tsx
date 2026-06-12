@@ -55,10 +55,6 @@ function SelectError({ className, error }: SelectErrorProps) {
 
 const EMPTY = '__empty__'
 
-interface Response {
-  list: string[]
-}
-
 const useSelectStyles = M.makeStyles({
   root: {
     width: '100%',
@@ -67,7 +63,7 @@ const useSelectStyles = M.makeStyles({
 
 interface SelectProps {
   className?: string
-  data: Response
+  data: { list: string[] }
   label: string
   onChange: (value: string) => void
   value: string | null
