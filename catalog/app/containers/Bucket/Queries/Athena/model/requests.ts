@@ -519,8 +519,8 @@ export function useDatabases(
       setData(catalogName || undefined)
       return
     }
-    let mounted = true
     if (!athena) return
+    let mounted = true
     setData(Model.Loading)
     fetchDatabases(athena, catalogName, () => mounted)
       .then((d) => mounted && setData(d))
@@ -643,6 +643,9 @@ export function useCatalogNames(
     }
     if (!athena) return
     let mounted = true
+    // Clear the prior workgroup's catalog list so a fast user-switch doesn't
+    // momentarily show / pick a catalog that belongs to the old workgroup.
+    setData(Model.Loading)
     fetchCatalogNames(athena, workgroup, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))

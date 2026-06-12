@@ -125,13 +125,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
         })),
       )
-      const { result, waitForValueToChange, unmount } = renderHook(() =>
+      const { result, waitFor, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
       try {
-        await waitForValueToChange(() => result.current, { timeout: 5000 })
-        expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] })
+        await waitFor(() =>
+          expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] }),
+        )
       } finally {
         unmount()
       }
@@ -143,12 +144,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [],
         })),
       )
-      const { result, waitForValueToChange, unmount } = renderHook(() =>
+      const { result, waitFor, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current, { timeout: 5000 })
-      expect(result.current.data).toMatchObject({ list: [] })
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
     })
 
@@ -159,12 +159,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
         })),
       )
-      const { result, waitForValueToChange, unmount } = renderHook(() =>
+      const { result, waitFor, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current, { timeout: 5000 })
-      expect(result.current.data).toMatchObject({ list: [] })
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
     })
 
@@ -175,12 +174,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           Invalid: [],
         })),
       )
-      const { result, waitForValueToChange, unmount } = renderHook(() =>
+      const { result, waitFor, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current, { timeout: 5000 })
-      expect(result.current.data).toMatchObject({ list: [] })
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
     })
 
@@ -193,12 +191,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       getDataCatalog.mockImplementation(
         reqThrowWith(new AWSError('AccessDeniedException')),
       )
-      const { result, waitForValueToChange, unmount } = renderHook(() =>
+      const { result, waitFor, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current, { timeout: 5000 })
-      expect(result.current.data).toMatchObject({ list: [] })
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
     })
 
@@ -209,12 +206,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       getDataCatalog.mockImplementation(reqThrow)
-      const { result, waitForValueToChange, unmount } = renderHook(() =>
+      const { result, waitFor, unmount } = renderHook(() =>
         requests.useCatalogNames('any'),
       )
 
-      await waitForValueToChange(() => result.current, { timeout: 5000 })
-      expect(result.current.data).toMatchObject({ list: [] })
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
     })
 
@@ -258,6 +254,43 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       })
       expect(result.current.data).toBe(error)
       unmount()
+    })
+
+    it('drains access-denied pages until an accessible catalog appears', async () => {
+      const pages: Record<string, A.ListDataCatalogsOutput> = {
+        '': {
+          DataCatalogsSummary: [{ CatalogName: 'denied-1' }],
+          NextToken: 't2',
+        },
+        t2: {
+          DataCatalogsSummary: [{ CatalogName: 'denied-2' }],
+          NextToken: 't3',
+        },
+        t3: { DataCatalogsSummary: [{ CatalogName: 'allowed' }] },
+      }
+      listDataCatalogs.mockImplementation(
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(
+          ({ NextToken }) => pages[NextToken ?? ''],
+        ),
+      )
+      getDataCatalog.mockImplementation(({ Name }: A.GetDataCatalogInput) => ({
+        promise: () =>
+          Name === 'allowed'
+            ? Promise.resolve<A.GetDataCatalogOutput>({
+                DataCatalog: { Name, Type: 'any' },
+              })
+            : Promise.reject(new AWSError('AccessDeniedException')),
+      }))
+
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useCatalogNames('any'),
+        )
+        await waitFor(() =>
+          expect(result.current.data).toMatchObject({ list: ['allowed'] }),
+        )
+        unmount()
+      })
     })
   })
 
