@@ -1,3 +1,4 @@
+import collections
 import json
 import os
 import random
@@ -38,7 +39,10 @@ def bulk(context, es, data: bytes):
     try:
         resp = es.bulk(
             data,
-            filter_path="errors",
+            # Return per-item errors so failures can be diagnosed. Successful
+            # items have no `error` field, so they're pruned from the response,
+            # keeping the (common) no-error case compact.
+            filter_path="errors,items.*.error",
             # wait as much as possible because it's better die trying than just die
             # leave a second to avoid lambda timeout
             request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
@@ -65,9 +69,21 @@ def bulk(context, es, data: bytes):
         logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
         time.sleep(time_to_sleep)
     if resp["errors"]:
-        # TODO: log errors from items.*.error?
+        # Failures are usually systematic (e.g. a single bad mapping affecting
+        # many documents), so aggregate by error to bound the log/message size.
+        failures = collections.Counter(
+            (op, error.get("type"), error.get("reason"))
+            for item in resp.get("items", [])
+            for op, details in item.items()
+            if (error := details.get("error"))
+        )
+        for (op, error_type, reason), count in failures.items():
+            logger.error("Bulk %s failed (x%s): %s: %s", op, count, error_type, reason)
         # TODO: ignore index_not_found_exception for delete operations?
-        raise BulkDocumentError
+        raise BulkDocumentError(
+            f"{sum(failures.values())} document(s) failed to index "
+            f"({len(failures)} distinct error(s))"
+        )
 
 
 def handler(event, context):

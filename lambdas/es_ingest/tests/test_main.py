@@ -1,4 +1,5 @@
 import json
+import logging
 
 import elasticsearch
 import pytest
@@ -7,17 +8,43 @@ from botocore.stub import Stubber
 import t4_lambda_es_ingest
 
 
-def test_bulk_error(mocker):
-    mock_bulk = mocker.patch("elasticsearch.Elasticsearch.bulk", return_value={"errors": True})
+def test_bulk_ok(mocker):
+    mock_bulk = mocker.patch("elasticsearch.Elasticsearch.bulk", return_value={"errors": False})
     mock_context = mocker.MagicMock()
-    with pytest.raises(t4_lambda_es_ingest.BulkDocumentError):
+
+    t4_lambda_es_ingest.bulk(mock_context, t4_lambda_es_ingest.es, b"data")
+
+    mock_bulk.assert_called_once_with(
+        b"data",
+        filter_path="errors,items.*.error",
+        request_timeout=mocker.ANY,
+    )
+
+
+def test_bulk_error(mocker, caplog):
+    mock_bulk = mocker.patch(
+        "elasticsearch.Elasticsearch.bulk",
+        return_value={
+            "errors": True,
+            "items": [
+                {"index": {"error": {"type": "mapper_parsing_exception", "reason": "failed to parse field [x]"}}},
+                {"delete": {"error": {"type": "index_not_found_exception", "reason": "no such index [y]"}}},
+            ],
+        },
+    )
+    mock_context = mocker.MagicMock()
+    with caplog.at_level(logging.ERROR), pytest.raises(t4_lambda_es_ingest.BulkDocumentError) as exc_info:
         t4_lambda_es_ingest.bulk(mock_context, t4_lambda_es_ingest.es, b"data")
 
     mock_bulk.assert_called_once_with(
         b"data",
-        filter_path=mocker.ANY,
+        filter_path="errors,items.*.error",
         request_timeout=mocker.ANY,
     )
+    assert "mapper_parsing_exception" in caplog.text
+    assert "failed to parse field [x]" in caplog.text
+    assert "index_not_found_exception" in caplog.text
+    assert "2 document(s) failed to index" in str(exc_info.value)
 
 
 def test_bulk_too_many_requests(mocker):
