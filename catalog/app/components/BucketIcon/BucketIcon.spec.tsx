@@ -10,10 +10,18 @@ const darkTheme = createMuiTheme({ palette: { type: 'dark' } })
 describe('components/BucketIcon', () => {
   afterEach(cleanup)
 
-  it('should render the inline stub when no src', () => {
-    const { container } = render(<BucketIcon alt="No src" src="" />)
-    expect(container.querySelector('img')).toBeNull()
-    expect(container.querySelector('svg')).not.toBeNull()
+  describe('should render the inline stub', () => {
+    it("when src is ''", () => {
+      const { container } = render(<BucketIcon src="" />)
+      expect(container.querySelector('img')).toBeNull()
+      expect(container.querySelector('svg')).not.toBeNull()
+    })
+
+    it('when src is null', () => {
+      const { container } = render(<BucketIcon src={null} />)
+      expect(container.querySelector('img')).toBeNull()
+      expect(container.querySelector('svg')).not.toBeNull()
+    })
   })
 
   it('should mark the stub with the contrast class when the theme is dark', () => {

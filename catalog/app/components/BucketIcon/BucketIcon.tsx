@@ -40,7 +40,7 @@ interface BucketIconProps {
     custom?: string
     stub?: string
   }
-  src?: string
+  src: string | null
   title?: string
 }
 

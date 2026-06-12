@@ -66,7 +66,7 @@ function BucketAddDialog({ open, onClose, buckets, addBucket }: BucketAddDialogP
             {ordered.map((bucket) => (
               <M.ListItem key={bucket.name} button onClick={() => handleAdd(bucket)}>
                 <M.ListItemAvatar style={{ minWidth: 44 }}>
-                  <BucketIcon src={bucket.iconUrl || undefined} />
+                  <BucketIcon src={bucket.iconUrl} />
                 </M.ListItemAvatar>
                 <M.ListItemText>
                   s3://{bucket.name}{' '}
@@ -247,7 +247,7 @@ export default function BucketsPermissions({
             onClick={(event) => openPermissionMenu(event, perm)}
           >
             <M.ListItemAvatar style={{ minWidth: 44 }}>
-              <BucketIcon src={perm.bucket.iconUrl || undefined} />
+              <BucketIcon src={perm.bucket.iconUrl} />
             </M.ListItemAvatar>
             <M.ListItemText
               primary={

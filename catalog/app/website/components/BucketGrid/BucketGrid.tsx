@@ -139,7 +139,7 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
           tabIndex={-1}
           to={urls.bucketRoot(bucket.name)}
         >
-          <BucketIcon src={bucket.iconUrl || undefined} />
+          <BucketIcon src={bucket.iconUrl} />
         </Link>
         <div className={classes.headerText}>
           <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
