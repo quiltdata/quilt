@@ -13,10 +13,13 @@ import pyarrow.parquet as pq
 from py_w3c.validators.html.validator import HTMLValidator
 
 from t4_lambda_shared.preview import (
+    FCS_GRID_PANEL_SIZE,
+    FCS_GRID_SPACING,
     FCS_MAX_PANELS,
     FCS_PANEL_COLUMNS,
     FCS_SCATTER_LIMIT,
     FCS_SCATTER_RANDOM_SEED,
+    FCS_SINGLE_PANEL_HEIGHT,
     _axis_label,
     _build_fcs_scatter_spec,
     _extract_fcs_channel_names,
@@ -279,6 +282,23 @@ class TestPreview(TestCase):
         assert titles[0] == 'Cells — FSC-A vs SSC-A'
         assert titles[1] == 'Singlets — FSC-H vs FSC-A'
         assert len(spec['concat']) <= 6  # FCS_MAX_PANELS
+        # explicit square cells (container width is ignored inside a concat)
+        assert spec['columns'] == FCS_PANEL_COLUMNS
+        assert spec['spacing'] == FCS_GRID_SPACING
+        for panel in spec['concat']:
+            assert panel['width'] == FCS_GRID_PANEL_SIZE
+            assert panel['height'] == FCS_GRID_PANEL_SIZE
+
+    def test_fcs_scatter_spec_single_panel_is_responsive(self):
+        # A lone panel stays responsive (container width) and keeps the brush.
+        data = pandas.DataFrame({'FSC-A': range(10), 'SSC-A': range(10)})
+
+        spec = _build_fcs_scatter_spec(data)
+
+        assert 'concat' not in spec
+        assert spec['width'] == 'container'
+        assert spec['height'] == FCS_SINGLE_PANEL_HEIGHT
+        assert spec['params'][0]['name'] == 'brush'
 
     def test_fcs_scatter_spec_uses_marker_labels(self):
         # $PnS markers should label axes as "<marker> (<channel>)".

@@ -306,6 +306,10 @@ FCS_GATING_PANELS = [
 ]
 FCS_MAX_PANELS = 6
 FCS_PANEL_COLUMNS = 2
+# explicit px: Vega-Lite ignores `container` width inside a concat
+FCS_GRID_PANEL_SIZE = 300
+FCS_GRID_SPACING = 48
+FCS_SINGLE_PANEL_HEIGHT = 360
 
 
 def _select_fcs_panels(columns):
@@ -345,8 +349,6 @@ def _build_fcs_panel(data, x_axis, y_axis, label, channel_markers, *, limit):
 
     return {
         'title': {'text': title, 'subtitle': f'{len(values)} events' + (' (downsampled)' if downsampled else '')},
-        'width': 'container',
-        'height': 260,
         'data': {'values': values},
         'mark': {'type': 'point', 'filled': True, 'size': 14},
         'encoding': {
@@ -381,20 +383,26 @@ def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT, channel_markers=No
         'config': {'view': {'stroke': 'transparent'}},
     }
 
-    # A single panel keeps the brush-select interaction; multiple panels become
-    # a small-multiples gating grid (concat is more robust than a faceted brush).
+    # A single panel keeps the brush-select interaction and stays responsive.
     if len(sub_specs) == 1:
         spec = sub_specs[0]
+        spec['width'] = 'container'
+        spec['height'] = FCS_SINGLE_PANEL_HEIGHT
         spec['params'] = [{'name': 'brush', 'select': 'interval'}]
         enc = spec['encoding']
         enc['color'] = {'condition': {'param': 'brush', 'value': '#0f766e'}, 'value': '#94a3b8'}
         enc['opacity'] = {'condition': {'param': 'brush', 'value': 0.85}, 'value': 0.18}
-        spec['height'] = 320
         return {**base, **spec}
+
+    # Multiple panels become a small-multiples gating grid with explicit cell sizes.
+    for spec in sub_specs:
+        spec['width'] = FCS_GRID_PANEL_SIZE
+        spec['height'] = FCS_GRID_PANEL_SIZE
 
     return {
         **base,
         'columns': FCS_PANEL_COLUMNS,
+        'spacing': FCS_GRID_SPACING,
         'concat': sub_specs,
         'resolve': {'scale': {'x': 'independent', 'y': 'independent'}},
     }
