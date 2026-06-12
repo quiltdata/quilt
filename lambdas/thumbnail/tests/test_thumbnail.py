@@ -8,6 +8,7 @@ import bioio
 import bioio_base
 import bioio_czi
 import bioio_imageio
+import dask.array as da
 import numpy as np
 import pytest
 import responses
@@ -118,6 +119,13 @@ def test_403():
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
         ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [1, 6, 40, 152, 126], [256, 205], None, 200),
+        # Content pin for the normalized montage path through decode: a 3-channel
+        # float OME-TIFF with a constant (blank) channel and a NaN patch. Catches
+        # a bioio/tifffile NaN-mangling regression that the warning-only
+        # end-to-end test would miss. See the fixture's regen recipe in
+        # test_handle_image_blank_and_nan_channels_through_public_path.
+        ("blank-and-nan-channels.ome.tiff", {"size": "w256h256"}, "blank-and-nan-channels-256.png",
+         [1, 3, 1, 64, 64], [212, 74], None, 200),
         # Unreadable image -> 500
         ("empty.png", {"size": "w32h32"}, None, None, None, None, 500),
         # Unsupported size -> 400
@@ -438,6 +446,20 @@ def test_rescale_float_to_uint8_sparse():
     assert out[1, 0] == 0
 
 
+def test_rescale_float_to_uint8_sparse_with_nan():
+    # The _finite_clip_range interaction pinned at this call site: collapsed
+    # percentiles AND a NaN present. The min/max fallback must range over the
+    # finite values — arr.min()/arr.max() would be NaN and blank everything,
+    # and the hi == lo guard wouldn't catch it (NaN != NaN).
+    arr = np.zeros((200, 200), dtype=np.float32)
+    arr[0, :3] = 1.0      # sparse hot pixels -> finite max
+    arr[0, 4] = np.nan    # masked pixel
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert (out[0, :3] == 255).all()  # hot pixels visible (finite max, not NaN)
+    assert out[0, 4] == 0             # NaN -> black
+    assert out[1, 0] == 0
+
+
 def test_rescale_float_to_uint8_clips_outlier_pixels():
     # A few hot/dead pixels must not compress the rest of the range: the
     # bulk must keep (nearly) all of its distinct levels, not collapse
@@ -558,6 +580,131 @@ def test_norm_img_path_saves_16bit_png(data_dir):
         path=str(data_dir / "cell.tiff"), size=(640, 480), thumbnail_format="PNG",
     )
     assert Image.open(BytesIO(data)).mode == "I;16"
+
+
+def _norm(arr, chunks=-1):
+    return np.asarray(t4_lambda_thumbnail.norm_img(da.from_array(arr, chunks=chunks)))
+
+
+def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
+    # End-to-end reachability: a real multi-channel image can carry a blank
+    # (constant) channel and a region of masked/invalid float pixels (NaN).
+    # Both reach norm_img through the montage path when decoded by bioio. The
+    # previous code hit 0/0 and an undefined int32(NaN) cast there, emitting
+    # "invalid value encountered" RuntimeWarnings and platform-dependent
+    # output; the fix renders them deterministically. Pins that such a file
+    # flows through the public decode path cleanly.
+    #
+    # blank-and-nan-channels.ome.tiff is a 3-channel float32 OME-TIFF: ch0 a
+    # normal gradient, ch1 constant 0.5 (blank channel), ch2 the gradient with
+    # a 20x20 NaN patch. Regenerate with:
+    #   grad = np.linspace(0, 1, 64 * 64, dtype=np.float32).reshape(64, 64)
+    #   ch2 = grad.copy(); ch2[20:40, 20:40] = np.nan
+    #   data = np.stack([grad, np.full((64, 64), 0.5, np.float32), ch2])
+    #   tifffile.imwrite(path, data, metadata={"axes": "CYX"})
+    # (pixels reproduce exactly; bytes differ — tifffile injects a random OME-UUID.)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _info, png = t4_lambda_thumbnail.handle_image(
+            path=str(data_dir / "blank-and-nan-channels.ome.tiff"),
+            size=(256, 256), thumbnail_format="PNG")
+
+    invalid = [str(w.message) for w in caught if "invalid value encountered" in str(w.message)]
+    assert not invalid, f"normalization emitted non-finite warnings: {invalid}"
+    assert Image.open(BytesIO(png)).mode == "I;16"
+
+
+def test_norm_img_normalizes_to_full_16bit_range():
+    # A gradient stretches to the full I;16 range, as int32 (PIL mode I).
+    out = _norm(np.linspace(0, 1000, 64 * 64).reshape(64, 64))
+    assert out.dtype == np.int32
+    assert out.min() == 0
+    assert out.max() == np.iinfo(np.uint16).max
+
+
+@pytest.mark.parametrize("chunks", [-1, (16, 16)])
+def test_norm_img_constant_plane_renders_black_without_warning(chunks):
+    # A constant plane has no contrast to stretch. It must render black
+    # deterministically, not divide 0/0 -> NaN -> a platform-dependent int32
+    # cast (the previous bug). Tested for a single chunk and, since the prior
+    # code raised on a multi-chunk 2-D array via da.percentile, multiple chunks.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any warning (e.g. the 0/0 RuntimeWarning) fails
+        out = _norm(np.full((40, 40), 5000, np.uint16), chunks=chunks)
+    assert out.dtype == np.int32
+    assert np.array_equal(out, np.zeros((40, 40), np.int32))
+
+
+def test_norm_img_nan_renders_black_per_pixel():
+    # A single NaN used to blank the whole tile (da.percentile returned NaN
+    # bounds). Now only the NaN pixels render black; finite pixels still
+    # contrast-stretch.
+    arr = np.linspace(0, 1, 64).reshape(8, 8).copy()
+    arr[0, 0] = np.nan
+    out = _norm(arr)
+    assert out[0, 0] == 0
+    assert out.max() == np.iinfo(np.uint16).max  # finite range still spans output
+
+
+def test_norm_img_all_non_finite_renders_black():
+    out = _norm(np.full((8, 8), np.nan))
+    assert np.array_equal(out, np.zeros((8, 8), np.int32))
+
+
+def test_norm_img_inf_saturates_to_range_ends():
+    arr = np.linspace(0, 1, 64).reshape(8, 8).copy()
+    arr[0, 0] = np.inf
+    arr[0, 1] = -np.inf
+    out = _norm(arr)
+    assert out[0, 0] == np.iinfo(np.uint16).max  # +inf saturates to white
+    assert out[0, 1] == 0                          # -inf saturates to black
+
+
+def test_norm_img_multichunk_2d_does_not_raise():
+    # Defensive guard: da.percentile raises NotImplementedError on a
+    # multi-chunk 2-D array on current dask, so the previous norm_img only
+    # worked because bioio happens to emit each YX plane as a single chunk
+    # (verified even for a mosaic overview CZI and a 6184x7712 pyramid). That
+    # isn't a documented contract, so pin that norm_img doesn't depend on it:
+    # normalizing on the computed plane is chunking-agnostic.
+    rng = np.random.default_rng(0)
+    arr = rng.integers(0, 65536, (64, 64)).astype(np.uint16)
+    multi = _norm(arr, chunks=(16, 16))
+    single = _norm(arr, chunks=-1)
+    assert np.array_equal(multi, single)
+
+
+def test_norm_img_sparse_stays_visible():
+    # Almost-constant data (a few bright pixels on a flat background, e.g. a
+    # label mask): percentiles collapse, so the shared min/max fallback keeps
+    # the bright pixels visible instead of clipping the whole tile flat.
+    arr = np.full((100, 100), 100, np.uint16)
+    arr[0, 0] = 60000
+    out = _norm(arr)
+    assert out.max() == np.iinfo(np.uint16).max
+    assert out.min() == 0
+
+
+def test_norm_img_sparse_plane_with_nan_ranges_over_finite_values():
+    # The exact interaction _finite_clip_range exists to get right: percentiles
+    # collapse (almost all one value) AND non-finite pixels are present. The
+    # min/max fallback must range over the *finite* values — arr.min()/arr.max()
+    # would be NaN and blank the whole plane, and the hi == lo guard wouldn't
+    # catch it (NaN != NaN). Sized (200x200, one outlier) so the outlier sits
+    # above the 99.99th percentile, forcing the collapse + fallback.
+    arr = np.full((200, 200), 100.0)
+    arr[0, 0] = 60000.0   # lone bright outlier -> finite max
+    arr[0, 1] = np.nan    # masked pixel
+    out = _norm(arr)
+    assert out[0, 1] == 0                          # NaN -> black
+    assert out.max() == np.iinfo(np.uint16).max    # outlier visible: finite max, not NaN
+
+
+def test_norm_img_leaves_color_planes_unchanged():
+    # YXC / YXS planes are passed through untouched (normalization is for
+    # greyscale only).
+    arr = np.random.default_rng(0).integers(0, 256, (8, 8, 3)).astype(np.uint8)
+    assert np.array_equal(_norm(arr), arr)
 
 
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
