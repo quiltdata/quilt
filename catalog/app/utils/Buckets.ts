@@ -48,11 +48,26 @@ const LOCAL_BUCKETS_QUERY = urql.gql`
 
 const EMPTY: Buckets = []
 
+// Cache the normalized array against the (referentially stable) urql result
+// object. normalizeLocalBuckets maps over the data, so calling it directly on
+// every render would return a fresh array each time and churn the identity of
+// every downstream consumer — notably useShouldSign -> useS3Signer, which would
+// then re-sign preview URLs on each render and send the PDF/pptx/video preview
+// loaders into an infinite refetch loop. urql hands back the same `data`
+// reference across renders, so a WeakMap keyed on it yields a stable result
+// without needing a hook (which can't sit after the Paused try/catch below).
+// PRODUCT mode already returns the stable `data.buckets` and never hits this.
+const localBucketsCache = new WeakMap<LocalBucketsQuery, Buckets>()
+
 function normalizeLocalBuckets(data: LocalBucketsQuery): Buckets {
-  return data.buckets.map(({ __typename: _typename, ...bucket }) => ({
+  const cached = localBucketsCache.get(data)
+  if (cached) return cached
+  const normalized = data.buckets.map(({ __typename: _typename, ...bucket }) => ({
     __typename: 'Bucket' as const,
     ...bucket,
   }))
+  localBucketsCache.set(data, normalized)
+  return normalized
 }
 
 // always suspended
