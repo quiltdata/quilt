@@ -446,6 +446,20 @@ def test_rescale_float_to_uint8_sparse():
     assert out[1, 0] == 0
 
 
+def test_rescale_float_to_uint8_sparse_with_nan():
+    # The _finite_clip_range interaction pinned at this call site: collapsed
+    # percentiles AND a NaN present. The min/max fallback must range over the
+    # finite values — arr.min()/arr.max() would be NaN and blank everything,
+    # and the hi == lo guard wouldn't catch it (NaN != NaN).
+    arr = np.zeros((200, 200), dtype=np.float32)
+    arr[0, :3] = 1.0      # sparse hot pixels -> finite max
+    arr[0, 4] = np.nan    # masked pixel
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert (out[0, :3] == 255).all()  # hot pixels visible (finite max, not NaN)
+    assert out[0, 4] == 0             # NaN -> black
+    assert out[1, 0] == 0
+
+
 def test_rescale_float_to_uint8_clips_outlier_pixels():
     # A few hot/dead pixels must not compress the rest of the range: the
     # bulk must keep (nearly) all of its distinct levels, not collapse
