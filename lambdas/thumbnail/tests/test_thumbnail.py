@@ -565,27 +565,27 @@ def _norm(arr, chunks=-1):
     return np.asarray(t4_lambda_thumbnail.norm_img(da.from_array(arr, chunks=chunks)))
 
 
-def test_handle_image_blank_and_nan_channels_through_public_path(tmp_path):
+def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
     # End-to-end reachability: a real multi-channel image can carry a blank
     # (constant) channel and a region of masked/invalid float pixels (NaN).
     # Both reach norm_img through the montage path when decoded by bioio. The
     # previous code hit 0/0 and an undefined int32(NaN) cast there, emitting
     # "invalid value encountered" RuntimeWarnings and platform-dependent
-    # output; the fix renders them deterministically. This pins that such a
-    # file flows through the public decode path cleanly (no synthetic dask
-    # array — a real file read by bioio).
-    import tifffile
-
-    data = np.random.default_rng(0).random((3, 64, 64)).astype(np.float32)
-    data[1] = 0.5                    # blank/constant channel
-    data[2, 20:40, 20:40] = np.nan   # masked/invalid region
-    path = tmp_path / "blank_and_nan.ome.tiff"
-    tifffile.imwrite(path, data, metadata={"axes": "CYX"})
-
+    # output; the fix renders them deterministically. Pins that such a file
+    # flows through the public decode path cleanly.
+    #
+    # blank-and-nan-channels.ome.tiff is a 3-channel float32 OME-TIFF: ch0 a
+    # normal gradient, ch1 constant 0.5 (blank channel), ch2 the gradient with
+    # a 20x20 NaN patch. Regenerate with:
+    #   grad = np.linspace(0, 1, 64 * 64, dtype=np.float32).reshape(64, 64)
+    #   ch2 = grad.copy(); ch2[20:40, 20:40] = np.nan
+    #   data = np.stack([grad, np.full((64, 64), 0.5, np.float32), ch2])
+    #   tifffile.imwrite(path, data, metadata={"axes": "CYX"})
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         _info, png = t4_lambda_thumbnail.handle_image(
-            path=str(path), size=(256, 256), thumbnail_format="PNG")
+            path=str(data_dir / "blank-and-nan-channels.ome.tiff"),
+            size=(256, 256), thumbnail_format="PNG")
 
     invalid = [str(w.message) for w in caught if "invalid value encountered" in str(w.message)]
     assert not invalid, f"normalization emitted non-finite warnings: {invalid}"

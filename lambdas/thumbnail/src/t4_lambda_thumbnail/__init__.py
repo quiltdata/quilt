@@ -187,7 +187,9 @@ def norm_img(img: da.Array) -> da.Array:
     arr = np.asarray(img).astype(np.float64)
     imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
 
-    finite = arr if np.isfinite(arr).all() else arr[np.isfinite(arr)]
+    mask = np.isfinite(arr)
+    finite = arr if mask.all() else arr[mask]
+    del mask
     if not finite.size:
         # No finite values to range over; render black (as the float path does).
         return da.from_array(np.zeros(arr.shape, np.int32))
@@ -199,9 +201,11 @@ def norm_img(img: da.Array) -> da.Array:
         return da.from_array(np.zeros(arr.shape, np.int32))
 
     # (clip(arr, lo, hi) - lo) / (hi - lo) * imax, in this order, so the output
-    # is bit-identical to the previous implementation for finite input: after
-    # clipping, the plane's min is lo and its max is hi. +/-inf saturate to the
-    # range ends (clip pins them to hi/lo); NaN renders black.
+    # is bit-identical to the previous implementation on this branch (a finite
+    # plane the old code rendered well-definedly): after clipping, the plane's
+    # min is lo and its max is hi. (The sparse min/max fallback above newly
+    # rescales near-constant planes the old 0/0 left black.) +/-inf saturate to
+    # the range ends (clip pins them to hi/lo); NaN renders black.
     np.clip(arr, lo, hi, out=arr)
     arr -= lo
     arr /= hi - lo
