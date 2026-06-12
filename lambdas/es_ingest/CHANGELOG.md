@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Log Elasticsearch bulk indexing errors ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Added] Log Elasticsearch bulk indexing errors ([#4975](https://github.com/quiltdata/quilt/pull/4975))
 - [Changed] Upgrade to Python 3.13 ([#4656](https://github.com/quiltdata/quilt/pull/4656))
 - [Changed] Switch to EventBridge S3 events ([#4471](https://github.com/quiltdata/quilt/pull/4471))
 - [Added] Bootstrap the change log ([#4422](https://github.com/quiltdata/quilt/pull/4422))
