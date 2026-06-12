@@ -50,6 +50,23 @@ def test_bulk_error(mocker, caplog):
     assert "3 document(s) failed to index (2 distinct error(s))" in str(exc_info.value)
 
 
+def test_bulk_error_without_details(mocker, caplog):
+    # `errors` set but no per-item error details: still raise, and log the raw
+    # response so the failure isn't silently undiagnosable.
+    mock_bulk = mocker.patch("elasticsearch.Elasticsearch.bulk", return_value={"errors": True})
+    mock_context = mocker.MagicMock()
+    with caplog.at_level(logging.ERROR), pytest.raises(t4_lambda_es_ingest.BulkDocumentError) as exc_info:
+        t4_lambda_es_ingest.bulk(mock_context, t4_lambda_es_ingest.es, b"data")
+
+    mock_bulk.assert_called_once_with(
+        b"data",
+        filter_path="errors,items.*.error",
+        request_timeout=mocker.ANY,
+    )
+    assert "no per-item error details" in caplog.text
+    assert "no per-item error details" in str(exc_info.value)
+
+
 def test_bulk_too_many_requests(mocker):
     mocker.patch("elasticsearch.exceptions.TransportError.status_code", 429)
     mock_bulk = mocker.patch("elasticsearch.Elasticsearch.bulk", side_effect=elasticsearch.exceptions.TransportError)

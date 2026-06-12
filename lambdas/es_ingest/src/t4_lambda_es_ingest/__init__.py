@@ -78,13 +78,22 @@ def bulk(context, es, data: bytes):
             for op, details in item.items()
             if (error := details.get("error"))
         )
-        for (op, error_type, reason), count in failures.items():
-            logger.error("Bulk %s failed (x%s): %s: %s", op, count, error_type, reason)
+        if failures:
+            for (op, error_type, reason), count in failures.items():
+                logger.error("Bulk %s failed (x%s): %s: %s", op, count, error_type, reason)
+            detail = (
+                f"{failures.total()} document(s) failed to index "
+                f"({len(failures)} distinct error(s))"
+            )
+        else:
+            # `errors` is set but no per-item error details came back. This
+            # shouldn't happen for ES 6.8 (failed items always carry an `error`),
+            # but log the raw response so the failure stays diagnosable instead
+            # of raising with no detail.
+            logger.error("Bulk reported errors but no per-item error details were found: %s", resp)
+            detail = "bulk reported errors but no per-item error details were found"
         # TODO: ignore index_not_found_exception for delete operations?
-        raise BulkDocumentError(
-            f"{failures.total()} document(s) failed to index "
-            f"({len(failures)} distinct error(s))"
-        )
+        raise BulkDocumentError(detail)
 
 
 def handler(event, context):
