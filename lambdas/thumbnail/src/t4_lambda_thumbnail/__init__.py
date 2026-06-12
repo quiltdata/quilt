@@ -160,7 +160,9 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
 
     Shared by norm_img and _rescale_float_to_uint8 so their clip/fallback and
     non-finite filtering can't diverge (the same pixels must not render
-    differently by reader path).
+    differently by reader path). _rescale_uint16_to_uint8 deliberately keeps its
+    own copy of this logic (histogram percentile for bounded memory, no
+    non-finite values), so an edit to these constants must update it too.
     """
     # Compact to the finite values only when some are non-finite: the masked
     # copy would otherwise coexist with np.percentile's internal copy and double
@@ -170,7 +172,12 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     del mask
     if not finite.size:
         return None
-    lo, hi = map(float, np.percentile(finite, (0.01, 99.99)))
+    # When `finite` is the compacted copy (non-finite values were present) it is
+    # a private throwaway whose element order stops mattering after ranging, so
+    # let np.percentile partition it in place rather than copy again. When
+    # `finite is arr` (all finite) the order must survive for the caller's
+    # rescale, so don't overwrite.
+    lo, hi = map(float, np.percentile(finite, (0.01, 99.99), overwrite_input=finite is not arr))
     if hi == lo:
         lo, hi = float(finite.min()), float(finite.max())
     return lo, hi
@@ -196,35 +203,39 @@ def norm_img(img: da.Array) -> da.Array:
 
     # Normalize in NumPy on the computed plane. da.percentile supports only 1-D
     # input on current dask — it raises NotImplementedError on a multi-chunk 2-D
-    # array — and finite-aware percentiles need concrete values anyway. Cast to
-    # float64 up front, matching the previous math.
-    arr = np.asarray(img).astype(np.float64)
+    # array — and finite-aware percentiles need concrete values anyway. The dask
+    # compute result is a freshly-owned buffer, so a float64 source can skip the
+    # astype copy and the in-place math below stays safe; non-float64 sources
+    # still copy. float64 (not float32) matches the previous math bit-for-bit.
+    # da.from_array(..., name=False) skips hashing each plane's bytes to build a
+    # graph key — pointless here (each plane is unique and computed once).
+    arr = np.asarray(img).astype(np.float64, copy=False)
     imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
 
     rng = _finite_clip_range(arr)
     if rng is None:
         # No finite values to range over; render black (as the float path does).
-        return da.from_array(np.zeros(arr.shape, np.int32))
+        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
     lo, hi = rng
     if hi == lo:
         # Constant plane: no contrast to stretch. Render black deterministically
         # rather than dividing 0/0 -> NaN -> an int32 cast whose result is
         # platform- and numpy-version-dependent (the bug this replaces).
-        return da.from_array(np.zeros(arr.shape, np.int32))
+        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
 
     # (clip(arr, lo, hi) - lo) / (hi - lo) * imax, in this order, so the output
     # is bit-identical to the previous implementation on this branch (a finite
     # plane the old code rendered well-definedly): after clipping, the plane's
     # min is lo and its max is hi. (The sparse min/max fallback above newly
-    # rescales near-constant planes the old 0/0 left black.) +/-inf saturate to
-    # the range ends (clip pins them to hi/lo); NaN renders black.
+    # rescales near-constant planes the old 0/0 left undefined.) +/-inf saturate
+    # to the range ends (clip pins them to hi/lo); NaN renders black.
     np.clip(arr, lo, hi, out=arr)
     arr -= lo
     arr /= hi - lo
     arr *= imax
     arr[arr == imax] = imax - 1
     arr[np.isnan(arr)] = 0
-    return da.from_array(arr.astype(np.int32))
+    return da.from_array(arr.astype(np.int32), name=False)
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:

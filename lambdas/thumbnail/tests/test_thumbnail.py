@@ -119,6 +119,13 @@ def test_403():
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
         ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [1, 6, 40, 152, 126], [256, 205], None, 200),
+        # Content pin for the normalized montage path through decode: a 3-channel
+        # float OME-TIFF with a constant (blank) channel and a NaN patch. Catches
+        # a bioio/tifffile NaN-mangling regression that the warning-only
+        # end-to-end test would miss. See the fixture's regen recipe in
+        # test_handle_image_blank_and_nan_channels_through_public_path.
+        ("blank-and-nan-channels.ome.tiff", {"size": "w256h256"}, "blank-and-nan-channels-256.png",
+         [1, 3, 1, 64, 64], [212, 74], None, 200),
         # Unreadable image -> 500
         ("empty.png", {"size": "w32h32"}, None, None, None, None, 500),
         # Unsupported size -> 400
@@ -608,7 +615,7 @@ def test_norm_img_constant_plane_renders_black_without_warning(chunks):
     # cast (the previous bug). Tested for a single chunk and, since the prior
     # code raised on a multi-chunk 2-D array via da.percentile, multiple chunks.
     with warnings.catch_warnings():
-        warnings.simplefilter("error")  # any RuntimeWarning (e.g. 0/0) fails
+        warnings.simplefilter("error")  # any warning (e.g. the 0/0 RuntimeWarning) fails
         out = _norm(np.full((40, 40), 5000, np.uint16), chunks=chunks)
     assert out.dtype == np.int32
     assert np.array_equal(out, np.zeros((40, 40), np.int32))
@@ -662,6 +669,21 @@ def test_norm_img_sparse_stays_visible():
     out = _norm(arr)
     assert out.max() == np.iinfo(np.uint16).max
     assert out.min() == 0
+
+
+def test_norm_img_sparse_plane_with_nan_ranges_over_finite_values():
+    # The exact interaction _finite_clip_range exists to get right: percentiles
+    # collapse (almost all one value) AND non-finite pixels are present. The
+    # min/max fallback must range over the *finite* values — arr.min()/arr.max()
+    # would be NaN and blank the whole plane, and the hi == lo guard wouldn't
+    # catch it (NaN != NaN). Sized (200x200, one outlier) so the outlier sits
+    # above the 99.99th percentile, forcing the collapse + fallback.
+    arr = np.full((200, 200), 100.0)
+    arr[0, 0] = 60000.0   # lone bright outlier -> finite max
+    arr[0, 1] = np.nan    # masked pixel
+    out = _norm(arr)
+    assert out[0, 1] == 0                          # NaN -> black
+    assert out.max() == np.iinfo(np.uint16).max    # outlier visible: finite max, not NaN
 
 
 def test_norm_img_leaves_color_planes_unchanged():
