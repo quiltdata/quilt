@@ -18,7 +18,7 @@ import tempfile
 import urllib.parse
 from io import BytesIO
 from math import sqrt
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import bioio_base.exceptions
 import bioio_czi
@@ -146,7 +146,7 @@ def choose_min_grid(x: int) -> Tuple[int, int]:
     return min_grid_shape
 
 
-def _finite_clip_range(arr: np.ndarray) -> Optional[Tuple[float, float]]:
+def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     """
     Percentile clip bounds (0.01, 99.99) over the finite values of `arr`, with a
     fallback to their full min/max when the percentiles collapse — almost all
