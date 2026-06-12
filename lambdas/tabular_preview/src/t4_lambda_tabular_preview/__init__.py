@@ -441,15 +441,23 @@ def _preview_h5ad_once(url, compression, max_out_size):
         with urlopen(url, compression=compression, seekable=True) as raw_src:
             counter = _ReadCounter(raw_src)
             with h5py.File(counter, "r") as h5py_file:
-                adata = anndata.experimental.read_lazy(h5py_file)
-                n_obs, n_vars = adata.shape
+                # read_lazy gives the shape without loading the matrix, so we can
+                # skip a full read for large ones. It rejects some legacy layouts
+                # (e.g. flat raw.X/raw.var datasets), so fall back to a full read.
+                try:
+                    lazy = anndata.experimental.read_lazy(h5py_file)
+                    n_obs, n_vars = lazy.shape
+                except Exception:
+                    logger.warning("read_lazy failed; falling back to read_h5ad", exc_info=True)
+                    lazy = None
 
-                if meta_only := (n_obs * n_vars >= H5AD_META_ONLY_SIZE):
+                if meta_only := (lazy is not None and n_obs * n_vars >= H5AD_META_ONLY_SIZE):
                     logger.warning(
                         "Getting only meta for large matrix (%d x %d) to avoid OOM/timeout",
                         n_obs,
                         n_vars,
                     )
+                    adata = lazy
                     var_df = pandas.DataFrame(columns=list(adata.var.keys()))
                 else:
                     adata = anndata.read_h5ad(counter)

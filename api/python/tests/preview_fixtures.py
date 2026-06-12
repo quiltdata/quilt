@@ -41,9 +41,7 @@ CURATED_PREVIEW_FIXTURES = (
     PreviewFixture(
         "vcf", "structured", "preview/structured/example.vcf", REPO_ROOT / "lambdas/preview/test/data/example.vcf"
     ),
-    # AnnData single-cell matrix; previewed via the tabular-preview lambda
-    # (input=h5ad) as a Perspective matrix table, NOT the FCS/scientific path.
-    # First render may cold-start scanpy/anndata in the lambda subprocess.
+    # AnnData single-cell matrix; previewed via the tabular-preview lambda (input=h5ad).
     PreviewFixture(
         "h5ad", "structured", "preview/structured/test.h5ad", REPO_ROOT / "api/python/tests/data/test.h5ad"
     ),
