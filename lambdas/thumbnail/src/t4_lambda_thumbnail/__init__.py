@@ -242,6 +242,12 @@ def norm_img(img: da.Array) -> da.Array:
         return img
 
     arr = np.asarray(img)
+    if not arr.size:
+        # Degenerate empty plane: nothing to range over; render black. (The
+        # float path's _finite_clip_range returns None for the same effect;
+        # _uint16_clip_range has no such guard, so handle emptiness here for
+        # both branches.)
+        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
 
     # Unsigned <=16-bit planes (the common microscopy case): range via histogram
     # and rescale via a 65536-entry LUT, so peak memory is the plane plus its

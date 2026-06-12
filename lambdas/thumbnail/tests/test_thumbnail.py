@@ -605,6 +605,16 @@ def _norm_float_reference(arr):
     return a.astype(np.int32)
 
 
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.float32])
+def test_norm_img_empty_plane_renders_black(dtype):
+    # A degenerate empty plane must render black (an empty int32 array) rather
+    # than raise — the unsigned path's _uint16_clip_range has no emptiness guard
+    # (unlike the float path's _finite_clip_range), so norm_img guards up front.
+    out = _norm(np.empty((0, 5), dtype=dtype))
+    assert out.dtype == np.int32
+    assert out.shape == (0, 5)
+
+
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.dtype(">u2")])
 def test_norm_img_uint_path_bit_identical_to_float_reference(dtype):
     # The bounded unsigned path (histogram percentile + 65536-entry LUT) must
