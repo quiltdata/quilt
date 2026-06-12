@@ -8,6 +8,7 @@ import bioio
 import bioio_base
 import bioio_czi
 import bioio_imageio
+import dask.array as da
 import numpy as np
 import pytest
 import responses
@@ -558,6 +559,115 @@ def test_norm_img_path_saves_16bit_png(data_dir):
         path=str(data_dir / "cell.tiff"), size=(640, 480), thumbnail_format="PNG",
     )
     assert Image.open(BytesIO(data)).mode == "I;16"
+
+
+def _norm(arr, chunks=-1):
+    return np.asarray(t4_lambda_thumbnail.norm_img(da.from_array(arr, chunks=chunks)))
+
+
+def test_handle_image_blank_and_nan_channels_through_public_path(tmp_path):
+    # End-to-end reachability: a real multi-channel image can carry a blank
+    # (constant) channel and a region of masked/invalid float pixels (NaN).
+    # Both reach norm_img through the montage path when decoded by bioio. The
+    # previous code hit 0/0 and an undefined int32(NaN) cast there, emitting
+    # "invalid value encountered" RuntimeWarnings and platform-dependent
+    # output; the fix renders them deterministically. This pins that such a
+    # file flows through the public decode path cleanly (no synthetic dask
+    # array — a real file read by bioio).
+    import tifffile
+
+    data = np.random.default_rng(0).random((3, 64, 64)).astype(np.float32)
+    data[1] = 0.5                    # blank/constant channel
+    data[2, 20:40, 20:40] = np.nan   # masked/invalid region
+    path = tmp_path / "blank_and_nan.ome.tiff"
+    tifffile.imwrite(path, data, metadata={"axes": "CYX"})
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _info, png = t4_lambda_thumbnail.handle_image(
+            path=str(path), size=(256, 256), thumbnail_format="PNG")
+
+    invalid = [str(w.message) for w in caught if "invalid value encountered" in str(w.message)]
+    assert not invalid, f"normalization emitted non-finite warnings: {invalid}"
+    assert Image.open(BytesIO(png)).mode == "I;16"
+
+
+def test_norm_img_normalizes_to_full_16bit_range():
+    # A gradient stretches to the full I;16 range, as int32 (PIL mode I).
+    out = _norm(np.linspace(0, 1000, 64 * 64).reshape(64, 64))
+    assert out.dtype == np.int32
+    assert out.min() == 0
+    assert out.max() == np.iinfo(np.uint16).max
+
+
+@pytest.mark.parametrize("chunks", [-1, (16, 16)])
+def test_norm_img_constant_plane_renders_black_without_warning(chunks):
+    # A constant plane has no contrast to stretch. It must render black
+    # deterministically, not divide 0/0 -> NaN -> a platform-dependent int32
+    # cast (the previous bug). Tested for a single chunk and, since the prior
+    # code raised on a multi-chunk 2-D array via da.percentile, multiple chunks.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any RuntimeWarning (e.g. 0/0) fails
+        out = _norm(np.full((40, 40), 5000, np.uint16), chunks=chunks)
+    assert out.dtype == np.int32
+    assert np.array_equal(out, np.zeros((40, 40), np.int32))
+
+
+def test_norm_img_nan_renders_black_per_pixel():
+    # A single NaN used to blank the whole tile (da.percentile returned NaN
+    # bounds). Now only the NaN pixels render black; finite pixels still
+    # contrast-stretch.
+    arr = np.linspace(0, 1, 64).reshape(8, 8).copy()
+    arr[0, 0] = np.nan
+    out = _norm(arr)
+    assert out[0, 0] == 0
+    assert out.max() == np.iinfo(np.uint16).max  # finite range still spans output
+
+
+def test_norm_img_all_non_finite_renders_black():
+    out = _norm(np.full((8, 8), np.nan))
+    assert np.array_equal(out, np.zeros((8, 8), np.int32))
+
+
+def test_norm_img_inf_saturates_to_range_ends():
+    arr = np.linspace(0, 1, 64).reshape(8, 8).copy()
+    arr[0, 0] = np.inf
+    arr[0, 1] = -np.inf
+    out = _norm(arr)
+    assert out[0, 0] == np.iinfo(np.uint16).max  # +inf saturates to white
+    assert out[0, 1] == 0                          # -inf saturates to black
+
+
+def test_norm_img_multichunk_2d_does_not_raise():
+    # Defensive guard: da.percentile raises NotImplementedError on a
+    # multi-chunk 2-D array on current dask, so the previous norm_img only
+    # worked because bioio happens to emit each YX plane as a single chunk
+    # (verified even for a mosaic overview CZI and a 6184x7712 pyramid). That
+    # isn't a documented contract, so pin that norm_img doesn't depend on it:
+    # normalizing on the computed plane is chunking-agnostic.
+    rng = np.random.default_rng(0)
+    arr = rng.integers(0, 65536, (64, 64)).astype(np.uint16)
+    multi = _norm(arr, chunks=(16, 16))
+    single = _norm(arr, chunks=-1)
+    assert np.array_equal(multi, single)
+
+
+def test_norm_img_sparse_stays_visible():
+    # Almost-constant data (a few bright pixels on a flat background, e.g. a
+    # label mask): percentiles collapse, so the shared min/max fallback keeps
+    # the bright pixels visible instead of clipping the whole tile flat.
+    arr = np.full((100, 100), 100, np.uint16)
+    arr[0, 0] = 60000
+    out = _norm(arr)
+    assert out.max() == np.iinfo(np.uint16).max
+    assert out.min() == 0
+
+
+def test_norm_img_leaves_color_planes_unchanged():
+    # YXC / YXS planes are passed through untouched (normalization is for
+    # greyscale only).
+    arr = np.random.default_rng(0).integers(0, 256, (8, 8, 3)).astype(np.uint8)
+    assert np.array_equal(_norm(arr), arr)
 
 
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"

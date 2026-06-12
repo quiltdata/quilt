@@ -146,37 +146,69 @@ def choose_min_grid(x: int) -> Tuple[int, int]:
     return min_grid_shape
 
 
+def _clip_range(finite: np.ndarray) -> Tuple[float, float]:
+    """
+    Percentile clip bounds (0.01, 99.99), with a fallback to the full min/max
+    when the percentiles collapse — almost all pixels share one value, e.g. a
+    sparse label mask — so sparse data stays visible instead of clipping flat.
+
+    `finite` must be a non-empty array of the finite values. Shared by norm_img
+    and _rescale_float_to_uint8 so their clip-and-fallback behavior can't
+    diverge (the same pixels must not render differently by reader path).
+    """
+    lo, hi = map(float, np.percentile(finite, (0.01, 99.99)))
+    if hi == lo:
+        lo, hi = float(finite.min()), float(finite.max())
+    return lo, hi
+
+
 def norm_img(img: da.Array) -> da.Array:
     """
-    Normalize an image. This clips the upper and lower 0.01 intensities and
-    then rescales the intensities to fit on a int32 range.
+    Contrast-stretch a greyscale plane to the full 16-bit range for the n-dim
+    montage / projection path: clip the extreme percentiles, rescale to
+    [0, 65535], and return int32 (PIL mode I, saved as a 16-bit I;16 PNG).
+    Color planes (YXC / YXS) are returned unchanged.
+
+    Shares its clip/fallback (_clip_range) and non-finite handling with
+    _rescale_float_to_uint8 so the same pixels can't render differently by
+    reader path; the only deliberate differences are the 16-bit output range
+    (vs uint8) and that a constant plane renders black.
     """
     if len(img.shape) == 3:
         # leave color images alone
         # XXX: is this correct?
         # XXX: do we need to cast to uint8?
         return img
-    # Set to float64 for futher correction math
-    img = img.astype(np.float64)
 
-    # Clip upper bound
-    img = da.clip(
-        img,
-        da.percentile(img, 0.01),
-        da.percentile(img, 99.99),
-    )
+    # Normalize in NumPy on the computed plane. da.percentile supports only 1-D
+    # input on current dask — it raises NotImplementedError on a multi-chunk 2-D
+    # array — and finite-aware percentiles need concrete values anyway. Cast to
+    # float64 up front, matching the previous math.
+    arr = np.asarray(img).astype(np.float64)
+    imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
 
-    # Normalize greyscale values to floats between zero and one
-    img = img - da.min(img)
-    img = img / da.max(img)
+    finite = arr if np.isfinite(arr).all() else arr[np.isfinite(arr)]
+    if not finite.size:
+        # No finite values to range over; render black (as the float path does).
+        return da.from_array(np.zeros(arr.shape, np.int32))
+    lo, hi = _clip_range(finite)
+    if hi == lo:
+        # Constant plane: no contrast to stretch. Render black deterministically
+        # rather than dividing 0/0 -> NaN -> an int32 cast whose result is
+        # platform- and numpy-version-dependent (the bug this replaces).
+        return da.from_array(np.zeros(arr.shape, np.int32))
 
-    # Cast the floats to integers
-    imax = np.iinfo(np.uint16).max + 1  # eg imax = 256 for uint8
-    img = img * imax
-    img[img == imax] = imax - 1
-    img = img.astype(np.int32)
-
-    return img
+    # (clip(arr, lo, hi) - lo) / (hi - lo) * imax, in this order, so the output
+    # is bit-identical to the previous implementation for finite input: after
+    # clipping, the plane's min is lo and its max is hi. +/-inf saturate to the
+    # range ends (clip pins them to hi/lo); NaN renders black.
+    np.clip(arr, lo, hi, out=arr)
+    arr -= lo
+    arr /= hi - lo
+    arr *= imax
+    arr[arr == imax] = imax - 1
+    arr[np.isnan(arr)] = 0
+    return da.from_array(arr.astype(np.int32))
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:
@@ -494,12 +526,7 @@ def _rescale_float_to_uint8(arr):
     if not finite.size:
         # No finite values to compute a range from; render black.
         return np.zeros(arr.shape, np.uint8)
-    lo, hi = map(float, np.percentile(finite, (0.01, 99.99)))
-    if hi == lo:
-        # Percentiles collapse when almost all pixels share one value;
-        # fall back to min/max so sparse data (e.g. label masks) stays
-        # visible.
-        lo, hi = float(finite.min()), float(finite.max())
+    lo, hi = _clip_range(finite)
     del finite
     if hi == lo:
         # Constant image: keep the level, assuming the common [0, 1] float
