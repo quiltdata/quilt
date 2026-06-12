@@ -1046,7 +1046,7 @@ requires-dist = [
     { name = "nbformat", specifier = ">=5.10" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "requests", specifier = ">=2.32,<3" },
-    { name = "t4-lambda-shared", extras = ["mem", "preview"], directory = "../shared" },
+    { name = "t4-lambda-shared", extras = ["mem", "preview"], editable = "../shared" },
 ]
 
 [package.metadata.requires-dev]
@@ -1061,7 +1061,7 @@ test = [
 [[package]]
 name = "t4-lambda-shared"
 version = "0.2.0"
-source = { directory = "../shared" }
+source = { editable = "../shared" }
 dependencies = [
     { name = "jsonschema" },
 ]

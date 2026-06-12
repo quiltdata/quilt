@@ -1654,7 +1654,7 @@ wheels = [
 [[package]]
 name = "t4-lambda-shared"
 version = "0.2.0"
-source = { directory = "../shared" }
+source = { editable = "../shared" }
 dependencies = [
     { name = "jsonschema" },
 ]
@@ -1721,7 +1721,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2" },
     { name = "pyarrow", specifier = ">=18" },
     { name = "scanpy", specifier = ">=1.10" },
-    { name = "t4-lambda-shared", directory = "../shared" },
+    { name = "t4-lambda-shared", editable = "../shared" },
     { name = "xlrd", specifier = ">=2,<3" },
 ]
 

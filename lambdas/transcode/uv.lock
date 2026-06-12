@@ -312,7 +312,7 @@ wheels = [
 [[package]]
 name = "t4-lambda-shared"
 version = "0.2.0"
-source = { directory = "../shared" }
+source = { editable = "../shared" }
 dependencies = [
     { name = "jsonschema" },
 ]
@@ -363,7 +363,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "imageio-ffmpeg", specifier = ">=0.5" },
-    { name = "t4-lambda-shared", directory = "../shared" },
+    { name = "t4-lambda-shared", editable = "../shared" },
 ]
 
 [package.metadata.requires-dev]

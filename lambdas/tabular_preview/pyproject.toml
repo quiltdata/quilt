@@ -33,4 +33,5 @@ prod = [
 default-groups = ["test"]
 
 [tool.uv.sources]
-t4-lambda-shared = { path = "../shared" }
+# editable for local dev; dev-only (prod .zip uses --no-emit-local + separate pip install)
+t4-lambda-shared = { path = "../shared", editable = true }
