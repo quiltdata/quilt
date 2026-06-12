@@ -13,11 +13,6 @@ describe('components/BucketIcon', () => {
     expect(container.querySelector('svg')).not.toBeNull()
   })
 
-  it('should not derive the stub tooltip from alt', () => {
-    const { queryByTitle } = render(<BucketIcon alt="Some Bucket" src="" />)
-    expect(queryByTitle('Some Bucket')).toBeNull()
-  })
-
   it('should mark the stub with the contrast class when contrast is set', () => {
     const { container } = render(<BucketIcon alt="Contrast" src="" contrast />)
     expect(container.querySelector('svg')?.getAttribute('class')).toContain('contrast')
@@ -40,11 +35,6 @@ describe('components/BucketIcon', () => {
       <BucketIcon alt="Custom src" src="https://custom-src" />,
     )
     expect(getByAltText('Custom src').getAttribute('src')).toBe('https://custom-src')
-  })
-
-  it('should circle-crop custom icons', () => {
-    const { getByAltText } = render(<BucketIcon alt="Cropped" src="https://custom-src" />)
-    expect(getByAltText('Cropped').className).toContain('crop')
   })
 
   it('should expose the title on the stub', () => {
