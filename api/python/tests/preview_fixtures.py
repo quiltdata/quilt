@@ -100,10 +100,16 @@ DEMO_PACKAGE_NAME = "demo"
 DEMO_PACKAGE_HASH = "a" * 64
 
 
-def stage_preview_fixtures(bucket_root: Path) -> list[Path]:
+def local_catalog_demo_fixtures() -> tuple[PreviewFixture, ...]:
+    return CURATED_PREVIEW_FIXTURES
+
+
+def stage_preview_fixtures(
+    bucket_root: Path, fixtures: tuple[PreviewFixture, ...] = CURATED_PREVIEW_FIXTURES
+) -> list[Path]:
     bucket_root.mkdir(parents=True, exist_ok=True)
-    staged = []
-    for fixture in CURATED_PREVIEW_FIXTURES:
+    staged: list[Path] = []
+    for fixture in fixtures:
         target = bucket_root / fixture.bucket_key
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(fixture.source, target)
@@ -111,24 +117,24 @@ def stage_preview_fixtures(bucket_root: Path) -> list[Path]:
     return staged
 
 
-def stage_demo_package(bucket_root: Path) -> Path:
+def stage_demo_package(bucket_root: Path, fixtures: tuple[PreviewFixture, ...] = CURATED_PREVIEW_FIXTURES) -> Path:
     manifest_path = bucket_root / ".quilt" / "packages" / DEMO_PACKAGE_HASH
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    entries = [
+    entries: list[dict[str, object]] = [
         {
             "logical_key": fixture.bucket_key,
             "physical_keys": [fixture.bucket_key],
             "size": (bucket_root / fixture.bucket_key).stat().st_size,
             "meta": {"family": fixture.family},
         }
-        for fixture in CURATED_PREVIEW_FIXTURES
+        for fixture in fixtures
     ]
-    root_record = {
+    root_record: dict[str, object] = {
         "message": "demo package",
         "user_meta": {
             "source": "catalog-test",
-            "fixture_count": len(CURATED_PREVIEW_FIXTURES),
+            "fixture_count": len(fixtures),
         },
     }
     manifest_path.write_text("\n".join([json.dumps(root_record), *(json.dumps(entry) for entry in entries)]) + "\n")
@@ -140,8 +146,9 @@ def stage_demo_package(bucket_root: Path) -> Path:
 
 
 def stage_local_catalog_demo(bucket_root: Path) -> tuple[list[Path], Path]:
-    staged = stage_preview_fixtures(bucket_root)
-    manifest_path = stage_demo_package(bucket_root)
+    fixtures = local_catalog_demo_fixtures()
+    staged = stage_preview_fixtures(bucket_root, fixtures)
+    manifest_path = stage_demo_package(bucket_root, fixtures)
     return staged, manifest_path
 
 

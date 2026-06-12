@@ -295,6 +295,16 @@ async def query_bucket_config(*_, name: str):
     return await buckets.get_bucket_config(name)
 
 
+@QueryType.field("buckets")
+async def query_buckets(*_):
+    return await buckets.list_bucket_configs()
+
+
+@QueryType.field("bucket")
+async def query_bucket(*_, name: str):
+    return await buckets.get_bucket_config(name)
+
+
 @PackageEntryType.type_resolver
 def package_entry_typename(entry: T.Any, *_):
     if isinstance(entry, packages.PackageDirEntry):
@@ -476,6 +486,14 @@ async def query_search_more_objects(*_, after: str, size: T.Optional[int] = None
 @QueryType.field("status")
 async def query_status(*_):
     return {"__typename": "Unavailable"}
+
+
+@QueryType.field("subscription")
+async def query_subscription(*_):
+    return {
+        "active": False,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc),
+    }
 
 
 @PackagesSearchResultSetType.field("total")

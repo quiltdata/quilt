@@ -26,6 +26,7 @@ class LambdaConfig:
     name: str
     project_dir: str  # relative to repo root
     module: str  # e.g., "t4_lambda_preview"
+    python: str | None = None
 
 
 @dataclass
@@ -57,15 +58,21 @@ class LambdaProcess:
             "run",
             "--project",
             str(project_dir),
-            sys.executable if _same_python(project_dir) else "python",
-            str(runner_path),
-            "--module",
-            self.config.module,
-            "--port",
-            "0",
-            "--s3-proxy-origin",
-            self.s3_proxy_origin,
         ]
+        if self.config.python:
+            cmd.extend(["--python", self.config.python])
+        cmd.extend(
+            [
+                sys.executable if _same_python(project_dir) else "python",
+                str(runner_path),
+                "--module",
+                self.config.module,
+                "--port",
+                "0",
+                "--s3-proxy-origin",
+                self.s3_proxy_origin,
+            ]
+        )
 
         logger.info(f"[lambda:{self.config.name}] Starting: {' '.join(cmd)}")
 
@@ -190,7 +197,7 @@ def detect_repo_root() -> Path:
 
 
 LAMBDA_CONFIGS = [
-    LambdaConfig(name="preview", project_dir="lambdas/preview", module="t4_lambda_preview"),
+    LambdaConfig(name="preview", project_dir="lambdas/preview", module="t4_lambda_preview", python="3.12"),
     LambdaConfig(name="thumbnail", project_dir="lambdas/thumbnail", module="t4_lambda_thumbnail"),
     LambdaConfig(name="tabular-preview", project_dir="lambdas/tabular_preview", module="t4_lambda_tabular_preview"),
     LambdaConfig(name="transcode", project_dir="lambdas/transcode", module="t4_lambda_transcode"),

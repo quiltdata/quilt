@@ -17,12 +17,13 @@ import sys
 import types
 from base64 import b64decode, b64encode
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import parse_qsl, unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlparse, urlunparse
 
 LAMBDA_PATH = "/lambda"
 
 # Default timeout for local lambda execution (seconds)
 _LOCAL_TIMEOUT_MS = 30_000
+_LOCAL_ACCESS_KEY = "LOCALMODEACCESSKEY"
 
 
 class _MockLambdaContext:
@@ -74,6 +75,32 @@ def _patch_url_validation(module: types.ModuleType, proxy_origin: str):
         module.is_s3_url = patched_is_s3_url
 
 
+def _rewrite_local_presigned_url(url: str, proxy_origin: str) -> str:
+    if not proxy_origin:
+        return url
+
+    parsed = urlparse(url, allow_fragments=False)
+    if parsed.scheme != "https" or not parsed.netloc.endswith(".amazonaws.com"):
+        return url
+
+    query_items = parse_qsl(parsed.query, keep_blank_values=True)
+    if not any(_LOCAL_ACCESS_KEY in value for _, value in query_items):
+        return url
+
+    proxy = urlparse(proxy_origin)
+    proxied_path = f"{proxy.path.rstrip('/')}/{parsed.netloc}{parsed.path}"
+    return urlunparse(
+        (
+            proxy.scheme,
+            proxy.netloc,
+            proxied_path,
+            "",
+            parsed.query,
+            "",
+        )
+    )
+
+
 def _load_handler(module_name: str, proxy_origin: str):
     module = importlib.import_module(module_name)
     _patch_url_validation(module, proxy_origin)
@@ -85,6 +112,7 @@ def _load_handler(module_name: str, proxy_origin: str):
 
 class LambdaHandler(BaseHTTPRequestHandler):
     lambda_handler: staticmethod = None  # type: ignore[assignment]
+    s3_proxy_origin: str = ""
 
     def log_message(self, format, *args):
         # Route access logs to stderr (parent reads and prefixes them)
@@ -104,6 +132,8 @@ class LambdaHandler(BaseHTTPRequestHandler):
 
         if path == LAMBDA_PATH or path.startswith(LAMBDA_PATH + "/"):
             query = dict(parse_qsl(parsed_url.query, keep_blank_values=True))
+            if "url" in query:
+                query["url"] = _rewrite_local_presigned_url(query["url"], self.s3_proxy_origin)
             headers = {k.lower(): v for k, v in self.headers.items()}
 
             args = {
@@ -166,6 +196,7 @@ def main():
 
     handler = _load_handler(args.module, args.s3_proxy_origin)
     LambdaHandler.lambda_handler = staticmethod(handler)
+    LambdaHandler.s3_proxy_origin = args.s3_proxy_origin
 
     server = HTTPServer(("127.0.0.1", args.port), LambdaHandler)
     actual_port = server.server_address[1]

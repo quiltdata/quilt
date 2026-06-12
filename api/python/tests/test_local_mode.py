@@ -20,6 +20,7 @@ from tests.preview_fixtures import (
     DEMO_PACKAGE_HASH,
     FIXTURES_BY_NAME,
     REPO_ROOT,
+    local_catalog_demo_fixtures,
     stage_local_catalog_demo,
     stage_preview_fixtures,
 )
@@ -498,6 +499,51 @@ def test_local_graphql_search_and_api_search(monkeypatch, tmp_path):
     assert stats["aggregations"]["totalBytes"]["value"] == 12.0
 
 
+def test_local_graphql_buckets_query_uses_bucket_configs(monkeypatch, tmp_path):
+    bucket = tmp_path / "demo-bucket"
+    bucket.mkdir()
+
+    monkeypatch.setenv("QUILT_LOCAL_OBJECT_BACKEND", "filesystem")
+    monkeypatch.setenv("QUILT_LOCAL_DATA_DIR", str(tmp_path))
+
+    from quilt3_local.graphql import schema
+
+    query = """
+    query Buckets {
+        buckets {
+            name
+            title
+            browsable
+            collaborators {
+                collaborator {
+                    email
+                    username
+                }
+                permissionLevel
+            }
+        }
+        bucket(name: "demo-bucket") {
+            name
+        }
+    }
+    """
+
+    with QuiltContext():
+        result = asyncio.run(graphql(schema, query))
+
+    assert result.errors is None
+    assert result.data is not None
+    assert result.data["buckets"] == [
+        {
+            "name": "demo-bucket",
+            "title": "demo-bucket",
+            "browsable": True,
+            "collaborators": [],
+        }
+    ]
+    assert result.data["bucket"] == {"name": "demo-bucket"}
+
+
 def test_local_main_exposes_config_registry_and_graphql_routes(monkeypatch, tmp_path):
     bucket_root = tmp_path / "demo-bucket"
     bucket_root.mkdir()
@@ -776,7 +822,7 @@ def test_stage_local_catalog_demo_writes_package_metadata(tmp_path):
 
     staged, manifest_path = stage_local_catalog_demo(bucket_root)
 
-    assert len(staged) == len(CURATED_PREVIEW_FIXTURES)
+    assert len(staged) == len(local_catalog_demo_fixtures())
     assert manifest_path == bucket_root / ".quilt" / "packages" / DEMO_PACKAGE_HASH
     assert manifest_path.exists()
     assert (bucket_root / ".quilt" / "named_packages" / "demo" / "latest").read_text() == DEMO_PACKAGE_HASH
