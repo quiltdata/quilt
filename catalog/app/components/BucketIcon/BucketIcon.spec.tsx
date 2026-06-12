@@ -1,8 +1,11 @@
 import * as React from 'react'
+import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 import { render, cleanup } from '@testing-library/react'
 import { describe, expect, it, afterEach } from 'vitest'
 
 import BucketIcon from './'
+
+const darkTheme = createMuiTheme({ palette: { type: 'dark' } })
 
 describe('components/BucketIcon', () => {
   afterEach(cleanup)
@@ -13,12 +16,16 @@ describe('components/BucketIcon', () => {
     expect(container.querySelector('svg')).not.toBeNull()
   })
 
-  it('should mark the stub with the contrast class when contrast is set', () => {
-    const { container } = render(<BucketIcon alt="Contrast" src="" contrast />)
+  it('should mark the stub with the contrast class when the theme is dark', () => {
+    const { container } = render(
+      <MuiThemeProvider theme={darkTheme}>
+        <BucketIcon alt="Contrast" src="" />
+      </MuiThemeProvider>,
+    )
     expect(container.querySelector('svg')?.getAttribute('class')).toContain('contrast')
   })
 
-  it('should not mark the stub with the contrast class by default', () => {
+  it('should not mark the stub with the contrast class in a light theme', () => {
     const { container } = render(<BucketIcon alt="Plain" src="" />)
     expect(container.querySelector('svg')?.getAttribute('class')).not.toContain(
       'contrast',

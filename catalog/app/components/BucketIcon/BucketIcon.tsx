@@ -40,8 +40,6 @@ interface BucketIconProps {
     custom?: string
     stub?: string
   }
-  // render the stub in colors suitable for dark backgrounds
-  contrast?: boolean
   src?: string
   title?: string
 }
@@ -50,11 +48,12 @@ export default function BucketIcon({
   alt = '',
   className: optClassName,
   classes: optClasses,
-  contrast = false,
   src,
   title,
 }: BucketIconProps) {
   const classes = useStyles()
+  // in dark themes the stub switches to contrast colors
+  const dark = M.useTheme().palette.type === 'dark'
 
   if (src) {
     return (
@@ -71,7 +70,7 @@ export default function BucketIcon({
     <M.SvgIcon
       className={cx(
         classes.root,
-        contrast && classes.contrast,
+        dark && classes.contrast,
         optClasses?.stub,
         optClassName,
       )}
