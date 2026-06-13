@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Lower peak memory of the normalized greyscale montage/projection path for unsigned 16-bit images via a histogram percentile and lookup-table rescale, instead of a float64 copy of the whole plane (generated thumbnails unchanged) ([#4976](https://github.com/quiltdata/quilt/pull/4976))
+- [Changed] Normalize greyscale montage/projection planes lazily so the montage streams — dask computes and frees one channel at a time instead of holding all of them at once — keeping peak memory bounded on large multi-channel images and running faster; generated thumbnails unchanged ([#4976](https://github.com/quiltdata/quilt/pull/4976))
 - [Fixed] Normalized greyscale thumbnails (multi-channel montages, Z-projections) with a constant channel or NaN pixels now render deterministically instead of coming out blank or garbled; other thumbnails are unchanged ([#4974](https://github.com/quiltdata/quilt/pull/4974))
 - [Changed] Simplify 16-bit greyscale handling: rescale to 8-bit by array dtype before resizing and drop the now-unreachable resampler fallback (generated thumbnails unchanged) ([#4971](https://github.com/quiltdata/quilt/pull/4971))
 - [Changed] Compute the 16-bit rescale percentiles via a histogram instead of `np.percentile`, lowering peak memory on large images (output unchanged) ([#4968](https://github.com/quiltdata/quilt/pull/4968))
