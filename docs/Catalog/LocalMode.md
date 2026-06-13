@@ -216,7 +216,7 @@ $ PYTHONPATH=$PWD \
 
 ## Canonical Preview Fixtures
 
-The repo already contains a small, checked-in preview fixture pack. Reuse that pack for LOCAL filesystem demos instead of creating a second set of sample binaries.
+The repo already contains a small, checked-in preview fixture pack plus a linked h5ad add-on. The external h5ad files are downloaded on first use into `.cache/preview-fixtures` with pinned SHA-256 checksums, so they do not bloat the git tree.
 
 To stage the curated pack into a filesystem-backed LOCAL bucket:
 
@@ -234,6 +234,16 @@ This copies the existing canonical samples into `/tmp/quilt-local-data/demo-buck
 - lambdas/thumbnail/tests/data for image, pdf, and pptx fixtures
 - api/python/tests/data for extra local document fixtures such as dog_watermark.pdf
 - catalog/app/components/JsonEditor/object-expand.webm for a tiny video fixture
+```
+
+The default h5ad add-on currently stages four small public samples alongside the existing local `test.h5ad`, giving five different AnnData preview shapes in total:
+
+```text
+- a tiny sparse 47 x 10 matrix with no obs/var annotations
+- a sparse 70 x 720 matrix with scVI obs metadata
+- a sparse 49 x 1999 matrix with richer var metadata
+- a dense 700 x 765 matrix with `raw` populated
+- the existing checked-in tiny local fixture used by the format tests
 ```
 
 That fixture registry lives in `api/python/tests/preview_fixtures.py`, and `api/python/tests/test_local_mode.py` reuses it for built-in LOCAL preview coverage. This keeps the local preview workflow aligned with the existing lambda test structure instead of duplicating assets.

@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+PREVIEW_FIXTURE_CACHE_ROOT = REPO_ROOT / ".cache" / "preview-fixtures"
+
+
+@dataclass(frozen=True)
+class RemotePreviewSource:
+    url: str
+    sha256: str
+    cache_key: str
 
 
 @dataclass(frozen=True)
@@ -14,7 +24,7 @@ class PreviewFixture:
     name: str
     family: str
     bucket_key: str
-    source: Path
+    source: Path | RemotePreviewSource
 
 
 CURATED_PREVIEW_FIXTURES = (
@@ -99,13 +109,97 @@ CURATED_PREVIEW_FIXTURES = (
 )
 
 
-FIXTURES_BY_NAME = {fixture.name: fixture for fixture in CURATED_PREVIEW_FIXTURES}
+EXTERNAL_H5AD_PREVIEW_FIXTURES = (
+    PreviewFixture(
+        "h5ad_tm_droplet",
+        "structured",
+        "preview/structured/h5ad/tm_droplet_mat.h5ad",
+        RemotePreviewSource(
+            url="https://raw.githubusercontent.com/scverse/scvi-tools/main/tests/test_data/TM_droplet_mat.h5ad",
+            sha256="3bcf1085e6ba8001faf15b2f5d8021a63e4f4b125dc98a3421f16ca39621808f",
+            cache_key="h5ad/scvi-tools/TM_droplet_mat.h5ad",
+        ),
+    ),
+    PreviewFixture(
+        "h5ad_brainlarge",
+        "structured",
+        "preview/structured/h5ad/brainlarge_dataset_test.h5ad",
+        RemotePreviewSource(
+            url="https://raw.githubusercontent.com/scverse/scvi-tools/main/tests/test_data/brainlarge_dataset_test.h5ad",
+            sha256="ca417fac32678ced9734ad4aaff6863323b980ddc2a2dd5b782aba59f88e7d5b",
+            cache_key="h5ad/scvi-tools/brainlarge_dataset_test.h5ad",
+        ),
+    ),
+    PreviewFixture(
+        "h5ad_squidpy_test",
+        "structured",
+        "preview/structured/h5ad/squidpy_test_data.h5ad",
+        RemotePreviewSource(
+            url="https://raw.githubusercontent.com/scverse/squidpy/main/tests/_data/test_data.h5ad",
+            sha256="f0227d2639b803401afd65c432ac047c6f04710221dbdf7f3d70a18eff1a3766",
+            cache_key="h5ad/squidpy/test_data.h5ad",
+        ),
+    ),
+    PreviewFixture(
+        "h5ad_scanpy_reduced",
+        "structured",
+        "preview/structured/h5ad/scanpy_pbmc68k_reduced.h5ad",
+        RemotePreviewSource(
+            url="https://raw.githubusercontent.com/scverse/scanpy/main/src/scanpy/datasets/10x_pbmc68k_reduced.h5ad",
+            sha256="863e19914ab2d4ba97edc9623ac3a343c0461f1e40b121bfb5fa92638b22e9bd",
+            cache_key="h5ad/scanpy/10x_pbmc68k_reduced.h5ad",
+        ),
+    ),
+)
+
+
+ALL_PREVIEW_FIXTURES = CURATED_PREVIEW_FIXTURES + EXTERNAL_H5AD_PREVIEW_FIXTURES
+FIXTURES_BY_NAME = {fixture.name: fixture for fixture in ALL_PREVIEW_FIXTURES}
 DEMO_PACKAGE_NAME = "demo"
 DEMO_PACKAGE_HASH = "a" * 64
 
 
 def local_catalog_demo_fixtures() -> tuple[PreviewFixture, ...]:
-    return CURATED_PREVIEW_FIXTURES
+    return ALL_PREVIEW_FIXTURES
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _download_remote_preview_source(source: RemotePreviewSource) -> Path:
+    cached_path = PREVIEW_FIXTURE_CACHE_ROOT / source.cache_key
+    if cached_path.exists() and _sha256_file(cached_path) == source.sha256:
+        return cached_path
+
+    cached_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = cached_path.with_suffix(cached_path.suffix + ".tmp")
+    digest = hashlib.sha256()
+    try:
+        with urllib.request.urlopen(source.url) as response, temp_path.open("wb") as handle:
+            for chunk in iter(lambda: response.read(1024 * 1024), b""):
+                digest.update(chunk)
+                handle.write(chunk)
+        actual_sha256 = digest.hexdigest()
+        if actual_sha256 != source.sha256:
+            raise ValueError(
+                f"SHA-256 mismatch for {source.url}: expected {source.sha256}, got {actual_sha256}"
+            )
+        temp_path.replace(cached_path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+    return cached_path
+
+
+def resolve_preview_fixture_source(source: Path | RemotePreviewSource) -> Path:
+    if isinstance(source, Path):
+        return source
+    return _download_remote_preview_source(source)
 
 
 def stage_preview_fixtures(
@@ -116,7 +210,7 @@ def stage_preview_fixtures(
     for fixture in fixtures:
         target = bucket_root / fixture.bucket_key
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(fixture.source, target)
+        shutil.copy2(resolve_preview_fixture_source(fixture.source), target)
         staged.append(target)
     return staged
 

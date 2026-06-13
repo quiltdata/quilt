@@ -6,8 +6,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import renderFcs from './Fcs'
 
 vi.mock('components/JsonDisplay', () => ({
-  default: ({ value }: { value: unknown }) => (
-    <div data-testid="json">{JSON.stringify(value)}</div>
+  default: ({
+    defaultExpanded,
+    style,
+    value,
+  }: {
+    defaultExpanded?: boolean | number
+    style?: React.CSSProperties
+    value: unknown
+  }) => (
+    <div data-expanded={String(defaultExpanded)} data-testid="json" style={style}>
+      {JSON.stringify(value)}
+    </div>
   ),
 }))
 
@@ -41,10 +51,18 @@ describe('components/Preview/renderers/Fcs', () => {
     )
 
     expect(screen.getByText('Parsing errors')).toBeTruthy()
-    expect(screen.getByTestId('json').textContent).toContain('"sample":"value"')
+    const metadata = screen.getByTestId('json')
+    expect(metadata.textContent).toContain('"sample":"value"')
+    expect(metadata.getAttribute('data-expanded')).toBe('1')
+    expect(window.getComputedStyle(metadata).whiteSpace).toBe('pre-wrap')
     expect(screen.getByTestId('vega').textContent).toBe(JSON.stringify(spec))
     expect(container.querySelector('table.dataframe')).toBeTruthy()
-    expect(container.querySelector('[title="Downsampled preview"]')).toBeTruthy()
+    const preview = container.querySelector('[title="Downsampled preview"]')
+    expect(preview).toBeTruthy()
+    expect(window.getComputedStyle(preview as Element).overflowX).toBe('auto')
+    const cell = container.querySelector('table.dataframe td')
+    expect(cell).toBeTruthy()
+    expect(window.getComputedStyle(cell as Element).whiteSpace).toBe('nowrap')
   })
 
   it('omits the vega chart when no spec is present', () => {
