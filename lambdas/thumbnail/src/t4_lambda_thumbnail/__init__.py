@@ -159,9 +159,9 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     finite plane collapses both the percentiles and the min/max fallback — so
     callers must re-check and handle the no-contrast case themselves.
 
-    Shared by norm_img (float planes) and _rescale_float_to_uint8 so their
-    clip/fallback and non-finite filtering can't diverge (the same pixels must
-    not render differently by reader path). The unsigned-integer paths use
+    Shared by _normalize_plane (float planes) and _rescale_float_to_uint8 so
+    their clip/fallback and non-finite filtering can't diverge (the same pixels
+    must not render differently by reader path). The unsigned-integer paths use
     _uint16_clip_range instead (histogram percentile, bounded memory).
     """
     # Compact to the finite values only when some are non-finite: the masked
@@ -185,13 +185,14 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
 
 def _uint16_clip_range(arr: np.ndarray) -> tuple[float, float]:
     """
-    Percentile clip bounds (0.01, 99.99) for an unsigned <=16-bit plane via a
-    histogram (bounded memory, no float64 copy of the plane), with the same
-    min/max fallback as _finite_clip_range when the percentiles collapse. A
-    returned ``(lo, hi)`` can still have ``hi == lo`` (constant plane) — callers
-    re-check. Integer planes carry no non-finite values, so there is nothing to
-    filter. Shared by norm_img and _rescale_uint16_to_uint8 so their range
-    logic can't diverge.
+    Percentile clip bounds (0.01, 99.99) for an unsigned <=16-bit plane (uint16,
+    uint8, or byte-swapped >u2 — anything `_percentile_uint16`'s 65536-bin
+    histogram covers) via a histogram (bounded memory, no float64 copy of the
+    plane), with the same min/max fallback as _finite_clip_range when the
+    percentiles collapse. A returned ``(lo, hi)`` can still have ``hi == lo``
+    (constant plane) — callers re-check. Integer planes carry no non-finite
+    values, so there is nothing to filter. Shared by _normalize_plane and
+    _rescale_uint16_to_uint8 so their range logic can't diverge.
     """
     lo, hi = _percentile_uint16(arr, (0.01, 99.99))
     if hi == lo:
@@ -254,6 +255,11 @@ def _normalize_plane(plane) -> np.ndarray:
 
     # Float (and any other) planes: range in float64 with finite-aware
     # percentiles. float64 (not float32) matches the previous math bit-for-bit.
+    # copy=False skips the copy only when `arr` is already float64; the in-place
+    # math below then mutates it, so this assumes `arr` is private. It is here:
+    # np.asarray of the computed dask block (or of a non-float64 array, which
+    # astype copies) yields a fresh array. A future direct caller that hands in
+    # a float64 array it still needs would see it mutated.
     arr = arr.astype(np.float64, copy=False)
     imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
 
@@ -288,13 +294,19 @@ def norm_img(img: da.Array) -> da.Array:
     Lazily normalize a greyscale plane for the n-dim montage / projection path;
     color planes (YXC / YXS) are returned unchanged.
 
-    The normalization (_normalize_plane) is eager NumPy, but wrapped in
-    dask.delayed so the montage stays a lazy graph: dask computes and frees one
-    plane at a time during the final .compute(), keeping peak memory to ~the
-    montage plus a single plane rather than all N planes at once. (Materializing
-    every plane up front, as a direct NumPy assembly would, raised peak memory
-    on large multi-channel images — OOM is this lambda's documented failure
-    mode.)
+    _normalize_plane is eager NumPy, but wrapped in dask.delayed so the plane is
+    a deferred task in the montage graph rather than a concrete array. dask
+    materializes each plane when the montage is computed and releases it once it
+    has been copied into the output, so the planes don't stay resident through
+    the downstream resize. Returning a concrete array instead (da.from_array)
+    bakes every plane into the graph, keeping all N resident as long as the
+    montage is referenced — and handle_image holds the montage through
+    generate_thumbnail's resize, so on large multi-channel images that OOMs (the
+    documented failure mode). The peak while the montage itself is assembled is
+    similar either way; the win is not carrying the planes into the resize.
+
+    da.from_delayed trusts _normalize_plane to return an array of this shape and
+    dtype — keep them in sync (a mismatch corrupts the graph rather than raising).
     """
     if len(img.shape) == 3:
         # leave color images alone
@@ -330,8 +342,9 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
         # Each channel is normalized lazily (norm_img returns a dask graph), then
         # laid out in the most-square grid: every cell padded 5px on its top and
         # left, the whole montage padded 5px on its bottom and right. Keeping the
-        # planes lazy lets dask compute and free them one at a time when the
-        # montage is finally computed, instead of holding all N at once.
+        # planes lazy lets dask release each once it has been copied into the
+        # montage, so they don't stay resident through the downstream resize (see
+        # norm_img); a concrete-array assembly would hold all N until then.
         projections = []
         s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
         for i in range(img.dask_data.shape[1]):
@@ -538,9 +551,10 @@ _HIST_BLOCK = 1 << 20
 
 
 def _percentile_uint16(arr, qs):
-    # Caller contract: arr is a non-empty uint16 array, qs are percentiles in
-    # [0, 100]. The sole caller (_rescale_uint16_to_uint8) guards emptiness and
-    # passes constant qs, so this skips revalidating them.
+    # Caller contract: arr is a non-empty unsigned <=16-bit array, qs are
+    # percentiles in [0, 100]. Reached only via _uint16_clip_range (from
+    # _rescale_uint16_to_uint8 and _normalize_plane); both guard emptiness and
+    # pass constant qs first, so this skips revalidating them.
     #
     # np.percentile partitions a flattened copy of the whole array (here ~2
     # bytes/pixel, the uint16 input dtype), so its peak transient scales with
