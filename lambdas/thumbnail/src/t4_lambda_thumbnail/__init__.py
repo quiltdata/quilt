@@ -211,7 +211,7 @@ def _norm_uint_to_int32(arr: np.ndarray, lo: float, hi: float) -> np.ndarray:
     images). Caller guarantees hi != lo.
     """
     imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
-    lut = np.arange(65536, dtype=np.float64)
+    lut = np.arange(imax, dtype=np.float64)  # one entry per possible uint16 value
     np.clip(lut, lo, hi, out=lut)
     lut -= lo
     lut /= hi - lo
