@@ -31,6 +31,7 @@ import pdf2image
 import pptx
 import requests
 from bioio import BioImage
+from dask import delayed
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
     PDFPageCountError,
@@ -219,68 +220,53 @@ def _norm_uint_to_int32(arr: np.ndarray, lo: float, hi: float) -> np.ndarray:
     return lut.astype(np.int32)[arr]
 
 
-def norm_img(img: da.Array) -> da.Array:
+def _normalize_plane(plane) -> np.ndarray:
     """
-    Contrast-stretch a greyscale plane to the full 16-bit range for the n-dim
-    montage / projection path: clip the extreme percentiles, rescale to
-    [0, 65535], and return int32 (PIL mode I, saved as a 16-bit I;16 PNG).
-    Color planes (YXC / YXS) are returned unchanged.
+    Contrast-stretch one greyscale plane to the full 16-bit range and return
+    int32 (PIL mode I, saved as a 16-bit I;16 PNG). The per-plane work is eager
+    NumPy so finite-aware percentiles and the histogram/LUT rescale stay exact;
+    norm_img wraps this in dask.delayed so the montage assembly streams.
 
     Shares its clip/fallback and non-finite handling with _rescale_float_to_uint8
     (float planes, via _finite_clip_range) and _rescale_uint16_to_uint8 (unsigned
     planes, via _uint16_clip_range) so the same pixels can't render differently
     by reader path; the only deliberate differences are the 16-bit output range
     (vs uint8) and that a constant plane renders black.
-
-    da.from_array(..., name=False) skips hashing each plane's bytes to build a
-    graph key — pointless here (each plane is unique and computed once).
     """
-    if len(img.shape) == 3:
-        # leave color images alone
-        # XXX: is this correct?
-        # XXX: do we need to cast to uint8?
-        return img
-
-    arr = np.asarray(img)
+    arr = np.asarray(plane)
     if not arr.size:
         # Degenerate empty plane: nothing to range over; render black. (The
         # float path's _finite_clip_range returns None for the same effect;
         # _uint16_clip_range has no such guard, so handle emptiness here for
         # both branches.)
-        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
+        return np.zeros(arr.shape, np.int32)
 
     # Unsigned <=16-bit planes (the common microscopy case): range via histogram
-    # and rescale via a 65536-entry LUT, so peak memory is the plane plus its
-    # int32 output, with no float64 copy of the full plane (OOM is this lambda's
-    # documented failure mode on large images). Bit-identical to the float path
-    # below for the same (lo, hi) — the LUT memoizes the same per-pixel math.
+    # and rescale via a 65536-entry LUT, with no float64 copy of the full plane.
+    # Bit-identical to the float path below for the same (lo, hi) — the LUT
+    # memoizes the same per-pixel math.
     if arr.dtype.kind == "u" and arr.dtype.itemsize <= 2:
         lo, hi = _uint16_clip_range(arr)
         if hi == lo:
             # Constant plane: no contrast to stretch; render black.
-            return da.from_array(np.zeros(arr.shape, np.int32), name=False)
-        return da.from_array(_norm_uint_to_int32(arr, lo, hi), name=False)
+            return np.zeros(arr.shape, np.int32)
+        return _norm_uint_to_int32(arr, lo, hi)
 
     # Float (and any other) planes: range in float64 with finite-aware
-    # percentiles. da.percentile supports only 1-D input on current dask (it
-    # raises NotImplementedError on a multi-chunk 2-D array), and finite-aware
-    # percentiles need concrete values anyway. The dask compute result is a
-    # freshly-owned buffer, so a float64 source skips the astype copy and the
-    # in-place math stays safe; other dtypes copy. float64 (not float32) matches
-    # the previous math bit-for-bit.
+    # percentiles. float64 (not float32) matches the previous math bit-for-bit.
     arr = arr.astype(np.float64, copy=False)
     imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
 
     rng = _finite_clip_range(arr)
     if rng is None:
         # No finite values to range over; render black (as the uint path does).
-        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
+        return np.zeros(arr.shape, np.int32)
     lo, hi = rng
     if hi == lo:
         # Constant plane: no contrast to stretch. Render black deterministically
         # rather than dividing 0/0 -> NaN -> an int32 cast whose result is
         # platform- and numpy-version-dependent (the bug this replaces).
-        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
+        return np.zeros(arr.shape, np.int32)
 
     # (clip(arr, lo, hi) - lo) / (hi - lo) * imax, in this order, so the output
     # is bit-identical to the previous implementation on this branch (a finite
@@ -294,7 +280,30 @@ def norm_img(img: da.Array) -> da.Array:
     arr *= imax
     arr[arr == imax] = imax - 1
     arr[np.isnan(arr)] = 0
-    return da.from_array(arr.astype(np.int32), name=False)
+    return arr.astype(np.int32)
+
+
+def norm_img(img: da.Array) -> da.Array:
+    """
+    Lazily normalize a greyscale plane for the n-dim montage / projection path;
+    color planes (YXC / YXS) are returned unchanged.
+
+    The normalization (_normalize_plane) is eager NumPy, but wrapped in
+    dask.delayed so the montage stays a lazy graph: dask computes and frees one
+    plane at a time during the final .compute(), keeping peak memory to ~the
+    montage plus a single plane rather than all N planes at once. (Materializing
+    every plane up front, as a direct NumPy assembly would, raised peak memory
+    on large multi-channel images — OOM is this lambda's documented failure
+    mode.)
+    """
+    if len(img.shape) == 3:
+        # leave color images alone
+        # XXX: is this correct?
+        # XXX: do we need to cast to uint8?
+        return img
+    return da.from_delayed(
+        delayed(_normalize_plane)(img), shape=img.shape, dtype=np.int32,
+    )
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:
@@ -318,45 +327,52 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
 
     # Keep Channel data, but max project when possible
     if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
-        n_channels = img.dask_data.shape[1]
-        has_z = "Z" in img.reader.dims.order
+        # Each channel is normalized lazily (norm_img returns a dask graph), then
+        # laid out in the most-square grid: every cell padded 5px on its top and
+        # left, the whole montage padded 5px on its bottom and right. Keeping the
+        # planes lazy lets dask compute and free them one at a time when the
+        # montage is finally computed, instead of holding all N at once.
+        projections = []
+        s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
+        for i in range(img.dask_data.shape[1]):
+            if "Z" in img.reader.dims.order:
+                # Add padding to the top and left of the projection
+                padded = da.pad(
+                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
+                    ((5, 0), (5, 0)) + s_pad,
+                    mode="constant"
+                )
+                projections.append(padded)
+            else:
+                # Add padding to the top and the left of the projection
+                padded = da.pad(
+                    norm_img(img.dask_data[0, i, 0, :, :]),
+                    ((5, 0), (5, 0)) + s_pad,
+                    mode="constant"
+                )
+                projections.append(padded)
 
-        def _channel_plane(i):
-            # Normalize channel i's 2D plane (max-projected over Z when present).
-            sl = (img.dask_data[0, i, :, :, :].max(axis=0) if has_z
-                  else img.dask_data[0, i, 0, :, :])
-            return np.asarray(norm_img(sl))
+        # Get min grid shape
+        # For 6 channels this returns (2, 3)
+        min_grid_shape = choose_min_grid(len(projections))
 
-        # Lay the normalized channels out in the most-square grid (rows*cols ==
-        # n_channels), each cell padded 5px on its top and left and the whole
-        # montage padded 5px on its bottom and right. Fill a preallocated montage
-        # one channel at a time and free each plane, so peak memory is ~the
-        # montage plus a single plane -- not all N planes plus the concatenation
-        # copy the previous da.pad/da.concatenate held at once (OOM is this
-        # lambda's documented failure mode on large multi-channel images). The
-        # output is identical to that construction: cells are placed at the same
-        # offsets and the unwritten borders stay at the constant-pad value 0.
-        rows, cols = choose_min_grid(n_channels)
-        first = _channel_plane(0)
-        h, w = first.shape[0], first.shape[1]
-        cell_h, cell_w = h + 5, w + 5
-        montage = np.zeros(
-            (rows * cell_h + 5, cols * cell_w + 5) + first.shape[2:],
-            dtype=first.dtype,
-        )
+        # Make rows of images
+        # Use a counter so that we don't have to use `projections.pop` which is O(N)
+        rows = []
+        proj_counter = 0
+        for y_i in range(min_grid_shape[0]):
+            row = []
+            for x_i in range(min_grid_shape[1]):
+                row.append(projections[proj_counter])
+                proj_counter += 1
 
-        def _place(i, plane):
-            r, c = divmod(i, cols)  # row-major, matching the old grid fill order
-            top, left = r * cell_h + 5, c * cell_w + 5
-            montage[top:top + h, left:left + w] = plane
+            rows.append(row)
 
-        _place(0, first)
-        del first
-        for i in range(1, n_channels):
-            plane = _channel_plane(i)
-            _place(i, plane)
-            del plane
-        return da.from_array(montage, name=False)
+        # Concatenate each row then concatenate all rows together into a single 2D image
+        merged = [da.concatenate(row, axis=1) for row in rows]
+
+        # Add padding on the entire bottom and entire right side of the thumbnail
+        return da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
 
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
