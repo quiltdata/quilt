@@ -954,9 +954,7 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         top_hash=top_hash,
     )
     src_entry = src_pkg[lk]
-    # Gate on the manifest size before installing: install() downloads the file,
-    # so checking size only afterwards would still fetch large fixtures (e.g. the
-    # 82 MB OverViewScan.czi) just to skip them.
+    # Gate on size before install() downloads the file (browse() read only the manifest).
     if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
     quilt3.Package.install(
