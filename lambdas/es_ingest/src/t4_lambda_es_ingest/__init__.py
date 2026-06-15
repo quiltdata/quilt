@@ -80,9 +80,11 @@ def bulk(context, es, data: bytes):
         )
         if failures:
             for (op, error_type, reason), count in failures.items():
-                logger.error("Bulk %s failed (x%s): %s: %s", op, count, error_type, reason)
+                # %r so a user-controlled `reason` (ES echoes field names/values)
+                # can't forge log lines via embedded newlines.
+                logger.error("Bulk %s failed (x%s): %r: %r", op, count, error_type, reason)
             detail = (
-                f"{failures.total()} document(s) failed to index "
+                f"{failures.total()} document(s) failed in bulk request "
                 f"({len(failures)} distinct error(s))"
             )
         else:

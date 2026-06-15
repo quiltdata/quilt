@@ -45,9 +45,10 @@ def test_bulk_error(mocker, caplog):
         request_timeout=mocker.ANY,
     )
     # The two identical errors collapse into one (x2) group; the delete stays separate.
-    assert "Bulk index failed (x2): mapper_parsing_exception: failed to parse field [x]" in caplog.text
-    assert "Bulk delete failed (x1): index_not_found_exception: no such index [y]" in caplog.text
-    assert "3 document(s) failed to index (2 distinct error(s))" in str(exc_info.value)
+    # %r-quoted so log-line forgery via a crafted reason is escaped.
+    assert "Bulk index failed (x2): 'mapper_parsing_exception': 'failed to parse field [x]'" in caplog.text
+    assert "Bulk delete failed (x1): 'index_not_found_exception': 'no such index [y]'" in caplog.text
+    assert "3 document(s) failed in bulk request (2 distinct error(s))" in str(exc_info.value)
 
 
 def test_bulk_error_without_details(mocker, caplog):
