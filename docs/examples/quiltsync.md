@@ -25,7 +25,7 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
 - Unified Settings pane for general info, publish defaults, auth management,
   and diagnostics
 - Companion `quilt` command-line interface published to
-  [crates.io](https://crates.io)
+  [crates.io](https://crates.io/crates/quilt-cli)
 
 ## Getting Started
 

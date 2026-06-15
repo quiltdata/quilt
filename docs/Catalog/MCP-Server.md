@@ -182,9 +182,9 @@ already emits the `:443`-explicit metadata Databricks requires — see
 ### Connecting Codex
 
 Codex connects to the Platform MCP server over its local loopback callback,
-so no additional `ConnectAllowedHosts` entry is required beyond the default
-`localhost` (which enables both `http://localhost:<port>` and
-`http://127.0.0.1:<port>`). Point Codex at:
+so no additional `ConnectAllowedHosts` entry is required provided `localhost`
+is included in `ConnectAllowedHosts` (which enables both
+`http://localhost:<port>` and `http://127.0.0.1:<port>`). Point Codex at:
 
 ```text
 https://<connect-host>/mcp/platform/mcp

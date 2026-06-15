@@ -160,7 +160,11 @@ You can join this with the per-bucket
 automatically. (As of Quilt Platform version 1.70 these per-bucket Iceberg
 tables replace the previous global `*_packages-view` tables, which have been
 removed.) For example, `udp-spec_package_manifest` holds package-level
-metadata keyed by `top_hash`.
+metadata keyed by `top_hash`. These tables live in the Iceberg Glue database
+(the `IcebergDatabase` resource in your stack), which is a different database
+from the Tabulator one used above, so qualify them with that database name —
+e.g. `"<IcebergDatabase>"."udp-spec_package_manifest"` — when joining across
+the two.
 
 Tabulator exposes the revision of each row's package as the `$top_hash`
 column, so you can join on it to add package-level `metadata` to the
@@ -171,7 +175,7 @@ SELECT
   "ccle_tsv".*,
   m.metadata
 FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
-JOIN "udp-spec_package_manifest" m
+JOIN "<IcebergDatabase>"."udp-spec_package_manifest" m
   ON "ccle_tsv"."$top_hash" = m.top_hash
 ```
 
