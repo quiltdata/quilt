@@ -912,8 +912,9 @@ SIZE = (1024, 768)
         # the c1_gray* fixtures rather than a distinct mosaic code path. It exists
         # to pin the stitched thumbnail as a golden: it guards against an upstream
         # mosaic-stitching regression and against a future bioio that re-exposes
-        # mosaic tiles (which _format_n_dim_ndarray's 5-D TCZYX assumption would
-        # not handle). --large-files-gated (82 MB).
+        # mosaic tiles, which _format_n_dim_ndarray would silently mis-slice under
+        # its 5-D TCZYX assumption (the dims/pixel assertions here catch it). Gated
+        # behind --large-files (82 MB).
         (CZI_PKG, "OverViewScan.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
@@ -947,20 +948,23 @@ SIZE = (1024, 768)
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):
     pkg_name, top_hash = pkg_ref
-    quilt3.Package.install(
-        pkg_name,
-        registry=TEST_DATA_REGISTRY,
-        top_hash=top_hash,
-        path=lk,
-    )
     src_pkg = quilt3.Package.browse(
         pkg_name,
         registry=TEST_DATA_REGISTRY,
         top_hash=top_hash,
     )
     src_entry = src_pkg[lk]
+    # Gate on the manifest size before installing: install() downloads the file,
+    # so checking size only afterwards would still fetch large fixtures (e.g. the
+    # 82 MB OverViewScan.czi) just to skip them.
     if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
+    quilt3.Package.install(
+        pkg_name,
+        registry=TEST_DATA_REGISTRY,
+        top_hash=top_hash,
+        path=lk,
+    )
 
     print(f"Testing {pkg_name}/{lk}...")
     _info, data = t4_lambda_thumbnail.handle_image(path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
