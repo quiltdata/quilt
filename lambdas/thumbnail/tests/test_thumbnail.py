@@ -906,15 +906,7 @@ SIZE = (1024, 768)
         (CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi"),
         (CZI_PKG, "c2_gray8_gray16.czi"),
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
-        # A real mosaic (whole-slide) acquisition. bioio-czi's pylibCZIrw backend
-        # stitches the tiles in C++ and exposes a single pre-stitched greyscale
-        # plane with no M dimension, so this takes the same single-plane path as
-        # the c1_gray* fixtures rather than a distinct mosaic code path. It exists
-        # to pin the stitched thumbnail as a golden: it guards against an upstream
-        # mosaic-stitching regression and against a future bioio that re-exposes
-        # mosaic tiles, which _format_n_dim_ndarray would silently mis-slice under
-        # its 5-D TCZYX assumption (the dims/pixel assertions here catch it). Gated
-        # behind --large-files (82 MB).
+        # A real mosaic (whole-slide) acquisition that decodes to a single greyscale plane.
         (CZI_PKG, "OverViewScan.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
