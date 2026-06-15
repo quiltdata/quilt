@@ -186,9 +186,7 @@ def _download_remote_preview_source(source: RemotePreviewSource) -> Path:
                 handle.write(chunk)
         actual_sha256 = digest.hexdigest()
         if actual_sha256 != source.sha256:
-            raise ValueError(
-                f"SHA-256 mismatch for {source.url}: expected {source.sha256}, got {actual_sha256}"
-            )
+            raise ValueError(f"SHA-256 mismatch for {source.url}: expected {source.sha256}, got {actual_sha256}")
         temp_path.replace(cached_path)
     finally:
         if temp_path.exists():

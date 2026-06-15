@@ -231,9 +231,7 @@ def test_lambda_runner_rewrites_local_presigned_s3_urls():
 
     rewritten = lambda_runner._rewrite_local_presigned_url(url, "http://127.0.0.1:3000/__s3proxy")
 
-    assert rewritten.startswith(
-        "http://127.0.0.1:3000/__s3proxy/demo-bucket.s3.amazonaws.com/preview/text/short.txt?"
-    )
+    assert rewritten.startswith("http://127.0.0.1:3000/__s3proxy/demo-bucket.s3.amazonaws.com/preview/text/short.txt?")
     assert "LOCALMODEACCESSKEY" in rewritten
 
 
@@ -589,7 +587,9 @@ def test_voila_proxy_health_proxy_and_websocket_paths(monkeypatch):
 def test_voila_proxy_rejects_requests_until_manager_ready(monkeypatch):
     voila_proxy = _load_voila_proxy_with_fakes(monkeypatch)
 
-    app, _context = voila_proxy.make_voila_proxy_app(lambda: types.SimpleNamespace(is_ready=lambda: False, get_port=lambda: None))
+    app, _context = voila_proxy.make_voila_proxy_app(
+        lambda: types.SimpleNamespace(is_ready=lambda: False, get_port=lambda: None)
+    )
     http_status, http_body = _request_asgi_http(app, "/__reg/voila/voila/render/demo.ipynb")
     websocket_messages = _request_asgi_websocket(app, "/__reg/voila/api/kernels/k-1/channels")
 
