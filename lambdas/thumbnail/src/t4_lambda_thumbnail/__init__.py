@@ -31,6 +31,7 @@ import pdf2image
 import pptx
 import requests
 from bioio import BioImage
+from dask import delayed
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
     PDFPageCountError,
@@ -158,11 +159,10 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     finite plane collapses both the percentiles and the min/max fallback — so
     callers must re-check and handle the no-contrast case themselves.
 
-    Shared by norm_img and _rescale_float_to_uint8 so their clip/fallback and
-    non-finite filtering can't diverge (the same pixels must not render
-    differently by reader path). _rescale_uint16_to_uint8 deliberately keeps its
-    own copy of this logic (histogram percentile for bounded memory, no
-    non-finite values), so an edit to these constants must update it too.
+    Shared by _normalize_plane (float planes) and _rescale_float_to_uint8 so
+    their clip/fallback and non-finite filtering can't diverge (the same pixels
+    must not render differently by reader path). The unsigned-integer paths use
+    _uint16_clip_range instead (histogram percentile, bounded memory).
     """
     # Compact to the finite values only when some are non-finite: the masked
     # copy would otherwise coexist with np.percentile's internal copy and double
@@ -183,45 +183,97 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     return lo, hi
 
 
-def norm_img(img: da.Array) -> da.Array:
+def _uint16_clip_range(arr: np.ndarray) -> tuple[float, float]:
     """
-    Contrast-stretch a greyscale plane to the full 16-bit range for the n-dim
-    montage / projection path: clip the extreme percentiles, rescale to
-    [0, 65535], and return int32 (PIL mode I, saved as a 16-bit I;16 PNG).
-    Color planes (YXC / YXS) are returned unchanged.
+    Percentile clip bounds (0.01, 99.99) for an unsigned <=16-bit plane (uint16,
+    uint8, or byte-swapped >u2 — anything `_percentile_uint16`'s 65536-bin
+    histogram covers) via a histogram (bounded memory, no float64 copy of the
+    plane), with the same min/max fallback as _finite_clip_range when the
+    percentiles collapse. A returned ``(lo, hi)`` can still have ``hi == lo``
+    (constant plane) — callers re-check. Integer planes carry no non-finite
+    values, so there is nothing to filter. Shared by _normalize_plane and
+    _rescale_uint16_to_uint8 so their range logic can't diverge.
+    """
+    lo, hi = _percentile_uint16(arr, (0.01, 99.99))
+    if hi == lo:
+        lo, hi = float(arr.min()), float(arr.max())
+    return lo, hi
 
-    Shares its clip/fallback and non-finite handling (_finite_clip_range) with
-    _rescale_float_to_uint8 so the same pixels can't render differently by
-    reader path; the only deliberate differences are the 16-bit output range
+
+def _norm_uint_to_int32(arr: np.ndarray, lo: float, hi: float) -> np.ndarray:
+    """
+    Rescale an unsigned <=16-bit plane to the full 16-bit range as int32 via a
+    lookup table over the 65536 possible values. The LUT applies the *same*
+    float64 arithmetic norm_img's float path applies per pixel — clip to
+    [lo, hi], shift, scale by 65536, clamp the top bin, truncate to int32 — so
+    for identical (lo, hi) the output is bit-identical to that path. The LUT
+    just memoizes it: peak memory is the plane plus its int32 output, with no
+    float64 copy of the full plane (OOM is this lambda's failure mode on large
+    images). Caller guarantees hi != lo.
+    """
+    imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
+    lut = np.arange(imax, dtype=np.float64)  # one entry per possible uint16 value
+    np.clip(lut, lo, hi, out=lut)
+    lut -= lo
+    lut /= hi - lo
+    lut *= imax
+    lut[lut == imax] = imax - 1
+    return lut.astype(np.int32)[arr]
+
+
+def _normalize_plane(plane) -> np.ndarray:
+    """
+    Contrast-stretch one greyscale plane to the full 16-bit range and return
+    int32 (PIL mode I, saved as a 16-bit I;16 PNG). The per-plane work is eager
+    NumPy so finite-aware percentiles and the histogram/LUT rescale stay exact;
+    norm_img wraps this in dask.delayed so the montage releases each plane once
+    it's been copied in, rather than holding all N (see norm_img).
+
+    Shares its clip/fallback and non-finite handling with _rescale_float_to_uint8
+    (float planes, via _finite_clip_range) and _rescale_uint16_to_uint8 (unsigned
+    planes, via _uint16_clip_range) so the same pixels can't render differently
+    by reader path; the only deliberate differences are the 16-bit output range
     (vs uint8) and that a constant plane renders black.
     """
-    if len(img.shape) == 3:
-        # leave color images alone
-        # XXX: is this correct?
-        # XXX: do we need to cast to uint8?
-        return img
+    arr = np.asarray(plane)
+    if not arr.size:
+        # Degenerate empty plane: nothing to range over; render black. (The
+        # float path's _finite_clip_range returns None for the same effect;
+        # _uint16_clip_range has no such guard, so handle emptiness here for
+        # both branches.)
+        return np.zeros(arr.shape, np.int32)
 
-    # Normalize in NumPy on the computed plane. da.percentile supports only 1-D
-    # input on current dask — it raises NotImplementedError on a multi-chunk 2-D
-    # array — and finite-aware percentiles need concrete values anyway. The dask
-    # compute result is a freshly-owned buffer, so a float64 source can skip the
-    # astype copy and the in-place math below stays safe; non-float64 sources
-    # still copy. float64 (not float32) matches the previous math bit-for-bit.
-    # da.from_array(..., name=False) skips hashing each plane's bytes to build a
-    # graph key — pointless here (each plane is unique and computed once).
-    arr = np.asarray(img).astype(np.float64, copy=False)
+    # Unsigned <=16-bit planes (the common microscopy case): range via histogram
+    # and rescale via a 65536-entry LUT, with no float64 copy of the full plane.
+    # Bit-identical to the float path below for the same (lo, hi) — the LUT
+    # memoizes the same per-pixel math.
+    if arr.dtype.kind == "u" and arr.dtype.itemsize <= 2:
+        lo, hi = _uint16_clip_range(arr)
+        if hi == lo:
+            # Constant plane: no contrast to stretch; render black.
+            return np.zeros(arr.shape, np.int32)
+        return _norm_uint_to_int32(arr, lo, hi)
+
+    # Float (and any other) planes: range in float64 with finite-aware
+    # percentiles. float64 (not float32) matches the previous math bit-for-bit.
+    # copy=False skips the copy only when `arr` is already float64; the in-place
+    # math below then mutates it, so this assumes `arr` is private. It is here:
+    # np.asarray of the computed dask block (or of a non-float64 array, which
+    # astype copies) yields a fresh array. A future direct caller that hands in
+    # a float64 array it still needs would see it mutated.
+    arr = arr.astype(np.float64, copy=False)
     imax = np.iinfo(np.uint16).max + 1  # 65536; the I;16 range is [0, imax)
 
     rng = _finite_clip_range(arr)
     if rng is None:
-        # No finite values to range over; render black (as the float path does).
-        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
+        # No finite values to range over; render black (as the uint path does).
+        return np.zeros(arr.shape, np.int32)
     lo, hi = rng
     if hi == lo:
         # Constant plane: no contrast to stretch. Render black deterministically
         # rather than dividing 0/0 -> NaN -> an int32 cast whose result is
         # platform- and numpy-version-dependent (the bug this replaces).
-        return da.from_array(np.zeros(arr.shape, np.int32), name=False)
+        return np.zeros(arr.shape, np.int32)
 
     # (clip(arr, lo, hi) - lo) / (hi - lo) * imax, in this order, so the output
     # is bit-identical to the previous implementation on this branch (a finite
@@ -235,7 +287,37 @@ def norm_img(img: da.Array) -> da.Array:
     arr *= imax
     arr[arr == imax] = imax - 1
     arr[np.isnan(arr)] = 0
-    return da.from_array(arr.astype(np.int32), name=False)
+    return arr.astype(np.int32)
+
+
+def norm_img(img: da.Array) -> da.Array:
+    """
+    Lazily normalize a greyscale plane to the full 16-bit range (int32, PIL mode
+    I → 16-bit I;16 PNG) for the n-dim montage / projection path; color planes
+    (YXC / YXS) are returned unchanged.
+
+    _normalize_plane is eager NumPy, but wrapped in dask.delayed so the plane is
+    a deferred task in the montage graph rather than a concrete array. dask
+    materializes each plane when the montage is computed and releases it once it
+    has been copied into the output, so the planes don't stay resident through
+    the downstream resize. Returning a concrete array instead (da.from_array)
+    bakes every plane into the graph, keeping all N resident as long as the
+    montage is referenced — and handle_image holds the montage through
+    generate_thumbnail's resize, so on large multi-channel images that OOMs (the
+    documented failure mode). The peak while the montage itself is assembled is
+    similar either way; the win is not carrying the planes into the resize.
+
+    da.from_delayed trusts _normalize_plane to return an array of this shape and
+    dtype — keep them in sync (a mismatch corrupts the graph rather than raising).
+    """
+    if len(img.shape) == 3:
+        # leave color images alone
+        # XXX: is this correct?
+        # XXX: do we need to cast to uint8?
+        return img
+    return da.from_delayed(
+        delayed(_normalize_plane)(img), shape=img.shape, dtype=np.int32,
+    )
 
 
 def _format_n_dim_ndarray(img: BioImage) -> da.Array:
@@ -259,6 +341,12 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
 
     # Keep Channel data, but max project when possible
     if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
+        # Each channel is normalized lazily (norm_img returns a dask graph), then
+        # laid out in the most-square grid: every cell padded 5px on its top and
+        # left, the whole montage padded 5px on its bottom and right. Keeping the
+        # planes lazy lets dask release each once it has been copied into the
+        # montage, so they don't stay resident through the downstream resize (see
+        # norm_img); a concrete-array assembly would hold all N until then.
         projections = []
         s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
         for i in range(img.dask_data.shape[1]):
@@ -465,9 +553,10 @@ _HIST_BLOCK = 1 << 20
 
 
 def _percentile_uint16(arr, qs):
-    # Caller contract: arr is a non-empty uint16 array, qs are percentiles in
-    # [0, 100]. The sole caller (_rescale_uint16_to_uint8) guards emptiness and
-    # passes constant qs, so this skips revalidating them.
+    # Caller contract: arr is a non-empty unsigned <=16-bit array, qs are
+    # percentiles in [0, 100]. Reached only via _uint16_clip_range (from
+    # _rescale_uint16_to_uint8 and _normalize_plane); both guard emptiness and
+    # pass constant qs first, so this skips revalidating them.
     #
     # np.percentile partitions a flattened copy of the whole array (here ~2
     # bytes/pixel, the uint16 input dtype), so its peak transient scales with
@@ -497,8 +586,9 @@ def _percentile_uint16(arr, qs):
         # index into the sorted values, interpolated between the values at its
         # floor and ceil. Output matches np.percentile to within floating-point
         # tolerance — not bit-exact (numpy's _lerp is asymmetric for fraction
-        # >= 0.5), but the difference is sub-ULP and vanishes in the uint8
-        # rescale, so thumbnails are unchanged.
+        # >= 0.5), but the difference is sub-ULP and vanishes in both the uint8
+        # (_rescale_uint16_to_uint8) and 16-bit (_normalize_plane) rescales, so
+        # thumbnails are unchanged.
         v = q / 100 * (n - 1)
         lo_i = int(v)
         val_lo = int(np.searchsorted(cdf, lo_i, side="right"))
@@ -516,14 +606,7 @@ def _rescale_uint16_to_uint8(arr):
     # per-channel color skews.
     if not arr.size:
         return arr.astype(np.uint8)
-    lo, hi = _percentile_uint16(arr, (0.01, 99.99))
-    if hi == lo:
-        # Percentiles collapse when almost all pixels share one value;
-        # fall back to min/max so sparse data (e.g. label masks) stays
-        # visible. (This path keeps its own clip/fallback rather than the
-        # shared _finite_clip_range: it uses the histogram percentile for
-        # bounded memory and has no non-finite values to filter.)
-        lo, hi = float(arr.min()), float(arr.max())
+    lo, hi = _uint16_clip_range(arr)
     if hi == lo:
         # Constant image: keep the brightness level.
         return (arr >> 8).astype(np.uint8)
