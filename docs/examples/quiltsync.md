@@ -104,7 +104,9 @@ QuiltSync includes an opt-in **Autosync** loop with independent **Pull** and
 
 A live per-mapping **filesystem watcher** refreshes local package status when
 files change on disk, so status badges and entry lists update within about
-half a second without a manual reload.
+half a second without a manual reload. Both are configured in Settings:
+
+![QuiltSync Autosync and Filesystem Watcher settings](../imgs/quiltsync-autosync.png)
 
 ### Tray Icon and Close to Tray
 
@@ -185,6 +187,10 @@ Access settings via **SETTINGS** in the top-right header.
   `{namespace}`, and `{changes}` placeholders), default workflow (bucket
   default or an override), and default metadata. **Edit** opens the defaults
   popup with a live message preview.
+- **Autosync**: Independent **Pull** and **Push** toggles, the pull interval,
+  and the quiet period to wait after the last edit before publishing (see
+  [Background Autosync](#background-autosync))
+- **Filesystem Watcher**: Toggle for the live on-disk status watcher
 - **Auth**: List of authenticated catalogs with per-host **Re-Login** and
   **Logout** controls
 - **Diagnostics**: Log level, logs directory, **Collect Logs**, then **Send to

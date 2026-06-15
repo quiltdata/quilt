@@ -102,12 +102,12 @@ not immediately available and appear "grayed out" in the Catalog.
 ![Glacier S3 objects list
 view](../imgs/catalog-filesbrowser-glacier-listview.png)
 
-Previewing a specific "glacierized" S3 object returns an "Object
-Archived: Preview not available" message. To successfully preview
-the S3 object, you need to restore it first.
+Previewing a specific "glacierized" S3 object shows an "Object Archived"
+message explaining that the preview is unavailable until the object is
+rehydrated, along with a **Rehydrate** button.
 
-![Glacier S3 objects object
-view](../imgs/catalog-filesbrowser-glacier-objectview.png)
+![Glacier S3 object preview with Rehydrate
+button](../imgs/catalog-filesbrowser-glacier-rehydrate.png)
 
 ### Restoring archived objects from the Catalog
 
@@ -115,14 +115,22 @@ view](../imgs/catalog-filesbrowser-glacier-objectview.png)
 
 You can restore (rehydrate) archived Glacier and Deep Archive objects
 directly from the file preview in the Quilt Catalog — no AWS Console or CLI
-required. From the archived object's page, choose a restore **tier** and
-**duration**, and Quilt issues the `s3:RestoreObject` request on your
-behalf. Quilt reads restore state from the object's S3 metadata, so the page
-reflects whether a restore is in progress, complete, or expired.
+required. Click **Rehydrate** on the archived object's page, then choose a
+retrieval **tier** (Standard, Bulk, or Expedited) and a **duration** (1–90
+days) for how long the restored copy stays downloadable:
+
+![Rehydrate from Glacier dialog with retrieval tier and
+duration](../imgs/catalog-filesbrowser-glacier-rehydrate-dialog.png)
+
+Quilt issues the `s3:RestoreObject` request on your behalf and reads restore
+state back from the object's S3 metadata, so the page reflects whether a
+restore is in progress, complete, or expired. Rehydration is temporary — the
+object returns to archived storage after the chosen duration, and the
+archived object itself is never lost.
 
 Managed read/write roles automatically include `s3:RestoreObject`. Admins
-can hide the restore control via the `ui.actions.restore` preference (see
-[Preferences](Preferences.md)).
+can hide the **Rehydrate** control via the `ui.actions.restore` preference
+(see [Preferences](Preferences.md)).
 
 > The AWS Glacier service is rapidly evolving and may impact the
 functionality of the Quilt Catalog and/or API.
