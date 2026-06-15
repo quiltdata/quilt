@@ -4,14 +4,12 @@ on:
   push:
     branches:
       - master
-      - thumbnail-montage-bounded-memory  # TEMP: build branch image for dev-stack benchmark; revert before merge
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
 
 jobs:
   deploy-lambda-s3:
-    if: github.ref == 'refs/heads/master'  # TEMP: skip on the benchmark branch; revert before merge
     strategy:
       fail-fast: false
       matrix:
@@ -69,9 +67,9 @@ jobs:
       fail-fast: false
       matrix:
         path:
-          # TEMP: thumbnail only for the dev-stack benchmark; restore indexer +
-          # tabular_preview before merge
+          - indexer
           - thumbnail
+          - tabular_preview
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -89,5 +87,10 @@ jobs:
           aws-region: us-east-1
       - name: Push Docker image to Prod ECR
         run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
-      # TEMP: GovCloud push removed for the branch build (dev-stack pulls from
-      # Prod only); restore before merge.
+      - name: Configure AWS credentials from GovCloud account
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
+          aws-region: us-gov-east-1
+      - name: Push Docker image to GovCloud ECR
+        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
