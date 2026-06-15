@@ -1437,10 +1437,12 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "bioio" },
+    { name = "bioio-base" },
     { name = "bioio-czi" },
     { name = "bioio-imageio" },
     { name = "bioio-ome-tiff" },
     { name = "bioio-tifffile" },
+    { name = "dask", extra = ["array"] },
     { name = "numpy" },
     { name = "pdf2image" },
     { name = "pillow" },
@@ -1464,10 +1466,12 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "bioio", specifier = "~=3.0" },
+    { name = "bioio-base", specifier = "~=3.0" },
     { name = "bioio-czi", specifier = "~=2.4" },
     { name = "bioio-imageio", specifier = "~=1.3" },
     { name = "bioio-ome-tiff", specifier = "~=1.4" },
     { name = "bioio-tifffile", specifier = "~=1.3" },
+    { name = "dask", extras = ["array"], specifier = "~=2026.1" },
     { name = "numpy", specifier = "~=2.3" },
     { name = "pdf2image", specifier = ">=1.13.1,<2" },
     { name = "pillow", specifier = "~=12.2" },

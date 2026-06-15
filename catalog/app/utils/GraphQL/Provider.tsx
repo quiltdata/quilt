@@ -53,6 +53,17 @@ function refetchRootField(clientRef: React.RefObject<urql.Client>, query: RootQu
   })
 }
 
+// `cache.updateQuery` updater that applies `R.evolve(transformations)` only
+// when the cached read is non-nil. Bare `R.evolve(_, null)` returns `{}` (the
+// `for..in null` body never runs), and graphcache's `updateQuery` only skips
+// the write when the updater returns null — so `{}` is written, each
+// selected field absent from the input becomes a null link, and
+// schema-NON_NULL list fields return `null` on the next read (the schema
+// nullability check only catches `undefined`). On an uncached read this
+// helper makes the write a no-op; the next read refetches via Suspense.
+const evolveCached = (transformations: any) =>
+  R.unless(R.isNil, R.evolve(transformations))
+
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
@@ -199,7 +210,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 // XXX: sort?
-                R.evolve({
+                evolveCached({
                   bucketConfigs: R.append((result.bucketAdd as any).bucketConfig),
                 }),
               )
@@ -218,11 +229,11 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 return
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
-                R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
+                evolveCached({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
               cache.updateQuery(
                 { query: BUCKETS_QUERY },
-                R.evolve({ buckets: R.reject(R.propEq('name', vars.name)) }),
+                evolveCached({ buckets: R.reject(R.propEq('name', vars.name)) }),
               )
               cache.invalidate({ __typename: 'Bucket', name: vars.name })
               // Server cascade-deletes the PolicyBucketPermission /
@@ -236,7 +247,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ policies { id permissions { bucket { name } } } }`,
                 },
-                R.evolve({
+                evolveCached({
                   policies: R.map(R.evolve({ permissions: stripBucket })),
                 }),
               )
@@ -244,7 +255,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { permissions { bucket { name } } } } }`,
                 },
-                R.evolve({
+                evolveCached({
                   roles: R.map(R.evolve({ permissions: stripBucket })),
                 }),
               )
@@ -255,7 +266,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: POLICIES_QUERY },
                 // XXX: sort?
-                R.evolve({ policies: R.append(policy) }),
+                evolveCached({ policies: R.append(policy) }),
               )
               refetchBuckets()
             },
@@ -265,7 +276,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: POLICIES_QUERY },
                 // XXX: sort?
-                R.evolve({ policies: R.append(policy) }),
+                evolveCached({ policies: R.append(policy) }),
               )
             },
             policyUpdateManaged: (result, _vars, cache) => {
@@ -286,7 +297,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Policy from root policies
               cache.updateQuery(
                 { query: POLICIES_QUERY },
-                R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
+                evolveCached({ policies: R.reject(R.propEq('id', vars.id)) }),
               )
 
               // Remove deleted Policy from every ManagedRole's policies
@@ -295,7 +306,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
                 },
-                R.evolve({
+                evolveCached({
                   roles: R.map(R.evolve({ policies: R.reject(R.propEq('id', vars.id)) })),
                 }),
               )
@@ -309,7 +320,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: ROLES_QUERY },
                 // XXX: sort?
-                R.evolve({ roles: R.append(create.role) }),
+                evolveCached({ roles: R.append(create.role) }),
               )
             },
             roleCreateUnmanaged: (result, _vars, cache) => {
@@ -319,7 +330,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery(
                 { query: ROLES_QUERY },
                 // XXX: sort?
-                R.evolve({ roles: R.append(create.role) }),
+                evolveCached({ roles: R.append(create.role) }),
               )
             },
             roleUpdateManaged: (result, _vars, cache) => {
@@ -330,7 +341,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               const policyIds = R.pluck('id', role.policies as { id: string }[])
               cache.updateQuery(
                 { query: urql.gql`{ policies { id roles { id } } }` },
-                R.evolve({
+                evolveCached({
                   policies: R.map((policy: any) => {
                     if (!policy.roles) return policy
                     const hasThisRole = !!policy.roles.find(R.propEq('id', role.id))
@@ -355,7 +366,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               // Remove deleted Role from every Policy's roles
               cache.updateQuery(
                 { query: urql.gql`{ policies { id roles { id } } }` },
-                R.evolve({
+                evolveCached({
                   policies: R.map(R.evolve({ roles: R.reject(R.propEq('id', vars.id)) })),
                 }),
               )
@@ -365,27 +376,24 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 {
                   query: urql.gql`{ bucketConfigs { name associatedRoles { role { id } bucket { name } } } }`,
                 },
-                R.unless(
-                  R.isNil,
-                  R.evolve({
-                    bucketConfigs: R.map(
-                      R.evolve({
-                        associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
-                      }),
-                    ),
-                  }),
-                ),
+                evolveCached({
+                  bucketConfigs: R.map(
+                    R.evolve({
+                      associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
+                    }),
+                  ),
+                }),
               )
 
               // Remove deleted Role from root roles
               cache.updateQuery(
                 { query: ROLES_QUERY },
-                R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
+                evolveCached({ roles: R.reject(R.propEq('id', vars.id)) }),
               )
 
               // Unset default Role if it was deleted
               cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
-                data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
+                data?.defaultRole?.id === vars.id ? { defaultRole: null } : data,
               )
 
               refetchBuckets()
@@ -418,7 +426,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 const addUser = R.append(result.admin.user.create)
                 cache.updateQuery(
                   { query: USERS_QUERY },
-                  R.evolve({ admin: { user: { list: addUser } } }),
+                  evolveCached({ admin: { user: { list: addUser } } }),
                 )
               }
               if (result.admin?.user?.mutate?.delete?.__typename === 'Ok') {
@@ -427,7 +435,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 const rmUser = R.reject(R.propEq('name', info.variables.name))
                 cache.updateQuery(
                   { query: USERS_QUERY },
-                  R.evolve({ admin: { user: { list: rmUser } } }),
+                  evolveCached({ admin: { user: { list: rmUser } } }),
                 )
               }
               if (
@@ -446,13 +454,14 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(
                   { query: urql.gql`{ admin { tabulatorOpenQuery } }` },
-                  ({ admin }) => ({
-                    admin: {
-                      ...admin,
-                      tabulatorOpenQuery:
-                        result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
+                  (data) =>
+                    data && {
+                      admin: {
+                        ...data.admin,
+                        tabulatorOpenQuery:
+                          result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
+                      },
                     },
-                  }),
                 )
               }
             },

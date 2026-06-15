@@ -75,6 +75,10 @@ You may also provide custom policies via ARN:
 The resulting permission set is equivalent to a union of all permissions
 provided by the policies attached to that role.
 
+> **Note:** a managed role's IAM policy is regenerated when its bucket permissions
+> are saved, so permissions added in a newer Quilt release reach existing managed
+> roles on their next save.
+
 
 ## Buckets
 

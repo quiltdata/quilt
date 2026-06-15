@@ -19,6 +19,7 @@ export type ActionPreferences = Record<
   | 'downloadObject'
   | 'downloadPackage'
   | 'openInDesktop'
+  | 'restore'
   | 'revisePackage'
   | 'writeFile',
   boolean
@@ -157,6 +158,7 @@ function getDefaultPreferences(bucket?: string): BucketPreferences {
         downloadObject: true,
         downloadPackage: true,
         openInDesktop: true,
+        restore: true,
         revisePackage: true,
         writeFile: true,
       },
