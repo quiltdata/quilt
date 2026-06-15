@@ -807,7 +807,11 @@ export function useQueryRun({
 }: QueryRunArgs): [
   Model.Value<QueryRun>,
   (force: boolean) => Promise<Model.Value<QueryRun>>,
-  (catalog: CatalogName | undefined, database: Database, table: string) => Promise<Model.Value<QueryRun>>,
+  (
+    catalog: CatalogName | undefined,
+    database: Database,
+    table: string,
+  ) => Promise<Model.Value<QueryRun>>,
 ] {
   const athena = AWS.Athena.use()
   // `undefined` = "is not initialized" → is not ready for run

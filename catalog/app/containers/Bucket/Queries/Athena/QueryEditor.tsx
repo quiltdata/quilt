@@ -209,7 +209,11 @@ export function Form({ className, open, onToggle }: FormProps) {
 
   return (
     <div className={className}>
-      <M.Button size="small" onClick={onToggle} startIcon={<M.Icon>{open ? 'expand_less' : 'expand_more'}</M.Icon>}>
+      <M.Button
+        size="small"
+        onClick={onToggle}
+        startIcon={<M.Icon>{open ? 'expand_less' : 'expand_more'}</M.Icon>}
+      >
         Query editor
       </M.Button>
 

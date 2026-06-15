@@ -154,9 +154,7 @@ function QueryConstructor({ className, onOpenEditor }: QueryConstructorProps) {
       return
     }
     onOpenEditor()
-    query.setValue(
-      option ? queriesList.find((q) => q.key === option.key) || null : null,
-    )
+    query.setValue(option ? queriesList.find((q) => q.key === option.key) || null : null)
   }
 
   return (
