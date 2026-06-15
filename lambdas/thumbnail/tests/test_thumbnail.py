@@ -946,7 +946,7 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         top_hash=top_hash,
     )
     src_entry = src_pkg[lk]
-    # Gate on size before install() downloads the file (browse() read only the manifest).
+    # Gate on size before install() downloads the file (browse() reads only the manifest).
     if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
     quilt3.Package.install(
