@@ -787,8 +787,8 @@ def test_norm_img_leaves_color_planes_unchanged():
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
-CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "5ae720b35c5abc296ad5e708d3dea402bc4269c6e6f1920aa48cbc4be21ba443"
+CZI_PKG = "images/pylibczirw", "617551541881add8011f55de0c3936a90fc2188a40b6ef47c7e6ab20c3d2c8bf"
+THUMBS_PKG = "images/thumbs", "6244534f2034cf1166107a8da3915cb469761cf342d85eb653623d9f92390474"
 SIZE = (1024, 768)
 
 
@@ -906,6 +906,15 @@ SIZE = (1024, 768)
         (CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi"),
         (CZI_PKG, "c2_gray8_gray16.czi"),
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
+        # A real mosaic (whole-slide) acquisition. bioio-czi's pylibCZIrw backend
+        # stitches the tiles in C++ and exposes a single pre-stitched greyscale
+        # plane with no M dimension, so this takes the same single-plane path as
+        # the c1_gray* fixtures rather than a distinct mosaic code path. It exists
+        # to pin the stitched thumbnail as a golden: it guards against an upstream
+        # mosaic-stitching regression and against a future bioio that re-exposes
+        # mosaic tiles (which _format_n_dim_ndarray's 5-D TCZYX assumption would
+        # not handle). --large-files-gated (82 MB).
+        (CZI_PKG, "OverViewScan.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
         #                                  ^^^^^^^^^^^^^^^^^^^^^
