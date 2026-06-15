@@ -209,6 +209,7 @@ The QuiltSync-based `quilt` command-line interface is published to
 [crates.io](https://crates.io) with prebuilt binaries for macOS and Linux.
 Install it with [`cargo binstall`](https://github.com/cargo-bins/cargo-binstall):
 
+<!--pytest.mark.skip-->
 ```bash
 cargo binstall quilt-cli
 ```
