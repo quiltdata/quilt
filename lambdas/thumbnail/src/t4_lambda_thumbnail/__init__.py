@@ -226,7 +226,8 @@ def _normalize_plane(plane) -> np.ndarray:
     Contrast-stretch one greyscale plane to the full 16-bit range and return
     int32 (PIL mode I, saved as a 16-bit I;16 PNG). The per-plane work is eager
     NumPy so finite-aware percentiles and the histogram/LUT rescale stay exact;
-    norm_img wraps this in dask.delayed so the montage assembly streams.
+    norm_img wraps this in dask.delayed so the montage releases each plane once
+    it's been copied in, rather than holding all N (see norm_img).
 
     Shares its clip/fallback and non-finite handling with _rescale_float_to_uint8
     (float planes, via _finite_clip_range) and _rescale_uint16_to_uint8 (unsigned
@@ -291,8 +292,9 @@ def _normalize_plane(plane) -> np.ndarray:
 
 def norm_img(img: da.Array) -> da.Array:
     """
-    Lazily normalize a greyscale plane for the n-dim montage / projection path;
-    color planes (YXC / YXS) are returned unchanged.
+    Lazily normalize a greyscale plane to the full 16-bit range (int32, PIL mode
+    I → 16-bit I;16 PNG) for the n-dim montage / projection path; color planes
+    (YXC / YXS) are returned unchanged.
 
     _normalize_plane is eager NumPy, but wrapped in dask.delayed so the plane is
     a deferred task in the montage graph rather than a concrete array. dask
@@ -584,8 +586,9 @@ def _percentile_uint16(arr, qs):
         # index into the sorted values, interpolated between the values at its
         # floor and ceil. Output matches np.percentile to within floating-point
         # tolerance — not bit-exact (numpy's _lerp is asymmetric for fraction
-        # >= 0.5), but the difference is sub-ULP and vanishes in the uint8
-        # rescale, so thumbnails are unchanged.
+        # >= 0.5), but the difference is sub-ULP and vanishes in both the uint8
+        # (_rescale_uint16_to_uint8) and 16-bit (_normalize_plane) rescales, so
+        # thumbnails are unchanged.
         v = q / 100 * (n - 1)
         lo_i = int(v)
         val_lo = int(np.searchsorted(cdf, lo_i, side="right"))

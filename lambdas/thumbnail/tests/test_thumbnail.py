@@ -636,6 +636,33 @@ def test_norm_img_uint_path_bit_identical_to_float_reference(dtype):
         assert np.array_equal(_norm(arr), _norm_float_reference(arr))
 
 
+def test_norm_img_uint_path_bit_identical_sweep():
+    # Property-style guard for the same equivalence: many random unsigned planes
+    # across dtypes / sizes / value distributions must match the float64
+    # reference bit-for-bit. The histogram percentile differs from np.percentile
+    # only sub-ULP, and the *16-bit rescale must never let that flip an int32
+    # output bit. Seeded, so deterministic in CI (no flakiness).
+    rng = np.random.default_rng(1234)
+    for _ in range(60):
+        dtype = rng.choice([np.uint8, np.uint16, np.dtype(">u2")])
+        top = np.iinfo(np.uint8 if np.dtype(dtype).itemsize == 1 else np.uint16).max
+        h, w = int(rng.integers(8, 300)), int(rng.integers(8, 300))
+        kind = int(rng.integers(0, 4))
+        if kind == 0:        # uniform full range
+            arr = rng.integers(0, top + 1, (h, w))
+        elif kind == 1:      # narrow low-range band (12-bit-style)
+            lo = int(rng.integers(0, top // 2 + 1))
+            arr = rng.integers(lo, lo + top // 8 + 1, (h, w))
+        elif kind == 2:      # gaussian (hot/dead tails exercise the clip)
+            arr = rng.normal(top / 2, top / 8, (h, w)).clip(0, top)
+        else:                # sparse: a few bright pixels on a flat background
+            arr = np.full((h, w), int(rng.integers(0, top + 1)))
+            arr.flat[: max(1, arr.size // 500)] = top
+        arr = arr.astype(dtype)
+        assert np.array_equal(_norm(arr), _norm_float_reference(arr)), \
+            f"int32 flip: dtype={np.dtype(dtype).str} shape={(h, w)} kind={kind}"
+
+
 def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
     # End-to-end reachability: a real multi-channel image can carry a blank
     # (constant) channel and a region of masked/invalid float pixels (NaN).
