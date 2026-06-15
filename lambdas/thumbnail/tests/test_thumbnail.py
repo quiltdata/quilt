@@ -790,8 +790,6 @@ OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0f
 CZI_PKG = "images/pylibczirw", "617551541881add8011f55de0c3936a90fc2188a40b6ef47c7e6ab20c3d2c8bf"
 THUMBS_PKG = "images/thumbs", "6244534f2034cf1166107a8da3915cb469761cf342d85eb653623d9f92390474"
 SIZE = (1024, 768)
-# Fixtures larger than this are downloaded and tested only under --large-files.
-LARGE_FILE_THRESHOLD_BYTES = 20 * 1024 * 1024
 
 
 @pytest.mark.parametrize(
@@ -959,7 +957,7 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
     # Gate on the manifest size before installing: install() downloads the file,
     # so checking size only afterwards would still fetch large fixtures (e.g. the
     # 82 MB OverViewScan.czi) just to skip them.
-    if not pytestconfig.getoption("large_files") and src_entry.size > LARGE_FILE_THRESHOLD_BYTES:
+    if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
     quilt3.Package.install(
         pkg_name,
