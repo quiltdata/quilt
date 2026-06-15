@@ -112,5 +112,11 @@ def handler(event, context):
         params["VersionId"] = version_id
 
     data = s3_client.get_object(**params)["Body"].read()
-    bulk(context, es, data)
+    try:
+        bulk(context, es, data)
+    except BulkDocumentError:
+        # Surface which batch failed. The object isn't deleted (below), so it
+        # stays in S3 for retry/DLQ and can be fetched for inspection.
+        logger.error("Bulk indexing failed for s3://%s/%s", bucket, key)
+        raise
     s3_client.delete_object(**params)

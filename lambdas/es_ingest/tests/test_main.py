@@ -135,3 +135,28 @@ def test_handler(mocker, version_id):
 
         stubber.assert_no_pending_responses()
         mock_bulk.assert_called_once_with(mock_context, t4_lambda_es_ingest.es, b"test data")
+
+
+def test_handler_logs_source_on_bulk_error(mocker, caplog):
+    mock_context = mocker.MagicMock()
+    mock_event = {
+        "Records": [
+            {"body": json.dumps({"detail": {"bucket": {"name": "test-bucket"}, "object": {"key": "test-key"}}})},
+        ]
+    }
+
+    with Stubber(t4_lambda_es_ingest.s3_client) as stubber:
+        mocker.patch("t4_lambda_es_ingest.bulk", side_effect=t4_lambda_es_ingest.BulkDocumentError("boom"))
+        stubber.add_response(
+            "get_object",
+            {"Body": mocker.MagicMock(read=lambda: b"test data"), "LastModified": "2023-10-01T00:00:00Z"},
+            {"Bucket": "test-bucket", "Key": "test-key"},
+        )
+        # No delete_object response is queued: the object must NOT be deleted on
+        # failure (so it stays for retry/DLQ); a delete call would error here.
+        with caplog.at_level(logging.ERROR), pytest.raises(t4_lambda_es_ingest.BulkDocumentError):
+            t4_lambda_es_ingest.handler(mock_event, mock_context)
+
+        stubber.assert_no_pending_responses()
+
+    assert "s3://test-bucket/test-key" in caplog.text
