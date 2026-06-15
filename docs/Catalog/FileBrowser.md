@@ -109,5 +109,20 @@ the S3 object, you need to restore it first.
 ![Glacier S3 objects object
 view](../imgs/catalog-filesbrowser-glacier-objectview.png)
 
+### Restoring archived objects from the Catalog
+
+> New in Quilt Platform version 1.70
+
+You can restore (rehydrate) archived Glacier and Deep Archive objects
+directly from the file preview in the Quilt Catalog — no AWS Console or CLI
+required. From the archived object's page, choose a restore **tier** and
+**duration**, and Quilt issues the `s3:RestoreObject` request on your
+behalf. Quilt reads restore state from the object's S3 metadata, so the page
+reflects whether a restore is in progress, complete, or expired.
+
+Managed read/write roles automatically include `s3:RestoreObject`. Admins
+can hide the restore control via the `ui.actions.restore` preference (see
+[Preferences](Preferences.md)).
+
 > The AWS Glacier service is rapidly evolving and may impact the
 functionality of the Quilt Catalog and/or API.

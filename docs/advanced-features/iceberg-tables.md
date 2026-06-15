@@ -31,6 +31,14 @@ tables for the buckets it can read — managed users are scoped to their
 readable buckets via the registry-applied session policy; non-managed roles
 have stack-wide access by design.
 
+> **Admin note — Lake Formation enforcement.** On stacks where AWS Lake
+> Formation enforcement is enabled, set the `EnableLakeFormationGrants`
+> CloudFormation parameter to `true`. This emits `PrincipalPermissions`
+> grants from the stack service roles to the data lake, which is required for
+> per-bucket Iceberg access to take effect under Lake Formation. The
+> parameter is opt-in (default off) and has no effect on stacks that do not
+> use Lake Formation enforcement.
+
 ## Example: Get entries and metadata for the latest version of a package
 
 ```sql

@@ -16,10 +16,16 @@ with support for Windows 10+, macOS 10.14+ (Intel & Apple Silicon), and Linux.
   is ahead, **Merge** when both sides diverged)
 - One-click **Commit and Push** with per-user defaults (message template,
   workflow, metadata) configured in Settings
+- Opt-in **Autosync** with independent Pull and Push toggles
+- Tray icon with **Close to tray**, so Autosync keeps running with the main
+  window closed
+- Live filesystem watcher that refreshes local package status as files change
 - Create local-only packages and set a remote later
 - `.quiltignore` support with junk-file detection
 - Unified Settings pane for general info, publish defaults, auth management,
   and diagnostics
+- Companion `quilt` command-line interface published to
+  [crates.io](https://crates.io)
 
 ## Getting Started
 
@@ -81,6 +87,46 @@ remote revision and highlights only the actions that apply:
 - **Set Remote** appears on local-only packages that have no remote yet
 
 ![QuiltSync package list with status-aware actions](../imgs/quiltsync-status.png)
+
+### Background Autosync
+
+> New in Quilt Platform version 1.70
+
+QuiltSync includes an opt-in **Autosync** loop with independent **Pull** and
+**Push** toggles:
+
+- **Auto-pull** refreshes `latest` for installed remote packages when the
+  working tree is clean.
+- **Auto-push** commits and publishes quiet local changes using your
+  configured **Commit and Push** defaults. It pauses automatically when a
+  package has pending changes you are still editing or when local and remote
+  have diverged, so it never overwrites work in progress.
+
+A live per-mapping **filesystem watcher** refreshes local package status when
+files change on disk, so status badges and entry lists update within about
+half a second without a manual reload.
+
+### Tray Icon and Close to Tray
+
+> New in Quilt Platform version 1.70
+
+A tray-resident shell keeps Autosync running even with the main window
+closed. Enable **Close to tray** in Settings to hide the window instead of
+quitting. The tray icon reflects current status — idle, syncing, paused, or
+error — and offers **Open Quilt** and **Quit** actions.
+
+### Resolving Divergence (Merge)
+
+> Updated in Quilt Platform version 1.70
+
+When local and remote diverge, the **Merge** page labels each action by the
+direction data flows:
+
+- **Promote my commit** pushes your local commit and then tags it as
+  `latest` (the push now happens before tagging, so `latest` only ever points
+  at a revision that has been uploaded).
+- **Overwrite local with remote** resets your local state to the remote
+  revision, discarding uncommitted local edits.
 
 ### Committing Changes
 
@@ -148,6 +194,24 @@ Access settings via **SETTINGS** in the top-right header.
 If QuiltSync fails to start after an upgrade, use **Re-Login** for the affected
 host or clear the data directory. Older cached manifests in Parquet format are
 automatically re-fetched from remote storage.
+
+### Companion `quilt` CLI
+
+> New in Quilt Platform version 1.70
+
+The QuiltSync-based `quilt` command-line interface is published to
+[crates.io](https://crates.io) with prebuilt binaries for macOS and Linux.
+Install it with [`cargo binstall`](https://github.com/cargo-bins/cargo-binstall):
+
+```bash
+cargo binstall quilt-cli
+```
+
+The CLI shares QuiltSync's data directory, so you can manage the same set of
+local packages interchangeably from either the CLI or the GUI.
+
+> This `quilt` CLI is distinct from the Python `quilt3`
+> [CLI](../api-reference/cli.md), which ships with the `quilt3` package.
 
 ### Integration with Benchling
 

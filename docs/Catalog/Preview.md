@@ -15,6 +15,16 @@ Quilt can display any plaintext file format, including the following.
   (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
+### Markdown rendering
+
+> Changed in Quilt Platform version 1.70
+
+Markdown file previews (.md) render using standard
+[GitHub-Flavored Markdown](https://github.github.com/gfm/) (GFM), a superset
+of [CommonMark](https://commonmark.org/). Idiosyncratic
+Pandoc/PHP-Markdown-Extra shortcuts are no longer supported; author Markdown
+against the CommonMark + GFM spec for consistent rendering.
+
 ## Chemical structures
 
 The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl)
@@ -37,10 +47,9 @@ to automatically generate thumbnail previews of common image formats
 and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg,
 .png, .webp, .tif, .tiff (including `OME-TIFF`), and .czi.
 
-### Known limitations
-
-Automated previews of 8-bit depth and higher image files are not
-currently supported.
+As of Quilt Platform version 1.70, thumbnail generation also correctly
+renders .jpeg and .webp inputs, floating-point and 16-bit-color images, and
+16-bit greyscale images.
 
 ## Binary and special file format previews
 

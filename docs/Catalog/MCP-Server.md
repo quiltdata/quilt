@@ -81,6 +81,9 @@ The Platform MCP Server works with any MCP-compatible AI client, including:
 
 - **Claude.ai** (web)
 - **Cursor** (desktop)
+- **ChatGPT** (web, Developer mode)
+- **Databricks** (Catalog HTTP connection)
+- **Codex** (desktop)
 - **Any client** supporting the [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Connecting Claude.ai
@@ -175,6 +178,19 @@ already emits the `:443`-explicit metadata Databricks requires — see
 > [serverless network policies overview](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)
 > and
 > [managing serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/manage-network-policies).
+
+### Connecting Codex
+
+Codex connects to the Platform MCP server over its local loopback callback,
+so no additional `ConnectAllowedHosts` entry is required beyond the default
+`localhost` (which enables both `http://localhost:<port>` and
+`http://127.0.0.1:<port>`). Point Codex at:
+
+```text
+https://<connect-host>/mcp/platform/mcp
+```
+
+The OAuth flow starts automatically the first time Codex connects.
 
 ### User Authorization
 
