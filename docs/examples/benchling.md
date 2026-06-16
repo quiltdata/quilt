@@ -36,12 +36,51 @@ automatically:
   - `display_id` (e.g. `"EXP0000XXXXXX"`)
   - `entry_id` (e.g. `"etr_XXXXXX"`)
   - `files` (list)
+  - `links` (list of referenced Benchling objects — see
+    [Referenced Entities](#referenced-entities))
   - `modified_at` (ISO timestamp)
   - `web_url` (URL string)
 - **Copies attachments** from that notebook into Amazon S3 as part of the
   package.
 - **Enables organizational data discovery** by making contents available in
   ElasticSearch, and metadata available in Amazon Athena.
+
+### Referenced Entities
+
+When packaging a notebook entry, the webhook also discovers the Benchling
+objects that entry references — custom entities, sequences, results tables,
+and so on — and makes them **searchable by their human-readable name**. This
+answers questions like *"show me every experiment that referenced QB-2743.1."*
+
+The package metadata gains a `links` array, one object per referenced entity,
+each with four fields:
+
+```json
+{
+  "type": "custom_entity",
+  "id": "bfi_xCUXNVyG",
+  "name": "QB-2743.1",
+  "slug": "qb-2743-1"
+}
+```
+
+- **`type`** and **`id`** identify the referenced object.
+- **`name`** is the authoritative Benchling display name, resolved via the
+  Benchling API. It is the field you search on. It is `null` when the app
+  lacks registry access for that object or the object type is unsupported.
+- **`slug`** is a lossy token parsed from the object's URL, shown for
+  reference only — it is **never** treated as a name or matched by name
+  search.
+
+To find packages that reference a given entity, search the Quilt Catalog for
+its name (e.g. `QB-2743.1`); matches are scoped to `links.name`.
+
+The raw discovery is also written to a `links.json` file in each package for
+auditing and reprocessing.
+
+> **Note:** This requires the integration to be running v0.18.0 or later. It is
+> distinct from the manual [Package Linking](#package-linking) below, which
+> tags packages by `experiment_id`.
 
 ### Package Linking
 
