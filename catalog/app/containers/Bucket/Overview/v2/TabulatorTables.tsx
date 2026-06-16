@@ -10,6 +10,8 @@ import * as Model from '../../Queries/Athena/model/utils'
 import type { QueryResults } from '../../Queries/Athena/model/requests'
 import { useTabulatorTables, useTablePreview } from '../../Tabulator/requests'
 
+import SectionTitle from './SectionTitle'
+
 // Keep the inline preview compact; the user can open the full Queries page for more.
 const MAX_PREVIEW_COLUMNS = 12
 
@@ -87,7 +89,12 @@ function PreviewBody({ results }: PreviewBodyProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
+  root: {
+    paddingTop: t.spacing(2),
+  },
+  title: {
+    padding: t.spacing(0, 2),
+  },
   footer: {
     padding: t.spacing(1, 2),
   },
@@ -117,9 +124,10 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
 
   return (
     <M.Paper className={classes.root}>
-      <M.List
-        subheader={<M.ListSubheader disableSticky>Tabulator tables</M.ListSubheader>}
-      >
+      <div className={classes.title}>
+        <SectionTitle>Tabulator tables</SectionTitle>
+      </div>
+      <M.List>
         {tables.map((table) => {
           const isOpen = preview?.table === table.name
           return (

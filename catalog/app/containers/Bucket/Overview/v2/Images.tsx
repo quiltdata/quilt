@@ -16,6 +16,7 @@ import * as GQL from 'utils/GraphQL'
 import * as requests from '../../requests'
 
 import BUCKET_QUERY from '../gql/Bucket.generated'
+import SectionTitle from './SectionTitle'
 
 const THUMB_SIZE = 96
 
@@ -217,7 +218,7 @@ function Gallery({ images }: GalleryProps) {
   const visible = expanded ? images : images.slice(0, VISIBLE_THUMBS)
   return (
     <M.Paper className={classes.root}>
-      <M.Typography variant="subtitle1">Images</M.Typography>
+      <SectionTitle>Images</SectionTitle>
       <div className={classes.grid}>
         {visible.map((handle, i) => {
           const name = basename(handle.key)

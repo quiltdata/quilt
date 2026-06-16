@@ -52,25 +52,29 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
 
   it('renders nothing while loading', () => {
     useTabulatorTables.mockReturnValue(Loading)
-    const { container } = renderTables()
+    const { container, queryByText } = renderTables()
     expect(container.textContent).toBe('')
+    expect(queryByText('Tabulator tables')).toBeNull()
   })
 
   it('renders an inline error without crashing', () => {
     useTabulatorTables.mockReturnValue(new Error('boom'))
-    const { getByText } = renderTables()
+    const { getByText, queryByText } = renderTables()
     expect(getByText(/Could not load/i)).toBeTruthy()
+    expect(queryByText('Tabulator tables')).toBeNull()
   })
 
   it('renders nothing when the list is empty', () => {
     useTabulatorTables.mockReturnValue([])
-    const { container } = renderTables()
+    const { container, queryByText } = renderTables()
     expect(container.textContent).toBe('')
+    expect(queryByText('Tabulator tables')).toBeNull()
   })
 
-  it('renders the table names and a link to queries', () => {
+  it('renders the section title, table names and a link to queries', () => {
     useTabulatorTables.mockReturnValue(TWO_TABLES)
     const { getByText } = renderTables('my-bucket')
+    expect(getByText('Tabulator tables')).toBeTruthy()
     expect(getByText('clinical_trials')).toBeTruthy()
     expect(getByText('drug_targets')).toBeTruthy()
     const link = getByText(/More queries/i).closest('a')

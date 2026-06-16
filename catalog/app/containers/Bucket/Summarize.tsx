@@ -556,6 +556,9 @@ interface SummaryEntriesProps {
   columns?: number
   s3: S3
   packageHandle?: PackageHandle
+  // Rendered above the entries, but only when there is at least one entry, so a
+  // section never shows a lone title over empty content.
+  title?: React.ReactNode
 }
 
 export function SummaryEntries({
@@ -564,6 +567,7 @@ export function SummaryEntries({
   columns,
   packageHandle,
   s3,
+  title,
 }: SummaryEntriesProps) {
   const classes = useSummaryEntriesStyles()
   // In the grid case each entry is a single card, so reveal more at once than
@@ -581,26 +585,31 @@ export function SummaryEntries({
     [columns],
   )
   return (
-    <div className={cx(classes.root, { [classes.grid]: columns })} style={gridStyle}>
-      {shownEntries.map((file, i) => (
-        <Row
-          key={`${
-            Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
-          }_${i}`}
-          file={file}
-          mkUrl={mkUrl}
-          packageHandle={packageHandle}
-          s3={s3}
-        />
-      ))}
-      {shown < entries.length && (
-        <div className={cx(classes.more, { [classes.moreGrid]: columns })}>
-          <M.Button variant="contained" color="primary" onClick={showMore}>
-            Show more
-          </M.Button>
-        </div>
-      )}
-    </div>
+    <>
+      {title != null && entries.length > 0 && title}
+      <div className={cx(classes.root, { [classes.grid]: columns })} style={gridStyle}>
+        {shownEntries.map((file, i) => (
+          <Row
+            key={`${
+              Array.isArray(file)
+                ? file.map((f) => f.handle.key).join('')
+                : file.handle.key
+            }_${i}`}
+            file={file}
+            mkUrl={mkUrl}
+            packageHandle={packageHandle}
+            s3={s3}
+          />
+        ))}
+        {shown < entries.length && (
+          <div className={cx(classes.more, { [classes.moreGrid]: columns })}>
+            <M.Button variant="contained" color="primary" onClick={showMore}>
+              Show more
+            </M.Button>
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -613,6 +622,9 @@ interface SummaryRootProps {
   // layouts are always rendered as authored. Omit to keep the single-column
   // stack (legacy behavior).
   gridFallbackPerRow?: number
+  // Rendered above the resolved entries, but only when there is at least one
+  // entry. Omit (legacy Overview) to render no section title.
+  title?: React.ReactNode
 }
 
 export function SummaryRoot({
@@ -620,6 +632,7 @@ export function SummaryRoot({
   bucket,
   inStack,
   gridFallbackPerRow,
+  title,
 }: SummaryRootProps) {
   const req = APIConnector.use()
   const withSource = gridFallbackPerRow != null
@@ -653,6 +666,7 @@ export function SummaryRoot({
               entries={entries}
               columns={fromQuiltSummarize ? undefined : gridFallbackPerRow}
               s3={s3}
+              title={title}
             />
           )
         },

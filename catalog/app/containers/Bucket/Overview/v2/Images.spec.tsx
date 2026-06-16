@@ -131,6 +131,17 @@ describe('containers/Bucket/Overview/v2/Images', () => {
     expect(container.textContent).toBe('')
   })
 
+  it('renders the section title only when there are images', () => {
+    useDataResult.mockReturnValue(AsyncResult.Ok([]))
+    const empty = renderImages()
+    expect(empty.queryByText('Images')).toBeNull()
+    cleanup()
+
+    useDataResult.mockReturnValue(AsyncResult.Ok(THREE_IMAGES))
+    const { getByText } = renderImages()
+    expect(getByText('Images')).toBeTruthy()
+  })
+
   it('renders a compact thumbnail per image when within the cap', () => {
     useDataResult.mockReturnValue(AsyncResult.Ok(THREE_IMAGES))
     const { getAllByTestId, queryByRole } = renderImages()
