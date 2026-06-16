@@ -17,8 +17,8 @@ import sys
 import tempfile
 import urllib.parse
 from io import BytesIO
-from math import sqrt
-from typing import List, Tuple
+from math import isqrt
+from typing import Tuple
 
 import bioio_base.exceptions
 import bioio_czi
@@ -116,35 +116,18 @@ def clean_tmp_dir():
             print(f'Failed to delete {file_path}. Reason: {e}', file=sys.stderr)
 
 
-def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
-    """
-    Generate tuples of integer pairs that are factors for the provided x integer value.
-    """
-    # Generate all factor pairs for an integer x.
-    step = 2 if x % 2 else 1
-    pairs = []
-
-    for i in range(1, int(sqrt(x) + 1), step):
-        if x % i == 0:
-            pairs.append((i, x//i))
-
-    return pairs
-
-
 def choose_min_grid(x: int) -> Tuple[int, int]:
     """
-    Choose a minimum grid size based off the distance between two values that form
-    a factor pair of the provided x amount of objects to create a grid off.
-    """
-    # Chose a minimum grid size. (The smallest distance between a factor pair.)
-    factor_pairs = generate_factor_pairs(x)
-    min_grid_shape = None
-    min_distance = sys.maxsize
-    for pair in factor_pairs:
-        if pair[1] - pair[0] < min_distance:
-            min_grid_shape = pair
+    Return the most-square grid (rows, cols) for laying out `x` cells: the factor
+    pair of `x` whose two factors are closest together. The gap shrinks as the
+    smaller factor grows, so the largest divisor of `x` that is <= sqrt(x) is the
+    number of rows and its cofactor the number of columns.
 
-    return min_grid_shape
+    `x` must be >= 1 (the only caller guards on >1 channels, so x >= 2); for x == 0
+    there is no such divisor and this raises ValueError.
+    """
+    rows = max(i for i in range(1, isqrt(x) + 1) if x % i == 0)
+    return rows, x // rows
 
 
 def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
