@@ -3,7 +3,6 @@ extensions:
   codegen:
     hooks:
       afterAllFileWrite:
-        - node internals/graphql-codegen/strip-unused-base-types-import.js
         - eslint --fix
         - prettier --write
     generates:

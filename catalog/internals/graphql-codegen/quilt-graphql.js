@@ -84,7 +84,11 @@ async function operationPlugin(schema, documents, config, info) {
 
   return {
     prepend: [
-      '/* eslint-disable @typescript-eslint/naming-convention */',
+      // codegen v6 inlines operation result types, so near-operation-file's
+      // unconditional `import * as Types` is unused wherever an operation
+      // references no base enums/inputs. These are generated files, so disable
+      // the rule rather than post-process the output.
+      '/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */',
       ...(tsOpsResult.prepend || []),
       ...(typedDocumentNodeResult.prepend || []),
     ],
