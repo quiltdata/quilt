@@ -642,29 +642,21 @@ def _rescale_float_to_uint8(arr):
 
 def _rescale_int_to_uint8(arr):
     # Contrast-stretch a signed or wide-unsigned integer plane (int8/16/32/64,
-    # uint32/64 — every integer generate_thumbnail can't hand to PIL directly
-    # that isn't uint8 or uint16) to uint8. uint8 passes through and uint16 has
-    # the bounded histogram+LUT path; these wider/signed integers have too many
-    # possible values to histogram, so range and rescale in float64 — the same
-    # approach _normalize_plane takes for its non-uint16 planes (there to 16-bit,
-    # here to uint8). Shares _finite_clip_range and _saturate_to_uint8 with
-    # _rescale_float_to_uint8 so the clip/fallback and saturation can't diverge.
+    # uint32/64) to uint8. uint8/uint16 have their own paths; these dtypes have
+    # too many values to histogram, so range and rescale via a full float64 copy
+    # — the approach _normalize_plane uses for its non-uint16 planes (there to
+    # 16-bit, here to uint8), sharing _finite_clip_range and _saturate_to_uint8
+    # with _rescale_float_to_uint8.
     #
-    # float64 (not float32) so a low-contrast range at a high integer offset
-    # doesn't collapse in the working copy: uint32/uint64 values beyond float32's
-    # 24-bit mantissa would otherwise quantize the contrast away. Peak memory is
-    # the input plane plus its float64 copy; there is no bounded-memory trick for
-    # these dtypes (the OOM-avoiding histogram/LUT only fits <=16-bit unsigned).
+    # float64, not float32: uint32/uint64 values past float32's 24-bit mantissa
+    # would quantize away a low-contrast range sitting at a high offset.
     rng = _finite_clip_range(arr)
     if rng is None:
-        # Empty plane: nothing to range over.
-        return np.zeros(arr.shape, np.uint8)
+        return np.zeros(arr.shape, np.uint8)  # empty plane: nothing to range over
     lo, hi = rng
     if hi == lo:
-        # Constant image: no contrast to stretch. Keep the absolute level
-        # clamped into [0, 255] (the [0, 1] float convention doesn't apply to
-        # integers), matching the level-preserving choice of the other uint8
-        # rescalers rather than _normalize_plane's render-black.
+        # Constant image: keep the absolute level, clamped to [0, 255] (no
+        # [0, 1] convention as for floats).
         return np.full(arr.shape, np.clip(round(lo), 0, 255), np.uint8)
     out = arr.astype(np.float64)
     out -= lo
@@ -713,12 +705,10 @@ def generate_thumbnail(arr, size):
         rescale = _rescale_uint16_to_uint8
     elif arr.ndim == 2 and arr.dtype == np.int32:
         # norm_img hands back a normalized greyscale montage / Z-projection as
-        # 2-D int32 already stretched to [0, 65536); pass it straight through to
-        # a 16-bit I;16 PNG (handle_image converts mode I -> I;16) instead of
-        # re-stretching it to 8-bit. A raw 2-D native-int32 greyscale is
-        # indistinguishable from this and shares the path (rendered as 16-bit,
-        # so values above 65535 clip) — an accepted limitation; every other
-        # wide / signed integer below is contrast-stretched.
+        # 2-D int32 already in [0, 65536); pass it through to a 16-bit I;16 PNG
+        # instead of re-stretching to 8-bit. A raw 2-D int32 greyscale is
+        # indistinguishable from this and shares the path (stays 16-bit, clipping
+        # values above 65535) — an accepted limitation.
         rescale = None
     elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
         # Wider or signed integers PIL can't build an image from directly
