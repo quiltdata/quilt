@@ -18,7 +18,6 @@ import tempfile
 import urllib.parse
 from io import BytesIO
 from math import isqrt
-from typing import Tuple
 
 import bioio_base.exceptions
 import bioio_czi
@@ -116,15 +115,14 @@ def clean_tmp_dir():
             print(f'Failed to delete {file_path}. Reason: {e}', file=sys.stderr)
 
 
-def choose_min_grid(x: int) -> Tuple[int, int]:
+def most_square_grid(x: int) -> tuple[int, int]:
     """
     Return the most-square grid (rows, cols) for laying out `x` cells: the factor
     pair of `x` whose two factors are closest together. The gap shrinks as the
     smaller factor grows, so the largest divisor of `x` that is <= sqrt(x) is the
     number of rows and its cofactor the number of columns.
 
-    `x` must be >= 1 (the only caller guards on >1 channels, so x >= 2); for x == 0
-    there is no such divisor and this raises ValueError.
+    Requires x >= 1; x == 0 has no factor pair and raises ValueError.
     """
     rows = max(i for i in range(1, isqrt(x) + 1) if x % i == 0)
     return rows, x // rows
@@ -350,17 +348,16 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
                 )
                 projections.append(padded)
 
-        # Get min grid shape
-        # For 6 channels this returns (2, 3)
-        min_grid_shape = choose_min_grid(len(projections))
+        # Lay the channels out in the most-square grid (6 channels -> (2, 3))
+        grid_shape = most_square_grid(len(projections))
 
         # Make rows of images
         # Use a counter so that we don't have to use `projections.pop` which is O(N)
         rows = []
         proj_counter = 0
-        for y_i in range(min_grid_shape[0]):
+        for y_i in range(grid_shape[0]):
             row = []
-            for x_i in range(min_grid_shape[1]):
+            for x_i in range(grid_shape[1]):
                 row.append(projections[proj_counter])
                 proj_counter += 1
 
