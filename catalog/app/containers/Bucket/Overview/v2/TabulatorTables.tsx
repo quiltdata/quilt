@@ -7,7 +7,84 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 // Schema-free generic async-state helpers; they merely live under the Athena
 // folder. Candidate for relocation to a neutral `utils/` location.
 import * as Model from '../../Queries/Athena/model/utils'
-import { useTabulatorTables } from '../../Tabulator/requests'
+import type { QueryResults } from '../../Queries/Athena/model/requests'
+import { useTabulatorTables, useTablePreview } from '../../Tabulator/requests'
+
+// Keep the inline preview compact; the user can open the full Queries page for more.
+const MAX_PREVIEW_COLUMNS = 12
+
+const usePreviewStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(0, 2, 2),
+  },
+  tableWrapper: {
+    maxHeight: t.spacing(40),
+    overflow: 'auto',
+  },
+  cell: {
+    maxWidth: t.spacing(30),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+}))
+
+interface PreviewBodyProps {
+  results: Model.Data<QueryResults>
+}
+
+function PreviewBody({ results }: PreviewBodyProps) {
+  const classes = usePreviewStyles()
+
+  if (Model.isLoading(results) || Model.isNone(results)) {
+    return <M.LinearProgress />
+  }
+
+  if (Model.isError(results)) {
+    return (
+      <M.Typography color="error" variant="body2" className={classes.root}>
+        {results.message || 'Could not load preview'}
+      </M.Typography>
+    )
+  }
+
+  if (!Model.hasData(results) || results.rows.length === 0) {
+    return (
+      <M.Typography color="textSecondary" variant="body2" className={classes.root}>
+        No rows
+      </M.Typography>
+    )
+  }
+
+  const columns = results.columns.slice(0, MAX_PREVIEW_COLUMNS)
+  return (
+    <div className={classes.root}>
+      <M.Paper variant="outlined" className={classes.tableWrapper}>
+        <M.Table size="small" stickyHeader>
+          <M.TableHead>
+            <M.TableRow>
+              {columns.map((col, i) => (
+                <M.TableCell key={`${col.name}-${i}`}>{col.name}</M.TableCell>
+              ))}
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {results.rows.map((row, ri) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <M.TableRow key={ri}>
+                {columns.map((_col, ci) => (
+                  <M.TableCell key={ci} className={classes.cell} title={row[ci]}>
+                    {row[ci]}
+                  </M.TableCell>
+                ))}
+              </M.TableRow>
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </M.Paper>
+    </div>
+  )
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -26,6 +103,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const tables = useTabulatorTables(bucket)
+  const { preview, open } = useTablePreview(bucket)
 
   if (Model.isLoading(tables)) return <M.LinearProgress />
 
@@ -44,11 +122,20 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
       <M.List
         subheader={<M.ListSubheader disableSticky>Tabulator tables</M.ListSubheader>}
       >
-        {tables.map((table) => (
-          <M.ListItem key={table.name}>
-            <M.ListItemText primary={table.name} />
-          </M.ListItem>
-        ))}
+        {tables.map((table) => {
+          const isOpen = preview?.table === table.name
+          return (
+            <React.Fragment key={table.name}>
+              <M.ListItem button onClick={() => open(table.name)}>
+                <M.ListItemText primary={table.name} />
+                {isOpen ? <M.Icon>expand_less</M.Icon> : <M.Icon>expand_more</M.Icon>}
+              </M.ListItem>
+              <M.Collapse in={isOpen} timeout="auto" unmountOnExit>
+                {isOpen && <PreviewBody results={preview!.results} />}
+              </M.Collapse>
+            </React.Fragment>
+          )
+        })}
       </M.List>
       <M.Divider />
       <div className={classes.footer}>
