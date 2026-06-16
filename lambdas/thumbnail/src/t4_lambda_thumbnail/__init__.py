@@ -141,18 +141,22 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     callers must re-check and handle the no-contrast case themselves.
 
     Shared by _normalize_plane (float planes), _rescale_float_to_uint8, and
-    _rescale_int_to_uint8 (wide/signed integers, which are all finite so the
-    mask is a no-op) so their clip/fallback and non-finite filtering can't
-    diverge (the same pixels must not render differently by reader path). The
-    <=16-bit unsigned paths use _uint16_clip_range instead (histogram
-    percentile, bounded memory).
+    _rescale_int_to_uint8 (wide/signed integers, where the finite mask is
+    skipped) so their clip/fallback and non-finite filtering can't diverge (the
+    same pixels must not render differently by reader path). The <=16-bit
+    unsigned paths use _uint16_clip_range instead (histogram percentile, bounded
+    memory).
     """
     # Compact to the finite values only when some are non-finite: the masked
     # copy would otherwise coexist with np.percentile's internal copy and double
-    # the ranging-phase peak memory.
-    mask = np.isfinite(arr)
-    finite = arr if mask.all() else arr[mask]
-    del mask
+    # the ranging-phase peak memory. Non-float planes carry no non-finite values,
+    # so skip the mask (and its full-size scan) entirely.
+    if arr.dtype.kind == "f":
+        mask = np.isfinite(arr)
+        finite = arr if mask.all() else arr[mask]
+        del mask
+    else:
+        finite = arr
     if not finite.size:
         return None
     # When `finite` is the compacted copy (non-finite values were present) it is
@@ -643,13 +647,10 @@ def _rescale_float_to_uint8(arr):
 def _rescale_int_to_uint8(arr):
     # Contrast-stretch a signed or wide-unsigned integer plane (int8/16/32/64,
     # uint32/64) to uint8. uint8/uint16 have their own paths; these dtypes have
-    # too many values to histogram, so range and rescale via a full float64 copy
-    # — the approach _normalize_plane uses for its non-uint16 planes (there to
-    # 16-bit, here to uint8), sharing _finite_clip_range and _saturate_to_uint8
-    # with _rescale_float_to_uint8.
-    #
-    # float64, not float32: uint32/uint64 values past float32's 24-bit mantissa
-    # would quantize away a low-contrast range sitting at a high offset.
+    # too many values to histogram, so range and rescale via a float copy — the
+    # approach _normalize_plane uses for its non-uint16 planes (there to 16-bit,
+    # here to uint8), sharing _finite_clip_range and _saturate_to_uint8 with
+    # _rescale_float_to_uint8.
     rng = _finite_clip_range(arr)
     if rng is None:
         return np.zeros(arr.shape, np.uint8)  # empty plane: nothing to range over
@@ -658,7 +659,11 @@ def _rescale_int_to_uint8(arr):
         # Constant image: keep the absolute level, clamped to [0, 255] (no
         # [0, 1] convention as for floats).
         return np.full(arr.shape, np.clip(round(lo), 0, 255), np.uint8)
-    out = arr.astype(np.float64)
+    # int8/int16 are exact in float32 (half the working copy); wider ints need
+    # float64 — float32 would quantize away a low-contrast band at a high offset
+    # (uint32/uint64 past float32's 24-bit mantissa). Hence itemsize <= 2, not
+    # the float path's <= 4.
+    out = arr.astype(np.float32 if arr.dtype.itemsize <= 2 else np.float64)
     out -= lo
     out *= 255 / (hi - lo)
     return _saturate_to_uint8(out)
