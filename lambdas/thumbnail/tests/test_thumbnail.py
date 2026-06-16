@@ -12,6 +12,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import responses
+import tifffile
 from bioio import BioImage
 from PIL import Image
 
@@ -228,6 +229,64 @@ def test_generate_thumbnail(
             expected = BioImage(data_dir / expected_thumb)
             assert actual.dims.items() == expected.dims.items()
             assert np.array_equal(actual.reader.data, expected.reader.data)
+
+
+# Local color fixtures, each with an independent decoder, covering the three
+# distinct non-CZI color reader paths exercised by the oracle below.
+_COLOR_ORACLE_FIXTURES = [
+    # bioio-imageio path: 8-bit RGB JPEG (a penguin with an orange beak/feet).
+    # PIL here is a genuinely different decoder than bioio-imageio's.
+    ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),
+    # bioio-tifffile YXC path: 8-bit RGBA aerial photo.
+    ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),
+    # bioio-tifffile float path through _rescale_float_to_uint8: float16 RGB.
+    ("float-rgb.tiff", lambda p: tifffile.imread(p).astype(np.float64)),
+]
+
+
+def _coarse_means(rgb, grid=12):
+    # Average a HxWxC image into a grid x grid x C array of block means so the
+    # oracle compares coarse regional color, not exact pixels: the thumbnail is
+    # resized (and, for floats, contrast-stretched), so it never matches an
+    # independent decode pixel-for-pixel — but its regional hue must still line up.
+    rgb = np.asarray(rgb, np.float64)
+    h, w, c = rgb.shape
+    ys = np.linspace(0, h, grid + 1, dtype=int)
+    xs = np.linspace(0, w, grid + 1, dtype=int)
+    return np.array([[rgb[ys[i]:ys[i + 1], xs[j]:xs[j + 1]].reshape(-1, c).mean(0)
+                      for j in range(grid)] for i in range(grid)])
+
+
+@pytest.mark.parametrize(
+    "fixture, decode", _COLOR_ORACLE_FIXTURES, ids=[f for f, _ in _COLOR_ORACLE_FIXTURES]
+)
+def test_color_path_channel_order(data_dir, fixture, decode):
+    # Channel-order oracle for the non-CZI color path, complementing the
+    # byte-exact goldens in test_generate_thumbnail. Those goldens are generated
+    # by the lambda itself: a swap does make them fail, but the tempting fix —
+    # regenerating the golden — would then enshrine the swap silently. (That is
+    # how the BGR R/B swap nearly shipped; see the CZI sibling of this test,
+    # test_handle_image_bgr_czi_channel_order.) Comparing the thumbnail's
+    # regional R-vs-B lean against an independent decode asserts ground truth a
+    # regeneration can't fake; the synthetic-array rescale unit tests can't —
+    # their min/max checks are invariant under a channel swap.
+    #
+    # For penguin.jpg the decoder (PIL) genuinely differs from bioio-imageio's;
+    # for the TIFFs tifffile is what bioio-tifffile wraps, so there this guards
+    # the lambda's own channel handling rather than the decode.
+    ref = decode(data_dir / fixture)
+    _info, png = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / fixture), size=(256, 256), thumbnail_format="PNG")
+    out = np.asarray(Image.open(BytesIO(png)).convert("RGB"), np.float64)
+
+    cr, co = _coarse_means(ref), _coarse_means(out)
+    # On blocks the source decodes as clearly red- or blue-leaning, the thumbnail
+    # must lean the same way. An R/B swap flips every sign -> agreement near 0.
+    rb_ref, rb_out = cr[..., 0] - cr[..., 2], co[..., 0] - co[..., 2]
+    colored = np.abs(rb_ref) > 0.05 * (cr.max() - cr.min())
+    assert colored.sum() >= 5, f"{fixture}: too few colored blocks to test ({colored.sum()})"
+    agree = (np.sign(rb_ref[colored]) == np.sign(rb_out[colored])).mean()
+    assert agree > 0.9, f"{fixture}: R/B channel order agreement only {agree * 100:.0f}%"
 
 
 def test_rescale_uint16_to_uint8_rescales_by_range():
