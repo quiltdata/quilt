@@ -243,11 +243,12 @@ _COLOR_ORACLE_FIXTURES = [
 
 
 def _coarse_means(rgb, grid=12):
-    # Reduce an H×W×C image to a grid×grid×C array of block means: the thumbnail is
-    # resized (and floats contrast-stretched), so it never matches an independent
-    # decode pixel-for-pixel, but regional hue must still line up. The assert pins
-    # the contract — a 2-D/4-D array unpacks opaquely, a sub-grid one gives NaN blocks.
-    rgb = np.asarray(rgb, np.float64)
+    # Reduce an H×W×C image to a grid×grid×C array of block means (float64: np.mean
+    # promotes per block, so no full-image upcast): the thumbnail is resized (and
+    # floats contrast-stretched), so it never matches an independent decode
+    # pixel-for-pixel, but regional hue must still line up. The assert pins the
+    # contract — a 2-D/4-D array unpacks opaquely, a sub-grid one gives NaN blocks.
+    rgb = np.asarray(rgb)
     assert rgb.ndim == 3 and min(rgb.shape[:2]) >= grid, f"expected an H×W×C image, H,W >= {grid}; got {rgb.shape}"
     h, w, c = rgb.shape
     ys = np.linspace(0, h, grid + 1, dtype=int)
