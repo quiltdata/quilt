@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
 import Chat from 'components/Assistant/UI/Chat/Chat'
+import * as BucketPreferences from 'utils/BucketPreferences'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -21,17 +22,29 @@ export default function QuratorInline() {
 
   const enabled = Assistant.Model.useIsEnabled()
   const api = Assistant.Model.useAssistantAPI()
+  const { prefs } = BucketPreferences.use()
 
-  if (!enabled || !api) return null
-
-  return (
-    <M.Paper className={classes.root}>
-      <Chat
-        state={api.state}
-        dispatch={api.dispatch}
-        devTools={api.devTools}
-        connectors={api.connectors}
-      />
-    </M.Paper>
+  return BucketPreferences.Result.match(
+    {
+      // Honor the per-bucket `ui.blocks.qurator` preference, like every other
+      // per-bucket Qurator entry point, in addition to the stack-global enabled
+      // and API-availability guards.
+      Ok: ({ ui: { blocks } }) => {
+        if (!blocks.qurator || !enabled || !api) return null
+        return (
+          <M.Paper className={classes.root}>
+            <Chat
+              state={api.state}
+              dispatch={api.dispatch}
+              devTools={api.devTools}
+              connectors={api.connectors}
+            />
+          </M.Paper>
+        )
+      },
+      // Don't show the chat until prefs confirm it's allowed.
+      _: () => null,
+    },
+    prefs,
   )
 }

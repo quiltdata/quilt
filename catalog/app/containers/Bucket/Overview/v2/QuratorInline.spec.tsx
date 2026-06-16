@@ -2,7 +2,11 @@ import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
+import * as BucketPreferences from 'utils/BucketPreferences'
+
 import QuratorInline from './QuratorInline'
+
+vi.mock('constants/config', () => ({ default: {} }))
 
 const useIsEnabled = vi.fn()
 const useAssistantAPI = vi.fn()
@@ -17,6 +21,21 @@ vi.mock('components/Assistant', () => ({
 vi.mock('components/Assistant/UI/Chat/Chat', () => ({
   default: () => <div data-testid="qurator-chat" />,
 }))
+
+const quratorPref = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+vi.mock('utils/BucketPreferences', async () => {
+  const actual = await vi.importActual<typeof BucketPreferences>(
+    'utils/BucketPreferences',
+  )
+  return {
+    ...actual,
+    use: () => ({
+      prefs: actual.Result.Ok({
+        ui: { blocks: { qurator: quratorPref() } },
+      } as unknown as Parameters<typeof actual.Result.Ok>[0]),
+    }),
+  }
+})
 
 function makeAPI() {
   return {
@@ -33,6 +52,7 @@ describe('containers/Bucket/Overview/v2/QuratorInline', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    quratorPref.mockReturnValue(true)
   })
 
   it('renders nothing when Qurator is disabled', () => {
@@ -49,8 +69,17 @@ describe('containers/Bucket/Overview/v2/QuratorInline', () => {
     expect(queryByTestId('qurator-chat')).toBeFalsy()
   })
 
-  it('renders the inline chat without opening the drawer', () => {
+  it('renders nothing when the qurator block is disabled, even if enabled with an API', () => {
+    quratorPref.mockReturnValue(false)
+    useIsEnabled.mockReturnValue(true)
+    useAssistantAPI.mockReturnValue(makeAPI())
+    const { queryByTestId } = render(<QuratorInline />)
+    expect(queryByTestId('qurator-chat')).toBeFalsy()
+  })
+
+  it('renders the inline chat when the qurator block is enabled with an API', () => {
     const api = makeAPI()
+    quratorPref.mockReturnValue(true)
     useIsEnabled.mockReturnValue(true)
     useAssistantAPI.mockReturnValue(api)
     const { getByTestId } = render(<QuratorInline />)

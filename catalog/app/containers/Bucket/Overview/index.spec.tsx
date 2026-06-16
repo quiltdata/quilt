@@ -47,4 +47,18 @@ describe('Bucket/Overview', () => {
     expect(queryByText('LEGACY')).toBeTruthy()
     expect(queryByText('V2')).toBeFalsy()
   })
+
+  it('renders neither v2 nor legacy while prefs are pending', () => {
+    prefsHook.mockReturnValue({ prefs: BucketPreferences.Result.Pending() })
+    const { queryByText } = render(<Overview />)
+    expect(queryByText('V2')).toBeFalsy()
+    expect(queryByText('LEGACY')).toBeFalsy()
+  })
+
+  it('renders neither v2 nor legacy while prefs are uninitialized', () => {
+    prefsHook.mockReturnValue({ prefs: BucketPreferences.Result.Init() })
+    const { queryByText } = render(<Overview />)
+    expect(queryByText('V2')).toBeFalsy()
+    expect(queryByText('LEGACY')).toBeFalsy()
+  })
 })

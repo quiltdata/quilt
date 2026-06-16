@@ -135,8 +135,10 @@ function Carousel({ images, index, onClose, onChange }: CarouselProps) {
           </M.IconButton>
         )}
         {/* A low-res `sm` render is layered underneath as an instant placeholder
-            (it resolves quickly from the lambda's warm cache); the full `lg`
-            render paints over it once its `<img>` resolves. */}
+            (it resolves quickly from the lambda's warm cache); the `lg` render
+            paints over it once its `<img>` resolves. `lg` is the catalog's
+            standard large preview — a downscaled thumbnail render (same as the
+            file-preview image renderer), NOT the original S3 object. */}
         <div className={classes.stack}>
           <Thumbnail
             key={`sm/${current.bucket}/${current.key}`}
