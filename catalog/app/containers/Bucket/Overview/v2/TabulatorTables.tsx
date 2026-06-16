@@ -1,8 +1,8 @@
 import * as React from 'react'
+import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 
 // Schema-free generic async-state helpers; they merely live under the Athena
 // folder. Candidate for relocation to a neutral `utils/` location.
@@ -145,7 +145,14 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
         })}
       </M.List>
       <div className={classes.footer}>
-        <StyledLink to={urls.bucketQueries(bucket)}>More queries</StyledLink>
+        <M.Button
+          component={RRLink}
+          to={urls.bucketQueries(bucket)}
+          size="small"
+          color="primary"
+        >
+          More queries
+        </M.Button>
       </div>
     </M.Paper>
   )
