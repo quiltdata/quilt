@@ -102,9 +102,11 @@ function setupAthena() {
   )
   // startQueryExecution returns a per-table execution id derived from the query.
   startQueryExecution.mockImplementation(
-    reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(({ QueryString }) => ({
-      QueryExecutionId: execId(tableOf(QueryString)),
-    })),
+    reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(
+      ({ QueryString }) => ({
+        QueryExecutionId: execId(tableOf(QueryString)),
+      }),
+    ),
   )
   // The execution for a given id is always SUCCEEDED and carries its own id back.
   getQueryExecution.mockImplementation(
