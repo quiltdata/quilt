@@ -2,11 +2,7 @@ import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 
-import {
-  ConfigureAppearance,
-  groupAutoSummaryRows,
-  resolveSummaryEntries,
-} from './Summarize'
+import { ConfigureAppearance, SummaryEntries } from './Summarize'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -53,52 +49,22 @@ vi.mock('react-router-dom', async () => ({
 describe('containers/Buckets/Summarize', () => {
   afterEach(cleanup)
 
-  describe('groupAutoSummaryRows', () => {
-    it('groups a flat list into rows of perRow', () => {
-      expect(groupAutoSummaryRows(['a', 'b', 'c'], 2)).toEqual([['a', 'b'], ['c']])
+  describe('SummaryEntries', () => {
+    // Empty entries keep the test free of the heavy `Row`/`FileHandle`/S3
+    // machinery while still rendering the container, where the grid layout is
+    // applied — so we can assert auto-discovery is gridded and authored is not.
+    const s3 = {} as any
+
+    it('applies a multi-column grid container when `columns` is set', () => {
+      const { container } = render(<SummaryEntries entries={[]} columns={2} s3={s3} />)
+      const root = container.firstChild as HTMLElement
+      expect(root.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))')
     })
 
-    it('returns an empty array for an empty list', () => {
-      expect(groupAutoSummaryRows([], 2)).toEqual([])
-    })
-
-    it('wraps a single item in its own row', () => {
-      expect(groupAutoSummaryRows(['a'], 2)).toEqual([['a']])
-    })
-
-    it('defaults to 2 items per row', () => {
-      expect(groupAutoSummaryRows(['a', 'b', 'c', 'd', 'e'])).toEqual([
-        ['a', 'b'],
-        ['c', 'd'],
-        ['e'],
-      ])
-    })
-
-    it('respects an explicit perRow', () => {
-      expect(groupAutoSummaryRows(['a', 'b', 'c', 'd', 'e'], 3)).toEqual([
-        ['a', 'b', 'c'],
-        ['d', 'e'],
-      ])
-    })
-  })
-
-  describe('resolveSummaryEntries', () => {
-    const mkFile = (key: string) => ({ handle: { bucket: 'b', key }, path: key }) as any
-
-    it('groups auto-discovered entries into grid rows', () => {
-      const entries = [mkFile('a'), mkFile('b'), mkFile('c')]
-      expect(resolveSummaryEntries({ entries, fromQuiltSummarize: false }, 2)).toEqual([
-        [entries[0], entries[1]],
-        [entries[2]],
-      ])
-    })
-
-    it('leaves quilt_summarize.json layouts untouched', () => {
-      // A user-authored layout: a multi-column row followed by a full-width file.
-      const entries = [[mkFile('a'), mkFile('b')], mkFile('c')] as any
-      expect(resolveSummaryEntries({ entries, fromQuiltSummarize: true }, 2)).toBe(
-        entries,
-      )
+    it('does not apply a grid container without `columns` (legacy/authored flow)', () => {
+      const { container } = render(<SummaryEntries entries={[]} s3={s3} />)
+      const root = container.firstChild as HTMLElement
+      expect(root.style.gridTemplateColumns).toBe('')
     })
   })
 

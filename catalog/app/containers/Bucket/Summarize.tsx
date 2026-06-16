@@ -448,31 +448,9 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   )
 }
 
-// Group a flat list of single-file entries into rows of `perRow`, e.g.
-// `[a, b, c]` with perRow 2 becomes `[[a, b], [c]]`. Used to lay out
-// auto-discovered summaries as a multi-column grid; `Row` renders an array
-// entry as side-by-side columns.
-export function groupAutoSummaryRows<T>(files: T[], perRow = 2): T[][] {
-  return R.splitEvery(perRow, files)
-}
-
 interface SummaryWithSource {
   entries: SummarizeFile[]
   fromQuiltSummarize: boolean
-}
-
-// Decide the entries to render given the source. User-authored
-// quilt_summarize.json layouts are kept exactly as authored; only
-// auto-discovered entries are re-grouped into a grid of `gridFallbackPerRow`.
-export function resolveSummaryEntries(
-  { entries, fromQuiltSummarize }: SummaryWithSource,
-  gridFallbackPerRow: number,
-): SummarizeFile[] {
-  if (fromQuiltSummarize) return entries
-  // `SummaryEntries`/`Row` treat array entries as a grid row (side-by-side
-  // columns), but the declared element type stays `SummarizeFile` — match that
-  // loose typing used throughout this module.
-  return groupAutoSummaryRows(entries, gridFallbackPerRow) as unknown as SummarizeFile[]
 }
 
 const SUMMARY_ENTRIES = 7
@@ -547,30 +525,63 @@ const useSummaryEntriesStyles = M.makeStyles((t) => ({
     position: 'relative',
     zIndex: 1,
   },
+  // Auto-discovery grid: each entry is a single full-width `Row` placed in one
+  // cell. `minmax(0, 1fr)` lets intrinsically wide preview cards shrink to the
+  // column width instead of forcing the track to grow and wrap to one column.
+  grid: {
+    display: 'grid',
+    gap: t.spacing(2),
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: '1fr',
+    },
+  },
   more: {
     display: 'flex',
     justifyContent: 'center',
     marginTop: t.spacing(2),
+  },
+  // Span the full grid width so the "Show more" button stays centered below the
+  // columns rather than occupying a single cell.
+  moreGrid: {
+    gridColumn: '1 / -1',
   },
 }))
 
 interface SummaryEntriesProps {
   entries: SummarizeFile[]
   mkUrl?: MakeURL
+  // When set, render entries as a CSS grid of this many columns (auto-discovery
+  // layout). Omit to keep the single-column flow used by legacy Overview and
+  // user-authored quilt_summarize.json layouts.
+  columns?: number
   s3: S3
   packageHandle?: PackageHandle
 }
 
-function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesProps) {
+export function SummaryEntries({
+  entries,
+  mkUrl,
+  columns,
+  packageHandle,
+  s3,
+}: SummaryEntriesProps) {
   const classes = useSummaryEntriesStyles()
-  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
+  // In the grid case each entry is a single card, so reveal more at once than
+  // the legacy per-row count to keep "Show more" meaningful.
+  const step = columns ? SUMMARY_ENTRIES * columns : SUMMARY_ENTRIES
+  const [shown, setShown] = React.useState(step)
   const showMore = React.useCallback(() => {
-    setShown(R.add(SUMMARY_ENTRIES))
-  }, [setShown])
+    setShown(R.add(step))
+  }, [setShown, step])
 
   const shownEntries = R.take(shown, entries)
+  const gridStyle = React.useMemo(
+    () =>
+      columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined,
+    [columns],
+  )
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, { [classes.grid]: columns })} style={gridStyle}>
       {shownEntries.map((file, i) => (
         <Row
           key={`${
@@ -583,7 +594,7 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
         />
       ))}
       {shown < entries.length && (
-        <div className={classes.more}>
+        <div className={cx(classes.more, { [classes.moreGrid]: columns })}>
           <M.Button variant="contained" color="primary" onClick={showMore}>
             Show more
           </M.Button>
@@ -633,11 +644,17 @@ export function SummaryRoot({
           if (!withSource) {
             return <SummaryEntries entries={result as SummarizeFile[]} s3={s3} />
           }
-          const entries = resolveSummaryEntries(
-            result as SummaryWithSource,
-            gridFallbackPerRow as number,
+          const { entries, fromQuiltSummarize } = result as SummaryWithSource
+          // User-authored quilt_summarize.json layouts (incl. their explicit
+          // multi-column rows) render via the unchanged flow. Auto-discovered
+          // summaries lay out as a CSS grid of `gridFallbackPerRow` columns.
+          return (
+            <SummaryEntries
+              entries={entries}
+              columns={fromQuiltSummarize ? undefined : gridFallbackPerRow}
+              s3={s3}
+            />
           )
-          return <SummaryEntries entries={entries} s3={s3} />
         },
         Pending: () => <FilePreviewSkel />,
         _: () => null,
