@@ -296,20 +296,28 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   top: {
+    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
     [t.breakpoints.up('sm')]: {
-      alignItems: 'flex-start',
       flexDirection: 'row',
       justifyContent: 'space-between',
     },
   },
-  identity: {
+  title: {
+    alignItems: 'center',
+    display: 'flex',
     flexShrink: 1,
     minWidth: 0,
   },
   settings: {
     marginLeft: t.spacing(1),
+  },
+  description: {
+    marginTop: t.spacing(2),
+  },
+  readme: {
+    marginTop: t.spacing(2),
   },
 }))
 
@@ -327,27 +335,27 @@ export default function Header({ bucket }: HeaderProps) {
   return (
     <M.Paper className={classes.root}>
       <div className={classes.top}>
-        <div className={classes.identity}>
-          <M.Box display="flex" alignItems="center">
-            <M.Typography variant="h5">{bucket}</M.Typography>
-            {isAdmin && (
-              <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-                <M.IconButton size="small" color="inherit">
-                  <M.Icon>settings</M.Icon>
-                </M.IconButton>
-              </RRLink>
-            )}
-          </M.Box>
-          {!!description && (
-            <M.Box mt={1}>
-              <M.Typography variant="body1">{description}</M.Typography>
-            </M.Box>
+        <div className={classes.title}>
+          <M.Typography variant="h5">{bucket}</M.Typography>
+          {isAdmin && (
+            <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
+              <M.IconButton size="small" color="inherit">
+                <M.Icon>settings</M.Icon>
+              </M.IconButton>
+            </RRLink>
           )}
         </div>
         <Stats bucket={bucket} stats={stats} />
       </div>
+      {!!description && (
+        <M.Typography className={classes.description} variant="body1">
+          {description}
+        </M.Typography>
+      )}
+      <div className={classes.readme}>
+        <Readme bucket={bucket} />
+      </div>
       <Charts bucket={bucket} statsResult={stats.statsResult} />
-      <Readme bucket={bucket} />
     </M.Paper>
   )
 }

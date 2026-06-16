@@ -1,15 +1,46 @@
 import * as React from 'react'
 
+import Markdown from 'components/Markdown'
+import Skeleton from 'components/Skeleton'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import { Fetcher } from 'utils/Data'
+import { Fetcher, useData } from 'utils/Data'
 
-import * as Summarize from '../../Summarize'
 import * as requests from '../../requests'
 
 function isNotebook(handle: Model.S3.S3ObjectLocation): boolean {
   return handle.key.toLowerCase().endsWith('.ipynb')
+}
+
+async function fetchReadmeText({
+  s3,
+  handle,
+}: {
+  s3: $TSFixMe
+  handle: Model.S3.S3ObjectLocation
+}): Promise<string> {
+  const r = await s3.getObject({ Bucket: handle.bucket, Key: handle.key }).promise()
+  return r.Body.toString('utf-8')
+}
+
+interface ReadmeContentsProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+function ReadmeContents({ handle }: ReadmeContentsProps) {
+  const s3 = AWS.S3.use()
+  const data = useData(fetchReadmeText, { s3, handle })
+  return data.case({
+    // Errors must not break the header: render nothing.
+    Err: () => null,
+    Ok: (text: string) => (
+      <div data-testid="readme-preview">
+        <Markdown data={text} />
+      </div>
+    ),
+    _: () => <Skeleton height={48} />,
+  })
 }
 
 interface ReadmeProps {
@@ -28,14 +59,9 @@ export default function Readme({ bucket }: ReadmeProps) {
           // remains available elsewhere (e.g. the Summary section).
           const handle = readmes.find((h) => !isNotebook(h))
           if (!handle) return null
-          return (
-            <div data-testid="readme-preview">
-              {/* No `expanded`: PreviewBox applies its native clamp + click-to-expand. */}
-              <Summarize.FilePreview handle={handle} />
-            </div>
-          )
+          return <ReadmeContents handle={handle} />
         },
-        _: () => <Summarize.FilePreviewSkel />,
+        _: () => <Skeleton height={48} />,
       })}
     </Fetcher>
   )

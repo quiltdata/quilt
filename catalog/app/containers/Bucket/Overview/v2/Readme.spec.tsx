@@ -8,19 +8,39 @@ import Readme from './Readme'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-vi.mock('../../Summarize', () => ({
-  FilePreview: ({ handle }: { handle: { bucket: string; key: string } }) => (
-    <div data-testid="file-preview">{`${handle.bucket}/${handle.key}`}</div>
+vi.mock('components/Markdown', () => ({
+  default: ({ data }: { data: string }) => (
+    <div data-testid="readme-markdown">{data}</div>
   ),
-  FilePreviewSkel: () => <div data-testid="file-preview-skel" />,
 }))
 
-const fetchResult = vi.fn()
+// `bucketReadmes` is fetched via the outer Fetcher; the readme text is fetched
+// via the inner `useData`. Both go through `utils/Data`, so we route them by
+// the request fn: `requests.bucketReadmes` (outer) vs the text fetcher (inner).
+const readmesResult = vi.fn()
+const textResult = vi.fn(() => AsyncResult.Ok('# Hello'))
 
-vi.mock('utils/Data', () => ({
-  Fetcher: ({ children }: { children: (r: unknown) => React.ReactNode }) =>
-    children(fetchResult()),
-}))
+vi.mock('../../requests', () => ({ bucketReadmes: vi.fn() }))
+
+vi.mock('utils/Data', async () => {
+  const requests = await import('../../requests')
+  const route = (fetch: unknown) =>
+    fetch === (requests as { bucketReadmes: unknown }).bucketReadmes
+      ? readmesResult()
+      : textResult()
+  return {
+    Fetcher: ({
+      fetch,
+      children,
+    }: {
+      fetch: unknown
+      children: (r: unknown) => React.ReactNode
+    }) => children(route(fetch)),
+    useData: (fetch: unknown) => ({
+      case: (cases: $TSFixMe) => AsyncResult.case(cases, route(fetch)),
+    }),
+  }
+})
 
 vi.mock('utils/AWS', () => ({
   S3: { use: () => ({}) },
@@ -29,32 +49,34 @@ vi.mock('utils/AWS', () => ({
 describe('containers/Bucket/Overview/v2/Readme', () => {
   afterEach(cleanup)
 
-  it('renders exactly one preview when there are multiple readmes', () => {
-    fetchResult.mockReturnValue(
+  it('renders the markdown of the chosen readme', () => {
+    readmesResult.mockReturnValue(
       AsyncResult.Ok([
         { bucket: 'b', key: 'README.md' },
         { bucket: 'b', key: 'README.txt' },
       ]),
     )
-    const { queryAllByTestId } = render(<Readme bucket="b" />)
+    const { queryAllByTestId, getByTestId } = render(<Readme bucket="b" />)
     expect(queryAllByTestId('readme-preview')).toHaveLength(1)
-    expect(queryAllByTestId('file-preview')).toHaveLength(1)
+    expect(getByTestId('readme-markdown').textContent).toBe('# Hello')
   })
 
   it('renders nothing when there are no readmes', () => {
-    fetchResult.mockReturnValue(AsyncResult.Ok([]))
+    readmesResult.mockReturnValue(AsyncResult.Ok([]))
     const { queryByTestId } = render(<Readme bucket="b" />)
     expect(queryByTestId('readme-preview')).toBeFalsy()
+    expect(queryByTestId('readme-markdown')).toBeFalsy()
   })
 
   it('renders nothing when the only readme is a notebook', () => {
-    fetchResult.mockReturnValue(AsyncResult.Ok([{ bucket: 'b', key: 'README.ipynb' }]))
+    readmesResult.mockReturnValue(AsyncResult.Ok([{ bucket: 'b', key: 'README.ipynb' }]))
     const { queryByTestId } = render(<Readme bucket="b" />)
     expect(queryByTestId('readme-preview')).toBeFalsy()
+    expect(queryByTestId('readme-markdown')).toBeFalsy()
   })
 
-  it('skips the notebook and previews the markdown readme', () => {
-    fetchResult.mockReturnValue(
+  it('skips the notebook and renders the markdown readme', () => {
+    readmesResult.mockReturnValue(
       AsyncResult.Ok([
         { bucket: 'b', key: 'README.md' },
         { bucket: 'b', key: 'README.ipynb' },
@@ -62,6 +84,6 @@ describe('containers/Bucket/Overview/v2/Readme', () => {
     )
     const { queryAllByTestId, getByTestId } = render(<Readme bucket="b" />)
     expect(queryAllByTestId('readme-preview')).toHaveLength(1)
-    expect(getByTestId('file-preview').textContent).toBe('b/README.md')
+    expect(getByTestId('readme-markdown').textContent).toBe('# Hello')
   })
 })
