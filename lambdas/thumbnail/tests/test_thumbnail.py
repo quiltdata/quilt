@@ -788,7 +788,7 @@ TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "617551541881add8011f55de0c3936a90fc2188a40b6ef47c7e6ab20c3d2c8bf"
-THUMBS_PKG = "images/thumbs", "6244534f2034cf1166107a8da3915cb469761cf342d85eb653623d9f92390474"
+THUMBS_PKG = "images/thumbs", "9c8f7781a3dcf68b75e18f66622c0c191beac3fffb3d4acd22aaab9eaca651a4"
 SIZE = (1024, 768)
 
 
@@ -869,34 +869,9 @@ SIZE = (1024, 768)
             "c1_bgr24.czi",
             marks=pytest.mark.xfail(raises=bioio_czi.metadata.UnsupportedMetadataError),
         ),
-        #   File "site-packages/bioio_base/reader.py", line 613, in dims
-        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
-        #                                  ^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
-        #     self._xarray_dask_data = self._read_delayed()
-        #                              ~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
-        #     return self._implementation._read_delayed()
-        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
-        #     return xr.DataArray(
-        #            ~~~~~~~~~~~~^
-        #         data=da.block(lazy_arrays.tolist()),
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     ...<2 lines>...
-        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     )
-        #     ^
-        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
-        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
-        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
-        #     raise ValueError(
-        #     ...<2 lines>...
-        #     )
-        # ValueError: different number of dimensions on data and dims: 3 vs 4
-        pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        # Readable since bioio-czi 2.7.0; lambda swaps BGR->RGB. B/W
+        # checkerboard, so it pins decode/shape but not channel order.
+        (CZI_PKG, "c1_bgr48.czi"),
         # RuntimeError: Sorry, this pixeltype isn't implemented yet.
         pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=(RuntimeError, ValueError))),
         (CZI_PKG, "c1_gray16.czi"),
@@ -908,34 +883,9 @@ SIZE = (1024, 768)
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
         # A real mosaic (whole-slide) acquisition that decodes to a single greyscale plane.
         (CZI_PKG, "OverViewScan.czi"),
-        #   File "site-packages/bioio_base/reader.py", line 613, in dims
-        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
-        #                                  ^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
-        #     self._xarray_dask_data = self._read_delayed()
-        #                              ~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
-        #     return self._implementation._read_delayed()
-        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
-        #     return xr.DataArray(
-        #            ~~~~~~~~~~~~^
-        #         data=da.block(lazy_arrays.tolist()),
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     ...<2 lines>...
-        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     )
-        #     ^
-        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
-        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
-        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
-        #     raise ValueError(
-        #     ...<2 lines>...
-        #     )
-        # ValueError: different number of dimensions on data and dims: 4 vs 5
-        pytest.param(CZI_PKG, "rgb-image.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        # Color CZI (Bgr24); readable since bioio-czi 2.7.0. Pins CZI color
+        # channel order (test_handle_image_bgr_czi_channel_order is the oracle).
+        (CZI_PKG, "rgb-image.czi"),
     ],
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):
@@ -979,6 +929,65 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
 
         assert actual.dims.items() == expected.dims.items()
         np.testing.assert_equal(actual.reader.data, expected.reader.data)
+
+
+def test_handle_image_bgr_czi_channel_order():
+    # Independent oracle for the BGR->RGB swap: a self-generated golden can't
+    # catch a re-introduced swap, but this can. rgb-image.czi is tan wooden
+    # dice, so the rendered subject must be warm-toned (R > B). It is ~1 MB, so
+    # (unlike test_handle_image, which also fetches large fixtures) no
+    # --large-files size gate is needed.
+    quilt3.Package.install(
+        CZI_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=CZI_PKG[1],
+        path="rgb-image.czi",
+    )
+    src_entry = quilt3.Package.browse(
+        CZI_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=CZI_PKG[1],
+    )["rgb-image.czi"]
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
+
+    pixels = np.asarray(Image.open(BytesIO(data)).convert("RGB")).reshape(-1, 3)
+    # Subject = the dice: drop near-white background and near-black pips.
+    brightness = pixels.sum(axis=1)
+    subject = pixels[(brightness > 60) & (brightness < 690)]
+    mean = subject.mean(axis=0)
+    assert mean[0] > mean[2] + 10, f"expected warm wood tone (R>B), got mean RGB={mean}"
+
+
+def test_handle_image_multichannel_bgr_czi_channel_order(data_dir):
+    # Covers the montage branch (C>1), where the swap lands on the montage's
+    # trailing S axis. No real fixture exists (real color CZIs are single-
+    # channel), so multichannel-bgr.czi is synthetic: channel 0 red, channel 1
+    # blue, in native BGR; the rendered tiles must keep those colors.
+    # Regenerate with:
+    #   import numpy as np
+    #   from pylibCZIrw import czi as pyczi
+    #   red = np.zeros((32, 32, 3), np.uint8); red[..., 2] = 255    # BGR -> red
+    #   blue = np.zeros((32, 32, 3), np.uint8); blue[..., 0] = 255  # BGR -> blue
+    #   with pyczi.create_czi("multichannel-bgr.czi") as doc:
+    #       opts = "zstd0:ExplicitLevel=10"
+    #       doc.write(data=red, plane={"C": 0}, compression_options=opts)
+    #       doc.write(data=blue, plane={"C": 1}, compression_options=opts)
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / "multichannel-bgr.czi"), size=SIZE, thumbnail_format="PNG")
+    arr = np.asarray(Image.open(BytesIO(data)).convert("RGB"))
+
+    # ch0 tiles into the left half, ch1 the right (montage is a 1x2 grid).
+    # Average the colored pixels in each half (dropping the black padding) so
+    # the check doesn't depend on exact tile centers.
+    def half_color(region):
+        flat = region.reshape(-1, 3)
+        return flat[flat.sum(axis=1) > 30].mean(axis=0)
+
+    mid = arr.shape[1] // 2
+    left, right = half_color(arr[:, :mid]), half_color(arr[:, mid:])
+    assert left[0] > left[2] + 10, f"channel 0 should render red (R>B), got {left}"
+    assert right[2] > right[0] + 10, f"channel 1 should render blue (B>R), got {right}"
 
 
 def test_http():

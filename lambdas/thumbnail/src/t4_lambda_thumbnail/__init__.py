@@ -412,7 +412,17 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
             bioio_tifffile.reader.Reader,
         ),
     ):
-        return _format_n_dim_ndarray(img)
+        arr = _format_n_dim_ndarray(img)
+        # CZI color is always BGR (Bgr24/Bgr48/Bgr96Float, 3-sample; no RGB/BGRA
+        # layout) and bioio-czi exposes the samples raw, so reverse them to RGB.
+        if (
+            isinstance(img.reader, bioio_czi.reader.Reader)
+            and "S" in img.reader.dims.order
+            and arr.ndim >= 3
+            and arr.shape[-1] == 3
+        ):
+            arr = arr[..., ::-1]
+        return arr
 
     return img.reader.dask_data
 
