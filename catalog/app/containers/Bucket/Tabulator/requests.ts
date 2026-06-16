@@ -66,6 +66,9 @@ export interface TablePreviewController {
 export function useTablePreview(bucket: string): TablePreviewController {
   const athena = AWS.Athena.use()
 
+  // TODO: workgroup + catalog resolve eagerly on mount, even before any preview is
+  // opened, adding their Athena round-trips to the Overview page's load cost. Could
+  // be lazified to first-open; left eager as a deliberate prototype tradeoff.
   const workgroups = Athena.useWorkgroups()
   const workgroup = Athena.useWorkgroup(workgroups)
   const catalogNames = Athena.useCatalogNames(workgroup.data)
@@ -146,6 +149,9 @@ export function useTablePreview(bucket: string): TablePreviewController {
 
   const preview = React.useMemo<TablePreview | null>(() => {
     if (table === null) return null
+    // Surface a start-time error (e.g. no catalog / no workgroup) directly, without
+    // a one-frame progress flash while it propagates through useResults.
+    if (Model.isError(execution)) return { table, results: execution }
     // While the start request is in flight (no execution id yet) surface Loading.
     if (
       execution === Model.Loading ||
@@ -153,8 +159,13 @@ export function useTablePreview(bucket: string): TablePreviewController {
     ) {
       return { table, results: Model.Loading }
     }
-    return { table, results: results.data }
-  }, [table, execution, settled, results.data])
+    // Only surface rows once the settled execution corresponds to the CURRENT
+    // execution id. When switching A->B, the settled execution + results still
+    // reference A for one render until the poller restarts on B's id; gating on
+    // identity shows Loading instead of A's stale rows under B.
+    const ready = Model.hasData(settled) && settled.id === executionId
+    return { table, results: ready ? results.data : Model.Loading }
+  }, [table, execution, executionId, settled, results.data])
 
   return React.useMemo(() => ({ preview, open, close }), [preview, open, close])
 }

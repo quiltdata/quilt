@@ -73,8 +73,8 @@ function PreviewBody({ results }: PreviewBodyProps) {
               // eslint-disable-next-line react/no-array-index-key
               <M.TableRow key={ri}>
                 {columns.map((_col, ci) => (
-                  <M.TableCell key={ci} className={classes.cell} title={row[ci]}>
-                    {row[ci]}
+                  <M.TableCell key={ci} className={classes.cell} title={row[ci] ?? ''}>
+                    {row[ci] ?? ''}
                   </M.TableCell>
                 ))}
               </M.TableRow>
