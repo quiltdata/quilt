@@ -12,6 +12,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import responses
+import tifffile
 from bioio import BioImage
 from PIL import Image
 
@@ -228,6 +229,53 @@ def test_generate_thumbnail(
             expected = BioImage(data_dir / expected_thumb)
             assert actual.dims.items() == expected.dims.items()
             assert np.array_equal(actual.reader.data, expected.reader.data)
+
+
+# The three non-CZI color reader paths, each with an independent decoder; keep in
+# sync with test_generate_thumbnail's color rows.
+_COLOR_ORACLE_FIXTURES = [
+    ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),    # bioio-imageio 8-bit RGB
+    ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),                # bioio-tifffile 8-bit RGBA
+    ("float-rgb.tiff", lambda p: tifffile.imread(p).astype(np.float64)),    # bioio-tifffile float16
+]
+
+
+def _coarse_means(rgb, grid=12):
+    # Reduce an image to grid×grid×C block means (np.mean → float64, no full-image
+    # upcast), coarse enough to survive the thumbnail's resize/stretch.
+    rgb = np.asarray(rgb)
+    assert rgb.ndim == 3 and min(rgb.shape[:2]) >= grid, f"expected an H×W×C image, H,W >= {grid}; got {rgb.shape}"
+    h, w, c = rgb.shape
+    ys = np.linspace(0, h, grid + 1, dtype=int)
+    xs = np.linspace(0, w, grid + 1, dtype=int)
+    return np.array([[rgb[ys[i]:ys[i + 1], xs[j]:xs[j + 1]].reshape(-1, c).mean(0)
+                      for j in range(grid)] for i in range(grid)])
+
+
+@pytest.mark.parametrize(
+    "fixture, decode", _COLOR_ORACLE_FIXTURES, ids=[f for f, _ in _COLOR_ORACLE_FIXTURES]
+)
+def test_handle_image_color_channel_order(data_dir, fixture, decode):
+    # Independent channel-order oracle for the non-CZI color path. The byte goldens
+    # in test_generate_thumbnail are self-generated, so a swap "fixed" by
+    # regenerating them is enshrined silently — how the BGR R/B swap nearly shipped
+    # (CZI sibling: test_handle_image_bgr_czi_channel_order). Checking regional
+    # R-vs-B lean against an independent decode can't be faked that way. Only R/B
+    # (the axis BGR reverses) is checked; for the TIFFs tifffile is shared with
+    # bioio-tifffile, so there it guards the lambda's handling, not the decode.
+    ref = decode(data_dir / fixture)
+    _info, png = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / fixture), size=(256, 256), thumbnail_format="PNG")
+    out = np.asarray(Image.open(BytesIO(png)).convert("RGB"), np.float64)
+
+    cr, co = _coarse_means(ref), _coarse_means(out)
+    # On clearly red/blue-leaning blocks the thumbnail must lean the same way; an
+    # R/B swap flips every sign -> ~0 agreement.
+    rb_ref, rb_out = cr[..., 0] - cr[..., 2], co[..., 0] - co[..., 2]
+    colored = np.abs(rb_ref) > 0.05 * (cr.max() - cr.min())
+    assert colored.sum() >= 5, f"{fixture}: too few colored blocks to test ({colored.sum()})"
+    agree = (np.sign(rb_ref[colored]) == np.sign(rb_out[colored])).mean()
+    assert agree > 0.9, f"{fixture}: R/B channel order agreement only {agree * 100:.0f}%"
 
 
 def test_rescale_uint16_to_uint8_rescales_by_range():
