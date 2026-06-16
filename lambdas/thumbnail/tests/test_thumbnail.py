@@ -935,26 +935,29 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         np.testing.assert_equal(actual.reader.data, expected.reader.data)
 
 
-def test_handle_image_bgr_czi_channel_order():
+def test_handle_image_bgr_czi_channel_order(pytestconfig):
     # bioio-czi returns CZI Bgr* samples in raw BGR order; handle_image must
     # swap them to RGB. rgb-image.czi is a photo of tan wooden dice, so the
     # rendered subject must be warm-toned (R > B). This is an independent
     # oracle for the golden: a self-generated golden cannot catch a
     # re-introduced BGR/RGB swap (it would just match the wrong output), but
     # this hue check would.
+    src_entry = quilt3.Package.browse(
+        CZI_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=CZI_PKG[1],
+    )["rgb-image.czi"]
+    # Gate on size before install() downloads the file (browse() reads only the manifest).
+    if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
+        pytest.skip("Skipping large file test; use --large-files to enable")
     quilt3.Package.install(
         CZI_PKG[0],
         registry=TEST_DATA_REGISTRY,
         top_hash=CZI_PKG[1],
         path="rgb-image.czi",
     )
-    src = quilt3.Package.browse(
-        CZI_PKG[0],
-        registry=TEST_DATA_REGISTRY,
-        top_hash=CZI_PKG[1],
-    )["rgb-image.czi"]
     _info, data = t4_lambda_thumbnail.handle_image(
-        path=src.get_cached_path(), size=SIZE, thumbnail_format="PNG")
+        path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
 
     pixels = np.asarray(Image.open(BytesIO(data)).convert("RGB")).reshape(-1, 3)
     # Subject = the dice: drop near-white background and near-black pips.

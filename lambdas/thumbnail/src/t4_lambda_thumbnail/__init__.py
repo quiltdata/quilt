@@ -413,19 +413,17 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
         ),
     ):
         arr = _format_n_dim_ndarray(img)
-        # CZI stores color only as BGR(A) pixel types (Bgr24/Bgr48/Bgr96Float;
-        # there is no native RGB layout, so a Samples axis always means BGR) and
-        # bioio-czi exposes those samples in raw on-disk order without
-        # converting. Swap R<->B so color output is RGB. Swapping the outer two
-        # samples (not reversing the axis) keeps a trailing alpha in place for a
-        # 4-sample BGRA image.
+        # CZI stores color only as BGR pixel types (Bgr24/Bgr48/Bgr96Float, all
+        # 3-sample; there is no native RGB or BGRA layout, so a Samples axis
+        # always means 3-channel BGR). bioio-czi exposes those samples in raw
+        # on-disk order without converting, so reverse them to RGB.
         if (
             isinstance(img.reader, bioio_czi.reader.Reader)
             and "S" in img.reader.dims.order
             and arr.ndim >= 3
-            and arr.shape[-1] in (3, 4)
+            and arr.shape[-1] == 3
         ):
-            arr = arr[..., [2, 1, 0] + list(range(3, arr.shape[-1]))]
+            arr = arr[..., ::-1]
         return arr
 
     return img.reader.dask_data
