@@ -1,49 +1,60 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { S3ObjectLocation } from 'model/S3'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Status_gql_StatusQueryVariables = Types.Exact<{
-  statsWindow: Types.Scalars['Int']
-  reportsPerPage: Types.Scalars['Int']
+export type StatusReportListOrder = 'NEW_FIRST' | 'OLD_FIRST'
+
+export type containers_Admin_Status_gql_StatusQueryVariables = Exact<{
+  statsWindow: number
+  reportsPerPage: number
   reportsOrder: Types.StatusReportListOrder
 }>
 
-export type containers_Admin_Status_gql_StatusQuery = { readonly __typename: 'Query' } & {
+export interface containers_Admin_Status_gql_StatusQuery {
+  readonly __typename: 'Query'
   readonly status:
-    | ({ readonly __typename: 'Status' } & {
-        readonly canaries: ReadonlyArray<
-          { readonly __typename: 'Canary' } & Pick<
-            Types.Canary,
-            | 'name'
-            | 'region'
-            | 'group'
-            | 'title'
-            | 'description'
-            | 'schedule'
-            | 'ok'
-            | 'lastRun'
-          >
-        >
-        readonly latestStats: { readonly __typename: 'TestStats' } & Pick<
-          Types.TestStats,
-          'passed' | 'failed' | 'running'
-        >
-        readonly stats: { readonly __typename: 'TestStatsTimeSeries' } & Pick<
-          Types.TestStatsTimeSeries,
-          'datetimes' | 'passed' | 'failed'
-        >
-        readonly reports: { readonly __typename: 'StatusReportList' } & Pick<
-          Types.StatusReportList,
-          'total'
-        > & {
-            readonly page: ReadonlyArray<
-              { readonly __typename: 'StatusReport' } & Pick<
-                Types.StatusReport,
-                'timestamp' | 'renderedReportLocation'
-              >
-            >
-          }
-      })
+    | {
+        readonly __typename: 'Status'
+        readonly canaries: ReadonlyArray<{
+          readonly __typename: 'Canary'
+          readonly name: string
+          readonly region: string
+          readonly group: string
+          readonly title: string
+          readonly description: string
+          readonly schedule: string
+          readonly ok: boolean | null
+          readonly lastRun: Date | null
+        }>
+        readonly latestStats: {
+          readonly __typename: 'TestStats'
+          readonly passed: number
+          readonly failed: number
+          readonly running: number
+        }
+        readonly stats: {
+          readonly __typename: 'TestStatsTimeSeries'
+          readonly datetimes: ReadonlyArray<Date>
+          readonly passed: ReadonlyArray<number>
+          readonly failed: ReadonlyArray<number>
+        }
+        readonly reports: {
+          readonly __typename: 'StatusReportList'
+          readonly total: number
+          readonly page: ReadonlyArray<{
+            readonly __typename: 'StatusReport'
+            readonly timestamp: Date
+            readonly renderedReportLocation: S3ObjectLocation
+          }>
+        }
+      }
     | { readonly __typename: 'Unavailable' }
 }
 

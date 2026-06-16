@@ -1,28 +1,35 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_NavBar_gql_SwitchRoleMutationVariables = Types.Exact<{
-  roleName: Types.Scalars['String']
+export type containers_NavBar_gql_SwitchRoleMutationVariables = Exact<{
+  roleName: string
 }>
 
-export type containers_NavBar_gql_SwitchRoleMutation = {
+export interface containers_NavBar_gql_SwitchRoleMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly switchRole:
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly name: string
+          readonly path: string | null
+          readonly message: string
+        }>
+      }
     | { readonly __typename: 'Me' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'name' | 'path' | 'message'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'message' | 'name'
-      >)
+    | {
+        readonly __typename: 'OperationError'
+        readonly message: string
+        readonly name: string
+      }
 }
 
 export const containers_NavBar_gql_SwitchRoleDocument = {

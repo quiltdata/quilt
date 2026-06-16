@@ -1,20 +1,25 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_BucketsQueryVariables = Types.Exact<{
+export type containers_Admin_UsersAndRoles_gql_BucketsQueryVariables = Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_UsersAndRoles_gql_BucketsQuery = {
+export interface containers_Admin_UsersAndRoles_gql_BucketsQuery {
   readonly __typename: 'Query'
-} & {
-  readonly buckets: ReadonlyArray<
-    { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'title' | 'iconUrl'
-    >
-  >
+  readonly buckets: ReadonlyArray<{
+    readonly __typename: 'BucketConfig'
+    readonly name: string
+    readonly title: string
+    readonly iconUrl: string | null
+  }>
 }
 
 export const containers_Admin_UsersAndRoles_gql_BucketsDocument = {

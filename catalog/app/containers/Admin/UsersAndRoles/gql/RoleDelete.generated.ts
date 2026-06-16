@@ -1,20 +1,25 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_RoleDeleteMutationVariables = Types.Exact<{
-  id: Types.Scalars['ID']
+export type containers_Admin_UsersAndRoles_gql_RoleDeleteMutationVariables = Exact<{
+  id: string | number
 }>
 
-export type containers_Admin_UsersAndRoles_gql_RoleDeleteMutation = {
+export interface containers_Admin_UsersAndRoles_gql_RoleDeleteMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly roleDelete:
+    | { readonly __typename: 'RoleAssigned' }
     | { readonly __typename: 'RoleDeleteSuccess' }
     | { readonly __typename: 'RoleDoesNotExist' }
     | { readonly __typename: 'RoleNameReserved' }
     | { readonly __typename: 'RoleNameUsedBySsoConfig' }
-    | { readonly __typename: 'RoleAssigned' }
 }
 
 export const containers_Admin_UsersAndRoles_gql_RoleDeleteDocument = {
