@@ -799,6 +799,11 @@ interface QueryRunArgs {
   queryBody: Model.Value<string>
 }
 
+// Table previews reuse Athena's cached results for an identical query within this
+// window, sparing a redundant data scan. Kept short because reuse serves stale data
+// if the table changed since the cached run; a preview tolerates minor staleness.
+const TABLE_PREVIEW_RESULT_REUSE_MIN = 5
+
 export function useQueryRun({
   workgroup,
   catalogName,
@@ -916,6 +921,12 @@ export function useQueryRun({
         },
         WorkGroup: workgroup,
         QueryExecutionContext: { Catalog: catalog, Database: db },
+        ResultReuseConfiguration: {
+          ResultReuseByAgeConfiguration: {
+            Enabled: true,
+            MaxAgeInMinutes: TABLE_PREVIEW_RESULT_REUSE_MIN,
+          },
+        },
       }
       setValue(Model.Loading)
       try {
