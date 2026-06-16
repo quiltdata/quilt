@@ -931,24 +931,23 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         np.testing.assert_equal(actual.reader.data, expected.reader.data)
 
 
-def test_handle_image_bgr_czi_channel_order(pytestconfig):
+def test_handle_image_bgr_czi_channel_order():
     # Independent oracle for the BGR->RGB swap: a self-generated golden can't
     # catch a re-introduced swap, but this can. rgb-image.czi is tan wooden
-    # dice, so the rendered subject must be warm-toned (R > B).
-    src_entry = quilt3.Package.browse(
-        CZI_PKG[0],
-        registry=TEST_DATA_REGISTRY,
-        top_hash=CZI_PKG[1],
-    )["rgb-image.czi"]
-    # Gate on size before install() downloads the file (browse() reads only the manifest).
-    if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
-        pytest.skip("Skipping large file test; use --large-files to enable")
+    # dice, so the rendered subject must be warm-toned (R > B). It is ~1 MB, so
+    # (unlike test_handle_image, which also fetches large fixtures) no
+    # --large-files size gate is needed.
     quilt3.Package.install(
         CZI_PKG[0],
         registry=TEST_DATA_REGISTRY,
         top_hash=CZI_PKG[1],
         path="rgb-image.czi",
     )
+    src_entry = quilt3.Package.browse(
+        CZI_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=CZI_PKG[1],
+    )["rgb-image.czi"]
     _info, data = t4_lambda_thumbnail.handle_image(
         path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
 
@@ -977,13 +976,16 @@ def test_handle_image_multichannel_bgr_czi_channel_order(data_dir):
     _info, data = t4_lambda_thumbnail.handle_image(
         path=str(data_dir / "multichannel-bgr.czi"), size=SIZE, thumbnail_format="PNG")
     arr = np.asarray(Image.open(BytesIO(data)).convert("RGB"))
-    h, w, _ = arr.shape
 
-    # Channels are tiled side by side; sample a block at each tile's center.
-    def tile_center(cx):
-        return arr[h // 2 - 1:h // 2 + 2, cx - 1:cx + 2].reshape(-1, 3).mean(axis=0)
+    # ch0 tiles into the left half, ch1 the right (montage is a 1x2 grid).
+    # Average the colored pixels in each half (dropping the black padding) so
+    # the check doesn't depend on exact tile centers.
+    def half_color(region):
+        flat = region.reshape(-1, 3)
+        return flat[flat.sum(axis=1) > 30].mean(axis=0)
 
-    left, right = tile_center(w // 4), tile_center(3 * w // 4)
+    mid = arr.shape[1] // 2
+    left, right = half_color(arr[:, :mid]), half_color(arr[:, mid:])
     assert left[0] > left[2] + 10, f"channel 0 should render red (R>B), got {left}"
     assert right[2] > right[0] + 10, f"channel 1 should render blue (B>R), got {right}"
 
