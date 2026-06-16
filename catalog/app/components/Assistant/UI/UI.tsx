@@ -1,7 +1,9 @@
 import * as React from 'react'
+import { matchPath, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
+import * as routes from 'constants/routes'
 
 import * as Model from '../Model'
 import Chat from './Chat'
@@ -50,7 +52,20 @@ const useTriggerStyles = M.makeStyles({
 function Trigger() {
   const classes = useTriggerStyles()
   const api = Model.useAssistantAPI()
-  if (!api) return null
+  const location = useLocation()
+  // The v2 bucket overview embeds an inline Qurator chat, so the floating Fab
+  // would be redundant there and is hidden on that route.
+  // NOTE: this hides the Fab on the overview route unconditionally, regardless
+  // of the `ui.blocks.overviewV2` preference, because BucketPreferences is
+  // provided deeper in the tree than this globally-mounted Trigger and isn't
+  // available here. overviewV2 defaults to true, so the legacy overview (only
+  // reachable with overviewV2 explicitly false) loses the Fab as its only
+  // Qurator entry point -- an accepted tradeoff for this preview.
+  const onOverview = !!matchPath(location.pathname, {
+    path: routes.bucketOverview.path,
+    exact: true,
+  })
+  if (!api || onOverview) return null
   return (
     <M.Zoom in={!api.visible}>
       <M.Fab onClick={api.show} className={classes.trigger} color="primary">
