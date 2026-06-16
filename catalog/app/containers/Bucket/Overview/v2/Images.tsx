@@ -12,6 +12,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
+import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../../requests'
 
@@ -187,6 +188,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   reveal: {
     marginTop: t.spacing(1),
+    textAlign: 'right',
   },
   thumb: {
     background: 'none',
@@ -236,13 +238,11 @@ function Gallery({ images }: GalleryProps) {
         })}
       </div>
       {hasMore && (
-        <M.Button
-          className={classes.reveal}
-          size="small"
-          onClick={() => setExpanded((e) => !e)}
-        >
-          {expanded ? 'Show less' : `Show all (${images.length})`}
-        </M.Button>
+        <div className={classes.reveal}>
+          <StyledLink onClick={() => setExpanded((e) => !e)}>
+            {expanded ? 'Show less' : `Show all (${images.length})`}
+          </StyledLink>
+        </div>
       )}
       {openIndex !== null && (
         <Carousel

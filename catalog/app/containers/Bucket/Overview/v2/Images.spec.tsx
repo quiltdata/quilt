@@ -152,18 +152,17 @@ describe('containers/Bucket/Overview/v2/Images', () => {
 
   it('caps the visible thumbnails and reveals the rest on demand', () => {
     useDataResult.mockReturnValue(AsyncResult.Ok(MANY_IMAGES))
-    const { getAllByTestId, getByRole } = renderImages()
+    const { getAllByTestId, getByText } = renderImages()
     // Only the first N thumbnails are rendered by default.
     expect(getAllByTestId('thumbnail')).toHaveLength(VISIBLE_THUMBS)
 
-    const reveal = getByRole('button', { name: /show all/i })
-    expect(reveal.textContent).toBe(`Show all (${MANY_IMAGES.length})`)
+    const reveal = getByText(`Show all (${MANY_IMAGES.length})`)
 
     fireEvent.click(reveal)
     expect(getAllByTestId('thumbnail')).toHaveLength(MANY_IMAGES.length)
 
     // The affordance toggles back to collapse.
-    const collapse = getByRole('button', { name: /show less/i })
+    const collapse = getByText(/show less/i)
     fireEvent.click(collapse)
     expect(getAllByTestId('thumbnail')).toHaveLength(VISIBLE_THUMBS)
   })
