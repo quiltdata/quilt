@@ -1,10 +1,10 @@
 import * as React from 'react'
-import { render, cleanup } from '@testing-library/react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, cleanup, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 
 import AsyncResult from 'utils/AsyncResult'
 
-import Readme from './Readme'
+import Readme, { CollapsibleMarkdown } from './Readme'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -85,5 +85,61 @@ describe('containers/Bucket/Overview/v2/Readme', () => {
     const { queryAllByTestId, getByTestId } = render(<Readme bucket="b" />)
     expect(queryAllByTestId('readme-preview')).toHaveLength(1)
     expect(getByTestId('readme-markdown').textContent).toBe('# Hello')
+  })
+})
+
+// The collapse toggle's visibility is driven by a layout measurement
+// (`scrollHeight` vs `clientHeight`) that jsdom always reports as 0. We stub
+// those props on the element prototype to simulate overflowing vs. fitting
+// content; the actual pixel measurement is layout-dependent and not asserted.
+describe('containers/Bucket/Overview/v2/Readme CollapsibleMarkdown', () => {
+  let scrollHeightSpy: ReturnType<typeof vi.spyOn>
+  let clientHeightSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    // ResizeObserver is absent in jsdom; provide a no-op so the effect's
+    // one-shot `measure()` still runs without throwing.
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+
+        disconnect() {}
+
+        unobserve() {}
+      },
+    )
+  })
+
+  afterEach(() => {
+    scrollHeightSpy?.mockRestore()
+    clientHeightSpy?.mockRestore()
+    vi.unstubAllGlobals()
+  })
+
+  function stubOverflow(overflows: boolean) {
+    scrollHeightSpy = vi
+      .spyOn(HTMLElement.prototype, 'scrollHeight', 'get')
+      .mockReturnValue(overflows ? 1000 : 0)
+    clientHeightSpy = vi
+      .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+      .mockReturnValue(0)
+  }
+
+  it('shows no toggle when the content fits', () => {
+    stubOverflow(false)
+    const { queryByRole } = render(<CollapsibleMarkdown text="# short" />)
+    expect(queryByRole('button')).toBeFalsy()
+  })
+
+  it('shows "Read more" when the content overflows and toggles on click', () => {
+    stubOverflow(true)
+    const { getByRole } = render(<CollapsibleMarkdown text="# long" />)
+    const button = getByRole('button')
+    expect(button.textContent).toBe('Read more')
+    fireEvent.click(button)
+    expect(getByRole('button').textContent).toBe('Show less')
+    fireEvent.click(getByRole('button'))
+    expect(getByRole('button').textContent).toBe('Read more')
   })
 })
