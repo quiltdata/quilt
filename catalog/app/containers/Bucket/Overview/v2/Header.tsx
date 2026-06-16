@@ -319,6 +319,9 @@ const useStyles = M.makeStyles((t) => ({
   readme: {
     marginTop: t.spacing(2),
   },
+  divider: {
+    marginTop: t.spacing(3),
+  },
 }))
 
 interface HeaderProps {
@@ -355,6 +358,7 @@ export default function Header({ bucket }: HeaderProps) {
       <div className={classes.readme}>
         <Readme bucket={bucket} />
       </div>
+      <M.Divider className={classes.divider} />
       <Charts bucket={bucket} statsResult={stats.statsResult} />
     </M.Paper>
   )
