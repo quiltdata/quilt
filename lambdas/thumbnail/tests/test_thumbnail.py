@@ -231,10 +231,8 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
-# The three distinct non-CZI color reader paths, each with an independent decoder
-# returning an H×W×3 array. Keep in sync with the color rows in
-# test_generate_thumbnail — a color reader with a byte golden but no entry here
-# silently skips the channel-order check.
+# The three non-CZI color reader paths, each with an independent decoder; keep in
+# sync with test_generate_thumbnail's color rows.
 _COLOR_ORACLE_FIXTURES = [
     ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),    # bioio-imageio 8-bit RGB
     ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),                # bioio-tifffile 8-bit RGBA
@@ -243,11 +241,8 @@ _COLOR_ORACLE_FIXTURES = [
 
 
 def _coarse_means(rgb, grid=12):
-    # Reduce an H×W×C image to a grid×grid×C array of block means (float64: np.mean
-    # promotes per block, so no full-image upcast): the thumbnail is resized (and
-    # floats contrast-stretched), so it never matches an independent decode
-    # pixel-for-pixel, but regional hue must still line up. The assert pins the
-    # contract — a 2-D/4-D array unpacks opaquely, a sub-grid one gives NaN blocks.
+    # Reduce an image to grid×grid×C block means (np.mean → float64, no full-image
+    # upcast), coarse enough to survive the thumbnail's resize/stretch.
     rgb = np.asarray(rgb)
     assert rgb.ndim == 3 and min(rgb.shape[:2]) >= grid, f"expected an H×W×C image, H,W >= {grid}; got {rgb.shape}"
     h, w, c = rgb.shape
@@ -261,24 +256,21 @@ def _coarse_means(rgb, grid=12):
     "fixture, decode", _COLOR_ORACLE_FIXTURES, ids=[f for f, _ in _COLOR_ORACLE_FIXTURES]
 )
 def test_handle_image_color_channel_order(data_dir, fixture, decode):
-    # Channel-order oracle for the non-CZI color path, complementing the byte
-    # goldens in test_generate_thumbnail. Those are self-generated, so a swap that
-    # is "fixed" by regenerating the golden gets enshrined silently — how the BGR
-    # R/B swap nearly shipped (see the CZI sibling test_handle_image_bgr_czi_channel_order).
-    # Comparing the thumbnail's regional R-vs-B lean to an independent decode can't
-    # be faked by a regeneration; the synthetic rescale unit tests can't catch a
-    # swap at all (their min/max checks are swap-invariant). Only R/B is checked —
-    # the axis BGR reverses; for penguin PIL is a genuinely independent decoder,
-    # while for the TIFFs tifffile is what bioio-tifffile wraps (guarding the
-    # lambda's channel handling, not the decode).
+    # Independent channel-order oracle for the non-CZI color path. The byte goldens
+    # in test_generate_thumbnail are self-generated, so a swap "fixed" by
+    # regenerating them is enshrined silently — how the BGR R/B swap nearly shipped
+    # (CZI sibling: test_handle_image_bgr_czi_channel_order). Checking regional
+    # R-vs-B lean against an independent decode can't be faked that way. Only R/B
+    # (the axis BGR reverses) is checked; for the TIFFs tifffile is shared with
+    # bioio-tifffile, so there it guards the lambda's handling, not the decode.
     ref = decode(data_dir / fixture)
     _info, png = t4_lambda_thumbnail.handle_image(
         path=str(data_dir / fixture), size=(256, 256), thumbnail_format="PNG")
     out = np.asarray(Image.open(BytesIO(png)).convert("RGB"), np.float64)
 
     cr, co = _coarse_means(ref), _coarse_means(out)
-    # On blocks the source decodes as clearly red- or blue-leaning, the thumbnail
-    # must lean the same way. An R/B swap flips every sign -> agreement near 0.
+    # On clearly red/blue-leaning blocks the thumbnail must lean the same way; an
+    # R/B swap flips every sign -> ~0 agreement.
     rb_ref, rb_out = cr[..., 0] - cr[..., 2], co[..., 0] - co[..., 2]
     colored = np.abs(rb_ref) > 0.05 * (cr.max() - cr.min())
     assert colored.sum() >= 5, f"{fixture}: too few colored blocks to test ({colored.sum()})"
