@@ -19,6 +19,9 @@ import BUCKET_QUERY from '../gql/Bucket.generated'
 
 const THUMB_SIZE = 96
 
+const CAROUSEL_MIN_HEIGHT = 320
+const CAROUSEL_MAX_HEIGHT = '70vh'
+
 const useCarouselStyles = M.makeStyles((t) => ({
   paper: {
     backgroundColor: t.palette.common.black,
@@ -27,14 +30,31 @@ const useCarouselStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'center',
-    minHeight: 320,
+    minHeight: CAROUSEL_MIN_HEIGHT,
     padding: t.spacing(2),
     position: 'relative',
   },
-  img: {
-    maxHeight: '70vh',
+  stack: {
+    display: 'flex',
+    maxHeight: CAROUSEL_MAX_HEIGHT,
+    maxWidth: '100%',
+    position: 'relative',
+  },
+  previewImg: {
+    bottom: 0,
+    left: 0,
+    maxHeight: CAROUSEL_MAX_HEIGHT,
     maxWidth: '100%',
     objectFit: 'contain',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  thumbImg: {
+    maxHeight: CAROUSEL_MAX_HEIGHT,
+    maxWidth: '100%',
+    objectFit: 'contain',
+    position: 'relative',
   },
   nav: {
     color: t.palette.common.white,
@@ -74,6 +94,14 @@ function Carousel({ images, index, onClose, onChange }: CarouselProps) {
     () => onChange((index + 1) % images.length),
     [index, images.length, onChange],
   )
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') prev()
+      else if (e.key === 'ArrowRight') next()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [prev, next])
   const name = basename(current.key)
   return (
     <M.Dialog
@@ -106,16 +134,26 @@ function Carousel({ images, index, onClose, onChange }: CarouselProps) {
             <M.Icon>chevron_left</M.Icon>
           </M.IconButton>
         )}
-        {/* The full (large) image is fetched on demand via the same thumbnail
-            pipeline; `size="lg"` requests a higher-resolution render. */}
-        <Thumbnail
-          key={`${current.bucket}/${current.key}`}
-          handle={current}
-          size="lg"
-          className={classes.img}
-          alt={name}
-          title={name}
-        />
+        {/* A low-res `sm` render is layered underneath as an instant placeholder
+            (it resolves quickly from the lambda's warm cache); the full `lg`
+            render paints over it once its `<img>` resolves. */}
+        <div className={classes.stack}>
+          <Thumbnail
+            key={`sm/${current.bucket}/${current.key}`}
+            handle={current}
+            size="sm"
+            className={classes.previewImg}
+            alt={name}
+          />
+          <Thumbnail
+            key={`lg/${current.bucket}/${current.key}`}
+            handle={current}
+            size="lg"
+            className={classes.thumbImg}
+            alt={name}
+            title={name}
+          />
+        </div>
         {images.length > 1 && (
           <M.IconButton
             className={`${classes.nav} ${classes.navNext}`}

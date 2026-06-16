@@ -127,16 +127,26 @@ describe('containers/Bucket/Overview/v2/Images', () => {
     expect(getAllByTestId('thumbnail')).toHaveLength(THREE_IMAGES.length)
   })
 
+  // The open carousel layers an `sm` placeholder under the full `lg` render,
+  // so it contains two thumbnails for the current image; the `lg` one is the
+  // full image and the `sm` one is the instant preview.
+  const carouselThumb = (dialog: HTMLElement, size: 'sm' | 'lg') =>
+    within(dialog)
+      .getAllByTestId('thumbnail')
+      .find((el) => el.getAttribute('data-size') === size)
+
   it('opens a carousel showing the selected image when a thumbnail is clicked', () => {
     useDataResult.mockReturnValue(AsyncResult.Ok(THREE_IMAGES))
     const { getAllByTestId, getByRole } = renderImages()
     fireEvent.click(getAllByTestId('thumbnail')[1])
     const dialog = getByRole('dialog')
     expect(dialog).toBeTruthy()
-    // The selected (second) image is shown at full/large size in the carousel.
-    const large = within(dialog).getByTestId('thumbnail')
-    expect(large.getAttribute('data-size')).toBe('lg')
-    expect(large.textContent).toBe('b.jpg')
+    // The selected (second) image is shown at full/large size in the carousel,
+    // with an `sm` placeholder layered underneath.
+    const large = carouselThumb(dialog, 'lg')
+    expect(large?.textContent).toBe('b.jpg')
+    const preview = carouselThumb(dialog, 'sm')
+    expect(preview?.textContent).toBe('b.jpg')
   })
 
   it('navigates between images with prev/next controls', () => {
@@ -144,12 +154,29 @@ describe('containers/Bucket/Overview/v2/Images', () => {
     const { getAllByTestId, getByRole, getByLabelText } = renderImages()
     fireEvent.click(getAllByTestId('thumbnail')[0])
     const dialog = getByRole('dialog')
-    expect(within(dialog).getByTestId('thumbnail').textContent).toBe('a.png')
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('a.png')
 
     fireEvent.click(getByLabelText(/next/i))
-    expect(within(dialog).getByTestId('thumbnail').textContent).toBe('b.jpg')
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('b.jpg')
 
     fireEvent.click(getByLabelText(/previous/i))
-    expect(within(dialog).getByTestId('thumbnail').textContent).toBe('a.png')
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('a.png')
+  })
+
+  it('navigates between images with arrow keys (with wrap)', () => {
+    useDataResult.mockReturnValue(AsyncResult.Ok(THREE_IMAGES))
+    const { getAllByTestId, getByRole } = renderImages()
+    fireEvent.click(getAllByTestId('thumbnail')[0])
+    const dialog = getByRole('dialog')
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('a.png')
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('b.jpg')
+
+    // Wrap from the first image to the last.
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('a.png')
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe('c.gif')
   })
 })
