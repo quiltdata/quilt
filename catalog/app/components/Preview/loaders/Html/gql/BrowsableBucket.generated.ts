@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/naming-convention */
 /** Internal type. DO NOT USE DIRECTLY. */
 type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
+
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../../../../model/graphql/types.generated'
 
 export type components_Preview_loaders_Html_gql_BrowsableBucketQueryVariables = Exact<{
   bucket: string

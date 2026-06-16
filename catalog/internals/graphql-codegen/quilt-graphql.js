@@ -84,9 +84,7 @@ async function operationPlugin(schema, documents, config, info) {
 
   return {
     prepend: [
-      // codegen v6 pre-resolves operation types inline, so the generated `Types`
-      // namespace import is unused in operations that reference no base types.
-      '/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */',
+      '/* eslint-disable @typescript-eslint/naming-convention */',
       ...(tsOpsResult.prepend || []),
       ...(typedDocumentNodeResult.prepend || []),
     ],
