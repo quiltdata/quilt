@@ -990,6 +990,35 @@ def test_handle_image_multichannel_bgr_czi_channel_order(data_dir):
     assert right[2] > right[0] + 10, f"channel 1 should render blue (B>R), got {right}"
 
 
+@pytest.mark.parametrize(
+    "x, expected",
+    [
+        (1, (1, 1)),
+        (2, (1, 2)),
+        (3, (1, 3)),  # prime -> single row
+        (4, (2, 2)),  # perfect square -> square grid
+        (6, (2, 3)),  # the montage layout exercised by the docstring
+        (7, (1, 7)),
+        (12, (3, 4)),
+        (16, (4, 4)),
+    ],
+)
+def test_most_square_grid(x, expected):
+    # The most-square grid is the factor pair with the smallest gap, and it
+    # always tiles exactly (rows * cols == x) so the montage has no empty cells.
+    rows, cols = t4_lambda_thumbnail.most_square_grid(x)
+    assert (rows, cols) == expected
+    assert rows * cols == x
+    assert rows <= cols
+
+
+def test_most_square_grid_zero_raises():
+    # x == 0 has no factor pair; the montage caller guards against it (channel
+    # count > 1), so this only pins the documented contract.
+    with pytest.raises(ValueError):
+        t4_lambda_thumbnail.most_square_grid(0)
+
+
 def test_http():
     """
     Smoke test for image with HTTP URL.

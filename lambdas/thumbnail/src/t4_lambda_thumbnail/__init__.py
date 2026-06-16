@@ -17,8 +17,7 @@ import sys
 import tempfile
 import urllib.parse
 from io import BytesIO
-from math import sqrt
-from typing import List, Tuple
+from math import isqrt
 
 import bioio_base.exceptions
 import bioio_czi
@@ -116,35 +115,17 @@ def clean_tmp_dir():
             print(f'Failed to delete {file_path}. Reason: {e}', file=sys.stderr)
 
 
-def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
+def most_square_grid(x: int) -> tuple[int, int]:
     """
-    Generate tuples of integer pairs that are factors for the provided x integer value.
+    Return the most-square grid (rows, cols) for laying out `x` cells: the factor
+    pair of `x` whose two factors are closest together. The gap shrinks as the
+    smaller factor grows, so the largest divisor of `x` that is <= sqrt(x) is the
+    number of rows and its cofactor the number of columns.
+
+    Requires x >= 1; x == 0 has no factor pair and raises ValueError.
     """
-    # Generate all factor pairs for an integer x.
-    step = 2 if x % 2 else 1
-    pairs = []
-
-    for i in range(1, int(sqrt(x) + 1), step):
-        if x % i == 0:
-            pairs.append((i, x//i))
-
-    return pairs
-
-
-def choose_min_grid(x: int) -> Tuple[int, int]:
-    """
-    Choose a minimum grid size based off the distance between two values that form
-    a factor pair of the provided x amount of objects to create a grid off.
-    """
-    # Chose a minimum grid size. (The smallest distance between a factor pair.)
-    factor_pairs = generate_factor_pairs(x)
-    min_grid_shape = None
-    min_distance = sys.maxsize
-    for pair in factor_pairs:
-        if pair[1] - pair[0] < min_distance:
-            min_grid_shape = pair
-
-    return min_grid_shape
+    rows = max(i for i in range(1, isqrt(x) + 1) if x % i == 0)
+    return rows, x // rows
 
 
 def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
@@ -367,17 +348,16 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
                 )
                 projections.append(padded)
 
-        # Get min grid shape
-        # For 6 channels this returns (2, 3)
-        min_grid_shape = choose_min_grid(len(projections))
+        # Lay the channels out in the most-square grid (6 channels -> (2, 3))
+        grid_shape = most_square_grid(len(projections))
 
         # Make rows of images
         # Use a counter so that we don't have to use `projections.pop` which is O(N)
         rows = []
         proj_counter = 0
-        for y_i in range(min_grid_shape[0]):
+        for y_i in range(grid_shape[0]):
             row = []
-            for x_i in range(min_grid_shape[1]):
+            for x_i in range(grid_shape[1]):
                 row.append(projections[proj_counter])
                 proj_counter += 1
 
