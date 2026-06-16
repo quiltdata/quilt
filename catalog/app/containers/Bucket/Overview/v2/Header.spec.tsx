@@ -89,14 +89,14 @@ describe('containers/Bucket/Overview/v2/Header', () => {
 
   it('links Objects stat to bucketDir', () => {
     const { getByText } = renderHeader()
-    const link = getByText(/Objects/).closest('a')
+    const link = getByText(/objects/).closest('a')
     expect(link).toBeTruthy()
     expect(link!.getAttribute('href')).toBe('/dir/test-bucket')
   })
 
   it('links Packages stat to bucketPackageList', () => {
     const { getByText } = renderHeader()
-    const link = getByText(/Packages/).closest('a')
+    const link = getByText(/packages/).closest('a')
     expect(link).toBeTruthy()
     expect(link!.getAttribute('href')).toBe('/packages/test-bucket')
   })

@@ -93,9 +93,9 @@ const useStatsItemStyles = M.makeStyles((t) => ({
     display: 'flex',
   },
   label: {
-    ...t.typography.body2,
-    color: t.palette.grey[300],
-    lineHeight: 1,
+    color: 'inherit',
+    fontSize: t.typography.h6.fontSize,
+    lineHeight: '32px',
     marginLeft: t.spacing(1),
   },
   value: {
@@ -182,7 +182,7 @@ function Stats({ bucket, stats }: StatsProps) {
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
       {totalObjects ? (
-        <StatsItem value={totalObjects} label="Objects" to={urls.bucketDir(bucket)} />
+        <StatsItem value={totalObjects} label="objects" to={urls.bucketDir(bucket)} />
       ) : (
         <StatsItemSkeleton />
       )}
@@ -190,7 +190,7 @@ function Stats({ bucket, stats }: StatsProps) {
         {pkgCount ? (
           <StatsItem
             value={pkgCount}
-            label="Packages"
+            label="packages"
             to={urls.bucketPackageList(bucket)}
           />
         ) : (
