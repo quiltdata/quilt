@@ -63,9 +63,9 @@ files) are already display-ready and are shown without this adjustment.
 ### Limitations
 
 * 32-bit integer images may render incorrectly or fail to preview;
-  32-bit and 64-bit floating-point images are fully supported.
-* Very large images may fail to preview if they exceed the preview
-  service's memory or pixel limits.
+  32-bit floating-point images are unaffected.
+* Very large images may fail to preview if they exceed memory or pixel
+  limits.
 
 ## Binary and special file format previews
 
