@@ -29,7 +29,7 @@ vi.mock('components/FileEditor/FileEditor', () => ({}))
 
 // Keep the entry rows free of the Preview/availability machinery: every `Row`
 // renders through `EnsureAvailability`, which resolves to nothing here, so we
-// can assert title/grid behavior driven purely by the entries themselves.
+// can assert grid behavior driven purely by the entries themselves.
 vi.mock('utils/Data', () => ({
   useData: () => ({ case: ({ _ }: { _: () => React.ReactNode }) => _() }),
 }))
@@ -70,43 +70,8 @@ describe('containers/Buckets/Summarize', () => {
 
     it('does not apply a grid container without `columns` (legacy/authored flow)', () => {
       const { container } = render(<SummaryEntries entries={[]} s3={s3} />)
-      // With a `title` node present, the entries grid is the second child; with
-      // empty entries no title renders, so the grid is the first (and only) child.
       const root = container.firstChild as HTMLElement
       expect(root.style.gridTemplateColumns).toBe('')
-    })
-
-    // A single non-array entry; its `Row` resolves to nothing via the mocked
-    // availability check, so the only observable output is the optional title.
-    const oneEntry = [
-      { handle: { bucket: 'b', key: 'k' }, path: 'k' },
-    ] as unknown as Parameters<typeof SummaryEntries>[0]['entries']
-
-    it('renders the `title` node above the entries when there is at least one', () => {
-      const { getByText } = render(
-        <SummaryEntries
-          entries={oneEntry}
-          s3={s3}
-          title={<div data-testid="section-title">Files</div>}
-        />,
-      )
-      expect(getByText('Files')).toBeTruthy()
-    })
-
-    it('does not render a lone `title` when entries are empty', () => {
-      const { queryByTestId } = render(
-        <SummaryEntries
-          entries={[]}
-          s3={s3}
-          title={<div data-testid="section-title">Files</div>}
-        />,
-      )
-      expect(queryByTestId('section-title')).toBeNull()
-    })
-
-    it('renders nothing extra without a `title` (legacy path)', () => {
-      const { queryByTestId } = render(<SummaryEntries entries={oneEntry} s3={s3} />)
-      expect(queryByTestId('section-title')).toBeNull()
     })
   })
 

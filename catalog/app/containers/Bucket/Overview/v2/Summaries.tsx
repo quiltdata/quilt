@@ -6,7 +6,6 @@ import * as GQL from 'utils/GraphQL'
 import * as Summarize from '../../Summarize'
 
 import BUCKET_QUERY from '../gql/Bucket.generated'
-import SectionTitle from './SectionTitle'
 
 // Auto-discovered summaries (no quilt_summarize.json) are laid out as a grid of
 // this many columns per row; user-authored quilt_summarize.json layouts are
@@ -27,7 +26,6 @@ export default function Summaries({ bucket }: SummariesProps) {
       bucket={bucket}
       inStack={inStack}
       gridFallbackPerRow={GRID_PER_ROW}
-      title={<SectionTitle>Files</SectionTitle>}
     />
   )
 }
