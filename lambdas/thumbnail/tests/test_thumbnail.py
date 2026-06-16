@@ -1,7 +1,6 @@
 import json
 import tempfile
 import warnings
-from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
@@ -9,6 +8,7 @@ import bioio
 import bioio_base
 import bioio_czi
 import bioio_imageio
+import dask.array as da
 import numpy as np
 import pytest
 import responses
@@ -45,17 +45,6 @@ def _make_event(query, headers=None):
         'body': None,
         'isBase64Encoded': False,
     }
-
-
-@contextmanager
-def _mock(target, attr, obj):
-    """a simple mocking context manager"""
-    orig_obj = getattr(target, attr)
-    try:
-        setattr(target, attr, obj)
-        yield
-    finally:
-        setattr(target, attr, orig_obj)
 
 
 @pytest.mark.parametrize(
@@ -107,8 +96,8 @@ def test_403():
 @pytest.mark.parametrize(
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",
     [
-        # BUG: lambda doesn't preserve source format.
-        ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128-fallback.png", [650, 650], [128, 128], None, 200),
+        # BUG: lambda doesn't preserve source format. This I;16 input also
+        # exercises the _rescale_uint16_to_uint8 contrast-stretch end-to-end.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
         # low-range uint16: pins the contrast stretch end-to-end
         ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
@@ -130,6 +119,13 @@ def test_403():
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
         ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [1, 6, 40, 152, 126], [256, 205], None, 200),
+        # Content pin for the normalized montage path through decode: a 3-channel
+        # float OME-TIFF with a constant (blank) channel and a NaN patch. Catches
+        # a bioio/tifffile NaN-mangling regression that the warning-only
+        # end-to-end test would miss. See the fixture's regen recipe in
+        # test_handle_image_blank_and_nan_channels_through_public_path.
+        ("blank-and-nan-channels.ome.tiff", {"size": "w256h256"}, "blank-and-nan-channels-256.png",
+         [1, 3, 1, 64, 64], [212, 74], None, 200),
         # Unreadable image -> 500
         ("empty.png", {"size": "w32h32"}, None, None, None, None, 500),
         # Unsupported size -> 400
@@ -197,14 +193,7 @@ def test_generate_thumbnail(
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
-    if expected_thumb == "I16-mode-128-fallback.png":
-        # Note that if this set of params fails, it may be that better resamplers
-        # have been added for this mode, and either the image or test will need
-        # to be updated.
-        with _mock(t4_lambda_thumbnail, '_convert_I16_to_L', Image.fromarray):
-            response = t4_lambda_thumbnail.lambda_handler(event, None)
-    else:
-        response = t4_lambda_thumbnail.lambda_handler(event, None)
+    response = t4_lambda_thumbnail.lambda_handler(event, None)
 
     assert response["statusCode"] == status, f"response: {response}"
     if status != 200:
@@ -241,31 +230,31 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
-def test_convert_I16_to_L_rescales_by_range():
+def test_rescale_uint16_to_uint8_rescales_by_range():
     # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
     # contrast-stretched, not truncated to a nearly black image.
     arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [[0, 116], [233, 255]])
 
 
-def test_convert_I16_to_L_constant():
+def test_rescale_uint16_to_uint8_constant():
     # Constant images keep their brightness level instead of being rescaled.
     arr = np.full((4, 4), 1234, dtype=np.uint16)
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == (1234 >> 8)).all()
 
 
-def test_convert_I16_to_L_empty():
+def test_rescale_uint16_to_uint8_empty():
     arr = np.empty((0, 4), dtype=np.uint16)
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.dtype == np.uint8
     assert out.size == 0
 
 
-def test_convert_I16_to_L_no_uint8_wraparound():
+def test_rescale_uint16_to_uint8_no_uint8_wraparound():
     # A sub-grey-level percentile span near the top of the uint16 scale must
     # not overshoot 255 and wrap around in the uint8 cast, rendering the
     # brightest pixels dark. The outliers are spread so that the percentiles
@@ -273,35 +262,35 @@ def test_convert_I16_to_L_no_uint8_wraparound():
     arr = np.full((100, 100), 65000, dtype=np.uint16)
     arr[0, 0] = 64999
     arr[0, 1] = 65020
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.max() == 255
 
 
-def test_convert_I16_to_L_sparse():
+def test_rescale_uint16_to_uint8_sparse():
     # Percentiles collapse when almost all pixels share one value; min/max
     # fallback keeps sparse data (e.g. label masks) visible.
     arr = np.zeros((200, 200), dtype=np.uint16)
     arr[0, :3] = 4000
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
 
 
-def test_convert_I16_to_L_clips_outliers():
+def test_rescale_uint16_to_uint8_clips_outliers():
     # A single hot pixel must not compress the rest of the range to black.
     arr = np.linspace(3000, 4096, 10000, dtype=np.uint16).reshape(100, 100)
     arr[0, 0] = 65535
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert np.median(out) > 100
 
 
-def test_convert_I16_to_L_clips_dead_pixels():
+def test_rescale_uint16_to_uint8_clips_dead_pixels():
     # A single dead pixel must not compress the rest of the range to white.
     arr = np.linspace(60000, 65535, 10000, dtype=np.uint16).reshape(100, 100)
     arr[0, 0] = 0
-    out = np.asarray(t4_lambda_thumbnail._convert_I16_to_L(arr))
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert np.median(out) < 155
@@ -457,6 +446,20 @@ def test_rescale_float_to_uint8_sparse():
     assert out[1, 0] == 0
 
 
+def test_rescale_float_to_uint8_sparse_with_nan():
+    # The _finite_clip_range interaction pinned at this call site: collapsed
+    # percentiles AND a NaN present. The min/max fallback must range over the
+    # finite values — arr.min()/arr.max() would be NaN and blank everything,
+    # and the hi == lo guard wouldn't catch it (NaN != NaN).
+    arr = np.zeros((200, 200), dtype=np.float32)
+    arr[0, :3] = 1.0      # sparse hot pixels -> finite max
+    arr[0, 4] = np.nan    # masked pixel
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert (out[0, :3] == 255).all()  # hot pixels visible (finite max, not NaN)
+    assert out[0, 4] == 0             # NaN -> black
+    assert out[1, 0] == 0
+
+
 def test_rescale_float_to_uint8_clips_outlier_pixels():
     # A few hot/dead pixels must not compress the rest of the range: the
     # bulk must keep (nearly) all of its distinct levels, not collapse
@@ -549,6 +552,24 @@ def test_generate_thumbnail_float_greyscale_saves_png():
     img.save(BytesIO(), "PNG")
 
 
+@pytest.mark.parametrize(
+    "shape, expected_mode",
+    [
+        ((64, 64), "L"),       # greyscale: would otherwise reach PIL as I;16B
+        ((64, 64, 3), "RGB"),  # color: PIL can't build a color image from uint16
+        ((64, 64, 4), "RGBA"),
+    ],
+)
+def test_generate_thumbnail_handles_byte_swapped_uint16(shape, expected_mode):
+    # Dispatch is by dtype (kind/itemsize), not PIL mode, so byte-swapped uint16
+    # is rescaled to uint8 like native-order — rather than reaching PIL as an
+    # I;16B greyscale image (rejected by thumbnail()'s reduce()) or a color
+    # array PIL can't build at all (the old `== np.uint16` check missed both).
+    arr = np.random.default_rng(0).integers(0, 65536, shape).astype(">u2")
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == expected_mode
+
+
 def test_norm_img_path_saves_16bit_png(data_dir):
     # Pin the output depth of the normalized (mode I) path: the golden
     # comparisons only enforce it as long as the goldens themselves stay
@@ -561,11 +582,213 @@ def test_norm_img_path_saves_16bit_png(data_dir):
     assert Image.open(BytesIO(data)).mode == "I;16"
 
 
+def _norm(arr, chunks=-1):
+    return np.asarray(t4_lambda_thumbnail.norm_img(da.from_array(arr, chunks=chunks)))
+
+
+def _norm_float_reference(arr):
+    # Independent float64 reference for norm_img's normalization, used to pin
+    # that the bounded unsigned-integer path (histogram percentile + LUT) stays
+    # bit-identical to it. Mirrors the float branch's exact arithmetic.
+    imax = np.iinfo(np.uint16).max + 1
+    a = np.asarray(arr).astype(np.float64)
+    lo, hi = map(float, np.percentile(a, (0.01, 99.99)))
+    if hi == lo:
+        lo, hi = float(a.min()), float(a.max())
+    if hi == lo:
+        return np.zeros(a.shape, np.int32)
+    np.clip(a, lo, hi, out=a)
+    a -= lo
+    a /= hi - lo
+    a *= imax
+    a[a == imax] = imax - 1
+    return a.astype(np.int32)
+
+
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.float32])
+def test_norm_img_empty_plane_renders_black(dtype):
+    # A degenerate empty plane must render black (an empty int32 array) rather
+    # than raise — the unsigned path's _uint16_clip_range has no emptiness guard
+    # (unlike the float path's _finite_clip_range), so norm_img guards up front.
+    out = _norm(np.empty((0, 5), dtype=dtype))
+    assert out.dtype == np.int32
+    assert out.shape == (0, 5)
+
+
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.dtype(">u2")])
+def test_norm_img_uint_path_bit_identical_to_float_reference(dtype):
+    # The bounded unsigned path (histogram percentile + 65536-entry LUT) must
+    # stay bit-identical to the float64 normalization — that equivalence is the
+    # whole reason it's a safe memory optimization rather than a visible change.
+    # Byte-swapped uint16 (>u2) takes the same path. Covers full-range, low-range
+    # (12-bit-style), sparse (min/max fallback), and constant (-> black).
+    top = np.iinfo(np.uint8 if np.dtype(dtype).itemsize == 1 else np.uint16).max
+    rng = np.random.default_rng(0)
+    sparse = np.full((100, 100), 5, dtype=dtype)
+    sparse[0, 0] = top
+    cases = [
+        rng.integers(0, top + 1, (120, 90)).astype(dtype),        # full range
+        rng.integers(0, top // 16 + 1, (100, 100)).astype(dtype),  # low range
+        sparse,                                                    # sparse
+        np.full((40, 40), 9, dtype=dtype),                         # constant -> black
+    ]
+    for arr in cases:
+        assert np.array_equal(_norm(arr), _norm_float_reference(arr))
+
+
+def test_norm_img_uint_path_bit_identical_sweep():
+    # Property-style guard for the same equivalence: many random unsigned planes
+    # across dtypes / sizes / value distributions must match the float64
+    # reference bit-for-bit. The histogram percentile differs from np.percentile
+    # only sub-ULP, and the *16-bit rescale must never let that flip an int32
+    # output bit. Seeded, so deterministic in CI (no flakiness).
+    rng = np.random.default_rng(1234)
+    for _ in range(60):
+        dtype = rng.choice([np.uint8, np.uint16, np.dtype(">u2")])
+        top = np.iinfo(np.uint8 if np.dtype(dtype).itemsize == 1 else np.uint16).max
+        h, w = int(rng.integers(8, 300)), int(rng.integers(8, 300))
+        kind = int(rng.integers(0, 4))
+        if kind == 0:        # uniform full range
+            arr = rng.integers(0, top + 1, (h, w))
+        elif kind == 1:      # narrow low-range band (12-bit-style)
+            lo = int(rng.integers(0, top // 2 + 1))
+            arr = rng.integers(lo, lo + top // 8 + 1, (h, w))
+        elif kind == 2:      # gaussian (hot/dead tails exercise the clip)
+            arr = rng.normal(top / 2, top / 8, (h, w)).clip(0, top)
+        else:                # sparse: a few bright pixels on a flat background
+            arr = np.full((h, w), int(rng.integers(0, top + 1)))
+            arr.flat[: max(1, arr.size // 500)] = top
+        arr = arr.astype(dtype)
+        assert np.array_equal(_norm(arr), _norm_float_reference(arr)), \
+            f"int32 flip: dtype={np.dtype(dtype).str} shape={(h, w)} kind={kind}"
+
+
+def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
+    # End-to-end reachability: a real multi-channel image can carry a blank
+    # (constant) channel and a region of masked/invalid float pixels (NaN).
+    # Both reach norm_img through the montage path when decoded by bioio. The
+    # previous code hit 0/0 and an undefined int32(NaN) cast there, emitting
+    # "invalid value encountered" RuntimeWarnings and platform-dependent
+    # output; the fix renders them deterministically. Pins that such a file
+    # flows through the public decode path cleanly.
+    #
+    # blank-and-nan-channels.ome.tiff is a 3-channel float32 OME-TIFF: ch0 a
+    # normal gradient, ch1 constant 0.5 (blank channel), ch2 the gradient with
+    # a 20x20 NaN patch. Regenerate with:
+    #   grad = np.linspace(0, 1, 64 * 64, dtype=np.float32).reshape(64, 64)
+    #   ch2 = grad.copy(); ch2[20:40, 20:40] = np.nan
+    #   data = np.stack([grad, np.full((64, 64), 0.5, np.float32), ch2])
+    #   tifffile.imwrite(path, data, metadata={"axes": "CYX"})
+    # (pixels reproduce exactly; bytes differ — tifffile injects a random OME-UUID.)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _info, png = t4_lambda_thumbnail.handle_image(
+            path=str(data_dir / "blank-and-nan-channels.ome.tiff"),
+            size=(256, 256), thumbnail_format="PNG")
+
+    invalid = [str(w.message) for w in caught if "invalid value encountered" in str(w.message)]
+    assert not invalid, f"normalization emitted non-finite warnings: {invalid}"
+    assert Image.open(BytesIO(png)).mode == "I;16"
+
+
+def test_norm_img_normalizes_to_full_16bit_range():
+    # A gradient stretches to the full I;16 range, as int32 (PIL mode I).
+    out = _norm(np.linspace(0, 1000, 64 * 64).reshape(64, 64))
+    assert out.dtype == np.int32
+    assert out.min() == 0
+    assert out.max() == np.iinfo(np.uint16).max
+
+
+@pytest.mark.parametrize("chunks", [-1, (16, 16)])
+def test_norm_img_constant_plane_renders_black_without_warning(chunks):
+    # A constant plane has no contrast to stretch. It must render black
+    # deterministically, not divide 0/0 -> NaN -> a platform-dependent int32
+    # cast (the previous bug). Tested for a single chunk and, since the prior
+    # code raised on a multi-chunk 2-D array via da.percentile, multiple chunks.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any warning (e.g. the 0/0 RuntimeWarning) fails
+        out = _norm(np.full((40, 40), 5000, np.uint16), chunks=chunks)
+    assert out.dtype == np.int32
+    assert np.array_equal(out, np.zeros((40, 40), np.int32))
+
+
+def test_norm_img_nan_renders_black_per_pixel():
+    # A single NaN used to blank the whole tile (da.percentile returned NaN
+    # bounds). Now only the NaN pixels render black; finite pixels still
+    # contrast-stretch.
+    arr = np.linspace(0, 1, 64).reshape(8, 8).copy()
+    arr[0, 0] = np.nan
+    out = _norm(arr)
+    assert out[0, 0] == 0
+    assert out.max() == np.iinfo(np.uint16).max  # finite range still spans output
+
+
+def test_norm_img_all_non_finite_renders_black():
+    out = _norm(np.full((8, 8), np.nan))
+    assert np.array_equal(out, np.zeros((8, 8), np.int32))
+
+
+def test_norm_img_inf_saturates_to_range_ends():
+    arr = np.linspace(0, 1, 64).reshape(8, 8).copy()
+    arr[0, 0] = np.inf
+    arr[0, 1] = -np.inf
+    out = _norm(arr)
+    assert out[0, 0] == np.iinfo(np.uint16).max  # +inf saturates to white
+    assert out[0, 1] == 0                          # -inf saturates to black
+
+
+def test_norm_img_multichunk_2d_does_not_raise():
+    # Defensive guard: da.percentile raises NotImplementedError on a
+    # multi-chunk 2-D array on current dask, so the previous norm_img only
+    # worked because bioio happens to emit each YX plane as a single chunk
+    # (verified even for a mosaic overview CZI and a 6184x7712 pyramid). That
+    # isn't a documented contract, so pin that norm_img doesn't depend on it:
+    # normalizing on the computed plane is chunking-agnostic.
+    rng = np.random.default_rng(0)
+    arr = rng.integers(0, 65536, (64, 64)).astype(np.uint16)
+    multi = _norm(arr, chunks=(16, 16))
+    single = _norm(arr, chunks=-1)
+    assert np.array_equal(multi, single)
+
+
+def test_norm_img_sparse_stays_visible():
+    # Almost-constant data (a few bright pixels on a flat background, e.g. a
+    # label mask): percentiles collapse, so the shared min/max fallback keeps
+    # the bright pixels visible instead of clipping the whole tile flat.
+    arr = np.full((100, 100), 100, np.uint16)
+    arr[0, 0] = 60000
+    out = _norm(arr)
+    assert out.max() == np.iinfo(np.uint16).max
+    assert out.min() == 0
+
+
+def test_norm_img_sparse_plane_with_nan_ranges_over_finite_values():
+    # The exact interaction _finite_clip_range exists to get right: percentiles
+    # collapse (almost all one value) AND non-finite pixels are present. The
+    # min/max fallback must range over the *finite* values — arr.min()/arr.max()
+    # would be NaN and blank the whole plane, and the hi == lo guard wouldn't
+    # catch it (NaN != NaN). Sized (200x200, one outlier) so the outlier sits
+    # above the 99.99th percentile, forcing the collapse + fallback.
+    arr = np.full((200, 200), 100.0)
+    arr[0, 0] = 60000.0   # lone bright outlier -> finite max
+    arr[0, 1] = np.nan    # masked pixel
+    out = _norm(arr)
+    assert out[0, 1] == 0                          # NaN -> black
+    assert out.max() == np.iinfo(np.uint16).max    # outlier visible: finite max, not NaN
+
+
+def test_norm_img_leaves_color_planes_unchanged():
+    # YXC / YXS planes are passed through untouched (normalization is for
+    # greyscale only).
+    arr = np.random.default_rng(0).integers(0, 256, (8, 8, 3)).astype(np.uint8)
+    assert np.array_equal(_norm(arr), arr)
+
+
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
-CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "5ae720b35c5abc296ad5e708d3dea402bc4269c6e6f1920aa48cbc4be21ba443"
+CZI_PKG = "images/pylibczirw", "617551541881add8011f55de0c3936a90fc2188a40b6ef47c7e6ab20c3d2c8bf"
+THUMBS_PKG = "images/thumbs", "6244534f2034cf1166107a8da3915cb469761cf342d85eb653623d9f92390474"
 SIZE = (1024, 768)
 
 
@@ -683,6 +906,8 @@ SIZE = (1024, 768)
         (CZI_PKG, "c1_gray8_s2_overlapping_bounding_boxes.czi"),
         (CZI_PKG, "c2_gray8_gray16.czi"),
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
+        # A real mosaic (whole-slide) acquisition that decodes to a single greyscale plane.
+        (CZI_PKG, "OverViewScan.czi"),
         #   File "site-packages/bioio_base/reader.py", line 613, in dims
         #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
         #                                  ^^^^^^^^^^^^^^^^^^^^^
@@ -715,20 +940,21 @@ SIZE = (1024, 768)
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):
     pkg_name, top_hash = pkg_ref
-    quilt3.Package.install(
-        pkg_name,
-        registry=TEST_DATA_REGISTRY,
-        top_hash=top_hash,
-        path=lk,
-    )
     src_pkg = quilt3.Package.browse(
         pkg_name,
         registry=TEST_DATA_REGISTRY,
         top_hash=top_hash,
     )
     src_entry = src_pkg[lk]
+    # Gate on size before install() downloads the file (browse() reads only the manifest).
     if not pytestconfig.getoption("large_files") and src_entry.size > 20 * 1024 * 1024:
         pytest.skip("Skipping large file test; use --large-files to enable")
+    quilt3.Package.install(
+        pkg_name,
+        registry=TEST_DATA_REGISTRY,
+        top_hash=top_hash,
+        path=lk,
+    )
 
     print(f"Testing {pkg_name}/{lk}...")
     _info, data = t4_lambda_thumbnail.handle_image(path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
