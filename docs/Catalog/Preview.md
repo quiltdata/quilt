@@ -37,10 +37,27 @@ to automatically generate thumbnail previews of common image formats
 and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg,
 .png, .webp, .tif, .tiff (including `OME-TIFF`), and .czi.
 
-### Known limitations
+8-bit, 16-bit, and floating-point pixel data are all supported, as are
+multi-channel and Z-stack images. Multi-channel images are rendered as a
+grid of per-channel previews, Z-stacks are flattened with a
+maximum-intensity projection, and time-series show their middle timepoint.
 
-Automated previews of 8-bit depth and higher image files are not
-currently supported.
+### Display normalization
+
+> Thumbnails are a visual aid, not a faithful reproduction of the original
+> pixel values.
+
+To keep high-bit-depth and low-contrast images visible, greyscale previews
+are **contrast-stretched per image**: each image — and each channel of a
+multi-channel image — is rescaled from its own range of pixel values, after
+clipping the most extreme values so a few hot or dead pixels don't flatten
+the rest. High-bit-depth color previews are normalized the same way,
+jointly across their channels.
+
+Because this stretch is computed independently for every image, the
+displayed brightness does **not** represent absolute intensity and is
+**not comparable between thumbnails**. Plain 8-bit images (such as typical
+.jpg/.png photos) are displayed as-is.
 
 ## Binary and special file format previews
 
