@@ -11,6 +11,10 @@ import TabulatorTables from './TabulatorTables'
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
+    // `minmax(0, 1fr)` keeps the single column bounded to the available width so a
+    // wide child (e.g. an expanded Tabulator preview table) scrolls within its own
+    // overflow container instead of stretching the column and overflowing the page.
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: t.spacing(2),
     padding: t.spacing(2, 0),
   },
