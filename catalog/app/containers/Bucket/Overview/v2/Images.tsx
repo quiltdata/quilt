@@ -19,6 +19,10 @@ import BUCKET_QUERY from '../gql/Bucket.generated'
 
 const THUMB_SIZE = 96
 
+// Roughly 1–2 rows of compact thumbnails; the rest are revealed on demand so
+// buckets with many images don't produce an excessively tall block.
+const VISIBLE_THUMBS = 12
+
 const CAROUSEL_MIN_HEIGHT = 320
 const CAROUSEL_MAX_HEIGHT = '70vh'
 
@@ -180,6 +184,9 @@ const useStyles = M.makeStyles((t) => ({
     gridTemplateColumns: `repeat(auto-fill, ${THUMB_SIZE}px)`,
     marginTop: t.spacing(1),
   },
+  reveal: {
+    marginTop: t.spacing(1),
+  },
   thumb: {
     background: 'none',
     border: 'none',
@@ -203,11 +210,16 @@ interface GalleryProps {
 function Gallery({ images }: GalleryProps) {
   const classes = useStyles()
   const [openIndex, setOpenIndex] = React.useState<number | null>(null)
+  const [expanded, setExpanded] = React.useState(false)
+  const hasMore = images.length > VISIBLE_THUMBS
+  // Slice the array but keep the original index for each tile, so a carousel
+  // opened from any tile maps to the correct image in the full `images` list.
+  const visible = expanded ? images : images.slice(0, VISIBLE_THUMBS)
   return (
     <M.Paper className={classes.root}>
       <M.Typography variant="subtitle1">Images</M.Typography>
       <div className={classes.grid}>
-        {images.map((handle, i) => {
+        {visible.map((handle, i) => {
           const name = basename(handle.key)
           return (
             <button
@@ -222,6 +234,15 @@ function Gallery({ images }: GalleryProps) {
           )
         })}
       </div>
+      {hasMore && (
+        <M.Button
+          className={classes.reveal}
+          size="small"
+          onClick={() => setExpanded((e) => !e)}
+        >
+          {expanded ? 'Show less' : `Show all (${images.length})`}
+        </M.Button>
+      )}
       {openIndex !== null && (
         <Carousel
           images={images}

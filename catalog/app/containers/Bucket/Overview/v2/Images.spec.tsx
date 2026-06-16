@@ -80,6 +80,16 @@ const THREE_IMAGES = [
   { bucket: 'test-bucket', key: 'c.gif' },
 ]
 
+// Keep this in sync with VISIBLE_THUMBS in Images.tsx.
+const VISIBLE_THUMBS = 12
+
+// More images than the visible cap, so the reveal affordance kicks in. The key
+// encodes the original index to make index-mapping assertions readable.
+const MANY_IMAGES = Array.from({ length: VISIBLE_THUMBS + 5 }, (_, i) => ({
+  bucket: 'test-bucket',
+  key: `img-${i}.png`,
+}))
+
 describe('containers/Bucket/Overview/v2/Images', () => {
   afterEach(() => {
     cleanup()
@@ -121,10 +131,49 @@ describe('containers/Bucket/Overview/v2/Images', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('renders a compact thumbnail per image', () => {
+  it('renders a compact thumbnail per image when within the cap', () => {
     useDataResult.mockReturnValue(AsyncResult.Ok(THREE_IMAGES))
-    const { getAllByTestId } = renderImages()
+    const { getAllByTestId, queryByRole } = renderImages()
     expect(getAllByTestId('thumbnail')).toHaveLength(THREE_IMAGES.length)
+    // No reveal affordance when the image count is within the cap.
+    expect(queryByRole('button', { name: /show/i })).toBeNull()
+  })
+
+  it('caps the visible thumbnails and reveals the rest on demand', () => {
+    useDataResult.mockReturnValue(AsyncResult.Ok(MANY_IMAGES))
+    const { getAllByTestId, getByRole } = renderImages()
+    // Only the first N thumbnails are rendered by default.
+    expect(getAllByTestId('thumbnail')).toHaveLength(VISIBLE_THUMBS)
+
+    const reveal = getByRole('button', { name: /show all/i })
+    expect(reveal.textContent).toBe(`Show all (${MANY_IMAGES.length})`)
+
+    fireEvent.click(reveal)
+    expect(getAllByTestId('thumbnail')).toHaveLength(MANY_IMAGES.length)
+
+    // The affordance toggles back to collapse.
+    const collapse = getByRole('button', { name: /show less/i })
+    fireEvent.click(collapse)
+    expect(getAllByTestId('thumbnail')).toHaveLength(VISIBLE_THUMBS)
+  })
+
+  it('opens the carousel at the correct full-list image for a revealed thumbnail', () => {
+    useDataResult.mockReturnValue(AsyncResult.Ok(MANY_IMAGES))
+    const { getAllByTestId, getByRole, getByText } = renderImages()
+
+    fireEvent.click(getByText(/show all/i))
+
+    // The last image is only visible after revealing; clicking it must open the
+    // carousel at its index in the FULL list, not the visible slice.
+    const lastIndex = MANY_IMAGES.length - 1
+    const lastName = `img-${lastIndex}.png`
+    fireEvent.click(
+      getAllByTestId('thumbnail').find((el) => el.textContent === lastName)!,
+    )
+
+    const dialog = getByRole('dialog')
+    expect(carouselThumb(dialog, 'lg')?.textContent).toBe(lastName)
+    expect(within(dialog).getByText(new RegExp(`${lastIndex + 1} of`))).toBeTruthy()
   })
 
   // The open carousel layers an `sm` placeholder under the full `lg` render,
