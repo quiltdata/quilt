@@ -684,7 +684,15 @@ def _alpha_to_uint8(alpha):
         out = alpha.astype(np.float32)
         out *= 255
         return _saturate_to_uint8(out)
-    # Integer alpha: the full dtype range is full opacity, so scale by the high
+    if alpha.dtype.kind == "i":
+        # Signed alpha is nonsensical (no reader emits it) but reachable now that
+        # signed RGBA routes here; scale the positive range to full opacity so
+        # the max maps to 255 (a right-shift would land it at 127), and let the
+        # clamp in _saturate_to_uint8 render negatives transparent.
+        out = alpha.astype(np.float32)
+        out *= 255 / np.iinfo(alpha.dtype).max
+        return _saturate_to_uint8(out)
+    # Unsigned alpha: the full dtype range is full opacity, so scale by the high
     # byte (uint16 -> >>8, uint32 -> >>24, uint64 -> >>56).
     return (alpha >> (8 * (alpha.dtype.itemsize - 1))).astype(np.uint8)
 
@@ -703,17 +711,19 @@ def generate_thumbnail(arr, size):
         rescale = _rescale_float_to_uint8
     elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
-    elif arr.ndim == 2 and arr.dtype == np.int32:
-        # norm_img hands back a normalized greyscale montage / Z-projection as
-        # 2-D int32 already in [0, 65536); pass it through to a 16-bit I;16 PNG
-        # instead of re-stretching to 8-bit. A raw 2-D int32 greyscale is
-        # indistinguishable from this and shares the path (stays 16-bit, clipping
-        # values above 65535) — an accepted limitation.
-        rescale = None
     elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
-        # Wider or signed integers PIL can't build an image from directly
-        # (uint32/64, int8/16/64, and color int32): contrast-stretch to uint8.
-        rescale = _rescale_int_to_uint8
+        # Wider/signed integers PIL can't build directly (uint32/64, int8/16/64,
+        # int32): contrast-stretch to uint8 — except a 2-D native-int32 plane
+        # already in [0, 65535], passed through to a 16-bit I;16 PNG unstretched.
+        # That is exactly norm_img's normalized montage / Z-projection output
+        # (_normalize_plane emits [0, 65535]); a raw int32 plane in range renders
+        # the same, one out of range (negative or > 65535, e.g. a label mask) is
+        # stretched. The dtype test is native-order-exact on purpose: norm_img
+        # only emits native int32, so a big-endian >i4 is raw input and stretches.
+        if arr.ndim == 2 and arr.dtype == np.int32 and arr.min() >= 0 and arr.max() <= 65535:
+            rescale = None
+        else:
+            rescale = _rescale_int_to_uint8
     else:
         rescale = None
     if rescale is not None:

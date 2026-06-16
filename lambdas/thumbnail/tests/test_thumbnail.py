@@ -703,19 +703,37 @@ def test_generate_thumbnail_wide_int_rgba():
 
 def test_generate_thumbnail_normalized_int32_montage_passes_through():
     # norm_img hands back the greyscale montage / Z-projection as 2-D int32
-    # already normalized to [0, 65536). generate_thumbnail must pass it straight
-    # through to a 16-bit mode-I image (unchanged values), NOT re-stretch it to
-    # 8-bit — that would break the 16-bit montage output pinned by
-    # test_norm_img_path_saves_16bit_png and churn the montage goldens.
+    # already normalized to [0, 65535]; generate_thumbnail recognizes that range
+    # and passes it straight through to a 16-bit mode-I image (unchanged values),
+    # NOT re-stretched to 8-bit — that would break the 16-bit montage output
+    # pinned by test_norm_img_path_saves_16bit_png and churn the montage goldens.
     arr = np.linspace(0, 65535, 64 * 64, dtype=np.int32).reshape(64, 64)
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (64, 64))  # size == shape: no resize
     assert img.mode == "I"
     assert np.array_equal(np.asarray(img), arr)
 
 
+@pytest.mark.parametrize(
+    "arr",
+    [
+        # above the 16-bit range — would clamp if passed through as mode I
+        pytest.param(np.linspace(0, 5_000_000, 64 * 64, dtype=np.int32).reshape(64, 64), id="above-65535"),
+        # negative values — a signed label/segmentation mask
+        pytest.param(np.linspace(-2000, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="negative"),
+    ],
+)
+def test_generate_thumbnail_out_of_range_int32_greyscale_is_stretched(arr):
+    # A 2-D int32 plane outside [0, 65535] is a raw image, not a normalized
+    # montage (which is always in range), so it is contrast-stretched to 8-bit
+    # rather than passed through and clamped/darkened as a mode-I image.
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "L"
+    assert _spans_full_range(np.asarray(img))
+
+
 def test_generate_thumbnail_int32_color_is_stretched():
-    # 3-D int32 is color (the montage is only ever 2-D int32), so unlike 2-D
-    # int32 it is stretched to 8-bit RGB rather than passed through as mode I.
+    # 3-D int32 is color (the montage is only ever 2-D int32), so unlike a
+    # 2-D in-range int32 it is stretched to 8-bit RGB rather than passed through.
     arr = np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=np.int32).reshape(64, 64, 3)
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
     assert img.mode == "RGB"
@@ -747,6 +765,20 @@ def test_alpha_to_uint8_uint32():
     out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [0, 1, 64, 255])
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.int16, np.int32, np.int64])
+def test_alpha_to_uint8_signed(dtype):
+    # Signed alpha (nonsensical, but reachable now that signed RGBA routes
+    # through the rescale path): the max positive value is full opacity (255,
+    # not the 127 an arithmetic right-shift would give), and negatives clamp to
+    # transparent.
+    mx = np.iinfo(dtype).max
+    out = t4_lambda_thumbnail._alpha_to_uint8(np.array([-5, 0, mx], dtype=dtype))
+    assert out.dtype == np.uint8
+    assert out[0] == 0    # negative -> transparent
+    assert out[1] == 0
+    assert out[2] == 255  # max positive -> opaque
 
 
 def test_generate_thumbnail_float_greyscale_saves_png():
