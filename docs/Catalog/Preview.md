@@ -48,17 +48,17 @@ middle timepoint.
 > Thumbnails are a visual aid, not a faithful reproduction of the original
 > pixel values.
 
-To keep high-bit-depth and low-contrast data visible, grayscale previews
-are **contrast-stretched per image**: each image — and each channel of a
-multi-channel image — is rescaled from its own range of pixel values,
-after clipping the most extreme values so a few hot or dead pixels don't
-flatten the rest. High-bit-depth color previews are stretched the same
-way, jointly across their channels so the colors aren't skewed.
+Previews of high-bit-depth and microscopy images are **contrast-stretched
+per image** to keep faint, low-contrast detail visible: each grayscale
+image — and each channel of a multi-channel image — is rescaled from its
+own range of pixel values, after clipping the most extreme values so a few
+hot or dead pixels don't flatten the rest. Color previews are stretched the
+same way, jointly across their channels so the colors aren't skewed.
 
 As a result, displayed brightness does **not** represent absolute pixel
 intensity: it is not comparable between thumbnails, nor between the
-channels of a multi-channel montage. Standard 8-bit images (such as .jpg
-files) are already display-ready and are shown without this adjustment.
+channels of a multi-channel montage. Ordinary 8-bit images (such as .jpg
+files) are already display-ready and are shown unchanged.
 
 ### Limitations
 
