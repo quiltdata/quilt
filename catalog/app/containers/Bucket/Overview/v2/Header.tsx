@@ -11,16 +11,25 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
+import useConst from 'utils/useConstant'
 
 import * as PD from '../../PackageDialog'
 import * as requests from '../../requests'
+
+import { makeColorPool } from '../ColorPool'
+import Downloads from '../Downloads'
+import ObjectsByExt, { COLOR_MAP, MAX_EXTS } from '../ObjectsByExt'
 
 import BUCKET_QUERY from '../gql/Bucket.generated'
 import STAT_COUNTS_QUERY from '../gql/StatCounts.generated'
 
 import Readme from './Readme'
+
+// use the same height as the bar chart: 20px per bar with 2px margin
+const DOWNLOADS_CHART_H = 22 * MAX_EXTS - 2
 
 // NOTE: replicated from legacy Overview/Header `useStats` (not exported there);
 // keep in sync — both read the same `bucketStats` request + StatCounts query.
@@ -75,7 +84,7 @@ function useStats(bucket: string) {
       }),
     [countQuery],
   )
-  return { totalBytes, totalObjects, pkgCount }
+  return { totalBytes, totalObjects, pkgCount, statsResult: statsData.result }
 }
 
 const useStatsItemStyles = M.makeStyles((t) => ({
@@ -114,9 +123,9 @@ function StatsItem({ label, value, to }: StatsItemProps) {
   )
   if (to) {
     return (
-      <M.Link className={classes.root} color="inherit" component={RRLink} to={to}>
+      <StyledLink className={classes.root} to={to}>
         {content}
-      </M.Link>
+      </StyledLink>
     )
   }
   return <span className={classes.root}>{content}</span>
@@ -158,14 +167,17 @@ const useStatsStyles = M.makeStyles((t) => ({
   },
 }))
 
+type StatsData = ReturnType<typeof useStats>
+
 interface StatsProps {
   bucket: string
+  stats: StatsData
 }
 
-function Stats({ bucket }: StatsProps) {
+function Stats({ bucket, stats }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
-  const { totalBytes, totalObjects, pkgCount } = useStats(bucket)
+  const { totalBytes, totalObjects, pkgCount } = stats
   return (
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
@@ -217,6 +229,64 @@ function CreatePackage({ bucket }: CreatePackageProps) {
   )
 }
 
+const useChartsStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    flexDirection: 'column',
+    marginTop: t.spacing(3),
+    position: 'relative',
+    [t.breakpoints.up('md')]: {
+      flexDirection: 'row',
+    },
+  },
+  divider: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    height: 32,
+    justifyContent: 'center',
+    width: '100%',
+    [t.breakpoints.up('md')]: {
+      height: '100%',
+      width: 32,
+    },
+  },
+}))
+
+interface ChartsProps {
+  bucket: string
+  statsResult: StatsData['statsResult']
+}
+
+function Charts({ bucket, statsResult }: ChartsProps) {
+  const classes = useChartsStyles()
+  const colorPool = useConst(() => makeColorPool(COLOR_MAP))
+  return (
+    <div className={classes.root}>
+      <ObjectsByExt
+        data={AsyncResult.prop('exts', statsResult)}
+        width="100%"
+        flexShrink={1}
+        colorPool={colorPool}
+      />
+      <div className={classes.divider}>
+        <M.Hidden mdUp>
+          <M.Divider />
+        </M.Hidden>
+      </div>
+      <Downloads
+        bucket={bucket}
+        colorPool={colorPool}
+        width="100%"
+        flexShrink={1}
+        chartHeight={DOWNLOADS_CHART_H}
+      />
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(3),
@@ -253,6 +323,7 @@ export default function Header({ bucket }: HeaderProps) {
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   const { bucket: bucketData } = GQL.useQueryS(BUCKET_QUERY, { bucket })
   const description = bucketData?.description
+  const stats = useStats(bucket)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.top}>
@@ -273,8 +344,9 @@ export default function Header({ bucket }: HeaderProps) {
             </M.Box>
           )}
         </div>
-        <Stats bucket={bucket} />
+        <Stats bucket={bucket} stats={stats} />
       </div>
+      <Charts bucket={bucket} statsResult={stats.statsResult} />
       <Readme bucket={bucket} />
     </M.Paper>
   )

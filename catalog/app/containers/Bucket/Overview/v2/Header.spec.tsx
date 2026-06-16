@@ -14,6 +14,16 @@ vi.mock('./Readme', () => ({
   default: () => <div data-testid="readme" />,
 }))
 
+vi.mock('../Downloads', () => ({
+  default: () => <div data-testid="downloads" />,
+}))
+
+vi.mock('../ObjectsByExt', () => ({
+  default: () => <div data-testid="objects-by-ext" />,
+  COLOR_MAP: [],
+  MAX_EXTS: 7,
+}))
+
 vi.mock('../../PackageDialog', () => ({
   useCreateDialog: () => ({ open: vi.fn(), render: () => null }),
 }))
@@ -94,5 +104,11 @@ describe('containers/Bucket/Overview/v2/Header', () => {
   it('renders the Create package button', () => {
     const { getByText } = renderHeader()
     expect(getByText('Create package')).toBeTruthy()
+  })
+
+  it('renders the ObjectsByExt and Downloads charts', () => {
+    const { getByTestId } = renderHeader()
+    expect(getByTestId('objects-by-ext')).toBeTruthy()
+    expect(getByTestId('downloads')).toBeTruthy()
   })
 })
