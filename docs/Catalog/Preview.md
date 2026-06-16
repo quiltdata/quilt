@@ -62,7 +62,8 @@ files) are already display-ready and are shown without this adjustment.
 
 ### Limitations
 
-* 32-bit integer images may render incorrectly or fail to preview.
+* Integer images deeper than 16 bits may render incorrectly or fail to
+  preview.
 * Very large images may fail to preview if they exceed memory or pixel
   limits.
 
