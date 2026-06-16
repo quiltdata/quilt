@@ -1,5 +1,7 @@
 import * as GQL from 'utils/GraphQL'
 
+// Schema-free generic async-state helpers; they merely live under the Athena
+// folder. Candidate for relocation to a neutral `utils/` location.
 import * as Model from '../Queries/Athena/model/utils'
 
 import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'

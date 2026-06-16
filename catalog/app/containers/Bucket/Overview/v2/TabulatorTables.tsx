@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+// Schema-free generic async-state helpers; they merely live under the Athena
+// folder. Candidate for relocation to a neutral `utils/` location.
 import * as Model from '../../Queries/Athena/model/utils'
 import { useTabulatorTables } from '../../Tabulator/requests'
 
