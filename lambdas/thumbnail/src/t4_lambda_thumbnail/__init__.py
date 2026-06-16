@@ -140,10 +140,12 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     finite plane collapses both the percentiles and the min/max fallback — so
     callers must re-check and handle the no-contrast case themselves.
 
-    Shared by _normalize_plane (float planes) and _rescale_float_to_uint8 so
-    their clip/fallback and non-finite filtering can't diverge (the same pixels
-    must not render differently by reader path). The unsigned-integer paths use
-    _uint16_clip_range instead (histogram percentile, bounded memory).
+    Shared by _normalize_plane (float planes), _rescale_float_to_uint8, and
+    _rescale_int_to_uint8 (wide/signed integers, which are all finite so the
+    mask is a no-op) so their clip/fallback and non-finite filtering can't
+    diverge (the same pixels must not render differently by reader path). The
+    <=16-bit unsigned paths use _uint16_clip_range instead (histogram
+    percentile, bounded memory).
     """
     # Compact to the finite values only when some are non-finite: the masked
     # copy would otherwise coexist with np.percentile's internal copy and double
@@ -638,6 +640,38 @@ def _rescale_float_to_uint8(arr):
     return _saturate_to_uint8(out)
 
 
+def _rescale_int_to_uint8(arr):
+    # Contrast-stretch a signed or wide-unsigned integer plane (int8/16/32/64,
+    # uint32/64 — every integer generate_thumbnail can't hand to PIL directly
+    # that isn't uint8 or uint16) to uint8. uint8 passes through and uint16 has
+    # the bounded histogram+LUT path; these wider/signed integers have too many
+    # possible values to histogram, so range and rescale in float64 — the same
+    # approach _normalize_plane takes for its non-uint16 planes (there to 16-bit,
+    # here to uint8). Shares _finite_clip_range and _saturate_to_uint8 with
+    # _rescale_float_to_uint8 so the clip/fallback and saturation can't diverge.
+    #
+    # float64 (not float32) so a low-contrast range at a high integer offset
+    # doesn't collapse in the working copy: uint32/uint64 values beyond float32's
+    # 24-bit mantissa would otherwise quantize the contrast away. Peak memory is
+    # the input plane plus its float64 copy; there is no bounded-memory trick for
+    # these dtypes (the OOM-avoiding histogram/LUT only fits <=16-bit unsigned).
+    rng = _finite_clip_range(arr)
+    if rng is None:
+        # Empty plane: nothing to range over.
+        return np.zeros(arr.shape, np.uint8)
+    lo, hi = rng
+    if hi == lo:
+        # Constant image: no contrast to stretch. Keep the absolute level
+        # clamped into [0, 255] (the [0, 1] float convention doesn't apply to
+        # integers), matching the level-preserving choice of the other uint8
+        # rescalers rather than _normalize_plane's render-black.
+        return np.full(arr.shape, np.clip(round(lo), 0, 255), np.uint8)
+    out = arr.astype(np.float64)
+    out -= lo
+    out *= 255 / (hi - lo)
+    return _saturate_to_uint8(out)
+
+
 def _saturate_to_uint8(out):
     # Round, clamp to [0, 255] (±inf saturate to the ends), and zero the
     # NaNs — via mask assignment: np.nan_to_num allocates much larger
@@ -651,20 +685,23 @@ def _saturate_to_uint8(out):
 
 def _alpha_to_uint8(alpha):
     # Scale an alpha channel to uint8 by its convention — opacity in [0, 1]
-    # for floats, the full dtype range for uint16 — rather than
+    # for floats, the full dtype range for integers — rather than
     # contrast-stretching it like the color channels. NaN renders
     # transparent.
     if alpha.dtype.kind == "f":
         out = alpha.astype(np.float32)
         out *= 255
         return _saturate_to_uint8(out)
-    return (alpha >> 8).astype(np.uint8)
+    # Integer alpha: the full dtype range is full opacity, so scale by the high
+    # byte (uint16 -> >>8, uint32 -> >>24, uint64 -> >>56).
+    return (alpha >> (8 * (alpha.dtype.itemsize - 1))).astype(np.uint8)
 
 
 def generate_thumbnail(arr, size):
-    # Contrast-stretch non-uint8 arrays to uint8 before building the image:
-    # PIL only builds color images from uint8, can't construct from float16,
-    # can't save mode-F greyscale as PNG, and 16-bit greyscale decodes to an
+    # Contrast-stretch arrays PIL can't render directly to uint8 before building
+    # the image: PIL only builds color images from uint8, can't construct from
+    # float16 or from 64-bit integers at all, can't save mode-F greyscale as
+    # PNG, and 16-bit (and other wide/signed) integer greyscale decodes to an
     # I;16 "limited support" mode
     # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes)
     # that thumbnail() rejects with "image has wrong mode" when it reduce()s
@@ -674,6 +711,19 @@ def generate_thumbnail(arr, size):
         rescale = _rescale_float_to_uint8
     elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
+    elif arr.ndim == 2 and arr.dtype == np.int32:
+        # norm_img hands back a normalized greyscale montage / Z-projection as
+        # 2-D int32 already stretched to [0, 65536); pass it straight through to
+        # a 16-bit I;16 PNG (handle_image converts mode I -> I;16) instead of
+        # re-stretching it to 8-bit. A raw 2-D native-int32 greyscale is
+        # indistinguishable from this and shares the path (rendered as 16-bit,
+        # so values above 65535 clip) — an accepted limitation; every other
+        # wide / signed integer below is contrast-stretched.
+        rescale = None
+    elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
+        # Wider or signed integers PIL can't build an image from directly
+        # (uint32/64, int8/16/64, and color int32): contrast-stretch to uint8.
+        rescale = _rescale_int_to_uint8
     else:
         rescale = None
     if rescale is not None:

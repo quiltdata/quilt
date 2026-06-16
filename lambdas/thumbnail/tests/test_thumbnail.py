@@ -237,6 +237,7 @@ _COLOR_ORACLE_FIXTURES = [
     ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),    # bioio-imageio 8-bit RGB
     ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),                # bioio-tifffile 8-bit RGBA
     ("float-rgb.tiff", lambda p: tifffile.imread(p).astype(np.float64)),    # bioio-tifffile float16
+    ("rgb-uint32.tiff", lambda p: tifffile.imread(p)),                      # bioio-tifffile wide-int (uint32) RGB
 ]
 
 
@@ -410,6 +411,15 @@ def test_percentile_uint16_multi_block(monkeypatch, arr):
             t4_lambda_thumbnail._rescale_float_to_uint8,
             id="float32",
         ),
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 500_000, 16, dtype=np.uint32).reshape(4, 4),
+                np.linspace(0, 1_000_000, 16, dtype=np.uint32).reshape(4, 4),
+                np.zeros((4, 4), dtype=np.uint32),
+            ]),
+            t4_lambda_thumbnail._rescale_int_to_uint8,
+            id="uint32",
+        ),
     ],
 )
 def test_rescale_joint_channels(arr, rescale):
@@ -527,6 +537,79 @@ def test_rescale_float_to_uint8_empty():
     assert out.size == 0
 
 
+def test_rescale_int_to_uint8_wide_unsigned():
+    # uint32 values far beyond the 16-bit range are contrast-stretched by their
+    # actual range, not clamped to 16 bits (which would render them black).
+    arr = np.array([[0, 1_000_000], [2_000_000, 4_000_000]], dtype=np.uint32)
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [[0, 64], [128, 255]])
+
+
+def test_rescale_int_to_uint8_signed():
+    # Signed integers stretch across their full negative-to-positive range.
+    arr = np.array([[-100, -50], [0, 100]], dtype=np.int32)
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [[0, 64], [128, 255]])
+
+
+def test_rescale_int_to_uint8_high_offset_low_contrast():
+    # A low-contrast range sitting at a high uint32 offset (> float32's ~16M
+    # exact range, ulp 256 around 3e9): the float64 working copy must keep the
+    # contrast a float32 copy would quantize away.
+    arr = (3_000_000_000 + np.arange(256)).astype(np.uint32).reshape(16, 16)
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert len(np.unique(out)) >= 200
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param(50, 50, id="small-level-kept"),
+        pytest.param(1000, 255, id="large-level-clamped-white"),
+        pytest.param(-5, 0, id="negative-clamped-black"),
+    ],
+)
+def test_rescale_int_to_uint8_constant(value, expected):
+    # Constant integer images have no contrast; keep the absolute level clamped
+    # into [0, 255] (no [0, 1] convention as for floats).
+    arr = np.full((4, 4), value, dtype=np.int32)
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == expected).all()
+
+
+def test_rescale_int_to_uint8_empty():
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(np.empty((0, 4), dtype=np.int64))
+    assert out.dtype == np.uint8
+    assert out.size == 0
+
+
+def test_rescale_int_to_uint8_sparse():
+    # Percentiles collapse when almost all pixels share one value; the min/max
+    # fallback keeps a sparse wide-integer label mask visible.
+    arr = np.zeros((200, 200), dtype=np.uint32)
+    arr[0, :3] = 1_000_000
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    assert (out[0, :3] == 255).all()
+    assert out[1, 0] == 0
+
+
+def test_rescale_int_to_uint8_clips_outlier_pixels():
+    # A single hot pixel (a stuck-high sensor value) must not compress the rest
+    # of a low-contrast band sitting above the 16-bit range to black. Mirrors
+    # test_rescale_uint16_to_uint8_clips_outliers for wide integers.
+    arr = np.linspace(1_000_000, 1_100_000, 10000, dtype=np.uint32).reshape(100, 100)
+    arr[0, 0] = 100_000_000
+    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) > 100
+
+
 @pytest.mark.parametrize(
     "arr",
     [
@@ -573,6 +656,71 @@ def test_generate_thumbnail_rgba(arr):
     assert out[..., :3].max() == 255
 
 
+# A linear ramp spans the full uint8 range when stretched; downscaling in
+# thumbnail() resamples the extremes inward, so assert a wide spread rather than
+# exactly 0/255 (the exact bounds are pinned on the un-resized _rescale_* tests).
+def _spans_full_range(out):
+    return out.max() > 200 and out.min() < 55
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.int16, np.uint32, np.int64, np.uint64])
+def test_generate_thumbnail_wide_int_greyscale(dtype):
+    # Signed / wide-unsigned integer greyscale (PIL can't build int64/uint64 at
+    # all, and renders int8/16/32 + uint32 as a clamped 16-bit I image) is
+    # contrast-stretched to an 8-bit mode-L image instead. The 32 < 64 target
+    # also exercises thumbnail()'s reduce() path, which rejected the old wide
+    # greyscale modes.
+    hi = 100 if np.dtype(dtype).itemsize == 1 else 1_000_000
+    arr = np.linspace(0, hi, 64 * 64, dtype=dtype).reshape(64, 64)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "L"
+    assert _spans_full_range(np.asarray(img))
+
+
+@pytest.mark.parametrize("dtype", [np.int16, np.int32, np.uint32, np.int64, np.uint64])
+def test_generate_thumbnail_wide_int_color(dtype):
+    # Signed / wide integer color used to fail with HTTP 500 (PIL can't build a
+    # color image from these dtypes); now it is contrast-stretched to 8-bit RGB.
+    arr = np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=dtype).reshape(64, 64, 3)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "RGB"
+    assert _spans_full_range(np.asarray(img))
+
+
+def test_generate_thumbnail_wide_int_rgba():
+    # Wide-integer RGBA: color channels stretch jointly, full-range alpha stays
+    # opaque (scaled by the dtype range, not contrast-stretched).
+    arr = np.dstack([
+        np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=np.uint32).reshape(64, 64, 3),
+        np.full((64, 64), np.iinfo(np.uint32).max, np.uint32),
+    ])
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "RGBA"
+    out = np.asarray(img)
+    assert (out[..., 3] == 255).all()
+    assert _spans_full_range(out[..., :3])
+
+
+def test_generate_thumbnail_normalized_int32_montage_passes_through():
+    # norm_img hands back the greyscale montage / Z-projection as 2-D int32
+    # already normalized to [0, 65536). generate_thumbnail must pass it straight
+    # through to a 16-bit mode-I image (unchanged values), NOT re-stretch it to
+    # 8-bit — that would break the 16-bit montage output pinned by
+    # test_norm_img_path_saves_16bit_png and churn the montage goldens.
+    arr = np.linspace(0, 65535, 64 * 64, dtype=np.int32).reshape(64, 64)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (64, 64))  # size == shape: no resize
+    assert img.mode == "I"
+    assert np.array_equal(np.asarray(img), arr)
+
+
+def test_generate_thumbnail_int32_color_is_stretched():
+    # 3-D int32 is color (the montage is only ever 2-D int32), so unlike 2-D
+    # int32 it is stretched to 8-bit RGB rather than passed through as mode I.
+    arr = np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=np.int32).reshape(64, 64, 3)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "RGB"
+
+
 def test_alpha_to_uint8_float():
     # Float alpha is scaled by the [0, 1] opacity convention; NaN renders
     # transparent, out-of-range values clamp.
@@ -590,6 +738,15 @@ def test_alpha_to_uint8_uint16():
     out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [0, 1, 64, 128])
+
+
+def test_alpha_to_uint8_uint32():
+    # Wide-unsigned alpha is scaled by the full dtype range too (uint32 -> >>24),
+    # so a 4-channel uint32 image keeps a meaningful alpha instead of wrapping.
+    alpha = np.array([0, 1 << 24, 1 << 30, np.iinfo(np.uint32).max], dtype=np.uint32)
+    out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [0, 1, 64, 255])
 
 
 def test_generate_thumbnail_float_greyscale_saves_png():
