@@ -46,4 +46,22 @@ describe('containers/Bucket/Overview/v2/Readme', () => {
     const { queryByTestId } = render(<Readme bucket="b" />)
     expect(queryByTestId('readme-preview')).toBeFalsy()
   })
+
+  it('renders nothing when the only readme is a notebook', () => {
+    fetchResult.mockReturnValue(AsyncResult.Ok([{ bucket: 'b', key: 'README.ipynb' }]))
+    const { queryByTestId } = render(<Readme bucket="b" />)
+    expect(queryByTestId('readme-preview')).toBeFalsy()
+  })
+
+  it('skips the notebook and previews the markdown readme', () => {
+    fetchResult.mockReturnValue(
+      AsyncResult.Ok([
+        { bucket: 'b', key: 'README.md' },
+        { bucket: 'b', key: 'README.ipynb' },
+      ]),
+    )
+    const { queryAllByTestId, getByTestId } = render(<Readme bucket="b" />)
+    expect(queryAllByTestId('readme-preview')).toHaveLength(1)
+    expect(getByTestId('file-preview').textContent).toBe('b/README.md')
+  })
 })

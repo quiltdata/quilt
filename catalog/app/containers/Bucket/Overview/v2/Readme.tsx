@@ -1,5 +1,4 @@
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
@@ -9,40 +8,8 @@ import { Fetcher } from 'utils/Data'
 import * as Summarize from '../../Summarize'
 import * as requests from '../../requests'
 
-const COLLAPSED_HEIGHT = 320
-
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-    position: 'relative',
-  },
-  clamp: {
-    maxHeight: COLLAPSED_HEIGHT,
-    overflow: 'hidden',
-  },
-  toggle: {
-    marginTop: t.spacing(1),
-  },
-}))
-
-interface FoldProps {
-  handle: Model.S3.S3ObjectLocation
-}
-
-function Fold({ handle }: FoldProps) {
-  const classes = useStyles()
-  const [expanded, setExpanded] = React.useState(false)
-  const toggle = React.useCallback(() => setExpanded((e) => !e), [])
-  return (
-    <div className={classes.root} data-testid="readme-preview">
-      <div className={expanded ? undefined : classes.clamp}>
-        <Summarize.FilePreview handle={handle} expanded />
-      </div>
-      <M.Button className={classes.toggle} size="small" onClick={toggle}>
-        {expanded ? 'Show less' : 'Show more'}
-      </M.Button>
-    </div>
-  )
+function isNotebook(handle: Model.S3.S3ObjectLocation): boolean {
+  return handle.key.toLowerCase().endsWith('.ipynb')
 }
 
 interface ReadmeProps {
@@ -55,8 +22,19 @@ export default function Readme({ bucket }: ReadmeProps) {
     // @ts-expect-error untyped Fetcher
     <Fetcher fetch={requests.bucketReadmes} params={{ s3, bucket }}>
       {AsyncResult.case({
-        Ok: (readmes: Model.S3.S3ObjectLocation[]) =>
-          readmes.length ? <Fold handle={readmes[0]} /> : null,
+        Ok: (readmes: Model.S3.S3ObjectLocation[]) => {
+          // NOTE: .ipynb is excluded from the compact header fold; a clamped
+          // notebook reads poorly in a tight header. Full notebook rendering
+          // remains available elsewhere (e.g. the Summary section).
+          const handle = readmes.find((h) => !isNotebook(h))
+          if (!handle) return null
+          return (
+            <div data-testid="readme-preview">
+              {/* No `expanded`: PreviewBox applies its native clamp + click-to-expand. */}
+              <Summarize.FilePreview handle={handle} />
+            </div>
+          )
+        },
         _: () => <Summarize.FilePreviewSkel />,
       })}
     </Fetcher>

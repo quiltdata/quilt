@@ -66,6 +66,17 @@ function renderHeader() {
 describe('containers/Bucket/Overview/v2/Header', () => {
   afterEach(cleanup)
 
+  it('does not link the total-size stat', () => {
+    const { getAllByText } = renderHeader()
+    // readableBytes(1024) renders "1 kB" split across text nodes
+    const sizeNodes = getAllByText(
+      (_content, el) =>
+        el?.tagName === 'SPAN' && el.textContent?.replace(/\s/g, '') === '1kB',
+    )
+    expect(sizeNodes.length).toBeGreaterThan(0)
+    sizeNodes.forEach((node) => expect(node.closest('a')).toBeNull())
+  })
+
   it('links Objects stat to bucketDir', () => {
     const { getByText } = renderHeader()
     const link = getByText(/Objects/).closest('a')
