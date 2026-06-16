@@ -87,18 +87,18 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     sizeNodes.forEach((node) => expect(node.closest('a')).toBeNull())
   })
 
-  it('links Objects stat to bucketDir', () => {
-    const { getByText } = renderHeader()
-    const link = getByText(/Objects/).closest('a')
-    expect(link).toBeTruthy()
-    expect(link!.getAttribute('href')).toBe('/dir/test-bucket')
+  it('renders the Objects stat as a link-button to bucketDir', () => {
+    const { getByRole } = renderHeader()
+    const link = getByRole('button', { name: /Objects/ })
+    expect(link.closest('a')).toBe(link)
+    expect(link.getAttribute('href')).toBe('/dir/test-bucket')
   })
 
-  it('links Packages stat to bucketPackageList', () => {
-    const { getByText } = renderHeader()
-    const link = getByText(/Packages/).closest('a')
-    expect(link).toBeTruthy()
-    expect(link!.getAttribute('href')).toBe('/packages/test-bucket')
+  it('renders the Packages stat as a link-button to bucketPackageList', () => {
+    const { getByRole } = renderHeader()
+    const link = getByRole('button', { name: /Packages/ })
+    expect(link.closest('a')).toBe(link)
+    expect(link.getAttribute('href')).toBe('/packages/test-bucket')
   })
 
   it('renders the Create package button', () => {
