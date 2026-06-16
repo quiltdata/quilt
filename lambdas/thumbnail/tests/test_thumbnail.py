@@ -231,25 +231,24 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
-# Local color fixtures, each with an independent decoder, covering the three
-# distinct non-CZI color reader paths exercised by the oracle below.
+# The three distinct non-CZI color reader paths, each with an independent decoder
+# returning an H×W×3 array. Keep in sync with the color rows in
+# test_generate_thumbnail — a color reader with a byte golden but no entry here
+# silently skips the channel-order check.
 _COLOR_ORACLE_FIXTURES = [
-    # bioio-imageio path: 8-bit RGB JPEG (a penguin with an orange beak/feet).
-    # PIL here is a genuinely different decoder than bioio-imageio's.
-    ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),
-    # bioio-tifffile YXC path: 8-bit RGBA aerial photo.
-    ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),
-    # bioio-tifffile float path through _rescale_float_to_uint8: float16 RGB.
-    ("float-rgb.tiff", lambda p: tifffile.imread(p).astype(np.float64)),
+    ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),    # bioio-imageio 8-bit RGB
+    ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),                # bioio-tifffile 8-bit RGBA
+    ("float-rgb.tiff", lambda p: tifffile.imread(p).astype(np.float64)),    # bioio-tifffile float16
 ]
 
 
 def _coarse_means(rgb, grid=12):
-    # Average a HxWxC image into a grid x grid x C array of block means so the
-    # oracle compares coarse regional color, not exact pixels: the thumbnail is
-    # resized (and, for floats, contrast-stretched), so it never matches an
-    # independent decode pixel-for-pixel — but its regional hue must still line up.
+    # Reduce an H×W×C image to a grid×grid×C array of block means: the thumbnail is
+    # resized (and floats contrast-stretched), so it never matches an independent
+    # decode pixel-for-pixel, but regional hue must still line up. The assert pins
+    # the contract — a 2-D/4-D array unpacks opaquely, a sub-grid one gives NaN blocks.
     rgb = np.asarray(rgb, np.float64)
+    assert rgb.ndim == 3 and min(rgb.shape[:2]) >= grid, f"expected an H×W×C image, H,W >= {grid}; got {rgb.shape}"
     h, w, c = rgb.shape
     ys = np.linspace(0, h, grid + 1, dtype=int)
     xs = np.linspace(0, w, grid + 1, dtype=int)
@@ -260,20 +259,17 @@ def _coarse_means(rgb, grid=12):
 @pytest.mark.parametrize(
     "fixture, decode", _COLOR_ORACLE_FIXTURES, ids=[f for f, _ in _COLOR_ORACLE_FIXTURES]
 )
-def test_color_path_channel_order(data_dir, fixture, decode):
-    # Channel-order oracle for the non-CZI color path, complementing the
-    # byte-exact goldens in test_generate_thumbnail. Those goldens are generated
-    # by the lambda itself: a swap does make them fail, but the tempting fix —
-    # regenerating the golden — would then enshrine the swap silently. (That is
-    # how the BGR R/B swap nearly shipped; see the CZI sibling of this test,
-    # test_handle_image_bgr_czi_channel_order.) Comparing the thumbnail's
-    # regional R-vs-B lean against an independent decode asserts ground truth a
-    # regeneration can't fake; the synthetic-array rescale unit tests can't —
-    # their min/max checks are invariant under a channel swap.
-    #
-    # For penguin.jpg the decoder (PIL) genuinely differs from bioio-imageio's;
-    # for the TIFFs tifffile is what bioio-tifffile wraps, so there this guards
-    # the lambda's own channel handling rather than the decode.
+def test_handle_image_color_channel_order(data_dir, fixture, decode):
+    # Channel-order oracle for the non-CZI color path, complementing the byte
+    # goldens in test_generate_thumbnail. Those are self-generated, so a swap that
+    # is "fixed" by regenerating the golden gets enshrined silently — how the BGR
+    # R/B swap nearly shipped (see the CZI sibling test_handle_image_bgr_czi_channel_order).
+    # Comparing the thumbnail's regional R-vs-B lean to an independent decode can't
+    # be faked by a regeneration; the synthetic rescale unit tests can't catch a
+    # swap at all (their min/max checks are swap-invariant). Only R/B is checked —
+    # the axis BGR reverses; for penguin PIL is a genuinely independent decoder,
+    # while for the TIFFs tifffile is what bioio-tifffile wraps (guarding the
+    # lambda's channel handling, not the decode).
     ref = decode(data_dir / fixture)
     _info, png = t4_lambda_thumbnail.handle_image(
         path=str(data_dir / fixture), size=(256, 256), thumbnail_format="PNG")
