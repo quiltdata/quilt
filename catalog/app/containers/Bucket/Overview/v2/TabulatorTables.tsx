@@ -87,9 +87,7 @@ function PreviewBody({ results }: PreviewBodyProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-  },
+  root: {},
   footer: {
     padding: t.spacing(1, 2),
   },

@@ -14,6 +14,7 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: '60vh',
     minHeight: t.spacing(20),
     overflow: 'hidden',
+    position: 'relative',
   },
 }))
 

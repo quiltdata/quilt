@@ -172,7 +172,6 @@ function Carousel({ images, index, onClose, onChange }: CarouselProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(2),
     padding: t.spacing(2),
   },
   grid: {

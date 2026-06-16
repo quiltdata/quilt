@@ -8,15 +8,24 @@ import QuratorInline from './QuratorInline'
 import Summaries from './Summaries'
 import TabulatorTables from './TabulatorTables'
 
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gap: t.spacing(2),
+    padding: t.spacing(2, 0),
+  },
+}))
+
 export default function Overview() {
+  const classes = useStyles()
   const { bucket } = useParams<{ bucket: string }>()
   return (
-    <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
+    <div className={classes.root}>
       <Header bucket={bucket} />
       <QuratorInline />
       <TabulatorTables bucket={bucket} />
       <Images bucket={bucket} />
       <Summaries bucket={bucket} />
-    </M.Box>
+    </div>
   )
 }
