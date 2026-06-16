@@ -183,6 +183,7 @@ const I18N_FIELDS = {
   'ui.blocks.browser': 'File listings on bucket and packages pages',
   'ui.blocks.code': '"CODE"',
   'ui.blocks.meta': '"METADATA"',
+  'ui.blocks.overviewV2': 'Use the new (v2) bucket overview layout',
   'ui.blocks.qurator': '"Qurator Assistance" icon button on object and package pages',
 
   'ui.blocks.meta.user_meta.expanded': 'Auto-expand "User Metadata" field',

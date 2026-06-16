@@ -310,6 +310,8 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         'ui.blocks.gallery.packages': false,
         'ui.blocks.gallery.summarize': false,
 
+        'ui.blocks.overviewV2': false,
+
         'ui.blocks.qurator': false,
 
         'ui.nav.files': false,

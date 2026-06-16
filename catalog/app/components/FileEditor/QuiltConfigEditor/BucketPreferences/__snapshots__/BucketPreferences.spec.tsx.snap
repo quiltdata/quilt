@@ -303,6 +303,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           </span>
         </label>
       </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Use the new (v2) bucket overview layout
+          </span>
+        </label>
+      </div>
     </div>
   </div>
   <div
@@ -1035,6 +1053,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             "METADATA"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Use the new (v2) bucket overview layout
           </span>
         </label>
       </div>

@@ -36,6 +36,7 @@ const expectedDefaults = {
         packages: true,
         summarize: true,
       },
+      overviewV2: false,
       qurator: true,
     },
     nav: {
@@ -97,6 +98,22 @@ describe('utils/BucketPreferences', () => {
       expect(parse(config, 'test-bucket').ui.nav).toEqual({
         ...expectedDefaults.ui.nav,
         queries: false,
+      })
+    })
+
+    it('overviewV2 defaults to false when absent', () => {
+      expect(parse('', 'test-bucket').ui.blocks.overviewV2).toBe(false)
+    })
+
+    it('overviewV2 reads true when set in config', () => {
+      const config = dedent`
+            ui:
+                blocks:
+                    overviewV2: True
+      `
+      expect(parse(config, 'test-bucket').ui.blocks).toEqual({
+        ...expectedDefaults.ui.blocks,
+        overviewV2: true,
       })
     })
 

@@ -61,6 +61,8 @@ function parseUser(config: string) {
     'ui.blocks.gallery.packages': childOfBool(json?.ui?.blocks?.gallery, 'packages'),
     'ui.blocks.gallery.summarize': childOfBool(json?.ui?.blocks?.gallery, 'summarize'),
 
+    'ui.blocks.overviewV2': json?.ui?.blocks?.overviewV2,
+
     'ui.blocks.qurator': json?.ui?.blocks?.qurator,
 
     'ui.nav.files': childOfBool(json?.ui?.nav, 'files'),
@@ -106,6 +108,8 @@ const sys: Defaults = {
   'ui.blocks.gallery.overview': true,
   'ui.blocks.gallery.packages': true,
   'ui.blocks.gallery.summarize': true,
+
+  'ui.blocks.overviewV2': false,
 
   'ui.blocks.qurator': true,
 
@@ -173,6 +177,8 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.blocks.gallery.overview': val('ui.blocks.gallery.overview', user, ext),
     'ui.blocks.gallery.packages': val('ui.blocks.gallery.packages', user, ext),
     'ui.blocks.gallery.summarize': val('ui.blocks.gallery.summarize', user, ext),
+
+    'ui.blocks.overviewV2': val('ui.blocks.overviewV2', user, ext),
 
     'ui.blocks.qurator': val('ui.blocks.qurator', user, ext),
 

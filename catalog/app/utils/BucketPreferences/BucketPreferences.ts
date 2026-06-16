@@ -51,6 +51,7 @@ interface BlocksPreferencesInput {
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
   gallery?: boolean | GalleryPreferences
+  overviewV2?: boolean
   qurator?: boolean
 }
 
@@ -60,6 +61,7 @@ interface BlocksPreferences {
   code: boolean
   meta: false | MetaBlockPreferences
   gallery: false | GalleryPreferences
+  overviewV2: boolean
   qurator: boolean
 }
 
@@ -169,6 +171,7 @@ function getDefaultPreferences(bucket?: string): BucketPreferences {
         code: true,
         meta: defaultBlockMeta,
         gallery: defaultGallery,
+        overviewV2: false,
         qurator: true,
       },
       nav: {
