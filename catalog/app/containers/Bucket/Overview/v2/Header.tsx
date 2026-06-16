@@ -11,6 +11,7 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
@@ -93,7 +94,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
   },
   label: {
     ...t.typography.body2,
-    color: t.palette.text.secondary,
+    color: t.palette.grey[300],
     lineHeight: 1,
     marginLeft: t.spacing(1),
   },
@@ -109,30 +110,25 @@ const useStatsItemStyles = M.makeStyles((t) => ({
 interface StatsItemProps {
   label?: string
   value: string
+  to?: string
 }
 
-function StatsItem({ label, value }: StatsItemProps) {
+function StatsItem({ label, value, to }: StatsItemProps) {
   const classes = useStatsItemStyles()
-  return (
-    <span className={classes.root}>
+  const content = (
+    <>
       <span className={classes.value}>{value}</span>
       {!!label && <span className={classes.label}>{label}</span>}
-    </span>
+    </>
   )
-}
-
-interface StatLinkButtonProps {
-  label: string
-  value: string
-  to: string
-}
-
-function StatLinkButton({ label, value, to }: StatLinkButtonProps) {
-  return (
-    <M.Button variant="outlined" component={RRLink} to={to}>
-      {value} {label}
-    </M.Button>
-  )
+  if (to) {
+    return (
+      <StyledLink className={classes.root} to={to}>
+        {content}
+      </StyledLink>
+    )
+  }
+  return <span className={classes.root}>{content}</span>
 }
 
 const useStatsItemSkeletonStyles = M.makeStyles((t) => ({
@@ -186,17 +182,13 @@ function Stats({ bucket, stats }: StatsProps) {
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
       {totalObjects ? (
-        <StatLinkButton
-          value={totalObjects}
-          label="Objects"
-          to={urls.bucketDir(bucket)}
-        />
+        <StatsItem value={totalObjects} label="Objects" to={urls.bucketDir(bucket)} />
       ) : (
         <StatsItemSkeleton />
       )}
       <div className={classes.packages}>
         {pkgCount ? (
-          <StatLinkButton
+          <StatsItem
             value={pkgCount}
             label="Packages"
             to={urls.bucketPackageList(bucket)}
