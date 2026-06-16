@@ -869,10 +869,8 @@ SIZE = (1024, 768)
             "c1_bgr24.czi",
             marks=pytest.mark.xfail(raises=bioio_czi.metadata.UnsupportedMetadataError),
         ),
-        # BGR color CZI (Bgr48). Readable since bioio-czi 2.7.0 (PR #93); the
-        # lambda swaps the raw BGR samples to RGB. This one is a black/white
-        # checkerboard, so it pins decode/shape but not channel order
-        # (rgb-image.czi below covers that).
+        # Readable since bioio-czi 2.7.0; lambda swaps BGR->RGB. B/W
+        # checkerboard, so it pins decode/shape but not channel order.
         (CZI_PKG, "c1_bgr48.czi"),
         # RuntimeError: Sorry, this pixeltype isn't implemented yet.
         pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=(RuntimeError, ValueError))),
@@ -885,10 +883,8 @@ SIZE = (1024, 768)
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
         # A real mosaic (whole-slide) acquisition that decodes to a single greyscale plane.
         (CZI_PKG, "OverViewScan.czi"),
-        # BGR color CZI (Bgr24), a photo of tan wooden dice. Readable since
-        # bioio-czi 2.7.0 (PR #93): bioio-czi returns the raw BGR samples and
-        # the lambda swaps them to RGB, so this pins CZI color-channel order
-        # (test_handle_image_bgr_czi_channel_order is the independent oracle).
+        # Color CZI (Bgr24); readable since bioio-czi 2.7.0. Pins CZI color
+        # channel order (test_handle_image_bgr_czi_channel_order is the oracle).
         (CZI_PKG, "rgb-image.czi"),
     ],
 )
@@ -936,12 +932,9 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
 
 
 def test_handle_image_bgr_czi_channel_order(pytestconfig):
-    # bioio-czi returns CZI Bgr* samples in raw BGR order; handle_image must
-    # swap them to RGB. rgb-image.czi is a photo of tan wooden dice, so the
-    # rendered subject must be warm-toned (R > B). This is an independent
-    # oracle for the golden: a self-generated golden cannot catch a
-    # re-introduced BGR/RGB swap (it would just match the wrong output), but
-    # this hue check would.
+    # Independent oracle for the BGR->RGB swap: a self-generated golden can't
+    # catch a re-introduced swap, but this can. rgb-image.czi is tan wooden
+    # dice, so the rendered subject must be warm-toned (R > B).
     src_entry = quilt3.Package.browse(
         CZI_PKG[0],
         registry=TEST_DATA_REGISTRY,
@@ -965,6 +958,34 @@ def test_handle_image_bgr_czi_channel_order(pytestconfig):
     subject = pixels[(brightness > 60) & (brightness < 690)]
     mean = subject.mean(axis=0)
     assert mean[0] > mean[2] + 10, f"expected warm wood tone (R>B), got mean RGB={mean}"
+
+
+def test_handle_image_multichannel_bgr_czi_channel_order(data_dir):
+    # Covers the montage branch (C>1), where the swap lands on the montage's
+    # trailing S axis. No real fixture exists (real color CZIs are single-
+    # channel), so multichannel-bgr.czi is synthetic: channel 0 red, channel 1
+    # blue, in native BGR; the rendered tiles must keep those colors.
+    # Regenerate with:
+    #   import numpy as np
+    #   from pylibCZIrw import czi as pyczi
+    #   red = np.zeros((32, 32, 3), np.uint8); red[..., 2] = 255    # BGR -> red
+    #   blue = np.zeros((32, 32, 3), np.uint8); blue[..., 0] = 255  # BGR -> blue
+    #   with pyczi.create_czi("multichannel-bgr.czi") as doc:
+    #       opts = "zstd0:ExplicitLevel=10"
+    #       doc.write(data=red, plane={"C": 0}, compression_options=opts)
+    #       doc.write(data=blue, plane={"C": 1}, compression_options=opts)
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / "multichannel-bgr.czi"), size=SIZE, thumbnail_format="PNG")
+    arr = np.asarray(Image.open(BytesIO(data)).convert("RGB"))
+    h, w, _ = arr.shape
+
+    # Channels are tiled side by side; sample a block at each tile's center.
+    def tile_center(cx):
+        return arr[h // 2 - 1:h // 2 + 2, cx - 1:cx + 2].reshape(-1, 3).mean(axis=0)
+
+    left, right = tile_center(w // 4), tile_center(3 * w // 4)
+    assert left[0] > left[2] + 10, f"channel 0 should render red (R>B), got {left}"
+    assert right[2] > right[0] + 10, f"channel 1 should render blue (B>R), got {right}"
 
 
 def test_http():

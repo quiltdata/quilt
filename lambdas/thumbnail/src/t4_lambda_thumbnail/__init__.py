@@ -413,10 +413,8 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
         ),
     ):
         arr = _format_n_dim_ndarray(img)
-        # CZI stores color only as BGR pixel types (Bgr24/Bgr48/Bgr96Float, all
-        # 3-sample; there is no native RGB or BGRA layout, so a Samples axis
-        # always means 3-channel BGR). bioio-czi exposes those samples in raw
-        # on-disk order without converting, so reverse them to RGB.
+        # CZI color is always BGR (Bgr24/Bgr48/Bgr96Float, 3-sample; no RGB/BGRA
+        # layout) and bioio-czi exposes the samples raw, so reverse them to RGB.
         if (
             isinstance(img.reader, bioio_czi.reader.Reader)
             and "S" in img.reader.dims.order
