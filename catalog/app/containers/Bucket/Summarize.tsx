@@ -448,6 +448,33 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   )
 }
 
+// Group a flat list of single-file entries into rows of `perRow`, e.g.
+// `[a, b, c]` with perRow 2 becomes `[[a, b], [c]]`. Used to lay out
+// auto-discovered summaries as a multi-column grid; `Row` renders an array
+// entry as side-by-side columns.
+export function groupAutoSummaryRows<T>(files: T[], perRow = 2): T[][] {
+  return R.splitEvery(perRow, files)
+}
+
+interface SummaryWithSource {
+  entries: SummarizeFile[]
+  fromQuiltSummarize: boolean
+}
+
+// Decide the entries to render given the source. User-authored
+// quilt_summarize.json layouts are kept exactly as authored; only
+// auto-discovered entries are re-grouped into a grid of `gridFallbackPerRow`.
+export function resolveSummaryEntries(
+  { entries, fromQuiltSummarize }: SummaryWithSource,
+  gridFallbackPerRow: number,
+): SummarizeFile[] {
+  if (fromQuiltSummarize) return entries
+  // `SummaryEntries`/`Row` treat array entries as a grid row (side-by-side
+  // columns), but the declared element type stays `SummarizeFile` — match that
+  // loose typing used throughout this module.
+  return groupAutoSummaryRows(entries, gridFallbackPerRow) as unknown as SummarizeFile[]
+}
+
 const SUMMARY_ENTRIES = 7
 
 function getColumnStyles(width?: number | string) {
@@ -570,11 +597,28 @@ interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
+  // When set, auto-discovered summaries (no quilt_summarize.json) are laid out
+  // as a grid of this many columns per row. User-authored quilt_summarize.json
+  // layouts are always rendered as authored. Omit to keep the single-column
+  // stack (legacy behavior).
+  gridFallbackPerRow?: number
 }
 
-export function SummaryRoot({ s3, bucket, inStack }: SummaryRootProps) {
+export function SummaryRoot({
+  s3,
+  bucket,
+  inStack,
+  gridFallbackPerRow,
+}: SummaryRootProps) {
   const req = APIConnector.use()
-  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack })
+  const withSource = gridFallbackPerRow != null
+  const data = useData(requests.bucketSummary, {
+    req,
+    s3,
+    bucket,
+    inStack,
+    withSource,
+  })
   return (
     <FileThemeContext.Provider value={FileThemes.Overview}>
       {data.case({
@@ -585,7 +629,16 @@ export function SummaryRoot({ s3, bucket, inStack }: SummaryRootProps) {
           console.error(e)
           return null
         },
-        Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} />,
+        Ok: (result: SummarizeFile[] | SummaryWithSource) => {
+          if (!withSource) {
+            return <SummaryEntries entries={result as SummarizeFile[]} s3={s3} />
+          }
+          const entries = resolveSummaryEntries(
+            result as SummaryWithSource,
+            gridFallbackPerRow as number,
+          )
+          return <SummaryEntries entries={entries} s3={s3} />
+        },
         Pending: () => <FilePreviewSkel />,
         _: () => null,
       })}
