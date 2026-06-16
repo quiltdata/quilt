@@ -60,6 +60,13 @@ intensity: it is not comparable between thumbnails, nor between the
 channels of a multi-channel montage. Standard 8-bit images (such as .jpg
 files) are already display-ready and are shown without this adjustment.
 
+### Limitations
+
+* 32-bit integer images may render incorrectly or fail to preview;
+  32-bit and 64-bit floating-point images are fully supported.
+* Very large images may fail to preview if they exceed the preview
+  service's memory or pixel limits.
+
 ## Binary and special file format previews
 
 * AnnData (.h5ad) — annotated matrix metadata, with QC metrics for small files
