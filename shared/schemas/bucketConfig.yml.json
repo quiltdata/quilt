@@ -183,7 +183,7 @@
               ]
             },
             "overviewV2": {
-              "default": false,
+              "default": true,
               "description": "Use the new (v2) bucket overview layout",
               "type": "boolean",
               "examples": [true, false]

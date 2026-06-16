@@ -109,7 +109,10 @@ const sys: Defaults = {
   'ui.blocks.gallery.packages': true,
   'ui.blocks.gallery.summarize': true,
 
-  'ui.blocks.overviewV2': false,
+  // NOTE: preview default. The v2 bucket Overview is enabled by default for
+  //       this preview build so reviewers see it without editing per-bucket
+  //       config. Reconsider (likely flip back to false) before general release.
+  'ui.blocks.overviewV2': true,
 
   'ui.blocks.qurator': true,
 
