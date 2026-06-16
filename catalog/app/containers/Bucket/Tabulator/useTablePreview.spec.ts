@@ -149,9 +149,18 @@ describe('containers/Bucket/Tabulator/requests/useTablePreview', () => {
   // "catalog not found" error. Open `table`, and if it lands on that start-time
   // error (catalog not yet resolved), toggle it closed and retry until the open
   // produces a non-error preview. Leaves `table` open on success.
+  // The execution poller (useWaitForQueryExecution) advances on a real 1000ms
+  // setInterval, so every "wait for the query to settle" assertion needs more than
+  // one tick of headroom. The default 1000ms waitFor timeout barely covers a single
+  // tick in isolation and is regularly exceeded under full-suite scheduler
+  // contention, making the test flaky. Use a generous ceiling (matching the sibling
+  // Queries/Athena/model/requests.spec.ts); it resolves fast in practice, the high
+  // limit only absorbs jitter.
+  const POLL_WAIT = { timeout: 8000 }
+
   async function openWhenReady(
     result: Result,
-    waitFor: (cb: () => boolean) => Promise<void>,
+    waitFor: (cb: () => boolean, opts?: { timeout?: number }) => Promise<void>,
     table: string,
   ) {
     await waitFor(() => {
@@ -161,7 +170,7 @@ describe('containers/Bucket/Tabulator/requests/useTablePreview', () => {
       if (p?.table === table) act(() => result.current.close())
       act(() => result.current.open(table))
       return false
-    })
+    }, POLL_WAIT)
   }
 
   it('goes open -> loading -> rows for a single table', async () => {
@@ -172,7 +181,7 @@ describe('containers/Bucket/Tabulator/requests/useTablePreview', () => {
       // Once the catalog is resolved, the open preview is Loading (no rows yet).
       expect(result.current.preview).toMatchObject({ table: 'A', results: Model.Loading })
 
-      await waitFor(() => Model.hasData(result.current.preview?.results))
+      await waitFor(() => Model.hasData(result.current.preview?.results), POLL_WAIT)
       expect(result.current.preview).toMatchObject({
         table: 'A',
         results: { rows: rowsFor('A') },
@@ -188,7 +197,7 @@ describe('containers/Bucket/Tabulator/requests/useTablePreview', () => {
 
       // Open A and let it fully resolve to A's rows.
       await openWhenReady(result, waitFor, 'A')
-      await waitFor(() => Model.hasData(result.current.preview?.results))
+      await waitFor(() => Model.hasData(result.current.preview?.results), POLL_WAIT)
       expect(result.current.preview).toMatchObject({
         table: 'A',
         results: { rows: rowsFor('A') },
@@ -202,6 +211,7 @@ describe('containers/Bucket/Tabulator/requests/useTablePreview', () => {
         () =>
           result.current.preview?.table === 'B' &&
           Model.hasData(result.current.preview.results),
+        POLL_WAIT,
       )
 
       // Inspect EVERY render recorded since the switch (result.all captures each
