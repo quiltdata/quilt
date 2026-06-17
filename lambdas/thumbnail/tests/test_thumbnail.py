@@ -709,13 +709,12 @@ def test_generate_thumbnail_wide_int_rgba():
 
 def test_generate_thumbnail_normalized_passes_through():
     # A normalized=True array (norm_img's greyscale montage / Z-projection,
-    # already in the 16-bit range) passes straight through to a 16-bit mode-I
-    # image with unchanged values — NOT re-stretched to 8-bit, which would break
-    # the 16-bit montage output (test_norm_img_path_saves_16bit_png) and churn
-    # the montage goldens. The flag, not the value range, drives the passthrough.
-    arr = np.linspace(0, 65535, 64 * 64, dtype=np.int32).reshape(64, 64)
+    # already contrast-stretched to uint8) passes straight through to an 8-bit
+    # mode-L image with unchanged values — NOT re-stretched, which would double-
+    # stretch the montage. The flag, not the value range, drives the passthrough.
+    arr = np.linspace(0, 255, 64 * 64, dtype=np.uint8).reshape(64, 64)
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (64, 64), normalized=True)  # size == shape: no resize
-    assert img.mode == "I"
+    assert img.mode == "L"
     assert np.array_equal(np.asarray(img), arr)
 
 
@@ -814,16 +813,15 @@ def test_generate_thumbnail_handles_byte_swapped_uint16(shape, expected_mode):
     assert img.mode == expected_mode
 
 
-def test_norm_img_path_saves_16bit_png(data_dir):
-    # Pin the output depth of the normalized (mode I) path: the golden
-    # comparisons only enforce it as long as the goldens themselves stay
-    # 16-bit, so a golden regeneration could silently change it. Shipping
-    # 8-bit instead (smaller, browsers can't use more) is a fine future
-    # choice, but it has to be made consciously — flip this then.
+def test_norm_img_path_saves_8bit_png(data_dir):
+    # Pin the output depth of the normalized path at 8-bit (mode L): the golden
+    # comparisons only enforce it as long as the goldens themselves stay 8-bit,
+    # so a golden regeneration could silently change it. The path used to emit
+    # 16-bit (mode I;16); 8-bit is smaller and browsers can't use more.
     _info, data = t4_lambda_thumbnail.handle_image(
         path=str(data_dir / "cell.tiff"), size=(640, 480), thumbnail_format="PNG",
     )
-    assert Image.open(BytesIO(data)).mode == "I;16"
+    assert Image.open(BytesIO(data)).mode == "L"
 
 
 def _norm(arr, chunks=-1):
@@ -833,39 +831,37 @@ def _norm(arr, chunks=-1):
 def _norm_float_reference(arr):
     # Independent float64 reference for norm_img's normalization, used to pin
     # that the bounded unsigned-integer path (histogram percentile + LUT) stays
-    # bit-identical to it. Mirrors the float branch's exact arithmetic.
-    imax = np.iinfo(np.uint16).max + 1
+    # bit-identical to it. Mirrors _lut_uint_to_uint8's per-pixel arithmetic but
+    # ranges via np.percentile (not the histogram), so it's a genuinely
+    # independent oracle. Only fed unsigned integer inputs (no NaN/inf).
     a = np.asarray(arr).astype(np.float64)
     lo, hi = map(float, np.percentile(a, (0.01, 99.99)))
     if hi == lo:
         lo, hi = float(a.min()), float(a.max())
     if hi == lo:
-        return np.zeros(a.shape, np.int32)
-    np.clip(a, lo, hi, out=a)
-    a -= lo
-    a /= hi - lo
-    a *= imax
-    a[a == imax] = imax - 1
-    return a.astype(np.int32)
+        return np.zeros(a.shape, np.uint8)
+    a = (a - lo) * (255 / (hi - lo))
+    a = np.clip(a.round(), 0, 255)
+    return a.astype(np.uint8)
 
 
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.float32])
 def test_norm_img_empty_plane_renders_black(dtype):
-    # A degenerate empty plane must render black (an empty int32 array) rather
+    # A degenerate empty plane must render black (an empty uint8 array) rather
     # than raise — the unsigned path's _uint16_clip_range has no emptiness guard
     # (unlike the float path's _finite_clip_range), so norm_img guards up front.
     out = _norm(np.empty((0, 5), dtype=dtype))
-    assert out.dtype == np.int32
+    assert out.dtype == np.uint8
     assert out.shape == (0, 5)
 
 
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.dtype(">u2")])
 def test_norm_img_uint_path_bit_identical_to_float_reference(dtype):
-    # The bounded unsigned path (histogram percentile + 65536-entry LUT) must
-    # stay bit-identical to the float64 normalization — that equivalence is the
-    # whole reason it's a safe memory optimization rather than a visible change.
-    # Byte-swapped uint16 (>u2) takes the same path. Covers full-range, low-range
-    # (12-bit-style), sparse (min/max fallback), and constant (-> black).
+    # The bounded unsigned path (histogram percentile + 65536-entry uint8 LUT)
+    # must stay bit-identical to the float64 normalization — that equivalence is
+    # the whole reason it's a safe memory optimization rather than a visible
+    # change. Byte-swapped uint16 (>u2) takes the same path. Covers full-range,
+    # low-range (12-bit-style), sparse (min/max fallback), and constant (-> black).
     top = np.iinfo(np.uint8 if np.dtype(dtype).itemsize == 1 else np.uint16).max
     rng = np.random.default_rng(0)
     sparse = np.full((100, 100), 5, dtype=dtype)
@@ -884,8 +880,8 @@ def test_norm_img_uint_path_bit_identical_sweep():
     # Property-style guard for the same equivalence: many random unsigned planes
     # across dtypes / sizes / value distributions must match the float64
     # reference bit-for-bit. The histogram percentile differs from np.percentile
-    # only sub-ULP, and the *16-bit rescale must never let that flip an int32
-    # output bit. Seeded, so deterministic in CI (no flakiness).
+    # only sub-ULP, and the uint8 rescale must never let that flip an output
+    # byte. Seeded, so deterministic in CI (no flakiness).
     rng = np.random.default_rng(1234)
     for _ in range(60):
         dtype = rng.choice([np.uint8, np.uint16, np.dtype(">u2")])
@@ -904,7 +900,7 @@ def test_norm_img_uint_path_bit_identical_sweep():
             arr.flat[: max(1, arr.size // 500)] = top
         arr = arr.astype(dtype)
         assert np.array_equal(_norm(arr), _norm_float_reference(arr)), \
-            f"int32 flip: dtype={np.dtype(dtype).str} shape={(h, w)} kind={kind}"
+            f"uint8 flip: dtype={np.dtype(dtype).str} shape={(h, w)} kind={kind}"
 
 
 def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
@@ -932,15 +928,15 @@ def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
 
     invalid = [str(w.message) for w in caught if "invalid value encountered" in str(w.message)]
     assert not invalid, f"normalization emitted non-finite warnings: {invalid}"
-    assert Image.open(BytesIO(png)).mode == "I;16"
+    assert Image.open(BytesIO(png)).mode == "L"
 
 
-def test_norm_img_normalizes_to_full_16bit_range():
-    # A gradient stretches to the full I;16 range, as int32 (PIL mode I).
+def test_norm_img_normalizes_to_full_uint8_range():
+    # A gradient stretches to the full uint8 range (PIL mode L).
     out = _norm(np.linspace(0, 1000, 64 * 64).reshape(64, 64))
-    assert out.dtype == np.int32
+    assert out.dtype == np.uint8
     assert out.min() == 0
-    assert out.max() == np.iinfo(np.uint16).max
+    assert out.max() == 255
 
 
 @pytest.mark.parametrize("chunks", [-1, (16, 16)])
@@ -952,8 +948,8 @@ def test_norm_img_constant_plane_renders_black_without_warning(chunks):
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # any warning (e.g. the 0/0 RuntimeWarning) fails
         out = _norm(np.full((40, 40), 5000, np.uint16), chunks=chunks)
-    assert out.dtype == np.int32
-    assert np.array_equal(out, np.zeros((40, 40), np.int32))
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, np.zeros((40, 40), np.uint8))
 
 
 def test_norm_img_nan_renders_black_per_pixel():
@@ -964,12 +960,12 @@ def test_norm_img_nan_renders_black_per_pixel():
     arr[0, 0] = np.nan
     out = _norm(arr)
     assert out[0, 0] == 0
-    assert out.max() == np.iinfo(np.uint16).max  # finite range still spans output
+    assert out.max() == 255  # finite range still spans output
 
 
 def test_norm_img_all_non_finite_renders_black():
     out = _norm(np.full((8, 8), np.nan))
-    assert np.array_equal(out, np.zeros((8, 8), np.int32))
+    assert np.array_equal(out, np.zeros((8, 8), np.uint8))
 
 
 def test_norm_img_inf_saturates_to_range_ends():
@@ -977,8 +973,8 @@ def test_norm_img_inf_saturates_to_range_ends():
     arr[0, 0] = np.inf
     arr[0, 1] = -np.inf
     out = _norm(arr)
-    assert out[0, 0] == np.iinfo(np.uint16).max  # +inf saturates to white
-    assert out[0, 1] == 0                          # -inf saturates to black
+    assert out[0, 0] == 255  # +inf saturates to white
+    assert out[0, 1] == 0     # -inf saturates to black
 
 
 def test_norm_img_multichunk_2d_does_not_raise():
@@ -1002,7 +998,7 @@ def test_norm_img_sparse_stays_visible():
     arr = np.full((100, 100), 100, np.uint16)
     arr[0, 0] = 60000
     out = _norm(arr)
-    assert out.max() == np.iinfo(np.uint16).max
+    assert out.max() == 255
     assert out.min() == 0
 
 
@@ -1017,8 +1013,8 @@ def test_norm_img_sparse_plane_with_nan_ranges_over_finite_values():
     arr[0, 0] = 60000.0   # lone bright outlier -> finite max
     arr[0, 1] = np.nan    # masked pixel
     out = _norm(arr)
-    assert out[0, 1] == 0                          # NaN -> black
-    assert out.max() == np.iinfo(np.uint16).max    # outlier visible: finite max, not NaN
+    assert out[0, 1] == 0       # NaN -> black
+    assert out.max() == 255     # outlier visible: finite max, not NaN
 
 
 def test_norm_img_leaves_color_planes_unchanged():
