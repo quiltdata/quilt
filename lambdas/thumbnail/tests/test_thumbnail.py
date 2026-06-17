@@ -1168,6 +1168,10 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         expected = BioImage(thumbs_pkg[thumb_lk].get_cached_path())
 
         assert actual.dims.items() == expected.dims.items()
+        # Pin the 8-bit output contract explicitly: assert_equal compares values
+        # but ignores dtype, so a wrong 16-bit regeneration with coincidentally
+        # equal values would otherwise slip past the pixel check.
+        assert actual.reader.data.dtype == np.uint8
         np.testing.assert_equal(actual.reader.data, expected.reader.data)
 
 

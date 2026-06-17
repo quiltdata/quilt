@@ -705,6 +705,9 @@ def generate_thumbnail(arr, size, *, normalized=False):
     # thumbnail() rejects when it reduce()s larger images. Dispatch on dtype, not
     # PIL mode, so big-endian uint16 is handled like native-order.
     if normalized:
+        # Already uint8 -> pass through, then resized at 8-bit below like every
+        # other path. Resizing the montage at 8-bit rather than at higher
+        # precision is a deliberate, sub-perceptual tradeoff on a lossy preview.
         rescale = None
     elif arr.dtype.kind == "f":
         rescale = _rescale_float_to_uint8
