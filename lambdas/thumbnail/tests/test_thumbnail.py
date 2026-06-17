@@ -408,7 +408,7 @@ def test_percentile_uint16_multi_block(monkeypatch, arr):
                 np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.float32),
             ]),
-            t4_lambda_thumbnail._rescale_float_to_uint8,
+            t4_lambda_thumbnail._rescale_finite_to_uint8,
             id="float32",
         ),
         pytest.param(
@@ -417,7 +417,7 @@ def test_percentile_uint16_multi_block(monkeypatch, arr):
                 np.linspace(0, 1_000_000, 16, dtype=np.uint32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.uint32),
             ]),
-            t4_lambda_thumbnail._rescale_int_to_uint8,
+            t4_lambda_thumbnail._rescale_finite_to_uint8,
             id="uint32",
         ),
     ],
@@ -434,7 +434,7 @@ def test_rescale_joint_channels(arr, rescale):
 
 def test_rescale_float_to_uint8():
     arr = np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [[0, 64], [128, 255]])
 
@@ -446,7 +446,7 @@ def test_rescale_float_to_uint8_nan():
         # NaN must be zeroed explicitly, not rely on the undefined (but
         # warning-emitting) NaN-to-uint8 cast happening to produce 0.
         warnings.simplefilter("error")
-        out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+        out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert np.array_equal(out, [[0, 0], [85, 255]])
 
 
@@ -463,7 +463,7 @@ def test_rescale_float_to_uint8_nan():
 )
 def test_rescale_float_to_uint8_constant(value, expected):
     arr = np.full((4, 4), value, dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == expected).all()
 
@@ -471,13 +471,13 @@ def test_rescale_float_to_uint8_constant(value, expected):
 def test_rescale_float_to_uint8_inf():
     # ±inf are excluded from the range and saturate to its ends.
     arr = np.array([[np.inf, -np.inf], [np.nan, 0.0], [0.5, 1.0]], dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert np.array_equal(out, [[255, 0], [0, 0], [128, 255]])
 
 
 def test_rescale_float_to_uint8_all_non_finite():
     arr = np.array([[np.inf, -np.inf], [np.nan, np.inf]], dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == 0).all()
 
@@ -486,7 +486,7 @@ def test_rescale_float_to_uint8_float64_precision():
     # High-offset low-contrast float64: sub-float32-ulp differences must
     # not collapse in the working copy.
     arr = np.linspace(1e6, 1e6 + 0.01, 256, dtype=np.float64).reshape(16, 16)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert len(np.unique(out)) >= 250
@@ -499,7 +499,7 @@ def test_rescale_float_to_uint8_sparse():
     # the percentiles actually collapse instead of interpolating.
     arr = np.zeros((200, 200), dtype=np.float32)
     arr[0, :3] = 1.0
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert (out[0, :3] == 255).all()
     assert out[1, 0] == 0
 
@@ -512,7 +512,7 @@ def test_rescale_float_to_uint8_sparse_with_nan():
     arr = np.zeros((200, 200), dtype=np.float32)
     arr[0, :3] = 1.0      # sparse hot pixels -> finite max
     arr[0, 4] = np.nan    # masked pixel
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert (out[0, :3] == 255).all()  # hot pixels visible (finite max, not NaN)
     assert out[0, 4] == 0             # NaN -> black
     assert out[1, 0] == 0
@@ -525,14 +525,14 @@ def test_rescale_float_to_uint8_clips_outlier_pixels():
     arr = np.linspace(0, 1, 10000, dtype=np.float32).reshape(100, 100)
     arr[0, 0] = 100.0
     arr[0, 1] = -100.0
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out[0, 0] == 255
     assert out[0, 1] == 0
     assert len(np.unique(out)) > 200
 
 
 def test_rescale_float_to_uint8_empty():
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(np.empty((0, 4), dtype=np.float32))
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=np.float32))
     assert out.dtype == np.uint8
     assert out.size == 0
 
@@ -543,7 +543,7 @@ def test_rescale_int_to_uint8_wide_unsigned():
     # (which would render them near-black). Assert the stretch, not exact mid
     # values — those ride on percentile-interpolated bounds, not min/max.
     arr = np.array([[0, 1_000_000], [2_000_000, 4_000_000]], dtype=np.uint32)
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert out.min() == 0 and out.max() == 255
     assert (np.diff(out.ravel().astype(int)) > 0).all()  # ascending input -> ascending output
@@ -553,7 +553,7 @@ def test_rescale_int_to_uint8_signed():
     # Signed integers stretch across their full negative-to-positive range
     # (min -> 0, max -> 255, ascending).
     arr = np.array([[-100, -50], [0, 100]], dtype=np.int32)
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert out.min() == 0 and out.max() == 255
     assert (np.diff(out.ravel().astype(int)) > 0).all()
@@ -564,7 +564,7 @@ def test_rescale_int_to_uint8_high_offset_low_contrast():
     # exact range, ulp 256 around 3e9): the float64 working copy must keep the
     # contrast a float32 copy would quantize away.
     arr = (3_000_000_000 + np.arange(256)).astype(np.uint32).reshape(16, 16)
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert len(np.unique(out)) >= 200
@@ -582,13 +582,13 @@ def test_rescale_int_to_uint8_constant(value, expected):
     # Constant integer images have no contrast; keep the absolute level clamped
     # into [0, 255] (no [0, 1] convention as for floats).
     arr = np.full((4, 4), value, dtype=np.int32)
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == expected).all()
 
 
 def test_rescale_int_to_uint8_empty():
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(np.empty((0, 4), dtype=np.int64))
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=np.int64))
     assert out.dtype == np.uint8
     assert out.size == 0
 
@@ -598,7 +598,7 @@ def test_rescale_int_to_uint8_sparse():
     # fallback keeps a sparse wide-integer label mask visible.
     arr = np.zeros((200, 200), dtype=np.uint32)
     arr[0, :3] = 1_000_000
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert (out[0, :3] == 255).all()
     assert out[1, 0] == 0
 
@@ -609,7 +609,7 @@ def test_rescale_int_to_uint8_clips_outlier_pixels():
     # test_rescale_uint16_to_uint8_clips_outliers for wide integers.
     arr = np.linspace(1_000_000, 1_100_000, 10000, dtype=np.uint32).reshape(100, 100)
     arr[0, 0] = 100_000_000
-    out = t4_lambda_thumbnail._rescale_int_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert np.median(out) > 100

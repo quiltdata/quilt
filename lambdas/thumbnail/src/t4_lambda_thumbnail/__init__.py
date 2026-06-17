@@ -140,12 +140,11 @@ def _finite_clip_range(arr: np.ndarray) -> tuple[float, float] | None:
     finite plane collapses both the percentiles and the min/max fallback — so
     callers must re-check and handle the no-contrast case themselves.
 
-    Shared by _normalize_plane (float planes), _rescale_float_to_uint8, and
-    _rescale_int_to_uint8 (wide/signed integers, where the finite mask is
-    skipped) so their clip/fallback and non-finite filtering can't diverge (the
-    same pixels must not render differently by reader path). The <=16-bit
-    unsigned paths use _uint16_clip_range instead (histogram percentile, bounded
-    memory).
+    Shared by _normalize_plane (float planes) and _rescale_finite_to_uint8 (float
+    and wide/signed integers, where the finite mask is skipped) so their
+    clip/fallback and non-finite filtering can't diverge (the same pixels must
+    not render differently by reader path). The <=16-bit unsigned paths use
+    _uint16_clip_range instead (histogram percentile, bounded memory).
     """
     # Compact to the finite values only when some are non-finite: the masked
     # copy would otherwise coexist with np.percentile's internal copy and double
@@ -212,7 +211,7 @@ def _normalize_plane(plane) -> np.ndarray:
 
     Shares its range helpers (_uint16_clip_range / _finite_clip_range), uint8 LUT
     (_lut_uint_to_uint8) and affine stretch (_stretch_to_uint8) with the raw
-    greyscale rescales (_rescale_uint16_to_uint8 / _rescale_float_to_uint8), so
+    greyscale rescales (_rescale_uint16_to_uint8 / _rescale_finite_to_uint8), so
     the same pixels can't render differently by reader path. The deliberate
     difference: a constant (or empty / all-NaN) plane renders black here, where
     the raw paths keep its level — a blank montage channel should read as empty,
@@ -598,52 +597,33 @@ def _rescale_uint16_to_uint8(arr):
     return _lut_uint_to_uint8(arr, lo, hi)
 
 
-def _rescale_float_to_uint8(arr):
-    # Contrast-stretch float data to uint8, with the range computed jointly
-    # across channels for color arrays to avoid per-channel color skews.
-    # Same percentile clipping and sparse-data fallback as
-    # _rescale_uint16_to_uint8. Non-finite values are excluded from the
-    # range: NaNs are treated as missing and render black, ±inf saturate
-    # to the range ends.
+def _rescale_finite_to_uint8(arr):
+    # Contrast-stretch a float or signed/wide-unsigned integer plane (float16/32/64,
+    # int8/16/32/64, uint32/64) to uint8 via a float copy. uint8/uint16 use the
+    # bounded histogram+LUT path instead; these dtypes have too many values to
+    # histogram, so they share _finite_clip_range and _stretch_to_uint8 here. The
+    # range is computed jointly across channels for color arrays (no per-channel
+    # skew); non-finite values are excluded — NaN renders black, ±inf saturates to
+    # the range ends.
     rng = _finite_clip_range(arr)
     if rng is None:
-        # No finite values to compute a range from; render black.
-        return np.zeros(arr.shape, np.uint8)
+        return np.zeros(arr.shape, np.uint8)  # no finite values to range over
     lo, hi = rng
+    is_float = arr.dtype.kind == "f"
     if hi == lo:
-        # Constant image: keep the level, assuming the common [0, 1] float
-        # convention when the value allows it (tolerating one output
-        # quantum of float error above 1, so a nudged 1.0 stays white).
-        level = lo * 255 if 0.0 <= lo <= 256 / 255 else lo
+        # Constant image: keep the level. Floats assume the [0, 1] convention when
+        # the value allows it (tolerating one output quantum above 1, so a nudged
+        # 1.0 stays white); integers keep the absolute level. Both clamp to [0, 255].
+        level = lo * 255 if is_float and 0.0 <= lo <= 256 / 255 else lo
         return np.full(arr.shape, np.clip(round(level), 0, 255), np.uint8)
-    # float32 math halves the working copy, but only when it can represent
-    # the data: wider floats keep their own precision so high-offset
-    # low-contrast data doesn't collapse and values beyond the float32
-    # range don't overflow in the cast.
-    out = arr.astype(np.float32 if arr.dtype.itemsize <= 4 else arr.dtype)
-    return _stretch_to_uint8(out, lo, hi)
-
-
-def _rescale_int_to_uint8(arr):
-    # Contrast-stretch a signed or wide-unsigned integer plane (int8/16/32/64,
-    # uint32/64) to uint8. uint8/uint16 have their own paths; these dtypes have
-    # too many values to histogram, so range and rescale via a float copy — the
-    # approach _normalize_plane uses for its non-uint16 planes, sharing
-    # _finite_clip_range and _stretch_to_uint8 with _rescale_float_to_uint8.
-    rng = _finite_clip_range(arr)
-    if rng is None:
-        return np.zeros(arr.shape, np.uint8)  # empty plane: nothing to range over
-    lo, hi = rng
-    if hi == lo:
-        # Constant image: keep the absolute level, clamped to [0, 255] (no
-        # [0, 1] convention as for floats).
-        return np.full(arr.shape, np.clip(round(lo), 0, 255), np.uint8)
-    # int8/int16 are exact in float32 (half the working copy); wider ints need
-    # float64 — float32 would quantize away a low-contrast band at a high offset
-    # (uint32/uint64 past float32's 24-bit mantissa). Hence itemsize <= 2, not
-    # the float path's <= 4.
-    out = arr.astype(np.float32 if arr.dtype.itemsize <= 2 else np.float64)
-    return _stretch_to_uint8(out, lo, hi)
+    # float32 halves the working copy where it represents the data exactly
+    # (float16/32, int8/16); wider floats keep their own precision, and wider ints
+    # need float64 — float32 would quantize away a low-contrast band at a high
+    # offset (uint32/uint64 past float32's 24-bit mantissa). Hence float <= 4
+    # bytes, int <= 2.
+    work = (np.float32 if arr.dtype.itemsize <= 4 else arr.dtype) if is_float \
+        else (np.float32 if arr.dtype.itemsize <= 2 else np.float64)
+    return _stretch_to_uint8(arr.astype(work), lo, hi)
 
 
 def _stretch_to_uint8(out, lo, hi):
@@ -651,11 +631,11 @@ def _stretch_to_uint8(out, lo, hi):
     # (out - lo) * 255 / (hi - lo), then round / clamp / zero-NaN via
     # _saturate_to_uint8 (so values outside [lo, hi] pin to the range ends,
     # ±inf saturate to white/black, NaN -> black). Shared by the eager float
-    # rescales — _normalize_plane's float planes, _rescale_float_to_uint8,
-    # _rescale_int_to_uint8 — and by _lut_uint_to_uint8 (applied to the
-    # 65536-entry LUT), so the same pixels can't render differently by reader
-    # path; each caller picks its own working dtype first. Caller guarantees
-    # hi != lo and that `out` is private (mutated in place).
+    # rescales — _normalize_plane's float planes and _rescale_finite_to_uint8 —
+    # and by _lut_uint_to_uint8 (applied to the 65536-entry LUT), so the same
+    # pixels can't render differently by reader path; each caller picks its own
+    # working dtype first. Caller guarantees hi != lo and that `out` is private
+    # (mutated in place).
     out -= lo
     out *= 255 / (hi - lo)
     return _saturate_to_uint8(out)
@@ -710,15 +690,14 @@ def generate_thumbnail(arr, size, *, normalized=False):
         # other path. Resizing the montage at 8-bit rather than at higher
         # precision is a deliberate, sub-perceptual tradeoff on a lossy preview.
         rescale = None
-    elif arr.dtype.kind == "f":
-        rescale = _rescale_float_to_uint8
     elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
-    elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
-        # Wider/signed integers (uint32/64, int8/16/32/64): contrast-stretch to
-        # uint8. A normalized montage is handled above, so a raw int32 reaching
-        # here is real image data, stretched like any other wide integer.
-        rescale = _rescale_int_to_uint8
+    elif arr.dtype != np.uint8 and arr.dtype.kind in "fiu":
+        # float, signed int, or wide unsigned (float16/32/64, int8/16/32/64,
+        # uint32/64): contrast-stretch via a float copy. A normalized montage is
+        # handled above, so a raw int32 here is real image data, stretched like
+        # any other wide integer.
+        rescale = _rescale_finite_to_uint8
     else:
         rescale = None
     if rescale is not None:
