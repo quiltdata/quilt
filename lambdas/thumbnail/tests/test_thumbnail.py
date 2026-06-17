@@ -531,8 +531,11 @@ def test_rescale_float_to_uint8_clips_outlier_pixels():
     assert len(np.unique(out)) > 200
 
 
-def test_rescale_float_to_uint8_empty():
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=np.float32))
+# float + int are _finite_clip_range's two empty-input branches; the size check
+# short-circuits before itemsize matters, so more dtypes would just retread these.
+@pytest.mark.parametrize("dtype", [np.float32, np.int64])
+def test_rescale_finite_to_uint8_empty(dtype):
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=dtype))
     assert out.dtype == np.uint8
     assert out.size == 0
 
@@ -585,12 +588,6 @@ def test_rescale_int_to_uint8_constant(value, expected):
     out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == expected).all()
-
-
-def test_rescale_int_to_uint8_empty():
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=np.int64))
-    assert out.dtype == np.uint8
-    assert out.size == 0
 
 
 def test_rescale_int_to_uint8_sparse():
