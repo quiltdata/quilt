@@ -1028,7 +1028,7 @@ TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "617551541881add8011f55de0c3936a90fc2188a40b6ef47c7e6ab20c3d2c8bf"
-THUMBS_PKG = "images/thumbs", "9c8f7781a3dcf68b75e18f66622c0c191beac3fffb3d4acd22aaab9eaca651a4"
+THUMBS_PKG = "images/thumbs", "21dbc86f8d17207cd4ece201efc6b7554462c5d80c9b3b750123ee6f2de631da"
 SIZE = (1024, 768)
 
 
