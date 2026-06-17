@@ -740,12 +740,9 @@ def lambda_handler(request):
         #      downloads the file in one shot.
         filename_suffix = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
         with tempfile.NamedTemporaryFile(suffix=filename_suffix) as src_file:
-            # Stream the body straight to the temp file instead of buffering the
-            # whole object in memory via resp.content: the full compressed file
-            # would otherwise stay resident through the decode (this lambda's
-            # OOM-prone peak), on top of resp.content's transient ~2x during its
-            # b"".join. decode_content applies any transfer Content-Encoding
-            # (presigned S3 GETs carry none, so this matches resp.content's bytes).
+            # Stream straight to disk, not into memory via resp.content (OOM-prone here).
+            # decode_content makes the bytes match resp.content (decodes a gzip-stored
+            # object, else passthrough) — load-bearing, not a no-op.
             resp.raw.decode_content = True
             shutil.copyfileobj(resp.raw, src_file)
             src_file.flush()
