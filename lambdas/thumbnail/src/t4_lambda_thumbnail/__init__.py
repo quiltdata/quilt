@@ -222,10 +222,9 @@ def _normalize_plane(plane) -> np.ndarray:
     """
     arr = np.asarray(plane)
     if not arr.size:
-        # Degenerate empty plane: nothing to range over; render black. (The
-        # float path's _finite_clip_range returns None for the same effect;
-        # _uint16_clip_range has no such guard, so handle emptiness here for
-        # both branches.)
+        # Empty plane: nothing to range over -> black. _uint16_clip_range has no
+        # emptiness guard (the float path's _finite_clip_range returns None for
+        # the same effect), so guard both branches here.
         return np.zeros(arr.shape, np.uint8)
 
     # Unsigned <=16-bit planes (the common microscopy case): range via histogram
@@ -235,8 +234,7 @@ def _normalize_plane(plane) -> np.ndarray:
     if arr.dtype.kind == "u" and arr.dtype.itemsize <= 2:
         lo, hi = _uint16_clip_range(arr)
         if hi == lo:
-            # Constant plane: no contrast to stretch; render black.
-            return np.zeros(arr.shape, np.uint8)
+            return np.zeros(arr.shape, np.uint8)  # constant plane -> black
         return _lut_uint_to_uint8(arr, lo, hi)
 
     # Float (and any other) planes: range in float64 with finite-aware
@@ -255,17 +253,14 @@ def _normalize_plane(plane) -> np.ndarray:
         return np.zeros(arr.shape, np.uint8)
     lo, hi = rng
     if hi == lo:
-        # Constant plane: no contrast to stretch. Render black deterministically
-        # rather than dividing 0/0 -> NaN -> an undefined cast (the bug this
-        # replaces).
+        # Constant plane: render black deterministically rather than dividing
+        # 0/0 -> NaN -> an undefined cast.
         return np.zeros(arr.shape, np.uint8)
 
     # (arr - lo) * 255 / (hi - lo), the same arithmetic as _rescale_float_to_uint8
     # so a float plane renders identically by reader path. _saturate_to_uint8
-    # rounds, clamps values outside [lo, hi] to the range ends (so +/-inf
-    # saturate to white/black), and renders NaN black. (The sparse min/max
-    # fallback in _finite_clip_range newly rescales near-constant planes the old
-    # 0/0 left undefined.)
+    # rounds, clamps out-of-[lo, hi] values to the range ends (+/-inf -> white/
+    # black) and renders NaN black.
     arr -= lo
     arr *= 255 / (hi - lo)
     return _saturate_to_uint8(arr)
