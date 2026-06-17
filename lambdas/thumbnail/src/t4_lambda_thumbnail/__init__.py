@@ -710,52 +710,6 @@ def generate_thumbnail(arr, size, *, normalized=False):
     return img
 
 
-class UpstreamError(Exception):
-    """
-    A non-ok response while fetching the source URL. Carries the JSON error
-    response to return so the upstream status (not 500) is surfaced; caught
-    locally in lambda_handler, not by @handle_exceptions.
-    """
-
-    def __init__(self, resp):
-        super().__init__(resp.reason)
-        self.response = make_json_response(
-            resp.status_code, {'error': resp.reason, 'text': resp.text}
-        )
-
-
-@contextlib.contextmanager
-def download_to_tempfile(url):
-    """
-    Stream `url` to a NamedTemporaryFile and yield its local path.
-
-    Streams the body straight to disk rather than buffering the whole object in
-    memory via resp.content (this lambda's OOM-prone peak), on top of
-    resp.content's transient ~2x during its b"".join. decode_content=True makes
-    the streamed bytes match what resp.content would yield: it decodes a response
-    Content-Encoding when present (e.g. a gzip-stored S3 object) and passes
-    through when absent — not a no-op to drop.
-
-    Raises UpstreamError (before touching /tmp) on a non-ok response. The
-    connection and the temp file are both released on exit, including on a
-    mid-stream exception.
-    """
-    with requests.get(url, stream=True) as resp:
-        if not resp.ok:
-            raise UpstreamError(resp)
-
-        clean_tmp_dir()
-        # XXX: BioImage can read from s3/http(s) URLs directly, but in practice it's at least 2x slower
-        #      than downloading the file first and reading from local FS even with cache_type='all' which
-        #      downloads the file in one shot.
-        filename_suffix = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
-        with tempfile.NamedTemporaryFile(suffix=filename_suffix) as src_file:
-            resp.raw.decode_content = True
-            shutil.copyfileobj(resp.raw, src_file)
-            src_file.flush()
-            yield src_file.name
-
-
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 @handle_exceptions(PDFThumbError)
@@ -770,14 +724,37 @@ def lambda_handler(request):
     page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 
-    # Download the source to a temp file, then thumbnail it.
-    try:
-        with download_to_tempfile(url) as src_path:
+    # Handle request
+    with requests.get(url, stream=True) as resp:
+        if not resp.ok:
+            # Errored, return error code
+            ret_val = {
+                'error': resp.reason,
+                'text': resp.text,
+            }
+            return make_json_response(resp.status_code, ret_val)
+
+        clean_tmp_dir()
+        # XXX: BioImage can read from s3/http(s) URLs directly, but in practice it's at least 2x slower
+        #      than downloading the file first and reading from local FS even with cache_type='all' which
+        #      downloads the file in one shot.
+        filename_suffix = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
+        with tempfile.NamedTemporaryFile(suffix=filename_suffix) as src_file:
+            # Stream the body straight to the temp file instead of buffering the
+            # whole object in memory via resp.content: the full compressed file
+            # would otherwise stay resident through the decode (this lambda's
+            # OOM-prone peak), on top of resp.content's transient ~2x during its
+            # b"".join. decode_content applies any transfer Content-Encoding
+            # (presigned S3 GETs carry none, so this matches resp.content's bytes).
+            resp.raw.decode_content = True
+            shutil.copyfileobj(resp.raw, src_file)
+            src_file.flush()
+
             thumbnail_format = "JPEG"
             if input_ == "pdf":
-                info, data = handle_pdf(path=src_path, page=page, size=size[0], count_pages=count_pages)
+                info, data = handle_pdf(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
             elif input_ == "pptx":
-                info, data = handle_pptx(path=src_path, page=page, size=size[0], count_pages=count_pages)
+                info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
             else:
                 # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
                 #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
@@ -797,12 +774,10 @@ def lambda_handler(request):
                 #     thumbnail_format = "PNG"
                 thumbnail_format = "PNG"
                 info, data = handle_image(
-                    path=src_path,
+                    path=src_file.name,
                     size=size,
                     thumbnail_format=thumbnail_format,
                 )
-    except UpstreamError as e:
-        return e.response
 
     headers = {
         'Content-Type': Image.MIME[thumbnail_format],
