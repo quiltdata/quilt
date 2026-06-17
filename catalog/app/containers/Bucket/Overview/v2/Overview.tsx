@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Header from './Header'
-import Images from './Images'
 import QuratorInline from './QuratorInline'
 import Summaries from './Summaries'
 import TabulatorTables from './TabulatorTables'
@@ -28,7 +27,6 @@ export default function Overview() {
       <Header bucket={bucket} />
       <QuratorInline />
       <TabulatorTables bucket={bucket} />
-      <Images bucket={bucket} />
       <Summaries bucket={bucket} />
     </div>
   )
