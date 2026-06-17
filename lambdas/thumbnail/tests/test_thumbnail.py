@@ -701,14 +701,14 @@ def test_generate_thumbnail_wide_int_rgba():
     assert _spans_full_range(out[..., :3])
 
 
-def test_generate_thumbnail_normalized_int32_montage_passes_through():
-    # norm_img hands back the greyscale montage / Z-projection as 2-D int32
-    # already normalized to [0, 65535]; generate_thumbnail recognizes that range
-    # and passes it straight through to a 16-bit mode-I image (unchanged values),
-    # NOT re-stretched to 8-bit — that would break the 16-bit montage output
-    # pinned by test_norm_img_path_saves_16bit_png and churn the montage goldens.
+def test_generate_thumbnail_normalized_passes_through():
+    # A normalized=True array (norm_img's greyscale montage / Z-projection,
+    # already in the 16-bit range) passes straight through to a 16-bit mode-I
+    # image with unchanged values — NOT re-stretched to 8-bit, which would break
+    # the 16-bit montage output (test_norm_img_path_saves_16bit_png) and churn
+    # the montage goldens. The flag, not the value range, drives the passthrough.
     arr = np.linspace(0, 65535, 64 * 64, dtype=np.int32).reshape(64, 64)
-    img = t4_lambda_thumbnail.generate_thumbnail(arr, (64, 64))  # size == shape: no resize
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (64, 64), normalized=True)  # size == shape: no resize
     assert img.mode == "I"
     assert np.array_equal(np.asarray(img), arr)
 
@@ -716,24 +716,26 @@ def test_generate_thumbnail_normalized_int32_montage_passes_through():
 @pytest.mark.parametrize(
     "arr",
     [
+        # in the 16-bit range but low-contrast — would render dark if passed through
+        pytest.param(np.linspace(0, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="in-range-low"),
         # above the 16-bit range — would clamp if passed through as mode I
         pytest.param(np.linspace(0, 5_000_000, 64 * 64, dtype=np.int32).reshape(64, 64), id="above-65535"),
         # negative values — a signed label/segmentation mask
         pytest.param(np.linspace(-2000, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="negative"),
     ],
 )
-def test_generate_thumbnail_out_of_range_int32_greyscale_is_stretched(arr):
-    # A 2-D int32 plane outside [0, 65535] is a raw image, not a normalized
-    # montage (which is always in range), so it is contrast-stretched to 8-bit
-    # rather than passed through and clamped/darkened as a mode-I image.
+def test_generate_thumbnail_raw_int32_greyscale_is_stretched(arr):
+    # A raw (normalized=False) 2-D int32 plane is real image data, not a montage,
+    # so it is always contrast-stretched to 8-bit — including the in-range
+    # low-contrast case, which a value-range gate would have left dark.
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
     assert img.mode == "L"
     assert _spans_full_range(np.asarray(img))
 
 
 def test_generate_thumbnail_int32_color_is_stretched():
-    # 3-D int32 is color (the montage is only ever 2-D int32), so unlike a
-    # 2-D in-range int32 it is stretched to 8-bit RGB rather than passed through.
+    # Raw 3-D int32 color is stretched to 8-bit RGB (only a normalized=True
+    # greyscale montage passes through).
     arr = np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=np.int32).reshape(64, 64, 3)
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
     assert img.mode == "RGB"

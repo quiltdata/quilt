@@ -307,16 +307,23 @@ def norm_img(img: da.Array) -> da.Array:
     )
 
 
-def _format_n_dim_ndarray(img: BioImage) -> da.Array:
+def _format_n_dim_ndarray(img: BioImage) -> tuple[da.Array, bool]:
+    # Returns (array, normalized). normalized is True only when norm_img actually
+    # normalized the data into the 16-bit range (a greyscale montage / Z-
+    # projection) to pass straight through to a 16-bit PNG. norm_img passes
+    # *color* planes through untouched, so a single-channel color image (e.g. a
+    # BGR CZI) yields normalized=False and is rescaled downstream by dtype; the
+    # "S" (samples) axis is what tells greyscale from color, the same signal the
+    # montage uses for s_pad. Raw (un-norm_img'd) planes also return False.
     # Even though the reader was n-dim, check if the actual data is simply greyscale and return
     if len(img.reader.dask_data.shape) == 2:
-        return img.reader.dask_data
+        return img.reader.dask_data, False
 
     # Even though the reader was n-dim,
     # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
     if (len(img.reader.dask_data.shape) == 3 and (
             img.reader.dask_data.shape[2] == 3 or img.reader.dask_data.shape[2] == 4)):
-        return img.reader.dask_data
+        return img.reader.dask_data, False
 
     # Check which dimensions are available
     # BioImage makes strong assumptions about dimension ordering
@@ -325,6 +332,11 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
     # Always choose middle time slice
     if "T" in img.reader.dims.order:
         img = BioImage(img.dask_data[img.dask_data.shape[0] // 2 : img.dask_data.shape[0] // 2 + 1, :, :, :, :])
+
+    # "S" (samples) = color planes, which norm_img passes through unchanged; the
+    # montage pads along S, and greyscale (no S) is what norm_img normalizes — so
+    # `not has_samples` is the normalized flag for every norm_img branch below.
+    has_samples = "S" in img.reader.dims.order
 
     # Keep Channel data, but max project when possible
     if "C" in img.reader.dims.order and img.dask_data.shape[1] > 1:
@@ -335,7 +347,7 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
         # montage, so they don't stay resident through the downstream resize (see
         # norm_img); a concrete-array assembly would hold all N until then.
         projections = []
-        s_pad = ((0, 0),) if "S" in img.reader.dims.order else ()
+        s_pad = ((0, 0),) if has_samples else ()
         for i in range(img.dask_data.shape[1]):
             if "Z" in img.reader.dims.order:
                 # Add padding to the top and left of the projection
@@ -373,21 +385,23 @@ def _format_n_dim_ndarray(img: BioImage) -> da.Array:
         merged = [da.concatenate(row, axis=1) for row in rows]
 
         # Add padding on the entire bottom and entire right side of the thumbnail
-        return da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
+        montage = da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
+        return montage, not has_samples
 
     # If there is a Z dimension we need to do _something_ the get a 2D out.
     # Without causing a war about which projection method is best
     # we will simply use a max projection on files that contain a Z dimension
     if "Z" in img.reader.dims.order:
-        return norm_img(img.dask_data[0, 0, :, :, :].max(axis=0))
+        return norm_img(img.dask_data[0, 0, :, :, :].max(axis=0)), not has_samples
 
-    return norm_img(img.dask_data[0, 0, 0, :, :])
+    return norm_img(img.dask_data[0, 0, 0, :, :]), not has_samples
 
 
-def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
+def format_aicsimage_to_prepped(img: BioImage) -> tuple[da.Array, bool]:
     """
-    Simple wrapper around the format n-dim array function to
-    determine if we need to format or not.
+    Wrap the format-n-dim function, returning its ``(array, normalized)`` (see
+    _format_n_dim_ndarray for the flag) and reversing CZI's BGR samples to RGB.
+    Non-n-dim readers return their raw data (normalized=False).
     """
     # These readers are specific for n dimensional images
     if isinstance(
@@ -398,7 +412,7 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
             bioio_tifffile.reader.Reader,
         ),
     ):
-        arr = _format_n_dim_ndarray(img)
+        arr, normalized = _format_n_dim_ndarray(img)
         # CZI color is always BGR (Bgr24/Bgr48/Bgr96Float, 3-sample; no RGB/BGRA
         # layout) and bioio-czi exposes the samples raw, so reverse them to RGB.
         if (
@@ -408,9 +422,9 @@ def format_aicsimage_to_prepped(img: BioImage) -> da.Array:
             and arr.shape[-1] == 3
         ):
             arr = arr[..., ::-1]
-        return arr
+        return arr, normalized
 
-    return img.reader.dask_data
+    return img.reader.dask_data, False
 
 
 @contextlib.contextmanager
@@ -517,9 +531,9 @@ def handle_image(*, path: str, size: tuple[int, int], thumbnail_format: str):
     orig_size = list(img.reader.dask_data.shape)
     # Generate a formatted ndarray using the image data
     # Makes some assumptions for n-dim data
-    img = format_aicsimage_to_prepped(img)
+    arr, normalized = format_aicsimage_to_prepped(img)
 
-    img = generate_thumbnail(img.compute(), size)
+    img = generate_thumbnail(arr.compute(), size, normalized=normalized)
 
     # PNG has no 32-bit depth, and Pillow 13 removes saving mode "I" images
     # as PNG outright. Convert explicitly: I -> I;16 clamps exactly like the
@@ -702,33 +716,31 @@ def _alpha_to_uint8(alpha):
     return (alpha >> (8 * (alpha.dtype.itemsize - 1))).astype(np.uint8)
 
 
-def generate_thumbnail(arr, size):
-    # Contrast-stretch arrays PIL can't render directly to uint8 before building
-    # the image: PIL only builds color images from uint8, can't construct from
-    # float16 or from 64-bit integers at all, can't save mode-F greyscale as
-    # PNG, and 16-bit (and other wide/signed) integer greyscale decodes to an
-    # I;16 "limited support" mode
-    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes)
-    # that thumbnail() rejects with "image has wrong mode" when it reduce()s
-    # larger images. Dispatch on dtype, not the PIL mode, so big-endian uint16
-    # (whose dtype != np.uint16) is handled the same as native-order.
-    if arr.dtype.kind == "f":
+def generate_thumbnail(arr, size, *, normalized=False):
+    # `normalized` arrays come from norm_img (a greyscale montage / Z-projection
+    # already contrast-stretched into the 16-bit range) and pass straight through
+    # to a 16-bit I;16 PNG — the producer tells us, so we don't infer it from the
+    # data (format_aicsimage_to_prepped -> handle_image thread the flag). Anything
+    # else is raw: contrast-stretch what PIL can't render directly to uint8 (PIL
+    # only builds color from uint8, can't construct from float16 or 64-bit
+    # integers, can't save mode-F greyscale as PNG, and wide/signed integer
+    # greyscale decodes to an I;16 "limited support" mode
+    # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes) that
+    # thumbnail() rejects with "image has wrong mode" when it reduce()s larger
+    # images). Dispatch on dtype, not PIL mode, so big-endian uint16 (whose dtype
+    # != np.uint16) is handled the same as native-order.
+    if normalized:
+        rescale = None
+    elif arr.dtype.kind == "f":
         rescale = _rescale_float_to_uint8
     elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
     elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
         # Wider/signed integers PIL can't build directly (uint32/64, int8/16/64,
-        # int32): contrast-stretch to uint8 — except a 2-D native-int32 plane
-        # already in [0, 65535], passed through to a 16-bit I;16 PNG unstretched.
-        # That is exactly norm_img's normalized montage / Z-projection output
-        # (_normalize_plane emits [0, 65535]); a raw int32 plane in range renders
-        # the same, one out of range (negative or > 65535, e.g. a label mask) is
-        # stretched. The dtype test is native-order-exact on purpose: norm_img
-        # only emits native int32, so a big-endian >i4 is raw input and stretches.
-        if arr.ndim == 2 and arr.dtype == np.int32 and arr.min() >= 0 and arr.max() <= 65535:
-            rescale = None
-        else:
-            rescale = _rescale_int_to_uint8
+        # int32): contrast-stretch to uint8. A normalized montage is already
+        # handled above, so a raw int32 plane reaching here is real image data
+        # and is stretched like any other wide integer.
+        rescale = _rescale_int_to_uint8
     else:
         rescale = None
     if rescale is not None:
