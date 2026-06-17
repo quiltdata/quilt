@@ -621,8 +621,7 @@ def _rescale_finite_to_uint8(arr):
     # need float64 — float32 would quantize away a low-contrast band at a high
     # offset (uint32/uint64 past float32's 24-bit mantissa). Hence float <= 4
     # bytes, int <= 2.
-    work = (np.float32 if arr.dtype.itemsize <= 4 else arr.dtype) if is_float \
-        else (np.float32 if arr.dtype.itemsize <= 2 else np.float64)
+    work = np.float32 if arr.dtype.itemsize <= (4 if is_float else 2) else np.float64
     return _stretch_to_uint8(arr.astype(work), lo, hi)
 
 
