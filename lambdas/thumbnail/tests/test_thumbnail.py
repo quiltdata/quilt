@@ -670,7 +670,7 @@ def test_generate_thumbnail_wide_int_greyscale(dtype):
     # contrast-stretched to an 8-bit mode-L image instead. The 32 < 64 target
     # also exercises thumbnail()'s reduce() path, which rejected the old wide
     # greyscale modes.
-    hi = 100 if np.dtype(dtype).itemsize == 1 else 1_000_000
+    hi = min(1_000_000, int(np.iinfo(dtype).max))  # fits int8 (127) / int16 (32767): no overflow on cast
     arr = np.linspace(0, hi, 64 * 64, dtype=dtype).reshape(64, 64)
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
     assert img.mode == "L"
@@ -681,7 +681,8 @@ def test_generate_thumbnail_wide_int_greyscale(dtype):
 def test_generate_thumbnail_wide_int_color(dtype):
     # Signed / wide integer color used to fail with HTTP 500 (PIL can't build a
     # color image from these dtypes); now it is contrast-stretched to 8-bit RGB.
-    arr = np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=dtype).reshape(64, 64, 3)
+    hi = min(1_000_000, int(np.iinfo(dtype).max))  # int16 max is 32767: no overflow on cast
+    arr = np.linspace(0, hi, 64 * 64 * 3, dtype=dtype).reshape(64, 64, 3)
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
     assert img.mode == "RGB"
     assert _spans_full_range(np.asarray(img))
@@ -716,18 +717,17 @@ def test_generate_thumbnail_normalized_passes_through():
 @pytest.mark.parametrize(
     "arr",
     [
-        # in the 16-bit range but low-contrast — would render dark if passed through
         pytest.param(np.linspace(0, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="in-range-low"),
-        # above the 16-bit range — would clamp if passed through as mode I
         pytest.param(np.linspace(0, 5_000_000, 64 * 64, dtype=np.int32).reshape(64, 64), id="above-65535"),
-        # negative values — a signed label/segmentation mask
         pytest.param(np.linspace(-2000, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="negative"),
     ],
 )
 def test_generate_thumbnail_raw_int32_greyscale_is_stretched(arr):
-    # A raw (normalized=False) 2-D int32 plane is real image data, not a montage,
-    # so it is always contrast-stretched to 8-bit — including the in-range
-    # low-contrast case, which a value-range gate would have left dark.
+    # A raw (normalized=False) int32 plane is real image data, so it is always
+    # contrast-stretched to 8-bit regardless of value range — the normalized flag,
+    # not the pixel values, decides. The cases span a low-contrast in-range plane,
+    # one beyond 16 bits, and a signed (negative) mask; in-range-low also pins that
+    # the value-gate era's residual (a low-range raw int32 left dark) is gone.
     img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
     assert img.mode == "L"
     assert _spans_full_range(np.asarray(img))

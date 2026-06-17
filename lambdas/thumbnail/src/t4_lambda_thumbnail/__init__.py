@@ -736,10 +736,10 @@ def generate_thumbnail(arr, size, *, normalized=False):
     elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
     elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
-        # Wider/signed integers PIL can't build directly (uint32/64, int8/16/64,
-        # int32): contrast-stretch to uint8. A normalized montage is already
-        # handled above, so a raw int32 plane reaching here is real image data
-        # and is stretched like any other wide integer.
+        # Wider/signed integers PIL can't build directly (uint32/64, int8/16/32/64):
+        # contrast-stretch to uint8. A normalized montage is already handled above,
+        # so a raw int32 plane reaching here is real image data and is stretched
+        # like any other wide integer.
         rescale = _rescale_int_to_uint8
     else:
         rescale = None
