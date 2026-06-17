@@ -189,19 +189,17 @@ def _uint16_clip_range(arr: np.ndarray) -> tuple[float, float]:
 
 def _lut_uint_to_uint8(arr: np.ndarray, lo: float, hi: float) -> np.ndarray:
     """
-    Rescale an unsigned <=16-bit plane to uint8 via a lookup table over the
-    65536 possible values: shift by lo, scale to [0, 255], round, clamp. The LUT
-    memoizes the per-pixel float64 arithmetic, so peak memory is the plane plus
-    its uint8 output with no float64 copy of the full plane (OOM is this lambda's
-    failure mode on large images). Caller guarantees hi != lo. Shared by
-    _rescale_uint16_to_uint8 and _normalize_plane so the raw and montage
-    greyscale paths map identical pixels identically.
+    Rescale an unsigned <=16-bit plane to uint8 by applying _stretch_to_uint8 to
+    each of the 65536 possible values once (the LUT), then gathering the plane
+    through it. The float64 work is bounded to the 65536-entry table — no float64
+    copy of the full plane (OOM is this lambda's failure mode on large images) —
+    and building the LUT *through* _stretch_to_uint8 makes it the exact
+    memoization of the eager float path, so the two can't diverge. Caller
+    guarantees hi != lo. Shared by _rescale_uint16_to_uint8 and _normalize_plane
+    so the raw and montage greyscale paths map identical pixels identically.
     """
     lut = np.arange(65536, dtype=np.float64)  # one entry per possible uint16 value
-    lut = (lut - lo) * (255 / (hi - lo))
-    # values outside [lo, hi] land outside [0, 255]; clamp before the cast
-    lut = np.clip(lut.round(), 0, 255)
-    return lut.astype(np.uint8)[arr]
+    return _stretch_to_uint8(lut, lo, hi)[arr]
 
 
 def _normalize_plane(plane) -> np.ndarray:
@@ -652,9 +650,10 @@ def _stretch_to_uint8(out, lo, hi):
     # _saturate_to_uint8 (so values outside [lo, hi] pin to the range ends,
     # ±inf saturate to white/black, NaN -> black). Shared by the eager float
     # rescales — _normalize_plane's float planes, _rescale_float_to_uint8,
-    # _rescale_int_to_uint8 — so the same pixels can't render differently by
-    # reader path; each caller picks its own working dtype first. Caller
-    # guarantees hi != lo and that `out` is private (mutated in place).
+    # _rescale_int_to_uint8 — and by _lut_uint_to_uint8 (applied to the
+    # 65536-entry LUT), so the same pixels can't render differently by reader
+    # path; each caller picks its own working dtype first. Caller guarantees
+    # hi != lo and that `out` is private (mutated in place).
     out -= lo
     out *= 255 / (hi - lo)
     return _saturate_to_uint8(out)
