@@ -213,7 +213,7 @@ def _normalize_plane(plane) -> np.ndarray:
     rather than holding all N (see norm_img).
 
     Shares its range helpers (_uint16_clip_range / _finite_clip_range), uint8 LUT
-    (_lut_uint_to_uint8) and saturating cast (_saturate_to_uint8) with the raw
+    (_lut_uint_to_uint8) and affine stretch (_stretch_to_uint8) with the raw
     greyscale rescales (_rescale_uint16_to_uint8 / _rescale_float_to_uint8), so
     the same pixels can't render differently by reader path. The deliberate
     difference: a constant (or empty / all-NaN) plane renders black here, where
@@ -257,13 +257,9 @@ def _normalize_plane(plane) -> np.ndarray:
         # 0/0 -> NaN -> an undefined cast.
         return np.zeros(arr.shape, np.uint8)
 
-    # (arr - lo) * 255 / (hi - lo), the same arithmetic as _rescale_float_to_uint8
-    # so a float plane renders identically by reader path. _saturate_to_uint8
-    # rounds, clamps out-of-[lo, hi] values to the range ends (+/-inf -> white/
-    # black) and renders NaN black.
-    arr -= lo
-    arr *= 255 / (hi - lo)
-    return _saturate_to_uint8(arr)
+    # float64 (set above) keeps this bit-identical to _norm_float_reference; the
+    # shared affine-stretch renders a float plane identically to the raw paths.
+    return _stretch_to_uint8(arr, lo, hi)
 
 
 def norm_img(img: da.Array) -> da.Array:
@@ -625,9 +621,7 @@ def _rescale_float_to_uint8(arr):
     # low-contrast data doesn't collapse and values beyond the float32
     # range don't overflow in the cast.
     out = arr.astype(np.float32 if arr.dtype.itemsize <= 4 else arr.dtype)
-    out -= lo
-    out *= 255 / (hi - lo)
-    return _saturate_to_uint8(out)
+    return _stretch_to_uint8(out, lo, hi)
 
 
 def _rescale_int_to_uint8(arr):
@@ -635,7 +629,7 @@ def _rescale_int_to_uint8(arr):
     # uint32/64) to uint8. uint8/uint16 have their own paths; these dtypes have
     # too many values to histogram, so range and rescale via a float copy — the
     # approach _normalize_plane uses for its non-uint16 planes, sharing
-    # _finite_clip_range and _saturate_to_uint8 with _rescale_float_to_uint8.
+    # _finite_clip_range and _stretch_to_uint8 with _rescale_float_to_uint8.
     rng = _finite_clip_range(arr)
     if rng is None:
         return np.zeros(arr.shape, np.uint8)  # empty plane: nothing to range over
@@ -649,6 +643,18 @@ def _rescale_int_to_uint8(arr):
     # (uint32/uint64 past float32's 24-bit mantissa). Hence itemsize <= 2, not
     # the float path's <= 4.
     out = arr.astype(np.float32 if arr.dtype.itemsize <= 2 else np.float64)
+    return _stretch_to_uint8(out, lo, hi)
+
+
+def _stretch_to_uint8(out, lo, hi):
+    # Affine-stretch a private float working array to uint8 in place:
+    # (out - lo) * 255 / (hi - lo), then round / clamp / zero-NaN via
+    # _saturate_to_uint8 (so values outside [lo, hi] pin to the range ends,
+    # ±inf saturate to white/black, NaN -> black). Shared by the eager float
+    # rescales — _normalize_plane's float planes, _rescale_float_to_uint8,
+    # _rescale_int_to_uint8 — so the same pixels can't render differently by
+    # reader path; each caller picks its own working dtype first. Caller
+    # guarantees hi != lo and that `out` is private (mutated in place).
     out -= lo
     out *= 255 / (hi - lo)
     return _saturate_to_uint8(out)
