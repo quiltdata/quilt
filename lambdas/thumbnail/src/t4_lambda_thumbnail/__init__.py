@@ -308,13 +308,10 @@ def norm_img(img: da.Array) -> da.Array:
 
 
 def _format_n_dim_ndarray(img: BioImage) -> tuple[da.Array, bool]:
-    # Returns (array, normalized). normalized is True only when norm_img actually
-    # normalized the data into the 16-bit range (a greyscale montage / Z-
-    # projection) to pass straight through to a 16-bit PNG. norm_img passes
-    # *color* planes through untouched, so a single-channel color image (e.g. a
-    # BGR CZI) yields normalized=False and is rescaled downstream by dtype; the
-    # "S" (samples) axis is what tells greyscale from color, the same signal the
-    # montage uses for s_pad. Raw (un-norm_img'd) planes also return False.
+    # Returns (array, normalized): normalized is True only when norm_img stretched
+    # the data to the 16-bit range (a greyscale montage / Z-projection, passed
+    # straight through to a 16-bit PNG). Raw planes and color (which norm_img
+    # leaves untouched) return False, to be rescaled downstream by dtype.
     # Even though the reader was n-dim, check if the actual data is simply greyscale and return
     if len(img.reader.dask_data.shape) == 2:
         return img.reader.dask_data, False
@@ -333,9 +330,8 @@ def _format_n_dim_ndarray(img: BioImage) -> tuple[da.Array, bool]:
     if "T" in img.reader.dims.order:
         img = BioImage(img.dask_data[img.dask_data.shape[0] // 2 : img.dask_data.shape[0] // 2 + 1, :, :, :, :])
 
-    # "S" (samples) = color planes, which norm_img passes through unchanged; the
-    # montage pads along S, and greyscale (no S) is what norm_img normalizes — so
-    # `not has_samples` is the normalized flag for every norm_img branch below.
+    # norm_img normalizes greyscale but passes color (an "S" samples axis)
+    # through, so `not has_samples` is the normalized flag below (and drives s_pad).
     has_samples = "S" in img.reader.dims.order
 
     # Keep Channel data, but max project when possible
@@ -717,18 +713,16 @@ def _alpha_to_uint8(alpha):
 
 
 def generate_thumbnail(arr, size, *, normalized=False):
-    # `normalized` arrays come from norm_img (a greyscale montage / Z-projection
-    # already contrast-stretched into the 16-bit range) and pass straight through
-    # to a 16-bit I;16 PNG — the producer tells us, so we don't infer it from the
-    # data (format_aicsimage_to_prepped -> handle_image thread the flag). Anything
-    # else is raw: contrast-stretch what PIL can't render directly to uint8 (PIL
-    # only builds color from uint8, can't construct from float16 or 64-bit
-    # integers, can't save mode-F greyscale as PNG, and wide/signed integer
-    # greyscale decodes to an I;16 "limited support" mode
+    # A `normalized` array (from norm_img — a greyscale montage / Z-projection
+    # already stretched to the 16-bit range) passes straight through to a 16-bit
+    # I;16 PNG; the producer flags it, so we don't infer it from the data. Anything
+    # else is raw: contrast-stretch what PIL can't render directly to uint8 — it
+    # only builds color from uint8, can't construct float16 or 64-bit ints, can't
+    # save mode-F greyscale as PNG, and wide/signed integer greyscale decodes to an
+    # I;16 "limited support" mode
     # (https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes) that
-    # thumbnail() rejects with "image has wrong mode" when it reduce()s larger
-    # images). Dispatch on dtype, not PIL mode, so big-endian uint16 (whose dtype
-    # != np.uint16) is handled the same as native-order.
+    # thumbnail() rejects when it reduce()s larger images. Dispatch on dtype, not
+    # PIL mode, so big-endian uint16 is handled like native-order.
     if normalized:
         rescale = None
     elif arr.dtype.kind == "f":
@@ -736,10 +730,9 @@ def generate_thumbnail(arr, size, *, normalized=False):
     elif arr.dtype.kind == "u" and arr.dtype.itemsize == 2:
         rescale = _rescale_uint16_to_uint8
     elif arr.dtype.kind in "iu" and arr.dtype != np.uint8:
-        # Wider/signed integers PIL can't build directly (uint32/64, int8/16/32/64):
-        # contrast-stretch to uint8. A normalized montage is already handled above,
-        # so a raw int32 plane reaching here is real image data and is stretched
-        # like any other wide integer.
+        # Wider/signed integers (uint32/64, int8/16/32/64): contrast-stretch to
+        # uint8. A normalized montage is handled above, so a raw int32 reaching
+        # here is real image data, stretched like any other wide integer.
         rescale = _rescale_int_to_uint8
     else:
         rescale = None
