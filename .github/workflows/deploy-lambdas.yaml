@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - master
+      - thumbnail-stream-download  # TEMP(#5000): build dev image for memory A/B; revert before merge
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
 
 jobs:
   deploy-lambda-s3:
+    if: github.ref_name == 'master'  # TEMP(#5000): skip zip lambdas on feature branch; revert before merge
     strategy:
       fail-fast: false
       matrix:
@@ -67,9 +69,8 @@ jobs:
       fail-fast: false
       matrix:
         path:
-          - indexer
+          # TEMP(#5000): narrowed to thumbnail for the dev-image build; revert before merge
           - thumbnail
-          - tabular_preview
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
