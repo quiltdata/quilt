@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Stream the source download straight to the temp file instead of buffering the whole object in memory, so the compressed file no longer stays resident through decoding — lowering peak memory; generated thumbnails unchanged ([#5000](https://github.com/quiltdata/quilt/pull/5000))
+- [Changed] Stream the source download to disk instead of into memory, lowering peak memory on large images (output unchanged) ([#5000](https://github.com/quiltdata/quilt/pull/5000))
 - [Changed] Thumbnails are now 8-bit everywhere: normalized greyscale montages and Z-projections (multi-channel microscopy stacks, greyscale CZIs) are emitted as 8-bit PNGs (mode `L`) instead of 16-bit (`I;16`). These previews are already contrast-stretched per image, so the extra depth carried no recoverable pixel meaning; output is smaller and the affected thumbnails now resize at 8-bit like every other path (slightly coarser tonal steps) ([#4999](https://github.com/quiltdata/quilt/pull/4999))
 - [Fixed] Signed and wider-than-16-bit integer images (`uint32`/`uint64`, `int8`/`int16`/`int64`, and 32-bit-integer color) now preview — contrast-stretched to 8-bit — instead of failing with HTTP 500 (color and 64-bit integers) or rendering as a clamped/dark 16-bit image ([#4998](https://github.com/quiltdata/quilt/pull/4998))
 - [Fixed] Color CZI images stored as BGR pixel types (e.g. `Bgr24`/`Bgr48`) now preview with correct colors instead of failing; bumps bioio-czi to 2.7 ([#4992](https://github.com/quiltdata/quilt/pull/4992))
