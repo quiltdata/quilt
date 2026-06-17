@@ -231,8 +231,8 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
-# The three non-CZI color reader paths, each with an independent decoder; keep in
-# sync with test_generate_thumbnail's color rows.
+# The non-CZI color reader / dtype paths, each with an independent decoder; keep
+# in sync with test_generate_thumbnail's color rows.
 _COLOR_ORACLE_FIXTURES = [
     ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),    # bioio-imageio 8-bit RGB
     ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),                # bioio-tifffile 8-bit RGBA
