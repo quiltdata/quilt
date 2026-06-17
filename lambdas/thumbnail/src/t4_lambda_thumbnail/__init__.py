@@ -725,52 +725,59 @@ def lambda_handler(request):
     count_pages = request.args.get('countPages') == 'true'
 
     # Handle request
-    resp = requests.get(url)
-    if not resp.ok:
-        # Errored, return error code
-        ret_val = {
-            'error': resp.reason,
-            'text': resp.text,
-        }
-        return make_json_response(resp.status_code, ret_val)
+    with requests.get(url, stream=True) as resp:
+        if not resp.ok:
+            # Errored, return error code
+            ret_val = {
+                'error': resp.reason,
+                'text': resp.text,
+            }
+            return make_json_response(resp.status_code, ret_val)
 
-    clean_tmp_dir()
-    # XXX: BioImage can read from s3/http(s) URLs directly, but in practice it's at least 2x slower
-    #      than downloading the file first and reading from local FS even with cache_type='all' which
-    #      downloads the file in one shot.
-    filename_suffix = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
-    with tempfile.NamedTemporaryFile(suffix=filename_suffix) as src_file:
-        src_file.write(resp.content)
-        src_file.flush()
+        clean_tmp_dir()
+        # XXX: BioImage can read from s3/http(s) URLs directly, but in practice it's at least 2x slower
+        #      than downloading the file first and reading from local FS even with cache_type='all' which
+        #      downloads the file in one shot.
+        filename_suffix = urllib.parse.unquote(urllib.parse.urlparse(url).path.split('/')[-1])
+        with tempfile.NamedTemporaryFile(suffix=filename_suffix) as src_file:
+            # Stream the body straight to the temp file instead of buffering the
+            # whole object in memory via resp.content: the full compressed file
+            # would otherwise stay resident through the decode (this lambda's
+            # OOM-prone peak), on top of resp.content's transient ~2x during its
+            # b"".join. decode_content applies any transfer Content-Encoding
+            # (presigned S3 GETs carry none, so this matches resp.content's bytes).
+            resp.raw.decode_content = True
+            shutil.copyfileobj(resp.raw, src_file)
+            src_file.flush()
 
-        thumbnail_format = "JPEG"
-        if input_ == "pdf":
-            info, data = handle_pdf(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
-        elif input_ == "pptx":
-            info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
-        else:
-            # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
-            #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
-            #      So for now, always use PNG.
-            # If the image is one of these formats, retain the format after formatting
-            # SUPPORTED_BROWSER_FORMATS = {
-            #     imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
-            #     imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
-            #     imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
-            # }
-            # try:
-            #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-            #         imageio.get_reader(url),
-            #         "PNG"
-            #     )
-            # except ValueError:
-            #     thumbnail_format = "PNG"
-            thumbnail_format = "PNG"
-            info, data = handle_image(
-                path=src_file.name,
-                size=size,
-                thumbnail_format=thumbnail_format,
-            )
+            thumbnail_format = "JPEG"
+            if input_ == "pdf":
+                info, data = handle_pdf(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
+            elif input_ == "pptx":
+                info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
+            else:
+                # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
+                #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
+                #      So for now, always use PNG.
+                # If the image is one of these formats, retain the format after formatting
+                # SUPPORTED_BROWSER_FORMATS = {
+                #     imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
+                #     imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
+                #     imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
+                # }
+                # try:
+                #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
+                #         imageio.get_reader(url),
+                #         "PNG"
+                #     )
+                # except ValueError:
+                #     thumbnail_format = "PNG"
+                thumbnail_format = "PNG"
+                info, data = handle_image(
+                    path=src_file.name,
+                    size=size,
+                    thumbnail_format=thumbnail_format,
+                )
 
     headers = {
         'Content-Type': Image.MIME[thumbnail_format],
