@@ -236,8 +236,8 @@ def _normalize_plane(plane) -> np.ndarray:
         return _lut_uint_to_uint8(arr, lo, hi)
 
     # Float (and any other) planes: range in float64 with finite-aware
-    # percentiles. float64 (not float32) keeps this path bit-identical to
-    # _norm_float_reference, the test oracle for the uint LUT above.
+    # percentiles — full precision, where the raw float path trades to float32 to
+    # save memory; this keeps the montage's float planes at full ranging precision.
     # copy=False skips the copy only when `arr` is already float64; the in-place
     # math below then mutates it, so this assumes `arr` is private. It is here:
     # np.asarray of the computed dask block (or of a non-float64 array, which
@@ -255,8 +255,7 @@ def _normalize_plane(plane) -> np.ndarray:
         # 0/0 -> NaN -> an undefined cast.
         return np.zeros(arr.shape, np.uint8)
 
-    # float64 (set above) keeps this bit-identical to _norm_float_reference; the
-    # shared affine-stretch renders a float plane identically to the raw paths.
+    # Shared affine stretch -> uint8, the same arithmetic as the raw float path.
     return _stretch_to_uint8(arr, lo, hi)
 
 
@@ -283,7 +282,10 @@ def norm_img(img: da.Array) -> da.Array:
     if len(img.shape) == 3:
         # leave color images alone
         # XXX: is this correct?
-        # XXX: do we need to cast to uint8?
+        # No uint8 cast needed: color planes carry normalized=False, so
+        # generate_thumbnail rescales them by dtype downstream. Only the greyscale
+        # path below returns uint8 — which is what the normalized passthrough in
+        # generate_thumbnail relies on to render mode L.
         return img
     return da.from_delayed(
         delayed(_normalize_plane)(img), shape=img.shape, dtype=np.uint8,

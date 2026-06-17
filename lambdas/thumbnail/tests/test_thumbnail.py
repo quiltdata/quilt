@@ -829,11 +829,11 @@ def _norm(arr, chunks=-1):
 
 
 def _norm_float_reference(arr):
-    # Independent float64 reference for norm_img's normalization, used to pin
-    # that the bounded unsigned-integer path (histogram percentile + LUT) stays
-    # bit-identical to it. Mirrors _lut_uint_to_uint8's per-pixel arithmetic but
-    # ranges via np.percentile (not the histogram), so it's a genuinely
-    # independent oracle. Only fed unsigned integer inputs (no NaN/inf).
+    # float64 reference for the unsigned-integer norm path. It mirrors
+    # _lut_uint_to_uint8's rescale arithmetic by hand and ranges via np.percentile
+    # (not the histogram), so the bit-identity sweep validates the histogram-
+    # percentile approximation specifically — the rescale math is shared, not
+    # independently checked here. Only fed unsigned integer inputs (no NaN/inf).
     a = np.asarray(arr).astype(np.float64)
     lo, hi = map(float, np.percentile(a, (0.01, 99.99)))
     if hi == lo:
