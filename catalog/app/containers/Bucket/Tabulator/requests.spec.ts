@@ -3,7 +3,7 @@ import { describe, it, expect, vi, type Mock } from 'vitest'
 
 import * as Model from '../Queries/Athena/model/utils'
 
-import { useTabulatorTables } from './requests'
+import { useTabulatorTables, prettifyPattern, parseTabulatorConfig } from './requests'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -63,5 +63,85 @@ describe('containers/Bucket/Tabulator/requests', () => {
 
       expect(result.current).toBe(error)
     })
+  })
+})
+
+describe('containers/Bucket/Tabulator/requests prettifyPattern', () => {
+  it('strips anchors and unescapes a literal pattern', () => {
+    expect(prettifyPattern('^drugs\\.csv$')).toEqual({
+      pretty: 'drugs.csv',
+      raw: '^drugs\\.csv$',
+      isLiteral: true,
+    })
+  })
+
+  it('treats a plain package path as a literal', () => {
+    expect(prettifyPattern('^alexwilson/drugbank-test$')).toEqual({
+      pretty: 'alexwilson/drugbank-test',
+      raw: '^alexwilson/drugbank-test$',
+      isLiteral: true,
+    })
+  })
+
+  it('keeps a pattern with capture groups raw', () => {
+    const raw = '^ccle/(?<date>[^_]+)_nfcore$'
+    expect(prettifyPattern(raw)).toEqual({ pretty: raw, raw, isLiteral: false })
+  })
+
+  it('keeps a pattern with an unescaped metacharacter raw', () => {
+    const raw = 'salmon/.*\\.sf'
+    expect(prettifyPattern(raw)).toEqual({ pretty: raw, raw, isLiteral: false })
+  })
+})
+
+describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {
+  const CONFIG = [
+    'schema:',
+    '  - name: id',
+    '    type: INT',
+    '  - name: title',
+    '    type: STRING',
+    'source:',
+    '  type: quilt-packages',
+    "  package_name: '^alexwilson/drugbank-test$'",
+    "  logical_key: 'drugs\\.csv'",
+    'parser:',
+    '  format: csv',
+  ].join('\n')
+
+  it('parses columns, format and prettified source', () => {
+    expect(parseTabulatorConfig('drugs', CONFIG)).toEqual({
+      name: 'drugs',
+      format: 'csv',
+      columns: [
+        { name: 'id', type: 'INT' },
+        { name: 'title', type: 'STRING' },
+      ],
+      source: {
+        packageName: {
+          pretty: 'alexwilson/drugbank-test',
+          raw: '^alexwilson/drugbank-test$',
+          isLiteral: true,
+        },
+        logicalKey: { pretty: 'drugs.csv', raw: 'drugs\\.csv', isLiteral: true },
+      },
+    })
+  })
+
+  it('degrades to name only on unparseable/empty config', () => {
+    expect(parseTabulatorConfig('broken', ': : :')).toEqual({
+      name: 'broken',
+      format: '',
+      columns: [],
+      source: null,
+    })
+  })
+
+  it('omits source when the source section is incomplete', () => {
+    const cfg = 'schema:\n  - name: id\n    type: INT\nparser:\n  format: parquet'
+    const result = parseTabulatorConfig('t', cfg)
+    expect(result.format).toBe('parquet')
+    expect(result.source).toBeNull()
+    expect(result.columns).toEqual([{ name: 'id', type: 'INT' }])
   })
 })
