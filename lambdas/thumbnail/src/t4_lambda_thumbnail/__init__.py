@@ -616,11 +616,9 @@ def _rescale_finite_to_uint8(arr):
         # 1.0 stays white); integers keep the absolute level. Both clamp to [0, 255].
         level = lo * 255 if is_float and 0.0 <= lo <= 256 / 255 else lo
         return np.full(arr.shape, np.clip(round(level), 0, 255), np.uint8)
-    # float32 halves the working copy where it represents the data exactly
-    # (float16/32, int8/16); wider floats keep their own precision, and wider ints
-    # need float64 — float32 would quantize away a low-contrast band at a high
-    # offset (uint32/uint64 past float32's 24-bit mantissa). Hence float <= 4
-    # bytes, int <= 2.
+    # float32 copy where it's exact (float16/32, int8/16) to halve memory, else
+    # float64 — wider ints exceed float32's 24-bit mantissa (a high-offset
+    # low-contrast band would collapse), and the only wider float here is float64.
     work = np.float32 if arr.dtype.itemsize <= (4 if is_float else 2) else np.float64
     return _stretch_to_uint8(arr.astype(work), lo, hi)
 
