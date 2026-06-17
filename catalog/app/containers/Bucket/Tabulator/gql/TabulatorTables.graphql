@@ -3,6 +3,7 @@ query ($bucket: String!) {
     name
     tabulatorTables {
       name
+      config
     }
   }
 }

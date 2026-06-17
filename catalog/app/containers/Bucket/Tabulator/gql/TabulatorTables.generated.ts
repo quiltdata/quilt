@@ -12,7 +12,10 @@ export type containers_Bucket_Tabulator_gql_TabulatorTablesQuery = {
   readonly bucketConfig: Types.Maybe<
     { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
         readonly tabulatorTables: ReadonlyArray<
-          { readonly __typename: 'TabulatorTable' } & Pick<Types.TabulatorTable, 'name'>
+          { readonly __typename: 'TabulatorTable' } & Pick<
+            Types.TabulatorTable,
+            'name' | 'config'
+          >
         >
       }
   >
@@ -59,6 +62,7 @@ export const containers_Bucket_Tabulator_gql_TabulatorTablesDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'config' } },
                     ],
                   },
                 },

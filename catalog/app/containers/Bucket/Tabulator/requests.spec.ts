@@ -28,7 +28,7 @@ describe('containers/Bucket/Tabulator/requests', () => {
       expect(result.current).toEqual([])
     })
 
-    it('returns the tabulator tables from bucketConfig', () => {
+    it('parses the tabulator tables from bucketConfig', () => {
       useQuery.mockReturnValue({
         fetching: false,
         error: undefined,
@@ -37,14 +37,27 @@ describe('containers/Bucket/Tabulator/requests', () => {
           bucketConfig: {
             __typename: 'BucketConfig',
             name: 'test-bucket',
-            tabulatorTables: [{ __typename: 'TabulatorTable', name: 't1' }],
+            tabulatorTables: [
+              {
+                __typename: 'TabulatorTable',
+                name: 't1',
+                config: 'schema:\n  - name: id\n    type: INT\nparser:\n  format: csv',
+              },
+            ],
           },
         },
       })
 
       const { result } = renderHook(() => useTabulatorTables('test-bucket'))
 
-      expect(result.current).toEqual([{ __typename: 'TabulatorTable', name: 't1' }])
+      expect(result.current).toEqual([
+        {
+          name: 't1',
+          format: 'csv',
+          columns: [{ name: 'id', type: 'INT' }],
+          source: null,
+        },
+      ])
     })
 
     it('yields Loading while fetching', () => {

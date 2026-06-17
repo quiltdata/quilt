@@ -71,11 +71,14 @@ export function parseTabulatorConfig(name: string, config: string): ParsedTabula
 
 export function useTabulatorTables(
   bucket: string,
-): Model.Data<readonly { name: string }[]> {
+): Model.Data<readonly ParsedTabulatorTable[]> {
   const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
   return GQL.fold(result, {
     // A null `bucketConfig` (not found / no access) is treated as "no tables".
-    data: (d) => d.bucketConfig?.tabulatorTables ?? [],
+    data: (d) =>
+      (d.bucketConfig?.tabulatorTables ?? []).map((t) =>
+        parseTabulatorConfig(t.name, t.config),
+      ),
     fetching: () => Model.Loading,
     error: (e) => e,
   })
