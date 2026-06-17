@@ -448,11 +448,6 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   )
 }
 
-interface SummaryWithSource {
-  entries: SummarizeFile[]
-  fromQuiltSummarize: boolean
-}
-
 const SUMMARY_ENTRIES = 7
 
 function getColumnStyles(width?: number | string) {
@@ -525,63 +520,30 @@ const useSummaryEntriesStyles = M.makeStyles((t) => ({
     position: 'relative',
     zIndex: 1,
   },
-  // Auto-discovery grid: each entry is a single full-width `Row` placed in one
-  // cell. `minmax(0, 1fr)` lets intrinsically wide preview cards shrink to the
-  // column width instead of forcing the track to grow and wrap to one column.
-  grid: {
-    display: 'grid',
-    gap: t.spacing(2),
-    [t.breakpoints.down('xs')]: {
-      gridTemplateColumns: '1fr',
-    },
-  },
   more: {
     display: 'flex',
     justifyContent: 'center',
     marginTop: t.spacing(2),
-  },
-  // Span the full grid width so the "Show more" button stays centered below the
-  // columns rather than occupying a single cell.
-  moreGrid: {
-    gridColumn: '1 / -1',
   },
 }))
 
 interface SummaryEntriesProps {
   entries: SummarizeFile[]
   mkUrl?: MakeURL
-  // When set, render entries as a CSS grid of this many columns (auto-discovery
-  // layout). Omit to keep the single-column flow used by legacy Overview and
-  // user-authored quilt_summarize.json layouts.
-  columns?: number
   s3: S3
   packageHandle?: PackageHandle
 }
 
-export function SummaryEntries({
-  entries,
-  mkUrl,
-  columns,
-  packageHandle,
-  s3,
-}: SummaryEntriesProps) {
+function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesProps) {
   const classes = useSummaryEntriesStyles()
-  // In the grid case each entry is a single card, so reveal more at once than
-  // the legacy per-row count to keep "Show more" meaningful.
-  const step = columns ? SUMMARY_ENTRIES * columns : SUMMARY_ENTRIES
-  const [shown, setShown] = React.useState(step)
+  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
-    setShown(R.add(step))
-  }, [setShown, step])
+    setShown(R.add(SUMMARY_ENTRIES))
+  }, [setShown])
 
   const shownEntries = R.take(shown, entries)
-  const gridStyle = React.useMemo(
-    () =>
-      columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined,
-    [columns],
-  )
   return (
-    <div className={cx(classes.root, { [classes.grid]: columns })} style={gridStyle}>
+    <div className={classes.root}>
       {shownEntries.map((file, i) => (
         <Row
           key={`${
@@ -594,7 +556,7 @@ export function SummaryEntries({
         />
       ))}
       {shown < entries.length && (
-        <div className={cx(classes.more, { [classes.moreGrid]: columns })}>
+        <div className={classes.more}>
           <M.Button variant="contained" color="primary" onClick={showMore}>
             Show more
           </M.Button>
@@ -604,31 +566,34 @@ export function SummaryEntries({
   )
 }
 
+interface SummaryWithSource {
+  entries: SummarizeFile[]
+  fromQuiltSummarize: boolean
+}
+
 interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
-  // When set, auto-discovered summaries (no quilt_summarize.json) are laid out
-  // as a grid of this many columns per row. User-authored quilt_summarize.json
-  // layouts are always rendered as authored. Omit to keep the single-column
-  // stack (legacy behavior).
-  gridFallbackPerRow?: number
+  // When true, only user-authored quilt_summarize.json layouts are rendered;
+  // auto-discovered file previews (the fallback) render nothing. Omit to keep
+  // the legacy behavior of also showing auto-discovered previews.
+  quiltSummarizeOnly?: boolean
 }
 
 export function SummaryRoot({
   s3,
   bucket,
   inStack,
-  gridFallbackPerRow,
+  quiltSummarizeOnly = false,
 }: SummaryRootProps) {
   const req = APIConnector.use()
-  const withSource = gridFallbackPerRow != null
   const data = useData(requests.bucketSummary, {
     req,
     s3,
     bucket,
     inStack,
-    withSource,
+    withSource: quiltSummarizeOnly,
   })
   return (
     <FileThemeContext.Provider value={FileThemes.Overview}>
@@ -641,20 +606,12 @@ export function SummaryRoot({
           return null
         },
         Ok: (result: SummarizeFile[] | SummaryWithSource) => {
-          if (!withSource) {
+          if (!quiltSummarizeOnly) {
             return <SummaryEntries entries={result as SummarizeFile[]} s3={s3} />
           }
           const { entries, fromQuiltSummarize } = result as SummaryWithSource
-          // User-authored quilt_summarize.json layouts (incl. their explicit
-          // multi-column rows) render via the unchanged flow. Auto-discovered
-          // summaries lay out as a CSS grid of `gridFallbackPerRow` columns.
-          return (
-            <SummaryEntries
-              entries={entries}
-              columns={fromQuiltSummarize ? undefined : gridFallbackPerRow}
-              s3={s3}
-            />
-          )
+          if (!fromQuiltSummarize) return null
+          return <SummaryEntries entries={entries} s3={s3} />
         },
         Pending: () => <FilePreviewSkel />,
         _: () => null,

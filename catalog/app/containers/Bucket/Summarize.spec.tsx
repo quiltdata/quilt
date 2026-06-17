@@ -2,9 +2,21 @@ import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 
-import { ConfigureAppearance, SummaryEntries } from './Summarize'
+import { ConfigureAppearance, SummaryRoot } from './Summarize'
+
+// Mutable result fed to the mocked `useData` so each test drives a different
+// `bucketSummary` outcome.
+const summary = vi.hoisted(() => ({
+  current: { entries: [] as any[], fromQuiltSummarize: false } as any,
+}))
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('utils/Data', () => ({
+  useData: () => ({ case: (handlers: any) => handlers.Ok(summary.current) }),
+}))
+
+vi.mock('utils/APIConnector', () => ({ use: () => ({}) }))
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
@@ -22,17 +34,10 @@ vi.mock('@material-ui/core', async () => ({
 
 vi.mock('components/Preview', () => ({}))
 vi.mock('components/Preview/loaders/summarize', () => ({}))
-vi.mock('./requests', () => ({ ensureObjectIsPresent: () => {} }))
+vi.mock('./requests', () => ({ bucketSummary: () => {} }))
 vi.mock('./errors', () => ({}))
 vi.mock('components/Markdown', () => ({}))
 vi.mock('components/FileEditor/FileEditor', () => ({}))
-
-// Keep the entry rows free of the Preview/availability machinery: every `Row`
-// renders through `EnsureAvailability`, which resolves to nothing here, so we
-// can assert grid behavior driven purely by the entries themselves.
-vi.mock('utils/Data', () => ({
-  useData: () => ({ case: ({ _ }: { _: () => React.ReactNode }) => _() }),
-}))
 
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
@@ -56,22 +61,23 @@ vi.mock('react-router-dom', async () => ({
 describe('containers/Buckets/Summarize', () => {
   afterEach(cleanup)
 
-  describe('SummaryEntries', () => {
-    // Empty entries keep the test free of the heavy `Row`/`FileHandle`/S3
-    // machinery while still rendering the container, where the grid layout is
-    // applied — so we can assert auto-discovery is gridded and authored is not.
+  describe('SummaryRoot quiltSummarizeOnly', () => {
     const s3 = {} as any
 
-    it('applies a multi-column grid container when `columns` is set', () => {
-      const { container } = render(<SummaryEntries entries={[]} columns={2} s3={s3} />)
-      const root = container.firstChild as HTMLElement
-      expect(root.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))')
+    it('renders nothing for auto-discovered summaries', () => {
+      summary.current = { entries: [], fromQuiltSummarize: false }
+      const { container } = render(
+        <SummaryRoot s3={s3} bucket="b" inStack quiltSummarizeOnly />,
+      )
+      expect(container.firstChild).toBeNull()
     })
 
-    it('does not apply a grid container without `columns` (legacy/authored flow)', () => {
-      const { container } = render(<SummaryEntries entries={[]} s3={s3} />)
-      const root = container.firstChild as HTMLElement
-      expect(root.style.gridTemplateColumns).toBe('')
+    it('renders authored quilt_summarize.json layouts', () => {
+      summary.current = { entries: [], fromQuiltSummarize: true }
+      const { container } = render(
+        <SummaryRoot s3={s3} bucket="b" inStack quiltSummarizeOnly />,
+      )
+      expect(container.firstChild).not.toBeNull()
     })
   })
 

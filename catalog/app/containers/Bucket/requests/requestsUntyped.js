@@ -192,7 +192,7 @@ const bucketSummaryFallback = async ({ s3, req, bucket, inStack }) => {
 // return value is the flat entries array — byte-identical to before. When
 // `withSource` is true, returns `{ entries, fromQuiltSummarize }` so callers
 // can tell whether the layout was user-authored (quilt_summarize.json) or
-// auto-discovered; only the auto-discovered case is safe to re-group.
+// auto-discovered, and skip the auto-discovered case if they choose.
 export const bucketSummary = async ({ s3, req, bucket, inStack, withSource = false }) => {
   const wrap = (entries, fromQuiltSummarize) =>
     withSource ? { entries, fromQuiltSummarize } : entries
