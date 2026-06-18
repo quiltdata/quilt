@@ -7,83 +7,129 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 // Schema-free generic async-state helpers; they merely live under the Athena
 // folder. Candidate for relocation to a neutral `utils/` location.
 import * as Model from '../../Queries/Athena/model/utils'
-import type { QueryResults } from '../../Queries/Athena/model/requests'
-import { useTabulatorTables, useTablePreview } from '../../Tabulator/requests'
+import { useTabulatorTables } from '../../Tabulator/requests'
+import type { ParsedTabulatorTable } from '../../Tabulator/requests'
 
 import SectionTitle from './SectionTitle'
+import TabulatorSchemaDialog from './TabulatorSchemaDialog'
 
-// Keep the inline preview compact; the user can open the full Queries page for more.
-const MAX_PREVIEW_COLUMNS = 12
+// Keep the inline column preview compact; the full list is in the schema dialog.
+const MAX_PREVIEW_COLUMNS = 6
 
-const usePreviewStyles = M.makeStyles((t) => ({
+const useRowStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(0, 2, 2),
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(1.5, 2),
   },
-  tableWrapper: {
-    maxHeight: t.spacing(40),
-    overflow: 'auto',
+  top: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1.5),
   },
-  cell: {
-    maxWidth: t.spacing(30),
+  name: {
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  meta: {
+    color: t.palette.text.secondary,
+    whiteSpace: 'nowrap',
+  },
+  source: {
+    color: t.palette.text.secondary,
+    cursor: 'help',
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: '0.8rem',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    textDecoration: 'underline dotted',
     whiteSpace: 'nowrap',
+  },
+  actions: {
+    display: 'flex',
+    gap: t.spacing(1),
+    marginLeft: 'auto',
+  },
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+    marginTop: t.spacing(1),
+  },
+  chipType: {
+    color: t.palette.text.hint,
+    fontFamily: t.typography.monospace.fontFamily,
+    marginLeft: t.spacing(0.5),
+  },
+  tip: {
+    whiteSpace: 'pre-line',
   },
 }))
 
-interface PreviewBodyProps {
-  results: Model.Data<QueryResults>
+interface TableRowProps {
+  table: ParsedTabulatorTable
+  queryUrl: string
+  onPreview: (table: ParsedTabulatorTable) => void
 }
 
-function PreviewBody({ results }: PreviewBodyProps) {
-  const classes = usePreviewStyles()
-
-  if (Model.isLoading(results) || Model.isNone(results)) {
-    return <M.LinearProgress />
-  }
-
-  if (Model.isError(results)) {
-    return (
-      <M.Typography color="error" variant="body2" className={classes.root}>
-        {results.message || 'Could not load preview'}
-      </M.Typography>
-    )
-  }
-
-  if (!Model.hasData(results) || results.rows.length === 0) {
-    return (
-      <M.Typography color="textSecondary" variant="body2" className={classes.root}>
-        No rows
-      </M.Typography>
-    )
-  }
-
-  const columns = results.columns.slice(0, MAX_PREVIEW_COLUMNS)
+function TableRow({ table, queryUrl, onPreview }: TableRowProps) {
+  const classes = useRowStyles()
+  const shownColumns = table.columns.slice(0, MAX_PREVIEW_COLUMNS)
+  const extra = table.columns.length - shownColumns.length
+  const sourceText = table.source
+    ? `${table.source.packageName.pretty} · ${table.source.logicalKey.pretty}`
+    : null
+  const sourceTitle = table.source
+    ? `package_name: ${table.source.packageName.raw}\nlogical_key: ${table.source.logicalKey.raw}`
+    : ''
   return (
     <div className={classes.root}>
-      <M.Paper variant="outlined" className={classes.tableWrapper}>
-        <M.Table size="small" stickyHeader>
-          <M.TableHead>
-            <M.TableRow>
-              {columns.map((col, i) => (
-                <M.TableCell key={`${col.name}-${i}`}>{col.name}</M.TableCell>
-              ))}
-            </M.TableRow>
-          </M.TableHead>
-          <M.TableBody>
-            {results.rows.map((row, ri) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <M.TableRow key={ri}>
-                {columns.map((_col, ci) => (
-                  <M.TableCell key={ci} className={classes.cell} title={row[ci] ?? ''}>
-                    {row[ci] ?? ''}
-                  </M.TableCell>
-                ))}
-              </M.TableRow>
-            ))}
-          </M.TableBody>
-        </M.Table>
-      </M.Paper>
+      <div className={classes.top}>
+        <span className={classes.name}>{table.name}</span>
+        {!!table.format && <M.Chip size="small" label={table.format} />}
+        <span className={classes.meta}>{table.columns.length} cols</span>
+        {sourceText && (
+          <M.Tooltip title={<span className={classes.tip}>{sourceTitle}</span>}>
+            <span className={classes.source}>{sourceText}</span>
+          </M.Tooltip>
+        )}
+        <span className={classes.actions}>
+          <M.Button size="small" variant="outlined" onClick={() => onPreview(table)}>
+            Preview
+          </M.Button>
+          <M.Button
+            size="small"
+            variant="contained"
+            color="primary"
+            component={RRLink}
+            to={queryUrl}
+          >
+            Query
+          </M.Button>
+        </span>
+      </div>
+      <div className={classes.chips}>
+        {shownColumns.map((col) => (
+          <M.Chip
+            key={col.name}
+            size="small"
+            variant="outlined"
+            label={
+              <>
+                {col.name}
+                <span className={classes.chipType}>{col.type}</span>
+              </>
+            }
+          />
+        ))}
+        {extra > 0 && (
+          <M.Chip
+            size="small"
+            variant="outlined"
+            clickable
+            onClick={() => onPreview(table)}
+            label={`+${extra} more`}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -92,12 +138,15 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(2),
   },
-  title: {
+  head: {
+    alignItems: 'baseline',
+    display: 'flex',
+    justifyContent: 'space-between',
     padding: t.spacing(0, 2),
   },
-  footer: {
-    padding: t.spacing(1, 2),
-    textAlign: 'right',
+  count: {
+    color: t.palette.text.secondary,
+    fontWeight: t.typography.fontWeightRegular,
   },
 }))
 
@@ -109,7 +158,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const tables = useTabulatorTables(bucket)
-  const { preview, open } = useTablePreview(bucket)
+  const [selected, setSelected] = React.useState<ParsedTabulatorTable | null>(null)
 
   if (Model.isLoading(tables)) return <M.LinearProgress />
 
@@ -123,37 +172,36 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
 
   if (!Model.hasData(tables) || tables.length === 0) return null
 
+  const queryUrl = urls.bucketQueries(bucket)
   return (
     <M.Paper className={classes.root}>
-      <div className={classes.title}>
-        <SectionTitle>Tabulator tables</SectionTitle>
-      </div>
-      <M.List>
-        {tables.map((table) => {
-          const isOpen = preview?.table === table.name
-          return (
-            <React.Fragment key={table.name}>
-              <M.ListItem button onClick={() => open(table.name)}>
-                <M.ListItemText primary={table.name} />
-                {isOpen ? <M.Icon>expand_less</M.Icon> : <M.Icon>expand_more</M.Icon>}
-              </M.ListItem>
-              <M.Collapse in={isOpen} timeout="auto" unmountOnExit>
-                {isOpen && <PreviewBody results={preview!.results} />}
-              </M.Collapse>
-            </React.Fragment>
-          )
-        })}
-      </M.List>
-      <div className={classes.footer}>
-        <M.Button
-          component={RRLink}
-          to={urls.bucketQueries(bucket)}
-          size="small"
-          color="primary"
-        >
+      <div className={classes.head}>
+        <SectionTitle>
+          Tabulator tables
+          <span className={classes.count}>
+            {' · '}
+            {tables.length} in {bucket}
+          </span>
+        </SectionTitle>
+        <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
           More queries
         </M.Button>
       </div>
+      <div>
+        {tables.map((table) => (
+          <TableRow
+            key={table.name}
+            table={table}
+            queryUrl={queryUrl}
+            onPreview={setSelected}
+          />
+        ))}
+      </div>
+      <TabulatorSchemaDialog
+        bucket={bucket}
+        table={selected}
+        onClose={() => setSelected(null)}
+      />
     </M.Paper>
   )
 }

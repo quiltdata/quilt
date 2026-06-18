@@ -2,161 +2,121 @@ import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { Loading } from '../../Queries/Athena/model/utils'
-import type { TablePreviewController } from '../../Tabulator/requests'
 
 import TabulatorTables from './TabulatorTables'
 
-const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
-const open = vi.fn()
-const close = vi.fn()
-const useTablePreview = vi.fn<(bucket: string) => TablePreviewController>(() => ({
-  preview: null,
-  open,
-  close,
-}))
+vi.mock('constants/config', () => ({ default: {} }))
 
+// TabulatorSchemaDialog (mounted when Preview is clicked) uses these.
+vi.mock('containers/Notifications', () => ({ use: () => ({ push: vi.fn() }) }))
+vi.mock('utils/clipboard', () => ({ default: vi.fn() }))
+
+const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
 vi.mock('../../Tabulator/requests', () => ({
   useTabulatorTables: (bucket: string) => useTabulatorTables(bucket),
-  useTablePreview: (bucket: string) => useTablePreview(bucket),
 }))
+
+// The component uses t.typography.monospace.fontFamily, a custom theme token;
+// provide it so makeStyles doesn't throw during tests.
+const theme = createMuiTheme({
+  typography: { monospace: { fontFamily: 'monospace' } } as ThemeOptions['typography'],
+})
 
 const routes = {
   bucketQueries: { path: '', url: (bucket: string) => `/b/${bucket}/queries` },
 }
 
-function renderTables(bucket = 'test-bucket') {
-  return render(
-    <MemoryRouter>
-      <NamedRoutes.Provider routes={routes}>
-        <TabulatorTables bucket={bucket} />
-      </NamedRoutes.Provider>
-    </MemoryRouter>,
-  )
+function makeTable(name: string, columnCount: number) {
+  return {
+    name,
+    format: 'csv',
+    columns: Array.from({ length: columnCount }, (_, i) => ({
+      name: `col_${i}`,
+      type: 'STRING',
+    })),
+    source: {
+      packageName: { pretty: 'a/b', raw: '^a/b$', isLiteral: true },
+      logicalKey: { pretty: `${name}.csv`, raw: `${name}\\.csv`, isLiteral: true },
+    },
+  }
 }
 
-const TWO_TABLES = [
-  { __typename: 'TabulatorTable', name: 'clinical_trials' },
-  { __typename: 'TabulatorTable', name: 'drug_targets' },
-]
+function renderTables(bucket = 'test-bucket') {
+  return render(
+    <ThemeProvider theme={theme}>
+      <MemoryRouter>
+        <NamedRoutes.Provider routes={routes}>
+          <TabulatorTables bucket={bucket} />
+        </NamedRoutes.Provider>
+      </MemoryRouter>
+    </ThemeProvider>,
+  )
+}
 
 describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
-    useTablePreview.mockReturnValue({ preview: null, open, close })
   })
 
   it('renders nothing while loading', () => {
     useTabulatorTables.mockReturnValue(Loading)
-    const { container, queryByText } = renderTables()
-    expect(container.textContent).toBe('')
-    expect(queryByText('Tabulator tables')).toBeNull()
+    const { queryByText } = renderTables()
+    expect(queryByText(/Tabulator tables/)).toBeNull()
   })
 
   it('renders an inline error without crashing', () => {
     useTabulatorTables.mockReturnValue(new Error('boom'))
     const { getByText, queryByText } = renderTables()
     expect(getByText(/Could not load/i)).toBeTruthy()
-    expect(queryByText('Tabulator tables')).toBeNull()
+    expect(queryByText(/Tabulator tables ·/)).toBeNull()
   })
 
   it('renders nothing when the list is empty', () => {
     useTabulatorTables.mockReturnValue([])
-    const { container, queryByText } = renderTables()
+    const { container } = renderTables()
     expect(container.textContent).toBe('')
-    expect(queryByText('Tabulator tables')).toBeNull()
   })
 
-  it('renders the section title, table names and a link to queries', () => {
-    useTabulatorTables.mockReturnValue(TWO_TABLES)
+  it('renders the title, table names, source and a link to queries', () => {
+    useTabulatorTables.mockReturnValue([makeTable('drugs', 3), makeTable('bonds', 2)])
     const { getByText } = renderTables('my-bucket')
-    expect(getByText('Tabulator tables')).toBeTruthy()
-    expect(getByText('clinical_trials')).toBeTruthy()
-    expect(getByText('drug_targets')).toBeTruthy()
+    expect(getByText(/Tabulator tables/)).toBeTruthy()
+    expect(getByText('drugs')).toBeTruthy()
+    expect(getByText('bonds')).toBeTruthy()
+    expect(getByText(/a\/b · drugs\.csv/)).toBeTruthy()
     const link = getByText(/More queries/i).closest('a')
-    expect(link).toBeTruthy()
     expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
   })
 
-  it('triggers a preview run when a table is clicked', () => {
-    useTabulatorTables.mockReturnValue(TWO_TABLES)
+  it('shows the first columns inline and a "+N more" chip for wide tables', () => {
+    useTabulatorTables.mockReturnValue([makeTable('drugs', 9)])
     const { getByText } = renderTables()
-    fireEvent.click(getByText('clinical_trials'))
-    expect(open).toHaveBeenCalledWith('clinical_trials')
+    expect(getByText('col_0')).toBeTruthy()
+    expect(getByText('col_5')).toBeTruthy()
+    // 9 columns, 6 shown -> "+3 more"
+    expect(getByText('+3 more')).toBeTruthy()
   })
 
-  it('shows a loading state for the open preview', () => {
-    useTabulatorTables.mockReturnValue(TWO_TABLES)
-    useTablePreview.mockReturnValue({
-      preview: { table: 'clinical_trials', results: Loading },
-      open,
-      close,
-    })
-    const { container, getByText } = renderTables()
-    // The list still renders both tables alongside the loading preview.
-    expect(getByText('clinical_trials')).toBeTruthy()
-    expect(getByText('drug_targets')).toBeTruthy()
-    expect(container.querySelector('.MuiLinearProgress-root')).toBeTruthy()
+  it('opens the schema dialog when Preview is clicked', () => {
+    useTabulatorTables.mockReturnValue([makeTable('drugs', 2)])
+    const { getAllByText, getByText } = renderTables('my-bucket')
+    fireEvent.click(getByText('Preview'))
+    // The dialog renders its own SELECT and "Open in Queries" action.
+    expect(getByText(/SELECT \* FROM "my-bucket"\."drugs" LIMIT 100/)).toBeTruthy()
+    // The table name now appears both in the row and the dialog title.
+    expect(getAllByText('drugs').length).toBeGreaterThan(1)
   })
 
-  it('renders preview rows and columns for the open table', () => {
-    useTabulatorTables.mockReturnValue(TWO_TABLES)
-    useTablePreview.mockReturnValue({
-      preview: {
-        table: 'clinical_trials',
-        results: {
-          columns: [
-            { name: 'id', type: 'varchar' },
-            { name: 'phase', type: 'varchar' },
-          ],
-          rows: [
-            ['NCT001', 'II'],
-            ['NCT002', 'III'],
-          ],
-        },
-      },
-      open,
-      close,
-    })
-    const { getByText } = renderTables()
-    expect(getByText('id')).toBeTruthy()
-    expect(getByText('phase')).toBeTruthy()
-    expect(getByText('NCT001')).toBeTruthy()
-    expect(getByText('III')).toBeTruthy()
-  })
-
-  it('renders a per-row preview error without breaking the list', () => {
-    useTabulatorTables.mockReturnValue(TWO_TABLES)
-    useTablePreview.mockReturnValue({
-      preview: {
-        table: 'clinical_trials',
-        results: new Error('Tabulator catalog not found'),
-      },
-      open,
-      close,
-    })
-    const { getByText } = renderTables()
-    expect(getByText(/Tabulator catalog not found/i)).toBeTruthy()
-    // List survives the error.
-    expect(getByText('drug_targets')).toBeTruthy()
-    expect(getByText(/More queries/i)).toBeTruthy()
-  })
-
-  it('renders an empty-result message', () => {
-    useTabulatorTables.mockReturnValue(TWO_TABLES)
-    useTablePreview.mockReturnValue({
-      preview: {
-        table: 'clinical_trials',
-        results: { columns: [], rows: [] },
-      },
-      open,
-      close,
-    })
-    const { getByText } = renderTables()
-    expect(getByText(/No rows/i)).toBeTruthy()
+  it('per-row Query links to the queries tab', () => {
+    useTabulatorTables.mockReturnValue([makeTable('drugs', 2)])
+    const { getByText } = renderTables('my-bucket')
+    const link = getByText('Query').closest('a')
+    expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
   })
 })
