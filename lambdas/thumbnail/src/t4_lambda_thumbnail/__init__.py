@@ -296,7 +296,8 @@ def _project_channel(img: BioImage, c: int) -> da.Array:
     Reduce channel `c` to a 2D (Y, X) plane — or (Y, X, S) for color — by
     max-projecting over Z when the reader has a Z axis, else taking its single Z
     slice. Shared by the multi-channel montage and the single-channel return
-    below so they slice identically.
+    below so they slice identically. (Max projection is a deliberate simple
+    default — no strong opinion over mean/median.)
     """
     if "Z" in img.reader.dims.order:
         return img.dask_data[0, c, :, :, :].max(axis=0)
