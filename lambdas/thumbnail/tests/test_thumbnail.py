@@ -328,7 +328,7 @@ def test_rescale_exact_2x2(rescale, arr, expected):
 )
 def test_rescale_constant(rescale, dtype, value, expected):
     # Constant images have no contrast to stretch; each path keeps the level.
-    out = rescale(np.full((4, 4), value, dtype))
+    out = rescale(np.full((4, 4), value, dtype=dtype))
     assert out.dtype == np.uint8
     assert (out == expected).all()
 
@@ -362,7 +362,7 @@ def test_rescale_sparse(rescale, dtype, hot):
     # fallback keeps sparse data (e.g. a label mask) visible. The few hot pixels
     # (3 of 40000) stay below the 0.01% percentile window, so the percentiles
     # collapse instead of interpolating.
-    arr = np.zeros((200, 200), dtype)
+    arr = np.zeros((200, 200), dtype=dtype)
     arr[0, :3] = hot
     out = rescale(arr)
     assert (out[0, :3] == 255).all()  # sparse hot pixels visible
@@ -493,38 +493,38 @@ def test_percentile_uint16_multi_block(monkeypatch, arr):
 
 
 @pytest.mark.parametrize(
-    ("arr", "rescale"),
+    ("rescale", "arr"),
     [
         pytest.param(
+            _R_U16,
             np.dstack([
                 np.linspace(0, 2048, 16, dtype=np.uint16).reshape(4, 4),
                 np.linspace(0, 4096, 16, dtype=np.uint16).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.uint16),
             ]),
-            _R_U16,
             id="uint16",
         ),
         pytest.param(
+            _R_FIN,
             np.dstack([
                 np.linspace(0, 0.5, 16, dtype=np.float32).reshape(4, 4),
                 np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.float32),
             ]),
-            _R_FIN,
             id="float32",
         ),
         pytest.param(
+            _R_FIN,
             np.dstack([
                 np.linspace(0, 500_000, 16, dtype=np.uint32).reshape(4, 4),
                 np.linspace(0, 1_000_000, 16, dtype=np.uint32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.uint32),
             ]),
-            _R_FIN,
             id="uint32",
         ),
     ],
 )
-def test_rescale_joint_channels(arr, rescale):
+def test_rescale_joint_channels(rescale, arr):
     # The range is shared across channels so relative intensities survive:
     # a half-range channel must map to mid-grey, not stretch to full range
     # on its own.
