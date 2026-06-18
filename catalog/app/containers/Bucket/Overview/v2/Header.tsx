@@ -19,18 +19,16 @@ import useConst from 'utils/useConstant'
 
 import * as PD from '../../PackageDialog'
 import * as requests from '../../requests'
+import { useTabulatorTables } from '../../Tabulator/requests'
 
 import { makeColorPool } from '../ColorPool'
-import Downloads from '../Downloads'
-import ObjectsByExt, { COLOR_MAP, MAX_EXTS } from '../ObjectsByExt'
+import ObjectsByExt, { COLOR_MAP } from '../ObjectsByExt'
 
 import BUCKET_QUERY from '../gql/Bucket.generated'
 import STAT_COUNTS_QUERY from '../gql/StatCounts.generated'
 
 import Readme from './Readme'
-
-// use the same height as the bar chart: 20px per bar with 2px margin
-const DOWNLOADS_CHART_H = 22 * MAX_EXTS - 2
+import RecentPackages from './RecentPackages'
 
 // NOTE: replicated from legacy Overview/Header `useStats` (not exported there);
 // keep in sync — both read the same `bucketStats` request + StatCounts query.
@@ -203,11 +201,6 @@ const useStatsStyles = M.makeStyles((t) => ({
     gap: t.spacing(4),
     justifyContent: 'flex-end',
   },
-  packages: {
-    alignItems: 'baseline',
-    display: 'flex',
-    gap: t.spacing(2),
-  },
 }))
 
 type StatsData = ReturnType<typeof useStats>
@@ -221,6 +214,8 @@ function Stats({ bucket, stats }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
   const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
+  const tables = useTabulatorTables(bucket)
+  const numTables = Array.isArray(tables) ? tables.length : null
   return (
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
@@ -233,18 +228,23 @@ function Stats({ bucket, stats }: StatsProps) {
       ) : (
         <StatsItemSkeleton />
       )}
-      <div className={classes.packages}>
-        {pkgCount ? (
-          <StatsItem
-            value={pkgCount}
-            label={<Plural value={numPackages ?? 0} one="package" other="packages" />}
-            to={urls.bucketPackageList(bucket)}
-          />
-        ) : (
-          <StatsItemSkeleton />
-        )}
-        <CreatePackage bucket={bucket} />
-      </div>
+      {pkgCount ? (
+        <StatsItem
+          value={pkgCount}
+          label={<Plural value={numPackages ?? 0} one="package" other="packages" />}
+          to={urls.bucketPackageList(bucket)}
+        />
+      ) : (
+        <StatsItemSkeleton />
+      )}
+      {!!numTables && (
+        <StatsItem
+          value={formatQuantity(numTables)}
+          label={<Plural value={numTables} one="table" other="tables" />}
+          to={urls.bucketQueries(bucket)}
+        />
+      )}
+      <CreatePackage bucket={bucket} />
     </div>
   )
 }
@@ -323,13 +323,7 @@ function Charts({ bucket, statsResult }: ChartsProps) {
           <M.Divider />
         </M.Hidden>
       </div>
-      <Downloads
-        bucket={bucket}
-        colorPool={colorPool}
-        width="100%"
-        flexShrink={1}
-        chartHeight={DOWNLOADS_CHART_H}
-      />
+      <RecentPackages bucket={bucket} />
     </div>
   )
 }

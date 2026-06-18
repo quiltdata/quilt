@@ -14,8 +14,8 @@ vi.mock('./Readme', () => ({
   default: () => <div data-testid="readme" />,
 }))
 
-vi.mock('../Downloads', () => ({
-  default: () => <div data-testid="downloads" />,
+vi.mock('./RecentPackages', () => ({
+  default: () => <div data-testid="recent-packages" />,
 }))
 
 vi.mock('../ObjectsByExt', () => ({
@@ -57,9 +57,15 @@ vi.mock('utils/GraphQL', () => ({
     }),
 }))
 
+const tabulatorTables = vi.fn<() => unknown>(() => [])
+vi.mock('../../Tabulator/requests', () => ({
+  useTabulatorTables: () => tabulatorTables(),
+}))
+
 const routes = {
   bucketDir: { path: '', url: (bucket: string) => `/dir/${bucket}` },
   bucketPackageList: { path: '', url: (bucket: string) => `/packages/${bucket}` },
+  bucketQueries: { path: '', url: (bucket: string) => `/queries/${bucket}` },
   adminBucketEdit: { path: '', url: (bucket: string) => `/admin/${bucket}` },
 }
 
@@ -78,6 +84,7 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     cleanup()
     statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
     packagesTotal = 7
+    tabulatorTables.mockReturnValue([])
   })
 
   it('does not link the total-size stat', () => {
@@ -105,6 +112,20 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     expect(link!.getAttribute('href')).toBe('/packages/test-bucket')
   })
 
+  it('shows the Tabulator tables count linked to queries', () => {
+    tabulatorTables.mockReturnValue([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+    const { getByText } = renderHeader()
+    expect(getByText('3')).toBeTruthy()
+    const link = getByText(/tables/).closest('a')
+    expect(link).toBeTruthy()
+    expect(link!.getAttribute('href')).toBe('/queries/test-bucket')
+  })
+
+  it('hides the tables stat when there are no tabulator tables', () => {
+    const { queryByText } = renderHeader()
+    expect(queryByText(/tables/)).toBeNull()
+  })
+
   it('uses singular stat labels when the count is 1', () => {
     statsResult.mockReturnValue(
       AsyncResult.Ok({ totalBytes: 1024, totalObjects: 1, exts: [] }),
@@ -122,9 +143,9 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     expect(getByText('Create package')).toBeTruthy()
   })
 
-  it('renders the ObjectsByExt and Downloads charts', () => {
+  it('renders the ObjectsByExt chart and the recent-packages list', () => {
     const { getByTestId } = renderHeader()
     expect(getByTestId('objects-by-ext')).toBeTruthy()
-    expect(getByTestId('downloads')).toBeTruthy()
+    expect(getByTestId('recent-packages')).toBeTruthy()
   })
 })
