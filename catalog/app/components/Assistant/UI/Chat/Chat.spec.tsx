@@ -15,12 +15,10 @@ import { ConnectorHelperLine } from './Chat'
 // <p>, …) there triggers React's `validateDOMNesting` warning. These tests pin
 // that invariant for every state the connector helper can render.
 
-const error: Model.Connectors.BackendError = {
-  _tag: 'Transport',
-  message: 'down',
-  transient: true,
-  retryable: true,
-}
+// `ConnectorHelperLine` switches on the state tag only; the error payload is
+// never read, so the two required fields satisfy the Disconnected/Failed
+// constructors.
+const error: Model.Connectors.BackendError = { _tag: 'Transport', message: 'down' }
 
 // Only `config.title` is touched on render; `retry` / `acknowledge` fire on
 // click, never during render, so a bare config stub is enough.
