@@ -736,10 +736,9 @@ def lambda_handler(request):
             elif input_ == "pptx":
                 info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
             else:
-                # Always PNG: imageio can't report the source's browser format
-                # (JPG/PNG/GIF) — get_reader() returns a reader instance, not a
-                # class to key on, and 2.28+ no longer returns instances of those
-                # reader classes — so there's nothing to preserve it from.
+                # Always PNG: imageio can't recover the source's browser format
+                # (JPG/PNG/GIF) — get_reader() returns a reader instance, not the
+                # format class a lookup would need — so there's nothing to preserve.
                 thumbnail_format = "PNG"
                 info, data = handle_image(
                     path=src_file.name,
