@@ -409,7 +409,7 @@ interface ConnectorHelperLineProps {
   state: Model.Connectors.ConnectorState
 }
 
-function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
+export function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
   const classes = useConnectorHelperStyles()
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
   const onAck = React.useCallback(
