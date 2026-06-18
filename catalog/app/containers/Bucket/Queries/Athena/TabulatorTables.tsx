@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as BucketPreferences from 'utils/BucketPreferences'
+
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
 import { useTabulatorTables, resolveTabulatorCatalog } from '../../Tabulator/requests'
 import * as Model from './model'
@@ -22,6 +24,11 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function TabulatorTables() {
   const classes = useStyles()
+  const { prefs } = BucketPreferences.use()
+  const overviewV2 = BucketPreferences.Result.match(
+    { Ok: ({ ui: { blocks } }) => blocks.overviewV2, _: () => false },
+    prefs,
+  )
   const { bucket, queryBody, catalogName, catalogNames, database } = Model.use()
   const tables = useTabulatorTables(bucket)
 
@@ -52,6 +59,7 @@ export default function TabulatorTables() {
   const appliedRef = React.useRef(false)
   React.useEffect(() => {
     if (appliedRef.current) return
+    if (!overviewV2) return
     if (!Model.hasData(tables)) return
     // Wait until the catalog list settles so the autofill can build the 3-part name.
     if (!Model.hasData(catalogNames.data) && !Model.isError(catalogNames.data)) return
@@ -63,8 +71,10 @@ export default function TabulatorTables() {
     if (table) handleSelect(table)
     params.delete('table')
     history.replace({ ...location, search: params.toString() })
-  }, [tables, catalogNames.data, location, history, handleSelect])
+  }, [overviewV2, tables, catalogNames.data, location, history, handleSelect])
 
+  // Gated behind the overviewV2 preview, like the rest of the redesign.
+  if (!overviewV2) return null
   // Render nothing on loading / error / empty — never break the Queries page.
   if (!Model.hasData(tables) || tables.length === 0) return null
 
