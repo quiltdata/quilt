@@ -12,6 +12,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import responses
+import tifffile
 from bioio import BioImage
 from PIL import Image
 
@@ -230,6 +231,54 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
+# The non-CZI color reader / dtype paths, each with an independent decoder; keep
+# in sync with test_generate_thumbnail's color rows.
+_COLOR_ORACLE_FIXTURES = [
+    ("penguin.jpg", lambda p: np.asarray(Image.open(p).convert("RGB"))),    # bioio-imageio 8-bit RGB
+    ("sat_rgb.tiff", lambda p: tifffile.imread(p)[..., :3]),                # bioio-tifffile 8-bit RGBA
+    ("float-rgb.tiff", lambda p: tifffile.imread(p).astype(np.float64)),    # bioio-tifffile float16
+    ("rgb-uint32.tiff", lambda p: tifffile.imread(p)),                      # bioio-tifffile wide-int (uint32) RGB
+]
+
+
+def _coarse_means(rgb, grid=12):
+    # Reduce an image to grid×grid×C block means (np.mean → float64, no full-image
+    # upcast), coarse enough to survive the thumbnail's resize/stretch.
+    rgb = np.asarray(rgb)
+    assert rgb.ndim == 3 and min(rgb.shape[:2]) >= grid, f"expected an H×W×C image, H,W >= {grid}; got {rgb.shape}"
+    h, w, c = rgb.shape
+    ys = np.linspace(0, h, grid + 1, dtype=int)
+    xs = np.linspace(0, w, grid + 1, dtype=int)
+    return np.array([[rgb[ys[i]:ys[i + 1], xs[j]:xs[j + 1]].reshape(-1, c).mean(0)
+                      for j in range(grid)] for i in range(grid)])
+
+
+@pytest.mark.parametrize(
+    "fixture, decode", _COLOR_ORACLE_FIXTURES, ids=[f for f, _ in _COLOR_ORACLE_FIXTURES]
+)
+def test_handle_image_color_channel_order(data_dir, fixture, decode):
+    # Independent channel-order oracle for the non-CZI color path. The byte goldens
+    # in test_generate_thumbnail are self-generated, so a swap "fixed" by
+    # regenerating them is enshrined silently — how the BGR R/B swap nearly shipped
+    # (CZI sibling: test_handle_image_bgr_czi_channel_order). Checking regional
+    # R-vs-B lean against an independent decode can't be faked that way. Only R/B
+    # (the axis BGR reverses) is checked; for the TIFFs tifffile is shared with
+    # bioio-tifffile, so there it guards the lambda's handling, not the decode.
+    ref = decode(data_dir / fixture)
+    _info, png = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / fixture), size=(256, 256), thumbnail_format="PNG")
+    out = np.asarray(Image.open(BytesIO(png)).convert("RGB"), np.float64)
+
+    cr, co = _coarse_means(ref), _coarse_means(out)
+    # On clearly red/blue-leaning blocks the thumbnail must lean the same way; an
+    # R/B swap flips every sign -> ~0 agreement.
+    rb_ref, rb_out = cr[..., 0] - cr[..., 2], co[..., 0] - co[..., 2]
+    colored = np.abs(rb_ref) > 0.05 * (cr.max() - cr.min())
+    assert colored.sum() >= 5, f"{fixture}: too few colored blocks to test ({colored.sum()})"
+    agree = (np.sign(rb_ref[colored]) == np.sign(rb_out[colored])).mean()
+    assert agree > 0.9, f"{fixture}: R/B channel order agreement only {agree * 100:.0f}%"
+
+
 def test_rescale_uint16_to_uint8_rescales_by_range():
     # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
     # contrast-stretched, not truncated to a nearly black image.
@@ -359,8 +408,17 @@ def test_percentile_uint16_multi_block(monkeypatch, arr):
                 np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.float32),
             ]),
-            t4_lambda_thumbnail._rescale_float_to_uint8,
+            t4_lambda_thumbnail._rescale_finite_to_uint8,
             id="float32",
+        ),
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 500_000, 16, dtype=np.uint32).reshape(4, 4),
+                np.linspace(0, 1_000_000, 16, dtype=np.uint32).reshape(4, 4),
+                np.zeros((4, 4), dtype=np.uint32),
+            ]),
+            t4_lambda_thumbnail._rescale_finite_to_uint8,
+            id="uint32",
         ),
     ],
 )
@@ -376,7 +434,7 @@ def test_rescale_joint_channels(arr, rescale):
 
 def test_rescale_float_to_uint8():
     arr = np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [[0, 64], [128, 255]])
 
@@ -388,7 +446,7 @@ def test_rescale_float_to_uint8_nan():
         # NaN must be zeroed explicitly, not rely on the undefined (but
         # warning-emitting) NaN-to-uint8 cast happening to produce 0.
         warnings.simplefilter("error")
-        out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+        out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert np.array_equal(out, [[0, 0], [85, 255]])
 
 
@@ -405,7 +463,7 @@ def test_rescale_float_to_uint8_nan():
 )
 def test_rescale_float_to_uint8_constant(value, expected):
     arr = np.full((4, 4), value, dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == expected).all()
 
@@ -413,13 +471,13 @@ def test_rescale_float_to_uint8_constant(value, expected):
 def test_rescale_float_to_uint8_inf():
     # ±inf are excluded from the range and saturate to its ends.
     arr = np.array([[np.inf, -np.inf], [np.nan, 0.0], [0.5, 1.0]], dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert np.array_equal(out, [[255, 0], [0, 0], [128, 255]])
 
 
 def test_rescale_float_to_uint8_all_non_finite():
     arr = np.array([[np.inf, -np.inf], [np.nan, np.inf]], dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == 0).all()
 
@@ -428,7 +486,7 @@ def test_rescale_float_to_uint8_float64_precision():
     # High-offset low-contrast float64: sub-float32-ulp differences must
     # not collapse in the working copy.
     arr = np.linspace(1e6, 1e6 + 0.01, 256, dtype=np.float64).reshape(16, 16)
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.min() == 0
     assert out.max() == 255
     assert len(np.unique(out)) >= 250
@@ -441,7 +499,7 @@ def test_rescale_float_to_uint8_sparse():
     # the percentiles actually collapse instead of interpolating.
     arr = np.zeros((200, 200), dtype=np.float32)
     arr[0, :3] = 1.0
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert (out[0, :3] == 255).all()
     assert out[1, 0] == 0
 
@@ -454,7 +512,7 @@ def test_rescale_float_to_uint8_sparse_with_nan():
     arr = np.zeros((200, 200), dtype=np.float32)
     arr[0, :3] = 1.0      # sparse hot pixels -> finite max
     arr[0, 4] = np.nan    # masked pixel
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert (out[0, :3] == 255).all()  # hot pixels visible (finite max, not NaN)
     assert out[0, 4] == 0             # NaN -> black
     assert out[1, 0] == 0
@@ -467,16 +525,91 @@ def test_rescale_float_to_uint8_clips_outlier_pixels():
     arr = np.linspace(0, 1, 10000, dtype=np.float32).reshape(100, 100)
     arr[0, 0] = 100.0
     arr[0, 1] = -100.0
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out[0, 0] == 255
     assert out[0, 1] == 0
     assert len(np.unique(out)) > 200
 
 
-def test_rescale_float_to_uint8_empty():
-    out = t4_lambda_thumbnail._rescale_float_to_uint8(np.empty((0, 4), dtype=np.float32))
+# float + int are _finite_clip_range's two empty-input branches; the size check
+# short-circuits before itemsize matters, so more dtypes would just retread these.
+@pytest.mark.parametrize("dtype", [np.float32, np.int64])
+def test_rescale_finite_to_uint8_empty(dtype):
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=dtype))
     assert out.dtype == np.uint8
     assert out.size == 0
+
+
+def test_rescale_int_to_uint8_wide_unsigned():
+    # uint32 values far beyond the 16-bit range are contrast-stretched by their
+    # actual range (min -> 0, max -> 255, ascending), not clamped to 16 bits
+    # (which would render them near-black). Assert the stretch, not exact mid
+    # values — those ride on percentile-interpolated bounds, not min/max.
+    arr = np.array([[0, 1_000_000], [2_000_000, 4_000_000]], dtype=np.uint32)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert out.min() == 0 and out.max() == 255
+    assert (np.diff(out.ravel().astype(int)) > 0).all()  # ascending input -> ascending output
+
+
+def test_rescale_int_to_uint8_signed():
+    # Signed integers stretch across their full negative-to-positive range
+    # (min -> 0, max -> 255, ascending).
+    arr = np.array([[-100, -50], [0, 100]], dtype=np.int32)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert out.min() == 0 and out.max() == 255
+    assert (np.diff(out.ravel().astype(int)) > 0).all()
+
+
+def test_rescale_int_to_uint8_high_offset_low_contrast():
+    # A low-contrast range sitting at a high uint32 offset (> float32's ~16M
+    # exact range, ulp 256 around 3e9): the float64 working copy must keep the
+    # contrast a float32 copy would quantize away.
+    arr = (3_000_000_000 + np.arange(256)).astype(np.uint32).reshape(16, 16)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert len(np.unique(out)) >= 200
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param(50, 50, id="small-level-kept"),
+        pytest.param(1000, 255, id="large-level-clamped-white"),
+        pytest.param(-5, 0, id="negative-clamped-black"),
+    ],
+)
+def test_rescale_int_to_uint8_constant(value, expected):
+    # Constant integer images have no contrast; keep the absolute level clamped
+    # into [0, 255] (no [0, 1] convention as for floats).
+    arr = np.full((4, 4), value, dtype=np.int32)
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == expected).all()
+
+
+def test_rescale_int_to_uint8_sparse():
+    # Percentiles collapse when almost all pixels share one value; the min/max
+    # fallback keeps a sparse wide-integer label mask visible.
+    arr = np.zeros((200, 200), dtype=np.uint32)
+    arr[0, :3] = 1_000_000
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
+    assert (out[0, :3] == 255).all()
+    assert out[1, 0] == 0
+
+
+def test_rescale_int_to_uint8_clips_outlier_pixels():
+    # A single hot pixel (a stuck-high sensor value) must not compress the rest
+    # of a low-contrast band sitting above the 16-bit range to black. Mirrors
+    # test_rescale_uint16_to_uint8_clips_outliers for wide integers.
+    arr = np.linspace(1_000_000, 1_100_000, 10000, dtype=np.uint32).reshape(100, 100)
+    arr[0, 0] = 100_000_000
+    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) > 100
 
 
 @pytest.mark.parametrize(
@@ -525,6 +658,90 @@ def test_generate_thumbnail_rgba(arr):
     assert out[..., :3].max() == 255
 
 
+# A linear ramp spans the full uint8 range when stretched; downscaling in
+# thumbnail() resamples the extremes inward, so assert a wide spread rather than
+# exactly 0/255 (the exact bounds are pinned on the un-resized _rescale_* tests).
+def _spans_full_range(out):
+    return out.max() > 200 and out.min() < 55
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.int16, np.uint32, np.int64, np.uint64])
+def test_generate_thumbnail_wide_int_greyscale(dtype):
+    # Signed / wide-unsigned integer greyscale (PIL can't build int64/uint64 at
+    # all, and renders int8/16/32 + uint32 as a clamped 16-bit I image) is
+    # contrast-stretched to an 8-bit mode-L image instead. The 32 < 64 target
+    # also exercises thumbnail()'s reduce() path, which rejected the old wide
+    # greyscale modes.
+    hi = min(1_000_000, int(np.iinfo(dtype).max))  # fits int8 (127) / int16 (32767): no overflow on cast
+    arr = np.linspace(0, hi, 64 * 64, dtype=dtype).reshape(64, 64)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "L"
+    assert _spans_full_range(np.asarray(img))
+
+
+@pytest.mark.parametrize("dtype", [np.int16, np.int32, np.uint32, np.int64, np.uint64])
+def test_generate_thumbnail_wide_int_color(dtype):
+    # Signed / wide integer color used to fail with HTTP 500 (PIL can't build a
+    # color image from these dtypes); now it is contrast-stretched to 8-bit RGB.
+    hi = min(1_000_000, int(np.iinfo(dtype).max))  # int16 max is 32767: no overflow on cast
+    arr = np.linspace(0, hi, 64 * 64 * 3, dtype=dtype).reshape(64, 64, 3)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "RGB"
+    assert _spans_full_range(np.asarray(img))
+
+
+def test_generate_thumbnail_wide_int_rgba():
+    # Wide-integer RGBA: color channels stretch jointly, full-range alpha stays
+    # opaque (scaled by the dtype range, not contrast-stretched).
+    arr = np.dstack([
+        np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=np.uint32).reshape(64, 64, 3),
+        np.full((64, 64), np.iinfo(np.uint32).max, np.uint32),
+    ])
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "RGBA"
+    out = np.asarray(img)
+    assert (out[..., 3] == 255).all()
+    assert _spans_full_range(out[..., :3])
+
+
+def test_generate_thumbnail_normalized_passes_through():
+    # A normalized=True array (norm_img's greyscale montage / Z-projection,
+    # already contrast-stretched to uint8) passes straight through to an 8-bit
+    # mode-L image with unchanged values — NOT re-stretched, which would double-
+    # stretch the montage. The flag, not the value range, drives the passthrough.
+    arr = np.linspace(0, 255, 64 * 64, dtype=np.uint8).reshape(64, 64)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (64, 64), normalized=True)  # size == shape: no resize
+    assert img.mode == "L"
+    assert np.array_equal(np.asarray(img), arr)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pytest.param(np.linspace(0, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="in-range-low"),
+        pytest.param(np.linspace(0, 5_000_000, 64 * 64, dtype=np.int32).reshape(64, 64), id="above-65535"),
+        pytest.param(np.linspace(-2000, 2000, 64 * 64, dtype=np.int32).reshape(64, 64), id="negative"),
+    ],
+)
+def test_generate_thumbnail_raw_int32_greyscale_is_stretched(arr):
+    # A raw (normalized=False) int32 plane is real image data, so it is always
+    # contrast-stretched to 8-bit regardless of value range — the normalized flag,
+    # not the pixel values, decides. The cases span a low-contrast in-range plane,
+    # one beyond 16 bits, and a signed (negative) mask; in-range-low also pins that
+    # the value-gate era's residual (a low-range raw int32 left dark) is gone.
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "L"
+    assert _spans_full_range(np.asarray(img))
+
+
+def test_generate_thumbnail_int32_color_is_stretched():
+    # Raw 3-D int32 color is stretched to 8-bit RGB (only a normalized=True
+    # greyscale montage passes through).
+    arr = np.linspace(0, 1_000_000, 64 * 64 * 3, dtype=np.int32).reshape(64, 64, 3)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == "RGB"
+
+
 def test_alpha_to_uint8_float():
     # Float alpha is scaled by the [0, 1] opacity convention; NaN renders
     # transparent, out-of-range values clamp.
@@ -542,6 +759,29 @@ def test_alpha_to_uint8_uint16():
     out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
     assert out.dtype == np.uint8
     assert np.array_equal(out, [0, 1, 64, 128])
+
+
+def test_alpha_to_uint8_uint32():
+    # Wide-unsigned alpha is scaled by the full dtype range too (uint32 -> >>24),
+    # so a 4-channel uint32 image keeps a meaningful alpha instead of wrapping.
+    alpha = np.array([0, 1 << 24, 1 << 30, np.iinfo(np.uint32).max], dtype=np.uint32)
+    out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [0, 1, 64, 255])
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.int16, np.int32, np.int64])
+def test_alpha_to_uint8_signed(dtype):
+    # Signed alpha (nonsensical, but reachable now that signed RGBA routes
+    # through the rescale path): the max positive value is full opacity (255,
+    # not the 127 an arithmetic right-shift would give), and negatives clamp to
+    # transparent.
+    mx = np.iinfo(dtype).max
+    out = t4_lambda_thumbnail._alpha_to_uint8(np.array([-5, 0, mx], dtype=dtype))
+    assert out.dtype == np.uint8
+    assert out[0] == 0    # negative -> transparent
+    assert out[1] == 0
+    assert out[2] == 255  # max positive -> opaque
 
 
 def test_generate_thumbnail_float_greyscale_saves_png():
@@ -570,16 +810,15 @@ def test_generate_thumbnail_handles_byte_swapped_uint16(shape, expected_mode):
     assert img.mode == expected_mode
 
 
-def test_norm_img_path_saves_16bit_png(data_dir):
-    # Pin the output depth of the normalized (mode I) path: the golden
-    # comparisons only enforce it as long as the goldens themselves stay
-    # 16-bit, so a golden regeneration could silently change it. Shipping
-    # 8-bit instead (smaller, browsers can't use more) is a fine future
-    # choice, but it has to be made consciously — flip this then.
+def test_norm_img_path_saves_8bit_png(data_dir):
+    # Pin the output depth of the normalized path at 8-bit (mode L): the golden
+    # comparisons only enforce it as long as the goldens themselves stay 8-bit,
+    # so a golden regeneration could silently change it. The path used to emit
+    # 16-bit (mode I;16); 8-bit is smaller and browsers can't use more.
     _info, data = t4_lambda_thumbnail.handle_image(
         path=str(data_dir / "cell.tiff"), size=(640, 480), thumbnail_format="PNG",
     )
-    assert Image.open(BytesIO(data)).mode == "I;16"
+    assert Image.open(BytesIO(data)).mode == "L"
 
 
 def _norm(arr, chunks=-1):
@@ -587,41 +826,39 @@ def _norm(arr, chunks=-1):
 
 
 def _norm_float_reference(arr):
-    # Independent float64 reference for norm_img's normalization, used to pin
-    # that the bounded unsigned-integer path (histogram percentile + LUT) stays
-    # bit-identical to it. Mirrors the float branch's exact arithmetic.
-    imax = np.iinfo(np.uint16).max + 1
+    # float64 reference for the unsigned-integer norm path. It mirrors
+    # _lut_uint_to_uint8's rescale arithmetic by hand and ranges via np.percentile
+    # (not the histogram), so the bit-identity sweep validates the histogram-
+    # percentile approximation specifically — the rescale math is shared, not
+    # independently checked here. Only fed unsigned integer inputs (no NaN/inf).
     a = np.asarray(arr).astype(np.float64)
     lo, hi = map(float, np.percentile(a, (0.01, 99.99)))
     if hi == lo:
         lo, hi = float(a.min()), float(a.max())
     if hi == lo:
-        return np.zeros(a.shape, np.int32)
-    np.clip(a, lo, hi, out=a)
-    a -= lo
-    a /= hi - lo
-    a *= imax
-    a[a == imax] = imax - 1
-    return a.astype(np.int32)
+        return np.zeros(a.shape, np.uint8)
+    a = (a - lo) * (255 / (hi - lo))
+    a = np.clip(a.round(), 0, 255)
+    return a.astype(np.uint8)
 
 
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.float32])
 def test_norm_img_empty_plane_renders_black(dtype):
-    # A degenerate empty plane must render black (an empty int32 array) rather
+    # A degenerate empty plane must render black (an empty uint8 array) rather
     # than raise — the unsigned path's _uint16_clip_range has no emptiness guard
     # (unlike the float path's _finite_clip_range), so norm_img guards up front.
     out = _norm(np.empty((0, 5), dtype=dtype))
-    assert out.dtype == np.int32
+    assert out.dtype == np.uint8
     assert out.shape == (0, 5)
 
 
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.dtype(">u2")])
 def test_norm_img_uint_path_bit_identical_to_float_reference(dtype):
-    # The bounded unsigned path (histogram percentile + 65536-entry LUT) must
-    # stay bit-identical to the float64 normalization — that equivalence is the
-    # whole reason it's a safe memory optimization rather than a visible change.
-    # Byte-swapped uint16 (>u2) takes the same path. Covers full-range, low-range
-    # (12-bit-style), sparse (min/max fallback), and constant (-> black).
+    # The bounded unsigned path (histogram percentile + 65536-entry uint8 LUT)
+    # must stay bit-identical to the float64 normalization — that equivalence is
+    # the whole reason it's a safe memory optimization rather than a visible
+    # change. Byte-swapped uint16 (>u2) takes the same path. Covers full-range,
+    # low-range (12-bit-style), sparse (min/max fallback), and constant (-> black).
     top = np.iinfo(np.uint8 if np.dtype(dtype).itemsize == 1 else np.uint16).max
     rng = np.random.default_rng(0)
     sparse = np.full((100, 100), 5, dtype=dtype)
@@ -640,8 +877,8 @@ def test_norm_img_uint_path_bit_identical_sweep():
     # Property-style guard for the same equivalence: many random unsigned planes
     # across dtypes / sizes / value distributions must match the float64
     # reference bit-for-bit. The histogram percentile differs from np.percentile
-    # only sub-ULP, and the *16-bit rescale must never let that flip an int32
-    # output bit. Seeded, so deterministic in CI (no flakiness).
+    # only sub-ULP, and the uint8 rescale must never let that flip an output
+    # byte. Seeded, so deterministic in CI (no flakiness).
     rng = np.random.default_rng(1234)
     for _ in range(60):
         dtype = rng.choice([np.uint8, np.uint16, np.dtype(">u2")])
@@ -660,7 +897,7 @@ def test_norm_img_uint_path_bit_identical_sweep():
             arr.flat[: max(1, arr.size // 500)] = top
         arr = arr.astype(dtype)
         assert np.array_equal(_norm(arr), _norm_float_reference(arr)), \
-            f"int32 flip: dtype={np.dtype(dtype).str} shape={(h, w)} kind={kind}"
+            f"uint8 flip: dtype={np.dtype(dtype).str} shape={(h, w)} kind={kind}"
 
 
 def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
@@ -688,15 +925,15 @@ def test_handle_image_blank_and_nan_channels_through_public_path(data_dir):
 
     invalid = [str(w.message) for w in caught if "invalid value encountered" in str(w.message)]
     assert not invalid, f"normalization emitted non-finite warnings: {invalid}"
-    assert Image.open(BytesIO(png)).mode == "I;16"
+    assert Image.open(BytesIO(png)).mode == "L"
 
 
-def test_norm_img_normalizes_to_full_16bit_range():
-    # A gradient stretches to the full I;16 range, as int32 (PIL mode I).
+def test_norm_img_normalizes_to_full_uint8_range():
+    # A gradient stretches to the full uint8 range (PIL mode L).
     out = _norm(np.linspace(0, 1000, 64 * 64).reshape(64, 64))
-    assert out.dtype == np.int32
+    assert out.dtype == np.uint8
     assert out.min() == 0
-    assert out.max() == np.iinfo(np.uint16).max
+    assert out.max() == 255
 
 
 @pytest.mark.parametrize("chunks", [-1, (16, 16)])
@@ -708,8 +945,8 @@ def test_norm_img_constant_plane_renders_black_without_warning(chunks):
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # any warning (e.g. the 0/0 RuntimeWarning) fails
         out = _norm(np.full((40, 40), 5000, np.uint16), chunks=chunks)
-    assert out.dtype == np.int32
-    assert np.array_equal(out, np.zeros((40, 40), np.int32))
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, np.zeros((40, 40), np.uint8))
 
 
 def test_norm_img_nan_renders_black_per_pixel():
@@ -720,12 +957,12 @@ def test_norm_img_nan_renders_black_per_pixel():
     arr[0, 0] = np.nan
     out = _norm(arr)
     assert out[0, 0] == 0
-    assert out.max() == np.iinfo(np.uint16).max  # finite range still spans output
+    assert out.max() == 255  # finite range still spans output
 
 
 def test_norm_img_all_non_finite_renders_black():
     out = _norm(np.full((8, 8), np.nan))
-    assert np.array_equal(out, np.zeros((8, 8), np.int32))
+    assert np.array_equal(out, np.zeros((8, 8), np.uint8))
 
 
 def test_norm_img_inf_saturates_to_range_ends():
@@ -733,8 +970,8 @@ def test_norm_img_inf_saturates_to_range_ends():
     arr[0, 0] = np.inf
     arr[0, 1] = -np.inf
     out = _norm(arr)
-    assert out[0, 0] == np.iinfo(np.uint16).max  # +inf saturates to white
-    assert out[0, 1] == 0                          # -inf saturates to black
+    assert out[0, 0] == 255  # +inf saturates to white
+    assert out[0, 1] == 0     # -inf saturates to black
 
 
 def test_norm_img_multichunk_2d_does_not_raise():
@@ -758,7 +995,7 @@ def test_norm_img_sparse_stays_visible():
     arr = np.full((100, 100), 100, np.uint16)
     arr[0, 0] = 60000
     out = _norm(arr)
-    assert out.max() == np.iinfo(np.uint16).max
+    assert out.max() == 255
     assert out.min() == 0
 
 
@@ -773,8 +1010,8 @@ def test_norm_img_sparse_plane_with_nan_ranges_over_finite_values():
     arr[0, 0] = 60000.0   # lone bright outlier -> finite max
     arr[0, 1] = np.nan    # masked pixel
     out = _norm(arr)
-    assert out[0, 1] == 0                          # NaN -> black
-    assert out.max() == np.iinfo(np.uint16).max    # outlier visible: finite max, not NaN
+    assert out[0, 1] == 0       # NaN -> black
+    assert out.max() == 255     # outlier visible: finite max, not NaN
 
 
 def test_norm_img_leaves_color_planes_unchanged():
@@ -788,7 +1025,7 @@ TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
 TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "617551541881add8011f55de0c3936a90fc2188a40b6ef47c7e6ab20c3d2c8bf"
-THUMBS_PKG = "images/thumbs", "6244534f2034cf1166107a8da3915cb469761cf342d85eb653623d9f92390474"
+THUMBS_PKG = "images/thumbs", "21dbc86f8d17207cd4ece201efc6b7554462c5d80c9b3b750123ee6f2de631da"
 SIZE = (1024, 768)
 
 
@@ -869,34 +1106,9 @@ SIZE = (1024, 768)
             "c1_bgr24.czi",
             marks=pytest.mark.xfail(raises=bioio_czi.metadata.UnsupportedMetadataError),
         ),
-        #   File "site-packages/bioio_base/reader.py", line 613, in dims
-        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
-        #                                  ^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
-        #     self._xarray_dask_data = self._read_delayed()
-        #                              ~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
-        #     return self._implementation._read_delayed()
-        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
-        #     return xr.DataArray(
-        #            ~~~~~~~~~~~~^
-        #         data=da.block(lazy_arrays.tolist()),
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     ...<2 lines>...
-        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     )
-        #     ^
-        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
-        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
-        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
-        #     raise ValueError(
-        #     ...<2 lines>...
-        #     )
-        # ValueError: different number of dimensions on data and dims: 3 vs 4
-        pytest.param(CZI_PKG, "c1_bgr48.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        # Readable since bioio-czi 2.7.0; lambda swaps BGR->RGB. B/W
+        # checkerboard, so it pins decode/shape but not channel order.
+        (CZI_PKG, "c1_bgr48.czi"),
         # RuntimeError: Sorry, this pixeltype isn't implemented yet.
         pytest.param(CZI_PKG, "c1_bgr96float.czi", marks=pytest.mark.xfail(raises=(RuntimeError, ValueError))),
         (CZI_PKG, "c1_gray16.czi"),
@@ -908,34 +1120,9 @@ SIZE = (1024, 768)
         (CZI_PKG, "c2_gray8_t3_z5_s2.czi"),
         # A real mosaic (whole-slide) acquisition that decodes to a single greyscale plane.
         (CZI_PKG, "OverViewScan.czi"),
-        #   File "site-packages/bioio_base/reader.py", line 613, in dims
-        #     self._dims = Dimensions(dims=self.xarray_dask_data.dims, shape=self.shape)
-        #                                  ^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/bioio_base/reader.py", line 440, in xarray_dask_data
-        #     self._xarray_dask_data = self._read_delayed()
-        #                              ~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/reader.py", line 195, in _read_delayed
-        #     return self._implementation._read_delayed()
-        #            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-        #   File "site-packages/bioio_czi/pylibczirw_reader/reader.py", line 319, in _read_delayed
-        #     return xr.DataArray(
-        #            ~~~~~~~~~~~~^
-        #         data=da.block(lazy_arrays.tolist()),
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     ...<2 lines>...
-        #         attrs={constants.METADATA_UNPROCESSED: self.metadata},
-        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #     )
-        #     ^
-        #   File "site-packages/xarray/core/dataarray.py", line 461, in __init__
-        #     coords, dims = _infer_coords_and_dims(data.shape, coords, dims)
-        #                    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "site-packages/xarray/core/dataarray.py", line 166, in _infer_coords_and_dims
-        #     raise ValueError(
-        #     ...<2 lines>...
-        #     )
-        # ValueError: different number of dimensions on data and dims: 4 vs 5
-        pytest.param(CZI_PKG, "rgb-image.czi", marks=pytest.mark.xfail(raises=ValueError)),
+        # Color CZI (Bgr24); readable since bioio-czi 2.7.0. Pins CZI color
+        # channel order (test_handle_image_bgr_czi_channel_order is the oracle).
+        (CZI_PKG, "rgb-image.czi"),
     ],
 )
 def test_handle_image(pytestconfig, pkg_ref, lk):
@@ -978,7 +1165,99 @@ def test_handle_image(pytestconfig, pkg_ref, lk):
         expected = BioImage(thumbs_pkg[thumb_lk].get_cached_path())
 
         assert actual.dims.items() == expected.dims.items()
+        # Pin the 8-bit output contract explicitly: assert_equal compares values
+        # but ignores dtype, so a wrong 16-bit regeneration with coincidentally
+        # equal values would otherwise slip past the pixel check.
+        assert actual.reader.data.dtype == np.uint8
         np.testing.assert_equal(actual.reader.data, expected.reader.data)
+
+
+def test_handle_image_bgr_czi_channel_order():
+    # Independent oracle for the BGR->RGB swap: a self-generated golden can't
+    # catch a re-introduced swap, but this can. rgb-image.czi is tan wooden
+    # dice, so the rendered subject must be warm-toned (R > B). It is ~1 MB, so
+    # (unlike test_handle_image, which also fetches large fixtures) no
+    # --large-files size gate is needed.
+    quilt3.Package.install(
+        CZI_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=CZI_PKG[1],
+        path="rgb-image.czi",
+    )
+    src_entry = quilt3.Package.browse(
+        CZI_PKG[0],
+        registry=TEST_DATA_REGISTRY,
+        top_hash=CZI_PKG[1],
+    )["rgb-image.czi"]
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=src_entry.get_cached_path(), size=SIZE, thumbnail_format="PNG")
+
+    pixels = np.asarray(Image.open(BytesIO(data)).convert("RGB")).reshape(-1, 3)
+    # Subject = the dice: drop near-white background and near-black pips.
+    brightness = pixels.sum(axis=1)
+    subject = pixels[(brightness > 60) & (brightness < 690)]
+    mean = subject.mean(axis=0)
+    assert mean[0] > mean[2] + 10, f"expected warm wood tone (R>B), got mean RGB={mean}"
+
+
+def test_handle_image_multichannel_bgr_czi_channel_order(data_dir):
+    # Covers the montage branch (C>1), where the swap lands on the montage's
+    # trailing S axis. No real fixture exists (real color CZIs are single-
+    # channel), so multichannel-bgr.czi is synthetic: channel 0 red, channel 1
+    # blue, in native BGR; the rendered tiles must keep those colors.
+    # Regenerate with:
+    #   import numpy as np
+    #   from pylibCZIrw import czi as pyczi
+    #   red = np.zeros((32, 32, 3), np.uint8); red[..., 2] = 255    # BGR -> red
+    #   blue = np.zeros((32, 32, 3), np.uint8); blue[..., 0] = 255  # BGR -> blue
+    #   with pyczi.create_czi("multichannel-bgr.czi") as doc:
+    #       opts = "zstd0:ExplicitLevel=10"
+    #       doc.write(data=red, plane={"C": 0}, compression_options=opts)
+    #       doc.write(data=blue, plane={"C": 1}, compression_options=opts)
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / "multichannel-bgr.czi"), size=SIZE, thumbnail_format="PNG")
+    arr = np.asarray(Image.open(BytesIO(data)).convert("RGB"))
+
+    # ch0 tiles into the left half, ch1 the right (montage is a 1x2 grid).
+    # Average the colored pixels in each half (dropping the black padding) so
+    # the check doesn't depend on exact tile centers.
+    def half_color(region):
+        flat = region.reshape(-1, 3)
+        return flat[flat.sum(axis=1) > 30].mean(axis=0)
+
+    mid = arr.shape[1] // 2
+    left, right = half_color(arr[:, :mid]), half_color(arr[:, mid:])
+    assert left[0] > left[2] + 10, f"channel 0 should render red (R>B), got {left}"
+    assert right[2] > right[0] + 10, f"channel 1 should render blue (B>R), got {right}"
+
+
+@pytest.mark.parametrize(
+    "x, expected",
+    [
+        (1, (1, 1)),
+        (2, (1, 2)),
+        (3, (1, 3)),  # prime -> single row
+        (4, (2, 2)),  # perfect square -> square grid
+        (6, (2, 3)),  # the montage layout exercised by the docstring
+        (7, (1, 7)),
+        (12, (3, 4)),
+        (16, (4, 4)),
+    ],
+)
+def test_most_square_grid(x, expected):
+    # The most-square grid is the factor pair with the smallest gap, and it
+    # always tiles exactly (rows * cols == x) so the montage has no empty cells.
+    rows, cols = t4_lambda_thumbnail.most_square_grid(x)
+    assert (rows, cols) == expected
+    assert rows * cols == x
+    assert rows <= cols
+
+
+def test_most_square_grid_zero_raises():
+    # x == 0 has no factor pair; the montage caller guards against it (channel
+    # count > 1), so this only pins the documented contract.
+    with pytest.raises(ValueError):
+        t4_lambda_thumbnail.most_square_grid(0)
 
 
 def test_http():

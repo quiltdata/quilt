@@ -1,38 +1,41 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
+import type { PackageContentsFlatMap } from 'model'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageDialog_gql_ManifestQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
-  name: Types.Scalars['String']
-  hashOrTag: Types.Scalars['String']
-  max: Types.Scalars['Int']
-  skipEntries: Types.Scalars['Boolean']
+export type containers_Bucket_PackageDialog_gql_ManifestQueryVariables = Exact<{
+  bucket: string
+  name: string
+  hashOrTag: string
+  max: number
+  skipEntries: boolean
 }>
 
-export type containers_Bucket_PackageDialog_gql_ManifestQuery = {
+export interface containers_Bucket_PackageDialog_gql_ManifestQuery {
   readonly __typename: 'Query'
-} & {
-  readonly package: Types.Maybe<
-    { readonly __typename: 'Package' } & Pick<Types.Package, 'bucket' | 'name'> & {
-        readonly revision: Types.Maybe<
-          { readonly __typename: 'PackageRevision' } & Types.MakeMaybe<
-            Pick<
-              Types.PackageRevision,
-              'hash' | 'modified' | 'userMeta' | 'contentsFlatMap'
-            >,
-            'contentsFlatMap'
-          > & {
-              readonly workflow: Types.Maybe<
-                { readonly __typename: 'PackageWorkflow' } & Pick<
-                  Types.PackageWorkflow,
-                  'id'
-                >
-              >
-            }
-        >
-      }
-  >
+  readonly package: {
+    readonly __typename: 'Package'
+    readonly bucket: string
+    readonly name: string
+    readonly revision: {
+      readonly __typename: 'PackageRevision'
+      readonly hash: string
+      readonly modified: Date
+      readonly userMeta: JsonRecord | null
+      readonly contentsFlatMap?: PackageContentsFlatMap | null
+      readonly workflow: {
+        readonly __typename: 'PackageWorkflow'
+        readonly id: string | null
+      } | null
+    } | null
+  } | null
 }
 
 export const containers_Bucket_PackageDialog_gql_ManifestDocument = {

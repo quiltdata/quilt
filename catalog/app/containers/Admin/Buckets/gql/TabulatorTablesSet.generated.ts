@@ -1,38 +1,48 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Buckets_gql_TabulatorTablesSetMutationVariables =
-  Types.Exact<{
-    bucketName: Types.Scalars['String']
-    tableName: Types.Scalars['String']
-    config: Types.Maybe<Types.Scalars['String']>
-  }>
+export type containers_Admin_Buckets_gql_TabulatorTablesSetMutationVariables = Exact<{
+  bucketName: string
+  tableName: string
+  config: string | null | undefined
+}>
 
-export type containers_Admin_Buckets_gql_TabulatorTablesSetMutation = {
+export interface containers_Admin_Buckets_gql_TabulatorTablesSetMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly bucketSetTabulatorTable:
-    | ({ readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
-          readonly tabulatorTables: ReadonlyArray<
-            { readonly __typename: 'TabulatorTable' } & Pick<
-              Types.TabulatorTable,
-              'name' | 'config'
-            >
-          >
-        })
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'name' | 'message' | 'context'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message' | 'context'
-      >)
+    | {
+        readonly __typename: 'BucketConfig'
+        readonly name: string
+        readonly tabulatorTables: ReadonlyArray<{
+          readonly __typename: 'TabulatorTable'
+          readonly name: string
+          readonly config: string
+        }>
+      }
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly name: string
+          readonly message: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
 }
 
 export const containers_Admin_Buckets_gql_TabulatorTablesSetDocument = {

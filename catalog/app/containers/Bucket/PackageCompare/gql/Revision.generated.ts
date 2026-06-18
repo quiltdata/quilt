@@ -1,31 +1,37 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
+import type { PackageContentsFlatMap } from 'model'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageCompare_gql_RevisionQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
-  name: Types.Scalars['String']
-  hashOrTag: Types.Scalars['String']
+export type containers_Bucket_PackageCompare_gql_RevisionQueryVariables = Exact<{
+  bucket: string
+  name: string
+  hashOrTag: string
 }>
 
-export type containers_Bucket_PackageCompare_gql_RevisionQuery = {
+export interface containers_Bucket_PackageCompare_gql_RevisionQuery {
   readonly __typename: 'Query'
-} & {
-  readonly package: Types.Maybe<
-    { readonly __typename: 'Package' } & Pick<Types.Package, 'bucket' | 'name'> & {
-        readonly revision: Types.Maybe<
-          { readonly __typename: 'PackageRevision' } & Pick<
-            Types.PackageRevision,
-            | 'hash'
-            | 'modified'
-            | 'contentsFlatMap'
-            | 'message'
-            | 'totalBytes'
-            | 'userMeta'
-          >
-        >
-      }
-  >
+  readonly package: {
+    readonly __typename: 'Package'
+    readonly bucket: string
+    readonly name: string
+    readonly revision: {
+      readonly __typename: 'PackageRevision'
+      readonly hash: string
+      readonly modified: Date
+      readonly contentsFlatMap: PackageContentsFlatMap | null
+      readonly message: string | null
+      readonly totalBytes: number | null
+      readonly userMeta: JsonRecord | null
+    } | null
+  } | null
 }
 
 export const containers_Bucket_PackageCompare_gql_RevisionDocument = {

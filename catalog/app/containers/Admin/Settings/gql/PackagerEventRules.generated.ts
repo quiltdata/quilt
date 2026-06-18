@@ -1,22 +1,28 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Settings_gql_PackagerEventRulesQueryVariables = Types.Exact<{
+export type containers_Admin_Settings_gql_PackagerEventRulesQueryVariables = Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_Settings_gql_PackagerEventRulesQuery = {
+export interface containers_Admin_Settings_gql_PackagerEventRulesQuery {
   readonly __typename: 'Query'
-} & {
-  readonly admin: { readonly __typename: 'AdminQueries' } & {
-    readonly packager: { readonly __typename: 'PackagerAdminQueries' } & {
-      readonly eventRules: ReadonlyArray<
-        { readonly __typename: 'PackagerEventRule' } & Pick<
-          Types.PackagerEventRule,
-          'name' | 'enabled'
-        >
-      >
+  readonly admin: {
+    readonly __typename: 'AdminQueries'
+    readonly packager: {
+      readonly __typename: 'PackagerAdminQueries'
+      readonly eventRules: ReadonlyArray<{
+        readonly __typename: 'PackagerEventRule'
+        readonly name: string
+        readonly enabled: boolean
+      }>
     }
   }
 }

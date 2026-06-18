@@ -1,28 +1,35 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../../model/graphql/types.generated'
 
 export type containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQueryVariables =
-  Types.Exact<{
-    bucket: Types.Scalars['String']
-    name: Types.Scalars['String']
+  Exact<{
+    bucket: string
+    name: string
   }>
 
-export type containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQuery = {
+export interface containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListQuery {
   readonly __typename: 'Query'
-} & {
-  readonly package: Types.Maybe<
-    { readonly __typename: 'Package' } & Pick<Types.Package, 'bucket' | 'name'> & {
-        readonly revisions: { readonly __typename: 'PackageRevisionList' } & {
-          readonly page: ReadonlyArray<
-            { readonly __typename: 'PackageRevision' } & Pick<
-              Types.PackageRevision,
-              'hash' | 'message' | 'modified'
-            >
-          >
-        }
-      }
-  >
+  readonly package: {
+    readonly __typename: 'Package'
+    readonly bucket: string
+    readonly name: string
+    readonly revisions: {
+      readonly __typename: 'PackageRevisionList'
+      readonly page: ReadonlyArray<{
+        readonly __typename: 'PackageRevision'
+        readonly hash: string
+        readonly message: string | null
+        readonly modified: Date
+      }>
+    }
+  } | null
 }
 
 export const containers_Bucket_PackageCompare_RevisionsRange_gql_RevisionsListDocument = {
