@@ -17,6 +17,7 @@ import * as QueryEditor from './QueryEditor'
 import History from './History'
 import Results from './Results'
 import Workgroups from './Workgroups'
+import TabulatorTables from './TabulatorTables'
 import * as Model from './model'
 import { doQueryResultsContainManifestEntries } from './model/createPackage'
 
@@ -349,6 +350,7 @@ function AthenaContainer() {
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />
+            <TabulatorTables />
             <QueryEditor.Form className={classes.form} />
           </div>
           {queryExecutionId ? (
