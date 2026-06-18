@@ -62,9 +62,10 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('renders a chip per table', () => {
+  it('offers an autofill helper with a chip per table', () => {
     useTabulatorTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
     const { getByText } = render(<TabulatorTables />)
+    expect(getByText(/autofill/i)).toBeTruthy()
     expect(getByText('drugs')).toBeTruthy()
     expect(getByText('bonds')).toBeTruthy()
   })

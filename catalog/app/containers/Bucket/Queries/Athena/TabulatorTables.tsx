@@ -7,10 +7,9 @@ import * as Model from './model'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    margin: t.spacing(2, 0, 0),
+    margin: t.spacing(3, 0, 0),
   },
   label: {
-    color: t.palette.text.secondary,
     marginBottom: t.spacing(1),
   },
   chips: {
@@ -47,10 +46,13 @@ export default function TabulatorTables() {
   // Render nothing on loading / error / empty — never break the Queries page.
   if (!Model.hasData(tables) || tables.length === 0) return null
 
+  // An optional shortcut that fills the editor, not a step in the form — hence the
+  // muted, action-led framing rather than a labelled field. Clicking replaces the
+  // current query body (the editor is usually pre-filled with the default query).
   return (
     <div className={classes.root}>
-      <M.Typography className={classes.label} variant="body2">
-        Tabulator tables in {bucket}
+      <M.Typography className={classes.label} variant="body2" color="textSecondary">
+        Autofill the query from a Tabulator table:
       </M.Typography>
       <div className={classes.chips}>
         {tables.map((table) => (
