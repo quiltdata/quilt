@@ -279,9 +279,9 @@ def test_handle_image_color_channel_order(data_dir, fixture, decode):
     assert agree > 0.9, f"{fixture}: R/B channel order agreement only {agree * 100:.0f}%"
 
 
-# Two rescale paths feed generate_thumbnail's dispatch: uint8/uint16 take the
-# bounded histogram+LUT path (_R_U16), everything else (float, signed, wide
-# unsigned) the float-copy path (_R_FIN). Behaviour shared by both paths is
+# generate_thumbnail rescales via two paths: uint16 takes the bounded
+# histogram+LUT path (_R_U16); float / signed / wide-unsigned take the float-copy
+# path (_R_FIN); uint8 needs no rescale. Behaviour shared by both paths is
 # parametrized over the function, mirroring test_rescale_joint_channels below.
 _R_U16 = t4_lambda_thumbnail._rescale_uint16_to_uint8
 _R_FIN = t4_lambda_thumbnail._rescale_finite_to_uint8
@@ -333,8 +333,9 @@ def test_rescale_constant(rescale, dtype, value, expected):
     assert (out == expected).all()
 
 
-# float + int share _finite_clip_range's empty-input branches; the size check
-# short-circuits before itemsize matters, so more dtypes would just retread these.
+# Empty input is guarded up front on both paths (uint16 returns early; the finite
+# path's size check short-circuits before itemsize matters), so these few dtypes
+# cover it and more would just retread the same branches.
 @pytest.mark.parametrize(
     ("rescale", "dtype"),
     [
@@ -354,7 +355,7 @@ def test_rescale_empty(rescale, dtype):
     [
         pytest.param(_R_U16, np.uint16, 4000, id="uint16"),
         pytest.param(_R_FIN, np.float32, 1.0, id="float"),
-        pytest.param(_R_FIN, np.uint32, 1_000_000, id="int"),
+        pytest.param(_R_FIN, np.uint32, 1_000_000, id="uint32"),
     ],
 )
 def test_rescale_sparse(rescale, dtype, hot):
