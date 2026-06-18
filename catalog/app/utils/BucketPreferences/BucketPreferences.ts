@@ -55,7 +55,7 @@ interface BlocksPreferencesInput {
   qurator?: boolean
 }
 
-interface BlocksPreferences {
+export interface BlocksPreferences {
   analytics: boolean
   browser: boolean
   code: boolean
