@@ -76,7 +76,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
     return (
       <div className={classes.root}>
         {head()}
-        <M.List dense>
+        <M.List dense disablePadding>
           {Array.from({ length: MAX_PACKAGES }, (_, i) => (
             <M.ListItem key={i} disableGutters>
               <Skeleton height={32} animate />
@@ -107,7 +107,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
           </M.Button>
         ),
       )}
-      <M.List dense>
+      <M.List dense disablePadding>
         {hits.map((hit) => (
           <M.ListItem
             key={hit.id}
