@@ -492,8 +492,6 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: 0,
   },
   input: {},
-  // Stacks each connector on its own line; a <span> (not <div>) keeps this
-  // valid inside FormHelperText's <p>.
   connectorLine: {
     display: 'block',
   },
