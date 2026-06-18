@@ -142,12 +142,16 @@ describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {
   })
 
   it('degrades to name only on unparseable/empty config', () => {
+    // utils/yaml.parse logs and swallows the YAMLException; silence it so the
+    // expected-failure path doesn't pollute test output.
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(parseTabulatorConfig('broken', ': : :')).toEqual({
       name: 'broken',
       format: '',
       columns: [],
       source: null,
     })
+    errorSpy.mockRestore()
   })
 
   it('omits source when the source section is incomplete', () => {

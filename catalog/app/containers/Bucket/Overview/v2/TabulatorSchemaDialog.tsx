@@ -58,6 +58,12 @@ export default function TabulatorSchemaDialog({
     if (table) setShown(table)
   }, [table])
 
+  // 2-part "database"."table" name: the bucket is the database. Tabulator tables
+  // live in a custom Athena data catalog ("<stack>-tabulator" by convention), not
+  // the default AwsDataCatalog. The catalog is omitted here — its name is not in
+  // the table config, and resolving it would require an Athena ListDataCatalogs
+  // call. The query works when the Tabulator catalog is the active catalog (as on
+  // the linked Queries page).
   const sql = shown ? `SELECT * FROM "${bucket}"."${shown.name}" LIMIT 100` : ''
 
   const handleCopy = React.useCallback(() => {
