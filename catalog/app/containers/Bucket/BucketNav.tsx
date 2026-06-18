@@ -131,11 +131,9 @@ export function BucketNav({ bucket }: BucketNavProps) {
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
-      Ok: ({ ui: { nav, blocks } }) => {
-        // v2 Overview renders its own shell without the bucket tab bar
-        if (section === 'overview' && blocks.overviewV2) return null
-        return <Tabs bucket={bucket} preferences={nav} section={section} />
-      },
+      Ok: ({ ui: { nav } }) => (
+        <Tabs bucket={bucket} preferences={nav} section={section} />
+      ),
       Pending: () => <BucketNavSkeleton />,
       Init: () => null,
     },
