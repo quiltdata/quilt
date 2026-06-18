@@ -40,9 +40,9 @@ vi.mock('utils/APIConnector', () => ({
   use: () => vi.fn(),
 }))
 
-const statsResult = vi.fn(() =>
-  AsyncResult.Ok({ totalBytes: 1024, totalObjects: 42, exts: [] }),
-)
+const OBJECTS_PLURAL = { totalBytes: 1024, totalObjects: 42, exts: [] }
+const statsResult = vi.fn(() => AsyncResult.Ok(OBJECTS_PLURAL))
+let packagesTotal = 7
 
 vi.mock('utils/Data', () => ({
   useData: () => ({ result: statsResult() }),
@@ -53,7 +53,7 @@ vi.mock('utils/GraphQL', () => ({
   useQuery: () => [{ fetching: false, error: undefined, data: undefined }],
   fold: (_q: unknown, handlers: { data: (d: unknown) => unknown }) =>
     handlers.data({
-      searchPackages: { __typename: 'PackagesSearchResultSet', total: 7 },
+      searchPackages: { __typename: 'PackagesSearchResultSet', total: packagesTotal },
     }),
 }))
 
@@ -74,7 +74,11 @@ function renderHeader() {
 }
 
 describe('containers/Bucket/Overview/v2/Header', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
+    packagesTotal = 7
+  })
 
   it('does not link the total-size stat', () => {
     const { getAllByText } = renderHeader()
@@ -99,6 +103,18 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     const link = getByText(/packages/).closest('a')
     expect(link).toBeTruthy()
     expect(link!.getAttribute('href')).toBe('/packages/test-bucket')
+  })
+
+  it('uses singular stat labels when the count is 1', () => {
+    statsResult.mockReturnValue(
+      AsyncResult.Ok({ totalBytes: 1024, totalObjects: 1, exts: [] }),
+    )
+    packagesTotal = 1
+    const { getByText, queryByText } = renderHeader()
+    expect(getByText('object')).toBeTruthy()
+    expect(getByText('package')).toBeTruthy()
+    expect(queryByText('objects')).toBeNull()
+    expect(queryByText('packages')).toBeNull()
   })
 
   it('renders the Create package button', () => {

@@ -13,6 +13,7 @@ import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import { Plural } from 'utils/format'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
@@ -62,6 +63,18 @@ function useStats(bucket: string) {
       ),
     [statsData.result],
   )
+  // Raw object count, kept alongside the formatted `totalObjects` to pluralize its label.
+  const numObjects: number | null = React.useMemo(
+    () =>
+      AsyncResult.case(
+        {
+          Ok: (v: $TSFixMe) => v.totalObjects,
+          _: () => null,
+        },
+        statsData.result,
+      ),
+    [statsData.result],
+  )
   const pkgCount: string | null = React.useMemo(
     () =>
       GQL.fold(countQuery, {
@@ -84,7 +97,37 @@ function useStats(bucket: string) {
       }),
     [countQuery],
   )
-  return { totalBytes, totalObjects, pkgCount, statsResult: statsData.result }
+  // Raw package count, kept alongside the formatted `pkgCount` to pluralize its label.
+  const numPackages: number | null = React.useMemo(
+    () =>
+      GQL.fold(countQuery, {
+        data: ({ searchPackages: r }) => {
+          switch (r.__typename) {
+            case 'EmptySearchResultSet':
+              return 0
+            case 'InvalidInput':
+            case 'OperationError':
+              return null
+            case 'PackagesSearchResultSet':
+              // `-1` == secure search
+              return r.total >= 0 ? r.total : null
+            default:
+              return assertNever(r)
+          }
+        },
+        fetching: () => null,
+        error: () => null,
+      }),
+    [countQuery],
+  )
+  return {
+    totalBytes,
+    totalObjects,
+    numObjects,
+    pkgCount,
+    numPackages,
+    statsResult: statsData.result,
+  }
 }
 
 const useStatsItemStyles = M.makeStyles((t) => ({
@@ -108,7 +151,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
 }))
 
 interface StatsItemProps {
-  label?: string
+  label?: React.ReactNode
   value: string
   to?: string
 }
@@ -177,12 +220,16 @@ interface StatsProps {
 function Stats({ bucket, stats }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
-  const { totalBytes, totalObjects, pkgCount } = stats
+  const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
   return (
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
       {totalObjects ? (
-        <StatsItem value={totalObjects} label="objects" to={urls.bucketDir(bucket)} />
+        <StatsItem
+          value={totalObjects}
+          label={<Plural value={numObjects ?? 0} one="object" other="objects" />}
+          to={urls.bucketDir(bucket)}
+        />
       ) : (
         <StatsItemSkeleton />
       )}
@@ -190,7 +237,7 @@ function Stats({ bucket, stats }: StatsProps) {
         {pkgCount ? (
           <StatsItem
             value={pkgCount}
-            label="packages"
+            label={<Plural value={numPackages ?? 0} one="package" other="packages" />}
             to={urls.bucketPackageList(bucket)}
           />
         ) : (
