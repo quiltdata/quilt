@@ -279,28 +279,141 @@ def test_handle_image_color_channel_order(data_dir, fixture, decode):
     assert agree > 0.9, f"{fixture}: R/B channel order agreement only {agree * 100:.0f}%"
 
 
-def test_rescale_uint16_to_uint8_rescales_by_range():
-    # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
-    # contrast-stretched, not truncated to a nearly black image.
-    arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
-    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+# generate_thumbnail rescales via two paths: uint16 takes the bounded
+# histogram+LUT path (_R_U16); float / signed / wide-unsigned take the float-copy
+# path (_R_FIN); uint8 needs no rescale. Behaviour shared by both paths is
+# parametrized over the function, mirroring test_rescale_joint_channels below.
+_R_U16 = t4_lambda_thumbnail._rescale_uint16_to_uint8
+_R_FIN = t4_lambda_thumbnail._rescale_finite_to_uint8
+
+
+@pytest.mark.parametrize(
+    ("rescale", "arr", "expected"),
+    [
+        # Low-range uint16 (e.g. 12-bit microscopy) is contrast-stretched, not
+        # truncated to a nearly black image.
+        pytest.param(
+            _R_U16, np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16),
+            [[0, 116], [233, 255]], id="uint16",
+        ),
+        pytest.param(
+            _R_FIN, np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16),
+            [[0, 64], [128, 255]], id="float16",
+        ),
+    ],
+)
+def test_rescale_exact_2x2(rescale, arr, expected):
+    # Exact-output golden for a small stretch on each path.
+    out = rescale(arr)
     assert out.dtype == np.uint8
-    assert np.array_equal(out, [[0, 116], [233, 255]])
+    assert np.array_equal(out, expected)
 
 
-def test_rescale_uint16_to_uint8_constant():
-    # Constant images keep their brightness level instead of being rescaled.
-    arr = np.full((4, 4), 1234, dtype=np.uint16)
-    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+@pytest.mark.parametrize(
+    ("rescale", "dtype", "value", "expected"),
+    [
+        # uint16: a constant image keeps its brightness level (>>8), not rescaled.
+        pytest.param(_R_U16, np.uint16, 1234, 1234 >> 8, id="uint16"),
+        # float: the [0, 1] convention keeps the level where the value allows it
+        # (tolerating one output quantum above 1.0, so a nudged 1.0 stays white);
+        # otherwise the absolute level. Both clamp to [0, 255].
+        pytest.param(_R_FIN, np.float32, 0.5, 128, id="float-in-01-convention"),
+        pytest.param(_R_FIN, np.float32, 1.0000001, 255, id="float-nudged-above-one"),
+        pytest.param(_R_FIN, np.float32, 100.0, 100, id="float-absolute-level"),
+        # int: the absolute level clamped into [0, 255], no [0, 1] convention.
+        pytest.param(_R_FIN, np.int32, 50, 50, id="int-small-level-kept"),
+        pytest.param(_R_FIN, np.int32, 1000, 255, id="int-large-clamped-white"),
+        pytest.param(_R_FIN, np.int32, -5, 0, id="int-negative-clamped-black"),
+    ],
+)
+def test_rescale_constant(rescale, dtype, value, expected):
+    # Constant images have no contrast to stretch; each path keeps the level.
+    out = rescale(np.full((4, 4), value, dtype=dtype))
     assert out.dtype == np.uint8
-    assert (out == (1234 >> 8)).all()
+    assert (out == expected).all()
 
 
-def test_rescale_uint16_to_uint8_empty():
-    arr = np.empty((0, 4), dtype=np.uint16)
-    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+# Empty input is guarded up front on both paths (uint16 returns early; the finite
+# path's size check short-circuits before itemsize matters), so these few dtypes
+# cover it and more would just retread the same branches.
+@pytest.mark.parametrize(
+    ("rescale", "dtype"),
+    [
+        pytest.param(_R_U16, np.uint16, id="uint16"),
+        pytest.param(_R_FIN, np.float32, id="float32"),
+        pytest.param(_R_FIN, np.int64, id="int64"),
+    ],
+)
+def test_rescale_empty(rescale, dtype):
+    out = rescale(np.empty((0, 4), dtype=dtype))
     assert out.dtype == np.uint8
     assert out.size == 0
+
+
+@pytest.mark.parametrize(
+    ("rescale", "dtype", "hot"),
+    [
+        pytest.param(_R_U16, np.uint16, 4000, id="uint16"),
+        pytest.param(_R_FIN, np.float32, 1.0, id="float"),
+        pytest.param(_R_FIN, np.uint32, 1_000_000, id="uint32"),
+    ],
+)
+def test_rescale_sparse(rescale, dtype, hot):
+    # Percentiles collapse when almost all pixels share one value; the min/max
+    # fallback keeps sparse data (e.g. a label mask) visible. The few hot pixels
+    # (3 of 40000) stay below the 0.01% percentile window, so the percentiles
+    # collapse instead of interpolating.
+    arr = np.zeros((200, 200), dtype=dtype)
+    arr[0, :3] = hot
+    out = rescale(arr)
+    assert (out[0, :3] == 255).all()  # sparse hot pixels visible
+    assert out[1, 0] == 0             # flat background -> black
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        # uint32 far beyond the 16-bit range: stretched by the actual range (not
+        # clamped to 16 bits, which would render it near-black).
+        pytest.param(
+            np.array([[0, 1_000_000], [2_000_000, 4_000_000]], dtype=np.uint32),
+            id="wide-unsigned",
+        ),
+        # signed: stretched across the full negative-to-positive range.
+        pytest.param(np.array([[-100, -50], [0, 100]], dtype=np.int32), id="signed"),
+    ],
+)
+def test_rescale_int_to_uint8_ascending_stretch(arr):
+    # Assert the stretch (min -> 0, max -> 255, ascending), not exact mid values —
+    # those ride on percentile-interpolated bounds, not min/max.
+    out = _R_FIN(arr)
+    assert out.dtype == np.uint8
+    assert out.min() == 0 and out.max() == 255
+    assert (np.diff(out.ravel().astype(int)) > 0).all()  # ascending in -> ascending out
+
+
+@pytest.mark.parametrize(
+    ("arr", "min_unique"),
+    [
+        # float64: a high-offset low-contrast band with sub-float32-ulp steps.
+        pytest.param(
+            np.linspace(1e6, 1e6 + 0.01, 256, dtype=np.float64).reshape(16, 16),
+            250, id="float64",
+        ),
+        # uint32 above float32's ~16M exact range (ulp 256 around 3e9).
+        pytest.param(
+            (3_000_000_000 + np.arange(256)).astype(np.uint32).reshape(16, 16),
+            200, id="wide-int",
+        ),
+    ],
+)
+def test_rescale_finite_to_uint8_float64_keeps_levels(arr, min_unique):
+    # The two dtypes that force the float64 working copy: the contrast a float32
+    # copy would quantize away must survive.
+    out = _R_FIN(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert len(np.unique(out)) >= min_unique
 
 
 def test_rescale_uint16_to_uint8_no_uint8_wraparound():
@@ -312,16 +425,6 @@ def test_rescale_uint16_to_uint8_no_uint8_wraparound():
     arr[0, 0] = 64999
     arr[0, 1] = 65020
     out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
-    assert out.max() == 255
-
-
-def test_rescale_uint16_to_uint8_sparse():
-    # Percentiles collapse when almost all pixels share one value; min/max
-    # fallback keeps sparse data (e.g. label masks) visible.
-    arr = np.zeros((200, 200), dtype=np.uint16)
-    arr[0, :3] = 4000
-    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
-    assert out.min() == 0
     assert out.max() == 255
 
 
@@ -391,38 +494,38 @@ def test_percentile_uint16_multi_block(monkeypatch, arr):
 
 
 @pytest.mark.parametrize(
-    ("arr", "rescale"),
+    ("rescale", "arr"),
     [
         pytest.param(
+            _R_U16,
             np.dstack([
                 np.linspace(0, 2048, 16, dtype=np.uint16).reshape(4, 4),
                 np.linspace(0, 4096, 16, dtype=np.uint16).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.uint16),
             ]),
-            t4_lambda_thumbnail._rescale_uint16_to_uint8,
             id="uint16",
         ),
         pytest.param(
+            _R_FIN,
             np.dstack([
                 np.linspace(0, 0.5, 16, dtype=np.float32).reshape(4, 4),
                 np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.float32),
             ]),
-            t4_lambda_thumbnail._rescale_finite_to_uint8,
             id="float32",
         ),
         pytest.param(
+            _R_FIN,
             np.dstack([
                 np.linspace(0, 500_000, 16, dtype=np.uint32).reshape(4, 4),
                 np.linspace(0, 1_000_000, 16, dtype=np.uint32).reshape(4, 4),
                 np.zeros((4, 4), dtype=np.uint32),
             ]),
-            t4_lambda_thumbnail._rescale_finite_to_uint8,
             id="uint32",
         ),
     ],
 )
-def test_rescale_joint_channels(arr, rescale):
+def test_rescale_joint_channels(rescale, arr):
     # The range is shared across channels so relative intensities survive:
     # a half-range channel must map to mid-grey, not stretch to full range
     # on its own.
@@ -430,13 +533,6 @@ def test_rescale_joint_channels(arr, rescale):
     assert out[..., 0].max() == 128
     assert out[..., 1].max() == 255
     assert (out[..., 2] == 0).all()
-
-
-def test_rescale_float_to_uint8():
-    arr = np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.dtype == np.uint8
-    assert np.array_equal(out, [[0, 64], [128, 255]])
 
 
 def test_rescale_float_to_uint8_nan():
@@ -448,24 +544,6 @@ def test_rescale_float_to_uint8_nan():
         warnings.simplefilter("error")
         out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert np.array_equal(out, [[0, 0], [85, 255]])
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        # [0, 1]-convention constants keep their brightness level
-        pytest.param(0.5, 128, id="in-01-convention"),
-        # one output quantum of tolerance above 1.0: a nudged 1.0 stays white
-        pytest.param(1.0000001, 255, id="nudged-above-one"),
-        # constants outside the convention are kept as absolute levels
-        pytest.param(100.0, 100, id="absolute-level"),
-    ],
-)
-def test_rescale_float_to_uint8_constant(value, expected):
-    arr = np.full((4, 4), value, dtype=np.float32)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.dtype == np.uint8
-    assert (out == expected).all()
 
 
 def test_rescale_float_to_uint8_inf():
@@ -480,28 +558,6 @@ def test_rescale_float_to_uint8_all_non_finite():
     out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
     assert out.dtype == np.uint8
     assert (out == 0).all()
-
-
-def test_rescale_float_to_uint8_float64_precision():
-    # High-offset low-contrast float64: sub-float32-ulp differences must
-    # not collapse in the working copy.
-    arr = np.linspace(1e6, 1e6 + 0.01, 256, dtype=np.float64).reshape(16, 16)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.min() == 0
-    assert out.max() == 255
-    assert len(np.unique(out)) >= 250
-
-
-def test_rescale_float_to_uint8_sparse():
-    # Percentiles collapse when almost all pixels share one value; min/max
-    # fallback keeps sparse data (e.g. label masks) visible. The hot pixels
-    # must stay below the 0.01% percentile window (here: <4 of 40000) so
-    # the percentiles actually collapse instead of interpolating.
-    arr = np.zeros((200, 200), dtype=np.float32)
-    arr[0, :3] = 1.0
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert (out[0, :3] == 255).all()
-    assert out[1, 0] == 0
 
 
 def test_rescale_float_to_uint8_sparse_with_nan():
@@ -529,75 +585,6 @@ def test_rescale_float_to_uint8_clips_outlier_pixels():
     assert out[0, 0] == 255
     assert out[0, 1] == 0
     assert len(np.unique(out)) > 200
-
-
-# float + int are _finite_clip_range's two empty-input branches; the size check
-# short-circuits before itemsize matters, so more dtypes would just retread these.
-@pytest.mark.parametrize("dtype", [np.float32, np.int64])
-def test_rescale_finite_to_uint8_empty(dtype):
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(np.empty((0, 4), dtype=dtype))
-    assert out.dtype == np.uint8
-    assert out.size == 0
-
-
-def test_rescale_int_to_uint8_wide_unsigned():
-    # uint32 values far beyond the 16-bit range are contrast-stretched by their
-    # actual range (min -> 0, max -> 255, ascending), not clamped to 16 bits
-    # (which would render them near-black). Assert the stretch, not exact mid
-    # values — those ride on percentile-interpolated bounds, not min/max.
-    arr = np.array([[0, 1_000_000], [2_000_000, 4_000_000]], dtype=np.uint32)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.dtype == np.uint8
-    assert out.min() == 0 and out.max() == 255
-    assert (np.diff(out.ravel().astype(int)) > 0).all()  # ascending input -> ascending output
-
-
-def test_rescale_int_to_uint8_signed():
-    # Signed integers stretch across their full negative-to-positive range
-    # (min -> 0, max -> 255, ascending).
-    arr = np.array([[-100, -50], [0, 100]], dtype=np.int32)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.dtype == np.uint8
-    assert out.min() == 0 and out.max() == 255
-    assert (np.diff(out.ravel().astype(int)) > 0).all()
-
-
-def test_rescale_int_to_uint8_high_offset_low_contrast():
-    # A low-contrast range sitting at a high uint32 offset (> float32's ~16M
-    # exact range, ulp 256 around 3e9): the float64 working copy must keep the
-    # contrast a float32 copy would quantize away.
-    arr = (3_000_000_000 + np.arange(256)).astype(np.uint32).reshape(16, 16)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.min() == 0
-    assert out.max() == 255
-    assert len(np.unique(out)) >= 200
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        pytest.param(50, 50, id="small-level-kept"),
-        pytest.param(1000, 255, id="large-level-clamped-white"),
-        pytest.param(-5, 0, id="negative-clamped-black"),
-    ],
-)
-def test_rescale_int_to_uint8_constant(value, expected):
-    # Constant integer images have no contrast; keep the absolute level clamped
-    # into [0, 255] (no [0, 1] convention as for floats).
-    arr = np.full((4, 4), value, dtype=np.int32)
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert out.dtype == np.uint8
-    assert (out == expected).all()
-
-
-def test_rescale_int_to_uint8_sparse():
-    # Percentiles collapse when almost all pixels share one value; the min/max
-    # fallback keeps a sparse wide-integer label mask visible.
-    arr = np.zeros((200, 200), dtype=np.uint32)
-    arr[0, :3] = 1_000_000
-    out = t4_lambda_thumbnail._rescale_finite_to_uint8(arr)
-    assert (out[0, :3] == 255).all()
-    assert out[1, 0] == 0
 
 
 def test_rescale_int_to_uint8_clips_outlier_pixels():
