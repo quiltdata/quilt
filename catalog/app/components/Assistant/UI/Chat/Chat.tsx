@@ -492,6 +492,11 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: 0,
   },
   input: {},
+  // Stacks each connector on its own line; a <span> (not <div>) keeps this
+  // valid inside FormHelperText's <p>.
+  connectorLine: {
+    display: 'block',
+  },
 }))
 
 interface ChatProps {
@@ -518,9 +523,9 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
   const helperLines = allConnectors.flatMap((c, i) =>
     Model.Connectors.stateIsUnready(connectorStates[i])
       ? [
-          <div key={c.id}>
+          <span key={c.id} className={classes.connectorLine}>
             <ConnectorHelperLine connector={c} state={connectorStates[i]} />
-          </div>,
+          </span>,
         ]
       : [],
   )
