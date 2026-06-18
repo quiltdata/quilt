@@ -738,8 +738,8 @@ def lambda_handler(request):
             else:
                 # Always PNG: imageio can't report the source's browser format
                 # (JPG/PNG/GIF) — get_reader() returns a reader instance, not a
-                # class to key on, and 2.28+ returns no instance at all — so there's
-                # nothing to preserve it from.
+                # class to key on, and 2.28+ no longer returns instances of those
+                # reader classes — so there's nothing to preserve it from.
                 thumbnail_format = "PNG"
                 info, data = handle_image(
                     path=src_file.name,
