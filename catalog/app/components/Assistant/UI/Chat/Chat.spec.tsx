@@ -1,89 +1,81 @@
 import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// The `Model` barrel transitively pulls AWS/Athena, which reads the catalog
-// config at module load; stub it so the import graph evaluates under jsdom.
 vi.mock('constants/config', () => ({ default: {} }))
 
 import * as Model from '../../Model'
 
 import { ConnectorHelperLine } from './Chat'
 
-// `ConnectorHelperLine` is rendered inside `Input`'s `FormHelperText`, which is
-// a <p>. Its output must therefore stay inline-only — a block element (<div>,
-// <p>, …) there triggers React's `validateDOMNesting` warning. These tests pin
-// that invariant for every state the connector helper can render.
+// Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
+// any block element there is invalid DOM nesting.
 
-// `ConnectorHelperLine` switches on the state tag only; the error payload is
-// never read, so the two required fields satisfy the Disconnected/Failed
-// constructors.
 const error: Model.Connectors.BackendError = { _tag: 'Transport', message: 'down' }
 
-// Only `config.title` is touched on render; `retry` / `acknowledge` fire on
-// click, never during render, so a bare config stub is enough.
 const fakeConnector = {
   config: { title: 'Quilt Platform tools' },
 } as unknown as Model.Connectors.ConnectorRuntime
 
-const cases: ReadonlyArray<[string, Model.Connectors.ConnectorState, RegExp]> = [
-  ['Connecting', Model.Connectors.ConnectorState.Connecting(), /connecting/i],
-  [
-    'Disconnected',
-    Model.Connectors.ConnectorState.Disconnected({ retrying: true, error }),
-    /reconnecting/i,
-  ],
-  [
-    'Failed (acked)',
-    Model.Connectors.ConnectorState.Failed({ error, acked: true }),
-    /unavailable/i,
-  ],
-  [
-    'Failed (unacked)',
-    Model.Connectors.ConnectorState.Failed({ error, acked: false }),
-    /continue without/i,
-  ],
-]
-
 const BLOCK_SELECTOR = 'div, p, ul, ol, li, table, section, article, h1, h2, h3'
 
+function renderLine(state: Model.Connectors.ConnectorState) {
+  return render(
+    <p>
+      <ConnectorHelperLine connector={fakeConnector} state={state} />
+    </p>,
+  )
+}
+
 describe('components/Assistant/UI/Chat/ConnectorHelperLine', () => {
-  afterEach(cleanup)
+  let consoleError: ReturnType<typeof vi.spyOn>
 
-  it.each(cases)('renders %s inline-only inside a <p>', (_name, state, expected) => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { container } = render(
-      <p>
-        <ConnectorHelperLine connector={fakeConnector} state={state} />
-      </p>,
-    )
+  beforeEach(() => {
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
 
-    // Sanity: it actually rendered the expected line (not a vacuous pass).
-    expect(container.textContent).toMatch(expected)
-
-    // The line must not introduce block-level elements under the <p>.
-    expect(container.querySelector('p')?.querySelector(BLOCK_SELECTOR)).toBeNull()
-
-    // And React must not have flagged invalid DOM nesting.
-    const nestingWarning = consoleError.mock.calls.some((args) =>
-      String(args[0]).includes('validateDOMNesting'),
-    )
-    expect(nestingWarning).toBe(false)
-
+  afterEach(() => {
     consoleError.mockRestore()
+    cleanup()
+  })
+
+  it('renders the Connecting state inline-only inside a <p>', () => {
+    const { container } = renderLine(Model.Connectors.ConnectorState.Connecting())
+    expect(container.textContent).toMatch(/connecting/i)
+    expect(container.querySelector('p')?.querySelector(BLOCK_SELECTOR)).toBeNull()
+    expect(consoleError).not.toHaveBeenCalled()
+  })
+
+  it('renders the Disconnected state inline-only inside a <p>', () => {
+    const { container } = renderLine(
+      Model.Connectors.ConnectorState.Disconnected({ retrying: true, error }),
+    )
+    expect(container.textContent).toMatch(/reconnecting/i)
+    expect(container.querySelector('p')?.querySelector(BLOCK_SELECTOR)).toBeNull()
+    expect(consoleError).not.toHaveBeenCalled()
+  })
+
+  it('renders the acked Failed state inline-only inside a <p>', () => {
+    const { container } = renderLine(
+      Model.Connectors.ConnectorState.Failed({ error, acked: true }),
+    )
+    expect(container.textContent).toMatch(/unavailable/i)
+    expect(container.querySelector('p')?.querySelector(BLOCK_SELECTOR)).toBeNull()
+    expect(consoleError).not.toHaveBeenCalled()
+  })
+
+  it('renders the unacked Failed state inline-only inside a <p>', () => {
+    const { container } = renderLine(
+      Model.Connectors.ConnectorState.Failed({ error, acked: false }),
+    )
+    expect(container.textContent).toMatch(/continue without/i)
+    expect(container.querySelector('p')?.querySelector(BLOCK_SELECTOR)).toBeNull()
+    expect(consoleError).not.toHaveBeenCalled()
   })
 
   it('renders nothing for the Ready state', () => {
-    const { container } = render(
-      <p>
-        <ConnectorHelperLine
-          connector={fakeConnector}
-          state={Model.Connectors.ConnectorState.Ready({
-            tools: {},
-            resources: [],
-          })}
-        />
-      </p>,
+    const { container } = renderLine(
+      Model.Connectors.ConnectorState.Ready({ tools: {}, resources: [] }),
     )
     expect(container.querySelector('p')?.textContent).toBe('')
   })
