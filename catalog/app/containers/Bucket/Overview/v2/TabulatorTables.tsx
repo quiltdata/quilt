@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -11,20 +12,27 @@ import { useTabulatorTables } from '../../Tabulator/requests'
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
 
 import SectionTitle from './SectionTitle'
-import TabulatorSchemaDialog from './TabulatorSchemaDialog'
-
-// Keep the inline column preview compact; the full list is in the schema dialog.
-const MAX_PREVIEW_COLUMNS = 6
 
 const useRowStyles = M.makeStyles((t) => ({
   root: {
     borderTop: `1px solid ${t.palette.divider}`,
-    padding: t.spacing(1.5, 2),
   },
-  top: {
+  header: {
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     gap: t.spacing(1.5),
+    padding: t.spacing(1.5, 2),
+    '&:hover': {
+      background: t.palette.action.hover,
+    },
+  },
+  caret: {
+    color: t.palette.text.secondary,
+    transition: 'transform 0.15s ease',
+  },
+  caretOpen: {
+    transform: 'rotate(90deg)',
   },
   name: {
     fontWeight: t.typography.fontWeightMedium,
@@ -43,46 +51,72 @@ const useRowStyles = M.makeStyles((t) => ({
     textDecoration: 'underline dotted',
     whiteSpace: 'nowrap',
   },
-  actions: {
-    display: 'flex',
-    gap: t.spacing(1),
-    marginLeft: 'auto',
+  tip: {
+    whiteSpace: 'pre-line',
+  },
+  body: {
+    padding: t.spacing(1, 2, 2, 5),
   },
   chips: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: t.spacing(0.5),
-    marginTop: t.spacing(1),
+    gap: t.spacing(1),
   },
   chipType: {
     color: t.palette.text.hint,
     fontFamily: t.typography.monospace.fontFamily,
     marginLeft: t.spacing(0.5),
   },
-  tip: {
-    whiteSpace: 'pre-line',
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: t.spacing(2),
   },
 }))
 
 interface TableRowProps {
   table: ParsedTabulatorTable
   queryUrl: string
-  onPreview: (table: ParsedTabulatorTable) => void
 }
 
-function TableRow({ table, queryUrl, onPreview }: TableRowProps) {
+function TableRow({ table, queryUrl }: TableRowProps) {
   const classes = useRowStyles()
-  const shownColumns = table.columns.slice(0, MAX_PREVIEW_COLUMNS)
-  const extra = table.columns.length - shownColumns.length
+  const [expanded, setExpanded] = React.useState(false)
+
   const sourceText = table.source
     ? `${table.source.packageName.pretty} · ${table.source.logicalKey.pretty}`
     : null
   const sourceTitle = table.source
     ? `package_name: ${table.source.packageName.raw}\nlogical_key: ${table.source.logicalKey.raw}`
     : ''
+
+  const toggle = React.useCallback(() => setExpanded((e) => !e), [])
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        toggle()
+      }
+    },
+    [toggle],
+  )
+
   return (
     <div className={classes.root}>
-      <div className={classes.top}>
+      <div
+        className={classes.header}
+        onClick={toggle}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+      >
+        <M.Icon
+          className={cx(classes.caret, expanded && classes.caretOpen)}
+          fontSize="small"
+        >
+          chevron_right
+        </M.Icon>
         <span className={classes.name}>{table.name}</span>
         {!!table.format && <M.Chip size="small" label={table.format} />}
         <span className={classes.meta}>{table.columns.length} cols</span>
@@ -91,45 +125,37 @@ function TableRow({ table, queryUrl, onPreview }: TableRowProps) {
             <span className={classes.source}>{sourceText}</span>
           </M.Tooltip>
         )}
-        <span className={classes.actions}>
-          <M.Button size="small" variant="outlined" onClick={() => onPreview(table)}>
-            Preview
-          </M.Button>
-          <M.Button
-            size="small"
-            variant="contained"
-            color="primary"
-            component={RRLink}
-            to={queryUrl}
-          >
-            Query
-          </M.Button>
-        </span>
       </div>
-      <div className={classes.chips}>
-        {shownColumns.map((col) => (
-          <M.Chip
-            key={col.name}
-            size="small"
-            variant="outlined"
-            label={
-              <>
-                {col.name}
-                <span className={classes.chipType}>{col.type}</span>
-              </>
-            }
-          />
-        ))}
-        {extra > 0 && (
-          <M.Chip
-            size="small"
-            variant="outlined"
-            clickable
-            onClick={() => onPreview(table)}
-            label={`+${extra} more`}
-          />
-        )}
-      </div>
+      <M.Collapse in={expanded} unmountOnExit>
+        <div className={classes.body}>
+          <div className={classes.chips}>
+            {table.columns.map((col) => (
+              <M.Chip
+                key={col.name}
+                size="small"
+                variant="outlined"
+                label={
+                  <>
+                    {col.name}
+                    <span className={classes.chipType}>{col.type}</span>
+                  </>
+                }
+              />
+            ))}
+          </div>
+          <div className={classes.actions}>
+            <M.Button
+              size="small"
+              variant="contained"
+              color="primary"
+              component={RRLink}
+              to={queryUrl}
+            >
+              Query →
+            </M.Button>
+          </div>
+        </div>
+      </M.Collapse>
     </div>
   )
 }
@@ -158,7 +184,6 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const tables = useTabulatorTables(bucket)
-  const [selected, setSelected] = React.useState<ParsedTabulatorTable | null>(null)
 
   if (Model.isLoading(tables)) return <M.LinearProgress />
 
@@ -189,19 +214,9 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
       </div>
       <div>
         {tables.map((table) => (
-          <TableRow
-            key={table.name}
-            table={table}
-            queryUrl={queryUrl}
-            onPreview={setSelected}
-          />
+          <TableRow key={table.name} table={table} queryUrl={queryUrl} />
         ))}
       </div>
-      <TabulatorSchemaDialog
-        bucket={bucket}
-        table={selected}
-        onClose={() => setSelected(null)}
-      />
     </M.Paper>
   )
 }

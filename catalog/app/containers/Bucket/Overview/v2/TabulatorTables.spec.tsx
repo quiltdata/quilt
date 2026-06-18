@@ -12,10 +12,6 @@ import TabulatorTables from './TabulatorTables'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-// TabulatorSchemaDialog (mounted when Preview is clicked) uses these.
-vi.mock('containers/Notifications', () => ({ use: () => ({ push: vi.fn() }) }))
-vi.mock('utils/clipboard', () => ({ default: vi.fn() }))
-
 const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
 vi.mock('../../Tabulator/requests', () => ({
   useTabulatorTables: (bucket: string) => useTabulatorTables(bucket),
@@ -84,40 +80,31 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('renders the title, table names, source and a link to queries', () => {
+  it('renders names and source but hides columns/SELECT while collapsed', () => {
     useTabulatorTables.mockReturnValue([makeTable('drugs', 3), makeTable('bonds', 2)])
-    const { getByText } = renderTables('my-bucket')
+    const { getByText, queryByText } = renderTables('my-bucket')
     expect(getByText(/Tabulator tables/)).toBeTruthy()
     expect(getByText('drugs')).toBeTruthy()
     expect(getByText('bonds')).toBeTruthy()
     expect(getByText(/a\/b · drugs\.csv/)).toBeTruthy()
     const link = getByText(/More queries/i).closest('a')
     expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
+    // Collapsed rows do not expose column chips.
+    expect(queryByText('col_0')).toBeNull()
   })
 
-  it('shows the first columns inline and a "+N more" chip for wide tables', () => {
+  it('reveals all columns and a Query link when a row is expanded', () => {
     useTabulatorTables.mockReturnValue([makeTable('drugs', 9)])
-    const { getByText } = renderTables()
+    const { getByText, queryByText } = renderTables('my-bucket')
+    expect(queryByText('col_0')).toBeNull()
+
+    fireEvent.click(getByText('drugs'))
+
+    // All columns are shown (no "+N more" cap once expanded).
     expect(getByText('col_0')).toBeTruthy()
-    expect(getByText('col_5')).toBeTruthy()
-    // 9 columns, 6 shown -> "+3 more"
-    expect(getByText('+3 more')).toBeTruthy()
-  })
-
-  it('opens the schema dialog when Preview is clicked', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs', 2)])
-    const { getAllByText, getByText } = renderTables('my-bucket')
-    fireEvent.click(getByText('Preview'))
-    // The dialog renders its own SELECT and "Open in Queries" action.
-    expect(getByText(/SELECT \* FROM "my-bucket"\."drugs" LIMIT 100/)).toBeTruthy()
-    // The table name now appears both in the row and the dialog title.
-    expect(getAllByText('drugs').length).toBeGreaterThan(1)
-  })
-
-  it('per-row Query links to the queries tab', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs', 2)])
-    const { getByText } = renderTables('my-bucket')
-    const link = getByText('Query').closest('a')
+    expect(getByText('col_8')).toBeTruthy()
+    expect(queryByText(/\+\d+ more/)).toBeNull()
+    const link = getByText(/Query/).closest('a')
     expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
   })
 })
