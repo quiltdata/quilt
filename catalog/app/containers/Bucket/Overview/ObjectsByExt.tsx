@@ -51,7 +51,9 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
     },
   },
   heading: {
-    ...t.typography.h6,
+    // Match the v2 SectionTitle font (subtitle1 + medium weight).
+    ...t.typography.subtitle1,
+    fontWeight: t.typography.fontWeightMedium,
     gridArea: 'heading',
     marginBottom: t.spacing(1),
     [t.breakpoints.down('sm')]: {
