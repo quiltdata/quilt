@@ -295,9 +295,8 @@ def _project_channel(img: BioImage, c: int) -> da.Array:
     """
     Reduce channel `c` to a 2D (Y, X) plane — or (Y, X, S) for color — by
     max-projecting over Z when the reader has a Z axis, else taking its single Z
-    slice. (Without a war over which projection is best, max is the simple choice
-    that gets a 2D image out of a Z stack.) Shared by the multi-channel montage
-    and the single-channel return below so they slice identically.
+    slice. Shared by the multi-channel montage and the single-channel return
+    below so they slice identically.
     """
     if "Z" in img.reader.dims.order:
         return img.dask_data[0, c, :, :, :].max(axis=0)
@@ -737,10 +736,10 @@ def lambda_handler(request):
             elif input_ == "pptx":
                 info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
             else:
-                # Always PNG: we once tried to retain the source's browser format
-                # (JPG/PNG/GIF) via imageio.get_reader(), but it returns a reader
-                # instance, not a class to key on — and imageio 2.28+ stopped
-                # returning these instances at all — so format detection never worked.
+                # Always PNG: imageio can't report the source's browser format
+                # (JPG/PNG/GIF) — get_reader() returns a reader instance, not a
+                # class to key on, and 2.28+ returns no instance at all — so there's
+                # nothing to preserve it from.
                 thumbnail_format = "PNG"
                 info, data = handle_image(
                     path=src_file.name,
