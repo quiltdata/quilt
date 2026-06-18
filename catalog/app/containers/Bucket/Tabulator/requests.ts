@@ -59,6 +59,16 @@ export function parseTabulatorConfig(name: string, config: string): ParsedTabula
   return { name, format, columns, source }
 }
 
+// Tabulator catalogs are named '<stack>-tabulator' by Quilt convention; the first
+// matching catalog is used. (Recovered from the removed live-rows preview.)
+export const TABULATOR_CATALOG_SUFFIX = '-tabulator'
+
+export function resolveTabulatorCatalog(
+  catalogNames: readonly string[],
+): string | undefined {
+  return catalogNames.find((name) => name.endsWith(TABULATOR_CATALOG_SUFFIX))
+}
+
 export function useTabulatorTables(
   bucket: string,
 ): Model.Data<readonly ParsedTabulatorTable[]> {

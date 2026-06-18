@@ -3,7 +3,13 @@ import { describe, it, expect, vi, type Mock } from 'vitest'
 
 import * as Model from '../Queries/Athena/model/utils'
 
-import { useTabulatorTables, prettifyPattern, parseTabulatorConfig } from './requests'
+import {
+  useTabulatorTables,
+  prettifyPattern,
+  parseTabulatorConfig,
+  resolveTabulatorCatalog,
+  TABULATOR_CATALOG_SUFFIX,
+} from './requests'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -160,5 +166,25 @@ describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {
     expect(result.format).toBe('parquet')
     expect(result.source).toBeNull()
     expect(result.columns).toEqual([{ name: 'id', type: 'INT' }])
+  })
+})
+
+describe('containers/Bucket/Tabulator/requests resolveTabulatorCatalog', () => {
+  it('exposes the tabulator catalog suffix', () => {
+    expect(TABULATOR_CATALOG_SUFFIX).toBe('-tabulator')
+  })
+
+  it('returns the first catalog ending with the tabulator suffix', () => {
+    expect(
+      resolveTabulatorCatalog(['awsdatacatalog', 'mystack-tabulator', 'other-tabulator']),
+    ).toBe('mystack-tabulator')
+  })
+
+  it('returns undefined when no catalog matches', () => {
+    expect(resolveTabulatorCatalog(['awsdatacatalog'])).toBeUndefined()
+  })
+
+  it('returns undefined for an empty list', () => {
+    expect(resolveTabulatorCatalog([])).toBeUndefined()
   })
 })
