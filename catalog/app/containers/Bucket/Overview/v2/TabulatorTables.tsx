@@ -76,10 +76,10 @@ const useRowStyles = M.makeStyles((t) => ({
 
 interface TableRowProps {
   table: ParsedTabulatorTable
-  queryUrl: string
+  athenaUrl: string
 }
 
-function TableRow({ table, queryUrl }: TableRowProps) {
+function TableRow({ table, athenaUrl }: TableRowProps) {
   const classes = useRowStyles()
   const [expanded, setExpanded] = React.useState(false)
 
@@ -149,7 +149,10 @@ function TableRow({ table, queryUrl }: TableRowProps) {
               variant="contained"
               color="primary"
               component={RRLink}
-              to={queryUrl}
+              to={{
+                pathname: athenaUrl,
+                search: `?table=${encodeURIComponent(table.name)}`,
+              }}
             >
               Query →
             </M.Button>
@@ -198,6 +201,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   if (!Model.hasData(tables) || tables.length === 0) return null
 
   const queryUrl = urls.bucketQueries(bucket)
+  const athenaUrl = urls.bucketAthena(bucket)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.head}>
@@ -214,7 +218,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
       </div>
       <div>
         {tables.map((table) => (
-          <TableRow key={table.name} table={table} queryUrl={queryUrl} />
+          <TableRow key={table.name} table={table} athenaUrl={athenaUrl} />
         ))}
       </div>
     </M.Paper>

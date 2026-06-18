@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
@@ -44,6 +45,14 @@ function makeTable(name: string, columnCount = 2) {
   }
 }
 
+function renderTables(entries: string[] = ['/b/my-bucket/queries/athena']) {
+  return render(
+    <MemoryRouter initialEntries={entries}>
+      <TabulatorTables />
+    </MemoryRouter>,
+  )
+}
+
 describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   afterEach(() => {
     cleanup()
@@ -52,19 +61,19 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
 
   it('renders nothing when there are no tables', () => {
     useTabulatorTables.mockReturnValue([])
-    const { container } = render(<TabulatorTables />)
+    const { container } = renderTables()
     expect(container.textContent).toBe('')
   })
 
   it('renders nothing while loading (no data)', () => {
     useTabulatorTables.mockReturnValue(undefined)
-    const { container } = render(<TabulatorTables />)
+    const { container } = renderTables()
     expect(container.textContent).toBe('')
   })
 
   it('offers an autofill helper with a chip per table', () => {
     useTabulatorTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
-    const { getByText } = render(<TabulatorTables />)
+    const { getByText } = renderTables()
     expect(getByText(/autofill/i)).toBeTruthy()
     expect(getByText('drugs')).toBeTruthy()
     expect(getByText('bonds')).toBeTruthy()
@@ -73,7 +82,7 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   it('fills the editor and selects catalog/database on chip click', () => {
     useTabulatorTables.mockReturnValue([makeTable('drugs')])
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
-    const { getByText } = render(<TabulatorTables />)
+    const { getByText } = renderTables()
     fireEvent.click(getByText('drugs'))
     expect(queryBody.setValue).toHaveBeenCalledWith(
       'SELECT * FROM "foo-tabulator"."my-bucket"."drugs" LIMIT 100',
@@ -85,12 +94,23 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   it('falls back to a two-part SELECT when no tabulator catalog resolves', () => {
     useTabulatorTables.mockReturnValue([makeTable('drugs')])
     resolveTabulatorCatalog.mockReturnValue(undefined)
-    const { getByText } = render(<TabulatorTables />)
+    const { getByText } = renderTables()
     fireEvent.click(getByText('drugs'))
     expect(queryBody.setValue).toHaveBeenCalledWith(
       'SELECT * FROM "my-bucket"."drugs" LIMIT 100',
     )
     expect(catalogName.setValue).not.toHaveBeenCalled()
     expect(database.setValue).not.toHaveBeenCalled()
+  })
+
+  it('autofills from a ?table= deep link on load', () => {
+    useTabulatorTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
+    resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
+    renderTables(['/b/my-bucket/queries/athena?table=drugs'])
+    expect(queryBody.setValue).toHaveBeenCalledWith(
+      'SELECT * FROM "foo-tabulator"."my-bucket"."drugs" LIMIT 100',
+    )
+    expect(catalogName.setValue).toHaveBeenCalledWith('foo-tabulator')
+    expect(database.setValue).toHaveBeenCalledWith('my-bucket')
   })
 })

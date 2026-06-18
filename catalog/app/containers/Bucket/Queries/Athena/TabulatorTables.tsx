@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
@@ -42,6 +43,27 @@ export default function TabulatorTables() {
     },
     [bucket, catalogNames.data, queryBody, catalogName, database],
   )
+
+  // Deep link from the Overview: `?table=<name>` autofills that table once on load,
+  // reusing the same handler as a chip click, then the param is consumed so edits
+  // and reloads aren't re-seeded.
+  const location = RRDom.useLocation()
+  const history = RRDom.useHistory()
+  const appliedRef = React.useRef(false)
+  React.useEffect(() => {
+    if (appliedRef.current) return
+    if (!Model.hasData(tables)) return
+    // Wait until the catalog list settles so the autofill can build the 3-part name.
+    if (!Model.hasData(catalogNames.data) && !Model.isError(catalogNames.data)) return
+    const params = new URLSearchParams(location.search)
+    const name = params.get('table')
+    if (!name) return
+    appliedRef.current = true
+    const table = tables.find((t) => t.name === name)
+    if (table) handleSelect(table)
+    params.delete('table')
+    history.replace({ ...location, search: params.toString() })
+  }, [tables, catalogNames.data, location, history, handleSelect])
 
   // Render nothing on loading / error / empty — never break the Queries page.
   if (!Model.hasData(tables) || tables.length === 0) return null

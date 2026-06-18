@@ -25,6 +25,7 @@ const theme = createMuiTheme({
 
 const routes = {
   bucketQueries: { path: '', url: (bucket: string) => `/b/${bucket}/queries` },
+  bucketAthena: { path: '', url: (bucket: string) => `/b/${bucket}/queries/athena` },
 }
 
 function makeTable(name: string, columnCount: number) {
@@ -105,6 +106,6 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     expect(getByText('col_8')).toBeTruthy()
     expect(queryByText(/\+\d+ more/)).toBeNull()
     const link = getByText(/Query/).closest('a')
-    expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
+    expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries/athena?table=drugs')
   })
 })
