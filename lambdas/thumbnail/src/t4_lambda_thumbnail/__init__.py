@@ -291,6 +291,19 @@ def norm_img(img: da.Array) -> da.Array:
     )
 
 
+def _project_channel(img: BioImage, c: int) -> da.Array:
+    """
+    Reduce channel `c` to a 2D (Y, X) plane — or (Y, X, S) for color — by
+    max-projecting over Z when the reader has a Z axis, else taking its single Z
+    slice. (Without a war over which projection is best, max is the simple choice
+    that gets a 2D image out of a Z stack.) Shared by the multi-channel montage
+    and the single-channel return below so they slice identically.
+    """
+    if "Z" in img.reader.dims.order:
+        return img.dask_data[0, c, :, :, :].max(axis=0)
+    return img.dask_data[0, c, 0, :, :]
+
+
 def _format_n_dim_ndarray(img: BioImage) -> tuple[da.Array, bool]:
     # Returns (array, normalized): normalized is True only when norm_img
     # contrast-stretched the data to uint8 (a greyscale montage / Z-projection,
@@ -326,40 +339,17 @@ def _format_n_dim_ndarray(img: BioImage) -> tuple[da.Array, bool]:
         # planes lazy lets dask release each once it has been copied into the
         # montage, so they don't stay resident through the downstream resize (see
         # norm_img); a concrete-array assembly would hold all N until then.
-        projections = []
         s_pad = ((0, 0),) if has_samples else ()
-        for i in range(img.dask_data.shape[1]):
-            if "Z" in img.reader.dims.order:
-                # Add padding to the top and left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, :, :, :].max(axis=0)),
-                    ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
-                )
-                projections.append(padded)
-            else:
-                # Add padding to the top and the left of the projection
-                padded = da.pad(
-                    norm_img(img.dask_data[0, i, 0, :, :]),
-                    ((5, 0), (5, 0)) + s_pad,
-                    mode="constant"
-                )
-                projections.append(padded)
+        projections = [
+            da.pad(norm_img(_project_channel(img, c)), ((5, 0), (5, 0)) + s_pad, mode="constant")
+            for c in range(img.dask_data.shape[1])
+        ]
 
-        # Lay the channels out in the most-square grid (6 channels -> (2, 3))
-        grid_shape = most_square_grid(len(projections))
-
-        # Make rows of images
-        # Use a counter so that we don't have to use `projections.pop` which is O(N)
-        rows = []
-        proj_counter = 0
-        for y_i in range(grid_shape[0]):
-            row = []
-            for x_i in range(grid_shape[1]):
-                row.append(projections[proj_counter])
-                proj_counter += 1
-
-            rows.append(row)
+        # Lay the channels out in the most-square grid (6 channels -> (2, 3)).
+        # most_square_grid returns exact factors, so the projections slice evenly
+        # into rows_n rows of cols_n.
+        rows_n, cols_n = most_square_grid(len(projections))
+        rows = [projections[r * cols_n:(r + 1) * cols_n] for r in range(rows_n)]
 
         # Concatenate each row then concatenate all rows together into a single 2D image
         merged = [da.concatenate(row, axis=1) for row in rows]
@@ -368,13 +358,7 @@ def _format_n_dim_ndarray(img: BioImage) -> tuple[da.Array, bool]:
         montage = da.pad(da.concatenate(merged, axis=0), ((0, 5), (0, 5)) + s_pad, mode="constant")
         return montage, not has_samples
 
-    # If there is a Z dimension we need to do _something_ the get a 2D out.
-    # Without causing a war about which projection method is best
-    # we will simply use a max projection on files that contain a Z dimension
-    if "Z" in img.reader.dims.order:
-        return norm_img(img.dask_data[0, 0, :, :, :].max(axis=0)), not has_samples
-
-    return norm_img(img.dask_data[0, 0, 0, :, :]), not has_samples
+    return norm_img(_project_channel(img, 0)), not has_samples
 
 
 def format_aicsimage_to_prepped(img: BioImage) -> tuple[da.Array, bool]:
@@ -753,22 +737,10 @@ def lambda_handler(request):
             elif input_ == "pptx":
                 info, data = handle_pptx(path=src_file.name, page=page, size=size[0], count_pages=count_pages)
             else:
-                # XXX: This never seemed to work, because imageio.get_reader() returns an instance,
-                #      not a class/type. imageio 2.28+ stopped return instances of these classes altogether.
-                #      So for now, always use PNG.
-                # If the image is one of these formats, retain the format after formatting
-                # SUPPORTED_BROWSER_FORMATS = {
-                #     imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
-                #     imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
-                #     imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
-                # }
-                # try:
-                #     thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-                #         imageio.get_reader(url),
-                #         "PNG"
-                #     )
-                # except ValueError:
-                #     thumbnail_format = "PNG"
+                # Always PNG: we once tried to retain the source's browser format
+                # (JPG/PNG/GIF) via imageio.get_reader(), but it returns a reader
+                # instance, not a class to key on — and imageio 2.28+ stopped
+                # returning these instances at all — so format detection never worked.
                 thumbnail_format = "PNG"
                 info, data = handle_image(
                     path=src_file.name,
