@@ -66,8 +66,9 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
 
   it('renders nothing while loading', () => {
     useTabulatorTables.mockReturnValue(Loading)
-    const { queryByText } = renderTables()
+    const { queryByText, container } = renderTables()
     expect(queryByText(/Tabulator tables/)).toBeNull()
+    expect(container.querySelector('.MuiLinearProgress-root')).toBeTruthy()
   })
 
   it('renders an inline error without crashing', () => {
