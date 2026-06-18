@@ -334,7 +334,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function AthenaContainer() {
+interface AthenaContainerProps {
+  overviewV2: boolean
+}
+
+function AthenaContainer({ overviewV2 }: AthenaContainerProps) {
   const { bucket, queryExecutionId, workgroup } = Model.use()
 
   const classes = useStyles()
@@ -350,7 +354,7 @@ function AthenaContainer() {
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />
-            <TabulatorTables />
+            {overviewV2 && <TabulatorTables />}
             <QueryEditor.Form className={classes.form} />
           </div>
           {queryExecutionId ? (
@@ -372,7 +376,7 @@ export default function Wrapper() {
     {
       Ok: ({ ui }) => (
         <Model.Provider preferences={ui.athena}>
-          <AthenaContainer />
+          <AthenaContainer overviewV2={ui.blocks.overviewV2} />
         </Model.Provider>
       ),
       _: () => <Placeholder color="inherit" />,

@@ -7,15 +7,6 @@ import TabulatorTables from './TabulatorTables'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-let overviewV2 = true
-vi.mock('utils/BucketPreferences', () => ({
-  use: () => ({ prefs: { _tag: 'Ok' } }),
-  Result: {
-    match: (m: { Ok: (r: { ui: { blocks: { overviewV2: boolean } } }) => unknown }) =>
-      m.Ok({ ui: { blocks: { overviewV2 } } }),
-  },
-}))
-
 const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
 const resolveTabulatorCatalog = vi.fn<(l: readonly string[]) => string | undefined>()
 vi.mock('../../Tabulator/requests', () => ({
@@ -66,14 +57,6 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
-    overviewV2 = true
-  })
-
-  it('renders nothing when overviewV2 is disabled', () => {
-    overviewV2 = false
-    useTabulatorTables.mockReturnValue([makeTable('drugs')])
-    const { container } = renderTables()
-    expect(container.textContent).toBe('')
   })
 
   it('renders nothing when there are no tables', () => {
