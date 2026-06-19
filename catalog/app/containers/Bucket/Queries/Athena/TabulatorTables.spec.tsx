@@ -7,6 +7,9 @@ import TabulatorTables from './TabulatorTables'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+const push = vi.fn()
+vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
+
 const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
 const resolveTabulatorCatalog = vi.fn<(l: readonly string[]) => string | undefined>()
 vi.mock('../../Tabulator/requests', () => ({
@@ -112,5 +115,23 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
     )
     expect(catalogName.setValue).toHaveBeenCalledWith('foo-tabulator')
     expect(database.setValue).toHaveBeenCalledWith('my-bucket')
+  })
+
+  it('notifies and fills nothing when the ?table= deep link names an unknown table', () => {
+    useTabulatorTables.mockReturnValue([makeTable('drugs')])
+    resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
+    renderTables(['/b/my-bucket/queries/athena?table=ghost'])
+    expect(push).toHaveBeenCalledWith('Table "ghost" not found')
+    expect(queryBody.setValue).not.toHaveBeenCalled()
+  })
+
+  it('escapes embedded double-quotes in identifiers', () => {
+    useTabulatorTables.mockReturnValue([makeTable('we"ird')])
+    resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
+    const { getByText } = renderTables()
+    fireEvent.click(getByText('we"ird'))
+    expect(queryBody.setValue).toHaveBeenCalledWith(
+      'SELECT * FROM "foo-tabulator"."my-bucket"."we""ird" LIMIT 100',
+    )
   })
 })

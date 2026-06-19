@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Notifications from 'containers/Notifications'
+
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
 import { useTabulatorTables, resolveTabulatorCatalog } from '../../Tabulator/requests'
 import * as Model from './model'
@@ -20,9 +22,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// Athena/Presto identifier quoting: double any embedded `"`.
+const quoteIdent = (s: string) => s.replace(/"/g, '""')
+
 export default function TabulatorTables() {
   const classes = useStyles()
   const { bucket, queryBody, catalogName, catalogNames, database } = Model.use()
+  const { push } = Notifications.use()
   const tables = useTabulatorTables(bucket)
 
   const handleSelect = React.useCallback(
@@ -33,8 +39,10 @@ export default function TabulatorTables() {
       // Three-part, fully-qualified name runs regardless of the selected context;
       // fall back to two parts when the tabulator catalog can't be resolved yet.
       const sql = catalog
-        ? `SELECT * FROM "${catalog}"."${bucket}"."${table.name}" LIMIT 100`
-        : `SELECT * FROM "${bucket}"."${table.name}" LIMIT 100`
+        ? `SELECT * FROM "${quoteIdent(catalog)}"."${quoteIdent(bucket)}"."${quoteIdent(
+            table.name,
+          )}" LIMIT 100`
+        : `SELECT * FROM "${quoteIdent(bucket)}"."${quoteIdent(table.name)}" LIMIT 100`
       queryBody.setValue(sql)
       if (catalog) {
         catalogName.setValue(catalog)
@@ -61,9 +69,10 @@ export default function TabulatorTables() {
     appliedRef.current = true
     const table = tables.find((t) => t.name === name)
     if (table) handleSelect(table)
+    else push(`Table "${name}" not found`)
     params.delete('table')
     history.replace({ ...location, search: params.toString() })
-  }, [tables, catalogNames.data, location, history, handleSelect])
+  }, [tables, catalogNames.data, location, history, handleSelect, push])
 
   // Render nothing on loading / error / empty — never break the Queries page.
   if (!Model.hasData(tables) || tables.length === 0) return null
