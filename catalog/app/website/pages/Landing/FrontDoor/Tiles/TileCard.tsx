@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   headLink: {
     alignItems: 'center',
-    color: 'inherit',
+    color: '#fabdb3',
     display: 'flex',
     gap: t.spacing(1.25),
     textDecoration: 'none',
