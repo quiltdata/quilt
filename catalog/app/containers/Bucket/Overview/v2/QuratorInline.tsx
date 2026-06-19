@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
 import Chat from 'components/Assistant/UI/Chat/Chat'
+import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 const useStyles = M.makeStyles((t) => ({
@@ -25,6 +26,14 @@ export default function QuratorInline() {
   const api = Assistant.Model.useAssistantAPI()
   const { prefs } = BucketPreferences.use()
 
+  // Honor the per-bucket `ui.blocks.qurator` preference alongside the global
+  // enabled + API-availability guards.
+  const quratorEnabled = BucketPreferences.Result.match(
+    { Ok: ({ ui: { blocks } }) => blocks.qurator, _: () => false },
+    prefs,
+  )
+  const shown = enabled && !!api && quratorEnabled
+
   // Leaving the Overview opens the global sidebar when a conversation is in progress.
   const show = api?.show
   const stateRef = React.useRef(api?.state)
@@ -36,27 +45,19 @@ export default function QuratorInline() {
     }
   }, [show])
 
-  return BucketPreferences.Result.match(
-    {
-      // Honor the per-bucket `ui.blocks.qurator` preference, like every other
-      // per-bucket Qurator entry point, in addition to the stack-global enabled
-      // and API-availability guards.
-      Ok: ({ ui: { blocks } }) => {
-        if (!blocks.qurator || !enabled || !api) return null
-        return (
-          <M.Paper className={classes.root}>
-            <Chat
-              state={api.state}
-              dispatch={api.dispatch}
-              devTools={api.devTools}
-              connectors={api.connectors}
-            />
-          </M.Paper>
-        )
-      },
-      // Don't show the chat until prefs confirm it's allowed.
-      _: () => null,
-    },
-    prefs,
+  if (!shown || !api) return null
+
+  // Registering the inline chat's presence suppresses the global Fab + sidebar.
+  return (
+    <InlinePresence.Provide value>
+      <M.Paper className={classes.root}>
+        <Chat
+          state={api.state}
+          dispatch={api.dispatch}
+          devTools={api.devTools}
+          connectors={api.connectors}
+        />
+      </M.Paper>
+    </InlinePresence.Provide>
   )
 }

@@ -22,6 +22,10 @@ vi.mock('components/Assistant/UI/Chat/Chat', () => ({
   default: () => <div data-testid="qurator-chat" />,
 }))
 
+vi.mock('components/Assistant/UI/InlinePresence', () => ({
+  Provide: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
+}))
+
 const quratorPref = vi.hoisted(() => vi.fn<() => boolean>(() => true))
 vi.mock('utils/BucketPreferences', async () => {
   const actual = await vi.importActual<typeof BucketPreferences>(
