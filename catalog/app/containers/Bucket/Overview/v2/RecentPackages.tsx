@@ -34,11 +34,16 @@ function PackageSecondary({ hit }: { hit: PackageHit }) {
   )
 }
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
-})
+  // Align the top package name with the first chart bar; a margin (vs. trimming
+  // the first item's padding) keeps each item's hover background full-size.
+  list: {
+    marginTop: t.spacing(-1),
+  },
+}))
 
 interface RecentPackagesProps {
   bucket: string
@@ -68,7 +73,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
     return (
       <div className={classes.root}>
         {head()}
-        <M.List dense disablePadding>
+        <M.List dense disablePadding className={classes.list}>
           {Array.from({ length: MAX_PACKAGES }, (_, i) => (
             <M.ListItem key={i} disableGutters>
               <Skeleton height={32} animate />
@@ -99,7 +104,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
           </M.Button>
         ),
       )}
-      <M.List dense disablePadding>
+      <M.List dense disablePadding className={classes.list}>
         {hits.map((hit) => (
           <M.ListItem
             key={hit.id}
