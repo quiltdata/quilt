@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Show thumbnails and image previews for HEIC/HEIF files ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
+- [Added] Show thumbnails and image previews for HEIC/HEIF files ([#5006](https://github.com/quiltdata/quilt/pull/5006))
 - [Fixed] Qurator chat: drop `<div>`-in-`<p>` DOM-nesting warning from the connector status helper text shown while connectors are still connecting ([#5003](https://github.com/quiltdata/quilt/pull/5003))
 - [Changed] Upgrade GraphQL code generator (`@graphql-codegen/*`) v1 → v7 and bump the toolchain to Node 22; eliminates the recurring duplicate-`lodash` transitive pin (the v1 codegen stack pinned `lodash@4.17.x` via `plugin-helpers` / `@graphql-tools/url-loader`, both of which drop `lodash` by v7). Codegen-only — `graphql` and the urql runtime are unchanged ([#4972](https://github.com/quiltdata/quilt/pull/4972))
 - [Fixed] Athena Queries tab: "Workgroup not found" on accounts with >50 workgroups in a region. The first `ListWorkGroups` page could be entirely access-denied for the caller's role, hiding the user's accessible workgroup on a later page. `fetchWorkgroups`, `fetchCatalogNames`, and `fetchDatabases` now drain all pages to exhaustion (with `MaxResults: 50` explicit, `isMounted` to bail on unmount, and a single sort at the boundary) so consumers see the complete list; the "Load more" affordance is removed from the workgroup / catalog / database pickers since pagination is no longer consumer-driven ([#4973](https://github.com/quiltdata/quilt/pull/4973))
