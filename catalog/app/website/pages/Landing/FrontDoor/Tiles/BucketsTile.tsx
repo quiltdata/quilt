@@ -1,17 +1,17 @@
-import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as routes from 'constants/routes'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRelevantBuckets } from 'utils/Buckets'
 
 import useBucketSort, { BucketSort } from '../useBucketSort'
 import useRecentPackages from '../useRecentPackages'
 import TileCard from './TileCard'
 
-// Collapsed tile shows a compact preview; expansion reveals the full bounded list.
+// Collapsed tile shows a compact preview; the "View all" link goes to /buckets.
 const COLLAPSED_LIMIT = 4
 
 const useStyles = M.makeStyles((t) => ({
@@ -32,31 +32,15 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  controls: {
-    display: 'flex',
-    gap: t.spacing(0.5),
-    margin: t.spacing(0.5, 0, 1),
-  },
-  sortButton: {
-    color: t.palette.text.secondary,
-    fontSize: 11,
-    minWidth: 0,
-    padding: t.spacing(0.25, 0.75),
-  },
-  sortButtonActive: {
-    background: 'rgba(255,255,255,.1)',
-    color: t.palette.common.white,
-  },
-  scroll: {
-    maxHeight: 320,
-    overflowY: 'auto',
-  },
   more: {
     color: '#fabdb3',
-    cursor: 'pointer',
     display: 'inline-flex',
     fontSize: 12,
     marginTop: t.spacing(0.5),
+    textDecoration: 'none',
+    '&:hover': {
+      textDecoration: 'underline',
+    },
   },
 }))
 
@@ -64,12 +48,6 @@ interface BucketLike {
   name: string
   title?: string
 }
-
-const SORTS: { id: BucketSort; label: string }[] = [
-  { id: 'relevant', label: 'Relevant' },
-  { id: 'recent', label: 'Recent' },
-  { id: 'az', label: 'A-Z' },
-]
 
 function sortBuckets(
   buckets: readonly BucketLike[],
@@ -92,10 +70,10 @@ function sortBuckets(
 
 export default function BucketsTile() {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
   const recentPackages = useRecentPackages()
-  const [sort, setSort] = useBucketSort()
-  const [expanded, setExpanded] = React.useState(false)
+  const [sort] = useBucketSort()
 
   // Derive a recently-visited bucket order from locally-opened packages. This is
   // the only "recent" signal available client-side; buckets without a recent
@@ -112,7 +90,7 @@ export default function BucketsTile() {
 
   if (!buckets.length) {
     return (
-      <TileCard icon="folder_open" title="Buckets">
+      <TileCard icon="folder_open" title="Buckets" href={urls.buckets()}>
         <M.Typography color="textSecondary" variant="body2">
           No buckets yet
         </M.Typography>
@@ -120,28 +98,12 @@ export default function BucketsTile() {
     )
   }
 
-  const visible = expanded ? sorted : sorted.slice(0, COLLAPSED_LIMIT)
+  const visible = sorted.slice(0, COLLAPSED_LIMIT)
   const hiddenCount = sorted.length - COLLAPSED_LIMIT
 
   return (
-    <TileCard icon="folder_open" title="Buckets">
-      {expanded && (
-        <div className={classes.controls} role="group" aria-label="Sort buckets">
-          {SORTS.map((option) => (
-            <M.Button
-              key={option.id}
-              size="small"
-              className={cx(classes.sortButton, {
-                [classes.sortButtonActive]: sort === option.id,
-              })}
-              onClick={() => setSort(option.id)}
-            >
-              {option.label}
-            </M.Button>
-          ))}
-        </div>
-      )}
-      <div className={expanded ? classes.scroll : undefined}>
+    <TileCard icon="folder_open" title="Buckets" href={urls.buckets()}>
+      <div>
         {visible.map((bucket) => (
           <Link
             key={bucket.name}
@@ -153,29 +115,10 @@ export default function BucketsTile() {
           </Link>
         ))}
       </div>
-      {!expanded && hiddenCount > 0 && (
-        <M.Link
-          component="button"
-          type="button"
-          color="inherit"
-          underline="none"
-          className={classes.more}
-          onClick={() => setExpanded(true)}
-        >
+      {hiddenCount > 0 && (
+        <Link to={urls.buckets()} className={classes.more}>
           View all {sorted.length} buckets
-        </M.Link>
-      )}
-      {expanded && (
-        <M.Link
-          component="button"
-          type="button"
-          color="inherit"
-          underline="none"
-          className={classes.more}
-          onClick={() => setExpanded(false)}
-        >
-          Show less
-        </M.Link>
+        </Link>
       )}
     </TileCard>
   )

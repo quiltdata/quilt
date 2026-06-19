@@ -20,16 +20,15 @@ import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
-const useVersionStyles = M.makeStyles((t) => ({
+const useVersionStyles = M.makeStyles({
   revision: {
-    color: t.palette.secondary.main,
+    color: 'rgba(255,255,255,.45)',
     cursor: 'pointer',
-    opacity: 0.3,
     '&:hover': {
-      opacity: 1,
+      color: '#fff',
     },
   },
-}))
+})
 
 function Version() {
   const classes = useVersionStyles()
@@ -62,6 +61,13 @@ const useNavIconStyles = M.makeStyles({
   root: {
     display: 'block',
     height: '18px',
+    // SVG icons from the footer sprite are dark-coloured; invert them to white
+    // so they match the left-side Logo/text on the dark footer background.
+    filter: 'brightness(0) invert(1)',
+    opacity: 0.7,
+    '&:hover': {
+      opacity: 1,
+    },
   },
 })
 

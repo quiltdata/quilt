@@ -5,7 +5,29 @@ import { Model as AssistantModel } from 'components/Assistant'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    alignItems: 'center',
+    background: 'rgba(255,255,255,.1)',
+    border: '1px solid rgba(255,255,255,.18)',
+    borderRadius: 18,
+    color: 'rgba(255,255,255,.85)',
+    cursor: 'pointer',
+    display: 'flex',
+    fontSize: 13,
+    fontWeight: 500,
+    gap: t.spacing(0.75),
+    height: 32,
     marginLeft: t.spacing(1),
+    padding: t.spacing(0, 1.5),
+    transition: 'background .2s, border-color .2s',
+    userSelect: 'none',
+    '&:hover': {
+      background: 'rgba(255,255,255,.18)',
+      borderColor: 'rgba(255,255,255,.3)',
+    },
+  },
+  emoji: {
+    fontSize: 15,
+    lineHeight: 1,
   },
 }))
 
@@ -21,16 +43,16 @@ export default function QuratorButton() {
   if (!api) return null
 
   return (
-    <M.Tooltip title="Open Qurator">
-      <M.IconButton
-        aria-label="Open Qurator"
+    <M.Tooltip title="Need help? Ask Qurator">
+      <button
+        aria-label="Need help? Open Qurator"
         className={classes.root}
-        color="inherit"
-        edge="end"
         onClick={api.show}
+        type="button"
       >
-        <M.Icon>assistant</M.Icon>
-      </M.IconButton>
+        <span className={classes.emoji}>?</span>
+        <span>Need help?</span>
+      </button>
     </M.Tooltip>
   )
 }

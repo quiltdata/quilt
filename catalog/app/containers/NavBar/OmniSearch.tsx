@@ -29,9 +29,10 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: 18,
     display: 'flex',
     height: 36,
+    // Base width; expands on focus via pillFocused
     minWidth: 220,
     padding: t.spacing(0, 1.5),
-    transition: 'background .2s, border-color .2s',
+    transition: 'background .2s, border-color .2s, min-width .25s ease',
     '&:hover': {
       background: 'rgba(255,255,255,.16)',
     },
@@ -39,6 +40,7 @@ const useStyles = M.makeStyles((t) => ({
   pillFocused: {
     background: 'rgba(255,255,255,.2)',
     borderColor: 'rgba(255,255,255,.4)',
+    minWidth: 420,
   },
   lead: {
     color: 'rgba(255,255,255,.7)',
