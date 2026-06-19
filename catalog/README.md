@@ -19,6 +19,19 @@ $ vi static-dev/config.js
 $ npm start
 ```
 
+## Testing with Playwright MCP
+
+The repository includes a Cursor MCP server config at `../.cursor/mcp.json` for
+browser-based testing with Playwright MCP. Reload Cursor MCP servers after
+pulling the config, then ask an agent to use the `playwright` MCP server against
+either:
+
+- the local catalog at `http://localhost:3000` after running `npm start`
+- a deployed Quilt catalog, such as `https://open.quiltdata.com`
+
+Playwright MCP runs through `npx` with a Chrome browser and writes local session
+artifacts to `.playwright-mcp/`, which is ignored by git.
+
 ## Notes
 
 - don't be surprised if react-boilerplate code and doc gets way ahead of our repo;

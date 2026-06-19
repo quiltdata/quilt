@@ -46,6 +46,8 @@ export interface ConfigJson {
   qurator?: boolean
   quratorDefaultModel?: string
 
+  frontDoorV2?: boolean
+
   build_version?: string // not sure where this comes from
   stackVersion: string
   packageRoot?: string
@@ -95,6 +97,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   desktop: !!cfg.desktop,
   crc64Checksums: !!cfg.crc64Checksums,
   qurator: !!cfg.qurator,
+  frontDoorV2: !!cfg.frontDoorV2,
 })
 
 export function prepareConfig(input: unknown) {
