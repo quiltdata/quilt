@@ -13,7 +13,7 @@ import RECENT_PACKAGES_QUERY from '../gql/RecentPackages.generated'
 
 import SectionHeader from './SectionHeader'
 
-const MAX_PACKAGES = 3
+const MAX_PACKAGES = 2
 
 type PackageHit = Extract<
   GQL.DataForDoc<typeof RECENT_PACKAGES_QUERY>['searchPackages'],
@@ -47,6 +47,9 @@ const useStyles = M.makeStyles((t) => ({
     border: `1px solid ${t.palette.divider}`,
     borderRadius: t.shape.borderRadius,
   },
+  more: {
+    marginTop: t.spacing(1),
+  },
 }))
 
 interface RecentPackagesProps {
@@ -69,14 +72,12 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
     error: () => ({ hits: [], total: 0 }),
   })
 
-  const head = (more?: React.ReactNode) => (
-    <SectionHeader action={more}>Latest packages</SectionHeader>
-  )
+  const head = <SectionHeader>Latest packages</SectionHeader>
 
   if (result === null) {
     return (
       <div className={classes.root}>
-        {head()}
+        {head}
         <M.List dense disablePadding className={classes.list}>
           {Array.from({ length: MAX_PACKAGES }, (_, i) => (
             <M.ListItem key={i} className={classes.card}>
@@ -95,19 +96,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
   const numMore = total - hits.length
   return (
     <div className={classes.root}>
-      {head(
-        numMore > 0 && (
-          <M.Button
-            component={RRLink}
-            to={urls.bucketPackageList(bucket)}
-            size="small"
-            color="primary"
-          >
-            {formatQuantity(numMore)} more{' '}
-            <Plural value={numMore} one="package" other="packages" />
-          </M.Button>
-        ),
-      )}
+      {head}
       <M.List dense disablePadding className={classes.list}>
         {hits.map((hit) => (
           <M.ListItem
@@ -129,6 +118,18 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
           </M.ListItem>
         ))}
       </M.List>
+      {numMore > 0 && (
+        <M.Button
+          className={classes.more}
+          component={RRLink}
+          to={urls.bucketPackageList(bucket)}
+          size="small"
+          color="primary"
+        >
+          {formatQuantity(numMore)} more{' '}
+          <Plural value={numMore} one="package" other="packages" />
+        </M.Button>
+      )}
     </div>
   )
 }

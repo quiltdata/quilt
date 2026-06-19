@@ -200,6 +200,12 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     fontWeight: t.typography.fontWeightRegular,
   },
+  // Footer continues the rows' edge-to-edge divider pattern; horizontal padding
+  // matches the header and row inset.
+  foot: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(1, 3),
+  },
 }))
 
 interface TabulatorTablesProps {
@@ -237,13 +243,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   return (
     <M.Paper className={classes.root}>
       <div className={classes.head}>
-        <SectionHeader
-          action={
-            <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
-              More queries
-            </M.Button>
-          }
-        >
+        <SectionHeader>
           Tabulator tables
           <span className={classes.count}>
             {' · '}
@@ -255,6 +255,11 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
         {tables.map((table) => (
           <TableRow key={table.name} table={table} athenaUrl={athenaUrl} />
         ))}
+      </div>
+      <div className={classes.foot}>
+        <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
+          More queries
+        </M.Button>
       </div>
     </M.Paper>
   )
