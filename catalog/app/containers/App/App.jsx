@@ -66,7 +66,7 @@ const UriResolver = protect(
 )
 
 const AllBuckets = protect(
-  RT.mkLazy(() => import('website/pages/Landing/Buckets'), Placeholder),
+  RT.mkLazy(() => import('website/pages/Landing/AllBuckets'), Placeholder),
 )
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)

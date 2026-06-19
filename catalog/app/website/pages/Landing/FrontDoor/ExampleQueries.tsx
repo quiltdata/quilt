@@ -1,19 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const EXAMPLES: { icon: string; label: string }[] = [
-  {
-    icon: 'biotech',
-    label: 'Find ovarian cancer cell lines in CCLE and compare mutation rates',
-  },
-  { icon: 'summarize', label: 'Summarize research on BRCA1 mutations' },
-  { icon: 'inventory', label: 'Create a package from my STARsolo outputs' },
-  {
-    icon: 'table_chart',
-    label: 'Query the tcga_samples table for tumor counts by stage',
-  },
-  { icon: 'search', label: 'drugbank' },
-]
+import useExampleQueries from './useExampleQueries'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -46,9 +34,10 @@ interface ExampleQueriesProps {
 
 export default function ExampleQueries({ onSelect }: ExampleQueriesProps) {
   const classes = useStyles()
+  const examples = useExampleQueries()
   return (
     <div className={classes.root} aria-label="Example queries">
-      {EXAMPLES.map(({ icon, label }) => (
+      {examples.map(({ icon, label }) => (
         <M.Chip
           key={label}
           className={classes.chip}

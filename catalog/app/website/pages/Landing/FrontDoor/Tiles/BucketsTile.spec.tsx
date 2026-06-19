@@ -1,7 +1,10 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup, fireEvent } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import * as NamedRoutes from 'utils/NamedRoutes'
+import * as routes from 'constants/routes'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -18,7 +21,9 @@ import BucketsTile from './BucketsTile'
 const renderTile = () =>
   render(
     <MemoryRouter>
-      <BucketsTile />
+      <NamedRoutes.Provider routes={routes}>
+        <BucketsTile />
+      </NamedRoutes.Provider>
     </MemoryRouter>,
   )
 
@@ -54,45 +59,17 @@ describe('website/pages/Landing/FrontDoor/Tiles/BucketsTile', () => {
     expect(getByText('View all 7 buckets')).toBeTruthy()
   })
 
-  it('expands to reveal all buckets and sort controls', () => {
+  it('links the view-all affordance to the /buckets page', () => {
     useRelevantBuckets.mockReturnValue(mkBuckets(7))
     const { getByText } = renderTile()
-    fireEvent.click(getByText('View all 7 buckets'))
-    expect(getByText('bucket-06')).toBeTruthy()
-    expect(getByText('Relevant')).toBeTruthy()
-    expect(getByText('A-Z')).toBeTruthy()
-    expect(getByText('Show less')).toBeTruthy()
+    const link = getByText('View all 7 buckets').closest('a')
+    expect(link?.getAttribute('href')).toBe('/buckets')
   })
 
-  it('sorts alphabetically by title/name when A-Z is selected', () => {
-    useRelevantBuckets.mockReturnValue([
-      { name: 'zebra' },
-      { name: 'alpha' },
-      { name: 'mango' },
-      { name: 'beta' },
-      { name: 'omega' },
-    ])
-    const { getByText, getAllByText } = renderTile()
-    fireEvent.click(getByText('View all 5 buckets'))
-    fireEvent.click(getByText('A-Z'))
-    const links = getAllByText(/alpha|beta|mango|omega|zebra/)
-    expect(links[0].textContent).toBe('alpha')
-  })
-
-  it('orders by locally-visited buckets when Recent is selected', () => {
-    useRelevantBuckets.mockReturnValue([
-      { name: 'alpha' },
-      { name: 'beta' },
-      { name: 'gamma' },
-      { name: 'delta' },
-      { name: 'epsilon' },
-    ])
-    useRecentPackages.mockReturnValue([{ bucket: 'gamma' }, { bucket: 'delta' }])
-    const { getByText, getAllByText } = renderTile()
-    fireEvent.click(getByText('View all 5 buckets'))
-    fireEvent.click(getByText('Recent'))
-    const links = getAllByText(/alpha|beta|gamma|delta|epsilon/)
-    expect(links[0].textContent).toBe('gamma')
-    expect(links[1].textContent).toBe('delta')
+  it('shows a browse-all affordance even when nothing is truncated', () => {
+    useRelevantBuckets.mockReturnValue(mkBuckets(2))
+    const { getByText } = renderTile()
+    const link = getByText('Browse all buckets').closest('a')
+    expect(link?.getAttribute('href')).toBe('/buckets')
   })
 })

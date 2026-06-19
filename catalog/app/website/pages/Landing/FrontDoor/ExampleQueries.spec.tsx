@@ -2,6 +2,14 @@ import * as React from 'react'
 import { render, cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+const useExampleQueries = vi.hoisted(() =>
+  vi.fn(() => [
+    { icon: 'search', label: 'drugbank' },
+    { icon: 'summarize', label: 'Summarize research on BRCA1 mutations' },
+  ]),
+)
+vi.mock('./useExampleQueries', () => ({ default: useExampleQueries }))
+
 import ExampleQueries from './ExampleQueries'
 
 describe('website/pages/Landing/FrontDoor/ExampleQueries', () => {

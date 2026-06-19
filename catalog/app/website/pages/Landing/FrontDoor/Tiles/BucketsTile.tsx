@@ -16,7 +16,7 @@ const COLLAPSED_LIMIT = 4
 
 const useStyles = M.makeStyles((t) => ({
   item: {
-    alignItems: 'center',
+    alignItems: 'baseline',
     color: t.palette.text.secondary,
     display: 'flex',
     fontSize: 13,
@@ -27,7 +27,23 @@ const useStyles = M.makeStyles((t) => ({
       color: t.palette.text.primary,
     },
   },
+  icon: {
+    fontSize: 15,
+    opacity: 0.6,
+    position: 'relative',
+    top: 2,
+  },
+  body: {
+    minWidth: 0,
+  },
   itemName: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  meta: {
+    fontSize: 11,
+    opacity: 0.7,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -47,6 +63,7 @@ const useStyles = M.makeStyles((t) => ({
 interface BucketLike {
   name: string
   title?: string
+  description?: string | null
 }
 
 function sortBuckets(
@@ -99,27 +116,32 @@ export default function BucketsTile() {
   }
 
   const visible = sorted.slice(0, COLLAPSED_LIMIT)
-  const hiddenCount = sorted.length - COLLAPSED_LIMIT
 
   return (
     <TileCard icon="folder_open" title="Buckets" href={urls.buckets()}>
-      <div>
-        {visible.map((bucket) => (
+      {visible.map((bucket) => {
+        const title = bucket.title || bucket.name
+        // Avoid a redundant second line when the title is just the bucket name.
+        const meta = title === bucket.name ? bucket.description : `s3://${bucket.name}`
+        return (
           <Link
             key={bucket.name}
             to={routes.bucketRoot.url(bucket.name)}
             className={classes.item}
           >
-            <M.Icon style={{ fontSize: 15, opacity: 0.6 }}>cloud</M.Icon>
-            <span className={classes.itemName}>{bucket.title || bucket.name}</span>
+            <M.Icon className={classes.icon}>folder</M.Icon>
+            <span className={classes.body}>
+              <div className={classes.itemName}>{title}</div>
+              {meta && <div className={classes.meta}>{meta}</div>}
+            </span>
           </Link>
-        ))}
-      </div>
-      {hiddenCount > 0 && (
-        <Link to={urls.buckets()} className={classes.more}>
-          View all {sorted.length} buckets
-        </Link>
-      )}
+        )
+      })}
+      <Link to={urls.buckets()} className={classes.more}>
+        {sorted.length > COLLAPSED_LIMIT
+          ? `View all ${sorted.length} buckets`
+          : 'Browse all buckets'}
+      </Link>
     </TileCard>
   )
 }
