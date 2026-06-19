@@ -13,6 +13,7 @@ import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { Plural } from 'utils/format'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
@@ -214,9 +215,16 @@ interface StatsProps {
 function Stats({ bucket, stats }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
+  const { prefs } = BucketPreferences.use()
   const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
   const tables = useTabulatorTables(bucket)
-  const numTables = Array.isArray(tables) ? tables.length : null
+  // The tables stat links into the Queries tab — hide it for buckets that
+  // disabled Queries via `ui.nav.queries`.
+  const queriesEnabled = BucketPreferences.Result.match(
+    { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
+    prefs,
+  )
+  const numTables = queriesEnabled && Array.isArray(tables) ? tables.length : null
   return (
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}

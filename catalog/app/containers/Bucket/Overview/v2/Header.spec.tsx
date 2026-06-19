@@ -5,10 +5,26 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 
 import Header from './Header'
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+let navQueries = true
+vi.mock('utils/BucketPreferences', async () => {
+  const actual = await vi.importActual<typeof BucketPreferences>(
+    'utils/BucketPreferences',
+  )
+  return {
+    ...actual,
+    use: () => ({
+      prefs: actual.Result.Ok({
+        ui: { nav: { queries: navQueries } },
+      } as unknown as Parameters<typeof actual.Result.Ok>[0]),
+    }),
+  }
+})
 
 vi.mock('./Readme', () => ({
   default: () => <div data-testid="readme" />,
@@ -85,6 +101,7 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
     packagesTotal = 7
     tabulatorTables.mockReturnValue([])
+    navQueries = true
   })
 
   it('does not link the total-size stat', () => {
@@ -122,6 +139,13 @@ describe('containers/Bucket/Overview/v2/Header', () => {
   })
 
   it('hides the tables stat when there are no tabulator tables', () => {
+    const { queryByText } = renderHeader()
+    expect(queryByText(/tables/)).toBeNull()
+  })
+
+  it('hides the tables stat when Queries is disabled (ui.nav.queries=false)', () => {
+    navQueries = false
+    tabulatorTables.mockReturnValue([{ name: 'a' }, { name: 'b' }])
     const { queryByText } = renderHeader()
     expect(queryByText(/tables/)).toBeNull()
   })

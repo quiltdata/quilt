@@ -3,6 +3,7 @@ import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 // Schema-free generic async-state helpers; they merely live under the Athena
@@ -201,7 +202,16 @@ interface TabulatorTablesProps {
 export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const { prefs } = BucketPreferences.use()
   const tables = useTabulatorTables(bucket)
+
+  // The whole section links into the Queries tab, so respect a bucket that has
+  // disabled it via `ui.nav.queries`.
+  const queriesEnabled = BucketPreferences.Result.match(
+    { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
+    prefs,
+  )
+  if (!queriesEnabled) return null
 
   if (Model.isLoading(tables)) return <M.LinearProgress />
 

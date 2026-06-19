@@ -4,6 +4,7 @@ import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { Loading } from '../../Queries/Athena/model/utils'
@@ -16,6 +17,21 @@ const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
 vi.mock('../../Tabulator/requests', () => ({
   useTabulatorTables: (bucket: string) => useTabulatorTables(bucket),
 }))
+
+let navQueries = true
+vi.mock('utils/BucketPreferences', async () => {
+  const actual = await vi.importActual<typeof BucketPreferences>(
+    'utils/BucketPreferences',
+  )
+  return {
+    ...actual,
+    use: () => ({
+      prefs: actual.Result.Ok({
+        ui: { nav: { queries: navQueries } },
+      } as unknown as Parameters<typeof actual.Result.Ok>[0]),
+    }),
+  }
+})
 
 // The component uses t.typography.monospace.fontFamily, a custom theme token;
 // provide it so makeStyles doesn't throw during tests.
@@ -59,6 +75,14 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    navQueries = true
+  })
+
+  it('renders nothing when Queries is disabled (ui.nav.queries=false)', () => {
+    navQueries = false
+    useTabulatorTables.mockReturnValue([makeTable('drugs', 3)])
+    const { container } = renderTables()
+    expect(container.textContent).toBe('')
   })
 
   it('renders nothing while loading', () => {
