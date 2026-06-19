@@ -5,129 +5,26 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
-import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
-import * as AWS from 'utils/AWS'
-import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { Plural } from 'utils/format'
-import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
+import { formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
 import * as PD from '../../PackageDialog'
-import * as requests from '../../requests'
 import { useTabulatorTables } from '../../Tabulator/requests'
 
 import { makeColorPool } from '../ColorPool'
 import ObjectsByExt, { COLOR_MAP } from '../ObjectsByExt'
 
 import BUCKET_QUERY from '../gql/Bucket.generated'
-import STAT_COUNTS_QUERY from '../gql/StatCounts.generated'
+import { useStats, type StatsData } from '../useStats'
 
 import Readme from './Readme'
 import RecentPackages from './RecentPackages'
-
-// NOTE: replicated from legacy Overview/Header `useStats` (not exported there);
-// keep in sync — both read the same `bucketStats` request + StatCounts query.
-function useStats(bucket: string) {
-  const s3 = AWS.S3.use()
-  const req = APIConnector.use()
-  const statsData = useData(requests.bucketStats, { req, s3, bucket })
-  const countQuery = GQL.useQuery(STAT_COUNTS_QUERY, { buckets: [bucket] })
-  const totalBytes: string | null = React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: (v: $TSFixMe) => readableBytes(v.totalBytes),
-          Err: () => '? B',
-          _: () => null,
-        },
-        statsData.result,
-      ),
-    [statsData.result],
-  )
-  const totalObjects: string | null = React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: (v: $TSFixMe) => readableQuantity(v.totalObjects),
-          Err: () => '?',
-          _: () => null,
-        },
-        statsData.result,
-      ),
-    [statsData.result],
-  )
-  // Raw object count, kept alongside the formatted `totalObjects` to pluralize its label.
-  const numObjects: number | null = React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: (v: $TSFixMe) => v.totalObjects,
-          _: () => null,
-        },
-        statsData.result,
-      ),
-    [statsData.result],
-  )
-  const pkgCount: string | null = React.useMemo(
-    () =>
-      GQL.fold(countQuery, {
-        data: ({ searchPackages: r }) => {
-          switch (r.__typename) {
-            case 'EmptySearchResultSet':
-              return formatQuantity(0)
-            case 'InvalidInput':
-            case 'OperationError':
-              return '?'
-            case 'PackagesSearchResultSet':
-              // `-1` == secure search
-              return r.total >= 0 ? formatQuantity(r.total) : '?'
-            default:
-              assertNever(r)
-          }
-        },
-        fetching: () => null,
-        error: () => '?',
-      }),
-    [countQuery],
-  )
-  // Raw package count, kept alongside the formatted `pkgCount` to pluralize its label.
-  const numPackages: number | null = React.useMemo(
-    () =>
-      GQL.fold(countQuery, {
-        data: ({ searchPackages: r }) => {
-          switch (r.__typename) {
-            case 'EmptySearchResultSet':
-              return 0
-            case 'InvalidInput':
-            case 'OperationError':
-              return null
-            case 'PackagesSearchResultSet':
-              // `-1` == secure search
-              return r.total >= 0 ? r.total : null
-            default:
-              return assertNever(r)
-          }
-        },
-        fetching: () => null,
-        error: () => null,
-      }),
-    [countQuery],
-  )
-  return {
-    totalBytes,
-    totalObjects,
-    numObjects,
-    pkgCount,
-    numPackages,
-    statsResult: statsData.result,
-  }
-}
 
 const useStatsItemStyles = M.makeStyles((t) => ({
   root: {
@@ -203,8 +100,6 @@ const useStatsStyles = M.makeStyles((t) => ({
     justifyContent: 'flex-end',
   },
 }))
-
-type StatsData = ReturnType<typeof useStats>
 
 interface StatsProps {
   bucket: string

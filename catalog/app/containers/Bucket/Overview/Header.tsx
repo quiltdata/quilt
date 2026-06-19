@@ -9,12 +9,8 @@ import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
-import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
-import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import assertNever from 'utils/assertNever'
-import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
 import * as requests from '../requests'
@@ -25,7 +21,7 @@ import ObjectsByExt, { COLOR_MAP, MAX_EXTS } from './ObjectsByExt'
 
 import bg from './Overview-bg.jpg'
 
-import STAT_COUNTS_QUERY from './gql/StatCounts.generated'
+import { useStats } from './useStats'
 
 const useStatsItemStyles = M.makeStyles((t) => ({
   root: {
@@ -95,60 +91,6 @@ function StatsItemSkeleton() {
       <Skeleton className={classes.skeleton} bgcolor="grey.400" />
     </div>
   )
-}
-
-function useStats(bucket: string) {
-  const s3 = AWS.S3.use()
-  const req = APIConnector.use()
-  const statsData = useData(requests.bucketStats, { req, s3, bucket })
-  const countQuery = GQL.useQuery(STAT_COUNTS_QUERY, { buckets: [bucket] })
-  const totalBytes: string | null = React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: (v: $TSFixMe) => readableBytes(v.totalBytes),
-          Err: () => '? B',
-          _: () => null,
-        },
-        statsData.result,
-      ),
-    [statsData.result],
-  )
-  const totalObjects: string | null = React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: (v: $TSFixMe) => readableQuantity(v.totalObjects),
-          Err: () => '?',
-          _: () => null,
-        },
-        statsData.result,
-      ),
-    [statsData.result],
-  )
-  const pkgCount: string | null = React.useMemo(
-    () =>
-      GQL.fold(countQuery, {
-        data: ({ searchPackages: r }) => {
-          switch (r.__typename) {
-            case 'EmptySearchResultSet':
-              return formatQuantity(0)
-            case 'InvalidInput':
-            case 'OperationError':
-              return '?'
-            case 'PackagesSearchResultSet':
-              // `-1` == secure search
-              return r.total >= 0 ? formatQuantity(r.total) : '?'
-            default:
-              assertNever(r)
-          }
-        },
-        fetching: () => null,
-        error: () => '?',
-      }),
-    [countQuery],
-  )
-  return { totalBytes, totalObjects, pkgCount }
 }
 
 const useStatsStyles = M.makeStyles((t) => ({
