@@ -252,7 +252,6 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       overview: false
       packages: false
       summarize: false
-    overviewV2: true
     qurator: false
   nav:
     files: false
@@ -310,8 +309,6 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         'ui.blocks.gallery.overview': false,
         'ui.blocks.gallery.packages': false,
         'ui.blocks.gallery.summarize': false,
-
-        'ui.blocks.overviewV2': true,
 
         'ui.blocks.qurator': false,
 

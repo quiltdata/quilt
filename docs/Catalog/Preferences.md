@@ -82,7 +82,6 @@ is present
 * `ui.blocks.meta: False` - hide Metadata block on Package page
 * `ui.blocks.meta.user_meta.expanded: True` - expands user_meta properties
 * `ui.blocks.meta.workflows.expanded: 2` - expands workflows two level deep
-* `ui.blocks.overviewV2: True` - use the new (v2) bucket overview layout
 * `ui.sourceBuckets` - a dictionary of S3 bucket names
 that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks

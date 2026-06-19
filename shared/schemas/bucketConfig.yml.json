@@ -182,12 +182,6 @@
                 }
               ]
             },
-            "overviewV2": {
-              "default": false,
-              "description": "Use the new (v2) bucket overview layout",
-              "type": "boolean",
-              "examples": [true, false]
-            },
             "qurator": {
               "default": true,
               "description": "Show/hide Qurator block",
