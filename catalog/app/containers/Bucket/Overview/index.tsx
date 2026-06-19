@@ -11,9 +11,8 @@ export default function OverviewSelector() {
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { blocks } }) => (blocks.overviewV2 ? <OverviewV2 /> : <Overview />),
-      // Show a neutral placeholder while prefs load instead of legacy Overview:
-      // since overviewV2 defaults true, mounting legacy here would flash it and
-      // fire its data requests on the common path before swapping to v2.
+      // Neutral placeholder while prefs load, so neither variant flashes (and
+      // fires its data requests) before the per-bucket choice resolves.
       Pending: () => <Placeholder color="text.secondary" />,
       Init: () => <Placeholder color="text.secondary" />,
     },

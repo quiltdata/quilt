@@ -36,7 +36,7 @@ const expectedDefaults = {
         packages: true,
         summarize: true,
       },
-      overviewV2: true,
+      overviewV2: false,
       qurator: true,
     },
     nav: {
@@ -101,8 +101,8 @@ describe('utils/BucketPreferences', () => {
       })
     })
 
-    it('overviewV2 defaults to true when absent', () => {
-      expect(parse('', 'test-bucket').ui.blocks.overviewV2).toBe(true)
+    it('overviewV2 defaults to false when absent', () => {
+      expect(parse('', 'test-bucket').ui.blocks.overviewV2).toBe(false)
     })
 
     it('overviewV2 reads false when explicitly disabled in config', () => {

@@ -171,11 +171,7 @@ function getDefaultPreferences(bucket?: string): BucketPreferences {
         code: true,
         meta: defaultBlockMeta,
         gallery: defaultGallery,
-        // NOTE: preview default. The v2 bucket Overview is enabled by default
-        //       for this preview build so reviewers see it without editing
-        //       per-bucket config. Reconsider (likely flip back to false)
-        //       before general release.
-        overviewV2: true,
+        overviewV2: false,
         qurator: true,
       },
       nav: {

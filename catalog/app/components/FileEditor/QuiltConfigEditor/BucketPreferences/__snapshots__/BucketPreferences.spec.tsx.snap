@@ -312,7 +312,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <div
             id="checkbox"
           >
-            true
+            false
           </div>
           <span
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
@@ -1065,7 +1065,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <div
             id="checkbox"
           >
-            true
+            false
           </div>
           <span
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
