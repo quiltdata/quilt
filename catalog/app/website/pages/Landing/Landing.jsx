@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useLocation } from 'react-router-dom'
 
 import cfg from 'constants/config'
 import MetaTitle from 'utils/MetaTitle'
@@ -11,8 +12,9 @@ import FrontDoor from './FrontDoor'
 import LocalMode from './LocalMode'
 
 function LandingContent() {
+  const location = useLocation()
   if (cfg.mode === 'LOCAL') return <LocalMode />
-  if (cfg.frontDoorV2 === true) return <FrontDoor />
+  if (cfg.frontDoorV2 === true) return <FrontDoor key={location.key} />
 
   return (
     <>

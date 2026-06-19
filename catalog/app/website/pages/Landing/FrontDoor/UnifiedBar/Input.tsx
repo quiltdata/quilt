@@ -115,6 +115,9 @@ export default function Input({
           if (event.key === 'Enter') {
             event.preventDefault()
             onSubmit()
+          } else if (event.key === 'Escape') {
+            event.preventDefault()
+            onChange('')
           }
         }}
       />
