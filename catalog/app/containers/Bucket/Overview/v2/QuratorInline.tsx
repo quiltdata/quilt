@@ -25,6 +25,17 @@ export default function QuratorInline() {
   const api = Assistant.Model.useAssistantAPI()
   const { prefs } = BucketPreferences.use()
 
+  // Leaving the Overview opens the global sidebar when a conversation is in progress.
+  const show = api?.show
+  const stateRef = React.useRef(api?.state)
+  stateRef.current = api?.state
+  React.useEffect(() => {
+    if (!show) return undefined
+    return () => {
+      if ((stateRef.current?.events?.length ?? 0) > 0) show()
+    }
+  }, [show])
+
   return BucketPreferences.Result.match(
     {
       // Honor the per-bucket `ui.blocks.qurator` preference, like every other

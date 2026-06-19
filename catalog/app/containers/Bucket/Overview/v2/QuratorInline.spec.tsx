@@ -41,7 +41,7 @@ function makeAPI() {
   return {
     show: vi.fn(),
     hide: vi.fn(),
-    state: {},
+    state: { events: [] as unknown[] },
     dispatch: vi.fn(),
     devTools: {},
     connectors: {},
@@ -84,6 +84,26 @@ describe('containers/Bucket/Overview/v2/QuratorInline', () => {
     useAssistantAPI.mockReturnValue(api)
     const { getByTestId } = render(<QuratorInline />)
     expect(getByTestId('qurator-chat')).toBeTruthy()
+    expect(api.show).not.toHaveBeenCalled()
+  })
+
+  it('opens the sidebar on unmount when there is conversation history', () => {
+    const api = makeAPI()
+    api.state = { events: [{ id: '1' }] }
+    useIsEnabled.mockReturnValue(true)
+    useAssistantAPI.mockReturnValue(api)
+    const { unmount } = render(<QuratorInline />)
+    expect(api.show).not.toHaveBeenCalled()
+    unmount()
+    expect(api.show).toHaveBeenCalled()
+  })
+
+  it('does not open the sidebar on unmount with no history', () => {
+    const api = makeAPI()
+    useIsEnabled.mockReturnValue(true)
+    useAssistantAPI.mockReturnValue(api)
+    const { unmount } = render(<QuratorInline />)
+    unmount()
     expect(api.show).not.toHaveBeenCalled()
   })
 })
