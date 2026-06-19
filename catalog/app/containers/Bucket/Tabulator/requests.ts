@@ -60,7 +60,7 @@ export function parseTabulatorConfig(name: string, config: string): ParsedTabula
 }
 
 // Tabulator catalogs are named '<stack>-tabulator' by Quilt convention; the first
-// matching catalog is used. (Recovered from the removed live-rows preview.)
+// matching catalog is used.
 export const TABULATOR_CATALOG_SUFFIX = '-tabulator'
 
 export function resolveTabulatorCatalog(

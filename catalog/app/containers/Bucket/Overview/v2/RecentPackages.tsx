@@ -90,7 +90,6 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
   }
 
   const { hits, total } = result
-  // Hide the section entirely when the bucket has no packages.
   if (!hits.length) return null
 
   const numMore = total - hits.length

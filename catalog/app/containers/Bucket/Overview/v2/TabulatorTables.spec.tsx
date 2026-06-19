@@ -114,7 +114,6 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     expect(getByText(/a\/b · drugs\.csv/)).toBeTruthy()
     const link = getByText(/More queries/i).closest('a')
     expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
-    // Collapsed rows do not expose column chips.
     expect(queryByText('col_0')).toBeNull()
   })
 
@@ -125,7 +124,6 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
 
     fireEvent.click(getByText('drugs'))
 
-    // All columns are shown (no "+N more" cap once expanded).
     expect(getByText('col_0')).toBeTruthy()
     expect(getByText('col_8')).toBeTruthy()
     expect(queryByText(/\+\d+ more/)).toBeNull()

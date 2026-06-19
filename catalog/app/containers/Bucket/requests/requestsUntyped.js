@@ -189,7 +189,7 @@ const bucketSummaryFallback = async ({ s3, req, bucket, inStack }) => {
 }
 
 // When `withSource` is false (the default, used by the legacy Overview), the
-// return value is the flat entries array — byte-identical to before. When
+// return value is the flat entries array. When
 // `withSource` is true, returns `{ entries, fromQuiltSummarize }` so callers
 // can tell whether the layout was user-authored (quilt_summarize.json) or
 // auto-discovered, and skip the auto-discovered case if they choose.
