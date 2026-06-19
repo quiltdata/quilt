@@ -16,11 +16,26 @@ import * as requests from '../../requests'
 const COLLAPSED_MAX_HEIGHT = 24 // theme spacing units
 
 const useStyles = M.makeStyles((t) => ({
+  wrapper: {
+    position: 'relative',
+  },
   content: {
     overflow: 'hidden',
   },
   collapsed: {
     maxHeight: t.spacing(COLLAPSED_MAX_HEIGHT),
+  },
+  fade: {
+    background: `linear-gradient(to bottom, ${M.fade(
+      t.palette.background.paper,
+      0,
+    )}, ${t.palette.background.paper})`,
+    bottom: 0,
+    height: t.spacing(6),
+    left: 0,
+    pointerEvents: 'none',
+    position: 'absolute',
+    right: 0,
   },
   toggle: {
     marginTop: t.spacing(1),
@@ -73,8 +88,11 @@ export function CollapsibleMarkdown({ text }: CollapsibleMarkdownProps) {
 
   return (
     <div data-testid="readme-preview">
-      <div ref={ref} className={cx(classes.content, !expanded && classes.collapsed)}>
-        <Markdown data={text} />
+      <div className={classes.wrapper}>
+        <div ref={ref} className={cx(classes.content, !expanded && classes.collapsed)}>
+          <Markdown data={text} />
+        </div>
+        {!expanded && overflows && <div className={classes.fade} />}
       </div>
       {overflows && (
         <M.Button
