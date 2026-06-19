@@ -11,7 +11,7 @@ import { SearchResultOrder } from 'model/graphql/types.generated'
 
 import RECENT_PACKAGES_QUERY from '../gql/RecentPackages.generated'
 
-import SectionTitle from './SectionTitle'
+import SectionHeader from './SectionHeader'
 
 const MAX_PACKAGES = 3
 
@@ -38,11 +38,6 @@ const useStyles = M.makeStyles({
   root: {
     width: '100%',
   },
-  head: {
-    alignItems: 'baseline',
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
 })
 
 interface RecentPackagesProps {
@@ -66,10 +61,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
   })
 
   const head = (more?: React.ReactNode) => (
-    <div className={classes.head}>
-      <SectionTitle>Latest packages</SectionTitle>
-      {more}
-    </div>
+    <SectionHeader action={more}>Latest packages</SectionHeader>
   )
 
   if (result === null) {

@@ -29,6 +29,7 @@ import STAT_COUNTS_QUERY from '../gql/StatCounts.generated'
 
 import Readme from './Readme'
 import RecentPackages from './RecentPackages'
+import SectionCard from './SectionCard'
 
 // NOTE: replicated from legacy Overview/Header `useStats` (not exported there);
 // keep in sync — both read the same `bucketStats` request + StatCounts query.
@@ -330,11 +331,7 @@ function Charts({ bucket, statsResult }: ChartsProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(3),
     position: 'relative',
-    [t.breakpoints.down('xs')]: {
-      borderRadius: 0,
-    },
   },
   top: {
     alignItems: 'center',
@@ -377,7 +374,7 @@ export default function Header({ bucket }: HeaderProps) {
   const description = bucketData?.description
   const stats = useStats(bucket)
   return (
-    <M.Paper className={classes.root}>
+    <SectionCard className={classes.root}>
       <div className={classes.top}>
         <div className={classes.title}>
           <M.Typography variant="h5">{bucket}</M.Typography>
@@ -401,6 +398,6 @@ export default function Header({ bucket }: HeaderProps) {
       </div>
       <M.Divider className={classes.divider} />
       <Charts bucket={bucket} statsResult={stats.statsResult} />
-    </M.Paper>
+    </SectionCard>
   )
 }
