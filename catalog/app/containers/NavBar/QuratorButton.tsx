@@ -49,7 +49,7 @@ export default function QuratorButton() {
         onClick={api.show}
         type="button"
       >
-        <M.Icon className={classes.icon}>help_outline</M.Icon>
+        <M.Icon className={classes.icon}>assistant</M.Icon>
         <span>Qurator</span>
       </button>
     </M.Tooltip>
