@@ -38,10 +38,14 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
-  // Align the top package name with the first chart bar; a margin (vs. trimming
-  // the first item's padding) keeps each item's hover background full-size.
   list: {
-    marginTop: t.spacing(-1),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(1),
+  },
+  card: {
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
   },
 }))
 
@@ -75,7 +79,7 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
         {head()}
         <M.List dense disablePadding className={classes.list}>
           {Array.from({ length: MAX_PACKAGES }, (_, i) => (
-            <M.ListItem key={i} disableGutters>
+            <M.ListItem key={i} className={classes.card}>
               <Skeleton height={32} animate />
             </M.ListItem>
           ))}
@@ -109,8 +113,8 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
           <M.ListItem
             key={hit.id}
             button
-            disableGutters
             component={RRLink}
+            className={classes.card}
             to={urls.bucketPackageTree(
               hit.bucket,
               hit.name,
