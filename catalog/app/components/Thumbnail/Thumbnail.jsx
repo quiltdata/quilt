@@ -22,6 +22,8 @@ export const SUPPORTED_EXTENSIONS = [
   '.png',
   '.gif',
   '.webp',
+  '.heic',
+  '.heif',
   '.bmp',
   '.tiff',
   '.tif',

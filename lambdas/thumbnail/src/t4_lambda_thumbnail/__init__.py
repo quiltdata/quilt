@@ -27,6 +27,7 @@ import bioio_tifffile
 import dask.array as da
 import numpy as np
 import pdf2image
+import pi_heif
 import pptx
 import requests
 from bioio import BioImage
@@ -46,6 +47,13 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # Use 0 to disable the limit.
 if _MAX_IMAGE_PIXELS := os.environ.get("MAX_IMAGE_PIXELS"):
     Image.MAX_IMAGE_PIXELS = int(_MAX_IMAGE_PIXELS) or None
+
+# Teach Pillow to open HEIF/HEIC. No bioio reader claims these extensions, so
+# BioImage(path) raises UnsupportedFileFormatError and read_image() falls back to
+# bioio_imageio.Reader, which decodes through this opener. pi-heif is decode-only
+# (libde265, no encoder); thumbnails are always re-encoded as PNG, so we never
+# need to write HEIF.
+pi_heif.register_heif_opener()
 
 # If set to "1", /tmp directory will be cleaned up at the start of each invocation.
 # Should be set in the Lambda environment variables.
