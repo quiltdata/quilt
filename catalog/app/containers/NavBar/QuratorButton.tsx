@@ -25,9 +25,8 @@ const useStyles = M.makeStyles((t) => ({
       borderColor: 'rgba(255,255,255,.3)',
     },
   },
-  emoji: {
-    fontSize: 15,
-    lineHeight: 1,
+  icon: {
+    fontSize: 18,
   },
 }))
 
@@ -43,15 +42,15 @@ export default function QuratorButton() {
   if (!api) return null
 
   return (
-    <M.Tooltip title="Need help? Ask Qurator">
+    <M.Tooltip title="Ask Qurator">
       <button
-        aria-label="Need help? Open Qurator"
+        aria-label="Open Qurator"
         className={classes.root}
         onClick={api.show}
         type="button"
       >
-        <span className={classes.emoji}>?</span>
-        <span>Need help?</span>
+        <M.Icon className={classes.icon}>help_outline</M.Icon>
+        <span>Qurator</span>
       </button>
     </M.Tooltip>
   )
