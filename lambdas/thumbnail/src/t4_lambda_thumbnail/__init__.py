@@ -396,7 +396,15 @@ def format_aicsimage_to_prepped(img: BioImage) -> tuple[da.Array, bool]:
             arr = arr[..., ::-1]
         return arr, normalized
 
-    return img.reader.dask_data, False
+    # The bioio-imageio fallback reads multi-frame containers (multi-image or
+    # animated HEIF, animated GIF, multi-page TIFF) with a leading frame axis,
+    # e.g. (T, Y, X, S). The thumbnail path renders a single plane and
+    # Image.fromarray rejects 4-D input, so collapse to the primary (first)
+    # frame; single-frame images are already 2-D/3-D and pass through unchanged.
+    data = img.reader.dask_data
+    while data.ndim > 3:
+        data = data[0]
+    return data, False
 
 
 @contextlib.contextmanager

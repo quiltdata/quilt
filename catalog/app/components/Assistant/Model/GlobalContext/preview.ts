@@ -237,12 +237,16 @@ const getObject = (handle: S3ObjectLocation) =>
     }),
   )
 
+// Keep in sync with SUPPORTED_EXTENSIONS in components/Thumbnail; kept as a
+// separate list to avoid importing a UI component into Assistant model code.
 const SUPPORTED_IMAGE_EXTENSIONS = [
   '.jpg',
   '.jpeg',
   '.png',
   '.gif',
   '.webp',
+  '.heic',
+  '.heif',
   '.bmp',
   '.tiff',
   '.tif',

@@ -268,6 +268,41 @@ Image.open('tests/data/cell.png').convert('RGB').save( \
     assert np.abs(got.astype(int) - golden.astype(int)).max() <= 30
 
 
+@responses.activate
+def test_heic_multiframe_thumbnail(data_dir):
+    """Multi-image HEIF (image collections, animated/burst HEIC) decodes through
+    the bioio-imageio fallback as a 4-D (T, Y, X, S) array;
+    format_aicsimage_to_prepped collapses it to the primary (first) frame so it
+    renders instead of failing with a 500 (Image.fromarray rejects 4-D).
+    cell-multiframe.heic is cell.png as frame 0 and its inverse as frame 1, so the
+    thumbnail must match cell.png's golden (frame 0), not the inverted frame 1.
+
+    Regenerate the fixture (needs the encoder, not a runtime dep) with:
+        uv run --with pillow-heif python -c "import pillow_heif, numpy as np; \
+from PIL import Image; pillow_heif.register_heif_opener(); \
+c = Image.open('tests/data/cell.png').convert('RGB'); \
+c.save('tests/data/cell-multiframe.heic', format='HEIF', save_all=True, \
+append_images=[Image.fromarray(255 - np.array(c), 'RGB')], quality=-1)"
+    """
+    url = "https://example.com/cell-multiframe.heic"
+    responses.add(responses.GET, url=url, body=(data_dir / "cell-multiframe.heic").read_bytes(), status=200)
+    event = _make_event({"url": url, "size": "w64h64"})
+    response = t4_lambda_thumbnail.lambda_handler(event, None)
+
+    assert response["statusCode"] == 200, f"response: {response}"
+    info = json.loads(response["headers"][QUILT_INFO_HEADER])
+    # original_size carries the leading frame axis (2 frames).
+    assert info["original_size"] == [2, 168, 104, 3]
+    assert info["thumbnail_size"] == [40, 64]
+
+    got = np.asarray(Image.open(BytesIO(read_body(response))))
+    golden = np.asarray(Image.open(data_dir / "cell-64.png"))
+    assert got.shape == golden.shape
+    # Frame 0 is cell.png; picking frame 1 (inverted) or montaging the frames
+    # would diff by hundreds, not <= 30.
+    assert np.abs(got.astype(int) - golden.astype(int)).max() <= 30
+
+
 # The non-CZI color reader / dtype paths, each with an independent decoder; keep
 # in sync with test_generate_thumbnail's color rows.
 _COLOR_ORACLE_FIXTURES = [
