@@ -88,7 +88,6 @@ const useRowStyles = M.makeStyles((t) => ({
   },
   actions: {
     display: 'flex',
-    justifyContent: 'flex-end',
     marginTop: t.spacing(2),
   },
 }))
@@ -177,7 +176,7 @@ function TableRow({ table, athenaUrl }: TableRowProps) {
                 search: `?table=${encodeURIComponent(table.name)}`,
               }}
             >
-              Query →
+              Query
             </M.Button>
           </div>
         </div>

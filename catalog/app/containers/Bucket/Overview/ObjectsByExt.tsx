@@ -51,14 +51,15 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
     },
   },
   heading: {
-    // Match the v2 SectionHeader title font (subtitle1 + medium weight).
-    ...t.typography.subtitle1,
-    fontWeight: t.typography.fontWeightMedium,
     gridArea: 'heading',
     marginBottom: t.spacing(1),
     [t.breakpoints.down('sm')]: {
       textAlign: 'center',
     },
+  },
+  // Legacy heading typography; the v2 Overview overrides it via `headingClassName`.
+  headingDefault: {
+    ...t.typography.h6,
   },
   ext: {
     color: t.palette.text.secondary,
@@ -116,13 +117,25 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
 interface ObjectsByExtProps extends M.BoxProps {
   data: $TSFixMe // AsyncResult<ExtData[]>
   colorPool: ColorPool
+  // Heading text + style override. Defaults reproduce the legacy Overview
+  // heading; the v2 Overview passes its own to match the adjacent SectionHeader.
+  heading?: React.ReactNode
+  headingClassName?: string
 }
 
-export default function ObjectsByExt({ data, colorPool, ...props }: ObjectsByExtProps) {
+export default function ObjectsByExt({
+  data,
+  colorPool,
+  heading = 'Objects by File Extension',
+  headingClassName,
+  ...props
+}: ObjectsByExtProps) {
   const classes = useObjectsByExtStyles()
   return (
     <M.Box className={classes.root} {...props}>
-      <div className={classes.heading}>Objects by file extension</div>
+      <div className={cx(classes.heading, headingClassName ?? classes.headingDefault)}>
+        {heading}
+      </div>
       {AsyncResult.case(
         {
           Ok: (exts: ExtData[]) => {

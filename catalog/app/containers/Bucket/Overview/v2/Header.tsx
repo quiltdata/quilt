@@ -295,6 +295,15 @@ const useChartsStyles = M.makeStyles((t) => ({
       flexDirection: 'row',
     },
   },
+  // Match SectionHeader (the "Latest packages" heading) so both columns start
+  // their content at the same vertical offset.
+  objectsHeading: {
+    ...t.typography.subtitle1,
+    alignItems: 'center',
+    display: 'flex',
+    fontWeight: t.typography.fontWeightMedium,
+    minHeight: 32,
+  },
   divider: {
     alignItems: 'center',
     display: 'flex',
@@ -325,6 +334,8 @@ function Charts({ bucket, statsResult }: ChartsProps) {
         width="100%"
         flexShrink={1}
         colorPool={colorPool}
+        heading="Objects by file extension"
+        headingClassName={classes.objectsHeading}
       />
       <div className={classes.divider}>
         <M.Hidden mdUp>
