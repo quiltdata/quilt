@@ -8,6 +8,7 @@ import Code from 'components/Code'
 import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -334,12 +335,9 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface AthenaContainerProps {
-  blocks: BucketPreferences.BlocksPreferences
-}
-
-function AthenaContainer({ blocks }: AthenaContainerProps) {
+function AthenaContainer() {
   const { bucket, queryExecutionId, workgroup } = Model.use()
+  const settings = CatalogSettings.use()
 
   const classes = useStyles()
   return (
@@ -354,7 +352,7 @@ function AthenaContainer({ blocks }: AthenaContainerProps) {
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />
-            {blocks.overviewV2 && <TabulatorTables />}
+            {settings?.beta && <TabulatorTables />}
             <QueryEditor.Form className={classes.form} />
           </div>
           {queryExecutionId ? (
@@ -376,7 +374,7 @@ export default function Wrapper() {
     {
       Ok: ({ ui }) => (
         <Model.Provider preferences={ui.athena}>
-          <AthenaContainer blocks={ui.blocks} />
+          <AthenaContainer />
         </Model.Provider>
       ),
       _: () => <Placeholder color="inherit" />,
