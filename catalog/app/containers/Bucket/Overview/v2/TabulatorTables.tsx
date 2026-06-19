@@ -35,21 +35,36 @@ const useRowStyles = M.makeStyles((t) => ({
     transform: 'rotate(90deg)',
   },
   name: {
+    flexShrink: 0,
     fontWeight: t.typography.fontWeightMedium,
   },
+  // Metadata clustered on the right: source (variable) · cols (fixed) · format (fixed).
   meta: {
-    color: t.palette.text.secondary,
-    whiteSpace: 'nowrap',
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    marginLeft: 'auto',
+    minWidth: 0,
   },
   source: {
     color: t.palette.text.secondary,
     cursor: 'help',
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: '0.8rem',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
     textDecoration: 'underline dotted',
     whiteSpace: 'nowrap',
+  },
+  cols: {
+    color: t.palette.text.secondary,
+    flexShrink: 0,
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
+    width: 56,
+  },
+  format: {
+    flexShrink: 0,
+    textAlign: 'right',
+    width: 72,
   },
   tip: {
     whiteSpace: 'pre-line',
@@ -118,13 +133,17 @@ function TableRow({ table, athenaUrl }: TableRowProps) {
           chevron_right
         </M.Icon>
         <span className={classes.name}>{table.name}</span>
-        {!!table.format && <M.Chip size="small" label={table.format} />}
-        <span className={classes.meta}>{table.columns.length} cols</span>
-        {sourceText && (
-          <M.Tooltip title={<span className={classes.tip}>{sourceTitle}</span>}>
-            <span className={classes.source}>{sourceText}</span>
-          </M.Tooltip>
-        )}
+        <div className={classes.meta}>
+          {sourceText && (
+            <M.Tooltip title={<span className={classes.tip}>{sourceTitle}</span>}>
+              <span className={classes.source}>{sourceText}</span>
+            </M.Tooltip>
+          )}
+          <span className={classes.cols}>{table.columns.length} cols</span>
+          <span className={classes.format}>
+            {!!table.format && <M.Chip size="small" label={table.format} />}
+          </span>
+        </div>
       </div>
       <M.Collapse in={expanded} unmountOnExit>
         <div className={classes.body}>

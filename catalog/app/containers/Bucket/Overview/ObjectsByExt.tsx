@@ -122,7 +122,7 @@ export default function ObjectsByExt({ data, colorPool, ...props }: ObjectsByExt
   const classes = useObjectsByExtStyles()
   return (
     <M.Box className={classes.root} {...props}>
-      <div className={classes.heading}>Objects by File Extension</div>
+      <div className={classes.heading}>Objects by file extension</div>
       {AsyncResult.case(
         {
           Ok: (exts: ExtData[]) => {
