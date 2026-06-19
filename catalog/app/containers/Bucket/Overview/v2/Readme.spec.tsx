@@ -68,6 +68,13 @@ describe('containers/Bucket/Overview/v2/Readme', () => {
     expect(queryByTestId('readme-markdown')).toBeFalsy()
   })
 
+  it('renders nothing (no stuck skeleton) when the readme listing fails', () => {
+    readmesResult.mockReturnValue(AsyncResult.Err(new Error('boom')))
+    const { container, queryByTestId } = render(<Readme bucket="b" />)
+    expect(queryByTestId('readme-preview')).toBeFalsy()
+    expect(container.innerHTML).toBe('')
+  })
+
   it('renders nothing when the only readme is a notebook', () => {
     readmesResult.mockReturnValue(AsyncResult.Ok([{ bucket: 'b', key: 'README.ipynb' }]))
     const { queryByTestId } = render(<Readme bucket="b" />)

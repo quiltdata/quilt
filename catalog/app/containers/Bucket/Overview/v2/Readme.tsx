@@ -141,6 +141,7 @@ export default function Readme({ bucket }: ReadmeProps) {
           if (!handle) return null
           return <ReadmeContents handle={handle} />
         },
+        Err: () => null,
         _: () => <Skeleton height={48} />,
       })}
     </Fetcher>
