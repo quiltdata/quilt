@@ -12,7 +12,6 @@ import * as Model from '../../Queries/Athena/model/utils'
 import { useTabulatorTables } from '../../Tabulator/requests'
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
 
-import SectionCard from './SectionCard'
 import SectionHeader from './SectionHeader'
 
 const useRowStyles = M.makeStyles((t) => ({
@@ -24,9 +23,9 @@ const useRowStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     gap: t.spacing(1.5),
-    // No horizontal padding: the SectionCard supplies it, so rows align with
-    // the section header and the dividers span the card's content width.
-    padding: t.spacing(1.5, 0),
+    // Row owns its horizontal padding so the divider (on `root`) spans the full
+    // card width while the content stays inset.
+    padding: t.spacing(1.5, 3),
     '&:hover': {
       background: t.palette.action.hover,
     },
@@ -74,9 +73,8 @@ const useRowStyles = M.makeStyles((t) => ({
     whiteSpace: 'pre-line',
   },
   body: {
-    // Indent under the row name (past the caret); no horizontal padding from
-    // the card edge — that comes from the SectionCard.
-    padding: t.spacing(1, 0, 2, 4),
+    // Indent under the row name (past the caret); right padding matches the row.
+    padding: t.spacing(1, 3, 2, 7),
   },
   chips: {
     display: 'flex',
@@ -189,6 +187,16 @@ function TableRow({ table, athenaUrl }: TableRowProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
+    },
+  },
+  // Rows bleed to full width for edge-to-edge dividers; the header gets the
+  // padding the card body would otherwise provide.
+  head: {
+    padding: t.spacing(3, 3, 0),
+  },
   count: {
     color: t.palette.text.secondary,
     fontWeight: t.typography.fontWeightRegular,
@@ -228,25 +236,27 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const queryUrl = urls.bucketQueries(bucket)
   const athenaUrl = urls.bucketAthena(bucket)
   return (
-    <SectionCard>
-      <SectionHeader
-        action={
-          <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
-            More queries
-          </M.Button>
-        }
-      >
-        Tabulator tables
-        <span className={classes.count}>
-          {' · '}
-          {tables.length} in {bucket}
-        </span>
-      </SectionHeader>
+    <M.Paper className={classes.root}>
+      <div className={classes.head}>
+        <SectionHeader
+          action={
+            <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
+              More queries
+            </M.Button>
+          }
+        >
+          Tabulator tables
+          <span className={classes.count}>
+            {' · '}
+            {tables.length} in {bucket}
+          </span>
+        </SectionHeader>
+      </div>
       <div>
         {tables.map((table) => (
           <TableRow key={table.name} table={table} athenaUrl={athenaUrl} />
         ))}
       </div>
-    </SectionCard>
+    </M.Paper>
   )
 }

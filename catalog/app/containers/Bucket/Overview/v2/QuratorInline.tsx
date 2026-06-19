@@ -6,10 +6,9 @@ import Chat from 'components/Assistant/UI/Chat/Chat'
 import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import SectionCard from './SectionCard'
-
 const useStyles = M.makeStyles((t) => ({
   root: {
+    background: M.colors.indigo[50],
     display: 'flex',
     // Constrain so the conversation scrolls within the page instead of
     // growing unbounded as messages accumulate.
@@ -51,14 +50,14 @@ export default function QuratorInline() {
   // Registering the inline chat's presence suppresses the global Fab + sidebar.
   return (
     <InlinePresence.Provide value>
-      <SectionCard tint flush className={classes.root}>
+      <M.Paper className={classes.root}>
         <Chat
           state={api.state}
           dispatch={api.dispatch}
           devTools={api.devTools}
           connectors={api.connectors}
         />
-      </SectionCard>
+      </M.Paper>
     </InlinePresence.Provide>
   )
 }
