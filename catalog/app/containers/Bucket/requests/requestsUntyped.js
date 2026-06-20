@@ -11,6 +11,7 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
+import { getArchiveState } from 'utils/glacier'
 import { decodeS3Key } from './utils'
 
 const parseDate = (d) => d && new Date(d)
@@ -77,13 +78,16 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
+    const { restoring, archived } = getArchiveState(h.StorageClass, h.Restore)
     return ObjectExistence.Exists({
       bucket,
       key,
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
-      archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
+      // `archived` carries the storage class (or `false`) — no separate field.
+      archived,
+      restoring,
       lastModified: parseDate(h.LastModified),
     })
   } catch (e) {
@@ -116,7 +120,8 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
 export const ensureObjectIsPresent = (...args) =>
   getObjectExistence(...args).then(
     ObjectExistence.case({
-      Exists: ({ deleted, archived, ...h }) => (deleted || archived ? null : h),
+      Exists: ({ deleted, archived, restoring, ...h }) =>
+        deleted || archived ? null : h,
       _: () => null,
     }),
   )

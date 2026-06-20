@@ -108,7 +108,7 @@ function Bucket({ iconUrl, name, title, description }: BucketProps) {
   const classes = useBucketStyles()
   return (
     <div className={classes.root} title={description || undefined}>
-      <BucketIcon alt={title} className={classes.icon} src={iconUrl || undefined} />
+      <BucketIcon alt={title} className={classes.icon} src={iconUrl} />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})

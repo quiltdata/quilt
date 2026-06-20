@@ -319,9 +319,9 @@ sdist = { url = "https://files.pythonhosted.org/packages/a5/ef/b45913e890e0db1c0
 
 [[package]]
 name = "pyarrow"
-version = "18.1.0"
+version = "23.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7f/7b/640785a9062bb00314caa8a387abce547d2a420cf09bd6c715fe659ccffb/pyarrow-18.1.0.tar.gz", hash = "sha256:9386d3ca9c145b5539a1cfc75df07757dff870168c959b473a0bccbc3abc8c73", size = 1118671, upload-time = "2024-11-26T02:01:48.62Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/22/134986a4cc224d593c1afde5494d18ff629393d74cc2eddb176669f234a4/pyarrow-23.0.1.tar.gz", hash = "sha256:b8c5873e33440b2bc2f4a79d2b47017a89c5a24116c055625e6f2ee50523f019", size = 1167336, upload-time = "2026-02-16T10:14:12.39Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/50/12829e7111b932581e51dda51d5cb39207a056c30fe31ef43f14c63c4d7e/pyarrow-18.1.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:9f3a76670b263dc41d0ae877f09124ab96ce10e4e48f3e3e4257273cee61ad0d", size = 29514620, upload-time = "2024-11-26T01:59:39.797Z" },
     { url = "https://files.pythonhosted.org/packages/d1/41/468c944eab157702e96abab3d07b48b8424927d4933541ab43788bb6964d/pyarrow-18.1.0-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:da31fbca07c435be88a0c321402c4e31a2ba61593ec7473630769de8346b54ee", size = 30856494, upload-time = "2024-11-26T01:59:44.725Z" },
@@ -631,7 +631,7 @@ requires-dist = [
     { name = "openpyxl", marker = "extra == 'preview'", specifier = "~=3.1" },
     { name = "pandas", marker = "extra == 'preview'", specifier = "~=2.2.3" },
     { name = "psutil", marker = "extra == 'mem'", specifier = "~=6.1" },
-    { name = "pyarrow", marker = "extra == 'preview'", specifier = "~=18.0" },
+    { name = "pyarrow", marker = "extra == 'preview'", specifier = "~=23.0" },
     { name = "t4-lambda-shared", extras = ["mem"], marker = "extra == 'preview'" },
     { name = "xlrd", marker = "extra == 'preview'", specifier = "~=2.0" },
 ]

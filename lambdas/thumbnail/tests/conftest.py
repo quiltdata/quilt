@@ -1,5 +1,8 @@
 import pytest
 
+import quilt3.session
+import quilt3.util
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -38,6 +41,26 @@ def pytest_configure(config):
         markers_to_exclude.append('loffice')
 
     config.option.markexpr = ' and '.join([f'not {m}' for m in markers_to_exclude])
+
+
+@pytest.fixture(scope="session", autouse=True)
+def isolated_quilt3_state(tmp_path_factory):
+    # Make quilt3 behave as if never logged in: a stale `quilt3 login` against
+    # an unreachable catalog otherwise replaces the whole AWS credential chain
+    # (quilt3.session.create_botocore_session) and breaks the package-based
+    # tests with DNS/auth errors before any S3 request is made.
+    # Unlike api/python/tests (which mock platformdirs wholesale), only the
+    # login state is redirected, so the package download cache stays warm
+    # across local runs.
+    base = tmp_path_factory.mktemp("quilt3-state")
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(quilt3.session, "AUTH_PATH", base / "auth.json")
+        mp.setattr(quilt3.session, "CREDENTIALS_PATH", base / "credentials.json")
+        mp.setattr(quilt3.util, "CONFIG_PATH", base / "config.yml")
+        # Drop any requests session quilt3 may have cached before the paths
+        # were redirected (e.g. from import- or collection-time access).
+        quilt3.session.clear_session()
+        yield
 
 
 @pytest.fixture(scope="function", autouse=True)

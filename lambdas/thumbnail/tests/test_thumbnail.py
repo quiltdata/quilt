@@ -1,12 +1,13 @@
 import json
 import tempfile
-from contextlib import contextmanager
+import warnings
 from io import BytesIO
 from pathlib import Path
 
 import bioio
 import bioio_base
 import bioio_czi
+import bioio_imageio
 import numpy as np
 import pytest
 import responses
@@ -45,15 +46,27 @@ def _make_event(query, headers=None):
     }
 
 
-@contextmanager
-def _mock(target, attr, obj):
-    """a simple mocking context manager"""
-    orig_obj = getattr(target, attr)
-    try:
-        setattr(target, attr, obj)
-        yield
-    finally:
-        setattr(target, attr, orig_obj)
+@pytest.mark.parametrize(
+    "src_file, name",
+    [
+        ("penguin.jpg", "penguin.jpeg"),
+        ("cell.webp", "cell.webp"),
+    ],
+)
+def test_read_image_fallback(data_dir, tmp_path, src_file, name):
+    """Pin the mechanism behind the .jpeg/.webp cases in
+    test_generate_thumbnail: default reader selection must fail for these
+    names (the extensions aren't declared by bioio-imageio), and read_image()
+    must recover via the forced reader. If the first assertion starts failing,
+    bioio-imageio has declared the extension and the fallback no longer guards
+    these formats.
+    """
+    path = tmp_path / name
+    path.symlink_to(data_dir / src_file)
+    with pytest.raises(bioio_base.exceptions.UnsupportedFileFormatError):
+        BioImage(path)
+    img = t4_lambda_thumbnail.read_image(str(path))
+    assert isinstance(img.reader, bioio_imageio.Reader)
 
 
 @responses.activate
@@ -80,12 +93,25 @@ def test_403():
 @pytest.mark.parametrize(
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",
     [
-        # BUG: lambda doesn't preserve source format.
-        ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128-fallback.png", [650, 650], [128, 128], None, 200),
+        # BUG: lambda doesn't preserve source format. This I;16 input also
+        # exercises the _rescale_uint16_to_uint8 contrast-stretch end-to-end.
         ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
+        # low-range uint16: pins the contrast stretch end-to-end
+        ("I16-low-range.tiff", {"size": "w64h64"}, "I16-low-range-64.png", [64, 64], [64, 64], None, 200),
+        # float greyscale and color: pin the float-to-uint8 rescale end-to-end
+        ("float-grey.tiff", {"size": "w64h64"}, "float-grey-64.png", [64, 64], [64, 64], None, 200),
+        ("float-rgb.tiff", {"size": "w64h64"}, "float-rgb-64.png", [64, 64, 3], [64, 64], None, 200),
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
+        # .jpeg/.webp aren't in bioio-imageio's declared extensions and need
+        # the forced-reader fallback in read_image(); .jpeg is plain JPEG,
+        # so serve the existing fixture under a different name
+        (("penguin.jpg", "penguin.jpeg"), {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None,
+         200),
+        # cell.webp is lossless-converted from cell.png, so the thumbnail is
+        # identical to cell.png's
+        ("cell.webp", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
         ("sat_greyscale.tiff", {"size": "w640h480"}, "sat_greyscale-480.png", [512, 512], [480, 480], None, 200),
         ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [1, 6, 36, 76, 68], [224, 167], None, 200),
         ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None, 200),
@@ -162,6 +188,12 @@ def test_403():
 def test_generate_thumbnail(
     data_dir, input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status
 ):
+    # input_file is either a file name or a (file name, URL name) pair when
+    # the URL must present a different extension than the fixture's
+    if isinstance(input_file, tuple):
+        input_file, url_name = input_file
+    else:
+        url_name = input_file
     # Resolve the input file path
     input_file = data_dir / input_file
     # Mock the request
@@ -170,18 +202,16 @@ def test_generate_thumbnail(
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
-    if expected_thumb == "I16-mode-128-fallback.png":
-        # Note that if this set of params fails, it may be that better resamplers
-        # have been added for this mode, and either the image or test will need
-        # to be updated.
-        with _mock(t4_lambda_thumbnail, '_convert_I16_to_L', Image.fromarray):
-            response = t4_lambda_thumbnail.lambda_handler(event, None)
-    else:
-        response = t4_lambda_thumbnail.lambda_handler(event, None)
+    response = t4_lambda_thumbnail.lambda_handler(event, None)
 
-    # Assert the request was handled with no errors
-    assert response["statusCode"] == 200, f"response: {response}"
-    # only check the body and expected image if it's a successful call
+    assert response["statusCode"] == status, f"response: {response}"
+    if status != 200:
+        # Error bodies are plain-text messages produced by the @api/@validate
+        # decorators, unlike the JSON shape checked in test_403.
+        assert response["headers"]["Content-Type"] == "text/plain"
+        assert read_body(response)
+        return
+
     # Parse the body / the returned thumbnail
     body = read_body(response)
     # Assert basic metadata was filled properly
@@ -209,11 +239,349 @@ def test_generate_thumbnail(
             assert np.array_equal(actual.reader.data, expected.reader.data)
 
 
+def test_rescale_uint16_to_uint8_rescales_by_range():
+    # Low-range data (e.g. 12-bit microscopy stored as uint16) must be
+    # contrast-stretched, not truncated to a nearly black image.
+    arr = np.array([[3000, 3500], [4000, 4096]], dtype=np.uint16)
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [[0, 116], [233, 255]])
+
+
+def test_rescale_uint16_to_uint8_constant():
+    # Constant images keep their brightness level instead of being rescaled.
+    arr = np.full((4, 4), 1234, dtype=np.uint16)
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == (1234 >> 8)).all()
+
+
+def test_rescale_uint16_to_uint8_empty():
+    arr = np.empty((0, 4), dtype=np.uint16)
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert out.size == 0
+
+
+def test_rescale_uint16_to_uint8_no_uint8_wraparound():
+    # A sub-grey-level percentile span near the top of the uint16 scale must
+    # not overshoot 255 and wrap around in the uint8 cast, rendering the
+    # brightest pixels dark. The outliers are spread so that the percentiles
+    # interpolate fractionally instead of collapsing to the min/max fallback.
+    arr = np.full((100, 100), 65000, dtype=np.uint16)
+    arr[0, 0] = 64999
+    arr[0, 1] = 65020
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.max() == 255
+
+
+def test_rescale_uint16_to_uint8_sparse():
+    # Percentiles collapse when almost all pixels share one value; min/max
+    # fallback keeps sparse data (e.g. label masks) visible.
+    arr = np.zeros((200, 200), dtype=np.uint16)
+    arr[0, :3] = 4000
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+
+
+def test_rescale_uint16_to_uint8_clips_outliers():
+    # A single hot pixel must not compress the rest of the range to black.
+    arr = np.linspace(3000, 4096, 10000, dtype=np.uint16).reshape(100, 100)
+    arr[0, 0] = 65535
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) > 100
+
+
+def test_rescale_uint16_to_uint8_clips_dead_pixels():
+    # A single dead pixel must not compress the rest of the range to white.
+    arr = np.linspace(60000, 65535, 10000, dtype=np.uint16).reshape(100, 100)
+    arr[0, 0] = 0
+    out = t4_lambda_thumbnail._rescale_uint16_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert np.median(out) < 155
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        np.random.default_rng(0).integers(0, 4096, (200, 200), dtype=np.uint16),
+        np.random.default_rng(1).integers(0, 65536, (150, 150), dtype=np.uint16),
+        np.random.default_rng(2).integers(100, 400, (64, 64), dtype=np.uint16),
+        # skewed / fractional-percentile distribution
+        (np.random.default_rng(3).power(0.3, (180, 180)) * 65535).astype(np.uint16),
+        # color array: percentiles are pooled across channels
+        np.random.default_rng(4).integers(0, 4096, (40, 40, 3), dtype=np.uint16),
+    ],
+)
+def test_percentile_uint16_matches_numpy(arr):
+    # The histogram percentile must track np.percentile's default "linear"
+    # method — that equivalence is what keeps _rescale output (and the
+    # checked-in thumbnails) unchanged. Tolerance, not exact equality: numpy's
+    # _lerp is asymmetric for fraction >= 0.5, which the helper doesn't
+    # replicate; the gap is sub-ULP and vanishes in the uint8 rescale.
+    expected = list(np.percentile(arr, (0.01, 99.99)))
+    actual = t4_lambda_thumbnail._percentile_uint16(arr, (0.01, 99.99))
+    assert np.allclose(actual, expected, rtol=0, atol=1e-9)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        np.random.default_rng(5).integers(0, 65536, (100, 100), dtype=np.uint16),
+        # non-contiguous color slice (the generate_thumbnail RGBA path)
+        np.random.default_rng(6).integers(0, 4096, (60, 60, 4), dtype=np.uint16)[..., :3],
+        # degenerate aspect ratios: flat-iterator chunking handles a single
+        # wide row / column the same as a balanced image
+        np.random.default_rng(7).integers(0, 65536, (1, 5000), dtype=np.uint16),
+        np.random.default_rng(8).integers(0, 65536, (5000, 1), dtype=np.uint16),
+    ],
+)
+def test_percentile_uint16_multi_block(monkeypatch, arr):
+    # The per-block accumulation only runs once for the small arrays above
+    # unless the block is shrunk; force many blocks so the cross-block sum
+    # is actually exercised.
+    monkeypatch.setattr(t4_lambda_thumbnail, "_HIST_BLOCK", 256)
+    expected = list(np.percentile(arr, (0.01, 99.99)))
+    actual = t4_lambda_thumbnail._percentile_uint16(arr, (0.01, 99.99))
+    assert np.allclose(actual, expected, rtol=0, atol=1e-9)
+
+
+@pytest.mark.parametrize(
+    ("arr", "rescale"),
+    [
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 2048, 16, dtype=np.uint16).reshape(4, 4),
+                np.linspace(0, 4096, 16, dtype=np.uint16).reshape(4, 4),
+                np.zeros((4, 4), dtype=np.uint16),
+            ]),
+            t4_lambda_thumbnail._rescale_uint16_to_uint8,
+            id="uint16",
+        ),
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 0.5, 16, dtype=np.float32).reshape(4, 4),
+                np.linspace(0, 1.0, 16, dtype=np.float32).reshape(4, 4),
+                np.zeros((4, 4), dtype=np.float32),
+            ]),
+            t4_lambda_thumbnail._rescale_float_to_uint8,
+            id="float32",
+        ),
+    ],
+)
+def test_rescale_joint_channels(arr, rescale):
+    # The range is shared across channels so relative intensities survive:
+    # a half-range channel must map to mid-grey, not stretch to full range
+    # on its own.
+    out = rescale(arr)
+    assert out[..., 0].max() == 128
+    assert out[..., 1].max() == 255
+    assert (out[..., 2] == 0).all()
+
+
+def test_rescale_float_to_uint8():
+    arr = np.array([[0.0, 0.25], [0.5, 1.0]], dtype=np.float16)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [[0, 64], [128, 255]])
+
+
+def test_rescale_float_to_uint8_nan():
+    # NaNs are ignored for the range and render black.
+    arr = np.array([[np.nan, 0.25], [0.5, 1.0]], dtype=np.float32)
+    with warnings.catch_warnings():
+        # NaN must be zeroed explicitly, not rely on the undefined (but
+        # warning-emitting) NaN-to-uint8 cast happening to produce 0.
+        warnings.simplefilter("error")
+        out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert np.array_equal(out, [[0, 0], [85, 255]])
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # [0, 1]-convention constants keep their brightness level
+        pytest.param(0.5, 128, id="in-01-convention"),
+        # one output quantum of tolerance above 1.0: a nudged 1.0 stays white
+        pytest.param(1.0000001, 255, id="nudged-above-one"),
+        # constants outside the convention are kept as absolute levels
+        pytest.param(100.0, 100, id="absolute-level"),
+    ],
+)
+def test_rescale_float_to_uint8_constant(value, expected):
+    arr = np.full((4, 4), value, dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == expected).all()
+
+
+def test_rescale_float_to_uint8_inf():
+    # ±inf are excluded from the range and saturate to its ends.
+    arr = np.array([[np.inf, -np.inf], [np.nan, 0.0], [0.5, 1.0]], dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert np.array_equal(out, [[255, 0], [0, 0], [128, 255]])
+
+
+def test_rescale_float_to_uint8_all_non_finite():
+    arr = np.array([[np.inf, -np.inf], [np.nan, np.inf]], dtype=np.float32)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.dtype == np.uint8
+    assert (out == 0).all()
+
+
+def test_rescale_float_to_uint8_float64_precision():
+    # High-offset low-contrast float64: sub-float32-ulp differences must
+    # not collapse in the working copy.
+    arr = np.linspace(1e6, 1e6 + 0.01, 256, dtype=np.float64).reshape(16, 16)
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out.min() == 0
+    assert out.max() == 255
+    assert len(np.unique(out)) >= 250
+
+
+def test_rescale_float_to_uint8_sparse():
+    # Percentiles collapse when almost all pixels share one value; min/max
+    # fallback keeps sparse data (e.g. label masks) visible. The hot pixels
+    # must stay below the 0.01% percentile window (here: <4 of 40000) so
+    # the percentiles actually collapse instead of interpolating.
+    arr = np.zeros((200, 200), dtype=np.float32)
+    arr[0, :3] = 1.0
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert (out[0, :3] == 255).all()
+    assert out[1, 0] == 0
+
+
+def test_rescale_float_to_uint8_clips_outlier_pixels():
+    # A few hot/dead pixels must not compress the rest of the range: the
+    # bulk must keep (nearly) all of its distinct levels, not collapse
+    # into a few bins around the midpoint.
+    arr = np.linspace(0, 1, 10000, dtype=np.float32).reshape(100, 100)
+    arr[0, 0] = 100.0
+    arr[0, 1] = -100.0
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(arr)
+    assert out[0, 0] == 255
+    assert out[0, 1] == 0
+    assert len(np.unique(out)) > 200
+
+
+def test_rescale_float_to_uint8_empty():
+    out = t4_lambda_thumbnail._rescale_float_to_uint8(np.empty((0, 4), dtype=np.float32))
+    assert out.dtype == np.uint8
+    assert out.size == 0
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pytest.param(np.linspace(0, 1, 48, dtype=np.float16).reshape(4, 4, 3), id="float16-rgb"),
+        pytest.param(np.linspace(3000, 4096, 48, dtype=np.uint16).reshape(4, 4, 3), id="uint16-rgb"),
+    ],
+)
+def test_generate_thumbnail_color_dtypes(arr):
+    # Color arrays in dtypes PIL can't handle are contrast-stretched to uint8.
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (4, 4))
+    assert img.mode == "RGB"
+    out = np.asarray(img)
+    assert out.min() == 0
+    assert out.max() == 255
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pytest.param(
+            np.dstack([
+                np.linspace(0, 1000, 48, dtype=np.float32).reshape(4, 4, 3),
+                np.ones((4, 4), dtype=np.float32),
+            ]),
+            id="float32-rgba",
+        ),
+        pytest.param(
+            np.dstack([
+                np.linspace(3000, 4096, 48, dtype=np.uint16).reshape(4, 4, 3),
+                np.full((4, 4), 65535, dtype=np.uint16),
+            ]),
+            id="uint16-rgba",
+        ),
+    ],
+)
+def test_generate_thumbnail_rgba(arr):
+    # Opaque alpha must stay opaque and must not skew the color channels'
+    # contrast range.
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (4, 4))
+    assert img.mode == "RGBA"
+    out = np.asarray(img)
+    assert (out[..., 3] == 255).all()
+    assert out[..., :3].min() == 0
+    assert out[..., :3].max() == 255
+
+
+def test_alpha_to_uint8_float():
+    # Float alpha is scaled by the [0, 1] opacity convention; NaN renders
+    # transparent, out-of-range values clamp.
+    alpha = np.array([np.nan, -0.5, 0.0, 0.25, 1.0, 2.0], dtype=np.float32)
+    out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [0, 0, 0, 64, 255, 255])
+
+
+def test_alpha_to_uint8_uint16():
+    # uint16 alpha is scaled by the full dtype range — the values stay
+    # below it so a contrast-stretch regression can't produce the same
+    # output (it would map 32768 to 255).
+    alpha = np.array([0, 256, 16384, 32768], dtype=np.uint16)
+    out = t4_lambda_thumbnail._alpha_to_uint8(alpha)
+    assert out.dtype == np.uint8
+    assert np.array_equal(out, [0, 1, 64, 128])
+
+
+def test_generate_thumbnail_float_greyscale_saves_png():
+    # Float greyscale used to reach PIL as mode F, which can't be saved as PNG.
+    arr = np.linspace(0, 1, 64, dtype=np.float32).reshape(8, 8)
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (8, 8))
+    assert img.mode == "L"
+    img.save(BytesIO(), "PNG")
+
+
+@pytest.mark.parametrize(
+    "shape, expected_mode",
+    [
+        ((64, 64), "L"),       # greyscale: would otherwise reach PIL as I;16B
+        ((64, 64, 3), "RGB"),  # color: PIL can't build a color image from uint16
+        ((64, 64, 4), "RGBA"),
+    ],
+)
+def test_generate_thumbnail_handles_byte_swapped_uint16(shape, expected_mode):
+    # Dispatch is by dtype (kind/itemsize), not PIL mode, so byte-swapped uint16
+    # is rescaled to uint8 like native-order — rather than reaching PIL as an
+    # I;16B greyscale image (rejected by thumbnail()'s reduce()) or a color
+    # array PIL can't build at all (the old `== np.uint16` check missed both).
+    arr = np.random.default_rng(0).integers(0, 65536, shape).astype(">u2")
+    img = t4_lambda_thumbnail.generate_thumbnail(arr, (32, 32))
+    assert img.mode == expected_mode
+
+
+def test_norm_img_path_saves_16bit_png(data_dir):
+    # Pin the output depth of the normalized (mode I) path: the golden
+    # comparisons only enforce it as long as the goldens themselves stay
+    # 16-bit, so a golden regeneration could silently change it. Shipping
+    # 8-bit instead (smaller, browsers can't use more) is a fine future
+    # choice, but it has to be made consciously — flip this then.
+    _info, data = t4_lambda_thumbnail.handle_image(
+        path=str(data_dir / "cell.tiff"), size=(640, 480), thumbnail_format="PNG",
+    )
+    assert Image.open(BytesIO(data)).mode == "I;16"
+
+
 TEST_DATA_REGISTRY = "s3://quilt-test-public-data"
-TIFF_PKG = "images/bioio-tifffile", "dc6fe8a79486743c783a22fd6ff045d6548eee5fa02637e79029bca5dde89cbc"
+TIFF_PKG = "images/bioio-tifffile", "5fa99558a167d6430defbfa4033808c7e7004b847e94a213292c2c776ef43ac5"
 OME_TIFF_PKG = "images/bioio-ome-tiff", "6dbddd093e0a92cfc1cc5957ad7a7177ba98a0fee5d99ffaea58e30b7c46e182"
 CZI_PKG = "images/pylibczirw", "552c9290ffa24738a578c494b7fc9f95cc03e3d12d701bc0bd944f5c1c558b2c"
-THUMBS_PKG = "images/thumbs", "8b3e9fea2049fc381c7e364b64cabf52e40c9c9fb9da2434bc6744ef292a1914"
+THUMBS_PKG = "images/thumbs", "5ae720b35c5abc296ad5e708d3dea402bc4269c6e6f1920aa48cbc4be21ba443"
 SIZE = (1024, 768)
 
 
@@ -226,29 +594,17 @@ SIZE = (1024, 768)
         (TIFF_PKG, "s_1_t_1_c_10_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.ome.tiff"),
         (TIFF_PKG, "s_1_t_1_c_1_z_1.tiff"),
-        # Traceback (most recent call last):
-        #   File "site-packages/PIL/Image.py", line 3308, in fromarray
-        #     mode, rawmode = _fromarray_typemap[typekey]
-        #                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^
-        # KeyError: ((1, 1, 3), '<u2')
-        # The above exception was the direct cause of the following exception:
-        # Traceback (most recent call last):
-        #   File "<ipython-input-5-03f7162314ed>", line 5, in <module>
-        #     _info, data = handle_image(src=e.get_bytes(), size=(1024, 768), thumbnail_format='PNG', url=f'x/{lk}')
-        #                   ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 351, in handle_image
-        #     img = generate_thumbnail(img, size)
-        #   File "src/t4_lambda_thumbnail/__init__.py", line 376, in generate_thumbnail
-        #     img = Image.fromarray(arr)
-        #   File "site-packages/PIL/Image.py", line 3312, in fromarray
-        #     raise TypeError(msg) from e
-        # TypeError: Cannot handle this data type: (1, 1, 3), <u2
-        pytest.param(
-            TIFF_PKG,
-            "s_1_t_1_c_1_z_1_RGB.tiff",
-            marks=pytest.mark.xfail(raises=TypeError),
-        ),
+        (TIFF_PKG, "s_1_t_1_c_1_z_1_RGB.tiff"),
+        # all zeros; kept as a constant-input guard for the multi-channel RGB
+        # montage path (would catch e.g. a div-by-zero if normalization ever
+        # gets applied to color channels), but useless for pixel correctness
         (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB.tiff"),
+        # real-content variant of the above with distinct channels; this is
+        # what actually pins pixel correctness of the montage (channel order,
+        # grid placement, padding)
+        (TIFF_PKG, "s_1_t_1_c_2_z_1_RGB_gradient.tiff"),
+        # float16 RGB photo (values in [0, 1]), from tlnagy/exampletiffs
+        (TIFF_PKG, "spring.tif"),
         (TIFF_PKG, "s_3_t_1_c_3_z_5.ome.tiff"),
         (OME_TIFF_PKG, "3d-cell-viewer.ome.tiff"),
         (OME_TIFF_PKG, "actk.ome.tiff"),
