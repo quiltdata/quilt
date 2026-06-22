@@ -28,3 +28,13 @@ export function validate(inputStr?: string) {
     return error
   }
 }
+
+// Like `parse`, but returns the parse error instead of swallowing it.
+export function parseStrict<T = unknown>(inputStr?: string): T | undefined | Error {
+  if (!inputStr) return undefined
+  try {
+    return yaml.load(inputStr) as T
+  } catch (error) {
+    return error as Error
+  }
+}

@@ -46,12 +46,11 @@ export function prettifyPattern(raw: string): SourcePattern {
 }
 
 export function parseTabulatorConfig(name: string, config: string): ParsedTabulatorTable {
-  const parsed = yaml.parse(config) as RawConfig | undefined
-  // `parse` swallows malformed YAML; `validate` recovers the error to report it.
-  if (config && parsed === undefined) {
-    const error = yaml.validate(config)
-    if (error) Sentry.captureException(error, { extra: { tabulatorTable: name } })
+  const result = yaml.parseStrict<RawConfig>(config)
+  if (result instanceof Error) {
+    Sentry.captureException(result, { extra: { tabulatorTable: name } })
   }
+  const parsed = result instanceof Error ? undefined : result
   const columns: TableColumn[] = (Array.isArray(parsed?.schema) ? parsed!.schema : [])
     .filter((c): c is { name: string; type?: unknown } => typeof c?.name === 'string')
     .map((c) => ({ name: c.name, type: typeof c.type === 'string' ? c.type : '' }))
