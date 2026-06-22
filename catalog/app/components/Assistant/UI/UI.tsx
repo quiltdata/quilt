@@ -7,10 +7,6 @@ import * as Model from '../Model'
 import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
 
-// `useInlined()` is true while a page renders its own inline chat; the global
-// Fab + sidebar suppress themselves so they don't duplicate it. The Assistant UI
-// stays agnostic of which page that is.
-
 const useSidebarStyles = M.makeStyles({
   sidebar: {
     background: M.colors.indigo[50],
