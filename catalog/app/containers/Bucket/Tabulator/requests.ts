@@ -47,16 +47,18 @@ export function prettifyPattern(raw: string): SourcePattern {
 
 export function parseTabulatorConfig(name: string, config: string): ParsedTabulatorTable {
   const parsed = yaml.parseStrict<RawConfig>(config)
-  if (parsed instanceof Error) {
-    Sentry.captureException(parsed, { extra: { tabulatorTable: name } })
+  if (!parsed || parsed instanceof Error) {
+    if (parsed instanceof Error) {
+      Sentry.captureException(parsed, { extra: { tabulatorTable: name } })
+    }
     return { name, format: '', columns: [], source: null }
   }
-  const columns: TableColumn[] = (Array.isArray(parsed?.schema) ? parsed!.schema : [])
+  const columns: TableColumn[] = (Array.isArray(parsed.schema) ? parsed.schema : [])
     .filter((c): c is { name: string; type?: unknown } => typeof c?.name === 'string')
     .map((c) => ({ name: c.name, type: typeof c.type === 'string' ? c.type : '' }))
-  const format = typeof parsed?.parser?.format === 'string' ? parsed.parser.format : ''
-  const pkg = parsed?.source?.package_name
-  const lk = parsed?.source?.logical_key
+  const format = typeof parsed.parser?.format === 'string' ? parsed.parser.format : ''
+  const pkg = parsed.source?.package_name
+  const lk = parsed.source?.logical_key
   const source =
     typeof pkg === 'string' && typeof lk === 'string'
       ? { packageName: prettifyPattern(pkg), logicalKey: prettifyPattern(lk) }
