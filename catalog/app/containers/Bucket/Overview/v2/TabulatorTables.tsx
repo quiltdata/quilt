@@ -4,12 +4,10 @@ import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-// Schema-free generic async-state helpers; they merely live under the Athena
-// folder. Candidate for relocation to a neutral `utils/` location.
-import * as Model from '../../Queries/Athena/model/utils'
-import { useTabulatorTables } from '../../Tabulator/requests'
+import { useTabulatorTables, parseTabulatorTables } from '../../Tabulator/requests'
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
 
 import SectionHeader from './SectionHeader'
@@ -216,7 +214,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
-  const tables = useTabulatorTables(bucket)
+  const tablesQuery = useTabulatorTables(bucket)
 
   // The whole section links into the Queries tab, so respect a bucket that has
   // disabled it via `ui.nav.queries`.
@@ -226,41 +224,42 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   )
   if (!queriesEnabled) return null
 
-  if (Model.isLoading(tables)) return <M.LinearProgress />
-
-  if (Model.isError(tables)) {
-    return (
+  // Render nothing on empty / error — never break the Overview page.
+  return GQL.fold(tablesQuery, {
+    fetching: () => <M.LinearProgress />,
+    error: () => (
       <M.Typography color="textSecondary" variant="body2">
         Could not load Tabulator tables
       </M.Typography>
-    )
-  }
-
-  if (!Model.hasData(tables) || tables.length === 0) return null
-
-  const queryUrl = urls.bucketQueries(bucket)
-  const athenaUrl = urls.bucketAthena(bucket)
-  return (
-    <M.Paper className={classes.root}>
-      <div className={classes.head}>
-        <SectionHeader>
-          Tabulator tables
-          <span className={classes.count}>
-            {' · '}
-            {tables.length} in {bucket}
-          </span>
-        </SectionHeader>
-      </div>
-      <div>
-        {tables.map((table) => (
-          <TableRow key={table.name} table={table} athenaUrl={athenaUrl} />
-        ))}
-      </div>
-      <div className={classes.foot}>
-        <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
-          More queries
-        </M.Button>
-      </div>
-    </M.Paper>
-  )
+    ),
+    data: (d) => {
+      const tables = parseTabulatorTables(d)
+      if (tables.length === 0) return null
+      const queryUrl = urls.bucketQueries(bucket)
+      const athenaUrl = urls.bucketAthena(bucket)
+      return (
+        <M.Paper className={classes.root}>
+          <div className={classes.head}>
+            <SectionHeader>
+              Tabulator tables
+              <span className={classes.count}>
+                {' · '}
+                {tables.length} in {bucket}
+              </span>
+            </SectionHeader>
+          </div>
+          <div>
+            {tables.map((table) => (
+              <TableRow key={table.name} table={table} athenaUrl={athenaUrl} />
+            ))}
+          </div>
+          <div className={classes.foot}>
+            <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
+              More queries
+            </M.Button>
+          </div>
+        </M.Paper>
+      )
+    },
+  })
 }

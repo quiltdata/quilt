@@ -10,10 +10,14 @@ vi.mock('constants/config', () => ({ default: {} }))
 const push = vi.fn()
 vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
 
-const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
+// `useTabulatorTables` returns a urql result the component folds; `parseTabulatorTables`
+// turns its data into the table list. The real `GQL.fold` runs against these mocks.
+const tablesQuery = vi.fn<() => unknown>(() => ({ data: {} }))
+const parseTables = vi.fn<() => unknown>(() => [])
 const resolveTabulatorCatalog = vi.fn<(l: readonly string[]) => string | undefined>()
 vi.mock('../../Tabulator/requests', () => ({
-  useTabulatorTables: (b: string) => useTabulatorTables(b),
+  useTabulatorTables: () => tablesQuery(),
+  parseTabulatorTables: () => parseTables(),
   resolveTabulatorCatalog: (l: readonly string[]) => resolveTabulatorCatalog(l),
 }))
 
@@ -63,19 +67,21 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   })
 
   it('renders nothing when there are no tables', () => {
-    useTabulatorTables.mockReturnValue([])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([])
     const { container } = renderTables()
     expect(container.textContent).toBe('')
   })
 
   it('renders nothing while loading (no data)', () => {
-    useTabulatorTables.mockReturnValue(undefined)
+    tablesQuery.mockReturnValue({ fetching: true })
     const { container } = renderTables()
     expect(container.textContent).toBe('')
   })
 
   it('offers an autofill helper with a chip per table', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
     const { getByText } = renderTables()
     expect(getByText(/autofill/i)).toBeTruthy()
     expect(getByText('drugs')).toBeTruthy()
@@ -83,7 +89,8 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   })
 
   it('fills the editor and selects catalog/database on chip click', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs')])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs')])
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
     const { getByText } = renderTables()
     fireEvent.click(getByText('drugs'))
@@ -95,7 +102,8 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   })
 
   it('falls back to a two-part SELECT when no tabulator catalog resolves', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs')])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs')])
     resolveTabulatorCatalog.mockReturnValue(undefined)
     const { getByText } = renderTables()
     fireEvent.click(getByText('drugs'))
@@ -107,7 +115,8 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   })
 
   it('autofills from a ?table= deep link on load', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs'), makeTable('bonds')])
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
     renderTables(['/b/my-bucket/queries/athena?table=drugs'])
     expect(queryBody.setValue).toHaveBeenCalledWith(
@@ -118,7 +127,8 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   })
 
   it('notifies and fills nothing when the ?table= deep link names an unknown table', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs')])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs')])
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
     renderTables(['/b/my-bucket/queries/athena?table=ghost'])
     expect(push).toHaveBeenCalledWith('Table "ghost" not found')
@@ -126,7 +136,8 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   })
 
   it('escapes embedded double-quotes in identifiers', () => {
-    useTabulatorTables.mockReturnValue([makeTable('we"ird')])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('we"ird')])
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
     const { getByText } = renderTables()
     fireEvent.click(getByText('we"ird'))

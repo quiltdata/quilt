@@ -1,10 +1,9 @@
 import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi, type Mock } from 'vitest'
 
-import * as Model from '../Queries/Athena/model/utils'
-
 import {
   useTabulatorTables,
+  parseTabulatorTables,
   prettifyPattern,
   parseTabulatorConfig,
   resolveTabulatorCatalog,
@@ -13,7 +12,6 @@ import {
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-// Mock only `useQuery` and keep the real `fold` so the fold mapping under test runs for real.
 const useQuery: Mock = vi.fn()
 vi.mock('utils/GraphQL', async () => ({
   ...(await vi.importActual('utils/GraphQL')),
@@ -22,23 +20,30 @@ vi.mock('utils/GraphQL', async () => ({
 
 describe('containers/Bucket/Tabulator/requests', () => {
   describe('useTabulatorTables', () => {
-    it('treats a null bucketConfig as no tables', () => {
-      useQuery.mockReturnValue({
+    it('returns the urql query result for the consumer to fold', () => {
+      const result = {
         fetching: false,
         error: undefined,
         data: { __typename: 'Query', bucketConfig: null },
-      })
+      }
+      useQuery.mockReturnValue(result)
 
-      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
+      const { result: hook } = renderHook(() => useTabulatorTables('test-bucket'))
 
-      expect(result.current).toEqual([])
+      expect(hook.current).toBe(result)
+    })
+  })
+
+  describe('parseTabulatorTables', () => {
+    it('treats a null bucketConfig as no tables', () => {
+      expect(parseTabulatorTables({ __typename: 'Query', bucketConfig: null })).toEqual(
+        [],
+      )
     })
 
     it('parses the tabulator tables from bucketConfig', () => {
-      useQuery.mockReturnValue({
-        fetching: false,
-        error: undefined,
-        data: {
+      expect(
+        parseTabulatorTables({
           __typename: 'Query',
           bucketConfig: {
             __typename: 'BucketConfig',
@@ -51,12 +56,8 @@ describe('containers/Bucket/Tabulator/requests', () => {
               },
             ],
           },
-        },
-      })
-
-      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
-
-      expect(result.current).toEqual([
+        }),
+      ).toEqual([
         {
           name: 't1',
           format: 'csv',
@@ -64,23 +65,6 @@ describe('containers/Bucket/Tabulator/requests', () => {
           source: null,
         },
       ])
-    })
-
-    it('yields Loading while fetching', () => {
-      useQuery.mockReturnValue({ fetching: true, error: undefined, data: undefined })
-
-      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
-
-      expect(result.current).toBe(Model.Loading)
-    })
-
-    it('yields the error when the query fails', () => {
-      const error = new Error('boom')
-      useQuery.mockReturnValue({ fetching: false, error, data: undefined })
-
-      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
-
-      expect(result.current).toBe(error)
     })
   })
 })

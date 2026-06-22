@@ -11,6 +11,10 @@ import Header from './Header'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+vi.mock('components/Skeleton', () => ({
+  default: () => <div data-testid="skeleton" />,
+}))
+
 let navQueries = true
 vi.mock('utils/BucketPreferences', async () => {
   const actual = await vi.importActual<typeof BucketPreferences>(
@@ -64,18 +68,35 @@ vi.mock('utils/Data', () => ({
   useData: () => ({ result: statsResult() }),
 }))
 
+// `useQuery` feeds the package-count stat; `fold` dispatches by result shape so both
+// the package query and the folded tabulator-tables result resolve correctly.
+type FoldResult = { fetching?: boolean; error?: unknown; data?: unknown }
+type FoldHandlers = {
+  data: (d: unknown, r: FoldResult) => unknown
+  fetching: (r: FoldResult) => unknown
+  error?: (e: unknown, r: FoldResult) => unknown
+}
 vi.mock('utils/GraphQL', () => ({
   useQueryS: () => ({ bucket: { name: 'test-bucket', description: 'A test bucket' } }),
-  useQuery: () => [{ fetching: false, error: undefined, data: undefined }],
-  fold: (_q: unknown, handlers: { data: (d: unknown) => unknown }) =>
-    handlers.data({
+  useQuery: () => ({
+    data: {
       searchPackages: { __typename: 'PackagesSearchResultSet', total: packagesTotal },
-    }),
+    },
+  }),
+  fold: (result: FoldResult, handlers: FoldHandlers) => {
+    if (result?.fetching) return handlers.fetching(result)
+    if (result?.error) return handlers.error?.(result.error, result)
+    return handlers.data(result?.data, result)
+  },
 }))
 
-const tabulatorTables = vi.fn<() => unknown>(() => [])
+// `useTabulatorTables` returns a urql result the component folds; `parseTabulatorTables`
+// turns its data into the table list. The real `GQL.fold` runs against these mocks.
+const tablesQuery = vi.fn<() => unknown>(() => ({ data: {} }))
+const tables = vi.fn<() => unknown>(() => [])
 vi.mock('../../Tabulator/requests', () => ({
-  useTabulatorTables: () => tabulatorTables(),
+  useTabulatorTables: () => tablesQuery(),
+  parseTabulatorTables: () => tables(),
 }))
 
 const routes = {
@@ -100,7 +121,8 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     cleanup()
     statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
     packagesTotal = 7
-    tabulatorTables.mockReturnValue([])
+    tablesQuery.mockReturnValue({ data: {} })
+    tables.mockReturnValue([])
     navQueries = true
   })
 
@@ -130,7 +152,7 @@ describe('containers/Bucket/Overview/v2/Header', () => {
   })
 
   it('shows the Tabulator tables count linked to queries', () => {
-    tabulatorTables.mockReturnValue([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+    tables.mockReturnValue([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
     const { getByText } = renderHeader()
     expect(getByText('3')).toBeTruthy()
     const link = getByText(/tables/).closest('a')
@@ -143,9 +165,17 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     expect(queryByText(/tables/)).toBeNull()
   })
 
+  it('shows a skeleton (not the count) while tabulator tables load', () => {
+    tablesQuery.mockReturnValue({ fetching: true })
+    const { queryByText, getAllByTestId } = renderHeader()
+    // Stats and packages are loaded, so the tables stat owns the only skeleton.
+    expect(getAllByTestId('skeleton')).toHaveLength(1)
+    expect(queryByText(/tables/)).toBeNull()
+  })
+
   it('hides the tables stat when Queries is disabled (ui.nav.queries=false)', () => {
     navQueries = false
-    tabulatorTables.mockReturnValue([{ name: 'a' }, { name: 'b' }])
+    tables.mockReturnValue([{ name: 'a' }, { name: 'b' }])
     const { queryByText } = renderHeader()
     expect(queryByText(/tables/)).toBeNull()
   })

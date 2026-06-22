@@ -7,15 +7,17 @@ import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/s
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import { Loading } from '../../Queries/Athena/model/utils'
-
 import TabulatorTables from './TabulatorTables'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-const useTabulatorTables = vi.fn<(bucket: string) => unknown>()
+// `useTabulatorTables` returns a urql result the component folds; `parseTabulatorTables`
+// turns its data into the table list. The real `GQL.fold` runs against these mocks.
+const tablesQuery = vi.fn<() => unknown>()
+const parseTables = vi.fn<() => unknown>(() => [])
 vi.mock('../../Tabulator/requests', () => ({
-  useTabulatorTables: (bucket: string) => useTabulatorTables(bucket),
+  useTabulatorTables: () => tablesQuery(),
+  parseTabulatorTables: () => parseTables(),
 }))
 
 let navQueries = true
@@ -80,33 +82,36 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
 
   it('renders nothing when Queries is disabled (ui.nav.queries=false)', () => {
     navQueries = false
-    useTabulatorTables.mockReturnValue([makeTable('drugs', 3)])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs', 3)])
     const { container } = renderTables()
     expect(container.textContent).toBe('')
   })
 
   it('renders nothing while loading', () => {
-    useTabulatorTables.mockReturnValue(Loading)
+    tablesQuery.mockReturnValue({ fetching: true })
     const { queryByText, container } = renderTables()
     expect(queryByText(/Tabulator tables/)).toBeNull()
     expect(container.querySelector('.MuiLinearProgress-root')).toBeTruthy()
   })
 
   it('renders an inline error without crashing', () => {
-    useTabulatorTables.mockReturnValue(new Error('boom'))
+    tablesQuery.mockReturnValue({ fetching: false, error: new Error('boom') })
     const { getByText, queryByText } = renderTables()
     expect(getByText(/Could not load/i)).toBeTruthy()
     expect(queryByText(/Tabulator tables ·/)).toBeNull()
   })
 
   it('renders nothing when the list is empty', () => {
-    useTabulatorTables.mockReturnValue([])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([])
     const { container } = renderTables()
     expect(container.textContent).toBe('')
   })
 
   it('renders names and source but hides columns/SELECT while collapsed', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs', 3), makeTable('bonds', 2)])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs', 3), makeTable('bonds', 2)])
     const { getByText, queryByText } = renderTables('my-bucket')
     expect(getByText(/Tabulator tables/)).toBeTruthy()
     expect(getByText('drugs')).toBeTruthy()
@@ -118,7 +123,8 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
   })
 
   it('reveals all columns and a Query link when a row is expanded', () => {
-    useTabulatorTables.mockReturnValue([makeTable('drugs', 9)])
+    tablesQuery.mockReturnValue({ data: {} })
+    parseTables.mockReturnValue([makeTable('drugs', 9)])
     const { getByText, queryByText } = renderTables('my-bucket')
     expect(queryByText('col_0')).toBeNull()
 

@@ -2,10 +2,16 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as GQL from 'utils/GraphQL'
+
 import * as Notifications from 'containers/Notifications'
 
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
-import { useTabulatorTables, resolveTabulatorCatalog } from '../../Tabulator/requests'
+import {
+  useTabulatorTables,
+  parseTabulatorTables,
+  resolveTabulatorCatalog,
+} from '../../Tabulator/requests'
 import * as Model from './model'
 
 const useStyles = M.makeStyles((t) => ({
@@ -29,7 +35,12 @@ export default function TabulatorTables() {
   const classes = useStyles()
   const { bucket, queryBody, catalogName, catalogNames, database } = Model.use()
   const { push } = Notifications.use()
-  const tables = useTabulatorTables(bucket)
+  const tablesQuery = useTabulatorTables(bucket)
+  const tables = GQL.fold(tablesQuery, {
+    data: (d) => parseTabulatorTables(d),
+    fetching: () => undefined,
+    error: () => undefined,
+  })
 
   const handleSelect = React.useCallback(
     (table: ParsedTabulatorTable) => {
@@ -60,7 +71,7 @@ export default function TabulatorTables() {
   const appliedRef = React.useRef(false)
   React.useEffect(() => {
     if (appliedRef.current) return
-    if (!Model.hasData(tables)) return
+    if (!tables) return
     // Wait until the catalog list settles so the autofill can build the 3-part name.
     if (!Model.hasData(catalogNames.data) && !Model.isError(catalogNames.data)) return
     const params = new URLSearchParams(location.search)
@@ -75,7 +86,7 @@ export default function TabulatorTables() {
   }, [tables, catalogNames.data, location, history, handleSelect, push])
 
   // Render nothing on loading / error / empty — never break the Queries page.
-  if (!Model.hasData(tables) || tables.length === 0) return null
+  if (!tables || tables.length === 0) return null
 
   // An optional shortcut that fills the editor, not a step in the form — hence the
   // muted, action-led framing rather than a labelled field. Clicking replaces the

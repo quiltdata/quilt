@@ -1,8 +1,6 @@
 import * as GQL from 'utils/GraphQL'
 import * as yaml from 'utils/yaml'
 
-import * as Model from '../Queries/Athena/model/utils'
-
 import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
 
 export interface SourcePattern {
@@ -69,17 +67,15 @@ export function resolveTabulatorCatalog(
   return catalogNames.find((name) => name.endsWith(TABULATOR_CATALOG_SUFFIX))
 }
 
-export function useTabulatorTables(
-  bucket: string,
-): Model.Data<readonly ParsedTabulatorTable[]> {
-  const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
-  return GQL.fold(result, {
-    // A null `bucketConfig` (not found / no access) is treated as "no tables".
-    data: (d) =>
-      (d.bucketConfig?.tabulatorTables ?? []).map((t) =>
-        parseTabulatorConfig(t.name, t.config),
-      ),
-    fetching: () => Model.Loading,
-    error: (e) => e,
-  })
+type TabulatorTablesData = GQL.DataForDoc<typeof TABULATOR_TABLES_QUERY>
+
+// A null `bucketConfig` (not found / no access) is treated as "no tables".
+export function parseTabulatorTables(data: TabulatorTablesData): ParsedTabulatorTable[] {
+  return (data.bucketConfig?.tabulatorTables ?? []).map((t) =>
+    parseTabulatorConfig(t.name, t.config),
+  )
+}
+
+export function useTabulatorTables(bucket: string) {
+  return GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
 }

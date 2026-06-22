@@ -15,7 +15,7 @@ import { formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
 import * as PD from '../../PackageDialog'
-import { useTabulatorTables } from '../../Tabulator/requests'
+import { useTabulatorTables, parseTabulatorTables } from '../../Tabulator/requests'
 
 import { makeColorPool } from '../ColorPool'
 import ObjectsByExt, { COLOR_MAP } from '../ObjectsByExt'
@@ -111,14 +111,13 @@ function Stats({ bucket, stats }: StatsProps) {
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
   const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
-  const tables = useTabulatorTables(bucket)
+  const tablesQuery = useTabulatorTables(bucket)
   // The tables stat links into the Queries tab — hide it for buckets that
   // disabled Queries via `ui.nav.queries`.
   const queriesEnabled = BucketPreferences.Result.match(
     { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
     prefs,
   )
-  const numTables = queriesEnabled && Array.isArray(tables) ? tables.length : null
   return (
     <div className={classes.root}>
       {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
@@ -140,13 +139,21 @@ function Stats({ bucket, stats }: StatsProps) {
       ) : (
         <StatsItemSkeleton />
       )}
-      {!!numTables && (
-        <StatsItem
-          value={formatQuantity(numTables)}
-          label={<Plural value={numTables} one="table" other="tables" />}
-          to={urls.bucketQueries(bucket)}
-        />
-      )}
+      {queriesEnabled &&
+        GQL.fold(tablesQuery, {
+          fetching: () => <StatsItemSkeleton />,
+          error: () => null,
+          data: (d) => {
+            const numTables = parseTabulatorTables(d).length
+            return numTables > 0 ? (
+              <StatsItem
+                value={formatQuantity(numTables)}
+                label={<Plural value={numTables} one="table" other="tables" />}
+                to={urls.bucketQueries(bucket)}
+              />
+            ) : null
+          },
+        })}
       <CreatePackage bucket={bucket} />
     </div>
   )
