@@ -1,3 +1,6 @@
+import * as React from 'react'
+import * as Sentry from '@sentry/react'
+
 import * as GQL from 'utils/GraphQL'
 import * as yaml from 'utils/yaml'
 
@@ -44,6 +47,11 @@ export function prettifyPattern(raw: string): SourcePattern {
 
 export function parseTabulatorConfig(name: string, config: string): ParsedTabulatorTable {
   const parsed = yaml.parse(config) as RawConfig | undefined
+  // `parse` swallows malformed YAML; `validate` recovers the error to report it.
+  if (config && parsed === undefined) {
+    const error = yaml.validate(config)
+    if (error) Sentry.captureException(error, { extra: { tabulatorTable: name } })
+  }
   const columns: TableColumn[] = (Array.isArray(parsed?.schema) ? parsed!.schema : [])
     .filter((c): c is { name: string; type?: unknown } => typeof c?.name === 'string')
     .map((c) => ({ name: c.name, type: typeof c.type === 'string' ? c.type : '' }))
@@ -83,11 +91,13 @@ export type TabulatorTablesResult =
 
 export function useTabulatorTables(bucket: string): TabulatorTablesResult {
   const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
+  // Parse once per fetch, not per render, so config-error reporting doesn't repeat.
+  const tables = React.useMemo(
+    () => (result.data ? parseTabulatorTables(result.data) : undefined),
+    [result.data],
+  )
   return GQL.fold(result, {
-    data: (d): TabulatorTablesResult => ({
-      _tag: 'ready',
-      tables: parseTabulatorTables(d),
-    }),
+    data: (): TabulatorTablesResult => ({ _tag: 'ready', tables: tables ?? [] }),
     fetching: (): TabulatorTablesResult => ({ _tag: 'fetching' }),
     error: (error): TabulatorTablesResult => ({ _tag: 'error', error }),
   })

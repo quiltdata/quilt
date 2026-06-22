@@ -1,5 +1,7 @@
 import { renderHook } from '@testing-library/react-hooks'
-import { describe, it, expect, vi, type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
+
+import * as Sentry from '@sentry/react'
 
 import {
   useTabulatorTables,
@@ -11,6 +13,9 @@ import {
 } from './requests'
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
+const captureException = Sentry.captureException as Mock
 
 const useQuery: Mock = vi.fn()
 vi.mock('utils/GraphQL', async () => ({
@@ -137,6 +142,8 @@ describe('containers/Bucket/Tabulator/requests prettifyPattern', () => {
 })
 
 describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {
+  beforeEach(() => captureException.mockClear())
+
   const CONFIG = [
     'schema:',
     '  - name: id',
@@ -168,9 +175,10 @@ describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {
         logicalKey: { pretty: 'drugs.csv', raw: 'drugs\\.csv', isLiteral: true },
       },
     })
+    expect(captureException).not.toHaveBeenCalled()
   })
 
-  it('degrades to name only on unparseable/empty config', () => {
+  it('degrades to name only and reports a malformed config', () => {
     // utils/yaml.parse logs and swallows the YAMLException; silence it so the
     // expected-failure path doesn't pollute test output.
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -181,6 +189,20 @@ describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {
       source: null,
     })
     errorSpy.mockRestore()
+    expect(captureException).toHaveBeenCalledTimes(1)
+    expect(captureException).toHaveBeenCalledWith(expect.any(Error), {
+      extra: { tabulatorTable: 'broken' },
+    })
+  })
+
+  it('does not report an empty config', () => {
+    expect(parseTabulatorConfig('empty', '')).toEqual({
+      name: 'empty',
+      format: '',
+      columns: [],
+      source: null,
+    })
+    expect(captureException).not.toHaveBeenCalled()
   })
 
   it('omits source when the source section is incomplete', () => {
