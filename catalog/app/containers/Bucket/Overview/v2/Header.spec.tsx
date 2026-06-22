@@ -16,19 +16,14 @@ vi.mock('components/Skeleton', () => ({
 }))
 
 let navQueries = true
-vi.mock('utils/BucketPreferences', async () => {
-  const actual = await vi.importActual<typeof BucketPreferences>(
-    'utils/BucketPreferences',
-  )
-  return {
-    ...actual,
-    use: () => ({
-      prefs: actual.Result.Ok({
-        ui: { nav: { queries: navQueries } },
-      } as unknown as Parameters<typeof actual.Result.Ok>[0]),
-    }),
-  }
-})
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual<typeof BucketPreferences>('utils/BucketPreferences')),
+  use: () => ({
+    prefs: BucketPreferences.Result.Ok({
+      ui: { nav: { queries: navQueries } },
+    } as unknown as BucketPreferences.BucketPreferences),
+  }),
+}))
 
 vi.mock('./Readme', () => ({
   default: () => <div data-testid="readme" />,

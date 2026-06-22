@@ -18,19 +18,14 @@ vi.mock('../../Tabulator/requests', () => ({
 }))
 
 let navQueries = true
-vi.mock('utils/BucketPreferences', async () => {
-  const actual = await vi.importActual<typeof BucketPreferences>(
-    'utils/BucketPreferences',
-  )
-  return {
-    ...actual,
-    use: () => ({
-      prefs: actual.Result.Ok({
-        ui: { nav: { queries: navQueries } },
-      } as unknown as Parameters<typeof actual.Result.Ok>[0]),
-    }),
-  }
-})
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual<typeof BucketPreferences>('utils/BucketPreferences')),
+  use: () => ({
+    prefs: BucketPreferences.Result.Ok({
+      ui: { nav: { queries: navQueries } },
+    } as unknown as BucketPreferences.BucketPreferences),
+  }),
+}))
 
 // The component uses t.typography.monospace.fontFamily, a custom theme token;
 // provide it so makeStyles doesn't throw during tests.
