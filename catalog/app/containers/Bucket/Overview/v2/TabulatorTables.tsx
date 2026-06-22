@@ -59,12 +59,12 @@ const useRowStyles = M.makeStyles((t) => ({
     flexShrink: 0,
     textAlign: 'right',
     whiteSpace: 'nowrap',
-    width: 56,
+    width: t.spacing(7),
   },
   format: {
     flexShrink: 0,
     textAlign: 'right',
-    width: 72,
+    width: t.spacing(9),
   },
   tip: {
     whiteSpace: 'pre-line',

@@ -9,7 +9,7 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1),
     // Fixed height so every section header (with or without an action) lines up,
     // and side-by-side columns start their content at the same vertical offset.
-    minHeight: 32,
+    minHeight: t.spacing(4),
   },
   title: {
     fontWeight: t.typography.fontWeightMedium,
