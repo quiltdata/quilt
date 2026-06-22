@@ -32,54 +32,21 @@ export function useStats(bucket: string) {
       ),
     [statsData.result],
   )
-  const totalObjects: string | null = React.useMemo(
+  // Per metric: a number when known, `null` when unknown (error / secure search),
+  // `undefined` while loading. `count` formats it (loading → skeleton, unknown → '?').
+  const objects: number | null | undefined = React.useMemo(
     () =>
       AsyncResult.case(
         {
-          Ok: (v: $TSFixMe) => readableQuantity(v.totalObjects),
-          Err: () => '?',
-          _: () => null,
+          Ok: (v: $TSFixMe) => v.totalObjects as number,
+          Err: () => null,
+          _: () => undefined,
         },
         statsData.result,
       ),
     [statsData.result],
   )
-  // Raw object count, kept alongside the formatted `totalObjects` to pluralize its label.
-  const numObjects: number | null = React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: (v: $TSFixMe) => v.totalObjects,
-          _: () => null,
-        },
-        statsData.result,
-      ),
-    [statsData.result],
-  )
-  const pkgCount: string | null = React.useMemo(
-    () =>
-      GQL.fold(countQuery, {
-        data: ({ searchPackages: r }) => {
-          switch (r.__typename) {
-            case 'EmptySearchResultSet':
-              return formatQuantity(0)
-            case 'InvalidInput':
-            case 'OperationError':
-              return '?'
-            case 'PackagesSearchResultSet':
-              // `-1` == secure search
-              return r.total >= 0 ? formatQuantity(r.total) : '?'
-            default:
-              assertNever(r)
-          }
-        },
-        fetching: () => null,
-        error: () => '?',
-      }),
-    [countQuery],
-  )
-  // Raw package count, kept alongside the formatted `pkgCount` to pluralize its label.
-  const numPackages: number | null = React.useMemo(
+  const packages: number | null | undefined = React.useMemo(
     () =>
       GQL.fold(countQuery, {
         data: ({ searchPackages: r }) => {
@@ -96,17 +63,19 @@ export function useStats(bucket: string) {
               return assertNever(r)
           }
         },
-        fetching: () => null,
+        fetching: () => undefined,
         error: () => null,
       }),
     [countQuery],
   )
+  const count = (value: number | null | undefined, format: (n: number) => string) =>
+    value === undefined ? null : value === null ? '?' : format(value)
   return {
     totalBytes,
-    totalObjects,
-    numObjects,
-    pkgCount,
-    numPackages,
+    totalObjects: count(objects, readableQuantity),
+    numObjects: objects ?? null,
+    pkgCount: count(packages, formatQuantity),
+    numPackages: packages ?? null,
     statsResult: statsData.result,
   }
 }
