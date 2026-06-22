@@ -11,6 +11,8 @@ import { Fetcher, useData } from 'utils/Data'
 
 import * as requests from '../../requests'
 
+import { useContentOverflows } from './useContentOverflows'
+
 // Collapsed READMEs are clamped to roughly a dozen lines so a long README
 // can't dominate the compact header; the toggle reveals the rest.
 const COLLAPSED_MAX_HEIGHT = 24 // theme spacing units
@@ -65,26 +67,9 @@ export function CollapsibleMarkdown({ text }: CollapsibleMarkdownProps) {
   const classes = useStyles()
   const ref = React.useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = React.useState(false)
-  // Whether the clamped content actually overflows; drives the toggle's
-  // visibility so short READMEs render no button and no clamp artifact.
-  const [overflows, setOverflows] = React.useState(false)
-
-  React.useLayoutEffect(() => {
-    // Only measure while collapsed: an expanded (unclamped) element has
-    // scrollHeight === clientHeight, which would otherwise hide the toggle.
-    if (expanded) return undefined
-    const el = ref.current
-    if (!el) return undefined
-    const measure = () => {
-      setOverflows(el.scrollHeight > el.clientHeight)
-    }
-    measure()
-    // Recompute when the content reflows (e.g. images load, viewport resizes).
-    if (typeof ResizeObserver === 'undefined') return undefined
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [text, expanded])
+  // Drives the toggle's visibility so short READMEs render no button and no
+  // clamp artifact. Frozen while expanded so the "Show less" button stays.
+  const overflows = useContentOverflows(ref, !expanded, [text])
 
   return (
     <div data-testid="readme-preview">

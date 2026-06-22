@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import AsyncResult from 'utils/AsyncResult'
 
@@ -12,6 +12,13 @@ vi.mock('components/Markdown', () => ({
   default: ({ data }: { data: string }) => (
     <div data-testid="readme-markdown">{data}</div>
   ),
+}))
+
+// Overflow detection is layout-driven (jsdom reports 0); mock the hook so tests
+// drive the toggle directly instead of faking element sizes.
+const useContentOverflows = vi.fn<() => boolean>()
+vi.mock('./useContentOverflows', () => ({
+  useContentOverflows: () => useContentOverflows(),
 }))
 
 // `bucketReadmes` is fetched via the outer Fetcher; the readme text is fetched
@@ -95,52 +102,17 @@ describe('containers/Bucket/Overview/v2/Readme', () => {
   })
 })
 
-// The collapse toggle's visibility is driven by a layout measurement
-// (`scrollHeight` vs `clientHeight`) that jsdom always reports as 0. We stub
-// those props on the element prototype to simulate overflowing vs. fitting
-// content; the actual pixel measurement is layout-dependent and not asserted.
 describe('containers/Bucket/Overview/v2/Readme CollapsibleMarkdown', () => {
-  let scrollHeightSpy: ReturnType<typeof vi.spyOn>
-  let clientHeightSpy: ReturnType<typeof vi.spyOn>
-
-  beforeEach(() => {
-    // ResizeObserver is absent in jsdom; provide a no-op so the effect's
-    // one-shot `measure()` still runs without throwing.
-    vi.stubGlobal(
-      'ResizeObserver',
-      class {
-        observe() {}
-
-        disconnect() {}
-
-        unobserve() {}
-      },
-    )
-  })
-
-  afterEach(() => {
-    scrollHeightSpy?.mockRestore()
-    clientHeightSpy?.mockRestore()
-    vi.unstubAllGlobals()
-  })
-
-  function stubOverflow(overflows: boolean) {
-    scrollHeightSpy = vi
-      .spyOn(HTMLElement.prototype, 'scrollHeight', 'get')
-      .mockReturnValue(overflows ? 1000 : 0)
-    clientHeightSpy = vi
-      .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
-      .mockReturnValue(0)
-  }
+  afterEach(cleanup)
 
   it('shows no toggle when the content fits', () => {
-    stubOverflow(false)
+    useContentOverflows.mockReturnValue(false)
     const { queryByRole } = render(<CollapsibleMarkdown text="# short" />)
     expect(queryByRole('button')).toBeFalsy()
   })
 
   it('shows "Read more" when the content overflows and toggles on click', () => {
-    stubOverflow(true)
+    useContentOverflows.mockReturnValue(true)
     const { getByRole } = render(<CollapsibleMarkdown text="# long" />)
     const button = getByRole('button')
     expect(button.textContent).toBe('Read more')
