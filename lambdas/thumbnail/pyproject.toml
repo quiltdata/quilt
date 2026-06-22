@@ -7,6 +7,11 @@ dependencies = [
   "dask[array]~=2026.1",
   "numpy~=2.3",
   "pdf2image>=1.13.1,<2",
+  # Decode-only HEIF/HEIC support (registers a Pillow opener; rides the
+  # bioio-imageio fallback in read_image). pi-heif over pillow-heif: it bundles
+  # only libheif + libde265 (decoder), no GPL-licensed x265 encoder we'd never
+  # use and would otherwise convey in the lambda image.
+  "pi-heif~=1.0",
   "pillow~=12.2",
   "python-pptx~=1.0.0",
   "requests>=2.26.0,<3",

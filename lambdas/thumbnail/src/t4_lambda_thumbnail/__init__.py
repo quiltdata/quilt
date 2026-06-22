@@ -27,6 +27,7 @@ import bioio_tifffile
 import dask.array as da
 import numpy as np
 import pdf2image
+import pi_heif
 import pptx
 import requests
 from bioio import BioImage
@@ -46,6 +47,13 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # Use 0 to disable the limit.
 if _MAX_IMAGE_PIXELS := os.environ.get("MAX_IMAGE_PIXELS"):
     Image.MAX_IMAGE_PIXELS = int(_MAX_IMAGE_PIXELS) or None
+
+# Teach Pillow to open HEIF/HEIC. No bioio reader claims these extensions, so
+# BioImage(path) raises UnsupportedFileFormatError and read_image() falls back to
+# bioio_imageio.Reader, which decodes through this opener. pi-heif is decode-only
+# (libde265, no encoder); thumbnails are always re-encoded as PNG, so we never
+# need to write HEIF.
+pi_heif.register_heif_opener()
 
 # If set to "1", /tmp directory will be cleaned up at the start of each invocation.
 # Should be set in the Lambda environment variables.
@@ -388,7 +396,15 @@ def format_aicsimage_to_prepped(img: BioImage) -> tuple[da.Array, bool]:
             arr = arr[..., ::-1]
         return arr, normalized
 
-    return img.reader.dask_data, False
+    # The bioio-imageio fallback reads multi-frame containers (multi-image or
+    # animated HEIF, animated GIF, multi-page TIFF) with a leading frame axis,
+    # e.g. (T, Y, X, S). The thumbnail path renders a single plane and
+    # Image.fromarray rejects 4-D input, so collapse to the primary (first)
+    # frame; single-frame images are already 2-D/3-D and pass through unchanged.
+    data = img.reader.dask_data
+    while data.ndim > 3:
+        data = data[0]
+    return data, False
 
 
 @contextlib.contextmanager

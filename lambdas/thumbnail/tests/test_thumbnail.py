@@ -53,15 +53,18 @@ def _make_event(query, headers=None):
     [
         ("penguin.jpg", "penguin.jpeg"),
         ("cell.webp", "cell.webp"),
+        # HEIC has no bioio reader at all; it only decodes once pi-heif's Pillow
+        # opener is registered (at module import) and read_image() falls back to
+        # bioio-imageio. See the end-to-end test_heic_thumbnail.
+        ("cell.heic", "cell.heic"),
     ],
 )
 def test_read_image_fallback(data_dir, tmp_path, src_file, name):
-    """Pin the mechanism behind the .jpeg/.webp cases in
-    test_generate_thumbnail: default reader selection must fail for these
-    names (the extensions aren't declared by bioio-imageio), and read_image()
-    must recover via the forced reader. If the first assertion starts failing,
-    bioio-imageio has declared the extension and the fallback no longer guards
-    these formats.
+    """Pin the mechanism behind the fallback-reader formats (.jpeg/.webp/.heic):
+    default reader selection must fail for these names (the extensions aren't
+    declared by any bioio reader), and read_image() must recover via the forced
+    reader. If the first assertion starts failing, a bioio reader has claimed the
+    extension and the fallback no longer guards that format.
     """
     path = tmp_path / name
     path.symlink_to(data_dir / src_file)
@@ -229,6 +232,75 @@ def test_generate_thumbnail(
             expected = BioImage(data_dir / expected_thumb)
             assert actual.dims.items() == expected.dims.items()
             assert np.array_equal(actual.reader.data, expected.reader.data)
+
+
+@responses.activate
+def test_heic_thumbnail(data_dir):
+    """End-to-end HEIC: no bioio reader claims the extension, so it decodes
+    through pi-heif's Pillow opener (registered at import) via read_image()'s
+    bioio-imageio fallback, then the shared color path. cell.heic is a
+    near-lossless HEIC of cell.png, so its thumbnail matches cell.png's golden
+    within HEVC's chroma-subsampling slack; an exact golden can't be reused (the
+    dispatch is pinned separately by test_read_image_fallback).
+
+    Regenerate the fixture (needs the encoder, not a runtime dep) with:
+        uv run --with pillow-heif python -c "import pillow_heif; \
+from PIL import Image; pillow_heif.register_heif_opener(); \
+Image.open('tests/data/cell.png').convert('RGB').save( \
+'tests/data/cell.heic', format='HEIF', quality=-1)"
+    """
+    url = "https://example.com/cell.heic"
+    responses.add(responses.GET, url=url, body=(data_dir / "cell.heic").read_bytes(), status=200)
+    event = _make_event({"url": url, "size": "w64h64"})
+    response = t4_lambda_thumbnail.lambda_handler(event, None)
+
+    assert response["statusCode"] == 200, f"response: {response}"
+    assert response["headers"]["Content-Type"] == "image/png"
+    info = json.loads(response["headers"][QUILT_INFO_HEADER])
+    assert info["original_size"] == [168, 104, 3]
+    assert info["thumbnail_size"] == [40, 64]
+
+    got = np.asarray(Image.open(BytesIO(read_body(response))))
+    golden = np.asarray(Image.open(data_dir / "cell-64.png"))
+    assert got.shape == golden.shape
+    # HEVC chroma subsampling perturbs a few values (measured max diff 17); a
+    # broken decode or an R/B channel swap would diff by hundreds, not <= 30.
+    assert np.abs(got.astype(int) - golden.astype(int)).max() <= 30
+
+
+@responses.activate
+def test_heic_multiframe_thumbnail(data_dir):
+    """Multi-image HEIF (image collections, animated/burst HEIC) decodes through
+    the bioio-imageio fallback as a 4-D (T, Y, X, S) array;
+    format_aicsimage_to_prepped collapses it to the primary (first) frame so it
+    renders instead of failing with a 500 (Image.fromarray rejects 4-D).
+    cell-multiframe.heic is cell.png as frame 0 and its inverse as frame 1, so the
+    thumbnail must match cell.png's golden (frame 0), not the inverted frame 1.
+
+    Regenerate the fixture (needs the encoder, not a runtime dep) with:
+        uv run --with pillow-heif python -c "import pillow_heif, numpy as np; \
+from PIL import Image; pillow_heif.register_heif_opener(); \
+c = Image.open('tests/data/cell.png').convert('RGB'); \
+c.save('tests/data/cell-multiframe.heic', format='HEIF', save_all=True, \
+append_images=[Image.fromarray(255 - np.array(c), 'RGB')], quality=-1)"
+    """
+    url = "https://example.com/cell-multiframe.heic"
+    responses.add(responses.GET, url=url, body=(data_dir / "cell-multiframe.heic").read_bytes(), status=200)
+    event = _make_event({"url": url, "size": "w64h64"})
+    response = t4_lambda_thumbnail.lambda_handler(event, None)
+
+    assert response["statusCode"] == 200, f"response: {response}"
+    info = json.loads(response["headers"][QUILT_INFO_HEADER])
+    # original_size carries the leading frame axis (2 frames).
+    assert info["original_size"] == [2, 168, 104, 3]
+    assert info["thumbnail_size"] == [40, 64]
+
+    got = np.asarray(Image.open(BytesIO(read_body(response))))
+    golden = np.asarray(Image.open(data_dir / "cell-64.png"))
+    assert got.shape == golden.shape
+    # Frame 0 is cell.png; picking frame 1 (inverted) or montaging the frames
+    # would diff by hundreds, not <= 30.
+    assert np.abs(got.astype(int) - golden.astype(int)).max() <= 30
 
 
 # The non-CZI color reader / dtype paths, each with an independent decoder; keep
