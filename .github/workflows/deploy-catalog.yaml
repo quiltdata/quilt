@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - overview-v2
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
