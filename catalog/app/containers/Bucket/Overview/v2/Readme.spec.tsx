@@ -25,9 +25,9 @@ vi.mock('./useContentOverflows', () => ({
 // via the inner `useData`. Both go through `utils/Data`, so we route them by
 // the request fn: `requests.bucketReadmes` (outer) vs the text fetcher (inner).
 const readmesResult = vi.fn()
-const textResult = vi.fn(() => AsyncResult.Ok('# Hello'))
+const textResult = vi.fn(() => AsyncResult.Ok({ body: '# Hello' }))
 
-vi.mock('../../requests', () => ({ bucketReadmes: vi.fn() }))
+vi.mock('../../requests', () => ({ bucketReadmes: vi.fn(), fetchFile: vi.fn() }))
 
 vi.mock('utils/Data', async () => {
   const requests = await import('../../requests')

@@ -48,17 +48,6 @@ function isNotebook(handle: Model.S3.S3ObjectLocation): boolean {
   return handle.key.toLowerCase().endsWith('.ipynb')
 }
 
-async function fetchReadmeText({
-  s3,
-  handle,
-}: {
-  s3: $TSFixMe
-  handle: Model.S3.S3ObjectLocation
-}): Promise<string> {
-  const r = await s3.getObject({ Bucket: handle.bucket, Key: handle.key }).promise()
-  return r.Body.toString('utf-8')
-}
-
 interface CollapsibleMarkdownProps {
   text: string
 }
@@ -99,11 +88,13 @@ interface ReadmeContentsProps {
 
 function ReadmeContents({ handle }: ReadmeContentsProps) {
   const s3 = AWS.S3.use()
-  const data = useData(fetchReadmeText, { s3, handle })
+  const data = useData(requests.fetchFile, { s3, handle })
   return data.case({
     // Errors must not break the header: render nothing.
     Err: () => null,
-    Ok: (text: string) => <CollapsibleMarkdown text={text} />,
+    Ok: ({ body }: { body?: $TSFixMe }) => (
+      <CollapsibleMarkdown text={body?.toString('utf-8') ?? ''} />
+    ),
     _: () => <Skeleton height={48} />,
   })
 }
