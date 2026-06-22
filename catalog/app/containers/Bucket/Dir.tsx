@@ -20,6 +20,7 @@ import * as Listing from './Listing'
 import * as FI from './PackageDialog/Inputs/Files/State'
 import * as Selection from './Selection'
 import Summary from './Summary'
+import { useBucketContext } from './context'
 import * as DirToolbar from './Dir/Toolbar'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -158,17 +159,17 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DirParams {
-  bucket: string
   path?: string
 }
 
 export default function Dir() {
-  const { bucket, path: encodedPath = '' } = RRDom.useParams<DirParams>()
+  const { name: bucket } = useBucketContext()
+  const { path: encodedPath = '' } = RRDom.useParams<DirParams>()
   const l = RRDom.useLocation()
-  invariant(!!bucket, '`bucket` must be defined')
 
   const classes = useStyles()
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
 

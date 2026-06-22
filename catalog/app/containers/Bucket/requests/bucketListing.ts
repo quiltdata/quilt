@@ -10,6 +10,7 @@ import * as AWS from 'utils/AWS'
 import { getArchiveState } from 'utils/glacier'
 import * as s3paths from 'utils/s3paths'
 
+import { useBucketContext } from '../context'
 import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
@@ -147,7 +148,8 @@ export const bucketListing = async ({
     .catch(errors.catchErrors())
 
 export function useBucketListing() {
-  const s3: S3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3: S3 = AWS.S3.use(config)
   return React.useCallback(
     (params: BucketListingParams) => bucketListing({ s3, ...params }),
     [s3],
@@ -156,7 +158,8 @@ export function useBucketListing() {
 
 // TODO: add entry with size from <Listing /> but try to re-use existing types
 function useHeadFile() {
-  const s3: S3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3: S3 = AWS.S3.use(config)
   return React.useCallback(
     async ({
       bucket,

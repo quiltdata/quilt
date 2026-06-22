@@ -1,6 +1,5 @@
 import type AWSSDK from 'aws-sdk'
 import * as React from 'react'
-import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
@@ -15,6 +14,7 @@ import * as GQL from 'utils/GraphQL'
 import * as Gallery from '../Gallery'
 import * as Summarize from '../Summarize'
 import * as requests from '../requests'
+import { useBucketContext } from '../context'
 
 import Header from './Header'
 import BUCKET_QUERY from './gql/Bucket.generated'
@@ -95,9 +95,10 @@ function ThumbnailsWrapper({
 }
 
 export default function Overview() {
-  const { bucket } = useParams<{ bucket: string }>()
+  const { name: bucket } = useBucketContext()
 
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const { bucket: bucketData } = GQL.useQueryS(BUCKET_QUERY, { bucket })
   const inStack = !!bucketData
   const description = bucketData?.description

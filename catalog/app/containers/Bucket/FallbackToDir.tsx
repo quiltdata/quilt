@@ -9,6 +9,7 @@ import * as s3paths from 'utils/s3paths'
 import * as Request from 'utils/useRequest'
 import assertNever from 'utils/assertNever'
 
+import { useBucketContext } from './context'
 import * as requests from './requests'
 import { displayError } from './errors'
 
@@ -18,7 +19,8 @@ const File = Symbol('file')
 
 // If object exists, then this is 100% an object page
 function useIsObject(handle: Model.S3.S3ObjectLocation) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const { bucket, key, version } = handle
   const req = React.useCallback(
     () =>

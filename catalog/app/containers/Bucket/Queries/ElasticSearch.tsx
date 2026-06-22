@@ -1,9 +1,9 @@
-import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+
+import { useBucketContext } from '../context'
 
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
@@ -186,8 +186,7 @@ const isButtonDisabled = (
 ): boolean => !!error || !!resultsData.case({ Pending: R.T, _: R.F })
 
 export default function ElastiSearch() {
-  const { bucket } = useParams<{ bucket: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+  const { name: bucket } = useBucketContext()
 
   const classes = useStyles()
 

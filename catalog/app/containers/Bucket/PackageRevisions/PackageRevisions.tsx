@@ -26,6 +26,7 @@ import usePrevious from 'utils/usePrevious'
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
+import { useBucketContext } from '../context'
 import { displayError } from '../errors'
 
 import REVISION_COUNT_QUERY from './gql/RevisionCount.generated'
@@ -541,9 +542,9 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 }
 
 export default function PackageRevisionsWrapper() {
-  const { bucket, name } = RRDom.useParams<{ bucket: string; name: string }>()
+  const { name: bucket } = useBucketContext()
+  const { name } = RRDom.useParams<{ name: string }>()
   const location = RRDom.useLocation()
-  invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
 
   const { p } = parseSearch(location.search, true)

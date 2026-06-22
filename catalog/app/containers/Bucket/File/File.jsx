@@ -31,6 +31,7 @@ import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
+import { useBucketContext } from '../context'
 import { useViewModes } from '../viewModes'
 
 import Analytics from './Analytics'
@@ -53,7 +54,8 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
 }))
 
 function VersionInfo({ bucket, path, version }) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
 
@@ -293,12 +295,14 @@ const useStyles = M.makeStyles((t) => ({
 
 function File() {
   const location = RRDom.useLocation()
-  const { bucket, path: encodedPath } = RRDom.useParams()
+  const { name: bucket } = useBucketContext()
+  const { path: encodedPath } = RRDom.useParams()
 
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const { prefs } = BucketPreferences.use()
 
   const path = s3paths.decode(encodedPath)
@@ -530,7 +534,8 @@ function File() {
 }
 
 export default function FileWrapper() {
-  const { bucket, path: key } = RRDom.useParams()
+  const { name: bucket } = useBucketContext()
+  const { path: key } = RRDom.useParams()
   const location = RRDom.useLocation()
   const { version } = parseSearch(location.search)
   const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])

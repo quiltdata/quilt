@@ -29,6 +29,7 @@ import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
 import * as errors from './errors'
+import { useBucketContext } from './context'
 
 interface S3Handle extends LogicalKeyResolver.S3SummarizeHandle {
   error?: errors.BucketError
@@ -645,7 +646,8 @@ interface SummaryNestedProps {
 }
 
 export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedProps) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
   return data.case({

@@ -1,10 +1,11 @@
-import invariant from 'invariant'
 import * as React from 'react'
-import { Redirect, Route, Switch, useParams } from 'react-router-dom'
+import { Redirect, Route, Switch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+
+import { useBucketContext } from '../context'
 
 import Athena from './Athena'
 import ElasticSearch from './ElasticSearch'
@@ -16,8 +17,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function Queries() {
-  const { bucket } = useParams<{ bucket: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+  const { name: bucket } = useBucketContext()
 
   const classes = useStyles()
   const { paths, urls } = NamedRoutes.use()

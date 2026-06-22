@@ -5,9 +5,9 @@ import * as RRDom from 'react-router-dom'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
+import { useBucketContext } from '../context'
 
 interface PackageCompareParams {
-  bucket: string
   name: string
   baseHash: string
   otherHash: string
@@ -19,9 +19,9 @@ type Pair = [PackageHandle, PackageHandle]
 export const isPair = (x: Single | Pair): x is Pair => x.length > 1
 
 export function useRouter() {
-  const { bucket, name, baseHash, otherHash } = RRDom.useParams<PackageCompareParams>()
+  const { name: bucket } = useBucketContext()
+  const { name, baseHash, otherHash } = RRDom.useParams<PackageCompareParams>()
 
-  invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
   invariant(!!baseHash, '`baseHash` must be defined')
 

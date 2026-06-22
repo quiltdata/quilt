@@ -47,6 +47,7 @@ import * as Successors from '../Successors'
 import Summary from '../Summary'
 import AssistButton from '../Toolbar/Assist'
 import WithPackagesSupport from '../WithPackagesSupport'
+import { useBucketContext } from '../context'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
@@ -724,7 +725,8 @@ function FileDisplay({
   crumbs,
   file,
 }: FileDisplayProps) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useFileDisplayStyles()
@@ -1208,21 +1210,19 @@ function PackageTreeQueries({
 }
 
 interface PackageTreeRouteParams {
-  bucket: string
   name: string
   revision?: string
   path?: string
 }
 
 export default function PackageTreeWrapper() {
+  const { name: bucket } = useBucketContext()
   const {
-    bucket,
     name,
     revision: hashOrTag = 'latest',
     path: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
   const location = RRDom.useLocation()
-  invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
 
   const path = s3paths.decode(encodedPath)

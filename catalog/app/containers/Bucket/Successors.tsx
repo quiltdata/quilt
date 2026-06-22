@@ -11,6 +11,7 @@ import { useData } from 'utils/Data'
 import StyledLink from 'utils/StyledLink'
 import * as workflows from 'utils/workflows'
 
+import { useBucketContext } from './context'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
@@ -85,7 +86,8 @@ function useSuccessors(
   bucket: string,
   { strict = false, noAutoFetch = false }: { strict?: boolean; noAutoFetch?: boolean },
 ): workflows.Successor[] | Error | undefined {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const data = useData(requests.workflowsConfig, { s3, bucket, strict }, { noAutoFetch })
   return React.useMemo(
     () =>

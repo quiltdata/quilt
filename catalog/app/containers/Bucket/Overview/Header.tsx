@@ -18,6 +18,7 @@ import assertNever from 'utils/assertNever'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
+import { useBucketContext } from '../context'
 import * as requests from '../requests'
 
 import { ColorPool, makeColorPool } from './ColorPool'
@@ -275,7 +276,8 @@ function StatsItemSkeleton() {
 }
 
 function useStats(bucket: string) {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   const req = APIConnector.use()
   const statsData = useData(requests.bucketStats, { req, s3, bucket })
   const countQuery = GQL.useQuery(STAT_COUNTS_QUERY, { buckets: [bucket] })

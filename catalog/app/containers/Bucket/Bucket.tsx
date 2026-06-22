@@ -6,7 +6,7 @@ import Layout, { Container } from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import { NotFoundInTabs } from 'containers/NotFound'
-import { useBucketExistence } from 'utils/BucketCache'
+import { useBucketExistence, useGetCachedBucketRegion } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
@@ -14,6 +14,7 @@ import * as RT from 'utils/reactTools'
 
 import * as AssistantContext from './AssistantContext'
 import * as BucketNav from './BucketNav'
+import { BucketContextProvider } from './context'
 import type { RouteMap } from './Routes'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -57,7 +58,7 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
           </M.AppBar>
           <Container>
             {bucketExistenceData.case({
-              Ok: () => children,
+              Ok: () => <BucketReady bucket={bucket}>{children}</BucketReady>,
               Err: displayError(),
               _: () => <SuspensePlaceholder />,
             })}
@@ -68,7 +69,29 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
   )
 }
 
+function BucketReady({ bucket, children }: BucketLayoutProps) {
+  const getCachedBucketRegion = useGetCachedBucketRegion()
+  const config = React.useMemo(
+    () => ({ region: getCachedBucketRegion(bucket) }),
+    [bucket, getCachedBucketRegion],
+  )
+
+  return (
+    <BucketContextProvider bucket={bucket} config={config}>
+      {children}
+    </BucketContextProvider>
+  )
+}
+
 export default function Bucket() {
+  return (
+    <BucketContextProvider>
+      <BucketInner />
+    </BucketContextProvider>
+  )
+}
+
+function BucketInner() {
   const bucket = useBucketStrict()
 
   const { paths } = NamedRoutes.use<RouteMap>()

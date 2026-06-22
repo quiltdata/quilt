@@ -1,5 +1,6 @@
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
+import { useBucketContext } from 'containers/Bucket/context'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as s3paths from 'utils/s3paths'
@@ -41,6 +42,7 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQ
 }
 
 export function useQuery(queryUrl: string): AsyncData<ElasticSearchQuery> {
-  const s3 = AWS.S3.use()
+  const { config } = useBucketContext()
+  const s3 = AWS.S3.use(config)
   return useData(query, { s3, queryUrl }, { noAutoFetch: !queryUrl })
 }
