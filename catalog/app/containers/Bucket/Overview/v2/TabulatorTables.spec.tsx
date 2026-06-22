@@ -132,4 +132,17 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     const link = getByText(/Query/).closest('a')
     expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries/athena?table=drugs')
   })
+
+  it('URL-encodes special characters in the Query deep link', () => {
+    useTabulatorTables.mockReturnValue({
+      _tag: 'ready',
+      tables: [makeTable('we/ird"', 2)],
+    })
+    const { getByText } = renderTables('my-bucket')
+    fireEvent.click(getByText('we/ird"'))
+    const link = getByText(/Query/).closest('a')
+    expect(link!.getAttribute('href')).toBe(
+      '/b/my-bucket/queries/athena?table=we%2Fird%22',
+    )
+  })
 })
