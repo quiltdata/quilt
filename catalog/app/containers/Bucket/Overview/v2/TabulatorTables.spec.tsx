@@ -35,7 +35,11 @@ const theme = createMuiTheme({
 
 const routes = {
   bucketQueries: { path: '', url: (bucket: string) => `/b/${bucket}/queries` },
-  bucketAthena: { path: '', url: (bucket: string) => `/b/${bucket}/queries/athena` },
+  bucketAthena: {
+    path: '',
+    url: (bucket: string, { table }: { table?: string } = {}) =>
+      `/b/${bucket}/queries/athena${table ? `?table=${encodeURIComponent(table)}` : ''}`,
+  },
 }
 
 function makeTable(name: string, columnCount: number) {
