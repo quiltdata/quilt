@@ -9,7 +9,7 @@ import RecentPackages from './RecentPackages'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-type FoldState = 'data' | 'fetching' | 'empty'
+type FoldState = 'data' | 'fetching' | 'empty' | 'invalid' | 'opError' | 'networkError'
 let foldState: FoldState = 'data'
 
 const HITS = [
@@ -37,9 +37,25 @@ vi.mock('utils/GraphQL', () => ({
   useQuery: () => ({}),
   fold: (
     _q: unknown,
-    handlers: { data: (d: unknown) => unknown; fetching: () => unknown },
+    handlers: {
+      data: (d: unknown) => unknown
+      fetching: () => unknown
+      error: (e: Error) => unknown
+    },
   ) => {
     if (foldState === 'fetching') return handlers.fetching()
+    if (foldState === 'networkError') return handlers.error(new Error('network boom'))
+    if (foldState === 'invalid')
+      return handlers.data({
+        searchPackages: {
+          __typename: 'InvalidInput',
+          errors: [{ message: 'bad query' }],
+        },
+      })
+    if (foldState === 'opError')
+      return handlers.data({
+        searchPackages: { __typename: 'OperationError', message: 'op failed' },
+      })
     const hits = foldState === 'empty' ? [] : HITS
     const total = foldState === 'empty' ? 0 : 5
     return handlers.data({
@@ -99,5 +115,23 @@ describe('containers/Bucket/Overview/v2/RecentPackages', () => {
     foldState = 'empty'
     const { container } = renderRecent()
     expect(container.textContent).toBe('')
+  })
+
+  it('surfaces an InvalidInput error in an alert', () => {
+    foldState = 'invalid'
+    const { getByRole } = renderRecent()
+    expect(getByRole('alert').textContent).toMatch(/bad query/)
+  })
+
+  it('surfaces an OperationError in an alert', () => {
+    foldState = 'opError'
+    const { getByRole } = renderRecent()
+    expect(getByRole('alert').textContent).toMatch(/op failed/)
+  })
+
+  it('surfaces a network error in an alert', () => {
+    foldState = 'networkError'
+    const { getByRole } = renderRecent()
+    expect(getByRole('alert').textContent).toMatch(/network boom/)
   })
 })

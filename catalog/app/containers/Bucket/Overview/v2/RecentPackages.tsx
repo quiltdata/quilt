@@ -1,10 +1,12 @@
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 import { Plural, Relative } from 'utils/format'
 import { formatQuantity, readableBytes } from 'utils/string'
 import { SearchResultOrder } from 'model/graphql/types.generated'
@@ -52,50 +54,51 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface RecentPackagesProps {
-  bucket: string
-}
-
-export default function RecentPackages({ bucket }: RecentPackagesProps) {
+function Section({ children }: React.PropsWithChildren<{}>) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
-  const query = GQL.useQuery(RECENT_PACKAGES_QUERY, {
-    buckets: [bucket],
-    order: SearchResultOrder.NEWEST,
-  })
-  const result = GQL.fold(query, {
-    data: ({ searchPackages: r }) =>
-      r.__typename === 'PackagesSearchResultSet'
-        ? { hits: r.firstPage.hits.slice(0, MAX_PACKAGES), total: r.total }
-        : { hits: [], total: 0 },
-    fetching: () => null,
-    error: () => ({ hits: [], total: 0 }),
-  })
-
-  const head = <SectionHeader>Latest packages</SectionHeader>
-
-  if (result === null) {
-    return (
-      <div className={classes.root}>
-        {head}
-        <M.List dense disablePadding className={classes.list}>
-          {Array.from({ length: MAX_PACKAGES }, (_, i) => (
-            <M.ListItem key={i} className={classes.card}>
-              <Skeleton height={32} animate />
-            </M.ListItem>
-          ))}
-        </M.List>
-      </div>
-    )
-  }
-
-  const { hits, total } = result
-  if (!hits.length) return null
-
-  const numMore = total - hits.length
   return (
     <div className={classes.root}>
-      {head}
+      <SectionHeader>Latest packages</SectionHeader>
+      {children}
+    </div>
+  )
+}
+
+function Skeletons() {
+  const classes = useStyles()
+  return (
+    <Section>
+      <M.List dense disablePadding className={classes.list}>
+        {Array.from({ length: MAX_PACKAGES }, (_, i) => (
+          <M.ListItem key={i} className={classes.card}>
+            <Skeleton height={32} animate />
+          </M.ListItem>
+        ))}
+      </M.List>
+    </Section>
+  )
+}
+
+function ErrorMessage({ children }: React.PropsWithChildren<{}>) {
+  return (
+    <Section>
+      <Lab.Alert severity="error">Could not load packages: {children}</Lab.Alert>
+    </Section>
+  )
+}
+
+interface PackageListProps {
+  bucket: string
+  hits: PackageHit[]
+  total: number
+}
+
+function PackageList({ bucket, hits, total }: PackageListProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const numMore = total - hits.length
+  return (
+    <Section>
       <M.List dense disablePadding className={classes.list}>
         {hits.map((hit) => (
           <M.ListItem
@@ -129,6 +132,39 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
           <Plural value={numMore} one="package" other="packages" />
         </M.Button>
       )}
-    </div>
+    </Section>
   )
+}
+
+interface RecentPackagesProps {
+  bucket: string
+}
+
+export default function RecentPackages({ bucket }: RecentPackagesProps) {
+  const query = GQL.useQuery(RECENT_PACKAGES_QUERY, {
+    buckets: [bucket],
+    order: SearchResultOrder.NEWEST,
+  })
+  return GQL.fold(query, {
+    fetching: () => <Skeletons />,
+    error: (e) => <ErrorMessage>{e.message}</ErrorMessage>,
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return null
+        case 'PackagesSearchResultSet': {
+          const hits = r.firstPage.hits.slice(0, MAX_PACKAGES)
+          return hits.length ? (
+            <PackageList bucket={bucket} hits={hits} total={r.total} />
+          ) : null
+        }
+        case 'InvalidInput':
+          return <ErrorMessage>{r.errors.map((e) => e.message).join(', ')}</ErrorMessage>
+        case 'OperationError':
+          return <ErrorMessage>{r.message}</ErrorMessage>
+        default:
+          return assertNever(r)
+      }
+    },
+  })
 }
