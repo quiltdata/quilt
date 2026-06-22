@@ -2,16 +2,10 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as GQL from 'utils/GraphQL'
-
 import * as Notifications from 'containers/Notifications'
 
 import type { ParsedTabulatorTable } from '../../Tabulator/requests'
-import {
-  useTabulatorTables,
-  parseTabulatorTables,
-  resolveTabulatorCatalog,
-} from '../../Tabulator/requests'
+import { useTabulatorTables, resolveTabulatorCatalog } from '../../Tabulator/requests'
 import * as Model from './model'
 
 const useStyles = M.makeStyles((t) => ({
@@ -35,12 +29,8 @@ export default function TabulatorTables() {
   const classes = useStyles()
   const { bucket, queryBody, catalogName, catalogNames, database } = Model.use()
   const { push } = Notifications.use()
-  const tablesQuery = useTabulatorTables(bucket)
-  const tables = GQL.fold(tablesQuery, {
-    data: (d) => parseTabulatorTables(d),
-    fetching: () => undefined,
-    error: () => undefined,
-  })
+  const tablesResult = useTabulatorTables(bucket)
+  const tables = tablesResult._tag === 'ready' ? tablesResult.tables : undefined
 
   const handleSelect = React.useCallback(
     (table: ParsedTabulatorTable) => {

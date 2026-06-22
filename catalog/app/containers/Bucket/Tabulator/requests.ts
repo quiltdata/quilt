@@ -76,6 +76,19 @@ export function parseTabulatorTables(data: TabulatorTablesData): ParsedTabulator
   )
 }
 
-export function useTabulatorTables(bucket: string) {
-  return GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
+export type TabulatorTablesResult =
+  | { _tag: 'fetching' }
+  | { _tag: 'error'; error: Error }
+  | { _tag: 'ready'; tables: ParsedTabulatorTable[] }
+
+export function useTabulatorTables(bucket: string): TabulatorTablesResult {
+  const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
+  return GQL.fold(result, {
+    data: (d): TabulatorTablesResult => ({
+      _tag: 'ready',
+      tables: parseTabulatorTables(d),
+    }),
+    fetching: (): TabulatorTablesResult => ({ _tag: 'fetching' }),
+    error: (error): TabulatorTablesResult => ({ _tag: 'error', error }),
+  })
 }

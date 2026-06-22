@@ -15,7 +15,7 @@ import { formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
 import * as PD from '../../PackageDialog'
-import { useTabulatorTables, parseTabulatorTables } from '../../Tabulator/requests'
+import { useTabulatorTables } from '../../Tabulator/requests'
 
 import { makeColorPool } from '../ColorPool'
 import ObjectsByExt, { COLOR_MAP } from '../ObjectsByExt'
@@ -111,7 +111,7 @@ function Stats({ bucket, stats }: StatsProps) {
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
   const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
-  const tablesQuery = useTabulatorTables(bucket)
+  const tablesResult = useTabulatorTables(bucket)
   // The tables stat links into the Queries tab — hide it for buckets that
   // disabled Queries via `ui.nav.queries`.
   const queriesEnabled = BucketPreferences.Result.match(
@@ -139,21 +139,18 @@ function Stats({ bucket, stats }: StatsProps) {
       ) : (
         <StatsItemSkeleton />
       )}
+      {queriesEnabled && tablesResult._tag === 'fetching' && <StatsItemSkeleton />}
       {queriesEnabled &&
-        GQL.fold(tablesQuery, {
-          fetching: () => <StatsItemSkeleton />,
-          error: () => null,
-          data: (d) => {
-            const numTables = parseTabulatorTables(d).length
-            return numTables > 0 ? (
-              <StatsItem
-                value={formatQuantity(numTables)}
-                label={<Plural value={numTables} one="table" other="tables" />}
-                to={urls.bucketQueries(bucket)}
-              />
-            ) : null
-          },
-        })}
+        tablesResult._tag === 'ready' &&
+        tablesResult.tables.length > 0 && (
+          <StatsItem
+            value={formatQuantity(tablesResult.tables.length)}
+            label={
+              <Plural value={tablesResult.tables.length} one="table" other="tables" />
+            }
+            to={urls.bucketQueries(bucket)}
+          />
+        )}
       <CreatePackage bucket={bucket} />
     </div>
   )

@@ -90,13 +90,10 @@ vi.mock('utils/GraphQL', () => ({
   },
 }))
 
-// `useTabulatorTables` returns a urql result the component folds; `parseTabulatorTables`
-// turns its data into the table list. The real `GQL.fold` runs against these mocks.
-const tablesQuery = vi.fn<() => unknown>(() => ({ data: {} }))
-const tables = vi.fn<() => unknown>(() => [])
+// `useTabulatorTables` returns a tagged result the component switches on.
+const useTabulatorTables = vi.fn<() => unknown>(() => ({ _tag: 'ready', tables: [] }))
 vi.mock('../../Tabulator/requests', () => ({
-  useTabulatorTables: () => tablesQuery(),
-  parseTabulatorTables: () => tables(),
+  useTabulatorTables: () => useTabulatorTables(),
 }))
 
 const routes = {
@@ -121,8 +118,7 @@ describe('containers/Bucket/Overview/v2/Header', () => {
     cleanup()
     statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
     packagesTotal = 7
-    tablesQuery.mockReturnValue({ data: {} })
-    tables.mockReturnValue([])
+    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
   })
 
@@ -152,7 +148,10 @@ describe('containers/Bucket/Overview/v2/Header', () => {
   })
 
   it('shows the Tabulator tables count linked to queries', () => {
-    tables.mockReturnValue([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+    useTabulatorTables.mockReturnValue({
+      _tag: 'ready',
+      tables: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
+    })
     const { getByText } = renderHeader()
     expect(getByText('3')).toBeTruthy()
     const link = getByText(/tables/).closest('a')
@@ -166,7 +165,7 @@ describe('containers/Bucket/Overview/v2/Header', () => {
   })
 
   it('shows a skeleton (not the count) while tabulator tables load', () => {
-    tablesQuery.mockReturnValue({ fetching: true })
+    useTabulatorTables.mockReturnValue({ _tag: 'fetching' })
     const { queryByText, getAllByTestId } = renderHeader()
     // Stats and packages are loaded, so the tables stat owns the only skeleton.
     expect(getAllByTestId('skeleton')).toHaveLength(1)
@@ -175,7 +174,10 @@ describe('containers/Bucket/Overview/v2/Header', () => {
 
   it('hides the tables stat when Queries is disabled (ui.nav.queries=false)', () => {
     navQueries = false
-    tables.mockReturnValue([{ name: 'a' }, { name: 'b' }])
+    useTabulatorTables.mockReturnValue({
+      _tag: 'ready',
+      tables: [{ name: 'a' }, { name: 'b' }],
+    })
     const { queryByText } = renderHeader()
     expect(queryByText(/tables/)).toBeNull()
   })

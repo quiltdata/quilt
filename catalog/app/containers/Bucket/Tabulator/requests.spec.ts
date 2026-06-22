@@ -20,17 +20,56 @@ vi.mock('utils/GraphQL', async () => ({
 
 describe('containers/Bucket/Tabulator/requests', () => {
   describe('useTabulatorTables', () => {
-    it('returns the urql query result for the consumer to fold', () => {
-      const result = {
+    it('yields parsed tables when the query resolves', () => {
+      useQuery.mockReturnValue({
         fetching: false,
         error: undefined,
-        data: { __typename: 'Query', bucketConfig: null },
-      }
-      useQuery.mockReturnValue(result)
+        data: {
+          __typename: 'Query',
+          bucketConfig: {
+            __typename: 'BucketConfig',
+            name: 'test-bucket',
+            tabulatorTables: [
+              {
+                __typename: 'TabulatorTable',
+                name: 't1',
+                config: 'schema:\n  - name: id\n    type: INT\nparser:\n  format: csv',
+              },
+            ],
+          },
+        },
+      })
 
-      const { result: hook } = renderHook(() => useTabulatorTables('test-bucket'))
+      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
 
-      expect(hook.current).toBe(result)
+      expect(result.current).toEqual({
+        _tag: 'ready',
+        tables: [
+          {
+            name: 't1',
+            format: 'csv',
+            columns: [{ name: 'id', type: 'INT' }],
+            source: null,
+          },
+        ],
+      })
+    })
+
+    it('yields fetching while the query is in flight', () => {
+      useQuery.mockReturnValue({ fetching: true, error: undefined, data: undefined })
+
+      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
+
+      expect(result.current).toEqual({ _tag: 'fetching' })
+    })
+
+    it('yields the error when the query fails', () => {
+      const error = new Error('boom')
+      useQuery.mockReturnValue({ fetching: false, error, data: undefined })
+
+      const { result } = renderHook(() => useTabulatorTables('test-bucket'))
+
+      expect(result.current).toEqual({ _tag: 'error', error })
     })
   })
 
