@@ -139,6 +139,12 @@ describe('containers/Bucket/Tabulator/requests prettifyPattern', () => {
     const raw = 'salmon/.*\\.sf'
     expect(prettifyPattern(raw)).toEqual({ pretty: raw, raw, isLiteral: false })
   })
+
+  it('treats a metacharacter after an escaped backslash as unescaped', () => {
+    // `\\` is a literal backslash, so the following `.` is a real metacharacter.
+    const raw = 'foo\\\\.bar'
+    expect(prettifyPattern(raw)).toEqual({ pretty: raw, raw, isLiteral: false })
+  })
 })
 
 describe('containers/Bucket/Tabulator/requests parseTabulatorConfig', () => {

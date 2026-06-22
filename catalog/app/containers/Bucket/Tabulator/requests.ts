@@ -40,7 +40,10 @@ export function prettifyPattern(raw: string): SourcePattern {
   let body = raw
   if (body.startsWith('^')) body = body.slice(1)
   if (body.endsWith('$') && !body.endsWith('\\$')) body = body.slice(0, -1)
-  const hasMeta = /(?<!\\)[.()[\]{}|+*?]/.test(body)
+  // Tokenize escape sequences (`\X`) as 2-char units first; any leftover single
+  // metacharacter is genuinely unescaped. Avoids a lookbehind (ES2018, which
+  // ts-loader emits verbatim under `target: ES5` and would crash old engines).
+  const hasMeta = (body.match(/\\.|[.()[\]{}|+*?]/g) ?? []).some((m) => m.length === 1)
   if (hasMeta) return { pretty: raw, raw, isLiteral: false }
   // Drop the escaping backslash before any character (e.g. `\.` -> `.`).
   const pretty = body.replace(/\\(.)/g, '$1')
