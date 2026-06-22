@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -167,7 +167,7 @@ function TableRow({ table, athenaUrl }: TableRowProps) {
               size="small"
               variant="contained"
               color="primary"
-              component={RRLink}
+              component={RRDom.Link}
               to={{
                 pathname: athenaUrl,
                 search: `?table=${encodeURIComponent(table.name)}`,
@@ -256,7 +256,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
         ))}
       </div>
       <div className={classes.foot}>
-        <M.Button component={RRLink} to={queryUrl} size="small" color="primary">
+        <M.Button component={RRDom.Link} to={queryUrl} size="small" color="primary">
           More queries
         </M.Button>
       </div>

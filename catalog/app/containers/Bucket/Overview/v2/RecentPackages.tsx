@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -104,7 +104,7 @@ function PackageList({ bucket, hits, total }: PackageListProps) {
           <M.ListItem
             key={hit.id}
             button
-            component={RRLink}
+            component={RRDom.Link}
             className={classes.card}
             to={urls.bucketPackageTree(
               hit.bucket,
@@ -123,7 +123,7 @@ function PackageList({ bucket, hits, total }: PackageListProps) {
       {numMore > 0 && (
         <M.Button
           className={classes.more}
-          component={RRLink}
+          component={RRDom.Link}
           to={urls.bucketPackageList(bucket)}
           size="small"
           color="primary"
