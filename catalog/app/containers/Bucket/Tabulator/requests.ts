@@ -24,6 +24,8 @@ export interface ParsedTabulatorTable {
   source: { packageName: SourcePattern; logicalKey: SourcePattern } | null
 }
 
+// Permissive read-subset of schemas/tabulatorTable.yml.json (the source of truth):
+// only the fields we render, all optional/unknown since the parsed YAML is untrusted.
 interface RawConfig {
   schema?: ReadonlyArray<{ name?: unknown; type?: unknown }>
   source?: { package_name?: unknown; logical_key?: unknown }
