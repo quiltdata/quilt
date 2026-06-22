@@ -92,14 +92,17 @@ export type TabulatorTablesResult =
 
 export function useTabulatorTables(bucket: string): TabulatorTablesResult {
   const result = GQL.useQuery(TABULATOR_TABLES_QUERY, { bucket })
-  // Parse once per fetch, not per render, so config-error reporting doesn't repeat.
-  const tables = React.useMemo(
-    () => (result.data ? parseTabulatorTables(result.data) : undefined),
-    [result.data],
+  // Memoize on the stable query result: parse once per fetch, stable identity.
+  return React.useMemo(
+    () =>
+      GQL.fold(result, {
+        data: (d): TabulatorTablesResult => ({
+          _tag: 'ready',
+          tables: parseTabulatorTables(d),
+        }),
+        fetching: (): TabulatorTablesResult => ({ _tag: 'fetching' }),
+        error: (error): TabulatorTablesResult => ({ _tag: 'error', error }),
+      }),
+    [result],
   )
-  return GQL.fold(result, {
-    data: (): TabulatorTablesResult => ({ _tag: 'ready', tables: tables ?? [] }),
-    fetching: (): TabulatorTablesResult => ({ _tag: 'fetching' }),
-    error: (error): TabulatorTablesResult => ({ _tag: 'error', error }),
-  })
 }
