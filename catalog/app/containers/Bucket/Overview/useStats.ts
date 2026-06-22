@@ -12,6 +12,17 @@ import * as requests from '../requests'
 
 import STAT_COUNTS_QUERY from './gql/StatCounts.generated'
 
+// Format a metric for display: loading (`undefined`) → skeleton (`null`),
+// unknown (`null`) → '?', otherwise the formatted number.
+function count(
+  value: number | null | undefined,
+  format: (n: number) => string,
+): string | null {
+  if (value === undefined) return null
+  if (value === null) return '?'
+  return format(value)
+}
+
 // Bucket size / object / package counts for the Overview header, shared by the
 // legacy and v2 headers. The formatted strings drive the stat labels; the raw
 // counts pluralize them, and `statsResult` feeds the charts.
@@ -68,8 +79,6 @@ export function useStats(bucket: string) {
       }),
     [countQuery],
   )
-  const count = (value: number | null | undefined, format: (n: number) => string) =>
-    value === undefined ? null : value === null ? '?' : format(value)
   return {
     totalBytes,
     totalObjects: count(objects, readableQuantity),
