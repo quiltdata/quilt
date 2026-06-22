@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { cleanup, render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
 
@@ -47,6 +47,9 @@ vi.mock('@material-ui/core', async () => ({
 }))
 
 describe('QuiltSummarize', () => {
+  // Test-only: `globals` is off in vitest.config so RTL's auto-cleanup is not installed; unmounting disarms the debounce timer (prod unmounts via the router).
+  afterEach(cleanup)
+
   it('Render empty placeholders', () => {
     const { container } = render(
       <QuiltSummarize className="root" error={null} onChange={noop} />,
