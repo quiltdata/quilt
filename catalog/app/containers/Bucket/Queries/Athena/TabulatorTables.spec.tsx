@@ -132,6 +132,13 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
     expect(queryBody.setValue).not.toHaveBeenCalled()
   })
 
+  it('notifies and fills nothing when a ?table= deep link arrives but tables failed to load', () => {
+    useTabulatorTables.mockReturnValue({ _tag: 'error', error: new Error('boom') })
+    renderTables(['/b/my-bucket/queries/athena?table=drugs'])
+    expect(push).toHaveBeenCalledWith('Could not load Tabulator tables')
+    expect(queryBody.setValue).not.toHaveBeenCalled()
+  })
+
   it('escapes embedded double-quotes in identifiers', () => {
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [makeTable('we"ird')] })
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')

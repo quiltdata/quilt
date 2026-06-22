@@ -30,15 +30,18 @@ export default function TabulatorTables() {
   const { bucket, queryBody, catalogName, catalogNames, database } = Model.use()
   const { push } = Notifications.use()
   const tablesResult = useTabulatorTables(bucket)
-  const tables = tablesResult._tag === 'ready' ? tablesResult.tables : undefined
+  const catalog = React.useMemo(
+    () =>
+      Model.hasData(catalogNames.data)
+        ? resolveTabulatorCatalog(catalogNames.data.list)
+        : undefined,
+    [catalogNames.data],
+  )
 
   const handleSelect = React.useCallback(
     (table: ParsedTabulatorTable) => {
-      const catalog = Model.hasData(catalogNames.data)
-        ? resolveTabulatorCatalog(catalogNames.data.list)
-        : undefined
       // Three-part, fully-qualified name runs regardless of the selected context;
-      // fall back to two parts when the tabulator catalog can't be resolved yet.
+      // fall back to two parts when the tabulator catalog can't be resolved.
       const sql = catalog
         ? `SELECT * FROM "${quoteIdent(catalog)}"."${quoteIdent(bucket)}"."${quoteIdent(
             table.name,
@@ -50,7 +53,7 @@ export default function TabulatorTables() {
         database.setValue(bucket)
       }
     },
-    [bucket, catalogNames.data, queryBody, catalogName, database],
+    [bucket, catalog, queryBody, catalogName, database],
   )
 
   // Deep link from the Overview: `?table=<name>` autofills that table once on load,
@@ -61,22 +64,31 @@ export default function TabulatorTables() {
   const appliedRef = React.useRef(false)
   React.useEffect(() => {
     if (appliedRef.current) return
-    if (!tables) return
+    if (tablesResult._tag === 'fetching') return
     // Wait until the catalog list settles so the autofill can build the 3-part name.
     if (!Model.hasData(catalogNames.data) && !Model.isError(catalogNames.data)) return
     const params = new URLSearchParams(location.search)
     const name = params.get('table')
     if (!name) return
     appliedRef.current = true
-    const table = tables.find((t) => t.name === name)
-    if (table) handleSelect(table)
-    else push(`Table "${name}" not found`)
+    switch (tablesResult._tag) {
+      case 'error':
+        push('Could not load Tabulator tables')
+        break
+      case 'ready': {
+        const table = tablesResult.tables.find((t) => t.name === name)
+        if (table) handleSelect(table)
+        else push(`Table "${name}" not found`)
+        break
+      }
+    }
     params.delete('table')
     history.replace({ ...location, search: params.toString() })
-  }, [tables, catalogNames.data, location, history, handleSelect, push])
+  }, [tablesResult, catalogNames.data, location, history, handleSelect, push])
 
   // Render nothing on loading / error / empty — never break the Queries page.
-  if (!tables || tables.length === 0) return null
+  if (tablesResult._tag !== 'ready' || tablesResult.tables.length === 0) return null
+  const { tables } = tablesResult
 
   // An optional shortcut that fills the editor, not a step in the form — hence the
   // muted, action-led framing rather than a labelled field. Clicking replaces the
