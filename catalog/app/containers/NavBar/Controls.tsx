@@ -9,6 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
+import OmniSearch from './OmniSearch'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
@@ -77,16 +78,20 @@ function GlobalControls() {
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <BucketSelect />
       </div>
-      <div>
-        <M.Button
-          className={classes.search}
-          startIcon={<M.Icon>search</M.Icon>}
-          component={RRDom.Link}
-          to={urls.search({})}
-        >
-          Search
-        </M.Button>
-      </div>
+      {cfg.frontDoorV2 ? (
+        <OmniSearch />
+      ) : (
+        <div>
+          <M.Button
+            className={classes.search}
+            startIcon={<M.Icon>search</M.Icon>}
+            component={RRDom.Link}
+            to={urls.search({})}
+          >
+            Search
+          </M.Button>
+        </div>
+      )}
     </Container>
   )
 }
@@ -127,16 +132,20 @@ function BucketControls({ bucket }: BucketControlsProps) {
         </M.Fade>
         {cfg.mode === 'PRODUCT' && <Collaborators bucket={bucket} hidden={false} />}
       </div>
-      <div>
-        <M.Button
-          className={classes.search}
-          startIcon={<M.Icon>search</M.Icon>}
-          component={RRDom.Link}
-          to={urls.search({})}
-        >
-          Search
-        </M.Button>
-      </div>
+      {cfg.frontDoorV2 ? (
+        <OmniSearch />
+      ) : (
+        <div>
+          <M.Button
+            className={classes.search}
+            startIcon={<M.Icon>search</M.Icon>}
+            component={RRDom.Link}
+            to={urls.search({})}
+          >
+            Search
+          </M.Button>
+        </div>
+      )}
     </Container>
   )
 }

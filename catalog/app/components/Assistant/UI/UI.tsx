@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as style from 'constants/style'
 
 import * as Model from '../Model'
@@ -51,6 +52,9 @@ function Trigger() {
   const classes = useTriggerStyles()
   const api = Model.useAssistantAPI()
   if (!api) return null
+  // FrontDoor v2 surfaces Qurator as a rightmost navbar button, so the floating
+  // FAB is suppressed to avoid a duplicate trigger.
+  if (cfg.frontDoorV2) return null
   return (
     <M.Zoom in={!api.visible}>
       <M.Fab onClick={api.show} className={classes.trigger} color="primary">

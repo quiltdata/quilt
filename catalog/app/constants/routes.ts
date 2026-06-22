@@ -72,6 +72,9 @@ export const search = route(
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 )
 
+// All-buckets listing page (used by FrontDoor v2 Buckets tile)
+export const buckets = route('/buckets', () => '/buckets')
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

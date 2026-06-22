@@ -16,6 +16,7 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 import * as NavMenu from './NavMenu'
+import QuratorButton from './QuratorButton'
 import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
@@ -229,6 +230,8 @@ export function NavBar() {
       {sub.invalid && <LicenseError restore={sub.restore} />}
 
       <NavMenu.Menu collapse={collapse} />
+
+      {cfg.frontDoorV2 && !hideControls && <QuratorButton />}
 
       {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
     </Container>

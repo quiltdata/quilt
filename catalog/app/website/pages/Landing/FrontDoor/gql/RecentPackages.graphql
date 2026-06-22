@@ -1,0 +1,30 @@
+query ($buckets: [String!], $order: SearchResultOrder) {
+  searchPackages(buckets: $buckets, searchString: null, latestOnly: true) {
+    __typename
+    ... on PackagesSearchResultSet {
+      total
+      firstPage(order: $order) {
+        hits {
+          __typename
+          id
+          bucket
+          name
+          hash
+          pointer
+          modified
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+      }
+    }
+    ... on OperationError {
+      name
+      message
+    }
+  }
+}

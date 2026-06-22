@@ -20,16 +20,15 @@ import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
-const useVersionStyles = M.makeStyles((t) => ({
+const useVersionStyles = M.makeStyles({
   revision: {
-    color: t.palette.secondary.main,
+    color: 'rgba(255,255,255,.45)',
     cursor: 'pointer',
-    opacity: 0.3,
     '&:hover': {
-      opacity: 1,
+      color: '#fff',
     },
   },
-}))
+})
 
 function Version() {
   const classes = useVersionStyles()
@@ -56,12 +55,19 @@ const NavLink = (props: M.LinkProps) => (
   <M.Link variant="button" underline="none" color="textPrimary" {...props} />
 )
 
-const NavSpacer = () => <M.Box ml={{ xs: 2, sm: 3 }} />
+const NavSpacer = () => <M.Box ml={{ xs: 2, sm: 2 }} />
 
 const useNavIconStyles = M.makeStyles({
   root: {
     display: 'block',
     height: '18px',
+    // SVG icons from the footer sprite are dark-coloured; invert them to white
+    // so they match the left-side Logo/text on the dark footer background.
+    filter: 'brightness(0) invert(1)',
+    opacity: 0.7,
+    '&:hover': {
+      opacity: 1,
+    },
   },
 })
 
@@ -88,37 +94,44 @@ const useStyles = M.makeStyles((t) => ({
       '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
       '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
     ].join(', '),
-    height: 230,
-    paddingTop: t.spacing(6),
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 72,
     position: 'relative',
     [t.breakpoints.down('xs')]: {
-      alignItems: 'center',
-      display: 'flex',
-      paddingTop: 0,
+      paddingBottom: t.spacing(2),
+      paddingTop: t.spacing(2),
     },
   },
   container: {
     alignItems: 'center',
-    display: 'grid',
-    [t.breakpoints.up('sm')]: {
-      gridRowGap: t.spacing(6),
-      gridTemplateColumns: 'auto 1fr auto',
-      gridTemplateRows: '36px auto',
-      gridTemplateAreas: `
-        "logo . links"
-        "copy . icons"
-      `,
-    },
+    display: 'flex',
+    gap: t.spacing(3),
+    width: '100%',
     [t.breakpoints.down('xs')]: {
-      gridRowGap: t.spacing(3),
-      gridTemplateColumns: '1fr',
-      gridTemplateRows: '36px auto auto auto',
-      gridTemplateAreas: `
-        "logo"
-        "links"
-        "icons"
-        "copy"
-      `,
+      flexDirection: 'column',
+      gap: t.spacing(2),
+      textAlign: 'center',
+    },
+  },
+  left: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    [t.breakpoints.down('xs')]: {
+      flexDirection: 'column',
+      gap: t.spacing(1),
+    },
+  },
+  right: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    marginLeft: 'auto',
+    [t.breakpoints.down('xs')]: {
+      flexDirection: 'column',
+      gap: t.spacing(1.5),
+      marginLeft: 0,
     },
   },
   logoLink: {
@@ -137,11 +150,7 @@ export default function Footer() {
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer className={classes.root}>
         <M.Container maxWidth="lg" className={classes.container}>
-          <M.Box
-            style={{ gridArea: 'logo' }}
-            display="flex"
-            justifyContent={{ xs: 'center', sm: 'flex-start' }}
-          >
+          <div className={classes.left}>
             {settings?.logo?.url ? (
               <a href={URLS.homeMarketing}>
                 <FooterLogo />
@@ -151,15 +160,12 @@ export default function Footer() {
                 <FooterLogo />
               </Link>
             )}
-          </M.Box>
+            <M.Typography color="textSecondary" variant="body2">
+              &copy;&nbsp;{year} Quilt Data, Inc.
+            </M.Typography>
+          </div>
 
-          <M.Box
-            component="nav"
-            display="flex"
-            alignItems="center"
-            justifyContent={{ xs: 'center', sm: 'flex-end' }}
-            style={{ gridArea: 'links' }}
-          >
+          <M.Box component="nav" display="flex" alignItems="center">
             <NavLink href={URLS.docs} target="_blank">
               Docs
             </NavLink>
@@ -177,35 +183,25 @@ export default function Footer() {
             )}
           </M.Box>
 
-          <M.Box
-            style={{ gridArea: 'copy' }}
-            display="flex"
-            justifyContent={{ xs: 'center', sm: 'flex-start' }}
-          >
-            <M.Typography color="textSecondary">
-              &copy;&nbsp;{year} Quilt Data, Inc.
-            </M.Typography>
-          </M.Box>
-
-          <M.Box
-            component="nav"
-            display="flex"
-            justifyContent={{ xs: 'center', sm: 'flex-end' }}
-            style={{ gridArea: 'icons' }}
-          >
-            <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
-            <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
-            <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
-            <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
-            <NavIcon icon={iconInstagram} href={URLS.instagram} target="_blank" ml={4} />
-            <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={4} />
+          <div className={classes.right}>
+            <M.Box component="nav" display="flex" alignItems="center">
+              <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
+              <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={3} />
+              <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={3} />
+              <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={3} />
+              <NavIcon
+                icon={iconInstagram}
+                href={URLS.instagram}
+                target="_blank"
+                ml={3}
+              />
+              <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={3} />
+            </M.Box>
+            <Version />
             {reservedSpaceForIntercom && (
-              <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
+              <M.Box width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
-          </M.Box>
-        </M.Container>
-        <M.Container maxWidth="lg">
-          <Version />
+          </div>
         </M.Container>
       </footer>
     </M.MuiThemeProvider>
