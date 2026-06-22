@@ -34,7 +34,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
   label: {
     color: 'inherit',
     fontSize: t.typography.h6.fontSize,
-    lineHeight: '32px',
+    lineHeight: `${t.spacing(4)}px`,
     marginLeft: t.spacing(1),
   },
   value: {
@@ -42,7 +42,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
     fontSize: t.typography.h6.fontSize,
     fontWeight: t.typography.fontWeightBold,
     letterSpacing: 0,
-    lineHeight: '32px',
+    lineHeight: `${t.spacing(4)}px`,
   },
 }))
 
@@ -74,12 +74,12 @@ const useStatsItemSkeletonStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
-    height: 32,
+    height: t.spacing(4),
   },
   skeleton: {
     borderRadius: t.shape.borderRadius,
     height: t.typography.h6.fontSize,
-    width: 96,
+    width: t.spacing(12),
   },
 }))
 
@@ -90,6 +90,25 @@ function StatsItemSkeleton() {
       <Skeleton className={classes.skeleton} bgcolor="grey.400" />
     </div>
   )
+}
+
+function TabulatorItemWrapper({ bucket }: { bucket: string }) {
+  const { urls } = NamedRoutes.use()
+  const result = useTabulatorTables(bucket)
+  switch (result._tag) {
+    case 'fetching':
+      return <StatsItemSkeleton />
+    case 'ready':
+      return result.tables.length > 0 ? (
+        <StatsItem
+          value={formatQuantity(result.tables.length)}
+          label={<Plural value={result.tables.length} one="table" other="tables" />}
+          to={urls.bucketQueries(bucket)}
+        />
+      ) : null
+    default:
+      return null
+  }
 }
 
 const useStatsStyles = M.makeStyles((t) => ({
@@ -111,9 +130,8 @@ function Stats({ bucket, stats }: StatsProps) {
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
   const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
-  const tablesResult = useTabulatorTables(bucket)
-  // The tables stat links into the Queries tab — hide it for buckets that
-  // disabled Queries via `ui.nav.queries`.
+  // The tables stat links into the Queries tab — hide it (and skip its query) for
+  // buckets that disabled Queries via `ui.nav.queries`.
   const queriesEnabled = BucketPreferences.Result.match(
     { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
     prefs,
@@ -139,18 +157,7 @@ function Stats({ bucket, stats }: StatsProps) {
       ) : (
         <StatsItemSkeleton />
       )}
-      {queriesEnabled && tablesResult._tag === 'fetching' && <StatsItemSkeleton />}
-      {queriesEnabled &&
-        tablesResult._tag === 'ready' &&
-        tablesResult.tables.length > 0 && (
-          <StatsItem
-            value={formatQuantity(tablesResult.tables.length)}
-            label={
-              <Plural value={tablesResult.tables.length} one="table" other="tables" />
-            }
-            to={urls.bucketQueries(bucket)}
-          />
-        )}
+      {queriesEnabled && <TabulatorItemWrapper bucket={bucket} />}
       <CreatePackage bucket={bucket} />
     </div>
   )
@@ -201,19 +208,19 @@ const useChartsStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     fontWeight: t.typography.fontWeightMedium,
-    minHeight: 32,
+    minHeight: t.spacing(4),
   },
   divider: {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,
-    height: 32,
+    height: t.spacing(4),
     justifyContent: 'center',
     width: '100%',
     [t.breakpoints.up('md')]: {
       height: '100%',
-      width: 32,
+      width: t.spacing(4),
     },
   },
 }))
