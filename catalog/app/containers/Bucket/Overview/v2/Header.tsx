@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
+import * as RR from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
@@ -300,11 +300,11 @@ export default function Header({ bucket }: HeaderProps) {
         <div className={classes.title}>
           <M.Typography variant="h5">{bucket}</M.Typography>
           {isAdmin && (
-            <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
+            <RR.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
               <M.IconButton size="small" color="inherit">
                 <M.Icon>settings</M.Icon>
               </M.IconButton>
-            </RRLink>
+            </RR.Link>
           )}
         </div>
         <Stats bucket={bucket} stats={stats} />
