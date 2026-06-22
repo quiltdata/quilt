@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
-requires-python = "==3.12.*"
+requires-python = "==3.13.*"
 dependencies = [
     "boto3~=1.34",
     "jsonschema~=3.2",
