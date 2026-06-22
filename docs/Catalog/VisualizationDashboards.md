@@ -127,6 +127,75 @@ In the **Packages** tab, when a specific package has been
 opened the Catalog displays thumbnail image previews in a 
 similarly paginated grid but _only those image files in the selected package_.
 
+### Image galleries in `quilt_summarize.json`
+
+Use a `gallery` block when you want a summary page to show a configured,
+source-based image gallery instead of manually listing image files. Gallery
+sources are resolved from supported image files in the current package or
+folder, and each thumbnail opens a lightbox with left/right keyboard navigation
+and an "Open file" action.
+
+Package-wide gallery:
+
+```json
+[
+  {
+    "title": "Microscopy Gallery",
+    "gallery": {
+      "source": { "scope": "package" },
+      "columns": 9,
+      "rows": 9,
+      "arrows": "overlay",
+      "captions": "filename",
+      "counter": true,
+      "fullscreen": true,
+      "zoom": true
+    }
+  }
+]
+```
+
+Folder-scoped gallery:
+
+```json
+[
+  {
+    "title": "DAPI",
+    "description": "Images under the DAPI folder.",
+    "gallery": {
+      "source": {
+        "scope": "folder",
+        "prefix": "images/dapi/",
+        "recursive": true
+      },
+      "columns": 3,
+      "rows": 3,
+      "arrows": "outside",
+      "captions": "path",
+      "thumbnailFit": "cover"
+    }
+  }
+]
+```
+
+Supported gallery options:
+
+- `source.scope`: `package` or `folder`.
+- `source.prefix`: folder prefix relative to `quilt_summarize.json`.
+- `source.recursive`: include nested files under the prefix; defaults to `true`.
+- `columns` and `rows`: thumbnail grid size; `pageSize` can override their product.
+- `arrows`: `overlay`, `inside`, `outside`, or `none`; controls both gallery page arrows and lightbox arrows.
+- `captions`: `filename`, `path`, or `none`.
+- `counter`: show the current lightbox position.
+- `fullscreen`: open the lightbox as a full-screen dialog.
+- `zoom`: show a lightbox zoom toggle.
+- `thumbnailFit`: `contain` or `cover`.
+- `sort`: `path` or `filename`.
+
+Package galleries use the package manifest when it is available, so they can
+include images outside the currently selected folder. Bucket-directory galleries
+use the files available in the current directory listing.
+
 ## Vega and Vega-lite
 The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
 [vega](https://vega.github.io/vega/) and [vega-lite](https://vega.github.io/vega-lite/) visualizations.

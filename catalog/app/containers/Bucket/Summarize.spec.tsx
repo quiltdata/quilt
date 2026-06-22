@@ -26,6 +26,8 @@ vi.mock('./requests', () => ({}))
 vi.mock('./errors', () => ({}))
 vi.mock('components/Markdown', () => ({}))
 vi.mock('components/FileEditor/FileEditor', () => ({}))
+vi.mock('./Gallery', () => ({}))
+vi.mock('./GallerySource', () => ({}))
 
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),

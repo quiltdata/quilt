@@ -511,6 +511,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
                           files={summaryHandles}
                           mkUrl={mkUrl}
                           packageHandle={packageHandle}
+                          sourceFiles={summaryHandles}
                         />
                       </M.Box>
                     </>

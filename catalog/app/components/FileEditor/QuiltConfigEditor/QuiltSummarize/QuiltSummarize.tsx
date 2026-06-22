@@ -690,17 +690,31 @@ function AddRow({ className, onChange, disabled, row, last }: AddRowProps) {
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.inner}>
-        {row.columns.map((column, index) => (
-          <AddColumn
-            className={classes.column}
-            key={column.id}
-            row={row}
-            column={column}
-            onChange={onChange}
-            disabled={disabled}
-            last={index === row.columns.length - 1}
-          />
-        ))}
+        {State.isGalleryRow(row) ? (
+          <M.Paper className={classes.column}>
+            <M.Box p={2}>
+              <M.Typography variant="subtitle1">
+                {row.gallery?.title || 'Image gallery'}
+              </M.Typography>
+              <M.Typography variant="body2" color="textSecondary">
+                Gallery blocks are preserved by this editor. Use JSON mode to edit gallery
+                source and layout options.
+              </M.Typography>
+            </M.Box>
+          </M.Paper>
+        ) : (
+          row.columns.map((column, index) => (
+            <AddColumn
+              className={classes.column}
+              key={column.id}
+              row={row}
+              column={column}
+              onChange={onChange}
+              disabled={disabled}
+              last={index === row.columns.length - 1}
+            />
+          ))
+        )}
       </div>
       <Placeholder
         variant="horizontal"
