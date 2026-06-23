@@ -12,7 +12,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 test = [
-    "pytest~=9.0",
+    "pytest~=9.1",
     "pytest-cov~=7.0",
     "pytest-env~=1.1",
     "pytest-mock~=3.15",
