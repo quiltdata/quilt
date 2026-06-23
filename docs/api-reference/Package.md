@@ -142,7 +142,7 @@ __Arguments__
 
 * __lkey(string)__:  prefix to add to every logical key,
     use '/' for the root of the package.
-* __path(string)__:  path to scan for files to add to package.
+* __path(string, os.PathLike)__:  path to scan for files to add to package.
     If None, lkey will be substituted in as the path.
 * __meta(dict)__:  user level metadata dict to attach to lkey directory entry.
 * __update_policy(str)__:  can be either 'incoming' (default) or 'existing'.
