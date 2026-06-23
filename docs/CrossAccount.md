@@ -71,7 +71,7 @@ When Quilt (running in Control Account) writes objects to buckets in Data Accoun
 3. **Edit Object Ownership** and select **"Bucket owner enforced"**
 
 **Using AWS CLI:**
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # Set object ownership to bucket owner enforced
 aws s3api put-bucket-ownership-controls \
@@ -136,7 +136,7 @@ Grant Quilt infrastructure in Control Account the necessary permissions to manag
 3. Click **Save changes**
 
 **CLI Method:**
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # Save policy to file
 cat > bucket-policy.json << 'EOF'
@@ -211,7 +211,7 @@ Add this statement to your SNS topic's resource policy in the Data Account:
 
 **Apply SNS Policy:**
 
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # Get current policy
 aws sns get-topic-attributes \
@@ -255,7 +255,7 @@ If Quilt manages CloudTrail in the Control Account:
 If you have existing CloudTrail in either account:
 
 1. **Identify the Trail:**
-   <!-- pytest-codeblocks:skip -->
+   <!-- pytest.mark.skip -->
    ```bash
    # List trails in Data Account
    aws cloudtrail describe-trails --profile data-account
@@ -265,7 +265,7 @@ If you have existing CloudTrail in either account:
    ```
 
 2. **Add S3 Data Events:**
-   <!-- pytest-codeblocks:skip -->
+   <!-- pytest.mark.skip -->
    ```bash
    # Add data events for your bucket
    aws cloudtrail put-event-selectors \
@@ -343,7 +343,7 @@ If CloudTrail is in Data Account but Quilt needs access:
 ### Verification Steps
 
 #### 1. Test Basic Access
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # From Control Account, test bucket access
 aws s3 ls s3://your-data-bucket --profile control-account
@@ -360,7 +360,7 @@ aws s3 cp test.txt s3://your-data-bucket/ --profile control-account
 4. **Test search functionality** in Quilt
 
 #### 3. Check CloudTrail Logging
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # Verify CloudTrail is capturing events
 aws logs filter-log-events \
@@ -478,7 +478,7 @@ Instead of granting access to the entire Control Account root, consider restrict
 **CloudWatch Alarms:**
 Set up monitoring for cross-account access:
 
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # Create alarm for failed S3 access attempts
 aws cloudwatch put-metric-alarm \
@@ -535,7 +535,7 @@ Monitor specific cross-account activities:
 
 For multi-region deployments:
 
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```bash
 # Replicate bucket policy across regions
 for region in us-east-1 us-west-2 eu-west-1; do
