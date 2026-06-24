@@ -8,6 +8,7 @@ import Code from 'components/Code'
 import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -17,6 +18,7 @@ import * as QueryEditor from './QueryEditor'
 import History from './History'
 import Results from './Results'
 import Workgroups from './Workgroups'
+import TabulatorTables from './TabulatorTables'
 import * as Model from './model'
 import { doQueryResultsContainManifestEntries } from './model/createPackage'
 
@@ -335,6 +337,7 @@ const useStyles = M.makeStyles((t) => ({
 
 function AthenaContainer() {
   const { bucket, queryExecutionId, workgroup } = Model.use()
+  const settings = CatalogSettings.use()
 
   const classes = useStyles()
   return (
@@ -349,6 +352,7 @@ function AthenaContainer() {
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />
+            {settings?.beta && <TabulatorTables />}
             <QueryEditor.Form className={classes.form} />
           </div>
           {queryExecutionId ? (

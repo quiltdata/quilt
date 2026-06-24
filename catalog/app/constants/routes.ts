@@ -214,7 +214,9 @@ export type BucketESQueriesArgs = Parameters<typeof bucketESQueries.url>
 
 export const bucketAthena = route(
   '/b/:bucket/queries/athena',
-  (bucket: string) => `/b/${bucket}/queries/athena`,
+  // `table` deep-links a Tabulator table to autofill the query editor.
+  (bucket: string, { table }: { table?: string } = {}) =>
+    `/b/${bucket}/queries/athena${mkSearch({ table })}`,
 )
 
 export const bucketAthenaWorkgroup = route(

@@ -2,9 +2,21 @@ import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 
-import { ConfigureAppearance } from './Summarize'
+import { ConfigureAppearance, SummaryRoot } from './Summarize'
+
+// Mutable result fed to the mocked `useData` so each test drives a different
+// `bucketSummary` outcome.
+const summary = vi.hoisted(() => ({
+  current: { entries: [] as any[], fromQuiltSummarize: false } as any,
+}))
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('utils/Data', () => ({
+  useData: () => ({ case: (handlers: any) => handlers.Ok(summary.current) }),
+}))
+
+vi.mock('utils/APIConnector', () => ({ use: () => ({}) }))
 
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
@@ -22,7 +34,7 @@ vi.mock('@material-ui/core', async () => ({
 
 vi.mock('components/Preview', () => ({}))
 vi.mock('components/Preview/loaders/summarize', () => ({}))
-vi.mock('./requests', () => ({}))
+vi.mock('./requests', () => ({ bucketSummary: () => {} }))
 vi.mock('./errors', () => ({}))
 vi.mock('components/Markdown', () => ({}))
 vi.mock('components/FileEditor/FileEditor', () => ({}))
@@ -48,6 +60,26 @@ vi.mock('react-router-dom', async () => ({
 
 describe('containers/Buckets/Summarize', () => {
   afterEach(cleanup)
+
+  describe('SummaryRoot quiltSummarizeOnly', () => {
+    const s3 = {} as any
+
+    it('renders nothing for auto-discovered summaries', () => {
+      summary.current = { entries: [], fromQuiltSummarize: false }
+      const { container } = render(
+        <SummaryRoot s3={s3} bucket="b" inStack quiltSummarizeOnly />,
+      )
+      expect(container.firstChild).toBeNull()
+    })
+
+    it('renders authored quilt_summarize.json layouts', () => {
+      summary.current = { entries: [], fromQuiltSummarize: true }
+      const { container } = render(
+        <SummaryRoot s3={s3} bucket="b" inStack quiltSummarizeOnly />,
+      )
+      expect(container.firstChild).not.toBeNull()
+    })
+  })
 
   describe('ConfigureAppearance', () => {
     const packageHandle = { bucket: 'b', name: 'n', hash: 'h' }

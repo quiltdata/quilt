@@ -87,6 +87,11 @@ export const containers_Bucket_Overview_gql_StatCountsDocument = {
                 name: { kind: 'Name', value: 'buckets' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'buckets' } },
               },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'latestOnly' },
+                value: { kind: 'BooleanValue', value: true },
+              },
             ],
             selectionSet: {
               kind: 'SelectionSet',
