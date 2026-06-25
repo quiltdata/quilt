@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
+import { LANGS } from 'components/Preview/loaders/Text'
+
 import hljs, {
   REGISTERED_LANGUAGES,
   resolveLanguage,
@@ -13,47 +15,6 @@ vi.mock('constants/config', () => ({
     apiGatewayEndpoint: '',
   },
 }))
-
-// Keys from Text.js LANGS — inlined because Text.js contains JSX in a .js file
-// which vitest's vite:import-analysis cannot parse. The invariant still holds:
-// every language the Text loader detects must be loadable by hljs.
-const TEXT_LANG_KEYS = [
-  'accesslog',
-  'bash',
-  'clojure',
-  'coffeescript',
-  'coq',
-  'c',
-  'cpp',
-  'csharp',
-  'css',
-  'diff',
-  'dockerfile',
-  'erlang',
-  'go',
-  'haskell',
-  'ini',
-  'java',
-  'javascript',
-  'json',
-  'lisp',
-  'makefile',
-  'matlab',
-  'ocaml',
-  'perl',
-  'php',
-  'plaintext',
-  'python',
-  'r',
-  'ruby',
-  'rust',
-  'scala',
-  'scheme',
-  'sql',
-  'typescript',
-  'xml',
-  'yaml',
-]
 
 describe('utils/hljs', () => {
   it('registers exactly the expected language set', () => {
@@ -130,7 +91,7 @@ describe('utils/hljs', () => {
   })
 
   it('resolves every language enumerated by the Text loader', async () => {
-    for (const lang of TEXT_LANG_KEYS) {
+    for (const lang of Object.keys(LANGS)) {
       await loadLanguages([lang])
       expect(
         hljs.getLanguage(resolveLanguage(lang)!),

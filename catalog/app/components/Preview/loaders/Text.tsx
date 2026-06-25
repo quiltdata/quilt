@@ -63,11 +63,20 @@ const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (n
 
 export const detect = R.pipe(findLang, Boolean)
 
-const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
+const getLang = (path: string): string => {
+  const pair = findLang(path) as $TSFixMe
+  const [lang = 'plaintext'] = pair ?? []
+  return lang
+}
 
-const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
+const hl = (language: string) => (contents: string) =>
+  hljs.highlight(contents, { language }).value
 
-const TextLoaderInner = function TextLoader({ handle, forceLang = null, children }) {
+const TextLoaderInner = function TextLoader({
+  handle,
+  forceLang = null,
+  children,
+}: $TSFixMe) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
@@ -75,13 +84,13 @@ const TextLoaderInner = function TextLoader({ handle, forceLang = null, children
   })
   const processed = utils.useProcessing(
     result,
-    ({ info: { data, note, warnings } }) => {
+    ({ info: { data, note, warnings } }: $TSFixMe) => {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
       ensureLanguages([lang])
       // TODO: move highlightjs call to renderer
-      const highlighted = R.map(hl(lang), { head, tail })
+      const highlighted = R.map(hl(lang), { head, tail } as $TSFixMe)
       return PreviewData.Text({ head, tail, lang, highlighted, note, warnings })
     },
     [forceLang, handle.logicalKey, handle.key],
@@ -89,7 +98,7 @@ const TextLoaderInner = function TextLoader({ handle, forceLang = null, children
   return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
 }
 
-export const Loader = function GatedTextLoader(props) {
+export const Loader = function GatedTextLoader(props: $TSFixMe) {
   return (
     <HljsBoundary fallback={props.children(AsyncResult.Pending())}>
       <TextLoaderInner {...props} />
