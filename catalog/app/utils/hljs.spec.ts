@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { LANGS } from 'components/Preview/loaders/Text'
 
@@ -104,6 +104,131 @@ describe('utils/hljs', () => {
     for (const lang of REGISTERED_LANGUAGES) {
       await loadLanguages([lang])
       expect(hljs.getLanguage(lang), `getLanguage(${lang})`).toBeTruthy()
+    }
+  })
+
+  // Uses a fresh module import per test to avoid shared `registered`/`failed` Set
+  // pollution from the bulk loaders above. vi.doMock is used (not vi.mock) so the
+  // constants/config stub is scoped to this dynamic import, not hoisted globally.
+  describe('degrade-to-plain on load failure', () => {
+    let consoleSpy: ReturnType<typeof vi.spyOn>
+
+    beforeEach(() => {
+      consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      consoleSpy.mockRestore()
+      vi.resetModules()
+    })
+
+    it('degrades to plain (never rejects/throws) when a grammar chunk fails to load', async () => {
+      vi.resetModules()
+      vi.doMock('constants/config', () => ({ default: { apiGatewayEndpoint: '' } }))
+
+      const mod = await import('./hljs')
+
+      // Intercept registerLanguage to verify the failed load does NOT register.
+      // We use a fresh module but the hljs singleton is shared, so we spy here.
+      const registerSpy = vi.spyOn(mod.default, 'registerLanguage')
+      mod.LANG_LOADERS.scala = () => Promise.reject(new Error('chunk load failed'))
+
+      // loadLanguages resolves (does not reject) even when the import fails
+      await expect(mod.loadLanguages(['scala'])).resolves.toBeUndefined()
+
+      // ensureLanguages no longer throws for the failed language (settled/give up)
+      expect(() => mod.ensureLanguages(['scala'])).not.toThrow()
+
+      // The failed load must NOT have called registerLanguage for 'scala'
+      expect(
+        registerSpy.mock.calls.some((args) => args[0] === 'scala'),
+        'registerLanguage("scala") must not be called on a failed load',
+      ).toBe(false)
+
+      // failure was logged once
+      expect(consoleSpy).toHaveBeenCalledOnce()
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[hljs] failed to load grammar "scala":',
+        expect.any(Error),
+      )
+
+      registerSpy.mockRestore()
+    })
+  })
+
+  it('ALIASES tripwire: every alias key resolves to a REGISTERED_LANGUAGES entry', () => {
+    // Spot-check a representative cross-section of the ALIASES map.
+    // resolveLanguage is the public surface; ALIASES itself is private.
+    const aliasChecks: Array<[string, string]> = [
+      ['ts', 'typescript'],
+      ['tsx', 'typescript'],
+      ['cts', 'typescript'],
+      ['mts', 'typescript'],
+      ['js', 'javascript'],
+      ['jsx', 'javascript'],
+      ['cjs', 'javascript'],
+      ['mjs', 'javascript'],
+      ['yml', 'yaml'],
+      ['sh', 'bash'],
+      ['toml', 'ini'],
+      ['py', 'python'],
+      ['rb', 'ruby'],
+      ['rs', 'rust'],
+      ['golang', 'go'],
+      ['h', 'c'],
+      ['cc', 'cpp'],
+      ['c++', 'cpp'],
+      ['hh', 'cpp'],
+      ['hpp', 'cpp'],
+      ['hxx', 'cpp'],
+      ['cxx', 'cpp'],
+      ['html', 'xml'],
+      ['svg', 'xml'],
+      ['xhtml', 'xml'],
+      ['rss', 'xml'],
+      ['atom', 'xml'],
+      ['plist', 'xml'],
+      ['xsd', 'xml'],
+      ['xsl', 'xml'],
+      ['xjb', 'xml'],
+      ['wsf', 'xml'],
+      ['docker', 'dockerfile'],
+      ['make', 'makefile'],
+      ['mak', 'makefile'],
+      ['mk', 'makefile'],
+      ['coffee', 'coffeescript'],
+      ['cson', 'coffeescript'],
+      ['iced', 'coffeescript'],
+      ['clj', 'clojure'],
+      ['edn', 'clojure'],
+      ['erl', 'erlang'],
+      ['hs', 'haskell'],
+      ['ml', 'ocaml'],
+      ['pl', 'perl'],
+      ['pm', 'perl'],
+      ['scm', 'scheme'],
+      ['text', 'plaintext'],
+      ['txt', 'plaintext'],
+      ['patch', 'diff'],
+      ['gemspec', 'ruby'],
+      ['irb', 'ruby'],
+      ['podspec', 'ruby'],
+      ['thor', 'ruby'],
+      ['gyp', 'python'],
+      ['ipython', 'python'],
+      ['jsp', 'java'],
+      ['cs', 'csharp'],
+      ['c#', 'csharp'],
+      ['JSON', 'json'], // case-insensitive
+    ]
+
+    for (const [alias, expected] of aliasChecks) {
+      const resolved = resolveLanguage(alias)
+      expect(resolved, `resolveLanguage('${alias}')`).toBe(expected)
+      expect(
+        (REGISTERED_LANGUAGES as readonly string[]).includes(resolved!),
+        `REGISTERED_LANGUAGES includes target of '${alias}'`,
+      ).toBe(true)
     }
   })
 })

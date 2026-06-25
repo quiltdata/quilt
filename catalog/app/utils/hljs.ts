@@ -153,6 +153,10 @@ const ALIASES: Record<string, RegisteredLanguage> = {
 }
 
 const registered = new Set<RegisteredLanguage>()
+// Languages that failed to load: treated as settled so ensureLanguages stops
+// suspending for them. Highlighting is simply unavailable → callers degrade to
+// plain monospace (highlight helpers return '' when hljs.getLanguage is falsy).
+const failed = new Set<RegisteredLanguage>()
 const inflight = new Map<RegisteredLanguage, Promise<void>>()
 
 export function resolveLanguage(label: string): RegisteredLanguage | null {
@@ -163,15 +167,24 @@ export function resolveLanguage(label: string): RegisteredLanguage | null {
 }
 
 function loadLanguage(name: RegisteredLanguage): Promise<void> {
-  if (registered.has(name)) return Promise.resolve()
+  if (registered.has(name) || failed.has(name)) return Promise.resolve()
   if (!inflight.has(name)) {
     inflight.set(
       name,
-      LANG_LOADERS[name]().then((m) => {
-        /* v8 ignore next */
-        if (!hljs.getLanguage(name)) hljs.registerLanguage(name, m.default as $TSFixMe)
-        registered.add(name)
-      }),
+      LANG_LOADERS[name]()
+        .then((m) => {
+          /* v8 ignore next */
+          if (!hljs.getLanguage(name)) hljs.registerLanguage(name, m.default as $TSFixMe)
+          registered.add(name)
+        })
+        .catch((err) => {
+          // Chunk load failed (e.g. stale index.html after a redeploy, offline blip).
+          // Mark settled so ensureLanguages stops suspending for this language.
+          // hljs.getLanguage(name) remains undefined → callers render plain text.
+          // eslint-disable-next-line no-console
+          console.error(`[hljs] failed to load grammar "${name}":`, err)
+          failed.add(name)
+        }),
     )
   }
   return inflight.get(name) as Promise<void>
@@ -181,7 +194,7 @@ function missing(labels: string[]): RegisteredLanguage[] {
   const canonical = labels
     .map(resolveLanguage)
     .filter((x): x is RegisteredLanguage => x != null)
-  return [...new Set(canonical)].filter((n) => !registered.has(n))
+  return [...new Set(canonical)].filter((n) => !registered.has(n) && !failed.has(n))
 }
 
 export function ensureLanguages(labels: string[]): void {
