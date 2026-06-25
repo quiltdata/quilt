@@ -181,14 +181,17 @@ export const getRenderer = memoize(
       htmlHandler(processLink, processImg) as $TSFixMe,
     )
     return (data: string) => {
-      const tokens = md.parse(data, {})
+      // Share one `env` between parse and render, as `md.render` does, so a
+      // future env-carrying plugin works across both phases.
+      const env = {}
+      const tokens = md.parse(data, env)
       ensureLanguages(
         tokens
           .filter((t) => t.type === 'fence')
           .map((t) => t.info.trim().split(/\s+/)[0])
           .filter(Boolean),
       )
-      return purify.sanitize(md.renderer.render(tokens, md.options, {}), SANITIZE_OPTS)
+      return purify.sanitize(md.renderer.render(tokens, md.options, env), SANITIZE_OPTS)
     }
   },
 )

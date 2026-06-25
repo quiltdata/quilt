@@ -168,7 +168,7 @@ function loadLanguage(name: RegisteredLanguage): Promise<void> {
     inflight.set(
       name,
       LANG_LOADERS[name]().then((m) => {
-        // istanbul ignore else
+        /* v8 ignore next */
         if (!hljs.getLanguage(name)) hljs.registerLanguage(name, m.default as $TSFixMe)
         registered.add(name)
       }),
