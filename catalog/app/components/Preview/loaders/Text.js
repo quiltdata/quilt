@@ -1,8 +1,11 @@
 import { basename } from 'path'
 
 import * as R from 'ramda'
+import * as React from 'react'
 
-import hljs from 'utils/hljs'
+import AsyncResult from 'utils/AsyncResult'
+import hljs, { ensureLanguages } from 'utils/hljs'
+import HljsBoundary from 'utils/HljsBoundary'
 
 import { PreviewData } from '../types'
 
@@ -64,7 +67,7 @@ const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
-export const Loader = function TextLoader({ handle, forceLang = null, children }) {
+const TextLoaderInner = function TextLoader({ handle, forceLang = null, children }) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
@@ -76,6 +79,7 @@ export const Loader = function TextLoader({ handle, forceLang = null, children }
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
+      ensureLanguages([lang])
       // TODO: move highlightjs call to renderer
       const highlighted = R.map(hl(lang), { head, tail })
       return PreviewData.Text({ head, tail, lang, highlighted, note, warnings })
@@ -83,4 +87,12 @@ export const Loader = function TextLoader({ handle, forceLang = null, children }
     [forceLang, handle.logicalKey, handle.key],
   )
   return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
+}
+
+export const Loader = function GatedTextLoader(props) {
+  return (
+    <HljsBoundary fallback={props.children(AsyncResult.Pending())}>
+      <TextLoaderInner {...props} />
+    </HljsBoundary>
+  )
 }
