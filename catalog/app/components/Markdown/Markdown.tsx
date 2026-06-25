@@ -7,7 +7,8 @@ import MarkdownIt from 'markdown-it'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
-import hljs from 'utils/hljs'
+import HljsBoundary from 'utils/HljsBoundary'
+import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
 import * as tasklist from './parseTasklist'
@@ -179,12 +180,21 @@ export const getRenderer = memoize(
       'uponSanitizeElement',
       htmlHandler(processLink, processImg) as $TSFixMe,
     )
-    return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+    return (data: string) => {
+      const tokens = md.parse(data, {})
+      ensureLanguages(
+        tokens
+          .filter((t) => t.type === 'fence')
+          .map((t) => t.info.trim().split(/\s+/)[0])
+          .filter(Boolean),
+      )
+      return purify.sanitize(md.renderer.render(tokens, md.options, {}), SANITIZE_OPTS)
+    }
   },
 )
 
 interface ContainerProps {
-  children: string
+  children?: string
   className?: string
 }
 
@@ -238,7 +248,7 @@ export function Container({ className, children }: ContainerProps) {
     <div
       className={cx(className, classes.root)}
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: children }}
+      dangerouslySetInnerHTML={{ __html: children ?? '' }}
     />
   )
 }
@@ -254,8 +264,10 @@ export default function Markdown({
   ...props
 }: MarkdownProps) {
   return (
-    <Container {...props}>
-      {getRenderer({ processImg, processLink })(data || '')}
-    </Container>
+    <HljsBoundary fallback={<Container {...props} />}>
+      <Container {...props}>
+        {getRenderer({ processImg, processLink })(data || '')}
+      </Container>
+    </HljsBoundary>
   )
 }
