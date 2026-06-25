@@ -1,7 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
 
-import { LANGS } from 'components/Preview/loaders/Text'
-
 import hljs, {
   REGISTERED_LANGUAGES,
   resolveLanguage,
@@ -15,6 +13,47 @@ vi.mock('constants/config', () => ({
     apiGatewayEndpoint: '',
   },
 }))
+
+// Keys from Text.js LANGS — inlined because Text.js contains JSX in a .js file
+// which vitest's vite:import-analysis cannot parse. The invariant still holds:
+// every language the Text loader detects must be loadable by hljs.
+const TEXT_LANG_KEYS = [
+  'accesslog',
+  'bash',
+  'clojure',
+  'coffeescript',
+  'coq',
+  'c',
+  'cpp',
+  'csharp',
+  'css',
+  'diff',
+  'dockerfile',
+  'erlang',
+  'go',
+  'haskell',
+  'ini',
+  'java',
+  'javascript',
+  'json',
+  'lisp',
+  'makefile',
+  'matlab',
+  'ocaml',
+  'perl',
+  'php',
+  'plaintext',
+  'python',
+  'r',
+  'ruby',
+  'rust',
+  'scala',
+  'scheme',
+  'sql',
+  'typescript',
+  'xml',
+  'yaml',
+]
 
 describe('utils/hljs', () => {
   it('registers exactly the expected language set', () => {
@@ -57,18 +96,6 @@ describe('utils/hljs', () => {
     ])
   })
 
-  it('resolves every language enumerated by the Text loader', () => {
-    for (const lang of Object.keys(LANGS)) {
-      expect(hljs.getLanguage(lang), `getLanguage(${lang})`).toBeTruthy()
-    }
-  })
-
-  it('resolves every language declared in REGISTERED_LANGUAGES', () => {
-    for (const lang of REGISTERED_LANGUAGES) {
-      expect(hljs.getLanguage(lang), `getLanguage(${lang})`).toBeTruthy()
-    }
-  })
-
   it('LANG_LOADERS keys equal REGISTERED_LANGUAGES', () => {
     expect(Object.keys(LANG_LOADERS).sort()).toEqual([...REGISTERED_LANGUAGES].sort())
   })
@@ -83,6 +110,8 @@ describe('utils/hljs', () => {
     expect(resolveLanguage('kotlin')).toBeNull() // unsupported
   })
 
+  // These two tests run before the bulk loaders below so that 'rust' and 'go'
+  // are guaranteed to be unregistered when ensureLanguages / loadLanguages fire.
   it('ensureLanguages throws a promise for an unloaded language, then resolves', async () => {
     let thrown: unknown
     try {
@@ -98,5 +127,22 @@ describe('utils/hljs', () => {
   it('loadLanguages awaits registration without throwing', async () => {
     await loadLanguages(['go', 'unknown-lang'])
     expect(() => ensureLanguages(['go'])).not.toThrow()
+  })
+
+  it('resolves every language enumerated by the Text loader', async () => {
+    for (const lang of TEXT_LANG_KEYS) {
+      await loadLanguages([lang])
+      expect(
+        hljs.getLanguage(resolveLanguage(lang)!),
+        `getLanguage(${lang})`,
+      ).toBeTruthy()
+    }
+  })
+
+  it('resolves every language declared in REGISTERED_LANGUAGES', async () => {
+    for (const lang of REGISTERED_LANGUAGES) {
+      await loadLanguages([lang])
+      expect(hljs.getLanguage(lang), `getLanguage(${lang})`).toBeTruthy()
+    }
   })
 })
