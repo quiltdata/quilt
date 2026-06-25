@@ -152,11 +152,9 @@ const ALIASES: Record<string, RegisteredLanguage> = {
   yml: 'yaml',
 }
 
+// `registered` = settled: the grammar loaded, OR its chunk failed and we gave up
+// (→ render plain). Either way we stop retrying so we never re-suspend.
 const registered = new Set<RegisteredLanguage>()
-// Languages that failed to load: treated as settled so ensureLanguages stops
-// suspending for them. Highlighting is simply unavailable → callers degrade to
-// plain monospace (highlight helpers return '' when hljs.getLanguage is falsy).
-const failed = new Set<RegisteredLanguage>()
 const inflight = new Map<RegisteredLanguage, Promise<void>>()
 
 export function resolveLanguage(label: string): RegisteredLanguage | null {
@@ -167,7 +165,7 @@ export function resolveLanguage(label: string): RegisteredLanguage | null {
 }
 
 function loadLanguage(name: RegisteredLanguage): Promise<void> {
-  if (registered.has(name) || failed.has(name)) return Promise.resolve()
+  if (registered.has(name)) return Promise.resolve()
   if (!inflight.has(name)) {
     inflight.set(
       name,
@@ -175,16 +173,13 @@ function loadLanguage(name: RegisteredLanguage): Promise<void> {
         .then((m) => {
           /* v8 ignore next */
           if (!hljs.getLanguage(name)) hljs.registerLanguage(name, m.default as $TSFixMe)
-          registered.add(name)
         })
-        .catch((err) => {
-          // Chunk load failed (e.g. stale index.html after a redeploy, offline blip).
-          // Mark settled so ensureLanguages stops suspending for this language.
-          // hljs.getLanguage(name) remains undefined → callers render plain text.
-          // eslint-disable-next-line no-console
-          console.error(`[hljs] failed to load grammar "${name}":`, err)
-          failed.add(name)
-        }),
+        // A failed chunk (stale index.html after a redeploy, offline blip) must
+        // degrade to plain, not crash: swallow so the thrown promise never rejects.
+        // hljs.getLanguage(name) stays undefined → callers render plain text.
+        // eslint-disable-next-line no-console
+        .catch((err) => console.error(`[hljs] failed to load grammar "${name}":`, err))
+        .finally(() => registered.add(name)),
     )
   }
   return inflight.get(name) as Promise<void>
@@ -194,7 +189,7 @@ function missing(labels: string[]): RegisteredLanguage[] {
   const canonical = labels
     .map(resolveLanguage)
     .filter((x): x is RegisteredLanguage => x != null)
-  return [...new Set(canonical)].filter((n) => !registered.has(n) && !failed.has(n))
+  return [...new Set(canonical)].filter((n) => !registered.has(n))
 }
 
 export function ensureLanguages(labels: string[]): void {
