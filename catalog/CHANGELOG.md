@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Bundle only the highlight.js grammars the catalog uses (~35 languages, down from ~190); Markdown fences with unsupported labels render as plain monospace instead of being auto-detected, since auto-detection accuracy degrades sharply on a small registered set ([#4883](https://github.com/quiltdata/quilt/pull/4883))
+- [Changed] Load highlight.js grammars on demand — only the ~35 languages the catalog supports (down from ~190 bundled eagerly), each fetched as its own chunk on first use; Markdown fences with unsupported labels render as plain monospace instead of being auto-detected ([#4883](https://github.com/quiltdata/quilt/pull/4883))
 - [Fixed] Test suite: register `afterEach(cleanup)` so `@testing-library/react` components are unmounted between tests. With `globals: false` ([#4660](https://github.com/quiltdata/quilt/pull/4660)) RTL's auto-cleanup never registered, leaving components mounted; their deferred passive effects could flush after the jsdom environment was torn down, intermittently failing the run with an unhandled "`document` global … not defined anymore" error even when every test passed ([#5026](https://github.com/quiltdata/quilt/pull/5026))
 - [Fixed] Qurator chat: drop `<div>`-in-`<p>` DOM-nesting warning from the connector status helper text shown while connectors are still connecting ([#5003](https://github.com/quiltdata/quilt/pull/5003))
 - [Added] Bucket Overview v2: a denser redesign gated behind the catalog `beta` features toggle (Admin Settings) — navigational header stats, inline Qurator, and a config-driven Tabulator tables section linking into Athena Queries ([#4995](https://github.com/quiltdata/quilt/pull/4995))
