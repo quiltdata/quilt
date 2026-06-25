@@ -3,7 +3,7 @@ name = "t4_lambda_tabular_preview"
 version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
-    "pyarrow ~= 18.0",
+    "pyarrow~=23.0",
     "pandas ~= 2.2",
     "xlrd >=2,< 3",
     "openpyxl >=3,<4 ",
@@ -20,7 +20,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 test = [
-    "pytest~=9.0",
+    "pytest~=9.1",
     "pytest-cov~=7.0",
     "pytest-env~=1.1",
     "pytest-mock~=3.15",

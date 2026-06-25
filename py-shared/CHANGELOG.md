@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Changed] **BREAKING**: Raise minimum Python to 3.12 ([#5018](https://github.com/quiltdata/quilt/pull/5018))
+- [Changed] **BREAKING**: Retarget `QueryMaker` to per-bucket Iceberg tables (`{bucket}_{table}`) ([#4930](https://github.com/quiltdata/quilt/pull/4930))
 - [Added] Add CRC64NVME checksum type support ([#4623](https://github.com/quiltdata/quilt/pull/4623))
 - [Added] Add utilities for Athena/Iceberg ([#4570](https://github.com/quiltdata/quilt/pull/4570))
 - [Added] Add various utilities for ES ingest ([#4433](https://github.com/quiltdata/quilt/pull/4433))

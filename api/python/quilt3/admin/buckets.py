@@ -1,3 +1,4 @@
+import builtins
 import typing as T
 
 from .. import _graphql_client
@@ -18,7 +19,7 @@ def get(name: str) -> T.Optional[types.Bucket]:
     return types.Bucket(**result.model_dump())
 
 
-def list() -> list[types.Bucket]:
+def list() -> builtins.list[types.Bucket]:
     """
     List all bucket configurations in the registry.
     """

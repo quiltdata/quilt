@@ -1,4 +1,4 @@
-FROM amazonlinux:2023.11.20260406.2
+FROM amazonlinux:2023.11.20260514.0
 MAINTAINER Quilt Data, Inc. support@quilt.bio
 
 # Based on:
@@ -8,7 +8,7 @@ MAINTAINER Quilt Data, Inc. support@quilt.bio
 
 EXPOSE 80
 
-ENV NGINX_VERSION=1.24.0
+ENV NGINX_VERSION=1.30.2
 
 # Download and compile Nginx.
 # Dependencies:

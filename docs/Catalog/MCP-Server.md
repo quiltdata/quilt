@@ -109,6 +109,73 @@ Add the following to your MCP client configuration
 > Your administrator must include the client's custom scheme (e.g. `cursor://`)
 > in `ConnectAllowedHosts` for the OAuth flow to complete.
 
+### Connecting ChatGPT
+
+In ChatGPT, go to **Settings -> Apps -> Create app** (Developer mode
+required). Set:
+
+- **MCP Server URL:** `https://<connect-host>/mcp/platform/mcp`
+- **Authentication:** `OAuth`
+- **OIDC enabled:** on, with **OIDC scopes supported:** `platform`
+
+Leave the OAuth endpoint fields on their auto-discovered values.
+
+`chatgpt.com` must be in `ConnectAllowedHosts` (see
+[Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+
+### Connecting Databricks
+
+In the Databricks Catalog **HTTP connection** UI, fill in:
+
+| Field | Value |
+| --- | --- |
+| Connection type | `HTTP` |
+| Is MCP connection | `true` |
+| Host | `https://<connect-host>` |
+| Base path | `/mcp/platform/mcp` |
+
+Databricks discovers the OAuth endpoints from
+`/.well-known/oauth-authorization-server` and uses
+`https://<region>.cloud.databricks.com/api/2.0/http/oauth/redirect` as its
+redirect URI (the workspace region determines the exact host).
+
+`.cloud.databricks.com` must be in `ConnectAllowedHosts` so DCR accepts
+that redirect URI (see
+[Connect.md](Connect.md#connectallowedhosts-entry-formats)). Quilt Connect
+already emits the `:443`-explicit metadata Databricks requires — see
+[Connect.md OAuth Metadata](Connect.md#oauth-metadata) for why.
+
+> **Serverless egress caveat.** Databricks Apps and serving endpoints run
+> on a serverless network plane that blocks outbound traffic by default.
+> Two distinct outbound legs need egress, and a Databricks **account admin**
+> must allow both in the serverless network policy attached to the workspace:
+>
+> - `<connect-host>` — the **tool-calling** leg. Without it, tool listing
+>   fails with
+>   `Access to <connect-host> is denied because of serverless network policy`
+>   (the host named in this error).
+> - `<catalog-host>` — the **OAuth authorize-redirect** leg. The authorize
+>   endpoint is cross-served: `<connect-host>/connect/authorize` returns a
+>   302 to the catalog UI on `<catalog-host>`, which the client follows
+>   during sign-in. This leg does not surface the error above, so allowing
+>   only `<connect-host>` is not enough.
+>
+> This is not a per-connection or per-app setting; the connection creator
+> cannot fix it.
+>
+> Confirm the block from a Databricks SQL warehouse:
+>
+> ```sql
+> SELECT * FROM system.access.outbound_network
+> WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 2 HOUR
+> ORDER BY event_time DESC;
+> ```
+>
+> See the Databricks docs:
+> [serverless network policies overview](https://docs.databricks.com/aws/en/security/network/serverless-network-security/network-policies)
+> and
+> [managing serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/manage-network-policies).
+
 ### User Authorization
 
 Each user must authorize their MCP connection once:
@@ -116,7 +183,7 @@ Each user must authorize their MCP connection once:
 **Web clients (e.g. Claude.ai):**
 
 1. Log in to your Quilt stack as usual (e.g. via Okta SSO)
-2. Go to [Settings -> Connectors](https://claude.ai/settings/connectors)
+2. Go to [Customize -> Connectors](https://claude.ai/customize/connectors)
 3. Click **Connect**
 
 **Desktop clients (e.g. Cursor):** the OAuth flow starts automatically the

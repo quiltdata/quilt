@@ -1,0 +1,25 @@
+mutation (
+  $bucket: String!
+  $key: String!
+  $version: String
+  $tier: GlacierRestoreTier!
+  $days: Int!
+) {
+  restoreObject(bucket: $bucket, key: $key, version: $version, tier: $tier, days: $days) {
+    __typename
+    ... on RestoreObjectSuccess {
+      alreadyRestored
+    }
+    ... on InvalidInput {
+      errors {
+        name
+        path
+        message
+      }
+    }
+    ... on OperationError {
+      name
+      message
+    }
+  }
+}

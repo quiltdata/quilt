@@ -303,6 +303,7 @@ function File() {
 
   const path = s3paths.decode(encodedPath)
 
+  // Bump to refetch getObjectExistence below (toolbar reload, post-save).
   const [resetKey, setResetKey] = React.useState(0)
   const handleReload = React.useCallback(() => setResetKey(R.inc), [])
   const objExistsData = useData(requests.getObjectExistence, {
@@ -333,7 +334,7 @@ function File() {
     Ok: requests.ObjectExistence.case({
       _: () => ({ notAvailable: true }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        notAvailable: deleted || archived,
+        notAvailable: deleted || !!archived,
         fileVersionId: versionId,
       }),
     }),
@@ -366,7 +367,16 @@ function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
-          return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+          // The toolbar reload (handleReload) re-runs this guard via the
+          // getObjectExistence refetch.
+          return callback(
+            AsyncResult.Err(
+              Preview.PreviewError.Archived({
+                handle,
+                archive: { storageClass: h.archived, restoring: h.restoring },
+              }),
+            ),
+          )
         }
         return Preview.load(handle, callback, previewOptions)
       },

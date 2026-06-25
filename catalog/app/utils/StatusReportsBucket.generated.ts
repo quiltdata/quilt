@@ -1,14 +1,19 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../model/graphql/types.generated'
 
-export type utils_StatusReportsBucketQueryVariables = Types.Exact<{
-  [key: string]: never
-}>
+export type utils_StatusReportsBucketQueryVariables = Exact<{ [key: string]: never }>
 
-export type utils_StatusReportsBucketQuery = { readonly __typename: 'Query' } & {
+export interface utils_StatusReportsBucketQuery {
+  readonly __typename: 'Query'
   readonly status:
-    | ({ readonly __typename: 'Status' } & Pick<Types.Status, 'reportsBucket'>)
+    | { readonly __typename: 'Status'; readonly reportsBucket: string }
     | { readonly __typename: 'Unavailable' }
 }
 

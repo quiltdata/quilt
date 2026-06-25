@@ -1,54 +1,68 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
 export type AccessCountsSelectionFragment = {
   readonly __typename: 'AccessCounts'
-} & Pick<Types.AccessCounts, 'total'> & {
-    readonly counts: ReadonlyArray<
-      { readonly __typename: 'AccessCountForDate' } & Pick<
-        Types.AccessCountForDate,
-        'date' | 'value'
-      >
-    >
-  }
-
-export type containers_Bucket_Overview_gql_BucketAccessCountsQueryVariables =
-  Types.Exact<{
-    bucket: Types.Scalars['String']
-    window: Types.Scalars['Int']
+  readonly total: number
+  readonly counts: ReadonlyArray<{
+    readonly __typename: 'AccessCountForDate'
+    readonly date: Date
+    readonly value: number
   }>
+}
 
-export type containers_Bucket_Overview_gql_BucketAccessCountsQuery = {
+export type containers_Bucket_Overview_gql_BucketAccessCountsQueryVariables = Exact<{
+  bucket: string
+  window: number
+}>
+
+export interface containers_Bucket_Overview_gql_BucketAccessCountsQuery {
   readonly __typename: 'Query'
-} & {
-  readonly bucketAccessCounts: Types.Maybe<
-    { readonly __typename: 'BucketAccessCounts' } & {
-      readonly byExt: ReadonlyArray<
-        { readonly __typename: 'AccessCountsGroup' } & Pick<
-          Types.AccessCountsGroup,
-          'ext'
-        > & {
-            readonly counts: {
-              readonly __typename: 'AccessCounts'
-            } & AccessCountsSelectionFragment
-          }
-      >
-      readonly byExtCollapsed: ReadonlyArray<
-        { readonly __typename: 'AccessCountsGroup' } & Pick<
-          Types.AccessCountsGroup,
-          'ext'
-        > & {
-            readonly counts: {
-              readonly __typename: 'AccessCounts'
-            } & AccessCountsSelectionFragment
-          }
-      >
-      readonly combined: {
+  readonly bucketAccessCounts: {
+    readonly __typename: 'BucketAccessCounts'
+    readonly byExt: ReadonlyArray<{
+      readonly __typename: 'AccessCountsGroup'
+      readonly ext: string
+      readonly counts: {
         readonly __typename: 'AccessCounts'
-      } & AccessCountsSelectionFragment
+        readonly total: number
+        readonly counts: ReadonlyArray<{
+          readonly __typename: 'AccessCountForDate'
+          readonly date: Date
+          readonly value: number
+        }>
+      }
+    }>
+    readonly byExtCollapsed: ReadonlyArray<{
+      readonly __typename: 'AccessCountsGroup'
+      readonly ext: string
+      readonly counts: {
+        readonly __typename: 'AccessCounts'
+        readonly total: number
+        readonly counts: ReadonlyArray<{
+          readonly __typename: 'AccessCountForDate'
+          readonly date: Date
+          readonly value: number
+        }>
+      }
+    }>
+    readonly combined: {
+      readonly __typename: 'AccessCounts'
+      readonly total: number
+      readonly counts: ReadonlyArray<{
+        readonly __typename: 'AccessCountForDate'
+        readonly date: Date
+        readonly value: number
+      }>
     }
-  >
+  } | null
 }
 
 export const AccessCountsSelectionFragmentDoc = {
@@ -197,7 +211,28 @@ export const containers_Bucket_Overview_gql_BucketAccessCountsDocument = {
         ],
       },
     },
-    ...AccessCountsSelectionFragmentDoc.definitions,
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'AccessCountsSelection' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'AccessCounts' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'total' } },
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'counts' },
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'date' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'value' } },
+              ],
+            },
+          },
+        ],
+      },
+    },
   ],
 } as unknown as DocumentNode<
   containers_Bucket_Overview_gql_BucketAccessCountsQuery,

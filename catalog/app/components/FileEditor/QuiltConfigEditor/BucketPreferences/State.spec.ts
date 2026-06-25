@@ -291,6 +291,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         'ui.actions.downloadObject': false,
         'ui.actions.downloadPackage': false,
         'ui.actions.openInDesktop': true,
+        'ui.actions.restore': true,
         'ui.actions.revisePackage': false,
         'ui.actions.writeFile': false,
 

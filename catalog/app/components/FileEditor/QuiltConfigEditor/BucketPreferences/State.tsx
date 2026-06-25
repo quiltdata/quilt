@@ -41,6 +41,7 @@ function parseUser(config: string) {
     'ui.actions.downloadObject': childOfBool(json?.ui?.actions, 'downloadObject'),
     'ui.actions.downloadPackage': childOfBool(json?.ui?.actions, 'downloadPackage'),
     'ui.actions.openInDesktop': childOfBool(json?.ui?.actions, 'openInDesktop'),
+    'ui.actions.restore': childOfBool(json?.ui?.actions, 'restore'),
     'ui.actions.revisePackage': childOfBool(json?.ui?.actions, 'revisePackage'),
     'ui.actions.writeFile': childOfBool(json?.ui?.actions, 'writeFile'),
 
@@ -87,6 +88,7 @@ const sys: Defaults = {
   'ui.actions.downloadObject': true,
   'ui.actions.downloadPackage': true,
   'ui.actions.openInDesktop': true,
+  'ui.actions.restore': true,
   'ui.actions.revisePackage': true,
   'ui.actions.writeFile': true,
 
@@ -147,6 +149,7 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.actions.downloadObject': val('ui.actions.downloadObject', user, ext),
     'ui.actions.downloadPackage': val('ui.actions.downloadPackage', user, ext),
     'ui.actions.openInDesktop': val('ui.actions.openInDesktop', user, ext),
+    'ui.actions.restore': val('ui.actions.restore', user, ext),
     'ui.actions.revisePackage': val('ui.actions.revisePackage', user, ext),
     'ui.actions.writeFile': val('ui.actions.writeFile', user, ext),
 

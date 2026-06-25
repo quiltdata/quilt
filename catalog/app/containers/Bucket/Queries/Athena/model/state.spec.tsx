@@ -28,6 +28,7 @@ const useParams = vi.fn(
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
   useParams: () => useParams(),
+  useLocation: () => ({ search: '' }),
   Redirect: () => null,
 }))
 

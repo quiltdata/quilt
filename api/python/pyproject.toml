@@ -7,7 +7,7 @@ name = "quilt3"
 version = "7.3.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
@@ -17,7 +17,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -73,7 +72,7 @@ dev = [
     "pytest-cov",
     "pytest-env",
     "pytest-subtests",
-    "pytest~=8.4",
+    "pytest~=9.1",
     "responses",
     "ruff>=0.12.11",
     "quilt3[pyarrow,anndata]",
