@@ -4,7 +4,8 @@ import * as Icons from '@material-ui/icons'
 
 import * as Notifications from 'containers/Notifications'
 import copyToClipboard from 'utils/clipboard'
-import hljs, { RegisteredLanguage } from 'utils/hljs'
+import HljsBoundary from 'utils/HljsBoundary'
+import hljs, { RegisteredLanguage, ensureLanguages } from 'utils/hljs'
 
 function highlight(str: string, lang?: RegisteredLanguage) {
   if (lang && hljs.getLanguage(lang)) {
@@ -23,6 +24,25 @@ interface LineOfCodeProps {
   className: string
   hl: RegisteredLanguage
   line: string
+}
+
+function CodeLines({
+  lines,
+  hl,
+  className,
+}: {
+  lines: string[]
+  hl: RegisteredLanguage
+  className: string
+}) {
+  ensureLanguages([hl])
+  return (
+    <>
+      {lines.map((line, index) => (
+        <LineOfCode className={className} hl={hl} key={`${line}_${index}`} line={line} />
+      ))}
+    </>
+  )
 }
 
 const LineOfCode = React.memo(({ line, hl, className }: LineOfCodeProps) => {
@@ -99,14 +119,19 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
             <Icons.FileCopy fontSize="inherit" />
           </M.IconButton>
         </div>
-        {lines.map((line, index) => (
-          <LineOfCode
-            className={classes.line}
-            hl={hl}
-            key={`${line}_${index}`}
-            line={line}
-          />
-        ))}
+        <HljsBoundary
+          fallback={
+            <>
+              {lines.map((line, index) => (
+                <p className={classes.line} key={`${line}_${index}`}>
+                  {line}
+                </p>
+              ))}
+            </>
+          }
+        >
+          <CodeLines className={classes.line} hl={hl} lines={lines} />
+        </HljsBoundary>
       </div>
     </div>
   )
