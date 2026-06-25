@@ -6,8 +6,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
-import HljsBoundary from 'utils/HljsBoundary'
-import hljs, { ensureLanguages } from 'utils/hljs'
+import hljs, { loadLanguages } from 'utils/hljs'
 import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
@@ -134,7 +133,7 @@ function EChartsLoader({ gated, handle, children }) {
         console.error(e)
         if (e instanceof SyntaxError) {
           const lang = 'json'
-          ensureLanguages([lang])
+          await loadLanguages([lang])
           const highlighted = R.map(hl(lang), { head, tail })
           return PreviewData.Text({
             head,
@@ -163,10 +162,6 @@ export const Loader = function GatedEChartsLoader({ handle, children }) {
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,
-    Ok: (gated) => (
-      <HljsBoundary fallback={children(AsyncResult.Pending())}>
-        <EChartsLoader {...{ gated, handle, children }} />
-      </HljsBoundary>
-    ),
+    Ok: (gated) => <EChartsLoader {...{ gated, handle, children }} />,
   })(handled)
 }
