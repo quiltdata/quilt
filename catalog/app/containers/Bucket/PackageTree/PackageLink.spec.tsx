@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
+import { render } from '@testing-library/react'
 
 import { bucketPackageList, bucketPackageDetail } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -18,8 +18,6 @@ import PackageLink from './PackageLink'
 vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/PackageTree/PackageLink', () => {
-  afterEach(cleanup)
-
   // The prefix link sends the user to the package list filtered to that prefix.
   // The list page reads URL filters by the search model's predicate keys and
   // silently drops unrecognized params, so the link's param must round-trip
@@ -49,5 +47,14 @@ describe('containers/Bucket/PackageTree/PackageLink', () => {
 
     // ...and the prefix becomes a `team/*` wildcard at the GraphQL layer.
     expect(PackagesSearchFilterIO.toGQL(state.filter)?.name?.wildcard).toBe('team/*')
+  })
+
+  // The list page drops params it doesn't recognize, so the pre-fix `filter=`
+  // link produced no filter at all. Pin that `filter` stays inert so a future
+  // change can't silently resurrect the broken contract.
+  it('drops the unrecognized legacy `filter` param', () => {
+    const state = parseSearchParams('?filter=team/')
+    if (state.resultType !== ResultType.QuiltPackage) throw new Error('unreachable')
+    expect(state.filter.predicates.name).toBeNull()
   })
 })
