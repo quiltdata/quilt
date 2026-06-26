@@ -124,15 +124,13 @@ export const bucketDir = route(
 export type BucketDirArgs = Parameters<typeof bucketDir.url>
 
 interface BucketPackageListOpts {
-  filter?: string
-  sort?: string
-  p?: string
+  name?: string
 }
 
 export const bucketPackageList = route(
   '/b/:bucket/packages/',
-  (bucket: string, { filter, sort, p }: BucketPackageListOpts = {}) =>
-    `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
+  (bucket: string, { name }: BucketPackageListOpts = {}) =>
+    `/b/${bucket}/packages/${mkSearch({ name })}`,
 )
 export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
