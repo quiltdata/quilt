@@ -108,7 +108,7 @@ const highlight = (str: string, lang: string) => {
     try {
       return hljs.highlight(str, { language: lang }).value
     } catch (err) {
-      // istanbul ignore next
+      /* v8 ignore next */
       console.error(err) // eslint-disable-line no-console
     }
   }
