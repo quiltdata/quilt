@@ -46,8 +46,10 @@ function convertSchema(schema: any) {
   // Process object properties recursively
   Object.values(schema).forEach(convertSchema)
 
-  // Replace empty schema IDs produced by Effect, which are not valid according to draft-2020
-  if (schema.$id === '/schemas/{}') schema.$id = '/schemas/empty'
+  // Replace empty schema IDs produced by Effect, which are not valid according to draft-2020.
+  // Effect <3.18 emitted the raw `/schemas/{}`; >=3.18 percent-encodes it as `/schemas/%7B%7D`.
+  if (schema.$id === '/schemas/{}' || schema.$id === '/schemas/%7B%7D')
+    schema.$id = '/schemas/empty'
 
   // Handle items and additionalItems conversion for draft-2020
   if (Array.isArray(schema.items)) {
