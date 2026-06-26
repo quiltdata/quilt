@@ -7,6 +7,7 @@ import MarkdownIt from 'markdown-it'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
+import Skel from 'components/Skeleton'
 import HljsBoundary from 'utils/HljsBoundary'
 import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
@@ -260,6 +261,27 @@ interface MarkdownProps extends RendererArgs, Omit<ContainerProps, 'children'> {
   data?: string
 }
 
+const useSkeletonStyles = M.makeStyles((t) => ({
+  line: {
+    height: t.spacing(3),
+    marginBottom: t.spacing(1),
+  },
+}))
+
+// Shown for one tick while a fence's grammar chunk loads on first use. Kept short
+// (unlike the full-page Preview skeleton) because the default <Markdown> also
+// renders small surfaces such as Chat messages.
+function LoadingSkeleton({ className }: Pick<ContainerProps, 'className'>) {
+  const classes = useSkeletonStyles()
+  return (
+    <div className={className}>
+      {[80, 50, 95].map((width, index) => (
+        <Skel className={classes.line} width={`${width}%`} key={`${width}_${index}`} />
+      ))}
+    </div>
+  )
+}
+
 export default function Markdown({
   data,
   processImg,
@@ -267,7 +289,7 @@ export default function Markdown({
   ...props
 }: MarkdownProps) {
   return (
-    <HljsBoundary fallback={<Container {...props} />}>
+    <HljsBoundary fallback={<LoadingSkeleton className={props.className} />}>
       <Container {...props}>
         {getRenderer({ processImg, processLink })(data || '')}
       </Container>
