@@ -153,7 +153,17 @@ export function useProcessing(asyncResult, process, deps = []) {
   return useMemoEq([asyncResult, deps], () =>
     AsyncResult.case(
       {
-        Ok: R.tryCatch(R.pipe(process, AsyncResult.Ok), AsyncResult.Err),
+        Ok: (value) => {
+          try {
+            return AsyncResult.Ok(process(value))
+          } catch (e) {
+            // A thrown thenable is a Suspense signal (e.g. on-demand grammar loading
+            // in the markdown/text/json loaders) — let it reach the boundary rather
+            // than turning it into an error result.
+            if (e && typeof e.then === 'function') throw e
+            return AsyncResult.Err(e)
+          }
+        },
         _: R.identity,
       },
       asyncResult,
