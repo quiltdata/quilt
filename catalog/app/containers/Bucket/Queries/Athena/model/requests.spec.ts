@@ -1093,10 +1093,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         }),
       )
       try {
-        // database is not ready, so the mount effect leaves value `undefined`
-        // (undefined -> undefined: no re-render). Flush effects, then assert —
-        // there is no "next update" to wait for.
-        await act(async () => {})
+        // database is not ready, so the hook stays at `undefined` (not ready to
+        // run); there is no state transition to wait for.
         expect(result.current[0]).toBeUndefined()
       } finally {
         unmount()
@@ -1117,14 +1115,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       try {
         // database is "" (empty, not loading) -> ready to run; mount effect
-        // settles value to null. Poll the condition rather than a single update.
+        // settles the value to null. Poll the condition rather than a single
+        // update, then drive run() inside act and assert on its result.
         await waitFor(() => expect(result.current[0]).toBeNull())
-        let run: unknown
         await act(async () => {
-          run = await result.current[1](false)
+          const run = await result.current[1](false)
+          expect(run).toBeInstanceOf(Error)
+          expect(run).toBe(requests.NO_DATABASE)
         })
-        expect(run!).toBeInstanceOf(Error)
-        expect(run!).toBe(requests.NO_DATABASE)
       } finally {
         unmount()
       }
