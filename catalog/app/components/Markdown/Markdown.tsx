@@ -268,9 +268,8 @@ const useSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
-// Shown for one tick while a fence's grammar chunk loads on first use. Kept short
-// (unlike the full-page Preview skeleton) because the default <Markdown> also
-// renders small surfaces such as Chat messages.
+// Small (unlike the full-page Preview skeleton) because the default <Markdown>
+// also renders inline surfaces such as Chat messages.
 function LoadingSkeleton({ className }: Pick<ContainerProps, 'className'>) {
   const classes = useSkeletonStyles()
   return (

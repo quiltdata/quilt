@@ -1,7 +1,10 @@
-// Grammars load lazily on demand via ensureLanguages (Suspense throw, used by
-// Markdown/Text/Json/Manifest/Code through HljsBoundary) and loadLanguages
-// (async, used by ECharts/Igv). The `registered` Set below tracks what has
-// been registered so each grammar chunk is fetched at most once.
+// Lazy highlight.js: only `lib/core` is bundled eagerly. Each grammar is its own
+// chunk, fetched on first use — so a page downloads only the languages it actually
+// highlights. A load is triggered two ways:
+//   - ensureLanguages: throws for Suspense — consumers that highlight during render
+//     (Markdown / Text / Json / Manifest / Code) wrap it in HljsBoundary.
+//   - loadLanguages: async await — for the async-transform loaders (ECharts / Igv).
+// `registered` tracks settled grammars (loaded or gave-up) so each chunk loads once.
 import hljs from 'highlight.js/lib/core'
 
 export const REGISTERED_LANGUAGES = [
@@ -44,8 +47,7 @@ export const REGISTERED_LANGUAGES = [
 
 export type RegisteredLanguage = (typeof REGISTERED_LANGUAGES)[number]
 
-// One dynamic import per language. Keys are kept equal to REGISTERED_LANGUAGES by
-// the spec tripwire in hljs.spec.ts.
+// Keys must stay equal to REGISTERED_LANGUAGES — enforced by a tripwire in hljs.spec.ts.
 export const LANG_LOADERS: Record<
   RegisteredLanguage,
   () => Promise<{ default: unknown }>
@@ -152,8 +154,6 @@ const ALIASES: Record<string, RegisteredLanguage> = {
   yml: 'yaml',
 }
 
-// `registered` = settled: the grammar loaded, OR its chunk failed and we gave up
-// (→ render plain). Either way we stop retrying so we never re-suspend.
 const registered = new Set<RegisteredLanguage>()
 const inflight = new Map<RegisteredLanguage, Promise<void>>()
 
