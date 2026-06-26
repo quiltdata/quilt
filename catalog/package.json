@@ -31,10 +31,10 @@
     "lint:prettier": "prettier --check",
     "lint:app": "npm run lint:prettier -- \"./app\" && npm run lint:eslint -- \"./app/**/*.[jt]s?(x)\"",
     "pretest": "npm run test:clean",
-    "test": "cross-env NODE_OPTIONS=--no-webstorage vitest run --coverage",
+    "test": "vitest run --coverage",
     "test:clean": "rimraf ./coverage",
-    "test:only": "cross-env NODE_OPTIONS=--no-webstorage vitest run",
-    "test:watch": "cross-env NODE_OPTIONS=--no-webstorage vitest",
+    "test:only": "vitest run",
+    "test:watch": "vitest",
     "prettify": "prettier --write",
     "gql:generate": "graphql-codegen",
     "prepare": "cd .. && husky install catalog/.husky"
