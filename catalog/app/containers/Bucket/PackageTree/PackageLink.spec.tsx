@@ -18,11 +18,9 @@ import PackageLink from './PackageLink'
 vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/PackageTree/PackageLink', () => {
-  // The prefix link sends the user to the package list filtered to that prefix.
-  // The list page reads URL filters by the search model's predicate keys and
-  // silently drops unrecognized params, so the link's param must round-trip
-  // through `parseSearchParams` into the `name` filter. This guards against the
-  // producer/consumer drift that regressed the feature (see #5035 / #4413).
+  // Regression guard (#4413): the package list reads filters by predicate key
+  // and ignores unrecognized params, so the prefix link must emit a param that
+  // round-trips through `parseSearchParams` into the `name` filter.
   it('prefix link round-trips to the package list `name` filter', () => {
     const { getByRole } = render(
       <MemoryRouter>
@@ -49,9 +47,7 @@ describe('containers/Bucket/PackageTree/PackageLink', () => {
     expect(PackagesSearchFilterIO.toGQL(state.filter)?.name?.wildcard).toBe('team/*')
   })
 
-  // The list page drops params it doesn't recognize, so the pre-fix `filter=`
-  // link produced no filter at all. Pin that `filter` stays inert so a future
-  // change can't silently resurrect the broken contract.
+  // The flip side: the pre-fix `filter=` param must stay inert.
   it('drops the unrecognized legacy `filter` param', () => {
     const state = parseSearchParams('?filter=team/')
     if (state.resultType !== ResultType.QuiltPackage) throw new Error('unreachable')
