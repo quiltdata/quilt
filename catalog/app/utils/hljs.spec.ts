@@ -5,7 +5,6 @@ import { LANGS } from 'components/Preview/loaders/Text'
 import hljs, {
   REGISTERED_LANGUAGES,
   resolveLanguage,
-  ensureLanguages,
   loadLanguages,
   LANG_LOADERS,
 } from './hljs'
@@ -71,23 +70,38 @@ describe('utils/hljs', () => {
     expect(resolveLanguage('kotlin')).toBeNull() // unsupported
   })
 
-  // These two tests run before the bulk loaders below so that 'rust' and 'go'
-  // are guaranteed to be unregistered when ensureLanguages / loadLanguages fire.
-  it('ensureLanguages throws a promise for an unloaded language, then resolves', async () => {
-    let thrown: unknown
-    try {
-      ensureLanguages(['rust'])
-    } catch (e) {
-      thrown = e
-    }
-    expect(thrown).toBeInstanceOf(Promise)
-    await thrown
-    expect(() => ensureLanguages(['rust'])).not.toThrow()
-  })
+  // The lazy gate (suspend / async-load) must start from an empty registration
+  // cache. These import a fresh module per test so they don't depend on whether
+  // the bulk-load tests below have already registered 'rust' / 'go'.
+  describe('lazy registration gate (isolated module)', () => {
+    afterEach(() => {
+      vi.resetModules()
+    })
 
-  it('loadLanguages awaits registration without throwing', async () => {
-    await loadLanguages(['go', 'unknown-lang'])
-    expect(() => ensureLanguages(['go'])).not.toThrow()
+    async function freshHljs() {
+      vi.resetModules()
+      vi.doMock('constants/config', () => ({ default: { apiGatewayEndpoint: '' } }))
+      return import('./hljs')
+    }
+
+    it('ensureLanguages throws a promise for an unloaded language, then resolves', async () => {
+      const mod = await freshHljs()
+      let thrown: unknown
+      try {
+        mod.ensureLanguages(['rust'])
+      } catch (e) {
+        thrown = e
+      }
+      expect(thrown).toBeInstanceOf(Promise)
+      await thrown
+      expect(() => mod.ensureLanguages(['rust'])).not.toThrow()
+    })
+
+    it('loadLanguages awaits registration without throwing', async () => {
+      const mod = await freshHljs()
+      await mod.loadLanguages(['go', 'unknown-lang'])
+      expect(() => mod.ensureLanguages(['go'])).not.toThrow()
+    })
   })
 
   it('resolves every language enumerated by the Text loader', async () => {
