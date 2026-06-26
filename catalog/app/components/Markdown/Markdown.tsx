@@ -99,11 +99,10 @@ const SANITIZE_OPTS = {
 
 // TODO: switch to pluggable react-aware renderer
 // TODO: use react-router's Link component for local links
-// No `hljs.highlightAuto` fallback by design: `utils/hljs` registers ~35
-// languages instead of bundling all ~190, and auto-detection accuracy degrades
-// sharply on a small registered set. Unlabeled or unsupported fences render as
-// plain monospace via markdown-it's default escaping, matching the GitHub/Slack
-// UX. To support a new fence label, register it in `utils/hljs`.
+// No `hljs.highlightAuto` fallback: `utils/hljs` registers only a subset of
+// grammars, and auto-detection misfires when run against a partial registry.
+// Unlabeled or unsupported fences render as plain monospace via markdown-it's
+// default escaping. To highlight a new fence label, register it in `utils/hljs`.
 const highlight = (str: string, lang: string) => {
   if (hljs.getLanguage(lang)) {
     try {
