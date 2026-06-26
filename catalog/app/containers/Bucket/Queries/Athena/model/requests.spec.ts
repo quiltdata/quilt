@@ -1084,42 +1084,50 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       startQueryExecution.mockImplementation(
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
-      await act(async () => {
-        const { result, unmount, waitForNextUpdate } = renderHook(() =>
-          requests.useQueryRun({
-            workgroup: 'a',
-            catalogName: 'b',
-            database: Model.Loading,
-            queryBody: 'd',
-          }),
-        )
-        await waitForNextUpdate()
+      const { result, unmount } = renderHook(() =>
+        requests.useQueryRun({
+          workgroup: 'a',
+          catalogName: 'b',
+          database: Model.Loading,
+          queryBody: 'd',
+        }),
+      )
+      try {
+        // database is not ready, so the mount effect leaves value `undefined`
+        // (undefined -> undefined: no re-render). Flush effects, then assert —
+        // there is no "next update" to wait for.
+        await act(async () => {})
         expect(result.current[0]).toBeUndefined()
+      } finally {
         unmount()
-      })
+      }
     })
 
     it('mark as ready to run but return error for confirmation if database is empty', async () => {
       startQueryExecution.mockImplementation(
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
-      await act(async () => {
-        const { result, unmount, waitForValueToChange } = renderHook(() =>
-          requests.useQueryRun({
-            workgroup: 'a',
-            catalogName: 'b',
-            database: '',
-            queryBody: 'd',
-          }),
-        )
-        await waitForValueToChange(() => result.current, { timeout: 5000 })
-        await waitForValueToChange(() => result.current[0])
-        expect(result.current[0]).toBeNull()
-        const run = await result.current[1](false)
-        expect(run).toBeInstanceOf(Error)
-        expect(run).toBe(requests.NO_DATABASE)
+      const { result, unmount, waitFor } = renderHook(() =>
+        requests.useQueryRun({
+          workgroup: 'a',
+          catalogName: 'b',
+          database: '',
+          queryBody: 'd',
+        }),
+      )
+      try {
+        // database is "" (empty, not loading) -> ready to run; mount effect
+        // settles value to null. Poll the condition rather than a single update.
+        await waitFor(() => expect(result.current[0]).toBeNull())
+        let run: unknown
+        await act(async () => {
+          run = await result.current[1](false)
+        })
+        expect(run!).toBeInstanceOf(Error)
+        expect(run!).toBe(requests.NO_DATABASE)
+      } finally {
         unmount()
-      })
+      }
     })
   })
 

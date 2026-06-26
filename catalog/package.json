@@ -7,8 +7,8 @@
     "url": "git://github.com/quiltdata/quilt.git"
   },
   "engines": {
-    "npm": "10",
-    "node": "22"
+    "npm": "11",
+    "node": "26"
   },
   "author": "Quilt Data, Inc. <support@quilt.bio> (https://quilt.bio)",
   "license": "MIT",
@@ -31,10 +31,10 @@
     "lint:prettier": "prettier --check",
     "lint:app": "npm run lint:prettier -- \"./app\" && npm run lint:eslint -- \"./app/**/*.[jt]s?(x)\"",
     "pretest": "npm run test:clean",
-    "test": "vitest run --coverage",
+    "test": "cross-env NODE_OPTIONS=--no-webstorage vitest run --coverage",
     "test:clean": "rimraf ./coverage",
-    "test:only": "vitest run",
-    "test:watch": "vitest",
+    "test:only": "cross-env NODE_OPTIONS=--no-webstorage vitest run",
+    "test:watch": "cross-env NODE_OPTIONS=--no-webstorage vitest",
     "prettify": "prettier --write",
     "gql:generate": "graphql-codegen",
     "prepare": "cd .. && husky install catalog/.husky"
