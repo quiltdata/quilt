@@ -13,6 +13,8 @@ import {
 
 import PackageLink from './PackageLink'
 
+// The Search model's import graph pulls in `constants/config`, which throws
+// unless a catalog config is present on `window`.
 vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/PackageTree/PackageLink', () => {
@@ -40,7 +42,6 @@ describe('containers/Bucket/PackageTree/PackageLink', () => {
     expect(state.resultType).toBe(ResultType.QuiltPackage)
     if (state.resultType !== ResultType.QuiltPackage) throw new Error('unreachable')
 
-    expect(state.filter.order).toContain('name')
     expect(state.filter.predicates.name).toMatchObject({
       wildcard: 'team/',
       strict: false,

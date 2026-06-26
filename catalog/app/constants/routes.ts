@@ -124,6 +124,8 @@ export const bucketDir = route(
 export type BucketDirArgs = Parameters<typeof bucketDir.url>
 
 interface BucketPackageListOpts {
+  // KeywordWildcard value for the search model's `name` filter (e.g. `foo/` →
+  // matches the `foo/*` prefix). Must stay in sync with PackagesSearchFilterIO.
   name?: string
 }
 
