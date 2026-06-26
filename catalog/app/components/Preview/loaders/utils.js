@@ -157,9 +157,8 @@ export function useProcessing(asyncResult, process, deps = []) {
           try {
             return AsyncResult.Ok(process(value))
           } catch (e) {
-            // A thrown thenable is a Suspense signal (e.g. on-demand grammar loading
-            // in the markdown/text/json loaders) — let it reach the boundary rather
-            // than turning it into an error result.
+            // Re-throw thenables: a Suspense signal (lazy grammar load) must reach
+            // the boundary, not become an Err.
             if (e && typeof e.then === 'function') throw e
             return AsyncResult.Err(e)
           }

@@ -31,11 +31,8 @@ describe('Preview/loaders/utils', () => {
       ).toBe(boom)
     })
 
-    // Regression: a grammar loaded on demand throws a Suspense promise from the
-    // process fn. useProcessing must re-throw it (renderHook treats that as a
-    // suspension, so no value is produced) rather than swallow it into
-    // AsyncResult.Err — the latter surfaced as a "Promise pending" error screen on
-    // first preview render.
+    // Regression: a lazy-grammar Suspense throw must propagate, not become an Err
+    // (that was the "Promise pending" error screen).
     it('re-throws a thrown thenable instead of swallowing it into Err', () => {
       const suspender = Promise.resolve()
       const { result } = renderHook(() =>

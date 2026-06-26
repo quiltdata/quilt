@@ -281,10 +281,8 @@ function LoadingSkeleton({ className }: Pick<ContainerProps, 'className'>) {
   )
 }
 
-// Must be a child component of the HljsBoundary below, not inlined into Markdown's
-// own JSX: getRenderer() can throw a Suspense promise, and that throw has to
-// originate inside a boundary descendant to be caught (an inline call would throw
-// during Markdown's own render, above its boundary).
+// Separate child so getRenderer's Suspense throw lands inside HljsBoundary — an
+// inline call would throw during Markdown's own render, above the boundary.
 function MarkdownContent({ data, processImg, processLink, ...props }: MarkdownProps) {
   return (
     <Container {...props}>
