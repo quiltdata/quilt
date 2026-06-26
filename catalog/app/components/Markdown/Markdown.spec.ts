@@ -1,5 +1,7 @@
 import { JSDOM } from 'jsdom'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+import hljs from 'utils/hljs'
 
 import { getRenderer } from './Markdown'
 
@@ -106,6 +108,21 @@ describe('components/Markdown', () => {
     it('Highlights a ```ts fence as typescript', async () => {
       const out = await resolved(render, '```ts\nconst x: number = 1\n```')
       expect(out).toContain('hljs-keyword')
+    })
+
+    it('Degrades to plain text when hljs.highlight throws', async () => {
+      const highlightSpy = vi.spyOn(hljs, 'highlight').mockImplementation(() => {
+        throw new Error('hljs boom')
+      })
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      // The fence still renders, just unhighlighted (no hljs-* spans), instead
+      // of the throw propagating out of render.
+      const out = await resolved(render, '```js\nconst x = 1\n```')
+      expect(out).toContain('language-js')
+      expect(out).not.toContain('hljs-')
+      expect(consoleSpy).toHaveBeenCalled()
+      highlightSpy.mockRestore()
+      consoleSpy.mockRestore()
     })
 
     it('Autolinks bare URLs', async () => {

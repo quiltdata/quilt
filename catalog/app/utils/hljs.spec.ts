@@ -104,6 +104,17 @@ describe('utils/hljs', () => {
     })
   })
 
+  // Two simultaneous demands for the same unloaded grammar must share one
+  // in-flight import (the `inflight` map), not fetch the chunk twice. Runs
+  // before the bulk loaders below so 'scala' is still unregistered here.
+  it('dedupes a concurrent load of the same grammar', async () => {
+    const loaderSpy = vi.spyOn(LANG_LOADERS, 'scala')
+    // Fire both before awaiting: the second call finds the first in flight.
+    await Promise.all([loadLanguages(['scala']), loadLanguages(['scala'])])
+    expect(loaderSpy).toHaveBeenCalledOnce()
+    loaderSpy.mockRestore()
+  })
+
   it('resolves every language enumerated by the Text loader', async () => {
     for (const lang of Object.keys(LANGS)) {
       await loadLanguages([lang])

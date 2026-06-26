@@ -171,7 +171,6 @@ function loadLanguage(name: RegisteredLanguage): Promise<void> {
       name,
       LANG_LOADERS[name]()
         .then((m) => {
-          /* v8 ignore next */
           if (!hljs.getLanguage(name)) hljs.registerLanguage(name, m.default as $TSFixMe)
         })
         // A failed chunk (stale index.html after a redeploy, offline blip) must
