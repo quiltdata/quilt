@@ -6,6 +6,7 @@ import * as React from 'react'
 import { getRenderer } from 'components/Markdown'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import HljsBoundary from 'utils/HljsBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
 import { resolveKey } from 'utils/s3paths'
@@ -110,6 +111,10 @@ export const Loader = function GatedMarkdownLoader({ handle, children }) {
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,
-    Ok: (gated) => <MarkdownLoader {...{ gated, handle, children }} />,
+    Ok: (gated) => (
+      <HljsBoundary fallback={children(AsyncResult.Pending())}>
+        <MarkdownLoader {...{ gated, handle, children }} />
+      </HljsBoundary>
+    ),
   })(handled)
 }
