@@ -2,6 +2,7 @@ import { JSDOM } from 'jsdom'
 import { describe, it, expect, vi } from 'vitest'
 
 import hljs from 'utils/hljs'
+import log from 'utils/Logging'
 
 import { getRenderer } from './Markdown'
 
@@ -114,15 +115,15 @@ describe('components/Markdown', () => {
       const highlightSpy = vi.spyOn(hljs, 'highlight').mockImplementation(() => {
         throw new Error('hljs boom')
       })
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const logSpy = vi.spyOn(log, 'error').mockImplementation(() => {})
       // The fence still renders, just unhighlighted (no hljs-* spans), instead
       // of the throw propagating out of render.
       const out = await resolved(render, '```js\nconst x = 1\n```')
       expect(out).toContain('language-js')
       expect(out).not.toContain('hljs-')
-      expect(consoleSpy).toHaveBeenCalled()
+      expect(logSpy).toHaveBeenCalled()
       highlightSpy.mockRestore()
-      consoleSpy.mockRestore()
+      logSpy.mockRestore()
     })
 
     it('Autolinks bare URLs', async () => {

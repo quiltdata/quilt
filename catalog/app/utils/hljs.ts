@@ -7,6 +7,8 @@
 // `registered` tracks settled grammars (loaded or gave-up) so each chunk loads once.
 import hljs from 'highlight.js/lib/core'
 
+import log from 'utils/Logging'
+
 export const REGISTERED_LANGUAGES = [
   'accesslog',
   'bash',
@@ -176,8 +178,7 @@ function loadLanguage(name: RegisteredLanguage): Promise<void> {
         // A failed chunk (stale index.html after a redeploy, offline blip) must
         // degrade to plain, not crash: swallow so the thrown promise never rejects.
         // hljs.getLanguage(name) stays undefined → callers render plain text.
-        // eslint-disable-next-line no-console
-        .catch((err) => console.error(`[hljs] failed to load grammar "${name}":`, err))
+        .catch((err) => log.error(`[hljs] failed to load grammar "${name}":`, err))
         .finally(() => registered.add(name)),
     )
   }

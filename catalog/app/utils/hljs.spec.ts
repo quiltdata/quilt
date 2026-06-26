@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { LANGS } from 'components/Preview/loaders/Text'
 
@@ -134,22 +134,18 @@ describe('utils/hljs', () => {
 
   // Uses a fresh module import per test to avoid shared `registered`/`failed` Set
   // pollution from the bulk loaders above. vi.doMock is used (not vi.mock) so the
-  // constants/config stub is scoped to this dynamic import, not hoisted globally.
+  // constants/config and utils/Logging stubs are scoped to this dynamic import,
+  // not hoisted globally.
   describe('degrade-to-plain on load failure', () => {
-    let consoleSpy: ReturnType<typeof vi.spyOn>
-
-    beforeEach(() => {
-      consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    })
-
     afterEach(() => {
-      consoleSpy.mockRestore()
       vi.resetModules()
     })
 
     it('degrades to plain (never rejects/throws) when a grammar chunk fails to load', async () => {
       vi.resetModules()
       vi.doMock('constants/config', () => ({ default: { apiGatewayEndpoint: '' } }))
+      const logError = vi.fn()
+      vi.doMock('utils/Logging', () => ({ default: { error: logError } }))
 
       const mod = await import('./hljs')
 
@@ -171,8 +167,8 @@ describe('utils/hljs', () => {
       ).toBe(false)
 
       // failure was logged once
-      expect(consoleSpy).toHaveBeenCalledOnce()
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logError).toHaveBeenCalledOnce()
+      expect(logError).toHaveBeenCalledWith(
         '[hljs] failed to load grammar "scala":',
         expect.any(Error),
       )

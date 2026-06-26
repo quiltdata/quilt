@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/react'
 
 import Skel from 'components/Skeleton'
 import HljsBoundary from 'utils/HljsBoundary'
+import log from 'utils/Logging'
 import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
@@ -108,7 +109,7 @@ const highlight = (str: string, lang: string) => {
     try {
       return hljs.highlight(str, { language: lang }).value
     } catch (err) {
-      console.error(err) // eslint-disable-line no-console
+      log.error(err)
     }
   }
   return ''
