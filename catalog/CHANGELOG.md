@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Package page: clicking the package-name prefix filters the package list again. The unified-search migration ([#4413](https://github.com/quiltdata/quilt/pull/4413)) changed the list page to read URL filters by predicate key (`name`, `size`, …) and ignore unrecognized params, but the prefix link kept emitting the now-dropped `filter` param, so the list showed unfiltered; it now emits the `name` keyword-wildcard filter (`<prefix>/*`) ([#5035](https://github.com/quiltdata/quilt/pull/5035))
 - [Fixed] Test suite: register `afterEach(cleanup)` so `@testing-library/react` components are unmounted between tests. With `globals: false` ([#4660](https://github.com/quiltdata/quilt/pull/4660)) RTL's auto-cleanup never registered, leaving components mounted; their deferred passive effects could flush after the jsdom environment was torn down, intermittently failing the run with an unhandled "`document` global … not defined anymore" error even when every test passed ([#5026](https://github.com/quiltdata/quilt/pull/5026))
 - [Fixed] Qurator chat: drop `<div>`-in-`<p>` DOM-nesting warning from the connector status helper text shown while connectors are still connecting ([#5003](https://github.com/quiltdata/quilt/pull/5003))
 - [Added] Bucket Overview v2: a denser redesign gated behind the catalog `beta` features toggle (Admin Settings) — navigational header stats, inline Qurator, and a config-driven Tabulator tables section linking into Athena Queries ([#4995](https://github.com/quiltdata/quilt/pull/4995))
