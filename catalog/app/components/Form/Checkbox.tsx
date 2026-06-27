@@ -15,7 +15,7 @@ interface CheckboxProps {
   errors?: Record<string, React.ReactNode>
   input?: RF.FieldInputProps<boolean>
   label?: string
-  meta: RF.FieldMetaState<string | Symbol>
+  meta: RF.FieldMetaState<string | symbol>
 }
 
 export default function Checkbox({

@@ -16,7 +16,7 @@ interface LogoProps {
   width: string
 }
 
-const useStyles = M.makeStyles(({}) => ({
+const useStyles = M.makeStyles(() => ({
   custom: ({ height }: { height: string }) => ({
     height,
   }),
