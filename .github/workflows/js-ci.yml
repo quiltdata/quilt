@@ -7,6 +7,23 @@ on:
   pull_request:
   merge_group:
 jobs:
+  # Typecheck, test, and build run as independent parallel jobs (decoupled from
+  # the webpack build, which is now transpile-only). `typecheck-catalog` is the
+  # type gate — branch protection should require it alongside build-catalog.
+  typecheck-catalog:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: catalog
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: 'catalog/package.json'
+          cache: 'npm'
+          cache-dependency-path: 'catalog/package-lock.json'
+      - run: npm ci
+      - run: npm run typecheck
   test-catalog:
     runs-on: ubuntu-latest
     defaults:
@@ -22,16 +39,29 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - run: npm run build
-      - env:
-          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
-        run: npm run bundlewatch
       - uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: catalog
           name: ${{ github.job }}
+  build-catalog:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: catalog
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: 'catalog/package.json'
+          cache: 'npm'
+          cache-dependency-path: 'catalog/package-lock.json'
+      - run: npm ci
+      - run: npm run build
+      - env:
+          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
+        run: npm run bundlewatch
   lint-docs:
     runs-on: ubuntu-latest
     env:

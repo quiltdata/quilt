@@ -15,6 +15,7 @@
     "jsx": "react",
     "strict": true,
     "noImplicitAny": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,

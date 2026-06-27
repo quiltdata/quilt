@@ -6,7 +6,6 @@ const path = require('path')
 
 const PerspectivePlugin = require('@finos/perspective-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
 
@@ -135,8 +134,6 @@ module.exports = (options) => ({
       filename: 'embed-debug-harness.html',
       inject: true,
     }),
-
-    new ForkTsCheckerWebpackPlugin(),
 
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
