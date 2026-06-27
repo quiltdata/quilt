@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> =
   | T
