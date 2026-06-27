@@ -49,6 +49,15 @@ export function ViewModeSelector({ className, ...props }) {
 }
 
 /** Child button must have `type="submit"` */
+/**
+ * @param {{
+ *   className?: string
+ *   suffix?: string
+ *   children?: React.ReactNode
+ *   newTab?: boolean
+ *   files?: string[]
+ * }} props
+ */
 export function ZipDownloadForm({
   className = '',
   suffix,
