@@ -3,9 +3,9 @@
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type UserSelectionFragment = {
   readonly __typename: 'User'
   readonly name: string

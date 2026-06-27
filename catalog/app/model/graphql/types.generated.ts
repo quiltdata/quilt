@@ -1,7 +1,7 @@
-import type { Json, JsonRecord } from 'utils/types'
+import type { Json } from 'utils/types'
+import type { JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
-
 export type Maybe<T> = T | null
 export type InputMaybe<T> = Maybe<T>
 /** All built-in and custom scalars, mapped to their actual values */

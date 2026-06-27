@@ -5,11 +5,11 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import type { JsonRecord } from 'utils/types'
-import type { PackageContentsFlatMap } from 'model'
 import * as Types from '../../../../model/graphql/types.generated'
 
+import type { JsonRecord } from 'utils/types'
+import type { PackageContentsFlatMap } from 'model'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type containers_Bucket_PackageCompare_gql_RevisionQueryVariables = Exact<{
   bucket: string
   name: string

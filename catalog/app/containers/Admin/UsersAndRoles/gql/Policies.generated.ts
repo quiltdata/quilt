@@ -5,9 +5,9 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type BucketPermissionLevel = 'READ' | 'READ_WRITE'
 
 export type containers_Admin_UsersAndRoles_gql_PoliciesQueryVariables = Exact<{

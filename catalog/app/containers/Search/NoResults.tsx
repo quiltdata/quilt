@@ -208,7 +208,9 @@ export function Error({
             Oops, couldn&apos;t parse that search.
             <br />
             Try quoting{' '}
-            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Search)}>
+              your query
+            </StyledLink> or
             read about{' '}
             <StyledLink href={ES_REF_SYNTAX} target="_blank">
               supported query syntax
@@ -221,7 +223,9 @@ export function Error({
           <>
             Oops, the search cluster seems stressed.
             <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Network)}>
+              Try again
+            </StyledLink> or
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
@@ -231,7 +235,9 @@ export function Error({
           <>
             Oops, something went wrong.
             <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Network)}>
+              Try again
+            </StyledLink> or
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>

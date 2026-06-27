@@ -1,0 +1,80 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "import",
+    "jsx-a11y",
+    "react"
+  ],
+  "categories": {
+    "correctness": "off"
+  },
+  "env": {
+    "builtin": true
+  },
+  "rules": {
+    "arrow-body-style": [
+      "error",
+      "as-needed"
+    ],
+    "import/newline-after-import": "error",
+    "import/no-duplicates": "error",
+    "jsx-a11y/aria-props": "error",
+    "jsx-a11y/label-has-associated-control": [
+      "error",
+      {
+        "controlComponents": [
+          "Input"
+        ]
+      }
+    ],
+    "jsx-a11y/mouse-events-have-key-events": "error",
+    "jsx-a11y/role-has-required-aria-props": "error",
+    "jsx-a11y/role-supports-aria-props": "error",
+    "no-alert": "error",
+    "no-console": "error",
+    "no-debugger": "error",
+    "no-nested-ternary": "warn",
+    "no-restricted-globals": "off",
+    "no-underscore-dangle": [
+      "error",
+      {
+        "allow": [
+          "_",
+          "__",
+          "__typename",
+          "_tag"
+        ]
+      }
+    ],
+    "prefer-arrow-callback": [
+      "error",
+      {
+        "allowNamedFunctions": true
+      }
+    ],
+    "prefer-template": "error",
+    "react/jsx-key": "error",
+    "react/exhaustive-deps": "error",
+    "react/rules-of-hooks": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "args": "after-used",
+        "ignoreRestSiblings": true,
+        "caughtErrors": "none"
+      }
+    ],
+    "no-shadow": "error",
+    "no-redeclare": "error"
+  },
+  "settings": {
+    "react": {
+      "version": "17.0.2"
+    }
+  },
+  "ignorePatterns": [
+    "**/*.generated.ts"
+  ]
+}

@@ -5,10 +5,10 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import type { S3ObjectLocation } from 'model/S3'
 import * as Types from '../../../../model/graphql/types.generated'
 
+import type { S3ObjectLocation } from 'model/S3'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export interface StatusReportListFilter {
   readonly timestampFrom: Date | null | undefined
   readonly timestampTo: Date | null | undefined
