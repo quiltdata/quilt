@@ -10,7 +10,7 @@ import { BaseError } from 'utils/error'
 import logout from 'utils/logout'
 
 export class CredentialsError extends BaseError {
-  constructor(headline, detail, object) {
+  constructor(headline: string, detail?: string, object?: {}) {
     super(headline, { headline, detail, object })
   }
 }
@@ -21,31 +21,56 @@ class InvalidTokenError extends CredentialsError {}
 
 class NewExpirationInThePastError extends CredentialsError {}
 
-class RegistryCredentials extends AWS.Credentials {
-  constructor({ req, reqOpts }) {
+interface RegistryCredentialsOptions {
+  req: APIConnector.ApiRequest
+  reqOpts?: APIConnector.RequestOptions
+}
+
+interface CredentialsResponse {
+  Expiration?: string
+  AccessKeyId: string
+  SecretAccessKey: string
+  SessionToken: string
+}
+
+// aws-sdk's Credentials constructor requires args; cast the base to a 0-arg
+// constructor (instances are still AWS.Credentials, so they stay assignable
+// where Credentials is expected) to allow super() without altering behavior.
+class RegistryCredentials extends (AWS.Credentials as unknown as {
+  new (): AWS.Credentials
+}) {
+  req: APIConnector.ApiRequest
+
+  reqOpts?: APIConnector.RequestOptions
+
+  refreshing?: Promise<void>
+
+  error?: CredentialsError
+
+  constructor({ req, reqOpts }: RegistryCredentialsOptions) {
     super()
     this.req = req
     this.reqOpts = reqOpts
   }
 
-  refresh(callback) {
+  refresh(callback?: (err?: any) => void): Promise<void> {
     if (!this.refreshing) {
       this.refreshing = this.req({ endpoint: '/auth/get_credentials', ...this.reqOpts })
-        .then((data) => {
+        .then((data: CredentialsResponse) => {
           const expireTime = data.Expiration ? new Date(data.Expiration) : null
-          if (expireTime?.getTime() < Date.now()) {
+          if (expireTime != null && expireTime.getTime() < Date.now()) {
             throw new NewExpirationInThePastError(
               `We're getting credentials that are already expired. Check your computer's clock, please`,
             )
           }
-          this.expireTime = expireTime
+          this.expireTime = expireTime as Date
           this.accessKeyId = data.AccessKeyId
           this.secretAccessKey = data.SecretAccessKey
           this.sessionToken = data.SessionToken
           delete this.refreshing
           if (callback) callback()
         })
-        .catch((e) => {
+        .catch((e: Error) => {
           delete this.refreshing
           if (/Outdated access token: please log in again/.test(e.message)) {
             this.error = new OutdatedTokenError(e.message)
@@ -72,7 +97,9 @@ class RegistryCredentials extends AWS.Credentials {
   }
 }
 
-class EmptyCredentials extends AWS.Credentials {
+class EmptyCredentials extends (AWS.Credentials as unknown as {
+  new (): AWS.Credentials
+}) {
   suspend() {
     return this
   }
@@ -93,22 +120,26 @@ function useCredentialsMemo() {
   return empty
 }
 
-const Ctx = React.createContext()
+// The context always holds one of our subclasses (both expose `suspend()`), or
+// null before the provider has run.
+type Credentials = RegistryCredentials | EmptyCredentials
 
-export function AWSCredentialsProvider({ children }) {
+const Ctx = React.createContext<Credentials | null>(null)
+
+export function AWSCredentialsProvider({ children }: React.PropsWithChildren<{}>) {
   return <Ctx.Provider value={useCredentialsMemo()}>{children}</Ctx.Provider>
 }
 
-export function useCredentials() {
+export function useCredentials(): Credentials {
   const credentials = React.useContext(Ctx)
   if (!credentials) throw new CredentialsError('Failed to get credentials')
   if (
-    credentials.error instanceof OutdatedTokenError ||
-    credentials.error instanceof InvalidTokenError
+    (credentials as RegistryCredentials).error instanceof OutdatedTokenError ||
+    (credentials as RegistryCredentials).error instanceof InvalidTokenError
   ) {
     logout()
   }
-  return React.useContext(Ctx)
+  return React.useContext(Ctx)!
 }
 
 export { AWSCredentialsProvider as Provider, useCredentials as use }
