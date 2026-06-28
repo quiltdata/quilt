@@ -1,4 +1,6 @@
-export const booleansNulls = {
+import type { JsonSchema } from '../JSONSchema'
+
+export const booleansNulls: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-bools-nulls.json',
   type: 'object',
   properties: {
@@ -15,7 +17,7 @@ export const booleansNulls = {
   },
 }
 
-export const deeplyNestedArray = {
+export const deeplyNestedArray: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-nested-array.json',
   type: 'object',
   properties: {
@@ -55,7 +57,7 @@ export const deeplyNestedArray = {
   },
 }
 
-export const deeplyNestedObject = {
+export const deeplyNestedObject: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-nested-long.json',
   type: 'object',
   properties: {
@@ -126,7 +128,7 @@ export const deeplyNestedObject = {
   },
 }
 
-export const regular = {
+export const regular: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema.json',
   type: 'object',
   properties: {
@@ -203,7 +205,7 @@ export const regular = {
   required: ['a', 'b'],
 }
 
-export const incorrect = {
+export const incorrect: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-incorrect.json',
   type: 'object',
   properties: {
@@ -214,7 +216,7 @@ export const incorrect = {
   },
 }
 
-export const anyOf = {
+export const anyOf: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-any-of.json',
   type: 'object',
   properties: {
@@ -237,7 +239,7 @@ export const anyOf = {
   },
 }
 
-export const typeArray = {
+export const typeArray: JsonSchema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-type-array.json',
   type: 'object',
   properties: {

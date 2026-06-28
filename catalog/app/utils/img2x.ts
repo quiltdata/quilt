@@ -1,4 +1,4 @@
-export default (x1, x2) =>
+export default <T>(x1: T, x2: T): T =>
   typeof window !== 'undefined' &&
   window.devicePixelRatio != null &&
   window.devicePixelRatio >= 1.5

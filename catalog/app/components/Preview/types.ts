@@ -1,4 +1,4 @@
-import tagged from 'utils/tagged'
+import tagged, { TaggedUnion } from 'utils/tagged'
 
 /*
 ParquetMeta: {
@@ -17,7 +17,7 @@ PreviewStatus: {
 }
 */
 
-export const PreviewData = tagged([
+export const PreviewData: TaggedUnion = tagged([
   'Audio', // { src: string }
   'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
@@ -38,7 +38,7 @@ export const PreviewData = tagged([
   'Voila', // { src: string }
 ])
 
-export const PreviewError = tagged([
+export const PreviewError: TaggedUnion = tagged([
   'Deleted', // { handle }
   'Archived', // { handle, archive?: { storageClass, restoring } }
   'InvalidVersion', // { handle }
@@ -56,4 +56,4 @@ export const PreviewError = tagged([
 export const CONTEXT = {
   FILE: 'file',
   LISTING: 'listing',
-}
+} as const

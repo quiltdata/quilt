@@ -5,8 +5,12 @@
  * Example: <h1 id="about" ref={scrollIntoView()}>About</h1>
  */
 
-export default ({ timeout = 100, ...opts } = {}) =>
-  (el) => {
+interface Options extends ScrollIntoViewOptions {
+  timeout?: number
+}
+
+export default ({ timeout = 100, ...opts }: Options = {}) =>
+  (el: HTMLElement | null) => {
     const { hash } = window.location
     if (el && el.id && hash) {
       const id = hash.replace('#', '')
