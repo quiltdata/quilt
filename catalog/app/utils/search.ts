@@ -9,34 +9,53 @@ import mkSearch from 'utils/mkSearch'
 
 export class SearchError extends BaseError {}
 
-const parseDate = (d) => d && new Date(d)
+const parseDate = (d: string | null | undefined): Date | undefined =>
+  d ? new Date(d) : undefined
 
-/*
-File: {
-  key: str,
-  type: 'object',
-  score: num,
-  bucket: str,
-  path: str,
-  versions: [
-    {
-      id: str,
-      score: num,
-      updated: ?Date,
-      lastModified: ?Date,
-      size: num,
-      meta: str,
-    },
-  ],
+interface FileVersion {
+  id: string
+  score: number
+  updated?: Date
+  lastModified?: Date
+  size: number
+  meta: string
+  deleteMarker?: boolean
 }
-*/
 
-const getBucketFromIndex = (idx) => {
+export interface File {
+  key: string
+  type: 'object'
+  score: number
+  bucket: string
+  path: string
+  versions: FileVersion[]
+}
+
+// Raw ElasticSearch hit as returned by the /search endpoint.
+interface Hit {
+  _score: number
+  _index: string
+  _source: {
+    key: string
+    version_id: string
+    updated?: string
+    last_modified?: string
+    size: number
+    user_meta: string
+    delete_marker?: boolean
+  }
+}
+
+const getBucketFromIndex = (idx: string): string => {
   const i = idx.lastIndexOf('-reindex-')
   return i === -1 ? idx : idx.slice(0, i)
 }
 
-const extractData = ({ _score: score, _source: src, _index: idx }) => {
+const extractData = ({
+  _score: score,
+  _source: src,
+  _index: idx,
+}: Hit): Record<string, File> => {
   const bucket = getBucketFromIndex(idx)
   const key = `object:${bucket}/${src.key}`
   return {
@@ -61,27 +80,46 @@ const extractData = ({ _score: score, _source: src, _index: idx }) => {
   }
 }
 
-const takeR = (_l, r) => r
+const takeR = <T>(_l: T, r: T): T => r
 
-const mkMerger = (cases) => (key, l, r) => (cases[key] || takeR)(l, r)
+type MergeCase = (l: any, r: any) => any
+
+const mkMerger =
+  (cases: Record<string, MergeCase>) =>
+  (key: string, l: unknown, r: unknown): unknown =>
+    (cases[key] || takeR)(l, r)
 
 const mergeHits = R.mergeDeepWithKey(
   mkMerger({
     score: R.max,
     versions: R.pipe(
-      R.concat,
-      R.sortBy((v) => -v.score),
+      R.concat as (a: FileVersion[], b: FileVersion[]) => FileVersion[],
+      R.sortBy((v: FileVersion) => -v.score),
     ),
   }),
-)
+) as (a: Record<string, File>, b: Record<string, File>) => Record<string, File>
 
-const mergeAllHits = R.pipe(
-  R.reduce((acc, hit) => mergeHits(acc, extractData(hit)), {}),
+const mergeAllHits: (hits: Hit[]) => File[] = R.pipe(
+  R.reduce(
+    (acc: Record<string, File>, hit: Hit) => mergeHits(acc, extractData(hit)),
+    {} as Record<string, File>,
+  ),
   R.values,
-  R.sortBy((h) => -h.score),
+  R.sortBy((h: File) => -h.score),
 )
 
-const unescape = (s) => s.replace(/\\n/g, '\n')
+const unescape = (s: string): string => s.replace(/\\n/g, '\n')
+
+interface SearchParams {
+  query: string
+  buckets?: string[]
+  retry?: number
+}
+
+export interface SearchResult {
+  hits: File[]
+  total: number
+}
 
 export default function useSearch() {
   const req = APIConnector.use()
@@ -89,7 +127,7 @@ export default function useSearch() {
   const allBuckets = React.useMemo(() => bucketList.map((b) => b.name), [bucketList])
 
   return React.useCallback(
-    async ({ query, buckets = [], retry }) => {
+    async ({ query, buckets = [], retry }: SearchParams): Promise<SearchResult> => {
       const index = (buckets.length ? buckets : allBuckets).join(',')
       try {
         const qs = mkSearch({ index, action: 'search', query, retry })
@@ -98,7 +136,7 @@ export default function useSearch() {
         return { hits, total: result.hits.total }
       } catch (e) {
         if (e instanceof APIConnector.HTTPError) {
-          const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
+          const match = e.text?.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
           if (match) {
             const code = match[2]
             const details = unescape(match[3])
