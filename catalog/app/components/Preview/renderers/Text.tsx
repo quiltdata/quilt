@@ -12,7 +12,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Text({ className, children, note, warnings, ...props }) {
+interface TextProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string
+  note?: string
+  warnings?: string
+}
+
+function Text({ className, children, note, warnings, ...props }: TextProps) {
   const classes = useStyles()
   return (
     <div className={className} {...props}>
@@ -24,14 +30,23 @@ function Text({ className, children, note, warnings, ...props }) {
   )
 }
 
-const html = (contents) => (
+const html = (contents: string) => (
   // eslint-disable-next-line react/no-danger
   <div dangerouslySetInnerHTML={{ __html: contents }} />
 )
 
 const Skip = () => <div>&hellip;</div>
 
-export default ({ highlighted: { head, tail }, note, warnings }, props) => (
+interface TextEssential {
+  highlighted: { head: string; tail: string }
+  note?: string
+  warnings?: string
+}
+
+export default (
+  { highlighted: { head, tail }, note, warnings }: TextEssential,
+  props: React.HTMLAttributes<HTMLDivElement>,
+) => (
   <Text {...{ note, warnings }} {...props}>
     {html(head)}
     {!!tail && <Skip />}

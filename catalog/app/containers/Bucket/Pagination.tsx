@@ -15,7 +15,7 @@ const MAX_PAGE_BUTTONS = 8 // fits on 320px-wide screen
 // 100   | 1...4    | [1, 2, 3, 4, 5, 6, <G>, 100]
 // 100   | 5...95   | [1, <G>, N-1, N, N+1, N+2, <G>, 100]
 // 100   | 96...100 | [1, <G>, 95, 96, 97, 98, 99, 100]
-const displayRange = (total, current) => {
+const displayRange = (total: number, current: number): (number | typeof Gap)[] => {
   if (total <= MAX_PAGE_BUTTONS) return R.range(1, total + 1)
   if (current <= MAX_PAGE_BUTTONS - 4) {
     return [...R.range(1, MAX_PAGE_BUTTONS - 1), Gap, total]
@@ -45,7 +45,13 @@ const usePaginationStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Pagination({ page, pages, makePageUrl }) {
+interface PaginationProps {
+  page: number
+  pages: number
+  makePageUrl: (page: number) => string
+}
+
+export default function Pagination({ page, pages, makePageUrl }: PaginationProps) {
   const classes = usePaginationStyles()
   const range = React.useMemo(() => displayRange(pages, page), [pages, page])
 

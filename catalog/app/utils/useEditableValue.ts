@@ -9,7 +9,20 @@ const State = tagged([
   'Edited', // value
 ])
 
-export default function useEditableValue(externalValue, onCommit) {
+interface EditableValue<T> {
+  value: T
+  edited: boolean
+  edit: () => void
+  cancel: () => void
+  change: (v: T) => void
+  commit: () => void
+  commitValue: (v: T) => void
+}
+
+export default function useEditableValue<T>(
+  externalValue: T,
+  onCommit: (v: T) => void,
+): EditableValue<T> {
   const [state, setState] = React.useState(State.Idle())
 
   const edit = React.useCallback(() => {
@@ -20,14 +33,14 @@ export default function useEditableValue(externalValue, onCommit) {
     setState(State.Idle())
   }, [])
 
-  const change = React.useCallback((v) => {
+  const change = React.useCallback((v: T) => {
     setState(State.mapCase({ Edited: () => v }))
   }, [])
 
   const commit = React.useCallback(() => {
     State.case(
       {
-        Edited: (v) => {
+        Edited: (v: T) => {
           if (!R.equals(externalValue, v)) onCommit(v)
           cancel()
         },
@@ -39,7 +52,7 @@ export default function useEditableValue(externalValue, onCommit) {
 
   const isEdited = State.Edited.is(state)
   const commitValue = React.useCallback(
-    (v) => {
+    (v: T) => {
       if (!isEdited) return
       if (!R.equals(externalValue, v)) onCommit(v)
       cancel()
@@ -47,11 +60,11 @@ export default function useEditableValue(externalValue, onCommit) {
     [externalValue, onCommit, cancel, isEdited],
   )
 
-  const value = useMemoEq([state, externalValue], () =>
-    State.case({ Idle: () => externalValue, Edited: (v) => v }, state),
+  const value: T = useMemoEq([state, externalValue], () =>
+    State.case({ Idle: () => externalValue, Edited: (v: T) => v }, state),
   )
 
-  const edited = useMemoEq(state, State.Edited.is)
+  const edited: boolean = useMemoEq(state, State.Edited.is)
 
   return { value, edited, edit, cancel, change, commit, commitValue }
 }

@@ -1,6 +1,5 @@
 /* Authentication progress */
-import PropTypes from 'prop-types'
-import React from 'react'
+import * as React from 'react'
 import { styled } from '@material-ui/core/styles'
 
 import Spinner from 'components/Spinner'
@@ -10,19 +9,15 @@ const Faint = styled('h1')({
   opacity: 0.6,
 })
 
-const Working = ({ children, ...props }) => (
+interface WorkingProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  children?: React.ReactNode
+}
+
+const Working = ({ children = ' ', ...props }: WorkingProps) => (
   <Faint {...props}>
     <Spinner />
     {children}
   </Faint>
 )
-
-Working.propTypes = {
-  children: PropTypes.node,
-}
-
-Working.defaultProps = {
-  children: ' ',
-}
 
 export default Working

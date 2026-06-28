@@ -33,7 +33,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Fcs({ className, preview, metadata, note, warnings, ...props }) {
+interface FcsEssential {
+  preview?: string
+  metadata?: unknown
+  note?: string
+  warnings?: string
+}
+
+interface FcsProps extends React.HTMLProps<HTMLDivElement>, FcsEssential {}
+
+function Fcs({ className, preview, metadata, note, warnings, ...props }: FcsProps) {
   const classes = useStyles()
   return (
     <div className={className} {...props}>
@@ -51,4 +60,6 @@ function Fcs({ className, preview, metadata, note, warnings, ...props }) {
   )
 }
 
-export default (data, props) => <Fcs {...data} {...props} />
+export default (data: FcsEssential, props: React.HTMLProps<HTMLDivElement>) => (
+  <Fcs {...data} {...props} />
+)

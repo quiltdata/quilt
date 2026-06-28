@@ -6,12 +6,17 @@ import cfg from 'constants/config'
 import { BaseError } from 'utils/error'
 
 export class OIDCError extends BaseError {
-  constructor(code, details) {
+  constructor(code?: string, details?: unknown) {
     super('Login failure', { code, details })
   }
 }
 
-export function useOIDC({ provider, popupParams }) {
+interface UseOIDCOptions {
+  provider: string
+  popupParams?: string
+}
+
+export function useOIDC({ provider, popupParams }: UseOIDCOptions) {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
@@ -19,13 +24,13 @@ export function useOIDC({ provider, popupParams }) {
         const url = `${cfg.registryUrl}/oidc-authorize/${provider}?state=${state}`
         const popup = window.open(url, `quilt_${provider}_popup`, popupParams)
         const timer = setInterval(() => {
-          if (popup.closed) {
+          if (popup!.closed) {
             window.removeEventListener('message', handleMessage)
             clearInterval(timer)
             reject(new OIDCError('popup_closed_by_user'))
           }
         }, 500)
-        const handleMessage = ({ source, origin, data }) => {
+        const handleMessage = ({ source, origin, data }: MessageEvent) => {
           if (source !== popup || origin !== window.location.origin) return
           try {
             const { type } = data
@@ -36,7 +41,7 @@ export function useOIDC({ provider, popupParams }) {
               error,
               error_description: details,
               state: respState,
-            } = parse(source.window.location.search.substring(1))
+            } = parse((source as Window).window.location.search.substring(1))
             if (respState !== state) {
               throw new OIDCError(
                 'state_mismatch',
@@ -44,7 +49,7 @@ export function useOIDC({ provider, popupParams }) {
               )
             }
             if (error) {
-              throw new OIDCError(error, details)
+              throw new OIDCError(error as string, details)
             }
             resolve(code)
           } catch (e) {
@@ -52,11 +57,11 @@ export function useOIDC({ provider, popupParams }) {
           } finally {
             window.removeEventListener('message', handleMessage)
             clearInterval(timer)
-            popup.close()
+            popup!.close()
           }
         }
         window.addEventListener('message', handleMessage)
-        popup.focus()
+        popup!.focus()
       }),
     [provider, popupParams],
   )

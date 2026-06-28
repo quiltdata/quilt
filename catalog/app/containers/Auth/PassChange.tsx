@@ -88,7 +88,6 @@ function Form({ onSuccess, link }: FormProps) {
               component={Layout.Field}
               name="password"
               type="password"
-              // @ts-expect-error
               validate={validators.required}
               disabled={submitting}
               floatingLabelText="New password"

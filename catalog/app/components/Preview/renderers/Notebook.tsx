@@ -16,7 +16,7 @@ const MATH_DELIMITERS = [
   { left: '\\[', right: '\\]', display: true },
 ]
 
-const renderMath = (el) => {
+const renderMath = (el: HTMLElement | null) => {
   if (!el) return
   renderMathInEl(el, { delimiters: MATH_DELIMITERS })
 }
@@ -31,7 +31,14 @@ const useStyles = M.makeStyles({
   },
 })
 
-function Notebook({ children, className, note, warnings, ...props } = {}) {
+interface NotebookProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: string
+  className?: string
+  note?: string
+  warnings?: string
+}
+
+function Notebook({ children, className, note, warnings, ...props }: NotebookProps = {}) {
   const classes = useStyles()
   return (
     <div className={className} {...props}>
@@ -40,14 +47,17 @@ function Notebook({ children, className, note, warnings, ...props } = {}) {
         title={note}
         className={cx(classes.contents, 'ipynb-preview')}
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: children }}
+        dangerouslySetInnerHTML={{ __html: children as string }}
         ref={renderMath}
       />
     </div>
   )
 }
 
-export default ({ preview, note, warnings }, props) => (
+export default (
+  { preview, note, warnings }: { preview: string; note?: string; warnings?: string },
+  props?: NotebookProps,
+) => (
   <Notebook {...{ note, warnings }} {...props}>
     {preview}
   </Notebook>
