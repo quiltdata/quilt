@@ -23,7 +23,7 @@ const PER_PAGE = 9
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
   return GQL.fold(data, {
-    data: ({ me: { isAdmin } }) => isAdmin,
+    data: ({ me }) => me!.isAdmin,
     fetching: R.F,
     error: R.F,
   })
@@ -86,27 +86,25 @@ export default function Buckets() {
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const [page, setPage] = React.useState(1)
-  const scrollRef = React.useRef(null)
+  const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const location = useLocation()
-  const { q: filter = '' } = parseSearch(location.search)
+  const { q: filter = '' } = parseSearch(location.search) as { q?: string }
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],
   )
 
-  const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
+  const tagIsMatching = React.useCallback((t: string) => filter.includes(t), [filter])
 
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
-    const matches = R.allPass(R.map(R.includes, terms))
-    return buckets.filter(
-      R.pipe(
-        (b) => [b.title, b.name, b.description, ...(b.tags || [])],
-        R.filter(Boolean),
-        R.map(R.toLower),
-        R.any(matches),
-      ),
+    const matches = R.allPass(R.map(R.includes, terms)) as (s: string) => boolean
+    return buckets.filter((b: any) =>
+      [b.title, b.name, b.description, ...(b.tags || [])]
+        .filter((x): x is string => !!x)
+        .map((s) => s.toLowerCase())
+        .some(matches),
     )
   }, [terms, buckets])
 
@@ -141,7 +139,7 @@ export default function Buckets() {
   }, [history, filtering.value, filter, urls])
 
   const clearFilter = React.useCallback(() => {
-    filtering.set()
+    filtering.set(undefined as unknown as string)
   }, [filtering])
 
   const isAdmin = useIsAdmin()

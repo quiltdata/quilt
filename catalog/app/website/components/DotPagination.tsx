@@ -38,7 +38,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function DotPagination({ total, current, onChange, ...props }) {
+interface DotPaginationProps extends Omit<M.BoxProps, 'onChange'> {
+  total: number
+  current: number
+  onChange: (i: number) => void
+}
+
+export default function DotPagination({
+  total,
+  current,
+  onChange,
+  ...props
+}: DotPaginationProps) {
   const classes = useStyles()
   return (
     <M.Box display="flex" justifyContent="center" {...props}>

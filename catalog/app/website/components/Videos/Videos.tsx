@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import SwipeableViews from 'react-swipeable-views'
 import { mod } from 'react-swipeable-views-core'
-import { virtualize } from 'react-swipeable-views-utils'
+import { virtualize, SlideRenderProps } from 'react-swipeable-views-utils'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -24,7 +24,7 @@ const videos = [
 
 const maxSlides = videos.length * SLIDE_COUNT_FACTOR
 
-const getVideo = (i) => videos[mod(i, videos.length)]
+const getVideo = (i: number) => videos[mod(i, videos.length)]
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -103,12 +103,12 @@ const useStyles = M.makeStyles((t) => ({
 export default function Videos() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback((i) => setIndex(i), [])
+  const onChangeIndex = React.useCallback((i: number) => setIndex(i), [])
   const nearestZero = Math.floor(index / videos.length) * videos.length
-  const goToNearestIndex = (i) => setIndex(nearestZero + i)
+  const goToNearestIndex = (i: number) => setIndex(nearestZero + i)
 
   const slideRenderer = React.useCallback(
-    ({ index: i, key }) => (
+    ({ index: i, key }: SlideRenderProps) => (
       <div className={classes.slide} key={key}>
         <iframe
           frameBorder="0"
