@@ -14,14 +14,20 @@ export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-export function DownloadButton({ className, handle }) {
-  return AWS.Signer.withDownloadUrl(handle, (url) => (
+interface DownloadButtonProps {
+  className?: string
+  handle: Parameters<typeof AWS.Signer.withDownloadUrl>[0]
+}
+
+export function DownloadButton({ className, handle }: DownloadButtonProps) {
+  return AWS.Signer.withDownloadUrl(handle, (url: string) => (
     <Buttons.Iconized
       className={className}
-      href={url}
-      download
+      // Iconized forwards these to the underlying anchor, but its props type
+      // does not model them
+      {...({ href: url, download: true } as object)}
       label="Download file"
-      icon="arrow_downward"
+      icon={'arrow_downward' as Buttons.StrIcon}
     />
   ))
 }
@@ -37,7 +43,9 @@ const useViewModeSelectorStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function ViewModeSelector({ className, ...props }) {
+type ViewModeSelectorProps = Omit<Parameters<typeof SelectDropdown>[0], 'children'>
+
+export function ViewModeSelector({ className, ...props }: ViewModeSelectorProps) {
   const classes = useViewModeSelectorStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -48,23 +56,22 @@ export function ViewModeSelector({ className, ...props }) {
   )
 }
 
+interface ZipDownloadFormProps {
+  className?: string
+  suffix?: string
+  children?: React.ReactNode
+  newTab?: boolean
+  files?: string[]
+}
+
 /** Child button must have `type="submit"` */
-/**
- * @param {{
- *   className?: string
- *   suffix?: string
- *   children?: React.ReactNode
- *   newTab?: boolean
- *   files?: string[]
- * }} props
- */
 export function ZipDownloadForm({
   className = '',
   suffix,
   children,
   newTab = false,
   files = [],
-}) {
+}: ZipDownloadFormProps) {
   const { token } = redux.useSelector(tokensSelector) || {}
   if (!token || cfg.noDownload) return null
   const action = `${cfg.s3Proxy}/zip/${suffix}`
@@ -85,7 +92,7 @@ export function ZipDownloadForm({
   )
 }
 
-export function Root(props) {
+export function Root(props: M.BoxProps) {
   return <M.Box pt={2} pb={4} {...props} />
 }
 

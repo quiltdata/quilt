@@ -8,7 +8,13 @@ const Message = M.styled('div')({
   width: '100%',
 })
 
-const renderMessage = ({ heading, body, action }) => (
+interface MessageData {
+  heading?: React.ReactNode
+  body?: React.ReactNode
+  action?: React.ReactNode
+}
+
+const renderMessage = ({ heading, body, action }: MessageData) => (
   <Message>
     {!!heading && (
       <M.Typography variant="h6" gutterBottom>
@@ -30,4 +36,5 @@ const renderProgress = () => (
   </Message>
 )
 
-export default (onData) => Preview.display({ renderMessage, renderProgress, onData })
+export default (onData?: (data: $TSFixMe) => void) =>
+  Preview.display({ renderMessage, renderProgress, onData })
