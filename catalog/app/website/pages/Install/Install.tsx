@@ -50,7 +50,7 @@ const useStyles = M.makeStyles((t) => ({
 function InstallContents() {
   const classes = useStyles()
   const intercom = Intercom.use()
-  const contactLink = (children) => {
+  const contactLink = (children: React.ReactNode) => {
     const props = intercom.isAvailable()
       ? { onClick: () => intercom('show') }
       : { href: MAILTO }

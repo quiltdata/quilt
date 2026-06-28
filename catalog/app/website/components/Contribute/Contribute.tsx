@@ -11,6 +11,8 @@ import art from './art.png'
 import art2x from './art@2x.png'
 import backlight from './backlight.png'
 
+type PanelColor = 'primary' | 'secondary' | 'tertiary'
+
 const usePanelStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -56,7 +58,13 @@ const usePanelStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Panel({ color, extra, children }) {
+interface PanelProps {
+  color: PanelColor
+  extra?: React.ReactNode
+  children: React.ReactNode
+}
+
+function Panel({ color, extra, children }: PanelProps) {
   const classes = usePanelStyles()
   return (
     <div className={classes.root}>
@@ -67,7 +75,7 @@ function Panel({ color, extra, children }) {
   )
 }
 
-const Link = ({ children, ...props }) => (
+const Link = ({ children, ...props }: M.LinkProps) => (
   <M.Link color="textPrimary" underline="none" variant="body1" {...props}>
     {children}
     <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
