@@ -32,29 +32,32 @@ const actions = createActions(REDUX_KEY, 'API_REQUEST', 'API_RESPONSE')
  * The rest of the props are passed to the `fetch` call (identical to the
  * `Request` constructor) as they are. See for details:
  * https://developer.mozilla.org/en-US/docs/Web/API/Request/Request
- *
- * @typedef {Object} RequestOptions
- *
- * @property {string} endpoint
- *   An endpoint for request (appended to configured base URL).
- *
- * @property {string} url
- *   An absolute URL for the request.
- *
- * @property {boolean} json
- *   Whether to add JSON-related headers and parse the response body.
- *   Defaults to true.
  */
+export interface RequestOptions {
+  /** An endpoint for request (appended to configured base URL). */
+  endpoint?: string
+  /** An absolute URL for the request. */
+  url?: string
+  /**
+   * Whether to add JSON-related headers and parse the response body.
+   * Defaults to true.
+   */
+  json?: boolean | JsonOptions
+  // arbitrary properties consumed by middleware / passed to `fetch`
+  [key: string]: any
+}
+
+interface JsonOptions {
+  stringify?: boolean
+  parse?: boolean
+  contentType?: boolean
+  accepts?: boolean
+}
 
 /**
  * Action creator for API_REQUEST action.
  *
- * @param {RequestOptions|string} options
- *   When string, it is considered an endpoint.
- *
- * @param {utils/defer.Resolver} resolver
- *
- * @returns {redux.Action}
+ * When `options` is a string, it is considered an endpoint.
  */
 const request = actionCreator(actions.API_REQUEST, (payload, resolver) => ({
   payload: typeof payload === 'string' ? { endpoint: payload } : payload,
@@ -63,12 +66,6 @@ const request = actionCreator(actions.API_REQUEST, (payload, resolver) => ({
 
 /**
  * Action creator for API_RESPONSE action.
- *
- * @param {any} response
- *
- * @params {RequestOptions} requestOpts
- *
- * @returns {redux.Action}
  */
 const response = actionCreator(actions.API_RESPONSE, (payload, requestOpts) => ({
   payload,
@@ -80,17 +77,29 @@ const test = R.ifElse(R.is(RegExp), R.test, R.equals)
 export class HTTPError extends BaseError {
   static displayName = 'HTTPError'
 
-  static is = (e, status, msg) => {
+  status?: number
+
+  text?: string
+
+  json?: any
+
+  response?: Response
+
+  static is = (e: unknown, status?: number, msg?: string | RegExp) => {
     if (!(e instanceof HTTPError)) return false
     if (status && e.status !== status) return false
     if (msg && !(e.json && test(msg)(e.json.message))) return false
     return true
   }
 
-  constructor(resp, text, { message, status } = {}) {
+  constructor(
+    resp: Response,
+    text?: string,
+    { message, status }: { message?: string; status?: number } = {},
+  ) {
     let json
     try {
-      json = JSON.parse(text)
+      json = JSON.parse(text as string)
     } catch (e) {
       json = { message: message || text }
     }
@@ -107,14 +116,8 @@ export class HTTPError extends BaseError {
 /**
  * Request middleware saga.
  *
- * @typedef {function} Middleware
- *
- * @param {any} input
- *
- * @param {function} next
- *   Next middleware in chain (should be invoked with `yield call()`).
- *
- * @returns {any}
+ * Invoked with the request input and `next` (the next middleware in chain,
+ * which should be invoked with `yield call()`).
  *
  * @example
  * function* exampleMiddleware(opts, next) {
@@ -126,28 +129,24 @@ export class HTTPError extends BaseError {
  *   return yield resp.json();
  * }
  */
+export type Middleware = (input: any, next: any) => Generator<any, any, any>
 
 /**
  * Compose middleware sagas.
- *
- * @param {...Middleware} middleware
- *
- * @returns {function} Result of middleware composition.
  */
-const composeMiddleware = (handler, ...rest) =>
+const composeMiddleware = (...mws: Middleware[]) =>
   // TODO: optimize
-  function* composed(arg) {
+  function* composed(arg: any): Generator<any, any, any> {
+    const [handler, ...rest] = mws
     return yield call(handler, arg, composeMiddleware(...rest))
   }
 
 /**
  * Middleware for handling HTTP errors.
  *
- * @type {Middleware}
- *
  * @throws {HTTPError}
  */
-function* errorMiddleware(opts, next) {
+function* errorMiddleware(opts: any, next: any): Generator<any, any, any> {
   const resp = yield call(next, opts)
   if (!resp.ok) {
     const text = yield resp.text()
@@ -156,7 +155,10 @@ function* errorMiddleware(opts, next) {
   return resp
 }
 
-const isInstance = (cls) => (b) => (cls ? b instanceof cls : false)
+const isInstance =
+  <T,>(cls: { new (...args: any[]): T } | undefined) =>
+  (b: unknown) =>
+    cls ? b instanceof cls : false
 
 const validBodyTests = [
   isNil,
@@ -170,33 +172,16 @@ const validBodyTests = [
   isInstance(global.ReadableStream),
 ]
 
-const isValidBody = (b) => validBodyTests.some((t) => t && t(b))
-
-/**
- * Valid body type for fetch / Request. One of:
- *
- *   - ArrayBuffer
- *   - Buffer
- *   - TypedArray
- *   - String
- *   - Blob
- *   - FormData
- *   - URLSearchParams
- *   - ReadableStream
- *
- * Details: https://developer.mozilla.org/en-US/docs/Web/API/Request/Request
- *
- * @typedef {ArrayBuffer|Buffer|TypedArray|String|Blob|FormData|URLSearchParams|ReadableStream} Body
- */
+const isValidBody = (b: unknown) => validBodyTests.some((t) => t && t(b))
 
 /**
  * Stringify body if it's not of a type accepted by fetch / Request.
  *
- * @param {any} body
- *
- * @returns {Body}
+ * Valid body types: ArrayBuffer, Buffer, TypedArray, String, Blob, FormData,
+ * URLSearchParams, ReadableStream.
+ * Details: https://developer.mozilla.org/en-US/docs/Web/API/Request/Request
  */
-const stringifyBody = (body) => (isValidBody(body) ? body : JSON.stringify(body))
+const stringifyBody = (body: any) => (isValidBody(body) ? body : JSON.stringify(body))
 
 const jsonContentType = {
   'Content-Type': 'application/json',
@@ -210,12 +195,11 @@ const jsonAccepts = {
  * Middleware for working with JSON endpoints:
  *   - adds JSON-related headers
  *   - parses the response body
- *
- * @type {Middleware}
- *
- * @param {boolean} options.json Use JSON handling.
  */
-function* jsonMiddleware({ json = true, ...opts }, next) {
+function* jsonMiddleware(
+  { json = true, ...opts }: any,
+  next: any,
+): Generator<any, any, any> {
   if (!json) return yield call(next, opts)
 
   const {
@@ -244,33 +228,32 @@ function* jsonMiddleware({ json = true, ...opts }, next) {
 
 /**
  * Create fetch middleware.
- *
- * @param {Object} options
- *
- * @param {function} options.fetch
- *
- * @param {string} options.base
- *
- * @returns {Middleware}
  */
-const mkFetchMiddleware = ({ fetch, base }) =>
-  function* fetchMiddleware({ url, endpoint, ...init }) {
+const mkFetchMiddleware = ({
+  fetch,
+  base,
+}: {
+  fetch: typeof window.fetch
+  base: string
+}) =>
+  function* fetchMiddleware({ url, endpoint, ...init }: any): Generator<any, any, any> {
     return yield call(fetch, url || base + endpoint, init)
   }
 
+interface ApiSagaOptions {
+  fetch: typeof window.fetch
+  base?: string
+  middleware?: Middleware[]
+}
+
 /**
  * The saga that listens for API_REQUEST actions and executes the requests.
- *
- * @param {Object} options
- *
- * @param {function} options.fetch `fetch` implementation to use.
- *
- * @param {string} options.base
- *   API base URL, prepended to the `endpoint` for every request.
- *
- * @param {[Middleware]} options.middleware Middleware chain.
  */
-function* apiSaga({ fetch, base = '', middleware = [] }) {
+function* apiSaga({
+  fetch,
+  base = '',
+  middleware = [],
+}: ApiSagaOptions): Generator<any, any, any> {
   const execRequest = composeMiddleware(
     ...middleware,
     jsonMiddleware,
@@ -280,7 +263,10 @@ function* apiSaga({ fetch, base = '', middleware = [] }) {
 
   yield takeEvery(
     request.type,
-    function* handleRequest({ payload: opts, meta: { resolve, reject } }) {
+    function* handleRequest({
+      payload: opts,
+      meta: { resolve, reject },
+    }: any): Generator<any, any, any> {
       try {
         const result = yield call(execRequest, opts)
         yield put(response(result, opts))
@@ -295,34 +281,37 @@ function* apiSaga({ fetch, base = '', middleware = [] }) {
 
 /**
  * Make an API request.
- *
- * @param {Object} options
- *
- * @returns {any}
  */
-export function* apiRequest(opts) {
+export function* apiRequest(opts: RequestOptions | string): Generator<any, any, any> {
   const dfd = defer()
   yield put(request(opts, dfd.resolver))
   return yield dfd.promise
 }
 
-const Ctx = React.createContext()
+export type ApiRequest = (opts: RequestOptions | string) => Promise<any>
 
-export const useApi = () => React.useContext(Ctx)
+const Ctx = React.createContext<ApiRequest>(undefined as unknown as ApiRequest)
+
+export const useApi = (): ApiRequest => React.useContext(Ctx)
 
 export const use = useApi
 
-// fetch: window.fetch, middleware: ((any) => any)[]
-export function Provider({ fetch, middleware, children }) {
+interface ProviderProps {
+  fetch: typeof window.fetch
+  middleware?: Middleware[]
+  children?: React.ReactNode
+}
+
+export function Provider({ fetch, middleware, children }: ProviderProps) {
   const base = `${cfg.registryUrl}/api`
   SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
 
   const dispatch = redux.useDispatch()
-  const req = React.useCallback(
+  const req = React.useCallback<ApiRequest>(
     (opts) => {
       const dfd = defer()
       dispatch(request(opts, dfd.resolver))
-      return dfd.promise
+      return dfd.promise as Promise<any>
     },
     [dispatch],
   )

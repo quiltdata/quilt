@@ -75,7 +75,6 @@ async function fetchSettings({ s3 }: { s3: S3 }) {
 const CatalogSettingsResource = Cache.createResource({
   name: 'CatalogSettings.config',
   fetch: fetchSettings,
-  // @ts-expect-error
   key: () => null,
 })
 
