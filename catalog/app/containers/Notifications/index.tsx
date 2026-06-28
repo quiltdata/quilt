@@ -10,35 +10,32 @@ import reducer from './reducer'
 import selector from './selectors'
 import Notification from './Notification'
 
-export const Provider = function NotificationsProvider({ children }) {
+interface ProviderProps {
+  children: React.ReactNode
+}
+
+export const Provider = function NotificationsProvider({ children }: ProviderProps) {
   ReducerInjector.useReducer(REDUX_KEY, reducer)
   return children
 }
 
-// notifications: PT.arrayOf(
-//   PT.shape({
-//     id: PT.string.isRequired,
-//     ttl: PT.number.isRequired,
-//     message: PT.node.isRequired,
-//     action: PT.shape({
-//       label: PT.string.isRequired,
-//       onClick: PT.func.isRequired,
-//     }),
-//   }).isRequired,
-// ).isRequired,
 export function Display() {
   const { notifications } = redux.useSelector(selector)
   const dispatch = redux.useDispatch()
   const handleDismiss = React.useCallback(
-    (id) => dispatch(actions.dismiss(id)),
+    (id: string) => dispatch(actions.dismiss(id)),
     [dispatch],
   )
-  return notifications.map((n) => (
-    <Notification key={n.id} {...n} dismiss={handleDismiss} />
-  ))
+  return (
+    <>
+      {notifications.map((n) => (
+        <Notification key={n.id} {...n} dismiss={handleDismiss} />
+      ))}
+    </>
+  )
 }
 
-export function WithNotifications({ children }) {
+export function WithNotifications({ children }: ProviderProps) {
   return (
     <>
       {children}

@@ -1,5 +1,5 @@
 import * as FF from 'final-form'
-import React from 'react'
+import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 
@@ -24,7 +24,7 @@ export default function PassReset() {
 
   const onSubmit = React.useCallback(
     // eslint-disable-next-line consistent-return
-    async (values) => {
+    async (values: { email: string }) => {
       try {
         const result = defer()
         dispatch(resetPassword(values.email, result.resolver))
@@ -69,7 +69,7 @@ export default function PassReset() {
         }) => (
           <form onSubmit={handleSubmit}>
             <RF.Field
-              component={Layout.Field}
+              component={Layout.Field as React.ComponentType<any>}
               name="email"
               validate={validators.required}
               disabled={submitting}

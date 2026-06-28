@@ -11,7 +11,7 @@ import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import useMutex from 'utils/useMutex'
+import useMutex, { Mutex } from 'utils/useMutex'
 import * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
@@ -27,26 +27,29 @@ const Container = Layout.mkLayout('Sign in')
 
 const MUTEX_ID = 'password'
 
-function PasswordSignIn({ mutex }) {
+interface PasswordSignInProps {
+  mutex: Mutex
+}
+
+function PasswordSignIn({ mutex }: PasswordSignInProps) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const onSubmit = React.useCallback(
-    async (values) => {
-      if (mutex.current) return
+    async (values: { username: string; password: string }) => {
+      if (mutex.current) return undefined
       mutex.claim(MUTEX_ID)
       const result = defer()
       dispatch(actions.signIn(values, result.resolver))
       try {
         await result.promise
+        return undefined
       } catch (e) {
         if (e instanceof errors.InvalidCredentials) {
-          // eslint-disable-next-line consistent-return
           return {
             [FF.FORM_ERROR]: 'invalidCredentials',
           }
         }
         sentry('captureException', e)
-        // eslint-disable-next-line consistent-return
         return {
           [FF.FORM_ERROR]: 'unexpected',
         }
@@ -70,7 +73,7 @@ function PasswordSignIn({ mutex }) {
       }) => (
         <form onSubmit={handleSubmit}>
           <RF.Field
-            component={Layout.Field}
+            component={Layout.Field as React.ComponentType<any>}
             name="username"
             validate={validators.required}
             disabled={!!mutex.current || submitting}
@@ -80,7 +83,7 @@ function PasswordSignIn({ mutex }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={Layout.Field as React.ComponentType<any>}
             name="password"
             type="password"
             validate={validators.required}
@@ -118,18 +121,18 @@ function PasswordSignIn({ mutex }) {
   )
 }
 
-export default () => {
+export default function SignIn() {
   const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
   const { urls } = NamedRoutes.use()
 
-  const ssoEnabled = (provider) => {
+  const ssoEnabled = (provider?: string) => {
     if (!cfg.ssoAuth) return false
     return provider ? cfg.ssoProviders.includes(provider) : !!cfg.ssoProviders.length
   }
 
-  const { next } = parseSearch(search)
+  const { next } = parseSearch(search) as { next?: string }
 
   if (authenticated) {
     return <Redirect to={next || '/'} />

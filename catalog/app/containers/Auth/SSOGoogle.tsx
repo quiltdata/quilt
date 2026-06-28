@@ -6,21 +6,26 @@ import * as Notifications from 'containers/Notifications'
 import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
+import { Mutex } from 'utils/useMutex'
 
 import * as actions from './actions'
 import * as errors from './errors'
+import googleLogo from './google-logo.svg'
 
-import oktaLogo from './okta-logo.svg'
+const MUTEX_POPUP = 'sso:google:popup'
+const MUTEX_REQUEST = 'sso:google:request'
 
-const MUTEX_POPUP = 'sso:okta:popup'
-const MUTEX_REQUEST = 'sso:okta:request'
+interface SSOGoogleProps extends M.ButtonProps {
+  mutex: Mutex
+  next?: string | string[]
+}
 
-export default function SSOOkta({ mutex, next, ...props }) {
-  const provider = 'okta'
+export default function SSOGoogle({ mutex, ...props }: SSOGoogleProps) {
+  const provider = 'google'
 
   const authenticate = OIDC.use({
     provider,
-    popupParams: 'width=400,height=600',
+    popupParams: 'width=600,height=600',
   })
 
   const sentry = Sentry.use()
@@ -41,7 +46,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
           notify(
-            'No Quilt user linked to this Okta account. Notify your Quilt administrator.',
+            'No Quilt user linked to this Google account. Notify your Quilt administrator.',
           )
         } else if (e instanceof errors.NoDefaultRole) {
           notify(
@@ -52,7 +57,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
             'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
           )
         } else {
-          notify('Unable to sign in with Okta. Try again later or contact support.')
+          notify('Unable to sign in with Google. Try again later or contact support.')
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -60,16 +65,17 @@ export default function SSOOkta({ mutex, next, ...props }) {
     } catch (e) {
       if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
-          notify(`Unable to sign in with Okta. ${e.details}`)
+          notify(`Unable to sign in with Google. ${e.details}`)
           sentry('captureException', e)
         }
       } else {
-        notify('Unable to sign in with Okta. Try again later or contact support.')
+        notify('Unable to sign in with Google. Try again later or contact support.')
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
     }
-  }, [authenticate, dispatch, mutex, sentry, notify])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticate, dispatch, mutex.claim, mutex.release, notify, sentry])
 
   return (
     <M.Button
@@ -81,10 +87,10 @@ export default function SSOOkta({ mutex, next, ...props }) {
       {mutex.current === MUTEX_REQUEST ? (
         <M.CircularProgress size={18} />
       ) : (
-        <M.Box component="img" src={oktaLogo} alt="" height={18} />
+        <M.Box component="img" {...({ src: googleLogo, alt: '' } as any)} />
       )}
       <M.Box mr={1} />
-      Sign in with Okta
+      Sign in with Google
     </M.Button>
   )
 }

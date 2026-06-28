@@ -6,6 +6,7 @@ import * as Notifications from 'containers/Notifications'
 import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
+import { Mutex } from 'utils/useMutex'
 
 import * as actions from './actions'
 import * as errors from './errors'
@@ -15,7 +16,12 @@ import oneLoginLogo from './onelogin-logo.svg'
 const MUTEX_POPUP = 'sso:oneLogin:popup'
 const MUTEX_REQUEST = 'sso:oneLogin:request'
 
-export default function SSOOneLogin({ mutex, ...props }) {
+interface SSOOneLoginProps extends M.ButtonProps {
+  mutex: Mutex
+  next?: string
+}
+
+export default function SSOOneLogin({ mutex, ...props }: SSOOneLoginProps) {
   const provider = 'onelogin'
 
   const authenticate = OIDC.use({
@@ -82,7 +88,7 @@ export default function SSOOneLogin({ mutex, ...props }) {
       {mutex.current === MUTEX_REQUEST ? (
         <M.CircularProgress size={18} />
       ) : (
-        <M.Box component="img" src={oneLoginLogo} alt="" height={18} />
+        <M.Box component="img" {...({ src: oneLoginLogo, alt: '', height: 18 } as any)} />
       )}
       <M.Box mr={1} />
       <span style={{ whiteSpace: 'nowrap' }}>Sign in with OneLogin</span>

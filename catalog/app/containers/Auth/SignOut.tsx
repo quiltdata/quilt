@@ -23,17 +23,20 @@ export function useSignOut() {
   return React.useCallback(() => {
     const result = defer()
     dispatch(signOut(result.resolver))
-    result.promise.catch(sentry('captureException'))
+    // NB: preserves the legacy behavior exactly — Sentry.use() returns the async
+    // callSentry, so this eagerly invokes it and passes the resulting promise to
+    // .catch (effectively no rejection handler). Cast to keep types happy.
+    result.promise.catch(sentry('captureException') as any)
     return result.promise
   }, [dispatch, sentry])
 }
 
 export default function SignOut() {
-  const signOutRef = React.useRef()
+  const signOutRef = React.useRef<ReturnType<typeof useSignOut>>()
   signOutRef.current = useSignOut()
   const { waiting, authenticated } = redux.useSelector(selector)
   React.useEffect(() => {
-    if (!waiting && authenticated) signOutRef.current()
+    if (!waiting && authenticated) signOutRef.current!()
   }, [waiting, authenticated])
   return (
     <>
