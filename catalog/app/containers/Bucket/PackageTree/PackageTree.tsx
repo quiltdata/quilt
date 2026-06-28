@@ -508,7 +508,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
                         )}
                         <Summary
                           path={path}
-                          files={summaryHandles}
+                          files={summaryHandles as any}
                           mkUrl={mkUrl}
                           packageHandle={packageHandle}
                         />

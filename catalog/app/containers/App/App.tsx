@@ -12,15 +12,17 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 
-const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
+type Protect = (Component: React.ComponentType<any>) => React.ComponentType<any>
 
-function RedirectTo({ path }) {
+const protect: Protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
+
+function RedirectTo({ path }: { path: string }) {
   const { search } = useLocation()
   return <Redirect to={`${path}${search}`} />
 }
 
 const Activate = () => {
-  const { token } = useParams()
+  const { token } = useParams<{ token: string }>()
   const { urls } = NamedRoutes.use()
   return <AbsRedirect url={urls.activate({ registryUrl: cfg.registryUrl, token })} />
 }
@@ -33,14 +35,14 @@ const LegacyPackages = () => {
 
 function BucketSearchRedirect() {
   const { search } = useLocation()
-  const { bucket } = useParams()
+  const { bucket } = useParams<{ bucket: string }>()
   const { urls } = NamedRoutes.use()
   const params = parseSearch(search, true)
   const url = urls.search({ buckets: bucket, ...params })
   return <Redirect to={url} />
 }
 
-const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
+const requireAdmin = requireAuth({ authorizedSelector: isAdmin as any })
 const Admin = requireAdmin(RT.mkLazy(() => import('containers/Admin'), Placeholder))
 
 const AuthActivationError = RT.mkLazy(
