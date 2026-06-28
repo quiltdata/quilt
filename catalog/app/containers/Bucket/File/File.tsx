@@ -52,32 +52,39 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   },
 }))
 
-function VersionInfo({ bucket, path, version }) {
+interface VersionInfoProps {
+  bucket: string
+  path: string
+  version?: string
+}
+
+function VersionInfo({ bucket, path, version }: VersionInfoProps) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
 
-  const containerRef = React.useRef()
-  const [anchor, setAnchor] = React.useState()
+  const containerRef = React.useRef<HTMLUListElement>(null)
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
 
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) =>
+  const getHttpsUri = (v: $TSFixMe) =>
     s3paths.handleToHttpsUri({ bucket, key: path, version: v.id })
-  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
+  const getCliArgs = (v: $TSFixMe) =>
+    `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
 
-  const copyHttpsUri = (v) => (e) => {
+  const copyHttpsUri = (v: $TSFixMe) => (e: React.MouseEvent) => {
     e.preventDefault()
-    copyToClipboard(getHttpsUri(v), { container: containerRef.current })
+    copyToClipboard(getHttpsUri(v), { container: containerRef.current ?? undefined })
     push('HTTPS URI copied to clipboard')
   }
 
-  const copyCliArgs = (v) => (e) => {
+  const copyCliArgs = (v: $TSFixMe) => (e: React.MouseEvent) => {
     e.preventDefault()
-    copyToClipboard(getCliArgs(v), { container: containerRef.current })
+    copyToClipboard(getCliArgs(v), { container: containerRef.current ?? undefined })
     push('Object location copied to clipboard')
   }
 
@@ -99,7 +106,7 @@ function VersionInfo({ bucket, path, version }) {
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         {data.case({
-          Ok: (versions) => (
+          Ok: (versions: $TSFixMe[]) => (
             <M.List className={classes.list} ref={containerRef}>
               {versions.map((v) => (
                 <M.ListItem
@@ -133,7 +140,7 @@ function VersionInfo({ bucket, path, version }) {
                         !v.archived &&
                         AWS.Signer.withDownloadUrl(
                           { bucket, key: path, version: v.id },
-                          (url) => (
+                          (url: string) => (
                             <M.IconButton
                               href={url}
                               title="Download this version of the object"
@@ -218,7 +225,13 @@ const useFileEditorSectionStyles = M.makeStyles(() => ({
   },
 }))
 
-function FileEditorSection({ preview, onPreview, children }) {
+interface FileEditorSectionProps {
+  preview: boolean
+  onPreview: ((p: boolean) => void) | null
+  children: React.ReactNode
+}
+
+function FileEditorSection({ preview, onPreview, children }: FileEditorSectionProps) {
   const classes = useFileEditorSectionStyles()
   return (
     <Section
@@ -228,16 +241,14 @@ function FileEditorSection({ preview, onPreview, children }) {
           Edit content
           {onPreview && (
             <FileEditor.PreviewButton
-              className={classes.button}
-              preview={preview}
-              onPreview={onPreview}
+              {...({ className: classes.button, preview, onPreview } as any)}
             />
           )}
         </div>
       }
       expandable={false}
     >
-      {children}
+      {children!}
     </Section>
   )
 }
@@ -293,9 +304,15 @@ const useStyles = M.makeStyles((t) => ({
 
 function File() {
   const location = RRDom.useLocation()
-  const { bucket, path: encodedPath } = RRDom.useParams()
+  const { bucket, path: encodedPath } = RRDom.useParams<{
+    bucket: string
+    path: string
+  }>()
 
-  const { version, mode } = parseSearch(location.search)
+  const { version, mode } = parseSearch(location.search) as {
+    version?: string
+    mode?: string
+  }
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
@@ -333,7 +350,7 @@ function File() {
     Err: () => ({ notAvailable: true }),
     Ok: requests.ObjectExistence.case({
       _: () => ({ notAvailable: true }),
-      Exists: ({ deleted, archived, version: versionId }) => ({
+      Exists: ({ deleted, archived, version: versionId }: $TSFixMe) => ({
         notAvailable: deleted || !!archived,
         fileVersionId: versionId,
       }),
@@ -360,9 +377,9 @@ function File() {
     [viewModes.mode],
   )
 
-  const withPreview = (callback) =>
+  const withPreview = (callback: (result: $TSFixMe) => $TSFixMe) =>
     requests.ObjectExistence.case({
-      Exists: (h) => {
+      Exists: (h: $TSFixMe) => {
         if (h.deleted) {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
@@ -385,7 +402,7 @@ function File() {
     })
 
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketDir(bucket, segPath),
+    (segPath: string) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
   const crumbs = BreadCrumbs.use(s3paths.up(path), getSegmentRoute, bucket, {
@@ -396,7 +413,7 @@ function File() {
   return (
     <FileView.Root>
       <AssistantContext.CurrentVersionContext
-        {...{ version, objExistsData, versionExistsData }}
+        {...({ version, objExistsData, versionExistsData } as any)}
       />
       <AssistantContext.FileContextFiles bucket={bucket} path={path} />
 
@@ -424,7 +441,7 @@ function File() {
           features={toolbarFeatures}
           handle={handle}
           onReload={handleReload}
-          viewModes={viewModes}
+          viewModes={viewModes as any}
         >
           <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {editorState.editing && (
@@ -434,7 +451,7 @@ function File() {
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
-        Err: (e) => {
+        Err: (e: $TSFixMe) => {
           if (e.code === 'Forbidden') {
             return (
               <Message headline="Access Denied">
@@ -446,7 +463,7 @@ function File() {
           throw e
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({ deleted }) => (
+          Exists: ({ deleted }: $TSFixMe) => (
             <>
               {BucketPreferences.Result.match(
                 {
@@ -473,7 +490,7 @@ function File() {
                   preview={editorState.preview}
                 >
                   <FileEditor.Editor
-                    {...editorState}
+                    {...(editorState as any)}
                     className={classes.editor}
                     handle={handle}
                     empty={deleted}
@@ -484,7 +501,7 @@ function File() {
                   <div className={classes.preview}>
                     {versionExistsData.case({
                       _: () => <CenteredProgress />,
-                      Err: (e) => {
+                      Err: (e: $TSFixMe) => {
                         throw e
                       },
                       Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
@@ -501,7 +518,7 @@ function File() {
                 preview={editorState.preview}
               >
                 <FileEditor.Editor
-                  {...editorState}
+                  {...(editorState as any)}
                   className={classes.editor}
                   empty
                   handle={handle}
@@ -514,7 +531,9 @@ function File() {
                     {
                       Ok: ({ ui: { actions } }) =>
                         actions.writeFile && (
-                          <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                          <FileEditor.AddFileButton
+                            onClick={editorState.onEdit as () => void}
+                          />
                         ),
                       _: () => null,
                     },
@@ -530,9 +549,9 @@ function File() {
 }
 
 export default function FileWrapper() {
-  const { bucket, path: key } = RRDom.useParams()
+  const { bucket, path: key } = RRDom.useParams<{ bucket: string; path: string }>()
   const location = RRDom.useLocation()
-  const { version } = parseSearch(location.search)
+  const { version } = parseSearch(location.search) as { version?: string }
   const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
   return (
     <FallbackToDir handle={handle}>
