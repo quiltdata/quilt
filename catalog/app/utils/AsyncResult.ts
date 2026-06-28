@@ -4,9 +4,10 @@ import tagged from 'utils/tagged'
 
 const AsyncResult = tagged(['Init', 'Pending', 'Ok', 'Err'])
 
-AsyncResult.prop = (name, ...args) => AsyncResult.mapCase({ Ok: R.prop(name) }, ...args)
+AsyncResult.prop = (name: string, ...args: any[]) =>
+  AsyncResult.mapCase({ Ok: R.prop(name) }, ...args)
 
-AsyncResult.props = R.curryN(2, (names, ...args) =>
+AsyncResult.props = R.curryN(2, (names: string[], ...args: any[]) =>
   names.reduce(
     (acc, name) => ({
       ...acc,
@@ -18,7 +19,7 @@ AsyncResult.props = R.curryN(2, (names, ...args) =>
 
 AsyncResult.getPrevResult = AsyncResult.case({
   Ok: R.identity,
-  Pending: (p) => AsyncResult.getPrevResult(p),
+  Pending: (p: unknown) => AsyncResult.getPrevResult(p),
   _: () => null,
 })
 

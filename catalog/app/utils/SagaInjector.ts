@@ -4,15 +4,20 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import { applyMiddleware } from 'redux'
 import createSagaMiddleware from 'redux-saga'
+import type { Saga, Task } from 'redux-saga'
 
 const scope = 'app/utils/SagaInjector'
 
-export const useSaga = (saga, ...args) => {
+interface SagaStore {
+  runSaga: (saga: Saga, ...args: any[]) => Task
+}
+
+export const useSaga = (saga: Saga, ...args: any[]): Task => {
   const innerScope = `${scope}/SagaInjector/useSaga`
   invariant(isFunction(saga), `${innerScope}: Expected 'saga' to be a function`)
 
-  const { runSaga } = redux.useStore()
-  const running = React.useRef()
+  const { runSaga } = redux.useStore() as unknown as SagaStore
+  const running = React.useRef<{ saga: Saga; task: Task } | null>(null)
 
   if (running.current && running.current.saga !== saga) {
     running.current.task.cancel()
@@ -34,18 +39,27 @@ export const useSaga = (saga, ...args) => {
   return running.current.task
 }
 
-// saga: any => any, args: any[]
-export function Inject({ saga, args = [], children }) {
+interface InjectProps {
+  saga: Saga
+  args?: any[]
+  children: React.ReactNode
+}
+
+export function Inject({ saga, args = [], children }: InjectProps) {
   useSaga(saga, ...args)
   return children
 }
 
 export const withSaga =
-  (...sagaMWArgs) =>
-  (createStore) =>
-  (...args) => {
-    const sagaMiddleware = createSagaMiddleware(...sagaMWArgs)
-    const store = applyMiddleware(sagaMiddleware)(createStore)(...args)
+  (...sagaMWArgs: any[]) =>
+  (createStore: (...args: any[]) => any) =>
+  (...args: any[]) => {
+    const sagaMiddleware = (
+      createSagaMiddleware as (...a: any[]) => ReturnType<typeof createSagaMiddleware>
+    )(...sagaMWArgs)
+    const store = (applyMiddleware(sagaMiddleware)(createStore) as (...a: any[]) => any)(
+      ...args,
+    )
     return {
       ...store,
       runSaga: sagaMiddleware.run,
