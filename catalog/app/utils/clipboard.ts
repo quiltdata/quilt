@@ -1,3 +1,12 @@
+interface CopyToClipboardOptions {
+  container?: Element
+}
+
+// Legacy IE-only API, not present in the standard DOM lib types.
+interface IEClipboardData {
+  setData: (format: string, data: string) => boolean
+}
+
 /**
  * Copy a string to the clipboard.
  * Must be called from within an event handler such as click.
@@ -7,17 +16,15 @@
  * By default a prompt is shown the first time the clipboard is used (per session).
  *
  * Taken from this SO answer: https://stackoverflow.com/a/33928558/2129080
- *
- * @name copyToClipboard
- *
- * @param {string} text
- *
- * @returns {boolean}
  */
-export default function copyToClipboard(text, { container = document.body } = {}) {
-  if (window.clipboardData && window.clipboardData.setData) {
+export default function copyToClipboard(
+  text: string,
+  { container = document.body }: CopyToClipboardOptions = {},
+): boolean {
+  const { clipboardData } = window as Window & { clipboardData?: IEClipboardData }
+  if (clipboardData && clipboardData.setData) {
     // IE specific code path to prevent textarea being shown while dialog is visible.
-    return window.clipboardData.setData('Text', text)
+    return clipboardData.setData('Text', text)
   }
 
   if (!(document.queryCommandSupported && document.queryCommandSupported('copy'))) {

@@ -1,10 +1,15 @@
 // TODO: deprecate
 import { fromJS as iFromJS } from 'immutable'
 
+/**
+ * Create a point-free helper that invokes `method` on its eventual `obj`
+ * argument, passing along any args. If `obj` is falsy or lacks the method it is
+ * returned unchanged.
+ */
 export const invoke =
-  (method) =>
-  (...args) =>
-  (obj) =>
+  (method: string) =>
+  (...args: any[]) =>
+  (obj: any): any =>
     obj && method in obj ? obj[method](...args) : obj
 
 export const get = invoke('get')
@@ -18,6 +23,6 @@ export const push = invoke('push')
 export const map = invoke('map')
 export const toJS = invoke('toJS')
 export const fromJS =
-  (...args) =>
-  (obj) =>
+  (...args: any[]) =>
+  (obj: any): any =>
     iFromJS(obj, ...args)
