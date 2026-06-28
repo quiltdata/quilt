@@ -41,16 +41,25 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Vcf({ meta, header, data, variants, note, warnings }) {
+interface VcfProps {
+  meta: string[]
+  header: string[][]
+  data: string[][]
+  variants: string[]
+  note?: string
+  warnings?: string
+}
+
+function Vcf({ meta, header, data, variants, note, warnings }: VcfProps) {
   const classes = useStyles()
 
   const renderCell =
-    (type, i = '') =>
-    (col, j) => (
+    (type: 'header' | 'data', i: number | string = '') =>
+    (col: React.ReactNode, j: number) => (
       <M.TableCell
         // eslint-disable-next-line react/no-array-index-key
         key={`${type}:${i}:${j}`}
-        className={cx(classes.cell, classes[type])}
+        className={cx(classes.cell, (classes as Record<string, string>)[type])}
       >
         {col}
       </M.TableCell>
@@ -107,4 +116,4 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
   )
 }
 
-export default (data, props) => <Vcf {...data} {...props} />
+export default (data: VcfProps, props?: Partial<VcfProps>) => <Vcf {...data} {...props} />

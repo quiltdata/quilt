@@ -1,12 +1,40 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import type { CSSProperties } from '@material-ui/core/styles/withStyles'
 
-export function Head({
+import type { Column } from './Table'
+
+// Immutable.js Set-like collection used by the (optional) selection model.
+interface SelectionSet<T> {
+  size: number
+  equals: (other: SelectionSet<T>) => boolean
+}
+
+interface Selection<Row> {
+  selected: SelectionSet<Row>
+  all: SelectionSet<Row>
+  toggleAll: () => void
+}
+
+interface Ordering<Row> {
+  column: Column<Row>
+  direction: 'asc' | 'desc'
+  change: (col: Column<Row>) => void
+}
+
+interface HeadProps<Row> {
+  columns: Column<Row>[]
+  selection?: Selection<Row>
+  ordering: Ordering<Row>
+  withInlineActions?: boolean
+}
+
+export function Head<Row>({
   columns,
   selection: sel = undefined,
   ordering: ord,
   withInlineActions = false,
-}) {
+}: HeadProps<Row>) {
   return (
     <M.TableHead>
       <M.TableRow>
@@ -51,11 +79,29 @@ export function Head({
 
 const usePaginationStyles = M.makeStyles((t) => ({
   toolbar: {
-    paddingRight: [t.spacing(1), '!important'],
+    // JSS array → "<n>px !important", which MUI's CSSProperties does not model
+    paddingRight: [
+      t.spacing(1),
+      '!important',
+    ] as unknown as CSSProperties['paddingRight'],
   },
 }))
 
-export function Pagination({ pagination, ...rest }) {
+interface PaginationModel {
+  total: number
+  perPage: number
+  page: number
+  goToPage: (page: number) => void
+  setPerPage: (perPage: number) => void
+}
+
+// Escape-hatch wrapper: forwards arbitrary extra props to MUI's polymorphic
+// TablePagination, so the rest props are intentionally loose.
+type PaginationProps = {
+  pagination: PaginationModel
+} & Record<string, any>
+
+export function Pagination({ pagination, ...rest }: PaginationProps) {
   const classes = usePaginationStyles()
   return (
     <M.TablePagination
@@ -65,7 +111,9 @@ export function Pagination({ pagination, ...rest }) {
       rowsPerPage={pagination.perPage}
       page={pagination.page - 1}
       onChangePage={(e, page) => pagination.goToPage(page + 1)}
-      onChangeRowsPerPage={(e) => pagination.setPerPage(e.target.value)}
+      onChangeRowsPerPage={(e) =>
+        pagination.setPerPage(e.target.value as unknown as number)
+      }
       {...rest}
     />
   )

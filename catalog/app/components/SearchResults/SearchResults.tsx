@@ -547,7 +547,6 @@ export function Hits({
       {paginated.map((hit: $TSFixMe) => (
         <Hit key={hit.key} hit={hit} showBucket={showBucket} />
       ))}
-      {/* @ts-expect-error */}
       {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
     </>
   )
