@@ -3,10 +3,6 @@ import { encode } from 'utils/s3paths'
 
 const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
-// TODO: make sure types explicitly divide codebase into
-//       main catalog and embed,
-//       so catalog routes aren't called in embed
-
 export type Route<Path extends string, Args extends any[]> = {
   path: Path
   url: (...args: Args) => string

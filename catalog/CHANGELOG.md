@@ -16,8 +16,12 @@ where verb is one of
 - Fixed
 - Changed
 
+The `[Verb]` tag is a label, not part of the sentence — each entry should read as a
+complete sentence without it.
+
 ## Changes
 
+- [Removed] Embed mode — the iframe-embeddable catalog variant served at `/__embed` (a separate layout/app, with a `/__embed-debug` harness) — has been removed, along with its documentation. It was an always-on, unflagged surface with no live consumers, and dropping it collapses the standalone/packaged/embed wiring matrix that every file-view change had to account for ([#4608](https://github.com/quiltdata/quilt/pull/4608))
 - [Changed] Load highlight.js grammars on demand — only the ~35 languages the catalog supports (down from ~190 bundled eagerly), each fetched as its own chunk on first use; Markdown fences with unsupported labels render as plain monospace instead of being auto-detected ([#4883](https://github.com/quiltdata/quilt/pull/4883))
 - [Fixed] Package page: clicking a package-name prefix filters the package list to that prefix again — regressed by the unified-search migration ([#4413](https://github.com/quiltdata/quilt/pull/4413)), which stopped reading the link's legacy `filter` param ([#5035](https://github.com/quiltdata/quilt/pull/5035))
 - [Fixed] Test suite: register `afterEach(cleanup)` so `@testing-library/react` components are unmounted between tests. With `globals: false` ([#4660](https://github.com/quiltdata/quilt/pull/4660)) RTL's auto-cleanup never registered, leaving components mounted; their deferred passive effects could flush after the jsdom environment was torn down, intermittently failing the run with an unhandled "`document` global … not defined anymore" error even when every test passed ([#5026](https://github.com/quiltdata/quilt/pull/5026))
