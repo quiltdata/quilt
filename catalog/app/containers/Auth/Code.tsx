@@ -18,13 +18,13 @@ const Code = styled('div')({
 })
 
 export default function AuthCode() {
-  const [result, setResult] = React.useState(null)
-  const copy = React.useCallback(() => copyToClipboard(result), [result])
+  const [result, setResult] = React.useState<string | Error | null>(null)
+  const copy = React.useCallback(() => copyToClipboard(result as string), [result])
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
 
   React.useEffect(() => {
-    const deferedResult = defer()
+    const deferedResult = defer<string>()
     dispatch(getCode(deferedResult.resolver))
     deferedResult.promise.then(setResult).catch((e) => {
       sentry('captureException', e)

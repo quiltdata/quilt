@@ -13,7 +13,7 @@ import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import useMutex from 'utils/useMutex'
+import useMutex, { Mutex } from 'utils/useMutex'
 import * as RT from 'utils/reactTools'
 import validate, * as validators from 'utils/validators'
 
@@ -37,78 +37,90 @@ const Container = Layout.mkLayout('Sign Up')
 
 const MUTEX_ID = 'password'
 
-function PasswordSignUp({ mutex, next, onSuccess }) {
+// Field components (Layout.Field, StrenghtenPasswordField) accept extra props
+// beyond react-final-form's FieldRenderProps; cast to satisfy the `component` prop.
+type FieldComponent = React.ComponentType<any>
+
+interface FormValues {
+  username: string
+  email: string
+  password: string
+  passwordCheck: string
+}
+
+interface PasswordSignUpProps {
+  mutex: Mutex
+  next?: string | string[]
+  onSuccess: () => void
+}
+
+function PasswordSignUp({ mutex, next, onSuccess }: PasswordSignUpProps) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
 
   const [email, setEmail] = React.useState('')
   const [username, setName] = React.useState('')
-  const onFormChange = React.useCallback(({ modified, values }) => {
-    if (modified.email) setEmail(values.email)
-    if (modified.username) setName(values.username)
-  }, [])
+  const onFormChange = React.useCallback(
+    ({ modified, values }: FF.FormState<FormValues>) => {
+      if (modified?.email) setEmail(values.email)
+      if (modified?.username) setName(values.username)
+    },
+    [],
+  )
 
   const onSubmit = React.useCallback(
-    async (values) => {
-      if (mutex.current) return
+    async (values: FormValues) => {
+      if (mutex.current) return undefined
       mutex.claim(MUTEX_ID)
       try {
         const result = defer()
         dispatch(signUp(R.dissoc('passwordCheck', values), result.resolver))
         await result.promise
         onSuccess()
+        return undefined
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
-          // eslint-disable-next-line consistent-return
           return {
             username: 'taken',
           }
         }
         if (e instanceof errors.InvalidUsername) {
-          // eslint-disable-next-line consistent-return
           return {
             username: 'invalid',
           }
         }
         if (e instanceof errors.EmailTaken) {
-          // eslint-disable-next-line consistent-return
           return {
             email: 'taken',
           }
         }
         if (e instanceof errors.InvalidEmail) {
-          // eslint-disable-next-line consistent-return
           return {
             email: 'invalid',
           }
         }
         if (e instanceof errors.InvalidPassword) {
-          // eslint-disable-next-line consistent-return
           return {
             password: 'invalid',
           }
         }
         if (e instanceof errors.NoDefaultRole) {
-          // eslint-disable-next-line consistent-return
           return {
             [FF.FORM_ERROR]: 'noDefaultRole',
           }
         }
         if (e instanceof errors.SMTPError) {
-          // eslint-disable-next-line consistent-return
           return {
             [FF.FORM_ERROR]: 'smtp',
           }
         }
         if (e instanceof errors.SubscriptionInvalid) {
-          // eslint-disable-next-line consistent-return
           return {
             [FF.FORM_ERROR]: 'subscriptionInvalid',
           }
         }
         sentry('captureException', e)
-        // eslint-disable-next-line consistent-return
         return {
           [FF.FORM_ERROR]: 'unexpected',
         }
@@ -120,7 +132,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   )
 
   return (
-    <RF.Form onSubmit={onSubmit}>
+    <RF.Form<FormValues> onSubmit={onSubmit}>
       {({
         error,
         handleSubmit,
@@ -130,14 +142,14 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
         submitError,
         submitFailed,
         submitting,
-      }) => (
+      }: RF.FormRenderProps<FormValues>) => (
         <form onSubmit={handleSubmit}>
-          <RF.FormSpy
+          <RF.FormSpy<FormValues>
             subscription={{ values: true, modified: true }}
             onChange={onFormChange}
           />
           <RF.Field
-            component={Layout.Field}
+            component={Layout.Field as FieldComponent}
             name="username"
             validate={validators.required}
             disabled={!!mutex.current || submitting}
@@ -156,7 +168,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={Layout.Field as FieldComponent}
             name="email"
             validate={validators.required}
             disabled={!!mutex.current || submitting}
@@ -175,7 +187,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={StrenghtenPasswordField}
+            component={StrenghtenPasswordField as FieldComponent}
             name="password"
             validate={validators.required}
             username={username}
@@ -187,7 +199,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={Layout.Field as FieldComponent}
             name="passwordCheck"
             type="password"
             validate={validators.composeAsync(
@@ -238,22 +250,22 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   )
 }
 
-export default () => {
+export default function SignUp() {
   const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
 
   const [done, setDone] = React.useState(false)
 
-  const ssoEnabled = (provider) => {
+  const ssoEnabled = (provider?: string) => {
     if (cfg.ssoAuth !== true) return false
     return provider ? cfg.ssoProviders.includes(provider) : !!cfg.ssoProviders.length
   }
 
-  const { next } = parseSearch(search)
+  const { next } = parseSearch(search) as { next?: string }
 
   if (authenticated) {
-    return <Redirect to={next || '/'} />
+    return <Redirect to={(next as string) || '/'} />
   }
 
   if (done)

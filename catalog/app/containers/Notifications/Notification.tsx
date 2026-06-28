@@ -11,7 +11,7 @@ interface NotificationProps {
   id: string
   ttl?: number | null
   message: React.ReactNode
-  action: {
+  action?: {
     onClick: () => void
     label: React.ReactNode
   }

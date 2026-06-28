@@ -24,14 +24,22 @@ const StorageShape = PT.shape({
 })
 */
 
-const useStorageHandlers = (storage) =>
+// Subset of the storage abstraction (utils/storage) that the Provider actually
+// uses. Kept loose to accommodate the minimal stub passed in by the embed app.
+interface Storage {
+  set: (key: string, value: unknown) => void
+  remove: (key: string) => void
+  load: () => unknown
+}
+
+const useStorageHandlers = (storage: Storage) =>
   React.useMemo(
     () => ({
-      storeTokens: (tokens) => storage.set('tokens', tokens),
+      storeTokens: (tokens: unknown) => storage.set('tokens', tokens),
       forgetTokens: () => storage.remove('tokens'),
-      storeUser: (user) => storage.set('user', user),
+      storeUser: (user: unknown) => storage.set('user', user),
       forgetUser: () => storage.remove('user'),
-      storeCredentials: (credentials) => storage.set('credentials', credentials),
+      storeCredentials: (credentials: unknown) => storage.set('credentials', credentials),
       forgetCredentials: () => storage.remove('credentials'),
     }),
     [storage],
@@ -61,24 +69,26 @@ function useCheck() {
   }, [dispatch, exp])
 }
 
+interface AuthProviderProps {
+  children: React.ReactNode
+  /** Storage instance used to persist tokens and user data. */
+  storage: Storage
+  /** Expected API latency in seconds. */
+  latency?: number
+}
+
 /**
  * Provider component for the authentication system.
  */
 export default function AuthProvider({
   children,
-  /**
-   * Storage instance used to persist tokens and user data.
-   */
-  storage, // StorageShape.isRequired
-  /**
-   * Expected API latency in seconds.
-   */
-  latency = 20, // number
-}) {
+  storage,
+  latency = 20,
+}: AuthProviderProps) {
   const reducerWithInit = useConstant(() => {
     const init = fromJS(storage.load())
       .filter(Boolean)
-      .update((s) =>
+      .update((s: any) =>
         s
           .set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT')
           .set('sessionId', 0),

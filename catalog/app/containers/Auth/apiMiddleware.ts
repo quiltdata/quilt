@@ -7,40 +7,44 @@ import { authLost } from './actions'
 import { InvalidToken } from './errors'
 import { getTokens } from './saga'
 
+interface Tokens {
+  token?: string
+  [k: string]: any
+}
+
 /**
  * Make auth headers from given auth token.
- *
- * @param {Object} tokens
- * @param {string} tokens.token
- *
- * @returns {Object} Auth headers.
  */
-const makeHeadersFromTokens = ({ token }) => ({
+const makeHeadersFromTokens = ({ token }: Tokens) => ({
   Authorization: `Bearer ${token}`,
 })
 
-/**
- * @typedef {Object} AuthOptions
- *
- * @property {boolean|Object} tokens
- *   Auth tokens object to use, or `true` to take them from redux.
- *
- * @property {boolean} handleInvalidToken
- *   Whether to intercept 401 responses with 'Token invalid.' message and
- *   dispatch authentication lost action.
- */
+interface AuthOptions {
+  /**
+   * Auth tokens object to use, or `true` to take them from redux.
+   */
+  tokens?: boolean | Tokens
+
+  /**
+   * Whether to intercept 401 responses with 'Token invalid.' message and
+   * dispatch authentication lost action.
+   */
+  handleInvalidToken?: boolean
+}
+
+interface AuthMiddlewareOptions {
+  auth?: boolean | AuthOptions
+  [k: string]: any
+}
 
 /**
  * Auth middleware for APIConnector. Adds auth headers to the request and
  * intercept errors caused by invalid auth token.
- *
- * @type {APIConnector.Middleware}
- *
- * @param {Object} options
- *
- * @param {boolean|AuthOptions} options.auth
  */
-export default function* authMiddleware({ auth = true, ...opts }, next) {
+export default function* authMiddleware(
+  { auth = true, ...opts }: AuthMiddlewareOptions,
+  next: any,
+): Generator<any, any, any> {
   const tokens = typeof auth === 'boolean' ? auth : defaultTo(auth.tokens, true)
 
   const handleInvalidToken =

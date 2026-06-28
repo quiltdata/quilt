@@ -6,20 +6,27 @@ import * as Notifications from 'containers/Notifications'
 import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
+import { Mutex } from 'utils/useMutex'
 
 import * as actions from './actions'
 import * as errors from './errors'
-import googleLogo from './google-logo.svg'
 
-const MUTEX_POPUP = 'sso:google:popup'
-const MUTEX_REQUEST = 'sso:google:request'
+import microsoftLogo from './microsoft-logo.svg'
 
-export default function SSOGoogle({ mutex, ...props }) {
-  const provider = 'google'
+const MUTEX_POPUP = 'sso:azure:popup'
+const MUTEX_REQUEST = 'sso:azure:request'
+
+interface SSOProps extends M.ButtonProps {
+  mutex: Mutex
+  next?: string
+}
+
+export default function SSOAzure({ mutex, next, ...props }: SSOProps) {
+  const provider = 'azure'
 
   const authenticate = OIDC.use({
     provider,
-    popupParams: 'width=600,height=600',
+    popupParams: 'width=500,height=700',
   })
 
   const sentry = Sentry.use()
@@ -40,7 +47,7 @@ export default function SSOGoogle({ mutex, ...props }) {
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
           notify(
-            'No Quilt user linked to this Google account. Notify your Quilt administrator.',
+            'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
           )
         } else if (e instanceof errors.NoDefaultRole) {
           notify(
@@ -51,7 +58,7 @@ export default function SSOGoogle({ mutex, ...props }) {
             'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
           )
         } else {
-          notify('Unable to sign in with Google. Try again later or contact support.')
+          notify('Unable to sign in with Microsoft. Try again later or contact support.')
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -59,11 +66,11 @@ export default function SSOGoogle({ mutex, ...props }) {
     } catch (e) {
       if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
-          notify(`Unable to sign in with Google. ${e.details}`)
+          notify(`Unable to sign in with Microsoft. ${e.details}`)
           sentry('captureException', e)
         }
       } else {
-        notify('Unable to sign in with Google. Try again later or contact support.')
+        notify('Unable to sign in with Microsoft. Try again later or contact support.')
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
@@ -81,10 +88,13 @@ export default function SSOGoogle({ mutex, ...props }) {
       {mutex.current === MUTEX_REQUEST ? (
         <M.CircularProgress size={18} />
       ) : (
-        <M.Box component="img" src={googleLogo} alt="" />
+        <M.Box
+          component="img"
+          {...({ src: microsoftLogo, alt: '', height: 18 } as any)}
+        />
       )}
       <M.Box mr={1} />
-      Sign in with Google
+      <span style={{ whiteSpace: 'nowrap' }}>Sign in with Microsoft</span>
     </M.Button>
   )
 }

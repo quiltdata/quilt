@@ -6,21 +6,27 @@ import * as Notifications from 'containers/Notifications'
 import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
+import { Mutex } from 'utils/useMutex'
 
 import * as actions from './actions'
 import * as errors from './errors'
 
-import microsoftLogo from './microsoft-logo.svg'
+import oktaLogo from './okta-logo.svg'
 
-const MUTEX_POPUP = 'sso:azure:popup'
-const MUTEX_REQUEST = 'sso:azure:request'
+const MUTEX_POPUP = 'sso:okta:popup'
+const MUTEX_REQUEST = 'sso:okta:request'
 
-export default function SSOAzure({ mutex, next, ...props }) {
-  const provider = 'azure'
+interface SSOOktaProps extends M.ButtonProps {
+  mutex: Mutex
+  next?: string
+}
+
+export default function SSOOkta({ mutex, next, ...props }: SSOOktaProps) {
+  const provider = 'okta'
 
   const authenticate = OIDC.use({
     provider,
-    popupParams: 'width=500,height=700',
+    popupParams: 'width=400,height=600',
   })
 
   const sentry = Sentry.use()
@@ -41,7 +47,7 @@ export default function SSOAzure({ mutex, next, ...props }) {
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
           notify(
-            'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
+            'No Quilt user linked to this Okta account. Notify your Quilt administrator.',
           )
         } else if (e instanceof errors.NoDefaultRole) {
           notify(
@@ -52,7 +58,7 @@ export default function SSOAzure({ mutex, next, ...props }) {
             'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
           )
         } else {
-          notify('Unable to sign in with Microsoft. Try again later or contact support.')
+          notify('Unable to sign in with Okta. Try again later or contact support.')
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -60,17 +66,16 @@ export default function SSOAzure({ mutex, next, ...props }) {
     } catch (e) {
       if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
-          notify(`Unable to sign in with Microsoft. ${e.details}`)
+          notify(`Unable to sign in with Okta. ${e.details}`)
           sentry('captureException', e)
         }
       } else {
-        notify('Unable to sign in with Microsoft. Try again later or contact support.')
+        notify('Unable to sign in with Okta. Try again later or contact support.')
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticate, dispatch, mutex.claim, mutex.release, notify, sentry])
+  }, [authenticate, dispatch, mutex, sentry, notify])
 
   return (
     <M.Button
@@ -82,10 +87,10 @@ export default function SSOAzure({ mutex, next, ...props }) {
       {mutex.current === MUTEX_REQUEST ? (
         <M.CircularProgress size={18} />
       ) : (
-        <M.Box component="img" src={microsoftLogo} alt="" height={18} />
+        <M.Box component="img" {...({ src: oktaLogo, alt: '', height: 18 } as any)} />
       )}
       <M.Box mr={1} />
-      <span style={{ whiteSpace: 'nowrap' }}>Sign in with Microsoft</span>
+      Sign in with Okta
     </M.Button>
   )
 }
