@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { matchPath, useLocation } from 'react-router-dom'
+import type * as H from 'history'
 
 import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -9,18 +10,32 @@ import usePrevious from 'utils/usePrevious'
 
 const NAV_TIMEOUT = 500
 
-const Ctx = React.createContext()
+type TrackingOpts = Record<string, unknown>
 
-const consoleTracker = Promise.resolve({
+interface TrackerInstance {
+  track: (evt: string, opts?: TrackingOpts, cb?: () => void) => void
+}
+
+export interface Tracker {
+  track: (evt: string, opts?: TrackingOpts) => Promise<void>
+  trackLink: (
+    evt: string,
+    opts?: TrackingOpts,
+  ) => (e: React.MouseEvent<HTMLElement>) => void
+}
+
+const Ctx = React.createContext<Tracker | null>(null)
+
+const consoleTracker: Promise<TrackerInstance> = Promise.resolve({
   // eslint-disable-next-line no-console
-  track: (evt, opts) => console.log(`track: ${evt}`, opts),
+  track: (evt: string, opts?: TrackingOpts) => console.log(`track: ${evt}`, opts),
 })
 
-const loadMixpanel = () =>
+const loadMixpanel = (): Promise<TrackerInstance> =>
   cfg.mixpanelToken
     ? import('mixpanel-browser').then(({ default: mp }) => {
         mp.init(cfg.mixpanelToken)
-        return mp
+        return mp as unknown as TrackerInstance
       })
     : consoleTracker
 
@@ -30,7 +45,7 @@ function useMkLocation() {
     urls: { passChange: passChangeUrl },
   } = NamedRoutes.use()
   return React.useCallback(
-    (l) => {
+    (l: H.Location) => {
       const pathname = matchPath(l.pathname, { path: passChangePath, exact: true })
         ? passChangeUrl('REDACTED')
         : l.pathname
@@ -41,28 +56,36 @@ function useMkLocation() {
   )
 }
 
-const delayNav = (e) => {
-  const el = e.currentTarget
-  if (e.which === 2 || e.metaKey || e.ctrlKey || el.target === '_blank') return () => {}
+const delayNav = (e: React.MouseEvent<HTMLElement>): (() => void) => {
+  const el = e.currentTarget as HTMLAnchorElement
+  if ((e as any).which === 2 || e.metaKey || e.ctrlKey || el.target === '_blank')
+    return () => {}
   e.preventDefault()
   return () => {
-    window.location = el.href
+    window.location.href = el.href
   }
 }
 
-const withTimeout = (p, timeout) =>
+const withTimeout = <T,>(p: Promise<T>, timeout: number): Promise<T> =>
   new Promise((resolve, reject) => {
     let settled = false
-    const settle = (fn, a1) => (a2) => {
-      if (settled) return
-      settled = true
-      fn(a1 != null ? a1 : a2)
-    }
+    const settle =
+      <A,>(fn: (a: A) => void, a1?: A) =>
+      (a2: A) => {
+        if (settled) return
+        settled = true
+        fn(a1 != null ? a1 : a2)
+      }
     setTimeout(settle(reject, new Error('Timed out')), timeout)
     p.then(settle(resolve), settle(reject))
   })
 
-export function TrackingProvider({ userSelector, children }) {
+interface TrackingProviderProps {
+  userSelector: (state: any) => unknown
+  children: React.ReactNode
+}
+
+export function TrackingProvider({ userSelector, children }: TrackingProviderProps) {
   const tracker = React.useMemo(loadMixpanel, [])
   const mkLocation = useMkLocation()
   const location = mkLocation(useLocation())
@@ -82,16 +105,18 @@ export function TrackingProvider({ userSelector, children }) {
   )
 
   const track = React.useCallback(
-    (evt, opts) =>
+    (evt: string, opts?: TrackingOpts) =>
       tracker.then(
         (inst) =>
-          new Promise((resolve) => inst.track(evt, { ...commonOpts, ...opts }, resolve)),
+          new Promise<void>((resolve) =>
+            inst.track(evt, { ...commonOpts, ...opts }, resolve),
+          ),
       ),
     [tracker, commonOpts],
   )
 
   const trackLink = React.useCallback(
-    (evt, opts) => (e) => {
+    (evt: string, opts?: TrackingOpts) => (e: React.MouseEvent<HTMLElement>) => {
       const delayedNav = delayNav(e)
       withTimeout(track(evt, opts), NAV_TIMEOUT).then(delayedNav, delayedNav)
     },
@@ -110,7 +135,7 @@ export function TrackingProvider({ userSelector, children }) {
 }
 
 export function useTracker() {
-  return React.useContext(Ctx)
+  return React.useContext(Ctx) as Tracker
 }
 
 export { TrackingProvider as Provider, useTracker as use }

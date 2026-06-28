@@ -119,7 +119,7 @@ export function useWriteData({
       const { ContentLength: size } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId })
         .promise()
-      return { bucket, key, size, version: VersionId }
+      return { bucket, key, size, version: VersionId } as Model.S3File
     },
     [bucket, key, s3, version],
   )

@@ -8,6 +8,7 @@ import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
 import AsyncResult from 'utils/AsyncResult'
+import type { S3ObjectLocation } from 'model/S3'
 import { mkSearch } from 'utils/NamedRoutes'
 import { HTTPError } from 'utils/APIConnector'
 import pipeThru from 'utils/pipeThru'
@@ -28,14 +29,16 @@ export const SUPPORTED_EXTENSIONS = [
   '.czi',
 ]
 
-const SIZES = {
+type Size = 'sm' | 'lg'
+
+const SIZES: Record<Size, { w: number; h: number }> = {
   sm: { w: 256, h: 256 },
   lg: { w: 1024, h: 768 },
 }
 
-const sizeStr = (s) => `w${SIZES[s].w}h${SIZES[s].h}`
+const sizeStr = (s: Size) => `w${SIZES[s].w}h${SIZES[s].h}`
 
-const loadImg = async (src) => {
+const loadImg = async (src: string) => {
   const r = await fetch(src)
   if (r.status === 200) return r.blob()
   const text = await r.text()
@@ -70,12 +73,18 @@ const useSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ThumbnailSkeletonProps extends M.BoxProps {
+  icon?: 'glacier' | 'error'
+  className?: string
+  animate?: boolean
+}
+
 export function ThumbnailSkeleton({
-  icon, // glacier | error
+  icon,
   className,
   animate,
   ...props
-}) {
+}: ThumbnailSkeletonProps) {
   const classes = useSkeletonStyles()
   return (
     <Skeleton
@@ -104,13 +113,21 @@ const useStyles = M.makeStyles({
   },
 })
 
+interface ThumbnailInnerProps extends M.BoxProps {
+  handle: S3ObjectLocation
+  size?: Size
+  alt?: string
+  className?: string
+  title?: string
+}
+
 function ThumbnailInner({
   handle,
-  size = 'sm', // sm | lg
+  size = 'sm',
   alt = '',
   className,
   ...props
-}) {
+}: ThumbnailInnerProps) {
   const sign = AWS.Signer.useS3Signer()
 
   const classes = useStyles()
@@ -147,18 +164,17 @@ function ThumbnailInner({
   return pipeThru(state)(
     AsyncResult.case({
       _: () => <ThumbnailSkeleton {...props} />,
-      Ok: (src) => (
+      Ok: (src: string) => (
         <M.Box
           className={cx(classes.root, className)}
           component="img"
-          src={src}
-          alt={alt}
+          {...({ src, alt } as any)}
           {...props}
         />
       ),
-      Err: (e) => {
+      Err: (e: unknown) => {
         let title = 'Error loading image'
-        let icon = 'error'
+        let icon: 'glacier' | 'error' = 'error'
         if (e instanceof HTTPError) {
           if (
             e.json &&
@@ -184,9 +200,17 @@ function ThumbnailInner({
   )
 }
 
+interface ThumbnailProps extends M.BoxProps {
+  handle: S3ObjectLocation
+  size?: Size
+  alt?: string
+  className?: string
+  title?: string
+}
+
 // Ensure the file bucket's region is cached for correct presigned URLs.
 // For same-bucket files this is instant (already cached by BucketLayout).
-export default function Thumbnail({ handle, ...props }) {
+export default function Thumbnail({ handle, ...props }: ThumbnailProps) {
   // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
   return useBucketExistence(handle.bucket).case({
     Ok: () => <ThumbnailInner handle={handle} {...props} />,
