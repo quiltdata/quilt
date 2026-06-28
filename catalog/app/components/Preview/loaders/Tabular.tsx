@@ -38,8 +38,8 @@ export const detect = R.pipe(
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'h5ad'
 
-const detectTabularType: (type: string) => TabularType = R.pipe(
-  utils.stripCompression,
+const detectTabularType = R.pipe(
+  utils.stripCompression as any,
   R.cond([
     [isCsv, R.always('csv')],
     [isExcel, R.always('excel')],
@@ -49,7 +49,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
     [isH5ad, R.always('h5ad')],
     [R.T, R.always('csv')],
   ]),
-)
+) as (type: string) => TabularType
 
 export interface ParquetMetadata {
   created_by: string

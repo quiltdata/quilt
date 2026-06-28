@@ -15,34 +15,42 @@ import { PreviewError } from '../types'
 
 export const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
 
+type CompressionType = keyof typeof COMPRESSION_TYPES
+
 export const GLACIER_ERROR_RE =
   /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/
 
 // eslint-disable-next-line consistent-return
-export const getCompression = (key) => {
+export const getCompression = (key: string): CompressionType | undefined => {
   // eslint-disable-next-line no-restricted-syntax
   for (const [type, ext] of Object.entries(COMPRESSION_TYPES)) {
-    if (key.endsWith(ext)) return type
+    if (key.endsWith(ext)) return type as CompressionType
   }
 }
 
-export const stripCompression = (key) => {
+export const stripCompression = (key: string): string => {
   const comp = getCompression(key)
   return comp ? key.slice(0, -COMPRESSION_TYPES[comp].length) : key
 }
 
-export const extIs = (ext) => (key) => extname(key).toLowerCase() === ext
+export const extIs = (ext: string) => (key: string) => extname(key).toLowerCase() === ext
 
-export const extIn = (exts) => (key) => exts.includes(extname(key).toLowerCase())
+export const extIn = (exts: string[]) => (key: string) =>
+  exts.includes(extname(key).toLowerCase())
 
-const parseRange = (range) => {
+const parseRange = (range: string | undefined): number | undefined => {
   if (!range) return undefined
   const m = range.match(/bytes \d+-\d+\/(\d+)$/)
   if (!m) return undefined
   return Number(m[1])
 }
 
-const getContentLength = async ({ s3, handle }) => {
+interface S3Args {
+  s3: $TSFixMe
+  handle: $TSFixMe
+}
+
+const getContentLength = async ({ s3, handle }: S3Args) => {
   const req = s3.headObject({
     Bucket: handle.bucket,
     Key: handle.key,
@@ -52,7 +60,7 @@ const getContentLength = async ({ s3, handle }) => {
   return head.ContentLength
 }
 
-const getFirstBytes = async ({ s3, bytes, handle }) => {
+const getFirstBytes = async ({ s3, bytes, handle }: S3Args & { bytes: number }) => {
   try {
     const fileSize = await getContentLength({ s3, handle })
     const res = await s3
@@ -66,7 +74,7 @@ const getFirstBytes = async ({ s3, bytes, handle }) => {
     const firstBytes = res.Body.toString('utf-8')
     const contentLength = parseRange(res.ContentRange) || 0
     return { firstBytes, contentLength }
-  } catch (e) {
+  } catch (e: $TSFixMe) {
     if (['NoSuchKey', 'NotFound'].includes(e.code)) {
       throw PreviewError.DoesNotExist({ handle })
     }
@@ -84,12 +92,12 @@ const getFirstBytes = async ({ s3, bytes, handle }) => {
   }
 }
 
-export function useFirstBytes({ bytes, handle }) {
+export function useFirstBytes({ bytes, handle }: { bytes: number; handle: $TSFixMe }) {
   const s3 = AWS.S3.use()
   return Data.use(getFirstBytes, { s3, bytes, handle })
 }
 
-export const getObject = ({ s3, handle }) =>
+export const getObject = ({ s3, handle }: S3Args) =>
   s3
     .getObject({
       Bucket: handle.bucket,
@@ -97,7 +105,7 @@ export const getObject = ({ s3, handle }) =>
       VersionId: handle.version,
     })
     .promise()
-    .catch((e) => {
+    .catch((e: $TSFixMe) => {
       if (['NoSuchKey', 'NotFound'].includes(e.code)) {
         throw PreviewError.DoesNotExist({ handle })
       }
@@ -110,12 +118,26 @@ export const getObject = ({ s3, handle }) =>
       throw e
     })
 
-export function useObjectGetter(handle, opts) {
+export function useObjectGetter(handle: $TSFixMe, opts?: $TSFixMe) {
   const s3 = AWS.S3.use()
   return Data.use(getObject, { s3, handle }, opts)
 }
 
-const fetchPreview = async ({ handle, sign, type, compression, query }) => {
+interface FetchPreviewArgs {
+  handle: $TSFixMe
+  sign: $TSFixMe
+  type: string
+  compression: CompressionType | undefined
+  query?: $TSFixMe
+}
+
+const fetchPreview = async ({
+  handle,
+  sign,
+  type,
+  compression,
+  query,
+}: FetchPreviewArgs) => {
   const url = sign(handle)
   const r = await fetch(
     `${cfg.apiGatewayEndpoint}/preview${mkSearch({
@@ -143,20 +165,27 @@ const fetchPreview = async ({ handle, sign, type, compression, query }) => {
   return json
 }
 
-export function usePreview({ type, handle, query }, options) {
+export function usePreview(
+  { type, handle, query }: { type: string; handle: $TSFixMe; query?: $TSFixMe },
+  options?: $TSFixMe,
+) {
   const sign = AWS.Signer.useS3Signer()
   const compression = getCompression(handle.key)
   return Data.use(fetchPreview, { handle, sign, type, compression, query }, options)
 }
 
-export function useProcessing(asyncResult, process, deps = []) {
+export function useProcessing(
+  asyncResult: $TSFixMe,
+  process: (value: $TSFixMe) => $TSFixMe,
+  deps: unknown[] = [],
+) {
   return useMemoEq([asyncResult, deps], () =>
     AsyncResult.case(
       {
-        Ok: (value) => {
+        Ok: (value: $TSFixMe) => {
           try {
             return AsyncResult.Ok(process(value))
-          } catch (e) {
+          } catch (e: $TSFixMe) {
             // Re-throw thenables: a Suspense signal (lazy grammar load) must reach
             // the boundary, not become an Err.
             if (e && typeof e.then === 'function') throw e
@@ -170,12 +199,16 @@ export function useProcessing(asyncResult, process, deps = []) {
   )
 }
 
-export function useAsyncProcessing(asyncResult, process, deps = []) {
+export function useAsyncProcessing(
+  asyncResult: $TSFixMe,
+  process: (value: $TSFixMe) => Promise<$TSFixMe>,
+  deps: unknown[] = [],
+) {
   const fn = React.useCallback(
-    async (args) =>
+    async (args: $TSFixMe) =>
       AsyncResult.case(
         {
-          Ok: (value) => process(value).then(AsyncResult.Ok, AsyncResult.Err),
+          Ok: (value: $TSFixMe) => process(value).then(AsyncResult.Ok, AsyncResult.Err),
           _: R.identity,
         },
         args.asyncResult,
@@ -188,11 +221,14 @@ export function useAsyncProcessing(asyncResult, process, deps = []) {
   })
 }
 
-export function useErrorHandling(result, { handle, retry } = {}) {
+export function useErrorHandling(
+  result: $TSFixMe,
+  { handle, retry }: { handle?: $TSFixMe; retry?: $TSFixMe } = {},
+) {
   return useMemoEq([result, handle, retry], () =>
     pipeThru(result)(
       AsyncResult.mapCase({
-        Err: R.unless(PreviewError.is, (e) => {
+        Err: R.unless(PreviewError.is, (e: $TSFixMe) => {
           // eslint-disable-next-line no-console
           console.log('error while loading preview')
           // eslint-disable-next-line no-console

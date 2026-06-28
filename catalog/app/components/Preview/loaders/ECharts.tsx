@@ -5,9 +5,11 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
+import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
 import hljs, { loadLanguages } from 'utils/hljs'
 import * as s3paths from 'utils/s3paths'
+import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
 
@@ -19,12 +21,17 @@ export const FILE_TYPE = FileType.ECharts
 
 export const detect = R.F
 
-export const hasEChartsDatasource = (json) =>
+export const hasEChartsDatasource = (json?: JsonRecord) =>
   !!json?.dataset || Array.isArray(json?.series)
 
-const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
+const hl = (language: string) => (contents: string) =>
+  hljs.highlight(contents, { language }).value
 
-async function resolvePath(path, handle, resolveLogicalKey) {
+async function resolvePath(
+  path: string,
+  handle: LogicalKeyResolver.S3SummarizeHandle,
+  resolveLogicalKey: LogicalKeyResolver.LogicalKeyResolver | null,
+) {
   const resolvedHandle = {
     bucket: handle.bucket,
     key: s3paths.resolveKey(handle.key, path),
@@ -49,29 +56,29 @@ async function resolvePath(path, handle, resolveLogicalKey) {
   }
 }
 
-function useDatasetResolver(handle) {
+function useDatasetResolver(handle: LogicalKeyResolver.S3SummarizeHandle) {
   const resolveLogicalKey = useLogicalKeyResolver()
   return React.useMemo(
     () =>
       R.pipe(
         Resource.parse,
         Resource.Pointer.case({
-          Web: async (url) => url,
-          S3: async (h) => h,
-          S3Rel: (path) => resolvePath(path, handle, resolveLogicalKey),
-          Path: (path) => resolvePath(path, handle, resolveLogicalKey),
+          Web: async (url: string) => url,
+          S3: async (h: $TSFixMe) => h,
+          S3Rel: (path: string) => resolvePath(path, handle, resolveLogicalKey),
+          Path: (path: string) => resolvePath(path, handle, resolveLogicalKey),
         }),
       ),
     [handle, resolveLogicalKey],
   )
 }
 
-async function downloadDatasetFromS3(s3, handle) {
+async function downloadDatasetFromS3(s3: $TSFixMe, handle: $TSFixMe) {
   const loadedDatasetResponse = await utils.getObject({ s3, handle })
   return loadedDatasetResponse.Body.toString('utf-8')
 }
 
-async function downloadDatasetFromWeb(url) {
+async function downloadDatasetFromWeb(url: string) {
   const loadedDatasetResponse = await window.fetch(url)
   return loadedDatasetResponse.text()
 }
@@ -82,7 +89,7 @@ function useDataSetLoader() {
   // TODO: use utils.useObjectGetter
   const s3 = AWS.S3.use()
   return React.useCallback(
-    async (handle) => {
+    async (handle: $TSFixMe) => {
       const loadedDataset = await (typeof handle === 'string'
         ? downloadDatasetFromWeb(handle)
         : downloadDatasetFromS3(s3, handle))
@@ -96,11 +103,28 @@ function useDataSetLoader() {
   )
 }
 
-function EChartsLoader({ gated, handle, children }) {
+interface EChartsLoaderProps {
+  children: (result: $TSFixMe) => React.ReactNode
+  gated: boolean
+  handle: LogicalKeyResolver.S3SummarizeHandle
+}
+
+interface PreviewResult {
+  info: {
+    data: {
+      head: string[]
+      tail: string[]
+    }
+    note?: string
+    warnings?: string
+  }
+}
+
+function EChartsLoader({ gated, handle, children }: EChartsLoaderProps) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
-  })
+  } as $TSFixMe)
 
   // TODO: use useSignObjectUrls (and rename it),
   //       but besides signing also fetch resources
@@ -109,7 +133,7 @@ function EChartsLoader({ gated, handle, children }) {
 
   const processed = utils.useAsyncProcessing(
     result,
-    async ({ info: { data, note, warnings } }) => {
+    async ({ info: { data, note, warnings } }: PreviewResult) => {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       try {
@@ -120,7 +144,11 @@ function EChartsLoader({ gated, handle, children }) {
           option.dataset.source = await loadDataset(datasetHandle)
         }
         if (Array.isArray(option?.dataset)) {
-          if (option?.dataset.some((dataset) => typeof dataset.source === 'string')) {
+          if (
+            option?.dataset.some(
+              (dataset: $TSFixMe) => typeof dataset.source === 'string',
+            )
+          ) {
             throw new Error('Multiple remote sources are not supported')
           }
         }
@@ -134,7 +162,7 @@ function EChartsLoader({ gated, handle, children }) {
         if (e instanceof SyntaxError) {
           const lang = 'json'
           await loadLanguages([lang])
-          const highlighted = R.map(hl(lang), { head, tail })
+          const highlighted = R.map(hl(lang), { head, tail } as $TSFixMe)
           return PreviewData.Text({
             head,
             tail,
@@ -150,18 +178,27 @@ function EChartsLoader({ gated, handle, children }) {
     [],
   )
   const handled = utils.useErrorHandling(processed, { handle, retry: fetch })
-  return children(
-    gated && AsyncResult.Init.is(handled)
-      ? AsyncResult.Err(PreviewError.Gated({ handle, load: fetch }))
-      : handled,
+  return (
+    <>
+      {children(
+        gated && AsyncResult.Init.is(handled)
+          ? AsyncResult.Err(PreviewError.Gated({ handle, load: fetch }))
+          : handled,
+      )}
+    </>
   )
 }
 
-export const Loader = function GatedEChartsLoader({ handle, children }) {
+interface LoaderProps {
+  children: (result: $TSFixMe) => React.ReactNode
+  handle: LogicalKeyResolver.S3SummarizeHandle
+}
+
+export const Loader = function GatedEChartsLoader({ handle, children }: LoaderProps) {
   const data = useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,
-    Ok: (gated) => <EChartsLoader {...{ gated, handle, children }} />,
+    Ok: (gated: boolean) => <EChartsLoader {...{ gated, handle, children }} />,
   })(handled)
 }

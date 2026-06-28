@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type { S3SummarizeHandle } from 'utils/LogicalKeyResolver'
 import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -11,7 +12,7 @@ import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
 
-function useBlob(blob) {
+function useBlob(blob: Blob) {
   const url = React.useMemo(() => window.URL.createObjectURL(blob), [blob])
   React.useEffect(
     () => () => {
@@ -22,7 +23,17 @@ function useBlob(blob) {
   return url
 }
 
-async function loadBlob({ sign, handle, page, firstPageBlob, type }) {
+type PdfType = 'pdf' | 'pptx'
+
+interface LoadBlobArgs {
+  sign: (handle: S3SummarizeHandle) => string
+  handle: S3SummarizeHandle
+  page: number
+  firstPageBlob: Blob
+  type: PdfType
+}
+
+async function loadBlob({ sign, handle, page, firstPageBlob, type }: LoadBlobArgs) {
   if (page === 1) return firstPageBlob
   try {
     const url = sign(handle)
@@ -102,12 +113,26 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
+interface PdfEssential {
+  handle: S3SummarizeHandle
+  firstPageBlob: Blob
+  pages: number
+  type: PdfType
+}
+
+interface PdfProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string
+}
+
+function Pdf(
+  { handle, firstPageBlob, pages, type }: PdfEssential,
+  { className, ...props }: PdfProps,
+) {
   const sign = AWS.Signer.useS3Signer()
   const classes = useStyles()
 
   const [page, setPage] = React.useState(1)
-  const [pageValue, setPageValue] = React.useState(page)
+  const [pageValue, setPageValue] = React.useState<number | string>(page)
 
   const data = Data.use(loadBlob, { sign, handle, page, firstPageBlob, type })
 
@@ -116,7 +141,7 @@ function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   usePrevious(data.result, (prevResult) => {
     if (!R.equals(data.result, prevResult)) {
       data.case({
-        Ok: (b) => {
+        Ok: (b: Blob) => {
           setBlob(b)
         },
         _: () => {},
@@ -139,14 +164,14 @@ function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   }, [setPage, setPageValue, page])
 
   const handlePageChange = React.useCallback(
-    (e) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setPageValue(e.target.value)
     },
     [setPageValue],
   )
 
   const commitPageChange = React.useCallback(
-    (val) => {
+    (val: string) => {
       const parsed = parseInt(val, 10)
       if (Number.isNaN(parsed) || parsed < 1) {
         setPageValue(page)
@@ -162,19 +187,19 @@ function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   )
 
   const handleBlur = React.useCallback(
-    (e) => {
+    (e: React.FocusEvent<HTMLInputElement>) => {
       commitPageChange(e.target.value)
     },
     [commitPageChange],
   )
 
   const handleKey = React.useCallback(
-    (e) => {
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
-        commitPageChange(e.target.value)
+        commitPageChange((e.target as HTMLInputElement).value)
       }
       if (e.key === 'Escape') {
-        e.target.blur()
+        ;(e.target as HTMLInputElement).blur()
       }
     },
     [commitPageChange],
@@ -229,4 +254,4 @@ function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   )
 }
 
-export default (data, props) => <Pdf {...data} {...props} />
+export default (data: PdfEssential, props: PdfProps) => <Pdf {...data} {...props} />

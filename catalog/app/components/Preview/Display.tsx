@@ -11,9 +11,35 @@ import ArchivedMessage from './ArchivedMessage'
 import render from './render'
 import { PreviewError } from './types'
 
+interface MessageData {
+  heading?: React.ReactNode
+  body?: React.ReactNode
+  action?: React.ReactNode
+}
+
+interface ActionData {
+  label: React.ReactNode
+  [key: string]: unknown
+}
+
+interface PreviewDisplayProps {
+  // The loaded result — an AsyncResult instance fed to AsyncResult.case.
+  data: $TSFixMe
+  noDownload?: boolean
+  renderContents?: (...args: any[]) => React.ReactNode
+  // called via AsyncResult.case, which passes the matched instance, so it may
+  // receive args (also lets a plain component be used as the progress renderer)
+  renderProgress?: (...args: any[]) => React.ReactNode
+  renderMessage?: (msg: any) => React.ReactNode
+  renderAction?: (action: any) => React.ReactNode
+  onData?: (data: $TSFixMe) => void
+  // Forwarded to the render functions.
+  props?: $TSFixMe
+}
+
 const defaultProgress = () => <M.CircularProgress />
 
-const defaultMessage = ({ heading, body, action }) => (
+const defaultMessage = ({ heading, body, action }: MessageData) => (
   <>
     {!!heading && (
       <M.Typography variant="h6" gutterBottom>
@@ -29,7 +55,7 @@ const defaultMessage = ({ heading, body, action }) => (
   </>
 )
 
-const defaultAction = ({ label, ...rest }) => (
+const defaultAction = ({ label, ...rest }: ActionData) => (
   <M.Button variant="outlined" {...rest}>
     {label}
   </M.Button>
@@ -44,7 +70,7 @@ export default function PreviewDisplay({
   renderAction = defaultAction,
   onData = undefined,
   props = undefined,
-}) {
+}: PreviewDisplayProps) {
   const noDl = noDownload != null ? noDownload : cfg.noDownload
 
   React.useEffect(() => {
@@ -54,7 +80,11 @@ export default function PreviewDisplay({
   return AsyncResult.case(
     {
       _: renderProgress,
-      Ok: (...args) => R.pipe(render, renderContents)(...args, props),
+      Ok: (...args: any[]) =>
+        (R.pipe(render, renderContents) as (...a: any[]) => React.ReactNode)(
+          ...args,
+          props,
+        ),
       Err: PreviewError.case({
         Deleted: () =>
           renderMessage({
@@ -71,7 +101,7 @@ export default function PreviewDisplay({
               </>
             ),
           }),
-        Archived: ({ handle, archive }) => (
+        Archived: ({ handle, archive }: $TSFixMe) => (
           <ArchivedMessage handle={handle} archive={archive}>
             {({ heading, body, action }) =>
               renderMessage({
@@ -92,29 +122,29 @@ export default function PreviewDisplay({
             heading: 'Access Denied',
             body: 'Preview not available',
           }),
-        Gated: ({ load }) =>
+        Gated: ({ load }: $TSFixMe) =>
           renderMessage({
             heading: 'Object is Too Large',
             body: 'Large files are not previewed by default',
             action: !!load && renderAction({ label: 'Load preview', onClick: load }),
           }),
-        TooLarge: ({ handle }) =>
+        TooLarge: ({ handle }: $TSFixMe) =>
           renderMessage({
             heading: 'Object is Too Large',
             body: 'Object is too large to preview',
             action:
               !noDl &&
-              AWS.Signer.withDownloadUrl(handle, (href) =>
+              AWS.Signer.withDownloadUrl(handle, (href: string) =>
                 renderAction({ label: 'Download and view in Browser', href }),
               ),
           }),
-        Unsupported: ({ handle }) =>
+        Unsupported: ({ handle }: $TSFixMe) =>
           renderMessage({
             heading: 'Preview Not Supported',
             body: 'Previewing this data type is not supported',
             action:
               !noDl &&
-              AWS.Signer.withDownloadUrl(handle, (href) =>
+              AWS.Signer.withDownloadUrl(handle, (href: string) =>
                 renderAction({ label: 'Download and view in Browser', href }),
               ),
           }),
@@ -123,29 +153,29 @@ export default function PreviewDisplay({
             heading: 'No Such Object',
             body: 'Object does not exist',
           }),
-        SrcDoesNotExist: ({ path }) =>
+        SrcDoesNotExist: ({ path }: $TSFixMe) =>
           renderMessage({
             heading: 'Could Not Resolve Data File',
             body: `Data file referenced as '${path}' could not be resolved`,
           }),
-        MalformedJson: ({ message }) =>
+        MalformedJson: ({ message }: $TSFixMe) =>
           renderMessage({
             heading: 'Malformed JSON',
             body: message,
           }),
-        Expired: ({ retry }) =>
+        Expired: ({ retry }: $TSFixMe) =>
           renderMessage({
             heading: 'Session expired',
             body: !retry && 'Try to reload the page',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
-        Unexpected: ({ retry, message }) =>
+        Unexpected: ({ retry, message }: $TSFixMe) =>
           renderMessage({
             heading: 'Unexpected Error',
             body: message || 'Something went wrong while loading preview',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
-        __: ({ retry }) =>
+        __: ({ retry }: $TSFixMe) =>
           renderMessage({
             heading: 'Unexpected Error',
             body: 'Something went wrong while loading preview',
@@ -157,4 +187,6 @@ export default function PreviewDisplay({
   )
 }
 
-export const bind = (props) => (data) => <PreviewDisplay {...props} data={data} />
+export const bind = (props: Omit<PreviewDisplayProps, 'data'>) => (data: $TSFixMe) => (
+  <PreviewDisplay {...props} data={data} />
+)
