@@ -178,7 +178,6 @@ function ChartSkel({
   )
   return (
     <M.Box position="relative">
-      {/* @ts-expect-error */}
       <StackedAreaChart
         data={data}
         width={width}
@@ -552,7 +551,6 @@ export default function Downloads({
 
             return (
               <>
-                {/* @ts-expect-error */}
                 <StackedAreaChart
                   data={counts.byExtCollapsed.map((e) =>
                     e.counts.counts.map((i) => Math.log(i.sum + 1)),

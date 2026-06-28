@@ -3,14 +3,54 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as SVG from 'utils/SVG'
+import { TaggedInstance } from 'utils/tagged'
 import usePrevious from 'utils/usePrevious'
 
+interface Cursor {
+  i: number | null
+  j: number
+}
+
+// A single SVG paint (as produced by SVG.Paint) or a list of them.
+type Paint = TaggedInstance
+type Paints = Paint | Paint[]
+
+interface Point {
+  x: number
+  y: number
+}
+
+interface MultiSparklineProps extends Omit<M.BoxProps, 'width' | 'height' | 'ref'> {
+  data: number[][]
+  onCursor?: (cursor: Cursor | null) => void
+  width?: number
+  height?: number
+  areaFills?: Paints
+  lineStroke?: Paint
+  lineThickness?: number
+  axisStroke?: Paint
+  axisThickness?: number
+  cursorStroke?: Paint
+  cursorThickness?: number
+  axis?: boolean
+  extendL?: boolean
+  extendR?: boolean
+  padding?: number
+  px?: number
+  py?: number
+  pt?: number
+  pb?: number
+  pl?: number
+  pr?: number
+  boxProps?: M.BoxProps
+}
+
 export default function MultiSparkline({
-  data, // PT.arrayOf(PT.arrayOf(PT.number)).isRequired,
+  data,
   onCursor,
   width = 200,
   height = 20,
-  areaFills, // array of SVG.Paint
+  areaFills,
   lineStroke = SVG.Paint.Color('currentColor'),
   lineThickness = 1,
   axisStroke = lineStroke,
@@ -29,54 +69,62 @@ export default function MultiSparkline({
   pr = px,
   boxProps,
   ...props
-}) {
-  const stacked = React.useMemo(
+}: MultiSparklineProps) {
+  const stacked: number[][] = React.useMemo(
     () =>
-      R.pipe(
-        R.transpose,
-        R.map(R.reduce((col, i) => col.concat(R.last(col) + i), [0])),
-        R.transpose,
+      (
+        R.pipe(
+          R.transpose,
+          R.map(
+            R.reduce((col: number[], i: number) => col.concat(R.last(col)! + i), [
+              0,
+            ] as number[]),
+          ),
+          R.transpose,
+        ) as (d: number[][]) => number[][]
       )(data),
     [data],
   )
-  const max = React.useMemo(() => Math.max(...R.last(stacked)), [stacked])
+  const max = React.useMemo(() => Math.max(...R.last(stacked)!), [stacked])
   const len = React.useMemo(
     () => Math.max(...data.map((r) => (r ? r.length : 0))),
     [data],
   )
   const vfactor = (height - pt - pb) / max
   const hfactor = (width - pl - pr) / (len - 1)
-  const xScale = React.useMemo(() => (i) => pl + i * hfactor, [pl, hfactor])
-  const yScale = React.useMemo(() => (v) => pt + (max - v) * vfactor, [pt, max, vfactor])
+  const xScale = React.useMemo(() => (i: number) => pl + i * hfactor, [pl, hfactor])
+  const yScale = React.useMemo(
+    () => (v: number) => pt + (max - v) * vfactor,
+    [pt, max, vfactor],
+  )
 
   const mkPoints = React.useMemo(
     () =>
-      R.pipe(
-        R.addIndex(R.map)((v, i) => ({ x: xScale(i), y: yScale(v) })),
-        extendR
-          ? (points) => points.concat({ x: width, y: R.last(points).y })
-          : R.identity,
-        extendL ? (points) => [{ x: 0, y: yScale(0) }].concat(points) : R.identity,
-      ),
+      (vs: number[]): Point[] => {
+        let points: Point[] = vs.map((v, i) => ({ x: xScale(i), y: yScale(v) }))
+        if (extendR) points = points.concat({ x: width, y: R.last(points)!.y })
+        if (extendL) points = [{ x: 0, y: yScale(0) }].concat(points)
+        return points
+      },
     [xScale, yScale, extendL, extendR, width],
   )
 
-  const figures = React.useMemo(
-    () =>
-      R.pipe(
-        R.aperture(2),
-        R.map(([bottom, top]) => ({
-          area: [...mkPoints(top), ...R.reverse(mkPoints(bottom))],
-          stroke: [...mkPoints(top), ...R.reverse(mkPoints(top))],
-        })),
-        R.reverse,
-      )(stacked),
-    [stacked, mkPoints],
-  )
+  interface Figure {
+    area: Point[]
+    stroke: Point[]
+  }
+  const figures: Figure[] = React.useMemo(() => {
+    const pairs = R.aperture(2, stacked) as [number[], number[]][]
+    const figs = pairs.map(([bottom, top]) => ({
+      area: [...mkPoints(top), ...R.reverse(mkPoints(bottom))],
+      stroke: [...mkPoints(top), ...R.reverse(mkPoints(top))],
+    }))
+    return R.reverse(figs)
+  }, [stacked, mkPoints])
 
-  const [cursorI, setCursorI] = React.useState(null)
-  const [cursorJ, setCursorJ] = React.useState(null)
-  const cursor = cursorJ == null ? null : { i: cursorI, j: cursorJ }
+  const [cursorI, setCursorI] = React.useState<number | null>(null)
+  const [cursorJ, setCursorJ] = React.useState<number | null>(null)
+  const cursor: Cursor | null = cursorJ == null ? null : { i: cursorI, j: cursorJ }
 
   usePrevious(cursor, (prev) => {
     if (onCursor && !R.equals(cursor, prev)) {
@@ -85,7 +133,7 @@ export default function MultiSparkline({
   })
 
   const handleMove = React.useCallback(
-    (e) => {
+    (e: React.MouseEvent) => {
       const rect = e.currentTarget.getBoundingClientRect()
       const posX = (e.clientX - rect.x - pl) / (rect.width - pl - pr)
       const j = R.clamp(0, len - 1, Math.round(posX * (len - 1)))
@@ -98,7 +146,7 @@ export default function MultiSparkline({
     setCursorJ(null)
   }, [setCursorJ])
 
-  const handleAreaEnter = (i) => () => {
+  const handleAreaEnter = (i: number) => () => {
     setCursorI(i)
   }
 
@@ -110,8 +158,11 @@ export default function MultiSparkline({
   const axisPaint = SVG.usePaint(axisStroke)
   const cursorPaint = SVG.usePaint(cursorStroke)
 
+  // MUI v4's BoxProps does not pick up the rendered element's attributes when
+  // `component="svg"`, so render through a permissive cast to allow `viewBox`.
+  const Svg = M.Box as React.ComponentType<any>
   return (
-    <M.Box
+    <Svg
       component="svg"
       viewBox={`0 0 ${width} ${height}`}
       onMouseLeave={handleLeave}
@@ -120,7 +171,7 @@ export default function MultiSparkline({
       {...boxProps}
     >
       <defs>
-        {areaPaints.map((p) => p.def)}
+        {areaPaints.map((p: { def: React.ReactElement | null }) => p.def)}
         {!!axis && axisPaint.def}
         {!!onCursor && cursorPaint.def}
       </defs>
@@ -168,6 +219,6 @@ export default function MultiSparkline({
           />
         )}
       </g>
-    </M.Box>
+    </Svg>
   )
 }
