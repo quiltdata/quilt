@@ -16,8 +16,8 @@ import STAT_COUNTS_QUERY from './gql/StatCounts.generated'
 // unknown (`null`) → '?', otherwise the formatted number.
 function count(
   value: number | null | undefined,
-  format: (n: number) => string,
-): string | null {
+  format: (n: number) => React.ReactNode,
+): React.ReactNode {
   if (value === undefined) return null
   if (value === null) return '?'
   return format(value)
