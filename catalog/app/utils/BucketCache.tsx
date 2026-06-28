@@ -1,3 +1,4 @@
+import type { S3 as S3Client } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -6,14 +7,29 @@ import * as S3 from 'utils/AWS/S3'
 import * as Data from 'utils/Data'
 import log from 'utils/Logging'
 
-const CacheCtx = React.createContext()
+interface Cache {
+  head: Record<string, Promise<void>>
+  region: Record<string, string | undefined>
+}
 
-export function BucketCacheProvider({ children }) {
-  const ref = React.useRef({ head: {}, region: {} })
+const CacheCtx = React.createContext<Cache | null>(null)
+
+interface BucketCacheProviderProps {
+  children: React.ReactNode
+}
+
+export function BucketCacheProvider({ children }: BucketCacheProviderProps) {
+  const ref = React.useRef<Cache>({ head: {}, region: {} })
   return <CacheCtx.Provider value={ref.current}>{children}</CacheCtx.Provider>
 }
 
-function bucketExists({ s3, bucket, cache }) {
+interface BucketExistsParams {
+  s3: S3Client
+  bucket: string
+  cache: Cache
+}
+
+function bucketExists({ s3, bucket, cache }: BucketExistsParams) {
   if (!cache.head[bucket]) {
     // eslint-disable-next-line no-param-reassign
     cache.head[bucket] = s3
@@ -25,7 +41,7 @@ function bucketExists({ s3, bucket, cache }) {
       .catch(
         errors.catchErrors([
           [
-            R.propEq('code', 'NotFound'),
+            R.propEq('code', 'NotFound') as (e: unknown) => boolean,
             () => {
               throw new errors.NoSuchBucket()
             },
@@ -36,8 +52,8 @@ function bucketExists({ s3, bucket, cache }) {
   return cache.head[bucket]
 }
 
-export function useBucketExistence(bucket) {
-  const cache = React.useContext(CacheCtx)
+export function useBucketExistence(bucket: string) {
+  const cache = React.useContext(CacheCtx) as Cache
   const s3 = S3.use()
   return Data.use(bucketExists, { s3, bucket, cache })
 }
@@ -45,9 +61,9 @@ export function useBucketExistence(bucket) {
 export { BucketCacheProvider as Provider }
 
 export function useGetCachedBucketRegion() {
-  const cache = React.useContext(CacheCtx)
+  const cache = React.useContext(CacheCtx) as Cache
   return React.useCallback(
-    (bucket) => {
+    (bucket: string) => {
       const region = cache.region[bucket]
       if (!region) {
         log.warn(

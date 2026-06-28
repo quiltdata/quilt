@@ -20,7 +20,32 @@ const PROXIED = Symbol('proxied')
 const PRESIGN = Symbol('presign')
 const FORCE_PROXY = Symbol('forceProxy')
 
-const Ctx = React.createContext()
+// aws-sdk's public types don't expose the internal request fields (`params`,
+// `toUnauthenticated`) or our monkey-patched symbol slots on `httpRequest`, so
+// we describe the loose runtime shape we actually touch here.
+interface PatchedHttpRequest extends AWS.HttpRequest {
+  [PROXIED]?: { endpoint: AWS.Endpoint; path: string }
+  [PRESIGN]?: boolean
+  [FORCE_PROXY]?: boolean
+}
+
+interface SmartRequest extends AWS.Request<any, AWS.AWSError> {
+  params?: { Bucket?: string; forceProxy?: boolean; [key: string]: any }
+  httpRequest: PatchedHttpRequest
+  toUnauthenticated(): void
+}
+
+// `prepareSignedUrl` is an internal aws-sdk method that isn't part of the public
+// S3 type; cast the base so we can call/override it without altering behavior.
+const S3Base = S3 as unknown as {
+  new (...args: ConstructorParameters<typeof S3>): S3 & {
+    prepareSignedUrl(req: SmartRequest): void
+  }
+}
+
+type S3Client = S3
+
+const Ctx = React.createContext<(() => (region?: string) => S3Client) | null>(null)
 
 /**
  * A React hook that returns a function with a stable identity, but which calls the
@@ -28,10 +53,10 @@ const Ctx = React.createContext()
  * breaking memoization when a function is passed down as a prop, while still
  * being able to call the latest version of that function.
  */
-function usePassThruFn(fn) {
-  const fnRef = React.useRef()
+function usePassThruFn<A extends any[], R>(fn: (...args: A) => R) {
+  const fnRef = React.useRef(fn)
   fnRef.current = fn
-  return (...args) => fnRef.current(...args)
+  return (...args: A) => fnRef.current(...args)
 }
 
 function useSmartS3() {
@@ -41,13 +66,13 @@ function useSmartS3() {
   const shouldSign = usePassThruFn(useShouldSign())
 
   return useConstant(() => {
-    class SmartS3 extends S3 {
-      shouldSign(req) {
-        return shouldSign(req.params.Bucket)
+    class SmartS3 extends S3Base {
+      shouldSign(req: SmartRequest) {
+        return shouldSign(req.params?.Bucket)
       }
 
-      customRequestHandler(req) {
-        if (req.params.Bucket) {
+      customRequestHandler(req: SmartRequest) {
+        if (req.params?.Bucket) {
           const endpoint = new AWS.Endpoint(cfg.s3Proxy)
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
@@ -61,7 +86,7 @@ function useSmartS3() {
               endpoint: origEndpoint,
               path: origPath,
             }
-            const basePath = endpoint.path.replace(/\/$/, '')
+            const basePath = (endpoint as any).path.replace(/\/$/, '')
 
             req.httpRequest.endpoint = endpoint
             req.httpRequest.path = `${basePath}/${origEndpoint.host}${origPath}`
@@ -84,22 +109,26 @@ function useSmartS3() {
         }
       }
 
-      prepareSignedUrl(req) {
+      prepareSignedUrl(req: SmartRequest) {
         super.prepareSignedUrl(req)
         if (!req.httpRequest[FORCE_PROXY]) req.httpRequest[PRESIGN] = true
       }
 
-      makeRequest(operation, params, callback) {
+      makeRequest(
+        operation: string,
+        params?: { [key: string]: any } | ((err: AWS.AWSError, data: any) => void),
+        callback?: (err: AWS.AWSError, data: any) => void,
+      ) {
         if (typeof params === 'function') {
           // eslint-disable-next-line no-param-reassign
-          callback = params
+          callback = params as (err: AWS.AWSError, data: any) => void
           // eslint-disable-next-line no-param-reassign
-          params = null
+          params = undefined
         }
 
         const forceProxy = params?.forceProxy ?? false
         delete params?.forceProxy
-        const req = super.makeRequest(operation, params)
+        const req = super.makeRequest(operation, params) as SmartRequest
         if (forceProxy) {
           req.httpRequest[FORCE_PROXY] = true
         }
@@ -117,17 +146,19 @@ function useSmartS3() {
   })
 }
 
-export const Provider = function S3Provider({ children, ...overrides }) {
+type ProviderProps = React.PropsWithChildren<Partial<S3.ClientConfiguration>>
+
+export const Provider = function S3Provider({ children, ...overrides }: ProviderProps) {
   const awsCfg = Config.use()
 
   const SmartS3 = useSmartS3()
 
   const clientFactory = useMemoEqLazy(
-    { ...awsCfg, ...DEFAULT_OPTS, ...overrides },
-    (opts) => {
-      const clients = {}
-      return (region) => {
-        const r = region || opts.region
+    { ...awsCfg, ...DEFAULT_OPTS, ...overrides } as S3.ClientConfiguration,
+    (opts: S3.ClientConfiguration) => {
+      const clients: { [region: string]: S3Client } = {}
+      return (region?: string) => {
+        const r = region || opts.region!
         if (!clients[r]) {
           clients[r] = new SmartS3({ ...opts, region: r })
         }
@@ -150,7 +181,7 @@ export function useS3() {
 // Pass a region to get a region-specific client, or omit for the default (cfg.region).
 export function useS3Factory() {
   Credentials.use().suspend()
-  return React.useContext(Ctx)()
+  return React.useContext(Ctx)!()
 }
 
 export const use = useS3

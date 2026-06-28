@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 import cfg from 'constants/config'
-import { handleToHttpsUri } from 'utils/s3paths'
+import { S3ObjectLocation, handleToHttpsUri } from 'utils/s3paths'
 import { useGetCachedBucketRegion } from 'utils/BucketCache'
 
 import * as Credentials from './Credentials'
@@ -12,9 +12,27 @@ const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
 const POLL_INTERVAL = 10 // in seconds
 const LAG = POLL_INTERVAL * 3
 
-const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
+interface SignerContext {
+  urlExpiration: number
+}
 
-export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
+const Ctx = React.createContext<SignerContext>({ urlExpiration: DEFAULT_URL_EXPIRATION })
+
+interface UseS3SignerOptions {
+  urlExpiration?: number // in seconds
+  forceProxy?: boolean
+}
+
+// Extra options are forwarded as-is to S3.getSignedUrl (e.g.
+// ResponseContentType, ResponseContentDisposition), so keep the sign options
+// permissive rather than tied to S3SignerOptions.
+// loose so it stays compatible with consumers' own signer option types
+type SignOptions = any
+
+export function useS3Signer({
+  urlExpiration: exp,
+  forceProxy = false,
+}: UseS3SignerOptions = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
@@ -22,7 +40,7 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const shouldSign = useShouldSign()
   const getRegion = useGetCachedBucketRegion()
   return React.useCallback(
-    ({ bucket, key, version }, opts = {}) => {
+    ({ bucket, key, version }: S3ObjectLocation, opts: SignOptions = {}): string => {
       if (shouldSign(bucket)) {
         const s3 = s3Factory(getRegion(bucket))
         return s3.getSignedUrl('getObject', {
@@ -44,8 +62,15 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   )
 }
 
-function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
-  const callbackRef = React.useRef()
+interface UsePollingOptions {
+  interval?: number
+}
+
+function usePolling(
+  callback: (now: number) => void,
+  { interval = POLL_INTERVAL }: UsePollingOptions = {},
+) {
+  const callbackRef = React.useRef<(now: number) => void>()
   callbackRef.current = callback
   React.useEffect(() => {
     const int = setInterval(() => {
@@ -57,7 +82,15 @@ function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
   }, [interval])
 }
 
-export function useDownloadUrl(handle, { filename = '', contentType = '' } = {}) {
+interface UseDownloadUrlOptions {
+  filename?: string
+  contentType?: string
+}
+
+export function useDownloadUrl(
+  handle: S3ObjectLocation,
+  { filename = '', contentType = '' }: UseDownloadUrlOptions = {},
+) {
   const { urlExpiration } = React.useContext(Ctx)
   const sign = useS3Signer()
   const filenameSuffix = filename ? `; filename="${filename}"` : ''
@@ -77,15 +110,29 @@ export function useDownloadUrl(handle, { filename = '', contentType = '' } = {})
   return state.url
 }
 
-export function WithDownloadUrl({ handle, children }) {
-  return children(useDownloadUrl(handle))
+interface WithDownloadUrlProps {
+  handle: S3ObjectLocation
+  children: (url: string) => React.ReactNode
 }
 
-export const withDownloadUrl = (handle, callback) => (
-  <WithDownloadUrl handle={handle}>{callback}</WithDownloadUrl>
-)
+export function WithDownloadUrl({ handle, children }: WithDownloadUrlProps) {
+  return <>{children(useDownloadUrl(handle))}</>
+}
 
-export function AWSSignerProvider({ children, urlExpiration = DEFAULT_URL_EXPIRATION }) {
+export const withDownloadUrl = (
+  handle: S3ObjectLocation,
+  callback: (url: string) => React.ReactNode,
+) => <WithDownloadUrl handle={handle}>{callback}</WithDownloadUrl>
+
+interface AWSSignerProviderProps {
+  children: React.ReactNode
+  urlExpiration?: number
+}
+
+export function AWSSignerProvider({
+  children,
+  urlExpiration = DEFAULT_URL_EXPIRATION,
+}: AWSSignerProviderProps) {
   return <Ctx.Provider value={{ urlExpiration }}>{children}</Ctx.Provider>
 }
 
