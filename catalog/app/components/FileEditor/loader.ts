@@ -70,7 +70,8 @@ const typeNone: EditorInputType = {
 }
 
 export const detect: (path: string) => EditorInputType[] = R.pipe(
-  PreviewUtils.stripCompression,
+  // cast breaks Ramda's point-free overload resolution against the typed util
+  PreviewUtils.stripCompression as any,
   R.cond([
     [isQuiltSummarize, R.always([typeQuiltSummarize, typeJson])],
     [isBucketPreferences, R.always([typeBucketPreferences, typeYaml])],

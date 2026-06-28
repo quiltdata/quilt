@@ -16,7 +16,7 @@ const reducer = Action.reducer({
   Reset: () => () => initial,
   Request:
     ({ request, params }) =>
-    (prev) =>
+    (prev: unknown) =>
       AsyncResult.Pending({ request, params, prev: mapResult(prev) }),
   Response: ({ request, params, result }) =>
     AsyncResult.case({
@@ -28,24 +28,56 @@ const reducer = Action.reducer({
     }),
 })
 
+// `result` is an AsyncResult tagged instance and `cases` are passed through to
+// the legacy (dynamically typed) tagged union, so both stay loose — matching
+// the actual runtime contract consumers rely on (they feed `result` into
+// `AsyncResult.case` and call `.case(cases, ...)` for any variant set).
+// Accepts any variant-cases object — kept fully loose so a DataHook stays
+// assignable to consumers' own typed AsyncData<T> case signatures.
+type Cases = any
+
+interface DataResult {
+  case: (cases: Cases, ...args: any[]) => any
+  result: unknown
+}
+
 // Use it to test AsyncResult states
 // example: `createResult(AsyncResult.Err(new Error('Expected')))`
-export function createResult(result) {
+export function createResult(result: unknown): DataResult {
   return {
-    case: (cases, ...args) => AsyncResult.case(cases, result, ...args),
+    case: (cases: Cases, ...args: any[]) => AsyncResult.case(cases, result, ...args),
     result,
   }
 }
 
-export function useData(request, params, { noAutoFetch = false } = {}) {
+interface UseDataOptions {
+  noAutoFetch?: boolean
+}
+
+interface DataHook extends DataResult {
+  fetch: () => Promise<unknown>
+}
+
+export function useData(
+  // params are intentionally loose: the hook is used across many call sites with
+  // heterogeneous request/param shapes (matching the legacy untyped contract).
+  request: (params: any) => Promise<unknown>,
+  params: any,
+  { noAutoFetch = false }: UseDataOptions = {},
+): DataHook {
   // TODO: accept custom key extraction fn (params => key for comparison)
   const [state, setState] = React.useState(initial)
-  const stateRef = React.useRef()
+  const stateRef = React.useRef<unknown>()
   stateRef.current = state
 
   const mountRef = React.useRef(true)
-  React.useEffect(() => () => (mountRef.current = false), [])
-  const dispatch = (action) => {
+  React.useEffect(
+    () => () => {
+      mountRef.current = false
+    },
+    [],
+  )
+  const dispatch = (action: unknown) => {
     if (!mountRef.current) return
     setState((stateRef.current = reducer(stateRef.current, action)))
   }
@@ -72,7 +104,7 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
   const doCase = useMemoEq(
     [result],
     () =>
-      (cases, ...args) =>
+      (cases: Cases, ...args: any[]) =>
         AsyncResult.case(cases, result, ...args),
   )
 
@@ -81,7 +113,14 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
 
 export const use = useData
 
-export function Fetcher({ fetch, params, noAutoFetch, children }) {
+interface FetcherProps {
+  fetch: (params: any) => Promise<unknown>
+  params: any
+  noAutoFetch?: boolean
+  children: (result: unknown, rest: Omit<DataHook, 'result'>) => React.ReactNode
+}
+
+export function Fetcher({ fetch, params, noAutoFetch, children }: FetcherProps) {
   const { result, ...rest } = useData(fetch, params, { noAutoFetch })
   return children(result, rest)
 }
