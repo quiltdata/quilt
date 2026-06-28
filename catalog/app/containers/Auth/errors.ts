@@ -1,11 +1,19 @@
 import { BaseError } from 'utils/error'
 
-const withDefaultMessage = (message, props) => ({ message, ...props })
+interface AuthErrorProps {
+  message?: string
+  [k: string]: any
+}
+
+const withDefaultMessage = (message: string, props?: AuthErrorProps) => ({
+  message,
+  ...props,
+})
 
 export class AuthError extends BaseError {
   static displayName = 'AuthError'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     const { message, ...rest } = withDefaultMessage('auth error', props)
     super(message, rest)
   }
@@ -14,7 +22,7 @@ export class AuthError extends BaseError {
 export class NoDefaultRole extends AuthError {
   static displayName = 'NoDefaultRole'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('default role not set', props))
   }
 }
@@ -22,7 +30,7 @@ export class NoDefaultRole extends AuthError {
 export class InvalidToken extends AuthError {
   static displayName = 'InvalidToken'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('invalid token', props))
   }
 }
@@ -30,7 +38,7 @@ export class InvalidToken extends AuthError {
 export class InvalidCredentials extends AuthError {
   static displayName = 'InvalidCredentials'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('invalid credentials', props))
   }
 }
@@ -38,15 +46,19 @@ export class InvalidCredentials extends AuthError {
 export class EmailTaken extends AuthError {
   static displayName = 'EmailTaken'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('email taken', props))
   }
+}
+
+interface EmailDomainNotAllowedProps extends AuthErrorProps {
+  domain?: string
 }
 
 export class EmailDomainNotAllowed extends AuthError {
   static displayName = 'EmailDomainNotAllowed'
 
-  constructor(props) {
+  constructor(props: EmailDomainNotAllowedProps) {
     super(withDefaultMessage(`email domain not allowed: "${props.domain}"`, props))
   }
 }
@@ -54,7 +66,7 @@ export class EmailDomainNotAllowed extends AuthError {
 export class UsernameTaken extends AuthError {
   static displayName = 'UsernameTaken'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('username taken', props))
   }
 }
@@ -62,7 +74,7 @@ export class UsernameTaken extends AuthError {
 export class InvalidUsername extends AuthError {
   static displayName = 'InvalidUsername'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('invalid username', props))
   }
 }
@@ -70,7 +82,7 @@ export class InvalidUsername extends AuthError {
 export class InvalidEmail extends AuthError {
   static displayName = 'InvalidEmail'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('invalid email', props))
   }
 }
@@ -78,7 +90,7 @@ export class InvalidEmail extends AuthError {
 export class InvalidPassword extends AuthError {
   static displayName = 'InvalidPassword'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('invalid password', props))
   }
 }
@@ -86,7 +98,7 @@ export class InvalidPassword extends AuthError {
 export class PassChangeUserNotFound extends AuthError {
   static displayName = 'PassChangeUserNotFound'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('user not found', props))
   }
 }
@@ -94,7 +106,7 @@ export class PassChangeUserNotFound extends AuthError {
 export class PassChangeNotAllowed extends AuthError {
   static displayName = 'PassChangeNotAllowed'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('user not allowed to reset password', props))
   }
 }
@@ -102,7 +114,7 @@ export class PassChangeNotAllowed extends AuthError {
 export class PassChangeInvalidToken extends AuthError {
   static displayName = 'PassChangeInvalidToken'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('invalid token', props))
   }
 }
@@ -110,7 +122,7 @@ export class PassChangeInvalidToken extends AuthError {
 export class SMTPError extends AuthError {
   static displayName = 'SMTPError'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('SMTP error', props))
   }
 }
@@ -118,15 +130,21 @@ export class SMTPError extends AuthError {
 export class SSOUserNotFound extends AuthError {
   static displayName = 'SSOUserNotFound'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('linked user not found', props))
   }
+}
+
+interface SSOErrorProps extends AuthErrorProps {
+  provider?: string
+  code?: string
+  details?: string
 }
 
 export class SSOError extends AuthError {
   static displayName = 'SSOError'
 
-  constructor(props) {
+  constructor(props: SSOErrorProps) {
     super(
       withDefaultMessage(`[${props.provider}] ${props.code}: ${props.details}`, props),
     )
@@ -136,7 +154,7 @@ export class SSOError extends AuthError {
 export class SubscriptionInvalid extends AuthError {
   static displayName = 'SubscriptionInvalid'
 
-  constructor(props) {
+  constructor(props?: AuthErrorProps) {
     super(withDefaultMessage('Subscription invalid', props))
   }
 }

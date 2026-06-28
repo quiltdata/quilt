@@ -24,8 +24,8 @@ export default handleTransitions(get('state'), {
     [actions.SIGN_IN_RESULT]: handleResult({
       resolve: combine({
         state: 'SIGNED_IN',
-        user: (p) => fromJS(p.user),
-        tokens: (p) => fromJS(p.tokens),
+        user: (p: any) => fromJS(p.user),
+        tokens: (p: any) => fromJS(p.tokens),
         sessionId: () => R.inc,
       }),
       reject: combine({
@@ -56,8 +56,8 @@ export default handleTransitions(get('state'), {
     [actions.REFRESH_RESULT]: handleResult({
       resolve: combine({
         state: 'SIGNED_IN',
-        tokens: ({ tokens }) => fromJS(tokens),
-        user: ({ user }) => (user ? fromJS(user) : noop),
+        tokens: ({ tokens }: any) => fromJS(tokens),
+        user: ({ user }: any) => (user ? fromJS(user) : noop),
       }),
       reject: combine({
         state: 'SIGNED_OUT',
