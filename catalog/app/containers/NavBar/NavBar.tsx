@@ -36,7 +36,7 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
   },
 }))
 
-function LogoLink() {
+export function LogoLink() {
   const settings = CatalogSettings.use()
   const classes = useLogoLinkStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
