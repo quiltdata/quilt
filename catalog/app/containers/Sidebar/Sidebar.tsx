@@ -10,7 +10,9 @@ const useStyles = M.makeStyles((t) => ({
     borderRight: `1px solid ${t.palette.divider}`,
     display: 'flex',
     flexDirection: 'column',
-    height: '100vh',
+    // Fills the row beneath the full-width header (flex stretch); the bucket
+    // zone scrolls internally so the pinned zones stay visible.
+    minHeight: 0,
     width: 280,
   },
   global: {

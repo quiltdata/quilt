@@ -39,15 +39,20 @@ export function Root({ dark = false, ...props }: RootProps) {
 const useShellStyles = M.makeStyles({
   shell: {
     display: 'flex',
-    minHeight: '100vh',
+    flexDirection: 'column',
+    height: '100vh',
     overflowX: 'hidden',
     position: 'relative',
+  },
+  body: {
+    display: 'flex',
+    flexGrow: 1,
+    minHeight: 0,
   },
   main: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
-    height: '100vh',
     minWidth: 0,
     overflowY: 'auto',
   },
@@ -79,21 +84,24 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
     )
   }
 
+  // Full-width header on top; the sidebar + content row sits beneath it.
   return (
     <M.Box
       className={classes.shell}
       bgcolor={dark ? 'primary.main' : 'background.default'}
     >
-      <Sidebar />
-      <M.Box component="main" className={classes.main}>
-        <Container.FullWidthProvider>
-          <TopBar />
-          {!!pre && pre}
-          {!!children && <M.Box p={4}>{children}</M.Box>}
-          <M.Box flexGrow={1} />
-          {isHomepage?.isExact && <Footer />}
-        </Container.FullWidthProvider>
-      </M.Box>
+      <TopBar />
+      <div className={classes.body}>
+        <Sidebar />
+        <M.Box component="main" className={classes.main}>
+          <Container.FullWidthProvider>
+            {!!pre && pre}
+            {!!children && <M.Box p={4}>{children}</M.Box>}
+            <M.Box flexGrow={1} />
+            {isHomepage?.isExact && <Footer />}
+          </Container.FullWidthProvider>
+        </M.Box>
+      </div>
     </M.Box>
   )
 }
