@@ -10,12 +10,6 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 
 import { useBucketSection } from './useBucketSection'
 
-const useStyles = M.makeStyles((t) => ({
-  active: {
-    fontWeight: t.typography.fontWeightBold,
-  },
-}))
-
 interface NavListProps {
   bucket: string
   preferences: BucketPreferences.NavPreferences
@@ -23,7 +17,6 @@ interface NavListProps {
 }
 
 function NavList({ bucket, preferences, section }: NavListProps) {
-  const classes = useStyles()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   const items = [
@@ -64,13 +57,14 @@ function NavList({ bucket, preferences, section }: NavListProps) {
       {items
         .filter((i) => i.show)
         .map((i) => (
-          <M.ListItem button component={Link} to={i.to} key={i.value}>
-            <M.ListItemText
-              primary={i.label}
-              primaryTypographyProps={
-                section === i.value ? { className: classes.active } : undefined
-              }
-            />
+          <M.ListItem
+            button
+            component={Link}
+            to={i.to}
+            key={i.value}
+            selected={section === i.value}
+          >
+            <M.ListItemText primary={i.label} />
           </M.ListItem>
         ))}
     </M.List>

@@ -61,7 +61,7 @@ const useStyles = M.makeStyles((t) => ({
   // Indent the active bucket's destinations to mark them as nested under the
   // `s3://<bucket>` node.
   nested: {
-    paddingLeft: t.spacing(2),
+    paddingLeft: t.spacing(3),
   },
 }))
 
