@@ -235,7 +235,6 @@ function ItemContents({ icon, primary, secondary }: ItemContentsProps) {
 function useGetAuthItems() {
   const { urls } = NamedRoutes.use()
   const switchRole = useRoleSwitcher()
-  const bookmarks = Bookmarks.use()
 
   return function getAuthLinks(user: Me) {
     const items: ItemDescriptor[] = []
@@ -268,21 +267,7 @@ function useGetAuthItems() {
 
     items.push(ItemDescriptor.Divider())
 
-    if (bookmarks) {
-      items.push(
-        ItemDescriptor.Click(
-          bookmarks.show,
-          <ItemContents
-            icon={
-              <M.Badge invisible={!bookmarks?.hasUpdates} color="secondary" variant="dot">
-                <M.Icon>bookmarks_outline</M.Icon>
-              </M.Badge>
-            }
-            primary="Bookmarks"
-          />,
-        ),
-      )
-    }
+    // Bookmarks now live in the persistent Sidebar's global zone, not here.
 
     if (user.isAdmin) {
       items.push(

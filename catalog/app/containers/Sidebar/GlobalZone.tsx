@@ -11,6 +11,16 @@ export function GlobalZone() {
   const bookmarks = Bookmarks.use()
   const [bookmarksOpen, setBookmarksOpen] = React.useState(false)
 
+  const toggleBookmarks = React.useCallback(() => {
+    setBookmarksOpen((open) => {
+      // Mirror the old drawer: opening marks the list as seen so new bookmarks
+      // re-flag updates; closing clears the updates badge (hide()).
+      if (open) bookmarks?.hide()
+      else bookmarks?.show()
+      return !open
+    })
+  }, [bookmarks])
+
   return (
     <M.List disablePadding>
       <M.ListItem button component={Link} to={urls.home()}>
@@ -20,7 +30,7 @@ export function GlobalZone() {
         <M.ListItemText primary="Home" />
       </M.ListItem>
 
-      <M.ListItem button onClick={() => setBookmarksOpen((v) => !v)}>
+      <M.ListItem button onClick={toggleBookmarks}>
         <M.ListItemIcon>
           <M.Badge color="secondary" variant="dot" invisible={!bookmarks?.hasUpdates}>
             <M.Icon>{bookmarksOpen ? 'bookmarks' : 'bookmark_border'}</M.Icon>
