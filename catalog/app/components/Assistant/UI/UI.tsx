@@ -40,26 +40,18 @@ function Sidebar() {
   )
 }
 
-const useTriggerStyles = M.makeStyles({
-  trigger: {
-    bottom: '50px',
-    position: 'fixed',
-    right: '100px',
-    zIndex: 1,
-  },
-})
-
-function Trigger() {
-  const classes = useTriggerStyles()
+export function Trigger() {
   const api = Model.useAssistantAPI()
   const inlined = InlinePresence.useInlined()
-  if (!api || inlined) return null
+  if (!api || inlined || api.visible) return null
   return (
-    <M.Zoom in={!api.visible}>
-      <M.Fab onClick={api.show} className={classes.trigger} color="primary">
-        <M.Icon>assistant</M.Icon>
-      </M.Fab>
-    </M.Zoom>
+    <M.IconButton
+      color="inherit"
+      onClick={api.show}
+      aria-label="Open Qurator AI assistant"
+    >
+      <M.Icon>assistant</M.Icon>
+    </M.IconButton>
   )
 }
 
@@ -67,7 +59,6 @@ export function WithAssistantUI({ children }: React.PropsWithChildren<{}>) {
   return (
     <InlinePresence.Provider>
       {children}
-      <Trigger />
       <Sidebar />
     </InlinePresence.Provider>
   )
