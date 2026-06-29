@@ -17,11 +17,11 @@ const useStyles = M.makeStyles((t) => ({
     // Fills the row beneath the full-width header (flex stretch); the bucket
     // zone scrolls internally so the pinned zones stay visible.
     minHeight: 0,
+    paddingTop: t.spacing(2),
     width: t.spacing(SIDEBAR_WIDTH),
   },
-  global: {
-    flex: '0 0 auto',
-  },
+  // The bucket accordion owns the flexible space and scrolls; the global links
+  // and account zones are pinned beneath it.
   bucket: {
     display: 'flex',
     flex: '1 1 0',
@@ -29,7 +29,7 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 0,
     overflow: 'auto',
   },
-  account: {
+  pinned: {
     flex: '0 0 auto',
   },
 }))
@@ -38,13 +38,15 @@ export function Sidebar() {
   const classes = useStyles()
   return (
     <nav className={classes.root}>
-      <div className={classes.global}>
-        <GlobalZone />
-      </div>
       <div className={classes.bucket}>
         <BucketZone />
       </div>
-      <div className={classes.account}>
+      <M.Divider />
+      <div className={classes.pinned}>
+        <GlobalZone />
+      </div>
+      <M.Divider />
+      <div className={classes.pinned}>
         <AccountZone />
       </div>
     </nav>

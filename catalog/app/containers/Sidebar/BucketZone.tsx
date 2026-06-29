@@ -47,6 +47,11 @@ const useStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
     paddingLeft: t.spacing(2),
   },
+  // Indent the active bucket's destinations to mark them as nested under the
+  // `s3://<bucket>` node.
+  nested: {
+    paddingLeft: t.spacing(2),
+  },
 }))
 
 interface BucketListProps {
@@ -75,7 +80,11 @@ function BucketList({ query }: BucketListProps) {
             >
               <M.ListItemText primary={`s3://${b.name}`} />
             </M.ListItem>
-            {isActive && <BucketNav.Nav bucket={b.name} />}
+            {isActive && (
+              <div className={classes.nested}>
+                <BucketNav.Nav bucket={b.name} />
+              </div>
+            )}
           </React.Fragment>
         )
       })}

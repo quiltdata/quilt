@@ -23,13 +23,6 @@ export function GlobalZone() {
 
   return (
     <M.List disablePadding>
-      <M.ListItem button component={Link} to={urls.home()}>
-        <M.ListItemIcon>
-          <M.Icon>home</M.Icon>
-        </M.ListItemIcon>
-        <M.ListItemText primary="Home" />
-      </M.ListItem>
-
       <M.ListItem button onClick={toggleBookmarks}>
         <M.ListItemIcon>
           <M.Badge color="secondary" variant="dot" invisible={!bookmarks?.hasUpdates}>
