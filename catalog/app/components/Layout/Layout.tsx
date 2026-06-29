@@ -3,11 +3,12 @@ import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
-import * as Bookmarks from 'containers/Bookmarks'
 import * as NavBar from 'containers/NavBar'
+import { Sidebar } from 'containers/Sidebar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as Container from './Container'
+import { TopBar } from './TopBar'
 
 const useRootStyles = M.makeStyles({
   root: {
@@ -35,6 +36,23 @@ export function Root({ dark = false, ...props }: RootProps) {
   )
 }
 
+const useShellStyles = M.makeStyles({
+  shell: {
+    display: 'flex',
+    minHeight: '100vh',
+    overflowX: 'hidden',
+    position: 'relative',
+  },
+  main: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    height: '100vh',
+    minWidth: 0,
+    overflowY: 'auto',
+  },
+})
+
 export interface LayoutProps {
   bare?: boolean
   dark?: boolean
@@ -45,20 +63,38 @@ export interface LayoutProps {
 export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
-  const bucketRoute = useRouteMatch(paths.bucketRoot)
-  const { bucket } = (bucketRoute?.params as { bucket?: string }) || {}
-  const bookmarks = Bookmarks.use()
+  const classes = useShellStyles()
+
+  // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
+  if (bare) {
+    return (
+      <Root dark={dark}>
+        <Container.FullWidthProvider>
+          <NavBar.Container />
+          {!!pre && pre}
+          {!!children && <M.Box p={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+        </Container.FullWidthProvider>
+      </Root>
+    )
+  }
+
   return (
-    <Root dark={dark}>
-      <Container.FullWidthProvider>
-        {bare ? <NavBar.Container /> : <NavBar.NavBar />}
-        {!!pre && pre}
-        {!!children && <M.Box p={4}>{children}</M.Box>}
-        <M.Box flexGrow={1} />
-        {isHomepage?.isExact && <Footer />}
-        {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
-      </Container.FullWidthProvider>
-    </Root>
+    <M.Box
+      className={classes.shell}
+      bgcolor={dark ? 'primary.main' : 'background.default'}
+    >
+      <Sidebar />
+      <M.Box component="main" className={classes.main}>
+        <Container.FullWidthProvider>
+          <TopBar />
+          {!!pre && pre}
+          {!!children && <M.Box p={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+          {isHomepage?.isExact && <Footer />}
+        </Container.FullWidthProvider>
+      </M.Box>
+    </M.Box>
   )
 }
 
