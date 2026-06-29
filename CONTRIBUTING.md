@@ -154,52 +154,35 @@ If you believe an infrastructure change is needed:
 Keeping infrastructure out of feature PRs keeps your contribution reviewable and
 mergeable, and keeps deployment changes on a controlled path.
 
-## Setting up a local dev environment
+## You don't need to run Quilt locally to contribute
 
-Detailed, component-by-component setup lives in
-[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md). In brief:
+The most valuable community contributions are **feature requirements and
+documentation**, not implementation. When you file a feature request you
+describe the problem and the behavior you need; the Quilt team then designs,
+builds, and tests the implementation. There's nothing for you to deploy or run
+end-to-end, so a local Quilt stack is **not** an expectation and is never a
+blocker to contributing:
 
-- **Python SDK / CLI (`api/python`):** we use [`uv`](https://github.com/astral-sh/uv)
-  for dependency management. Install `uv`, then `uv run poe test` runs the test
-  suite. Run `uv run poe` to list all tasks. This path works fully locally.
-- **Catalog frontend (`catalog`):** `npm install`, then `npm start` for a
-  live-reloading dev server, `npm run build` for a static bundle.
+- **Feature requests and bug reports:** no setup required — just open an issue.
+- **Documentation fixes:** edit the Markdown and open a PR; no stack required.
 
-### Do you actually need a running stack?
-
-For most contributions, **no.** Be honest with yourself about what your change
-needs:
-
-- **Filing a feature request or bug report:** no stack required. Just open an
-  issue.
-- **Docs fixes, and small or self-contained code changes:** no stack required.
-  Many parts of the codebase can be developed and tested in isolation — the
-  Python SDK/CLI (`api/python`) runs and tests fully locally (`uv run poe
-  test`), and the catalog frontend (`catalog`) builds and runs its unit tests
-  locally (`npm run build`, `npm run test`).
-- **Substantial catalog or lambda changes that need live backend services:**
-  these do need a deployed stack to exercise end-to-end. The catalog depends on
-  services (AWS Lambda, Elasticsearch/OpenSearch) that don't run standalone, so
-  a local catalog expects a Quilt stack already deployed to AWS. The
-  component-by-component setup for this path is documented in
-  [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
-
-If your change needs end-to-end validation against backend services and you
-can't deploy a stack, say so in your issue or PR: open the issue first, describe
-what you've verified locally (unit tests, local catalog/CLI behavior), and a
-maintainer will help validate the change against an internal stack during
-review. We'd rather review a focused change you've tested as far as you can
-locally than have you blocked on infrastructure.
+For the rare case where you want to send a deeper code change, the detailed,
+component-by-component development setup lives in
+[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md). Even then, verify what you
+reasonably can and open the PR — the Quilt team owns full end-to-end testing
+against an internal stack as part of review.
 
 ## Testing and quality checks
 
-- **All new code is expected to ship with tests** and to pass the existing
-  suite.
+Most contributors never reach this step — the Quilt team implements and tests
+accepted requests, and owns full end-to-end testing against an internal stack
+during review. If you are sending a code change, the local checks worth running
+first are:
+
 - **Python (`api/python`):** `uv run poe test` (and `test-verbose`, `test-cov`).
 - **Catalog (`catalog`):** `npm run test`.
 - Linting and formatting are configured in-repo (for example, `ruff` for Python
-  and the catalog's lint/format tooling). Run the project's lint tasks before
-  opening a PR so CI passes on the first try; `uv run poe` lists the available
+  and the catalog's lint/format tooling). `uv run poe` lists the available
   Python tasks, and the catalog's scripts are defined in `catalog/package.json`.
 
 ## Code of Conduct
