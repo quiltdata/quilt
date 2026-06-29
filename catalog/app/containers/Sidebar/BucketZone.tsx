@@ -37,7 +37,7 @@ const useStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.fontWeightMedium,
   },
   filter: {
-    width: 120,
+    width: t.spacing(15),
   },
   bucketList: {
     flexGrow: 1,

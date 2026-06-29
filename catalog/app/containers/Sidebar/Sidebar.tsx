@@ -5,6 +5,10 @@ import { AccountZone } from './AccountZone'
 import { BucketZone } from './BucketZone'
 import { GlobalZone } from './GlobalZone'
 
+// Rail width, in theme.spacing() units (× 8px = 280px). Exported so the
+// collapsible follow-on can offset the main content by the same amount.
+export const SIDEBAR_WIDTH = 35
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     borderRight: `1px solid ${t.palette.divider}`,
@@ -13,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
     // Fills the row beneath the full-width header (flex stretch); the bucket
     // zone scrolls internally so the pinned zones stay visible.
     minHeight: 0,
-    width: 280,
+    width: t.spacing(SIDEBAR_WIDTH),
   },
   global: {
     flex: '0 0 auto',
