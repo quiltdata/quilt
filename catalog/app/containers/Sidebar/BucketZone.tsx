@@ -45,9 +45,9 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 0,
     overflowY: 'auto',
   },
-  activeHeader: {
-    background: t.palette.action.selected,
-    paddingLeft: t.spacing(2),
+  // The active bucket is marked with bold text rather than a background.
+  active: {
+    fontWeight: t.typography.fontWeightBold,
   },
   // Match the icon→label gap of the account menu (NavMenu's ItemContents), and
   // render the bucket icon at 24px like the other list icons.
@@ -118,11 +118,14 @@ function BucketsBody({ query }: BucketsBodyProps) {
       {active && (
         <div className={classes.activeBlock}>
           <M.List disablePadding dense>
-            <M.ListItem className={classes.activeHeader} selected>
+            <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
                 <BucketIcon src={active.iconUrl} title={active.title} />
               </M.ListItemIcon>
-              <M.ListItemText primary={`s3://${active.name}`} />
+              <M.ListItemText
+                primary={`s3://${active.name}`}
+                primaryTypographyProps={{ className: classes.active }}
+              />
             </M.ListItem>
             <div className={classes.nested}>
               <BucketNav.Nav bucket={active.name} />
@@ -130,7 +133,6 @@ function BucketsBody({ query }: BucketsBodyProps) {
           </M.List>
         </div>
       )}
-      {active && !!others.length && <M.Divider />}
       <M.List className={classes.bucketList} disablePadding dense>
         {others.map((b) => (
           <BucketRow key={b.name} bucket={b} />

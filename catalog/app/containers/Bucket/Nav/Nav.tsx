@@ -10,6 +10,12 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 
 import { useBucketSection } from './useBucketSection'
 
+const useStyles = M.makeStyles((t) => ({
+  active: {
+    fontWeight: t.typography.fontWeightBold,
+  },
+}))
+
 interface NavListProps {
   bucket: string
   preferences: BucketPreferences.NavPreferences
@@ -17,68 +23,56 @@ interface NavListProps {
 }
 
 function NavList({ bucket, preferences, section }: NavListProps) {
+  const classes = useStyles()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
+  const items = [
+    { value: 'overview', label: 'Overview', to: urls.bucketOverview(bucket), show: true },
+    {
+      value: 'tree',
+      label: 'Files',
+      to: urls.bucketDir(bucket),
+      show: preferences.files,
+    },
+    {
+      value: 'workflows',
+      label: 'Workflows',
+      to: urls.bucketWorkflowList(bucket),
+      show: preferences.workflows,
+    },
+    {
+      value: 'packages',
+      label: 'Packages',
+      to: urls.bucketPackageList(bucket),
+      show: preferences.packages,
+    },
+    {
+      value: 'queries',
+      label: 'Queries',
+      to: urls.bucketQueries(bucket),
+      show: preferences.queries && authenticated,
+    },
+    {
+      value: 'es',
+      label: 'ElasticSearch',
+      to: urls.bucketESQueries(bucket),
+      show: preferences.queries && (section === 'queries' || section === 'es'),
+    },
+  ]
   return (
     <M.List disablePadding dense>
-      <M.ListItem
-        button
-        component={Link}
-        to={urls.bucketOverview(bucket)}
-        selected={section === 'overview'}
-      >
-        <M.ListItemText primary="Overview" />
-      </M.ListItem>
-      {preferences.files && (
-        <M.ListItem
-          button
-          component={Link}
-          to={urls.bucketDir(bucket)}
-          selected={section === 'tree'}
-        >
-          <M.ListItemText primary="Files" />
-        </M.ListItem>
-      )}
-      {preferences.workflows && (
-        <M.ListItem
-          button
-          component={Link}
-          to={urls.bucketWorkflowList(bucket)}
-          selected={section === 'workflows'}
-        >
-          <M.ListItemText primary="Workflows" />
-        </M.ListItem>
-      )}
-      {preferences.packages && (
-        <M.ListItem
-          button
-          component={Link}
-          to={urls.bucketPackageList(bucket)}
-          selected={section === 'packages'}
-        >
-          <M.ListItemText primary="Packages" />
-        </M.ListItem>
-      )}
-      {preferences.queries && authenticated && (
-        <M.ListItem
-          button
-          component={Link}
-          to={urls.bucketQueries(bucket)}
-          selected={section === 'queries'}
-        >
-          <M.ListItemText primary="Queries" />
-        </M.ListItem>
-      )}
-      {preferences.queries && (section === 'queries' || section === 'es') && (
-        <M.ListItem
-          button
-          component={Link}
-          to={urls.bucketESQueries(bucket)}
-          selected={section === 'es'}
-        >
-          <M.ListItemText primary="ElasticSearch" />
-        </M.ListItem>
-      )}
+      {items
+        .filter((i) => i.show)
+        .map((i) => (
+          <M.ListItem button component={Link} to={i.to} key={i.value}>
+            <M.ListItemText
+              primary={i.label}
+              primaryTypographyProps={
+                section === i.value ? { className: classes.active } : undefined
+              }
+            />
+          </M.ListItem>
+        ))}
     </M.List>
   )
 }
