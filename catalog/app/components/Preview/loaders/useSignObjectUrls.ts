@@ -81,7 +81,6 @@ export default function useSignObjectUrls(
   opts?: { asyncReady?: boolean },
 ) {
   const resolveLogicalKey = LogicalKeyResolver.use()
-  // @ts-expect-error
   const sign = AWS.Signer.useS3Signer({ forceProxy: true })
   const resolvePath = React.useMemo(
     () => createPathResolver(resolveLogicalKey, handle),

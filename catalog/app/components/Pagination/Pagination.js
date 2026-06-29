@@ -20,6 +20,14 @@ function useHasChanged(value, getKey = R.identity) {
   return !R.equals(key, oldKey)
 }
 
+/**
+ * @param {readonly any[]} items
+ * @param {{
+ *   getItemId?: (item: any) => any
+ *   perPage?: number
+ *   onChange?: (prev: number, page: number) => void
+ * }} [opts]
+ */
 export const usePagination = (
   items,
   { getItemId = R.identity, perPage: initialPerPage = PER_PAGE, onChange } = {},
