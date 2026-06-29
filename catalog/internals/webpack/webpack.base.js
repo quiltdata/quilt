@@ -6,7 +6,6 @@ const path = require('path')
 
 const PerspectivePlugin = require('@finos/perspective-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
 
@@ -43,7 +42,7 @@ module.exports = (options) => ({
         use: {
           loader: 'ts-loader',
           options: {
-            // disable type checking - we use ForkTsCheckerWebpackPlugin for that
+            // disable type checking - the standalone `npm run typecheck` (tsc) is the type gate
             transpileOnly: true,
           },
         },
@@ -121,8 +120,6 @@ module.exports = (options) => ({
       template: 'app/index.html',
       inject: true,
     }),
-
-    new ForkTsCheckerWebpackPlugin(),
 
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
