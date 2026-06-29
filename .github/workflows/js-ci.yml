@@ -21,9 +21,6 @@ jobs:
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
       - run: npm run lint
-      # Type gate is now a standalone `tsc --noEmit`: the webpack build is
-      # transpile-only (ForkTsCheckerWebpackPlugin removed), so typecheck runs
-      # explicitly here instead of inside `npm run build`.
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
