@@ -7,6 +7,8 @@ import * as NavMenu from 'containers/NavBar/NavMenu'
 import * as Subscription from 'containers/NavBar/Subscription'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import { SectionHeader } from './SectionHeader'
+
 function SignIn() {
   const { urls } = NamedRoutes.use()
   return (
@@ -23,31 +25,38 @@ export function AccountZone() {
   const subscription = Subscription.useState()
   const auth = NavMenu.useAuthState()
   const getAuthItems = NavMenu.useGetAuthItems()
+  const [expanded, setExpanded] = React.useState(true)
+  const toggle = React.useCallback(() => setExpanded((e) => !e), [])
 
   return (
-    <M.List disablePadding dense>
-      {subscription.invalid && (
-        <M.ListItem>
-          <M.ListItemIcon>
-            <M.Icon color="error">warning</M.Icon>
-          </M.ListItemIcon>
-          <M.ListItemText primary="Unlicensed" />
-        </M.ListItem>
-      )}
-      {cfg.mode !== 'LOCAL' &&
-        NavMenu.AuthState.match({
-          Ready: ({ user }) =>
-            user ? <NavMenu.AuthItemsList items={getAuthItems(user)} /> : <SignIn />,
-          Loading: () => (
+    <>
+      <SectionHeader title="Account" expanded={expanded} onToggle={toggle} />
+      <M.Collapse in={expanded}>
+        <M.List disablePadding dense>
+          {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon>
-                <M.CircularProgress size={20} />
+                <M.Icon color="error">warning</M.Icon>
               </M.ListItemIcon>
-              <M.ListItemText primary="Loading…" />
+              <M.ListItemText primary="Unlicensed" />
             </M.ListItem>
-          ),
-          Error: () => <SignIn />,
-        })(auth)}
-    </M.List>
+          )}
+          {cfg.mode !== 'LOCAL' &&
+            NavMenu.AuthState.match({
+              Ready: ({ user }) =>
+                user ? <NavMenu.AuthItemsList items={getAuthItems(user)} /> : <SignIn />,
+              Loading: () => (
+                <M.ListItem>
+                  <M.ListItemIcon>
+                    <M.CircularProgress size={20} />
+                  </M.ListItemIcon>
+                  <M.ListItemText primary="Loading…" />
+                </M.ListItem>
+              ),
+              Error: () => <SignIn />,
+            })(auth)}
+        </M.List>
+      </M.Collapse>
+    </>
   )
 }

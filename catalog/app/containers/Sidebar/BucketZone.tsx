@@ -8,6 +8,8 @@ import * as BucketNav from 'containers/Bucket/Nav'
 import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import { SectionHeader } from './SectionHeader'
+
 export function filterBuckets<T extends { name: string; title: string }>(
   buckets: T[],
   query: string,
@@ -25,31 +27,31 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     flexGrow: 1,
     minHeight: 0,
-    overflow: 'auto',
   },
-  header: {
+  filterRow: {
     flexShrink: 0,
-    padding: t.spacing(1, 2),
-  },
-  title: {
-    ...t.typography.subtitle1,
-    fontWeight: 500,
-    marginBottom: t.spacing(1),
+    padding: t.spacing(0, 2, 1),
   },
   filter: {
     background: t.palette.background.paper,
   },
   bucketList: {
-    flexGrow: 1,
+    flex: '1 1 0',
+    minHeight: 0,
     overflowY: 'auto',
   },
   activeHeader: {
     background: t.palette.action.selected,
     paddingLeft: t.spacing(2),
   },
-  // Match the icon→label gap of the account menu (NavMenu's ItemContents).
+  // Match the icon→label gap of the account menu (NavMenu's ItemContents), and
+  // render the bucket icon at 24px like the other list icons.
   icon: {
     minWidth: 36,
+    '& svg, & img': {
+      height: t.spacing(3),
+      width: t.spacing(3),
+    },
   },
   // Indent the active bucket's destinations to mark them as nested under the
   // `s3://<bucket>` node.
@@ -102,22 +104,28 @@ function BucketList({ query }: BucketListProps) {
 export function BucketZone() {
   const classes = useStyles()
   const [query, setQuery] = React.useState('')
+  const [expanded, setExpanded] = React.useState(true)
+  const toggle = React.useCallback(() => setExpanded((e) => !e), [])
 
   return (
     <div className={classes.root}>
-      <div className={classes.header}>
-        <div className={classes.title}>Buckets</div>
-        <FiltersUI.TinyTextField
-          className={classes.filter}
-          fullWidth
-          placeholder="Filter buckets"
-          value={query}
-          onChange={setQuery}
-        />
-      </div>
-      <React.Suspense fallback={<M.LinearProgress />}>
-        <BucketList query={query} />
-      </React.Suspense>
+      <SectionHeader title="Buckets" expanded={expanded} onToggle={toggle} />
+      {expanded && (
+        <>
+          <div className={classes.filterRow}>
+            <FiltersUI.TinyTextField
+              className={classes.filter}
+              fullWidth
+              placeholder="Filter buckets"
+              value={query}
+              onChange={setQuery}
+            />
+          </div>
+          <React.Suspense fallback={<M.LinearProgress />}>
+            <BucketList query={query} />
+          </React.Suspense>
+        </>
+      )}
     </div>
   )
 }
