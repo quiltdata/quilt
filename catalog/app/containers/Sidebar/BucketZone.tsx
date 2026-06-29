@@ -35,6 +35,11 @@ const useStyles = M.makeStyles((t) => ({
   filter: {
     background: t.palette.background.paper,
   },
+  // The active bucket is pinned above the scrolling list so its context (and
+  // expanded destinations) stays visible no matter how far the list scrolls.
+  activeBlock: {
+    flexShrink: 0,
+  },
   bucketList: {
     flex: '1 1 0',
     minHeight: 0,
@@ -60,44 +65,78 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketListProps {
+interface BucketRowProps {
+  bucket: { name: string; title: string; iconUrl: string | null }
+}
+
+function BucketRow({ bucket }: BucketRowProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.ListItem button component={Link} to={urls.bucketOverview(bucket.name)}>
+      <M.ListItemIcon className={classes.icon}>
+        <BucketIcon src={bucket.iconUrl} title={bucket.title} />
+      </M.ListItemIcon>
+      <M.ListItemText primary={`s3://${bucket.name}`} />
+    </M.ListItem>
+  )
+}
+
+interface BucketsBodyProps {
   query: string
 }
 
-function BucketList({ query }: BucketListProps) {
+function BucketsBody({ query }: BucketsBodyProps) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
   const buckets = Buckets.useRelevantBuckets()
   const currentBucket = Buckets.useCurrentBucket()
-  const filtered = filterBuckets(buckets, query)
+
+  // The active bucket is shown even if it's not in the relevant list (e.g. a
+  // bucket reached directly), so fall back to a minimal entry.
+  const active = React.useMemo(() => {
+    if (!currentBucket) return null
+    return (
+      buckets.find((b) => b.name === currentBucket) ?? {
+        name: currentBucket,
+        title: currentBucket,
+        iconUrl: null,
+      }
+    )
+  }, [buckets, currentBucket])
+
+  const others = React.useMemo(
+    () =>
+      filterBuckets(
+        buckets.filter((b) => b.name !== currentBucket),
+        query,
+      ),
+    [buckets, currentBucket, query],
+  )
 
   return (
-    <M.List className={classes.bucketList} disablePadding dense>
-      {filtered.map((b) => {
-        const isActive = !!currentBucket && b.name === currentBucket
-        return (
-          <React.Fragment key={b.name}>
-            <M.ListItem
-              button
-              component={isActive ? 'div' : Link}
-              to={isActive ? undefined : urls.bucketOverview(b.name)}
-              className={isActive ? classes.activeHeader : undefined}
-              selected={isActive}
-            >
+    <>
+      {active && (
+        <div className={classes.activeBlock}>
+          <M.List disablePadding dense>
+            <M.ListItem className={classes.activeHeader} selected>
               <M.ListItemIcon className={classes.icon}>
-                <BucketIcon src={b.iconUrl} title={b.title} />
+                <BucketIcon src={active.iconUrl} title={active.title} />
               </M.ListItemIcon>
-              <M.ListItemText primary={`s3://${b.name}`} />
+              <M.ListItemText primary={`s3://${active.name}`} />
             </M.ListItem>
-            {isActive && (
-              <div className={classes.nested}>
-                <BucketNav.Nav bucket={b.name} />
-              </div>
-            )}
-          </React.Fragment>
-        )
-      })}
-    </M.List>
+            <div className={classes.nested}>
+              <BucketNav.Nav bucket={active.name} />
+            </div>
+          </M.List>
+        </div>
+      )}
+      {active && !!others.length && <M.Divider />}
+      <M.List className={classes.bucketList} disablePadding dense>
+        {others.map((b) => (
+          <BucketRow key={b.name} bucket={b} />
+        ))}
+      </M.List>
+    </>
   )
 }
 
@@ -122,7 +161,7 @@ export function BucketZone() {
             />
           </div>
           <React.Suspense fallback={<M.LinearProgress />}>
-            <BucketList query={query} />
+            <BucketsBody query={query} />
           </React.Suspense>
         </>
       )}
