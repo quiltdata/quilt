@@ -1,24 +1,43 @@
-name: Deploy catalog to ECR
+name: "Catalog: build & push"
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/deploy-catalog.yaml'
-      - 'catalog/**'
-      - 'shared/**'
+  workflow_call:
+    inputs:
+      push_targets:
+        description: JSON array of target names (e.g. '["prod","mp","govcloud"]'). '[]' = build only.
+        type: string
+        default: '[]'
+      tag_prefix:
+        description: Prepended to the image tag. Empty means tag is just <sha>.
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      push_targets:
+        description: JSON array of target names. Default pushes to prod only.
+        type: string
+        default: '["prod"]'
+      tag_prefix:
+        description: Prepended to the image tag (e.g. "dev-" tags as "dev-<sha>").
+        type: string
+        default: 'dev-'
+
+env:
+  TARGET_CONFIG: |
+    {
+      "prod":     {"role": "arn:aws:iam::730278974607:role/github/GitHub-Quilt",        "region": "us-east-1",     "registry_id": "",             "repository": "quiltdata/catalog"},
+      "mp":       {"role": "arn:aws:iam::730278974607:role/github/GitHub-Quilt",        "region": "us-east-1",     "registry_id": "709825985650", "repository": "quilt-data/quilt-payg-catalog"},
+      "govcloud": {"role": "arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt", "region": "us-gov-east-1", "registry_id": "",             "repository": "quiltdata/catalog"}
+    }
 
 jobs:
-  deploy-catalog-ecr:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: catalog
-    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -28,41 +47,56 @@ jobs:
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
       - run: npm run build
-      - name: Configure AWS credentials from Prod account
-        uses: aws-actions/configure-aws-credentials@v6
+      - name: Build image
+        run: docker build -t catalog:${{ github.sha }} .
+      - name: Save image
+        run: docker save catalog:${{ github.sha }} -o /tmp/catalog-image.tar
+      - uses: actions/upload-artifact@v7
         with:
-          role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
-          aws-region: us-east-1
-      - name: Login to Prod ECR
-        id: login-prod-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Login to MP ECR
-        id: login-mp-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: 709825985650
-      - name: Configure AWS credentials from GovCloud account
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
-          aws-region: us-gov-east-1
-      - name: Login to GovCloud ECR
-        id: login-govcloud-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push Docker image to Prod, MP and GovCloud ECR
+          name: catalog-image
+          path: /tmp/catalog-image.tar
+          retention-days: 1
+
+  push:
+    if: fromJSON(inputs.push_targets)[0] != null
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(inputs.push_targets) }}
+    steps:
+      - name: Resolve target config
+        id: cfg
         env:
-          ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
-          ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
-          ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
-          ECR_REPOSITORY: quiltdata/catalog
-          ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
-          IMAGE_TAG: ${{ github.sha }}
+          TARGET: ${{ matrix.target }}
         run: |
-          docker buildx build \
-            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
-            .
-          docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
+          entry=$(jq -c --arg t "$TARGET" '.[$t] // empty' <<< "$TARGET_CONFIG")
+          if [[ -z "$entry" ]]; then
+            valid=$(jq -r 'keys | join(", ")' <<< "$TARGET_CONFIG")
+            echo "::error::Unknown target '$TARGET'. Valid: $valid"
+            exit 1
+          fi
+          jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "$entry" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v8
+        with:
+          name: catalog-image
+          path: /tmp
+      - run: docker load -i /tmp/catalog-image.tar
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ steps.cfg.outputs.role }}
+          aws-region:     ${{ steps.cfg.outputs.region }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+        with:
+          registries: ${{ steps.cfg.outputs.registry_id }}
+      - name: Tag and push
+        env:
+          TAG_PREFIX: ${{ inputs.tag_prefix }}
+        run: |
+          image="${{ steps.ecr.outputs.registry }}/${{ steps.cfg.outputs.repository }}:${TAG_PREFIX}${{ github.sha }}"
+          docker tag catalog:${{ github.sha }} "$image"
+          docker push "$image"
