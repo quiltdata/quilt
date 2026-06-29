@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as FiltersUI from 'components/Filters'
 import * as BucketNav from 'containers/Bucket/Nav'
 import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -26,18 +27,16 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'auto',
   },
   header: {
-    alignItems: 'center',
-    display: 'flex',
     flexShrink: 0,
-    gap: t.spacing(1),
     padding: t.spacing(1, 2),
   },
-  label: {
-    flexGrow: 1,
-    fontWeight: t.typography.fontWeightMedium,
+  title: {
+    ...t.typography.subtitle1,
+    fontWeight: 500,
+    marginBottom: t.spacing(1),
   },
   filter: {
-    width: t.spacing(15),
+    background: t.palette.background.paper,
   },
   bucketList: {
     flexGrow: 1,
@@ -99,16 +98,13 @@ export function BucketZone() {
   return (
     <div className={classes.root}>
       <div className={classes.header}>
-        <span className={classes.label}>Buckets</span>
-        <M.TextField
+        <div className={classes.title}>Buckets</div>
+        <FiltersUI.TinyTextField
           className={classes.filter}
-          size="small"
-          placeholder="Filter"
+          fullWidth
+          placeholder="Filter buckets"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          InputProps={{
-            endAdornment: query ? <M.Icon fontSize="small">clear</M.Icon> : undefined,
-          }}
+          onChange={setQuery}
         />
       </div>
       <React.Suspense fallback={<M.LinearProgress />}>
