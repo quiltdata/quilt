@@ -63,9 +63,16 @@ export interface LayoutProps {
   dark?: boolean
   children?: React.ReactNode
   pre?: React.ReactNode
+  sidebar?: boolean
 }
 
-export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
+export function Layout({
+  bare = false,
+  dark = false,
+  children,
+  pre,
+  sidebar = true,
+}: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
   const classes = useShellStyles()
@@ -84,24 +91,33 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
     )
   }
 
-  // Full-width header on top; the sidebar + content row sits beneath it.
+  const main = (
+    <M.Box component="main" className={classes.main}>
+      <Container.FullWidthProvider>
+        {!!pre && pre}
+        {!!children && <M.Box p={4}>{children}</M.Box>}
+        <M.Box flexGrow={1} />
+        {isHomepage?.isExact && <Footer />}
+      </Container.FullWidthProvider>
+    </M.Box>
+  )
+
+  // Full-width header on top; the sidebar + content row sits beneath it. Pages
+  // may opt out of the sidebar (e.g. the Home landing) via `sidebar={false}`.
   return (
     <M.Box
       className={classes.shell}
       bgcolor={dark ? 'primary.main' : 'background.default'}
     >
       <TopBar />
-      <div className={classes.body}>
-        <Sidebar />
-        <M.Box component="main" className={classes.main}>
-          <Container.FullWidthProvider>
-            {!!pre && pre}
-            {!!children && <M.Box p={4}>{children}</M.Box>}
-            <M.Box flexGrow={1} />
-            {isHomepage?.isExact && <Footer />}
-          </Container.FullWidthProvider>
-        </M.Box>
-      </div>
+      {sidebar ? (
+        <div className={classes.body}>
+          <Sidebar />
+          {main}
+        </div>
+      ) : (
+        main
+      )}
     </M.Box>
   )
 }
