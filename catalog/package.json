@@ -186,7 +186,7 @@
     "@types/semver": "^7.5.0",
     "@types/uuid": "^10.0.0",
     "@types/zxcvbn": "^4.4.1",
-    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/coverage-v8": "^4.1.9",
     "blob-polyfill": "^7.0.20220408",
     "bundlewatch": "^0.4.2",
     "chalk": "^4.1.2",
@@ -215,7 +215,7 @@
     "ts-loader": "^9.6.2",
     "typescript": "^6.0.3",
     "util": "^0.12.5",
-    "vitest": "^4.0.15",
+    "vitest": "^4.1.9",
     "webpack": "^5.108.1",
     "webpack-cli": "^7.1.0",
     "webpack-dev-server": "^5.2.5"
