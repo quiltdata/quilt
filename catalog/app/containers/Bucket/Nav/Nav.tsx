@@ -20,7 +20,7 @@ function NavList({ bucket, preferences, section }: NavListProps) {
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   return (
-    <M.List disablePadding>
+    <M.List disablePadding dense>
       <M.ListItem
         button
         component={Link}
