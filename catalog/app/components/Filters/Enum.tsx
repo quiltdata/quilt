@@ -28,8 +28,7 @@ interface EnumFilterProps {
 }
 
 interface EnumProps
-  extends Omit<M.TextFieldProps, keyof EnumFilterProps>,
-    EnumFilterProps {}
+  extends Omit<M.TextFieldProps, keyof EnumFilterProps>, EnumFilterProps {}
 
 export default function Enum({
   selectAll,
@@ -68,8 +67,8 @@ export default function Enum({
         <M.TextField {...props} {...params} className={classes.input} size="small" />
       )}
       renderTags={(tagValue, getTagProps) =>
+        // oxlint-disable-next-line react/jsx-key -- key is provided by getTagProps spread
         tagValue.map((option, index) => (
-          // eslint-disable-next-line react/jsx-key
           <M.Chip
             label={option}
             {...withoutOnDeleteWhen(option === selectAll, getTagProps({ index }))}
