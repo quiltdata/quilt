@@ -37,7 +37,8 @@ export const createPathResolver = (
         })
 
 export const createUrlProcessor = (
-  sign: (handle: Model.S3.S3ObjectLocation) => string,
+  // sign is async in v3 (presigner)
+  sign: (handle: Model.S3.S3ObjectLocation) => Promise<string>,
   resolvePath: (path: string) => Promise<Model.S3.S3ObjectLocation>,
   handle: Model.S3.S3ObjectLocation,
 ) =>

@@ -102,7 +102,8 @@ function BucketFile({ className, location }: BucketButtonProps) {
   return (
     <M.IconButton
       className={cx(classes.root, className)}
-      href={url}
+      href={url ?? ''}
+      disabled={!url}
       title="Download"
       download
     >

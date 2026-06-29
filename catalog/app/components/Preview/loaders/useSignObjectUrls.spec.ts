@@ -60,7 +60,7 @@ describe('components/Preview/loaders/useSignObjectUrls', () => {
   })
 
   describe('createUrlProcessor', () => {
-    let sign = ({ bucket, key, version }: Model.S3.S3ObjectLocation) =>
+    let sign = async ({ bucket, key, version }: Model.S3.S3ObjectLocation) =>
       `https://${bucket}+${key}+${version}`
     let resolvePath = async (path: string) => ({
       bucket: 'resolved-bucket',

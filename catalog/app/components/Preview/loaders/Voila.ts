@@ -8,6 +8,8 @@ import mkSearch from 'utils/mkSearch'
 import { PackageHandle } from 'utils/packageHandle'
 import useMemoEq from 'utils/useMemoEq'
 
+import AsyncResult from 'utils/AsyncResult'
+
 import { PreviewData } from '../types'
 
 import FileType from './fileType'
@@ -97,17 +99,18 @@ interface FileHandle extends Model.S3.S3ObjectLocation {
 }
 
 const useVoilaUrl = (handle: FileHandle) => {
-  const sign = AWS.Signer.useS3Signer()
+  // sign is async in v3 (presigner); useSignedUrl resolves it into state.
+  const signedUrl = AWS.Signer.useSignedUrl(handle)
   const credentialsQuery = useCredentialsQuery()
   const packageQuery = usePackageQuery(handle.packageHandle)
-  return useMemoEq(
-    [credentialsQuery, handle, packageQuery, sign],
-    () =>
-      `${cfg.registryUrl}/voila/voila/render/${mkSearch({
-        url: sign(handle),
-        ...credentialsQuery,
-        ...packageQuery,
-      })}`,
+  return useMemoEq([credentialsQuery, handle, packageQuery, signedUrl], () =>
+    signedUrl
+      ? `${cfg.registryUrl}/voila/voila/render/${mkSearch({
+          url: signedUrl,
+          ...credentialsQuery,
+          ...packageQuery,
+        })}`
+      : undefined,
   )
 }
 
@@ -118,6 +121,11 @@ interface VoilaLoaderProps {
 
 export const Loader = function VoilaLoader({ handle, children }: VoilaLoaderProps) {
   const src = useVoilaUrl(handle)
-  const data = Data.use(loadVoila, { src })
-  return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
+  // src is undefined until the (async, v3) presigner resolves
+  const data = Data.use(loadVoila, { src: src as string }, { noAutoFetch: !src })
+  return children(
+    src
+      ? utils.useErrorHandling(data.result, { handle, retry: data.fetch })
+      : AsyncResult.Pending(),
+  )
 }

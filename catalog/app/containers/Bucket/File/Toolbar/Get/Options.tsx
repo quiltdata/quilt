@@ -63,7 +63,8 @@ export default function Options({ handle, features }: OptionsProps) {
       <M.Button
         className={classes.main}
         download
-        href={url}
+        href={url ?? ''}
+        disabled={!url}
         startIcon={<Icons.ArrowDownwardOutlined />}
         {...feedback}
       >

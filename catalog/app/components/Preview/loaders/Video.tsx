@@ -16,14 +16,19 @@ interface VideoLoaderProps {
   handle: Model.S3.S3ObjectLocation
 }
 
-function useVideoSrc(handle: Model.S3.S3ObjectLocation): string {
-  const sign = AWS.Signer.useS3Signer()
-  const url = React.useMemo(() => sign(handle), [handle, sign])
-  const query = new URLSearchParams({ format: 'video/webm', url })
-  return `${cfg.apiGatewayEndpoint}/transcode?${query.toString()}`
+function useVideoSrc(handle: Model.S3.S3ObjectLocation): string | undefined {
+  // sign is async in v3 (presigner); useSignedUrl resolves it into state.
+  const url = AWS.Signer.useSignedUrl(handle)
+  return React.useMemo(() => {
+    if (!url) return undefined
+    const query = new URLSearchParams({ format: 'video/webm', url })
+    return `${cfg.apiGatewayEndpoint}/transcode?${query.toString()}`
+  }, [url])
 }
 
 export const Loader = function VideoLoader({ handle, children }: VideoLoaderProps) {
   const src = useVideoSrc(handle)
-  return children(AsyncResult.Ok(PreviewData.Video({ src })))
+  return children(
+    src ? AsyncResult.Ok(PreviewData.Video({ src })) : AsyncResult.Pending(),
+  )
 }
