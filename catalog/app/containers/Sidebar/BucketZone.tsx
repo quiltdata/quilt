@@ -65,7 +65,7 @@ function BucketList({ query }: BucketListProps) {
   const filtered = filterBuckets(buckets, query)
 
   return (
-    <M.List className={classes.bucketList} disablePadding>
+    <M.List className={classes.bucketList} disablePadding dense>
       {filtered.map((b) => {
         const isActive = !!currentBucket && b.name === currentBucket
         return (

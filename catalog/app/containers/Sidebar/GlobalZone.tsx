@@ -22,7 +22,7 @@ export function GlobalZone() {
   }, [bookmarks])
 
   return (
-    <M.List disablePadding>
+    <M.List disablePadding dense>
       <M.ListItem button onClick={toggleBookmarks}>
         <M.ListItemIcon>
           <M.Badge color="secondary" variant="dot" invisible={!bookmarks?.hasUpdates}>

@@ -8,7 +8,7 @@ export function AccountZone() {
   const subscription = Subscription.useState()
 
   return (
-    <M.List disablePadding>
+    <M.List disablePadding dense>
       {subscription.invalid && (
         <M.ListItem>
           <M.ListItemIcon>
