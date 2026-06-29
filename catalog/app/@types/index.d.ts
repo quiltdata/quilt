@@ -28,4 +28,12 @@ declare module '*.ico'
 
 declare module 'intl/locale-data/jsonp/*'
 
+// Imported `.wasm` resolves (via webpack's `asset/resource` rule) to the
+// emitted file's URL — see internals/webpack/webpack.base.js and the Perspective
+// WASM bootstrap in app/utils/perspective-pollution.ts.
+declare module '*.wasm' {
+  const url: string
+  export default url
+}
+
 type $TSFixMe = any

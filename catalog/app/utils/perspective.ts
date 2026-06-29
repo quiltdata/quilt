@@ -3,8 +3,11 @@ import * as React from 'react'
 
 import type { RegularTableElement } from 'regular-table'
 import perspective from '@finos/perspective'
-import type { Table, TableData, ViewConfig } from '@finos/perspective'
-import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
+import type { Table } from '@finos/perspective'
+import type {
+  HTMLPerspectiveViewerElement,
+  ViewerConfigUpdate,
+} from '@finos/perspective-viewer'
 
 import log from 'utils/Logging'
 import { themes } from 'utils/perspective-pollution'
@@ -15,17 +18,28 @@ export interface State {
   toggleConfig: () => void
 }
 
-export type PerspectiveInput = TableData
+// The union accepted by Perspective 3.x's Client.table(): the tabular-preview
+// lambda feeds an Arrow IPC ArrayBuffer or a CSV string (Bucket/.../Tabular.tsx),
+// and Athena query results feed an array of row records (Queries/Athena/Results.tsx).
+export type PerspectiveInput =
+  | string
+  | ArrayBuffer
+  | Record<string, unknown[]>
+  | Record<string, unknown>[]
 
-const worker = perspective.worker()
+// perspective.worker() is async in 3.x (returns a Promise<Client>) and sources
+// its WASM from the registered <perspective-viewer> custom element — so it must
+// run after the viewer side-effect import (utils/perspective-pollution, pulled
+// in above via `themes`). Create the client lazily and await it at use sites.
+let clientP: ReturnType<typeof perspective.worker> | null = null
+const getClient = () => (clientP ??= perspective.worker())
 
 export function renderViewer(
   parentNode: HTMLElement,
   { className }: React.HTMLAttributes<HTMLDivElement>,
 ): HTMLPerspectiveViewerElement {
   const element = document.createElement('perspective-viewer')
-  // NOTE: safari needs `.perspective-viewer-material` instead of custom tagName
-  element.className = cx('perspective-viewer-material', className)
+  element.className = cx(className)
   parentNode.appendChild(element)
   return element
 }
@@ -34,7 +48,8 @@ export async function renderTable(
   data: PerspectiveInput,
   viewer: HTMLPerspectiveViewerElement,
 ) {
-  const table = await worker.table(data)
+  const client = await getClient()
+  const table = await client.table(data)
   await viewer.load(table)
   return table
 }
@@ -43,7 +58,7 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: PerspectiveInput,
   attrs: React.HTMLAttributes<HTMLDivElement>,
-  config?: ViewConfig,
+  config?: ViewerConfigUpdate,
   onRender?: (tableEl: RegularTableElement) => void,
 ) {
   const [state, setState] = React.useState<State | Error | null>(null)
@@ -81,11 +96,10 @@ function usePerspective(
       setState({
         rotateThemes: async () => {
           const settings = await viewer?.save()
-          // @ts-expect-error `ViewConfig` type doesn't have `theme`
           const themeIndex = themes.findIndex((t) => t === settings?.theme)
           const theme =
             themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
-          viewer?.restore({ theme } as ViewConfig)
+          viewer?.restore({ theme } as ViewerConfigUpdate)
         },
         size,
         toggleConfig: () => viewer?.toggleConfig(),

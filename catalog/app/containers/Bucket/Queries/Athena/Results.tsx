@@ -73,7 +73,7 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
   const data = React.useMemo(
     () =>
       rows.map((row) =>
-        row.reduce(
+        row.reduce<Record<string, unknown>>(
           (memo, item, index) => ({
             ...memo,
             [columns[index]?.name || 'Unknown']: item,
