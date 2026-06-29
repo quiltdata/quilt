@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import BucketIcon from 'components/BucketIcon'
 import * as FiltersUI from 'components/Filters'
 import * as BucketNav from 'containers/Bucket/Nav'
 import * as Buckets from 'utils/Buckets'
@@ -46,6 +47,10 @@ const useStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
     paddingLeft: t.spacing(2),
   },
+  // Match the icon→label gap of the account menu (NavMenu's ItemContents).
+  icon: {
+    minWidth: 36,
+  },
   // Indent the active bucket's destinations to mark them as nested under the
   // `s3://<bucket>` node.
   nested: {
@@ -77,6 +82,9 @@ function BucketList({ query }: BucketListProps) {
               className={isActive ? classes.activeHeader : undefined}
               selected={isActive}
             >
+              <M.ListItemIcon className={classes.icon}>
+                <BucketIcon src={b.iconUrl} title={b.title} />
+              </M.ListItemIcon>
               <M.ListItemText primary={`s3://${b.name}`} />
             </M.ListItem>
             {isActive && (
