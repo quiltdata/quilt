@@ -289,46 +289,6 @@ export function useGetAuthItems() {
   }
 }
 
-const useAuthItemsListStyles = M.makeStyles((t) => ({
-  divider: {
-    margin: t.spacing(1, 0),
-  },
-}))
-
-interface AuthItemsListProps {
-  items: (ItemDescriptor | false)[]
-}
-
-// Renders the same descriptors as DropdownMenu, but as always-visible list
-// items (for the sidebar account zone) rather than a popup menu.
-export function AuthItemsList({ items }: AuthItemsListProps) {
-  const classes = useAuthItemsListStyles()
-  const filtered = items.filter(Boolean) as ItemDescriptor[]
-  return (
-    <>
-      {filtered.map(
-        ItemDescriptor.match({
-          To: (props, i) => (
-            <RR.Route key={i} path={props.to}>
-              {({ match }) => (
-                <M.ListItem button component={Link} selected={!!match} {...props} />
-              )}
-            </RR.Route>
-          ),
-          Href: (props, i) => (
-            <M.ListItem key={i} button component="a" target="_blank" {...props} />
-          ),
-          Click: ({ onClick, ...props }, i) => (
-            <M.ListItem key={i} button onClick={onClick} {...props} />
-          ),
-          Text: (props, i) => <M.ListItem key={i} {...props} />,
-          Divider: (_, i) => <M.Divider key={i} className={classes.divider} />,
-        }),
-      )}
-    </>
-  )
-}
-
 interface DesktopUserDropdownProps {
   user: Me
 }

@@ -29,9 +29,10 @@ interface SectionHeaderProps {
   title: string
   expanded: boolean
   onToggle: () => void
+  badge?: boolean
 }
 
-export function SectionHeader({ title, expanded, onToggle }: SectionHeaderProps) {
+export function SectionHeader({ title, expanded, onToggle, badge }: SectionHeaderProps) {
   const classes = useStyles()
   return (
     <M.ListItem button dense component="div" onClick={onToggle} className={classes.root}>
@@ -41,7 +42,15 @@ export function SectionHeader({ title, expanded, onToggle }: SectionHeaderProps)
         </M.Icon>
       </M.ListItemIcon>
       <M.ListItemText
-        primary={title}
+        primary={
+          badge ? (
+            <M.Badge color="primary" variant="dot">
+              {title}
+            </M.Badge>
+          ) : (
+            title
+          )
+        }
         primaryTypographyProps={{ className: classes.title }}
       />
     </M.ListItem>
