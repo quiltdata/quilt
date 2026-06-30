@@ -11,7 +11,7 @@ import LocalMode from './LocalMode'
 
 export default function Landing() {
   return (
-    <Layout sidebar={false}>
+    <Layout>
       <MetaTitle />
       {cfg.mode === 'LOCAL' ? (
         <LocalMode />

@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function OpenLanding() {
   const classes = useStyles()
   return (
-    <Layout sidebar={false}>
+    <Layout>
       <MetaTitle />
       <Search />
       <div className={classes.buckets}>

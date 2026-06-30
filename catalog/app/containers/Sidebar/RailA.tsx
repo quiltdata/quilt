@@ -2,11 +2,13 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as URLS from 'constants/urls'
 import * as NavMenu from 'containers/NavBar/NavMenu'
 import useRoleSwitcher from 'containers/NavBar/RoleSwitcher'
 import * as Subscription from 'containers/NavBar/Subscription'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { Rail } from './Rail'
@@ -15,6 +17,10 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(1),
     width: t.spacing(30),
+  },
+  logo: {
+    display: 'flex',
+    padding: t.spacing(1, 2, 2),
   },
   title: {
     ...t.typography.subtitle1,
@@ -33,6 +39,7 @@ const useStyles = M.makeStyles((t) => ({
 export function RailA() {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const settings = CatalogSettings.use()
   const subscription = Subscription.useState()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
@@ -53,6 +60,10 @@ export function RailA() {
 
   return (
     <Rail className={classes.root}>
+      <Link to={urls.home()} className={classes.logo}>
+        <Logo height="36px" width="36px" src={settings?.logo?.url} />
+      </Link>
+
       {user && (
         <M.List dense disablePadding>
           <M.ListSubheader disableSticky className={classes.title}>

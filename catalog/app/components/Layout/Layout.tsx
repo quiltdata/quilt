@@ -8,7 +8,7 @@ import { Sidebar } from 'containers/Sidebar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as Container from './Container'
-import { TopBar } from './TopBar'
+import { ContentBar } from './ContentBar'
 
 const useRootStyles = M.makeStyles({
   root: {
@@ -39,21 +39,21 @@ export function Root({ dark = false, ...props }: RootProps) {
 const useShellStyles = M.makeStyles({
   shell: {
     display: 'flex',
-    flexDirection: 'column',
     height: '100vh',
     overflowX: 'hidden',
     position: 'relative',
-  },
-  body: {
-    display: 'flex',
-    flexGrow: 1,
-    minHeight: 0,
   },
   main: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
     minWidth: 0,
+  },
+  scroll: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minHeight: 0,
     overflowY: 'auto',
   },
 })
@@ -63,16 +63,9 @@ export interface LayoutProps {
   dark?: boolean
   children?: React.ReactNode
   pre?: React.ReactNode
-  sidebar?: boolean
 }
 
-export function Layout({
-  bare = false,
-  dark = false,
-  children,
-  pre,
-  sidebar = true,
-}: LayoutProps) {
+export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
   const classes = useShellStyles()
@@ -91,33 +84,25 @@ export function Layout({
     )
   }
 
-  const main = (
-    <M.Box component="main" className={classes.main}>
-      <Container.FullWidthProvider>
-        {!!pre && pre}
-        {!!children && <M.Box p={4}>{children}</M.Box>}
-        <M.Box flexGrow={1} />
-        {isHomepage?.isExact && <Footer />}
-      </Container.FullWidthProvider>
-    </M.Box>
-  )
-
-  // Full-width header on top; the sidebar + content row sits beneath it. Pages
-  // may opt out of the sidebar (e.g. the Home landing) via `sidebar={false}`.
+  // The sidebar rails run full height on the left; the main column has a search
+  // bar (ContentBar) on top and the scrolling page content beneath.
   return (
     <M.Box
       className={classes.shell}
       bgcolor={dark ? 'primary.main' : 'background.default'}
     >
-      <TopBar />
-      {sidebar ? (
-        <div className={classes.body}>
-          <Sidebar />
-          {main}
+      <Sidebar />
+      <M.Box component="main" className={classes.main}>
+        <ContentBar />
+        <div className={classes.scroll}>
+          <Container.FullWidthProvider>
+            {!!pre && pre}
+            {!!children && <M.Box p={4}>{children}</M.Box>}
+            <M.Box flexGrow={1} />
+            {isHomepage?.isExact && <Footer />}
+          </Container.FullWidthProvider>
         </div>
-      ) : (
-        main
-      )}
+      </M.Box>
     </M.Box>
   )
 }
