@@ -7,13 +7,10 @@ import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    borderBottom: `1px solid ${t.palette.divider}`,
-    display: 'flex',
-    flexShrink: 0,
+  toolbar: {
     gap: t.spacing(1),
-    padding: t.spacing(1, 2),
+    height: 64,
+    minHeight: 64,
   },
   search: {
     flexGrow: 1,
@@ -48,30 +45,32 @@ export function ContentBar() {
   )
 
   return (
-    <div className={classes.root}>
-      {onSearchPage ? (
-        <div className={classes.spacer} />
-      ) : (
-        <form className={classes.search} onSubmit={handleSubmit}>
-          <M.TextField
-            fullWidth
-            size="small"
-            variant="outlined"
-            placeholder="Search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            InputProps={{
-              className: classes.input,
-              startAdornment: (
-                <M.InputAdornment position="start">
-                  <M.Icon>search</M.Icon>
-                </M.InputAdornment>
-              ),
-            }}
-          />
-        </form>
-      )}
-      <Assistant.UI.Trigger />
-    </div>
+    <M.AppBar position="static" color="default">
+      <M.Toolbar className={classes.toolbar}>
+        {onSearchPage ? (
+          <div className={classes.spacer} />
+        ) : (
+          <form className={classes.search} onSubmit={handleSubmit}>
+            <M.TextField
+              fullWidth
+              size="small"
+              variant="outlined"
+              placeholder="Search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              InputProps={{
+                className: classes.input,
+                startAdornment: (
+                  <M.InputAdornment position="start">
+                    <M.Icon>search</M.Icon>
+                  </M.InputAdornment>
+                ),
+              }}
+            />
+          </form>
+        )}
+        <Assistant.UI.Trigger />
+      </M.Toolbar>
+    </M.AppBar>
   )
 }

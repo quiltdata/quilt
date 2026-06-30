@@ -16,12 +16,17 @@ import { Rail } from './Rail'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    paddingTop: t.spacing(1),
     width: t.spacing(32),
   },
+  // Match the 64px pseudo-header height so the logo and search bar align.
   logo: {
+    alignItems: 'center',
     display: 'flex',
-    padding: t.spacing(1, 2, 2),
+    height: 64,
+    padding: t.spacing(0, 2),
+  },
+  workspaces: {
+    paddingTop: t.spacing(1),
   },
   title: {
     ...t.typography.subtitle1,
@@ -32,8 +37,14 @@ const useStyles = M.makeStyles((t) => ({
     color: 'inherit',
     minWidth: 36,
   },
+  nav: {
+    paddingTop: t.spacing(1),
+  },
   spacer: {
     flexGrow: 1,
+  },
+  account: {
+    paddingBottom: t.spacing(2),
   },
 }))
 
@@ -66,36 +77,44 @@ export function Sidebar() {
         <Link to={urls.home()} className={classes.logo}>
           <Logo height="36px" width="36px" src={settings?.logo?.url} />
         </Link>
-
-        {user && (
-          <M.List dense disablePadding>
-            <M.ListSubheader disableSticky className={classes.title}>
-              Workspaces
-            </M.ListSubheader>
-            {cfg.mode === 'OPEN' ? (
-              <M.ListItem button component={Link} to={urls.profile()}>
-                {identity}
-              </M.ListItem>
-            ) : (
-              <M.ListItem>{identity}</M.ListItem>
-            )}
-            {user.roles.length > 1 && (
-              <M.ListItem button onClick={() => switchRole(user)}>
-                <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>people_outline</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText
-                  primary="Switch role"
-                  secondary={`${user.roles.length} available`}
-                />
-              </M.ListItem>
-            )}
-          </M.List>
-        )}
-
         <M.Divider />
 
-        <M.List dense disablePadding>
+        {user && (
+          <>
+            <M.List dense disablePadding className={classes.workspaces}>
+              <M.ListSubheader disableSticky className={classes.title}>
+                Workspaces
+              </M.ListSubheader>
+              {cfg.mode === 'OPEN' ? (
+                <M.ListItem button component={Link} to={urls.profile()}>
+                  {identity}
+                </M.ListItem>
+              ) : (
+                <M.ListItem>{identity}</M.ListItem>
+              )}
+              {user.roles.length > 1 && (
+                <M.ListItem button onClick={() => switchRole(user)}>
+                  <M.ListItemIcon className={classes.icon}>
+                    <M.Icon>people_outline</M.Icon>
+                  </M.ListItemIcon>
+                  <M.ListItemText
+                    primary="Switch role"
+                    secondary={`${user.roles.length} available`}
+                  />
+                </M.ListItem>
+              )}
+            </M.List>
+            <M.Divider />
+          </>
+        )}
+
+        <M.List dense disablePadding className={classes.nav}>
+          <M.ListItem button component={Link} to={urls.home()}>
+            <M.ListItemIcon className={classes.icon}>
+              <M.Icon>storage</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Buckets" />
+          </M.ListItem>
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
               <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>
@@ -104,12 +123,11 @@ export function Sidebar() {
             </M.ListItemIcon>
             <M.ListItemText primary="Bookmarks" />
           </M.ListItem>
-          <M.ListItem button component={Link} to={urls.home()}>
-            <M.ListItemIcon className={classes.icon}>
-              <M.Icon>storage</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText primary="Buckets" />
-          </M.ListItem>
+        </M.List>
+
+        <div className={classes.spacer} />
+
+        <M.List dense disablePadding>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>link</M.Icon>
@@ -123,10 +141,9 @@ export function Sidebar() {
             <M.ListItemText primary="Docs" />
           </M.ListItem>
         </M.List>
+        <M.Divider />
 
-        <div className={classes.spacer} />
-
-        <M.List dense disablePadding>
+        <M.List dense disablePadding className={classes.account}>
           {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
