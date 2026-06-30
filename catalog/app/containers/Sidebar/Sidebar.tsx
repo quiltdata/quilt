@@ -26,6 +26,9 @@ const useStyles = M.makeStyles((t) => ({
     height: 64,
     padding: t.spacing(0, 2),
   },
+  logoDivider: {
+    marginTop: -1,
+  },
   workspaces: {
     paddingTop: t.spacing(1),
   },
@@ -82,7 +85,7 @@ export function Sidebar() {
         <Link to={urls.home()} className={classes.logo}>
           <Logo height="32px" width="100%" src={settings?.logo?.url} />
         </Link>
-        <M.Divider />
+        <M.Divider className={classes.logoDivider} />
 
         {user && (
           <>
