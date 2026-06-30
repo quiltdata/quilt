@@ -1,8 +1,10 @@
 import * as React from 'react'
 import { Route, Switch } from 'react-router-dom'
+import * as M from '@material-ui/core'
 
 import Layout, { Container } from 'components/Layout'
 import Placeholder from 'components/Placeholder'
+import * as BucketNav from 'containers/Bucket/Nav'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
@@ -31,23 +33,36 @@ const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
+const useStyles = M.makeStyles((t) => ({
+  appBar: {
+    backgroundColor: t.palette.common.white,
+    color: t.palette.getContrastText(t.palette.common.white),
+  },
+}))
+
 interface BucketLayoutProps {
   bucket: string
   children: React.ReactNode
 }
 
 function BucketLayout({ bucket, children }: BucketLayoutProps) {
+  const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
-        <Container>
-          {bucketExistenceData.case({
-            Ok: () => children,
-            Err: displayError(),
-            _: () => <SuspensePlaceholder />,
-          })}
-        </Container>
+        <>
+          <M.AppBar position="static" className={classes.appBar}>
+            <BucketNav.Tabs bucket={bucket} />
+          </M.AppBar>
+          <Container>
+            {bucketExistenceData.case({
+              Ok: () => children,
+              Err: displayError(),
+              _: () => <SuspensePlaceholder />,
+            })}
+          </Container>
+        </>
       }
     />
   )
