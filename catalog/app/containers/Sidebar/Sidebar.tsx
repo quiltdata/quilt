@@ -39,7 +39,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   icon: {
     color: 'inherit',
-    minWidth: 36,
   },
   nav: {
     paddingTop: t.spacing(1),
