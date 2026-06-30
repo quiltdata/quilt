@@ -3,7 +3,6 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Header from './Header'
-import QuratorInline from './QuratorInline'
 import Summaries from './Summaries'
 import TabulatorTables from './TabulatorTables'
 
@@ -25,7 +24,6 @@ export default function Overview() {
   return (
     <div className={classes.root}>
       <Header bucket={bucket} />
-      <QuratorInline />
       <TabulatorTables bucket={bucket} />
       <Summaries bucket={bucket} />
     </div>
