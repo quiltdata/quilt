@@ -118,9 +118,21 @@ are accepted alongside clients that derive the canonical resource from
 (as Claude.ai and Cursor do). The token `aud` claim is always the
 canonical `/mcp/platform` identifier regardless of input form.
 
+## Network Reachability
+
+The Connect ALB inherits your stack's load balancer scheme:
+
+- **Internet-facing stacks** expose the Connect ALB to the public internet.
+- **Internal stacks** (`elb_scheme=internal`) get an _internal_ Connect ALB,
+  reachable only from within the VPC or networks bridged to it (e.g. a VPN).
+  External AI assistants and desktop clients can reach Connect only over such
+  a network path.
+
 ## IP Allowlisting (Optional)
 
 To restrict which IP ranges can reach the Connect Server, create an EC2
 security group with inbound rules on port 443 for your trusted CIDR ranges,
 then pass the security group ID as `ConnectSecurityGroup`. If omitted, the
-Connect ALB accepts traffic from any IP.
+Connect ALB accepts traffic from any IP that can reach it — any IP on the
+internet for an internet-facing stack, or any IP that can reach the VPC for
+an internal stack.
