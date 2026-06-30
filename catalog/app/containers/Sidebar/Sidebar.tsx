@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Assistant from 'components/Assistant'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as URLS from 'constants/urls'
@@ -57,6 +58,7 @@ export function Sidebar() {
   const settings = CatalogSettings.use()
   const subscription = Subscription.useState()
   const bookmarks = Bookmarks.use()
+  const assistant = Assistant.Model.useAssistantAPI()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
 
@@ -126,6 +128,14 @@ export function Sidebar() {
             </M.ListItemIcon>
             <M.ListItemText primary="Bookmarks" />
           </M.ListItem>
+          {assistant && (
+            <M.ListItem button onClick={assistant.show}>
+              <M.ListItemIcon className={classes.icon}>
+                <M.Icon>assistant</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary="Qurator" />
+            </M.ListItem>
+          )}
         </M.List>
 
         <div className={classes.spacer} />
