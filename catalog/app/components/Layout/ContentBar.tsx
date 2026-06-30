@@ -3,10 +3,15 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
+import * as style from 'constants/style'
 import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const useStyles = M.makeStyles((t) => ({
+  appBar: {
+    background: style.navTheme.palette.secondary.dark,
+    color: t.palette.common.white,
+  },
   toolbar: {
     gap: t.spacing(1),
     height: 64,
@@ -16,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
     flexGrow: 1,
   },
   input: {
-    background: t.palette.background.paper,
+    background: style.appTheme.palette.background.paper,
   },
   spacer: {
     flexGrow: 1,
@@ -45,32 +50,34 @@ export function ContentBar() {
   )
 
   return (
-    <M.AppBar position="static" color="default">
-      <M.Toolbar className={classes.toolbar}>
-        {onSearchPage ? (
-          <div className={classes.spacer} />
-        ) : (
-          <form className={classes.search} onSubmit={handleSubmit}>
-            <M.TextField
-              fullWidth
-              size="small"
-              variant="outlined"
-              placeholder="Search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              InputProps={{
-                className: classes.input,
-                startAdornment: (
-                  <M.InputAdornment position="start">
-                    <M.Icon>search</M.Icon>
-                  </M.InputAdornment>
-                ),
-              }}
-            />
-          </form>
-        )}
-        <Assistant.UI.Trigger />
-      </M.Toolbar>
-    </M.AppBar>
+    <M.MuiThemeProvider theme={style.appTheme}>
+      <M.AppBar position="static" color="inherit" className={classes.appBar}>
+        <M.Toolbar className={classes.toolbar}>
+          {onSearchPage ? (
+            <div className={classes.spacer} />
+          ) : (
+            <form className={classes.search} onSubmit={handleSubmit}>
+              <M.TextField
+                fullWidth
+                size="small"
+                variant="outlined"
+                placeholder="Search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                InputProps={{
+                  className: classes.input,
+                  startAdornment: (
+                    <M.InputAdornment position="start">
+                      <M.Icon>search</M.Icon>
+                    </M.InputAdornment>
+                  ),
+                }}
+              />
+            </form>
+          )}
+          <Assistant.UI.Trigger />
+        </M.Toolbar>
+      </M.AppBar>
+    </M.MuiThemeProvider>
   )
 }

@@ -16,6 +16,10 @@ const useStyles = M.makeStyles({
     flexDirection: 'column',
     flexShrink: 0,
     minHeight: 0,
+    // Stay above absolutely-positioned page backgrounds (e.g. the landing Dots),
+    // otherwise the rail isn't clickable on the home page.
+    position: 'relative',
+    zIndex: 1,
   },
 })
 
