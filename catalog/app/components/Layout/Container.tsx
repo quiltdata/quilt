@@ -73,7 +73,7 @@ export function Container({ children, className }: M.ContainerProps) {
   return (
     <M.Container
       className={cx(fullWidth ? classes.fullWidth : classes.contained, className)}
-      maxWidth={!fullWidth && 'lg'}
+      maxWidth={false}
     >
       {children}
     </M.Container>

@@ -56,15 +56,8 @@ interface TabsListProps {
 function TabsList({ bucket, preferences, section = false }: TabsListProps) {
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
-    <M.Tabs
-      value={section}
-      centered={!sm}
-      variant={sm ? 'scrollable' : 'standard'}
-      scrollButtons="auto"
-    >
+    <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
       <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
         <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />

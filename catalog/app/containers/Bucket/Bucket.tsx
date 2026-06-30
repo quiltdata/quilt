@@ -37,6 +37,8 @@ const useStyles = M.makeStyles((t) => ({
   appBar: {
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
+    // Align the tabs with the header's 24px gutters.
+    padding: t.spacing(0, 3),
   },
 }))
 
