@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {
     // Navy surface like the header. Children render inside the nav theme below,
     // so their MUI styles pick up the dark palette (light text/icons/dividers).
@@ -16,12 +16,12 @@ const useStyles = M.makeStyles({
     flexDirection: 'column',
     flexShrink: 0,
     minHeight: 0,
-    // Stay above absolutely-positioned page backgrounds (e.g. the landing Dots),
-    // otherwise the rail isn't clickable on the home page.
+    // Stay above the header AppBar (and absolutely-positioned page backgrounds
+    // like the landing Dots), otherwise the rail isn't clickable on the home page.
     position: 'relative',
-    zIndex: 1,
+    zIndex: t.zIndex.appBar + 1,
   },
-})
+}))
 
 interface RailProps {
   className?: string
