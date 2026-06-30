@@ -12,14 +12,31 @@ import '@finos/perspective-viewer-d3fc'
 // entries do internally, but keeps the WASM as separate fetched (streamed) files
 // rather than ~7MB of base64 inlined into the JS bundle.
 import SERVER_WASM from '@finos/perspective/dist/wasm/perspective-server.wasm'
-import CLIENT_WASM from '@finos/perspective/dist/wasm/perspective-js.wasm'
 import VIEWER_WASM from '@finos/perspective-viewer/dist/wasm/perspective-viewer.wasm'
 
 import '@finos/perspective-viewer/dist/css/pro.css'
 import '@finos/perspective-viewer/dist/css/pro-dark.css'
 
-perspective.init_server(fetch(SERVER_WASM))
-perspective.init_client(fetch(CLIENT_WASM))
-perspective_viewer.init_client(fetch(VIEWER_WASM))
+// Perspective 3.x uses a SINGLE client-side wasm engine: the viewer wasm.
+// perspective.worker() takes its Client class from the registered
+// <perspective-viewer> element's __wasm_module__ (set by
+// perspective_viewer.init_client below), so the data client and the viewer
+// share one wasm/linear-memory. We must NOT call perspective.init_client():
+// that would stand up a SECOND, independent perspective-js.wasm engine, and a
+// Table minted there would be dereferenced inside the viewer wasm at
+// viewer.load() -> "RuntimeError: memory access out of bounds". This matches
+// the official @finos/perspective 3.8.0 esbuild/webpack examples (two inits:
+// init_server + perspective_viewer.init_client; no perspective.init_client).
+//
+// Export the readiness promise so getClient()/perspective.worker() can await it
+// before sampling the engine. worker() reads the client wasm SYNCHRONOUSLY at
+// call time from customElements.get('perspective-viewer'); that element is only
+// registered at the END of init_client's async chain (await J() ->
+// customElements.define). Calling worker() before that resolves would leave the
+// client wasm unresolved/foreign -> the same cross-engine OOB.
+export const perspectiveReady = Promise.all([
+  perspective.init_server(fetch(SERVER_WASM)),
+  perspective_viewer.init_client(fetch(VIEWER_WASM)),
+])
 
 export const themes = ['Pro Light', 'Pro Dark']

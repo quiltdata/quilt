@@ -10,7 +10,7 @@ import type {
 } from '@finos/perspective-viewer'
 
 import log from 'utils/Logging'
-import { themes } from 'utils/perspective-pollution'
+import { perspectiveReady, themes } from 'utils/perspective-pollution'
 
 export interface State {
   rotateThemes: () => void
@@ -28,11 +28,15 @@ export type PerspectiveInput =
   | Record<string, unknown>[]
 
 // perspective.worker() is async in 3.x (returns a Promise<Client>) and sources
-// its WASM from the registered <perspective-viewer> custom element — so it must
-// run after the viewer side-effect import (utils/perspective-pollution, pulled
-// in above via `themes`). Create the client lazily and await it at use sites.
+// its client WASM SYNCHRONOUSLY at call time from the registered
+// <perspective-viewer> custom element (customElements.get('perspective-viewer')
+// .__wasm_module__). That element is registered only at the END of
+// perspective_viewer.init_client()'s async chain, so worker() MUST run after
+// `perspectiveReady` resolves — otherwise it samples no/foreign client engine
+// and the Table is born in the wrong wasm memory, crashing viewer.load() with a
+// WASM out-of-bounds. Gate the (single, cached) client creation on readiness.
 let clientP: ReturnType<typeof perspective.worker> | null = null
-const getClient = () => (clientP ??= perspective.worker())
+const getClient = () => (clientP ??= perspectiveReady.then(() => perspective.worker()))
 
 export function renderViewer(
   parentNode: HTMLElement,
