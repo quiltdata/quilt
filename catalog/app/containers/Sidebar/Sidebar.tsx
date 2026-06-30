@@ -43,8 +43,11 @@ const useStyles = M.makeStyles((t) => ({
   spacer: {
     flexGrow: 1,
   },
+  links: {
+    padding: t.spacing(1, 0),
+  },
   account: {
-    paddingBottom: t.spacing(2),
+    padding: t.spacing(1, 0, 2),
   },
 }))
 
@@ -81,7 +84,7 @@ export function Sidebar() {
 
         {user && (
           <>
-            <M.List dense disablePadding className={classes.workspaces}>
+            <M.List disablePadding className={classes.workspaces}>
               <M.ListSubheader disableSticky className={classes.title}>
                 Workspaces
               </M.ListSubheader>
@@ -108,7 +111,7 @@ export function Sidebar() {
           </>
         )}
 
-        <M.List dense disablePadding className={classes.nav}>
+        <M.List disablePadding className={classes.nav}>
           <M.ListItem button component={Link} to={urls.home()}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>storage</M.Icon>
@@ -127,7 +130,7 @@ export function Sidebar() {
 
         <div className={classes.spacer} />
 
-        <M.List dense disablePadding>
+        <M.List disablePadding className={classes.links}>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>link</M.Icon>
@@ -143,7 +146,7 @@ export function Sidebar() {
         </M.List>
         <M.Divider />
 
-        <M.List dense disablePadding className={classes.account}>
+        <M.List disablePadding className={classes.account}>
           {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
