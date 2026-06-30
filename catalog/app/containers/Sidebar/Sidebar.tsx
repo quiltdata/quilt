@@ -78,7 +78,7 @@ export function Sidebar() {
     <>
       <Rail className={classes.root}>
         <Link to={urls.home()} className={classes.logo}>
-          <Logo height="36px" width="36px" src={settings?.logo?.url} />
+          <Logo height="36px" width="100%" src={settings?.logo?.url} />
         </Link>
         <M.Divider />
 
