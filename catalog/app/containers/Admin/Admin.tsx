@@ -41,6 +41,8 @@ const useStyles = M.makeStyles((t) => ({
   appBar: {
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
+    // Align the tabs with the header's 24px gutters.
+    padding: t.spacing(0, 3),
   },
 }))
 
@@ -56,14 +58,14 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
       pre={
         <>
           <M.AppBar position="static" className={classes.appBar}>
-            <M.Tabs value={section} centered>
+            <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
               <NavTab label="Status" value="status" to={urls.adminStatus()} />
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
           </M.AppBar>
-          <M.Container maxWidth="lg">{children as React.ReactChild}</M.Container>
+          <M.Container maxWidth={false}>{children as React.ReactChild}</M.Container>
         </>
       }
     />
