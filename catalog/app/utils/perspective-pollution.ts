@@ -14,8 +14,14 @@ import '@finos/perspective-viewer-d3fc'
 import SERVER_WASM from '@finos/perspective/dist/wasm/perspective-server.wasm'
 import VIEWER_WASM from '@finos/perspective-viewer/dist/wasm/perspective-viewer.wasm'
 
-import '@finos/perspective-viewer/dist/css/pro.css'
-import '@finos/perspective-viewer/dist/css/pro-dark.css'
+// Forked "Material Light" / "Material Light Mono" themes (app/assets) restore the
+// catalog's pre-3.x look and the light<->mono toggle. They predate 3.x but use the
+// same CSS-variable vocabulary. icons.css + intl.css supply the column-type
+// mask-icons and i18n label strings that pro.css inlines but the forks don't.
+import '@finos/perspective-viewer/dist/css/icons.css'
+import '@finos/perspective-viewer/dist/css/intl.css'
+import 'assets/perspective-material.css'
+import 'assets/perspective-material-mono.css'
 
 // Perspective 3.x uses a SINGLE client-side wasm engine: the viewer wasm.
 // perspective.worker() takes its Client class from the registered
@@ -39,4 +45,4 @@ export const perspectiveReady = Promise.all([
   perspective_viewer.init_client(fetch(VIEWER_WASM)),
 ])
 
-export const themes = ['Pro Light', 'Pro Dark']
+export const themes = ['Material Light', 'Material Light Mono']

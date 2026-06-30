@@ -31,9 +31,13 @@ function useLinkProcessor() {
     (tableEl: RegularTableElement) => {
       tableEl.querySelectorAll('td').forEach((td) => {
         const meta = tableEl.getMeta(td)
+        if (!meta) return
         if (!meta.column_header || !meta.value || typeof meta.value !== 'string') return
         const column = R.last(meta.column_header)
         if (column !== 'physical_keys') return
+        // addStyleListener re-fires on every scroll/sort/resize; skip cells we
+        // already linkified this render to avoid rebuilding/duplicating anchors.
+        if (td.firstChild instanceof HTMLAnchorElement) return
 
         try {
           const s3Url = meta.value.replace(/^\[/, '').replace(/\]$/, '')
@@ -43,8 +47,15 @@ function useLinkProcessor() {
           })
 
           const link = document.createElement('a')
-          link.addEventListener('click', () => history.push(url))
+          // Real href so the cell reads as a link (cmd/ctrl-click, open in new
+          // tab); preventDefault keeps plain clicks on SPA history navigation.
+          link.href = url
+          link.style.cursor = 'pointer'
           link.textContent = s3Url
+          link.addEventListener('click', (e) => {
+            e.preventDefault()
+            history.push(url)
+          })
           td.replaceChildren(link)
         } catch (error) {
           log.warn(error)

@@ -85,11 +85,34 @@ function usePerspective(
         return
       }
 
-      const regularTable: RegularTableElement | null =
-        viewer.querySelector('regular-table')
+      // perspective-viewer 3.x renders the datagrid's <regular-table> inside the
+      // plugin's shadow DOM, so viewer.querySelector('regular-table') is null.
+      // Reach it via the active plugin instead. The 3.x style-listener callback
+      // receives no useful argument, so close over regularTable directly.
+      const plugin = (await viewer.getPlugin()) as {
+        regular_table?: RegularTableElement
+        shadowRoot?: ShadowRoot | null
+      }
+
+      // Pin the status-bar theme switcher to our curated list — 3.x otherwise
+      // auto-detects every loaded theme stylesheet.
+      await viewer.resetThemes(themes)
+
+      // Re-enable grid text selection. The datagrid plugin's shadow CSS sets
+      // `user-select: none`, and the old light-DOM theme rule can't pierce the
+      // shadow root, so inject the override into the plugin's shadow DOM.
+      const pluginRoot = plugin?.shadowRoot
+      if (pluginRoot && !pluginRoot.querySelector('style[data-quilt-user-select]')) {
+        const style = document.createElement('style')
+        style.dataset.quiltUserSelect = ''
+        style.textContent = 'regular-table table { user-select: auto !important; }'
+        pluginRoot.appendChild(style)
+      }
+
+      const regularTable = plugin?.regular_table ?? null
       if (onRender && regularTable?.addStyleListener) {
         onRender(regularTable)
-        regularTable.addStyleListener(({ detail }) => onRender(detail))
+        regularTable.addStyleListener(() => onRender(regularTable))
       }
 
       if (config) {
