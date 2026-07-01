@@ -347,6 +347,10 @@ const useStyles = M.makeStyles((t) => ({
       marginRight: t.spacing(2),
     },
   },
+  // Cap width but keep the block left-aligned (M.Container centers by default).
+  container: {
+    marginLeft: 0,
+  },
 }))
 
 function AthenaContainer() {
@@ -360,7 +364,7 @@ function AthenaContainer() {
         Athena SQL
       </M.Typography>
 
-      <M.Container maxWidth="lg" disableGutters>
+      <M.Container maxWidth="lg" disableGutters className={classes.container}>
         <div className={classes.selectors}>
           <div className={classes.field}>
             <Workgroups bucket={bucket} />
