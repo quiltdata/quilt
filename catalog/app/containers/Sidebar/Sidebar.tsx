@@ -14,6 +14,7 @@ import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { Rail } from './Rail'
+import VolumeSelect from './VolumeSelect'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -122,6 +123,7 @@ export function Sidebar() {
             </M.ListItemIcon>
             <M.ListItemText primary="Buckets" />
           </M.ListItem>
+          <VolumeSelect />
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
               <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>
