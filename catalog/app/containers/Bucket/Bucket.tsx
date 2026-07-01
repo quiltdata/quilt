@@ -65,11 +65,11 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
               <Header bucket={bucket} />
             </div>
           )}
-          <M.AppBar position="static" className={classes.appBar}>
-            <M.Container maxWidth={false}>
+          <M.Container maxWidth={false}>
+            <M.AppBar position="static" className={classes.appBar}>
               <BucketNav.Tabs bucket={bucket} />
-            </M.Container>
-          </M.AppBar>
+            </M.AppBar>
+          </M.Container>
           <Container>
             {bucketExistenceData.case({
               Ok: () => children,
