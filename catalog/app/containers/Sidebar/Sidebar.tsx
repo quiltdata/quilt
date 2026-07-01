@@ -69,12 +69,15 @@ export function Sidebar() {
     auth,
   )
 
-  const identity = user && (
+  const workspace = user && (
     <>
       <M.ListItemIcon className={classes.icon}>
-        <M.Icon>account_circle</M.Icon>
+        <M.Icon>work_outline</M.Icon>
       </M.ListItemIcon>
-      <M.ListItemText primary={user.name} secondary={user.role.name} />
+      <M.ListItemText
+        primary={user.role.name}
+        secondary={user.roles.length > 1 ? `${user.roles.length} available` : undefined}
+      />
     </>
   )
 
@@ -92,23 +95,12 @@ export function Sidebar() {
               <M.ListSubheader disableSticky className={classes.title}>
                 Workspaces
               </M.ListSubheader>
-              {cfg.mode === 'OPEN' ? (
-                <M.ListItem button component={Link} to={urls.profile()}>
-                  {identity}
+              {user.roles.length > 1 ? (
+                <M.ListItem button onClick={() => switchRole(user)}>
+                  {workspace}
                 </M.ListItem>
               ) : (
-                <M.ListItem>{identity}</M.ListItem>
-              )}
-              {user.roles.length > 1 && (
-                <M.ListItem button onClick={() => switchRole(user)}>
-                  <M.ListItemIcon className={classes.icon}>
-                    <M.Icon>people_outline</M.Icon>
-                  </M.ListItemIcon>
-                  <M.ListItemText
-                    primary="Switch role"
-                    secondary={`${user.roles.length} available`}
-                  />
-                </M.ListItem>
+                <M.ListItem>{workspace}</M.ListItem>
               )}
             </M.List>
             <M.Divider />
@@ -159,6 +151,14 @@ export function Sidebar() {
         <M.Divider />
 
         <M.List disablePadding className={classes.account}>
+          {user && (
+            <M.ListItem>
+              <M.ListItemIcon className={classes.icon}>
+                <M.Icon>account_circle</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary={user.name} />
+            </M.ListItem>
+          )}
           {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
