@@ -93,7 +93,7 @@ export function Sidebar() {
           <>
             <M.List disablePadding className={classes.workspaces}>
               <M.ListSubheader disableSticky className={classes.title}>
-                Workspaces
+                Workspace
               </M.ListSubheader>
               {user.roles.length > 1 ? (
                 <M.ListItem button onClick={() => switchRole(user)}>
@@ -130,11 +130,22 @@ export function Sidebar() {
               <M.ListItemText primary="Qurator" />
             </M.ListItem>
           )}
+          {user?.isAdmin && (
+            <>
+              <M.Divider />
+              <M.ListItem button component={Link} to={urls.admin()}>
+                <M.ListItemIcon className={classes.icon}>
+                  <M.Icon>security</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary="Admin" />
+              </M.ListItem>
+            </>
+          )}
         </M.List>
 
         <div className={classes.spacer} />
 
-        <M.List disablePadding className={classes.links}>
+        <M.List disablePadding className={classes.links} dense>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>link</M.Icon>
@@ -150,7 +161,7 @@ export function Sidebar() {
         </M.List>
         <M.Divider />
 
-        <M.List disablePadding className={classes.account}>
+        <M.List disablePadding className={classes.account} dense>
           {user && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
@@ -165,14 +176,6 @@ export function Sidebar() {
                 <M.Icon color="error">warning</M.Icon>
               </M.ListItemIcon>
               <M.ListItemText primary="Unlicensed" />
-            </M.ListItem>
-          )}
-          {user?.isAdmin && (
-            <M.ListItem button component={Link} to={urls.admin()}>
-              <M.ListItemIcon className={classes.icon}>
-                <M.Icon>security</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Admin" />
             </M.ListItem>
           )}
           {cfg.mode !== 'LOCAL' &&
