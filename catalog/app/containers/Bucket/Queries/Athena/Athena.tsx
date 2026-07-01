@@ -333,6 +333,20 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(3, 0, 0),
   },
+  // Workgroup + query selectors on one line (like the data catalog + database
+  // selectors below); each fills, so the workgroup spans full width until a
+  // workgroup is selected and the query selector appears beside it.
+  selectors: {
+    alignItems: 'flex-start',
+    display: 'flex',
+  },
+  field: {
+    flex: '1 1 0',
+    minWidth: 0,
+    '&:not(:last-child)': {
+      marginRight: t.spacing(2),
+    },
+  },
 }))
 
 function AthenaContainer() {
@@ -341,17 +355,25 @@ function AthenaContainer() {
 
   const classes = useStyles()
   return (
-    <>
+    <M.Container maxWidth="lg">
       <M.Typography className={classes.header} variant="h6">
         Athena SQL
       </M.Typography>
 
-      <Workgroups bucket={bucket} />
+      <div className={classes.selectors}>
+        <div className={classes.field}>
+          <Workgroups bucket={bucket} />
+        </div>
+        {Model.hasData(workgroup.data) && (
+          <div className={classes.field}>
+            <QueryConstructor />
+          </div>
+        )}
+      </div>
 
       {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
           <div className={classes.section}>
-            <QueryConstructor />
             {settings?.beta && <TabulatorTables />}
             <QueryEditor.Form className={classes.form} />
           </div>
@@ -364,7 +386,7 @@ function AthenaContainer() {
           )}
         </div>
       )}
-    </>
+    </M.Container>
   )
 }
 
