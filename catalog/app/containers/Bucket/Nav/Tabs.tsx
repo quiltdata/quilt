@@ -12,7 +12,7 @@ import { useBucketSection } from './useBucketSection'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    minHeight: t.spacing(8),
+    minHeight: t.spacing(6),
     minWidth: 120,
   },
 }))
