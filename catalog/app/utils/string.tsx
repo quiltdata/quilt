@@ -18,7 +18,7 @@ const splitNumber = (n: number, suffixes: readonly string[]): [string, string] =
 const numberFormat = new Intl.NumberFormat('en-US')
 
 export interface FormatQuantityOptions {
-  fallback?: React.ReactNode | ((q: number) => React.ReactNode)
+  fallback?: React.ReactNode | ((q: number | null | undefined) => React.ReactNode)
   renderValue?: (value: string) => React.ReactNode
   renderSuffix?: (suffix: string) => React.ReactNode
   Component?: React.ElementType
@@ -38,7 +38,7 @@ export function formatQuantity(
   // Tolerant by design: anything that isn't a finite integer (incl. null /
   // undefined / floats) renders the fallback. Callers rely on this for missing data.
   if (typeof q !== 'number' || !Number.isInteger(q)) {
-    return typeof fallback === 'function' ? fallback(q as number) : fallback
+    return typeof fallback === 'function' ? fallback(q) : fallback
   }
   const [coeff, suffix] = splitNumber(q, suffixes)
   return (

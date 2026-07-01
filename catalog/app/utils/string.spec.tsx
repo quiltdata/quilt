@@ -48,6 +48,13 @@ describe('utils/string', () => {
       expect(formatQuantity(1.5, { fallback: (q) => `bad:${q}` })).toBe('bad:1.5')
     })
 
+    it('passes nullish quantities to a function fallback without coercion', () => {
+      expect(formatQuantity(null, { fallback: (q) => `bad:${q}` })).toBe('bad:null')
+      expect(formatQuantity(undefined, { fallback: (q) => `bad:${q}` })).toBe(
+        'bad:undefined',
+      )
+    })
+
     it('honors custom suffixes and renderers', () => {
       expect(
         text(
