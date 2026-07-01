@@ -36,18 +36,19 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 // The pseudo-header: a global search bar with suggestions (scoped to the current
-// bucket when in one). Pages that carry their own search (the search page, the
-// package list) keep the bar empty for alignment rather than duplicating a field.
+// bucket when in one). The search page has its own search field, so the bar is
+// kept empty there (for alignment) rather than duplicating a field.
 export function ContentBar() {
   const classes = useStyles()
   const { paths } = NamedRoutes.use()
   const bucket = Buckets.useCurrentBucket()
   const onSearchPage = !!RRDom.useRouteMatch({ path: paths.search, exact: true })
-  const onPackageList = !!RRDom.useRouteMatch({ path: paths.bucketPackageList })
   const search = useSearchState(bucket ?? null)
   const anchorRef = React.useRef<HTMLDivElement>(null)
 
-  const hasOwnSearch = onSearchPage || onPackageList
+  // The search page has its own search field; every other page (incl. the
+  // package list) uses the header search.
+  const hasOwnSearch = onSearchPage
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>

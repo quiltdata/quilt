@@ -90,7 +90,7 @@ function PackageList({ bucket }: PackageListProps) {
   return (
     <>
       <MetaTitle>{titleSegments}</MetaTitle>
-      <Main inputRef={setInputEl}>
+      <Main inputRef={setInputEl} hideSearch>
         {tableView ? (
           <TableResults bucket={bucket} emptySlot={emptySlot} onRefine={handleRefine} />
         ) : (
