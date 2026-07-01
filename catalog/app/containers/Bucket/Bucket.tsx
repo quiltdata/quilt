@@ -36,14 +36,24 @@ const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
 const useStyles = M.makeStyles((t) => ({
-  appBar: {
-    backgroundColor: t.palette.common.white,
-    color: t.palette.getContrastText(t.palette.common.white),
+  // A single container insets the whole bucket page (header card + content) by the
+  // standard gutters, so every block shares one source of margins.
+  content: {
+    paddingBottom: t.spacing(3),
+    paddingTop: t.spacing(3),
   },
-  header: {
+  // The bucket title/stats row and the tabs live in one elevated card. The white
+  // background is set explicitly so it never inherits the dark themed paper color.
+  headerCard: {
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
+    marginBottom: t.spacing(2),
+  },
+  headerTop: {
     padding: t.spacing(2, 3),
+  },
+  tabsRow: {
+    padding: t.spacing(0, 3),
   },
 }))
 
@@ -59,25 +69,26 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
   return (
     <Layout
       pre={
-        <>
-          {settings?.beta && (
-            <div className={classes.header}>
-              <Header bucket={bucket} />
-            </div>
-          )}
-          <M.Container maxWidth={false}>
-            <M.AppBar position="static" className={classes.appBar}>
+        <Container className={classes.content}>
+          <M.Paper className={classes.headerCard}>
+            {settings?.beta && (
+              <>
+                <div className={classes.headerTop}>
+                  <Header bucket={bucket} />
+                </div>
+                <M.Divider />
+              </>
+            )}
+            <div className={classes.tabsRow}>
               <BucketNav.Tabs bucket={bucket} />
-            </M.AppBar>
-          </M.Container>
-          <Container>
-            {bucketExistenceData.case({
-              Ok: () => children,
-              Err: displayError(),
-              _: () => <SuspensePlaceholder />,
-            })}
-          </Container>
-        </>
+            </div>
+          </M.Paper>
+          {bucketExistenceData.case({
+            Ok: () => children,
+            Err: displayError(),
+            _: () => <SuspensePlaceholder />,
+          })}
+        </Container>
       }
     />
   )

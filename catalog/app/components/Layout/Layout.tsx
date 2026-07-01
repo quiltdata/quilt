@@ -43,17 +43,12 @@ const useShellStyles = M.makeStyles({
     overflowX: 'hidden',
     position: 'relative',
   },
+  // `.main` is the scroll container; the sticky ContentBar pins to its top.
   main: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
     minWidth: 0,
-  },
-  scroll: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    minHeight: 0,
     overflowY: 'auto',
   },
 })
@@ -94,14 +89,12 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
       <Sidebar />
       <M.Box component="main" className={classes.main}>
         <ContentBar />
-        <div className={classes.scroll}>
-          <Container.FullWidthProvider>
-            {!!pre && pre}
-            {!!children && <M.Box p={4}>{children}</M.Box>}
-            <M.Box flexGrow={1} />
-            {isHomepage?.isExact && <Footer />}
-          </Container.FullWidthProvider>
-        </div>
+        <Container.FullWidthProvider>
+          {!!pre && pre}
+          {!!children && <M.Box p={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+          {isHomepage?.isExact && <Footer />}
+        </Container.FullWidthProvider>
       </M.Box>
     </M.Box>
   )
