@@ -36,11 +36,10 @@ const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
 const useStyles = M.makeStyles((t) => ({
-  // A single container insets the whole bucket page (header card + content) by the
-  // standard gutters, so every block shares one source of margins.
+  // Horizontal inset comes from `.main`; this only spaces the header card away
+  // from the search bar above it.
   content: {
-    paddingBottom: t.spacing(3),
-    paddingTop: t.spacing(3),
+    marginTop: t.spacing(3),
   },
   // The bucket title/stats row and the tabs live in one elevated card. The white
   // background is set explicitly so it never inherits the dark themed paper color.
