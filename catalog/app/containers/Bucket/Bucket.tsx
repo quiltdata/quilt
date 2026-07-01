@@ -8,12 +8,14 @@ import * as BucketNav from 'containers/Bucket/Nav'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import * as AssistantContext from './AssistantContext'
+import Header from './Header'
 import type { RouteMap } from './Routes'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -40,6 +42,11 @@ const useStyles = M.makeStyles((t) => ({
     // Align the tabs with the header's 24px gutters.
     padding: t.spacing(0, 3),
   },
+  header: {
+    backgroundColor: t.palette.common.white,
+    color: t.palette.getContrastText(t.palette.common.white),
+    padding: t.spacing(2, 3),
+  },
 }))
 
 interface BucketLayoutProps {
@@ -49,11 +56,17 @@ interface BucketLayoutProps {
 
 function BucketLayout({ bucket, children }: BucketLayoutProps) {
   const classes = useStyles()
+  const settings = CatalogSettings.use()
   const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
         <>
+          {settings?.beta && (
+            <div className={classes.header}>
+              <Header bucket={bucket} />
+            </div>
+          )}
           <M.AppBar position="static" className={classes.appBar}>
             <BucketNav.Tabs bucket={bucket} />
           </M.AppBar>
