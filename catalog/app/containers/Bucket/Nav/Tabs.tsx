@@ -10,18 +10,10 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 
 import { useBucketSection } from './useBucketSection'
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    minHeight: t.spacing(6),
-    minWidth: 120,
-  },
-}))
-
 type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
 
 function NavTab(props: NavTabProps) {
-  const classes = useStyles()
-  return <M.Tab className={classes.root} component={Link} {...props} />
+  return <M.Tab component={Link} {...props} />
 }
 
 const useSkeletonStyles = M.makeStyles((t) => ({
