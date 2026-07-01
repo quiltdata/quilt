@@ -112,7 +112,7 @@ export function Sidebar() {
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>storage</M.Icon>
             </M.ListItemIcon>
-            <M.ListItemText primary="Buckets" />
+            <M.ListItemText primary="Volumes" />
           </M.ListItem>
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
