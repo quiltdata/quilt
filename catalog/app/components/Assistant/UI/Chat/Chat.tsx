@@ -409,7 +409,7 @@ interface ConnectorHelperLineProps {
   state: Model.Connectors.ConnectorState
 }
 
-function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
+export function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
   const classes = useConnectorHelperStyles()
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
   const onAck = React.useCallback(
@@ -492,6 +492,9 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: 0,
   },
   input: {},
+  connectorLine: {
+    display: 'block',
+  },
 }))
 
 interface ChatProps {
@@ -518,9 +521,9 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
   const helperLines = allConnectors.flatMap((c, i) =>
     Model.Connectors.stateIsUnready(connectorStates[i])
       ? [
-          <div key={c.id}>
+          <span key={c.id} className={classes.connectorLine}>
             <ConnectorHelperLine connector={c} state={connectorStates[i]} />
-          </div>,
+          </span>,
         ]
       : [],
   )

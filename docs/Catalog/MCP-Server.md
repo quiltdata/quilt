@@ -245,7 +245,7 @@ Each user must authorize their MCP connection once:
 **Web clients (e.g. Claude.ai):**
 
 1. Log in to your Quilt stack as usual (e.g. via Okta SSO)
-2. Go to [Settings -> Connectors](https://claude.ai/settings/connectors)
+2. Go to [Customize -> Connectors](https://claude.ai/customize/connectors)
 3. Click **Connect**
 
 **Desktop clients (e.g. Cursor):** the OAuth flow starts automatically the

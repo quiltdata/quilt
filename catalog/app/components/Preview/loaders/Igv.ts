@@ -1,9 +1,9 @@
-import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
 import { S3SummarizeHandle } from 'utils/LogicalKeyResolver'
+import hljs, { loadLanguages } from 'utils/hljs'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
@@ -90,6 +90,7 @@ export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderP
         console.error(e)
         if (e instanceof SyntaxError) {
           const lang = 'json'
+          await loadLanguages([lang])
           // @ts-expect-error ts can't find appropriate type declaration
           const highlighted = R.map<string, string>(hl(lang), { head, tail })
           return PreviewData.Text({

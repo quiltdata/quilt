@@ -12,8 +12,8 @@ export type ValidationErrors = (Error | ErrorObject)[]
 export type RowData = JsonDictItem
 
 // TODO: use enum, when conversion to typescript will be done
-const KEY: 'key' = 'key'
-const VALUE: 'value' = 'value'
+const KEY = 'key' as const
+const VALUE = 'value' as const
 
 export const COLUMN_IDS = {
   KEY,
