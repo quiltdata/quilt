@@ -215,17 +215,19 @@ export function Form({ className }: FormProps) {
         </Lab.Alert>
       )}
 
-      <div className={classes.actions}>
-        <Database className={classes.database} />
-        <M.Button
-          variant="contained"
-          color="primary"
-          disabled={!Model.isReady(queryRun)}
-          onClick={handleSubmit}
-        >
-          Run query
-        </M.Button>
-      </div>
+      <M.Container maxWidth="lg" disableGutters>
+        <div className={classes.actions}>
+          <Database className={classes.database} />
+          <M.Button
+            variant="contained"
+            color="primary"
+            disabled={!Model.isReady(queryRun)}
+            onClick={handleSubmit}
+          >
+            Run query
+          </M.Button>
+        </div>
+      </M.Container>
     </div>
   )
 }

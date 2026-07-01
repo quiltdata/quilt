@@ -355,21 +355,23 @@ function AthenaContainer() {
 
   const classes = useStyles()
   return (
-    <M.Container maxWidth="lg">
+    <>
       <M.Typography className={classes.header} variant="h6">
         Athena SQL
       </M.Typography>
 
-      <div className={classes.selectors}>
-        <div className={classes.field}>
-          <Workgroups bucket={bucket} />
-        </div>
-        {Model.hasData(workgroup.data) && (
+      <M.Container maxWidth="lg" disableGutters>
+        <div className={classes.selectors}>
           <div className={classes.field}>
-            <QueryConstructor />
+            <Workgroups bucket={bucket} />
           </div>
-        )}
-      </div>
+          {Model.hasData(workgroup.data) && (
+            <div className={classes.field}>
+              <QueryConstructor />
+            </div>
+          )}
+        </div>
+      </M.Container>
 
       {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
@@ -386,7 +388,7 @@ function AthenaContainer() {
           )}
         </div>
       )}
-    </M.Container>
+    </>
   )
 }
 
