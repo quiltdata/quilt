@@ -2,6 +2,9 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { Model as AssistantModel } from 'components/Assistant'
+
+import { classifyQuery } from './classify'
 import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
@@ -15,6 +18,12 @@ interface SearchState {
 
 export default function useState(): SearchState {
   const history = RRDom.useHistory()
+
+  // Qurator availability + entrypoint. When the assistant is disabled for this
+  // stack/user, `assist` is undefined and `classifyQuery` is told Qurator is
+  // off, so every submit falls back to catalog search — no behavior change.
+  const quratorEnabled = !!AssistantModel.useIsEnabled()
+  const assist = AssistantModel.useAssistant()
 
   const [value, setValue] = React.useState<string>('')
   const [helpOpen, setHelpOpen] = React.useState(false)
@@ -38,11 +47,18 @@ export default function useState(): SearchState {
   const handleSubmit = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       event.preventDefault()
-      history.push(suggestions.url)
+      // Route natural-language queries to Qurator, keyword queries to search.
+      // Falls back to search when Qurator can't take it (disabled, or no
+      // `assist` entrypoint available).
+      if (assist && classifyQuery(value, quratorEnabled) === 'Qurator') {
+        assist(value.trim())
+      } else {
+        history.push(suggestions.url)
+      }
       handleCollapse()
       event.currentTarget.blur()
     },
-    [handleCollapse, history, suggestions],
+    [assist, handleCollapse, history, quratorEnabled, suggestions, value],
   )
 
   const handleEscape = React.useCallback(
