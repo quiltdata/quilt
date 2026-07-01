@@ -25,7 +25,7 @@ function stringify(num?: number | null): RangeField.InputState<number> {
 }
 
 const formatLabel = mkFormatQuantity({
-  fallback: (n: number) => Math.round(n * 100) / 100,
+  fallback: (n) => (n == null ? n : Math.round(n * 100) / 100),
 })
 
 type NumbersRangeProps = Pick<
