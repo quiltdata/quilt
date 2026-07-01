@@ -138,7 +138,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
         </StyledLink>
       )
     case 'size':
-      return readableBytes(hit.size)
+      return <>{readableBytes(hit.size)}</>
     case 'name':
       return (
         <StyledLink
@@ -162,7 +162,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
     case 'modified':
       return <Format.Relative value={hit.modified} />
     case 'entries':
-      return hit.totalEntriesCount
+      return <>{hit.totalEntriesCount}</>
     case 'bucket':
       return <StyledLink to={urls.bucketPackageList(hit.bucket)}>{hit.bucket}</StyledLink>
     default:

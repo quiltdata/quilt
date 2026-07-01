@@ -3,8 +3,7 @@ extensions:
   codegen:
     hooks:
       afterAllFileWrite:
-        - eslint --fix
-        - prettier --write
+        - oxfmt --write
     generates:
       ./app/:
         documents: './app/**/*.graphql'

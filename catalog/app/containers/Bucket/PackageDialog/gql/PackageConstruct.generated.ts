@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
 /** Internal type. DO NOT USE DIRECTLY. */
 type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 /** Internal type. DO NOT USE DIRECTLY. */
