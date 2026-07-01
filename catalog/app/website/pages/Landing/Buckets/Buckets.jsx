@@ -35,7 +35,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   container: {
     paddingBottom: t.spacing(5),
-    paddingTop: t.spacing(8),
+    paddingTop: t.spacing(3),
     position: 'relative',
     zIndex: 1,
   },
@@ -149,7 +149,7 @@ export default function Buckets() {
   return (
     <div className={classes.root}>
       <Backlight className={classes.backlight} />
-      <M.Container maxWidth="lg" className={classes.container}>
+      <M.Container maxWidth={false} className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
           Explore your buckets

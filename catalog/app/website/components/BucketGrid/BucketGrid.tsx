@@ -191,14 +191,10 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
     display: 'grid',
     gridColumnGap: t.spacing(4),
     gridRowGap: t.spacing(4),
-    gridTemplateColumns: '1fr 1fr 1fr',
+    // Responsive: as many ~360px columns as fit, stretched to fill the row.
+    // `min(360px, 100%)` keeps a single column from overflowing narrow screens.
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(360px, 100%), 1fr))',
     gridAutoRows: `minmax(${t.spacing(25)}px, auto)`,
-    [t.breakpoints.down('sm')]: {
-      gridTemplateColumns: '1fr 1fr',
-    },
-    [t.breakpoints.down('xs')]: {
-      gridTemplateColumns: 'auto',
-    },
   },
   add: {
     alignItems: 'center',
