@@ -42,6 +42,14 @@ const inAllBuckets = (
     in <b>all buckets</b>
   </>
 )
+const inSelectedBuckets = (buckets: readonly string[]) => {
+  const bucketsDisplay = buckets.length === 1 ? `s3://${buckets[0]}` : 'selected buckets'
+  return (
+    <>
+      in <b>{bucketsDisplay}</b>
+    </>
+  )
+}
 
 const global = (
   searchString: string,
@@ -67,14 +75,107 @@ const global = (
   },
 ]
 
-function useItems(searchString: string) {
-  const makeUrl = useMakeUrl()
-  return React.useMemo(() => global(searchString, makeUrl), [makeUrl, searchString])
+const inBucket = (
+  searchString: string,
+  makeUrl: ReturnType<typeof useMakeUrl>,
+  bucket: string,
+): Suggestion[] => [
+  {
+    key: 'bucket-packages',
+    what: what(searchString, QuiltPackage),
+    where: inSelectedBuckets([bucket]),
+    url: makeUrl({
+      searchString,
+      buckets: [bucket],
+      resultType: SearchUIModel.ResultType.QuiltPackage,
+    }),
+  },
+  {
+    key: 'bucket-objects',
+    what: what(searchString, S3Object),
+    where: inSelectedBuckets([bucket]),
+    url: makeUrl({
+      searchString,
+      buckets: [bucket],
+      resultType: SearchUIModel.ResultType.S3Object,
+    }),
+  },
+  ...global(searchString, makeUrl),
+]
+
+const inSearch = (
+  searchString: string,
+  makeUrl: ReturnType<typeof useMakeUrl>,
+  model: SearchUIModel.SearchUIModel,
+): Suggestion[] => {
+  const otherType = model.state.resultType === QuiltPackage ? S3Object : QuiltPackage
+  const items = [
+    {
+      key: 'current-settings',
+      what: what(searchString, model.state.resultType),
+      where: (
+        <>
+          with <b>current settings</b>
+        </>
+      ),
+      url: makeUrl({ ...model.state, searchString }),
+    },
+  ]
+  if (model.state.buckets.length)
+    items.push({
+      key: 'same-type-selected-buckets',
+      what: what(searchString, model.state.resultType),
+      where: inSelectedBuckets(model.state.buckets),
+      url: makeUrl({
+        searchString,
+        resultType: model.state.resultType,
+        buckets: model.state.buckets,
+      }),
+    })
+  items.push({
+    key: 'same-type-all-buckets',
+    what: what(searchString, model.state.resultType),
+    where: inAllBuckets,
+    url: makeUrl({ searchString, resultType: model.state.resultType }),
+  })
+  if (model.state.buckets.length)
+    items.push({
+      key: 'other-type-selected-buckets',
+      what: what(searchString, otherType),
+      where: inSelectedBuckets(model.state.buckets),
+      url: makeUrl({
+        searchString,
+        resultType: otherType,
+        buckets: model.state.buckets,
+      }),
+    })
+  items.push({
+    key: 'other-type-all-buckets',
+    what: what(searchString, otherType),
+    where: inAllBuckets,
+    url: makeUrl({ searchString, resultType: otherType }),
+  })
+  return items
 }
 
-function useSuggestions(searchString: string) {
+function useItems(
+  searchString: string,
+  context: null | string | SearchUIModel.SearchUIModel,
+) {
+  const makeUrl = useMakeUrl()
+  return React.useMemo(() => {
+    if (!context) return global(searchString, makeUrl)
+    if (typeof context === 'string') return inBucket(searchString, makeUrl, context)
+    return inSearch(searchString, makeUrl, context)
+  }, [context, makeUrl, searchString])
+}
+
+function useSuggestions(
+  searchString: string,
+  context: null | string | SearchUIModel.SearchUIModel,
+) {
   const [selected, setSelected] = React.useState(0)
-  const items = useItems(searchString)
+  const items = useItems(searchString, context)
   const cycleSelected = React.useCallback(
     (reverse: boolean) => {
       setSelected((s) => {
