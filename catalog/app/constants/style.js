@@ -19,6 +19,10 @@ const appPalette = {
     main: colors.yellow[200],
     dark: colors.yellow[900],
   },
+  tertiary: {
+    contrastText: colors.common.white,
+    main: '#282b50',
+  },
 }
 
 const websitePalette = {
