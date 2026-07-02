@@ -156,6 +156,40 @@ export const websiteTheme = createMuiTheme({
   mixins,
 })
 
+// light-mode variant of the website palette (front door light mode)
+const websiteLightPalette = {
+  type: 'light',
+  background: {
+    default: '#f6f7fb',
+    paper: '#ffffff',
+  },
+  primary: {
+    contrastText: colors.common.white,
+    light: '#fabdb3',
+    main: '#f38681',
+  },
+  secondary: {
+    main: '#5471f1',
+    dark: '#2d306d',
+  },
+  tertiary: {
+    contrastText: colors.common.white,
+    main: '#5471f1',
+  },
+  text: {
+    primary: '#282b50',
+    secondary: '#6a7090',
+  },
+}
+
+// light-mode theme for "website" pages (front door light mode)
+export const websiteLightTheme = createMuiTheme({
+  palette: websiteLightPalette,
+  typography: websiteTypography,
+  overrides: { ...tooltipOverrides, ...websiteOverrides },
+  mixins,
+})
+
 export const createCustomAppTheme = (
   { palette, typography, mixins: mxs, ...rest },
   ...args

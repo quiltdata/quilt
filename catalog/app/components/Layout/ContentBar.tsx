@@ -2,10 +2,13 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { Model as AssistantModel } from 'components/Assistant'
 import Suggestions from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
+import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import SearchSuggestions from 'website/pages/Landing/FrontDoor/UnifiedBar/SearchSuggestions'
 
 const useStyles = M.makeStyles((t) => ({
   appBar: {
@@ -36,15 +39,26 @@ const useStyles = M.makeStyles((t) => ({
 
 // The pseudo-header: a global search bar with suggestions. Pages that carry
 // their own search (the search page, the package list) keep the bar empty for
-// alignment rather than duplicating a search field.
+// alignment rather than duplicating a search field. When the FrontDoor is on,
+// the home page carries its own unified bar, so this one is suppressed there.
 export function ContentBar() {
   const classes = useStyles()
   const { paths } = NamedRoutes.use()
   const onSearchPage = !!RRDom.useRouteMatch({ path: paths.search, exact: true })
   const onPackageList = !!RRDom.useRouteMatch({ path: paths.bucketPackageList })
+  const onHome = !!RRDom.useRouteMatch({ path: paths.home, exact: true })
   const search = useSearchState()
 
-  const hasOwnSearch = onSearchPage || onPackageList
+  // FrontDoor omni-suggestions (deep links into packages/objects/tables scopes)
+  const quratorEnabled = !!AssistantModel.useIsEnabled()
+  const assist = AssistantModel.useAssistant()
+  const searchValue = typeof search.input.value === 'string' ? search.input.value : ''
+  const onAskQurator = React.useCallback(() => {
+    const trimmed = searchValue.trim()
+    if (trimmed && assist) assist(trimmed)
+  }, [assist, searchValue])
+
+  const hasOwnSearch = onSearchPage || onPackageList || (onHome && !!cfg.frontDoorV2)
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
@@ -66,11 +80,26 @@ export function ContentBar() {
                     </M.InputAdornment>
                   }
                 />
-                <Suggestions
-                  classes={{ paper: classes.paper }}
-                  open={search.helpOpen}
-                  suggestions={search.suggestions}
-                />
+                {searchValue.trim() ? (
+                  search.helpOpen && (
+                    <div className={classes.paper}>
+                      {/* SearchSuggestions suspends on bucket data; never let it blank the shell */}
+                      <React.Suspense fallback={null}>
+                        <SearchSuggestions
+                          query={searchValue}
+                          quratorEnabled={quratorEnabled}
+                          onAskQurator={onAskQurator}
+                        />
+                      </React.Suspense>
+                    </div>
+                  )
+                ) : (
+                  <Suggestions
+                    classes={{ paper: classes.paper }}
+                    open={search.helpOpen}
+                    suggestions={search.suggestions}
+                  />
+                )}
               </div>
             </M.ClickAwayListener>
           )}

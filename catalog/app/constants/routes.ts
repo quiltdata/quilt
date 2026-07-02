@@ -71,6 +71,9 @@ export const search = route(
 // Global Tables (the Athena workbench promoted out of a single bucket into the rail)
 export const tables = route('/tables', () => '/tables')
 
+// All-volumes listing page (used by the FrontDoor Buckets tile and the rail)
+export const buckets = route('/buckets', () => '/buckets')
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

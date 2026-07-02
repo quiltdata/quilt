@@ -93,6 +93,10 @@
       "type": "string",
       "description": "Bedrock model ID for Qurator AI Assistant (overrides built-in default)"
     },
+    "frontDoorV2": {
+      "type": "boolean",
+      "description": "Enable the front-door v2 landing surface (unified search/Qurator home) for signed-in non-LOCAL users."
+    },
     "stackVersion": {
       "type": "string",
       "description": "Stack release version"

@@ -66,6 +66,9 @@ const UriResolver = protect(
 )
 const Tables = protect(RT.mkLazy(() => import('containers/Tables'), Placeholder))
 
+const AllBuckets = protect(
+  RT.mkLazy(() => import('website/pages/Landing/AllBuckets'), Placeholder),
+)
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
 const OpenProfile = requireAuth()(
@@ -93,6 +96,10 @@ export default function App() {
           <LegacyPackages />
         </Route>
       )}
+
+      <Route path={paths.buckets} exact>
+        <AllBuckets />
+      </Route>
 
       <Route path={paths.search} exact>
         <Search />

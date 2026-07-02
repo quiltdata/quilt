@@ -171,6 +171,16 @@ export function Sidebar() {
         <M.List disablePadding className={classes.nav}>
           <M.ListItem button component={Link} to={urls.home()}>
             <M.ListItemIcon className={classes.icon}>
+              <M.Icon>home</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Home" />
+          </M.ListItem>
+          <M.ListItem
+            button
+            component={Link}
+            to={cfg.frontDoorV2 ? urls.buckets() : urls.home()}
+          >
+            <M.ListItemIcon className={classes.icon}>
               <M.Icon>storage</M.Icon>
             </M.ListItemIcon>
             <M.ListItemText primary="Volumes" />
