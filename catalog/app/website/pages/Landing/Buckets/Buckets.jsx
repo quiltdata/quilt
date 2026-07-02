@@ -152,7 +152,7 @@ export default function Buckets() {
       <M.Container maxWidth={false} className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h3" color="textPrimary">
-          Explore your buckets
+          Explore your volumes
         </M.Typography>
         <M.Box mt={4} />
         <M.TextField
