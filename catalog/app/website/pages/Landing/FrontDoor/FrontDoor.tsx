@@ -18,6 +18,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     overflow: 'hidden',
+    // Own the full content viewport so the palette background is seamless
+    // (otherwise the dark website background peeks through in light mode).
+    minHeight: 'calc(100vh - 64px)',
     // Hero background follows the palette: indigo glow over dark base, or a
     // soft blue wash over the light base in light mode.
     background:
