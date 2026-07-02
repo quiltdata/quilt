@@ -80,7 +80,7 @@ export function ContentBar() {
                     </M.InputAdornment>
                   }
                 />
-                {searchValue.trim() ? (
+                {cfg.frontDoorV2 && searchValue.trim() ? (
                   search.helpOpen && (
                     <div className={classes.paper}>
                       {/* SearchSuggestions suspends on bucket data; never let it blank the shell */}

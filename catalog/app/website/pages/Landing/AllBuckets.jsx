@@ -10,7 +10,7 @@ import Buckets from './Buckets'
 export default function AllBuckets() {
   return (
     <Layout>
-      <MetaTitle>{['Buckets']}</MetaTitle>
+      <MetaTitle>{['Volumes']}</MetaTitle>
       <Dots style={{ bottom: 0 }} />
       <Buckets />
     </Layout>

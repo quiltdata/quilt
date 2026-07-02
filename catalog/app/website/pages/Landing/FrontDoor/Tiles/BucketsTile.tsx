@@ -107,9 +107,9 @@ export default function BucketsTile() {
 
   if (!buckets.length) {
     return (
-      <TileCard icon="folder_open" title="Buckets" href={urls.buckets()}>
+      <TileCard icon="folder_open" title="Volumes" href={urls.buckets()}>
         <M.Typography color="textSecondary" variant="body2">
-          No buckets yet
+          No volumes yet
         </M.Typography>
       </TileCard>
     )
@@ -118,7 +118,7 @@ export default function BucketsTile() {
   const visible = sorted.slice(0, COLLAPSED_LIMIT)
 
   return (
-    <TileCard icon="folder_open" title="Buckets" href={urls.buckets()}>
+    <TileCard icon="folder_open" title="Volumes" href={urls.buckets()}>
       {visible.map((bucket) => {
         const title = bucket.title || bucket.name
         // Avoid a redundant second line when the title is just the bucket name.
@@ -139,8 +139,8 @@ export default function BucketsTile() {
       })}
       <Link to={urls.buckets()} className={classes.more}>
         {sorted.length > COLLAPSED_LIMIT
-          ? `View all ${sorted.length} buckets`
-          : 'Browse all buckets'}
+          ? `View all ${sorted.length} volumes`
+          : 'Browse all volumes'}
       </Link>
     </TileCard>
   )

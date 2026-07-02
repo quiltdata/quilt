@@ -100,8 +100,8 @@ export default function SearchSuggestions({
   if (!trimmed && !suggestions.length) return null
 
   const scopes: { id: string; icon: string; label: string; where: string }[] = [
-    { id: 'packages', icon: 'inventory_2', label: 'packages', where: 'all buckets' },
-    { id: 'objects', icon: 'description', label: 'objects', where: 'all buckets' },
+    { id: 'packages', icon: 'inventory_2', label: 'packages', where: 'all volumes' },
+    { id: 'objects', icon: 'description', label: 'objects', where: 'all volumes' },
     {
       id: 'tables',
       icon: 'table_chart',
@@ -117,7 +117,7 @@ export default function SearchSuggestions({
           <span>
             Search <b>packages, objects &amp; tables</b>
           </span>
-          <span className={classes.where}>across all buckets</span>
+          <span className={classes.where}>across all volumes</span>
         </div>
       )}
       <M.List dense aria-label="Search suggestions" disablePadding>

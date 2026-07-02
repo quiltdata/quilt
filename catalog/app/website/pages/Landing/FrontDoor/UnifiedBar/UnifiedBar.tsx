@@ -111,7 +111,7 @@ export default function UnifiedBar({ value, onChange }: UnifiedBarProps) {
           ) : (
             <>
               <M.Icon className={classes.hintIcon}>search</M.Icon>
-              Searching <b>packages, objects &amp; tables</b> across all buckets.{' '}
+              Searching <b>packages, objects &amp; tables</b> across all volumes.{' '}
               <span className={classes.kbd}>Enter</span> to open results
             </>
           )}
