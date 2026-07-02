@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
-import cfg from 'constants/config'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -13,7 +12,6 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
@@ -30,14 +28,9 @@ function useIsAdmin() {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'relative',
-  },
   container: {
     paddingBottom: t.spacing(5),
     paddingTop: t.spacing(3),
-    position: 'relative',
-    zIndex: 1,
   },
   filter: {
     marginBottom: t.spacing(5),
@@ -45,10 +38,6 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
-  },
-  backlight: {
-    bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
-    opacity: 0.5,
   },
   controls: {
     display: 'flex',
@@ -147,82 +136,79 @@ export default function Buckets() {
   const isAdmin = useIsAdmin()
 
   return (
-    <div className={classes.root}>
-      <Backlight className={classes.backlight} />
-      <M.Container maxWidth={false} className={classes.container}>
-        <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
-        <M.Typography variant="h3" color="textPrimary">
-          Explore your volumes
-        </M.Typography>
-        <M.Box mt={4} />
-        <M.TextField
-          className={classes.filter}
-          placeholder="Find a bucket"
-          variant="outlined"
-          margin="dense"
-          fullWidth
-          InputProps={{
-            startAdornment: (
-              <M.InputAdornment position="start">
-                <M.Icon>search</M.Icon>
-              </M.InputAdornment>
-            ),
-            endAdornment: filter ? (
-              <M.InputAdornment position="end">
-                <M.IconButton edge="end" onClick={clearFilter}>
-                  <M.Icon>clear</M.Icon>
-                </M.IconButton>
-              </M.InputAdornment>
-            ) : undefined,
-          }}
-          {...filtering.input}
+    <M.Container maxWidth={false} disableGutters className={classes.container}>
+      <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
+      <M.Typography variant="h3" color="textPrimary">
+        Explore your volumes
+      </M.Typography>
+      <M.Box mt={4} />
+      <M.TextField
+        className={classes.filter}
+        placeholder="Find a bucket"
+        variant="outlined"
+        margin="dense"
+        fullWidth
+        InputProps={{
+          startAdornment: (
+            <M.InputAdornment position="start">
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          ),
+          endAdornment: filter ? (
+            <M.InputAdornment position="end">
+              <M.IconButton edge="end" onClick={clearFilter}>
+                <M.Icon>clear</M.Icon>
+              </M.IconButton>
+            </M.InputAdornment>
+          ) : undefined,
+        }}
+        {...filtering.input}
+      />
+      {paginated.length || !filter ? (
+        <BucketGrid
+          buckets={paginated}
+          onTagClick={filtering.set}
+          tagIsMatching={tagIsMatching}
+          showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
         />
-        {paginated.length || !filter ? (
-          <BucketGrid
-            buckets={paginated}
-            onTagClick={filtering.set}
-            tagIsMatching={tagIsMatching}
-            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
-          />
-        ) : (
-          <M.Typography color="textPrimary" variant="h4">
-            No buckets matching <b>&quot;{filter}&quot;</b>
-          </M.Typography>
-        )}
-        <div className={classes.controls}>
-          <M.Box mt={2}>
-            {buckets.length > 2 && isAdmin && (
-              <M.Box mt={2} mr={2} display="inline-block">
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  component={Link}
-                  to={urls.adminBuckets({ add: true })}
-                >
-                  Add Bucket
-                </M.Button>
-              </M.Box>
-            )}
-            <M.Box mt={2} display="inline-block">
+      ) : (
+        <M.Typography color="textPrimary" variant="h4">
+          No buckets matching <b>&quot;{filter}&quot;</b>
+        </M.Typography>
+      )}
+      <div className={classes.controls}>
+        <M.Box mt={2}>
+          {buckets.length > 2 && isAdmin && (
+            <M.Box mt={2} mr={2} display="inline-block">
               <M.Button
-                variant="outlined"
+                variant="contained"
                 color="primary"
-                href="https://open.quiltdata.com/"
+                component={Link}
+                to={urls.adminBuckets({ add: true })}
               >
-                Browse Example Buckets
+                Add Bucket
               </M.Button>
             </M.Box>
-          </M.Box>
-          {pages > 1 && (
-            <Pagination
-              {...{ pages, page, onChange: setPage }}
-              mt={4}
-              mb={0}
-              classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
-            />
           )}
-        </div>
-      </M.Container>
-    </div>
+          <M.Box mt={2} display="inline-block">
+            <M.Button
+              variant="outlined"
+              color="primary"
+              href="https://open.quiltdata.com/"
+            >
+              Browse Example Buckets
+            </M.Button>
+          </M.Box>
+        </M.Box>
+        {pages > 1 && (
+          <Pagination
+            {...{ pages, page, onChange: setPage }}
+            mt={4}
+            mb={0}
+            classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
+          />
+        )}
+      </div>
+    </M.Container>
   )
 }
