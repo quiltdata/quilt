@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./build/",
+    "ignoreDeprecations": "6.0",
     "baseUrl": "./app/",
     "paths": {
       "*": ["*", "../../shared/*"]

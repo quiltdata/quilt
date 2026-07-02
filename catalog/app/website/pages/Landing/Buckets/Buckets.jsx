@@ -18,7 +18,7 @@ import BucketGrid from 'website/components/BucketGrid'
 
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
-const PER_PAGE = 9
+const PER_PAGE = 24
 
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
@@ -35,7 +35,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   container: {
     paddingBottom: t.spacing(5),
-    paddingTop: t.spacing(8),
+    paddingTop: t.spacing(3),
     position: 'relative',
     zIndex: 1,
   },
@@ -64,21 +64,21 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   pgBtn: {
-    background: fade(t.palette.secondary.main, 0),
-    border: `1px solid ${t.palette.secondary.main}`,
-    color: t.palette.secondary.main,
+    background: fade(t.palette.primary.main, 0),
+    border: `1px solid ${t.palette.primary.main}`,
+    color: t.palette.primary.main,
     '&:hover': {
-      background: fade(t.palette.secondary.main, t.palette.action.hoverOpacity),
+      background: fade(t.palette.primary.main, t.palette.action.hoverOpacity),
     },
     '&:not(:last-child)': {
       borderRight: 'none',
     },
   },
   pgCurrent: {
-    color: t.palette.text.primary,
-    background: t.palette.secondary.main,
+    color: t.palette.primary.contrastText,
+    background: t.palette.primary.main,
     '&:hover': {
-      background: t.palette.secondary.main,
+      background: t.palette.primary.main,
     },
   },
 }))
@@ -154,7 +154,7 @@ export default function Buckets() {
   return (
     <div className={classes.root}>
       {dark && <Backlight className={classes.backlight} />}
-      <M.Container maxWidth="lg" className={classes.container}>
+      <M.Container maxWidth={false} className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
           Volumes
@@ -214,8 +214,8 @@ export default function Buckets() {
             )}
             <M.Box mt={2} display="inline-block">
               <M.Button
-                variant="contained"
-                color="secondary"
+                variant="outlined"
+                color="primary"
                 href="https://open.quiltdata.com/"
               >
                 Browse example buckets

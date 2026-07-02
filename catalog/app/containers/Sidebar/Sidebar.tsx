@@ -41,57 +41,6 @@ const useStyles = M.makeStyles((t) => ({
     letterSpacing: '0.12em',
     lineHeight: '32px',
   },
-  workspaceButton: {
-    background: fade('#fff', 0.05),
-    borderRadius: t.shape.borderRadius * 2,
-    margin: t.spacing(0, 1.5, 1),
-    padding: t.spacing(1, 1.5),
-    textAlign: 'left',
-    width: `calc(100% - ${t.spacing(3)}px)`,
-    '&:hover': {
-      background: fade('#fff', 0.1),
-    },
-  },
-  workspaceAvatar: {
-    alignItems: 'center',
-    // Dark navy disc per the markup (not the coral primary).
-    background: '#282b50',
-    borderRadius: '50%',
-    color: t.palette.common.white,
-    display: 'flex',
-    flexShrink: 0,
-    fontSize: 13,
-    fontWeight: 500,
-    height: 30,
-    justifyContent: 'center',
-    marginRight: t.spacing(1.5),
-    textTransform: 'lowercase',
-    width: 30,
-  },
-  workspaceText: {
-    flexGrow: 1,
-    lineHeight: 1.25,
-    minWidth: 0,
-  },
-  workspaceName: {
-    fontSize: 13.5,
-    fontWeight: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  workspaceRole: {
-    color: fade('#fff', 0.55),
-    fontSize: 11,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  workspaceCaret: {
-    color: fade('#fff', 0.5),
-    flexShrink: 0,
-    fontSize: 16,
-  },
   icon: {
     color: 'inherit',
   },
@@ -125,29 +74,16 @@ export function Sidebar() {
     auth,
   )
 
-  // The workspace is the active role's reachable-volume scope (per the access
-  // spec: switching workspace IS switch-role, persistent and global). The rail
-  // presents the primary role as the workspace identity; clicking it opens the
-  // role switcher when the user holds more than one role.
-  const canSwitch = !!user && user.roles.length > 1
   const workspace = user && (
-    <M.ButtonBase
-      className={classes.workspaceButton}
-      onClick={canSwitch ? () => switchRole(user) : undefined}
-      disabled={!canSwitch}
-      title={canSwitch ? 'Switch workspace (role)' : undefined}
-    >
-      <span className={classes.workspaceAvatar}>{user.name.slice(0, 2)}</span>
-      <span className={classes.workspaceText}>
-        <M.Typography className={classes.workspaceName} component="span" display="block">
-          {user.name}
-        </M.Typography>
-        <M.Typography className={classes.workspaceRole} component="span" display="block">
-          {user.role.name}
-        </M.Typography>
-      </span>
-      {canSwitch && <M.Icon className={classes.workspaceCaret}>expand_more</M.Icon>}
-    </M.ButtonBase>
+    <>
+      <M.ListItemIcon className={classes.icon}>
+        <M.Icon>work_outline</M.Icon>
+      </M.ListItemIcon>
+      <M.ListItemText
+        primary={user.role.name}
+        secondary={user.roles.length > 1 ? `${user.roles.length} available` : undefined}
+      />
+    </>
   )
 
   return (
@@ -160,12 +96,18 @@ export function Sidebar() {
 
         {user && (
           <>
-            <div className={classes.workspaces}>
-              <M.ListSubheader disableSticky className={classes.title} component="div">
+            <M.List disablePadding className={classes.workspaces}>
+              <M.ListSubheader disableSticky className={classes.title}>
                 Workspace
               </M.ListSubheader>
-              {workspace}
-            </div>
+              {user.roles.length > 1 ? (
+                <M.ListItem button onClick={() => switchRole(user)}>
+                  {workspace}
+                </M.ListItem>
+              ) : (
+                <M.ListItem>{workspace}</M.ListItem>
+              )}
+            </M.List>
             <M.Divider />
           </>
         )}
@@ -207,11 +149,22 @@ export function Sidebar() {
               <M.ListItemText primary="Qurator" />
             </M.ListItem>
           )}
+          {user?.isAdmin && (
+            <>
+              <M.Divider />
+              <M.ListItem button component={Link} to={urls.admin()}>
+                <M.ListItemIcon className={classes.icon}>
+                  <M.Icon>security</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary="Admin" />
+              </M.ListItem>
+            </>
+          )}
         </M.List>
 
         <div className={classes.spacer} />
 
-        <M.List disablePadding className={classes.links}>
+        <M.List disablePadding className={classes.links} dense>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>link</M.Icon>
@@ -227,21 +180,21 @@ export function Sidebar() {
         </M.List>
         <M.Divider />
 
-        <M.List disablePadding className={classes.account}>
+        <M.List disablePadding className={classes.account} dense>
+          {user && (
+            <M.ListItem>
+              <M.ListItemIcon className={classes.icon}>
+                <M.Icon>account_circle</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary={user.name} />
+            </M.ListItem>
+          )}
           {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
                 <M.Icon color="error">warning</M.Icon>
               </M.ListItemIcon>
               <M.ListItemText primary="Unlicensed" />
-            </M.ListItem>
-          )}
-          {user?.isAdmin && (
-            <M.ListItem button component={Link} to={urls.admin()}>
-              <M.ListItemIcon className={classes.icon}>
-                <M.Icon>security</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Admin" />
             </M.ListItem>
           )}
           {cfg.mode !== 'LOCAL' &&

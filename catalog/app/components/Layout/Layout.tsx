@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -36,36 +37,44 @@ export function Root({ dark = false, ...props }: RootProps) {
   )
 }
 
-const useShellStyles = M.makeStyles({
+const useShellStyles = M.makeStyles((t) => ({
   shell: {
     display: 'flex',
     height: '100vh',
     overflowX: 'hidden',
     position: 'relative',
   },
+  // `.main` is the scroll container; the sticky ContentBar pins to its top.
   main: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
     minWidth: 0,
-  },
-  scroll: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    minHeight: 0,
     overflowY: 'auto',
   },
-})
+  // Single source of horizontal inset for everything in `.main` (search bar and
+  // page content alike). Skipped for full-bleed pages via the `flush` prop.
+  padded: {
+    paddingLeft: t.spacing(3),
+    paddingRight: t.spacing(3),
+  },
+}))
 
 export interface LayoutProps {
   bare?: boolean
   dark?: boolean
+  flush?: boolean
   children?: React.ReactNode
   pre?: React.ReactNode
 }
 
-export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
+export function Layout({
+  bare = false,
+  dark = false,
+  flush = false,
+  children,
+  pre,
+}: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
   const classes = useShellStyles()
@@ -92,16 +101,14 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
       bgcolor={dark ? 'primary.main' : 'background.default'}
     >
       <Sidebar />
-      <M.Box component="main" className={classes.main}>
+      <M.Box component="main" className={cx(classes.main, !flush && classes.padded)}>
         <ContentBar />
-        <div className={classes.scroll}>
-          <Container.FullWidthProvider>
-            {!!pre && pre}
-            {!!children && <M.Box p={4}>{children}</M.Box>}
-            <M.Box flexGrow={1} />
-            {isHomepage?.isExact && <Footer />}
-          </Container.FullWidthProvider>
-        </div>
+        <Container.FullWidthProvider>
+          {!!pre && pre}
+          {!!children && <M.Box py={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+          {isHomepage?.isExact && <Footer />}
+        </Container.FullWidthProvider>
       </M.Box>
     </M.Box>
   )

@@ -183,6 +183,10 @@ const useFormStyles = M.makeStyles((t) => ({
       marginBottom: t.spacing(2),
     },
   },
+  // Cap width but keep the block left-aligned (M.Container centers by default).
+  container: {
+    marginLeft: 0,
+  },
   error: {
     margin: t.spacing(1, 0, 0),
   },
@@ -215,17 +219,19 @@ export function Form({ className }: FormProps) {
         </Lab.Alert>
       )}
 
-      <div className={classes.actions}>
-        <Database className={classes.database} />
-        <M.Button
-          variant="contained"
-          color="primary"
-          disabled={!Model.isReady(queryRun)}
-          onClick={handleSubmit}
-        >
-          Run query
-        </M.Button>
-      </div>
+      <M.Container maxWidth="lg" disableGutters className={classes.container}>
+        <div className={classes.actions}>
+          <Database className={classes.database} />
+          <M.Button
+            variant="contained"
+            color="primary"
+            disabled={!Model.isReady(queryRun)}
+            onClick={handleSubmit}
+          >
+            Run query
+          </M.Button>
+        </div>
+      </M.Container>
     </div>
   )
 }

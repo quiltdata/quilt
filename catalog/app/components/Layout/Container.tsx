@@ -74,6 +74,7 @@ export function Container({ children, className }: M.ContainerProps) {
     <M.Container
       className={cx(fullWidth ? classes.fullWidth : classes.contained, className)}
       maxWidth={false}
+      disableGutters
     >
       {children}
     </M.Container>

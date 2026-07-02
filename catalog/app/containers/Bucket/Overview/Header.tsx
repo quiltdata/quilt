@@ -67,7 +67,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
 
 interface StatsItemProps {
   label?: string
-  value: string | null
+  value: React.ReactNode
   icon: string
   color: string
 }

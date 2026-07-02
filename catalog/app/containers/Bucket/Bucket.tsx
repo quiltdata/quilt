@@ -8,12 +8,14 @@ import * as BucketNav from 'containers/Bucket/Nav'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import * as AssistantContext from './AssistantContext'
+import Header from './Header'
 import type { RouteMap } from './Routes'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -34,10 +36,22 @@ const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
 const useStyles = M.makeStyles((t) => ({
-  appBar: {
+  // Horizontal inset comes from `.main`; this only spaces the header card away
+  // from the search bar above it.
+  content: {
+    marginTop: t.spacing(3),
+  },
+  // The bucket title/stats row and the tabs live in one elevated card. The white
+  // background is set explicitly so it never inherits the dark themed paper color.
+  headerCard: {
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
-    // Align the tabs with the header's 24px gutters.
+    marginBottom: t.spacing(2),
+  },
+  headerTop: {
+    padding: t.spacing(2, 3),
+  },
+  tabsRow: {
     padding: t.spacing(0, 3),
   },
 }))
@@ -49,22 +63,31 @@ interface BucketLayoutProps {
 
 function BucketLayout({ bucket, children }: BucketLayoutProps) {
   const classes = useStyles()
+  const settings = CatalogSettings.use()
   const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
-        <>
-          <M.AppBar position="static" className={classes.appBar}>
-            <BucketNav.Tabs bucket={bucket} />
-          </M.AppBar>
-          <Container>
-            {bucketExistenceData.case({
-              Ok: () => children,
-              Err: displayError(),
-              _: () => <SuspensePlaceholder />,
-            })}
-          </Container>
-        </>
+        <Container className={classes.content}>
+          <M.Paper className={classes.headerCard}>
+            {settings?.beta && (
+              <>
+                <div className={classes.headerTop}>
+                  <Header bucket={bucket} />
+                </div>
+                <M.Divider />
+              </>
+            )}
+            <div className={classes.tabsRow}>
+              <BucketNav.Tabs bucket={bucket} />
+            </div>
+          </M.Paper>
+          {bucketExistenceData.case({
+            Ok: () => children,
+            Err: displayError(),
+            _: () => <SuspensePlaceholder />,
+          })}
+        </Container>
       }
     />
   )

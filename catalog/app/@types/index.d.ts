@@ -23,6 +23,9 @@ declare module '*.webp' {
   export default value
 }
 
+declare module '*.css'
+declare module '*.ico'
+
 declare module 'intl/locale-data/jsonp/*'
 
 type $TSFixMe = any

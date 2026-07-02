@@ -9,6 +9,10 @@ import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
 
+// A bucket name scopes suggestions to that bucket; a Search UI model reuses the
+// live search state; null falls back to global (all-buckets) suggestions.
+type SearchContext = Parameters<typeof Suggestions.use>[1]
+
 interface SearchState {
   helpOpen: boolean
   input: Pick<M.InputBaseProps, 'onChange' | 'onFocus' | 'onKeyDown' | 'value'>
@@ -16,7 +20,7 @@ interface SearchState {
   suggestions: ReturnType<typeof Suggestions.use>
 }
 
-export default function useState(): SearchState {
+export default function useState(context: SearchContext = null): SearchState {
   const history = RRDom.useHistory()
 
   // Qurator availability + entrypoint. When the assistant is disabled for this
@@ -28,7 +32,7 @@ export default function useState(): SearchState {
   const [value, setValue] = React.useState<string>('')
   const [helpOpen, setHelpOpen] = React.useState(false)
 
-  const suggestions = Suggestions.use(value)
+  const suggestions = Suggestions.use(value, context)
 
   const onChange = React.useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     setValue(evt.target.value)

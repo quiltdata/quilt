@@ -7,18 +7,14 @@ import Suggestions from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
+import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import SearchSuggestions from 'website/pages/Landing/FrontDoor/UnifiedBar/SearchSuggestions'
 
 const useStyles = M.makeStyles((t) => ({
   appBar: {
-    background: style.navTheme.palette.secondary.dark,
-    color: t.palette.common.white,
-    // MUI gives every AppBar zIndex 1100, so in-page app bars (e.g. the bucket
-    // tab bar) that appear later in the DOM would paint over our suggestions
-    // dropdown, which is trapped in this bar's stacking context. Lift the whole
-    // bar above them so the dropdown always overlays page content.
-    zIndex: t.zIndex.appBar + 1,
+    background: t.palette.common.white,
+    color: t.palette.getContrastText(t.palette.common.white),
   },
   toolbar: {
     height: 64,
@@ -27,32 +23,34 @@ const useStyles = M.makeStyles((t) => ({
   search: {
     flexGrow: 1,
     maxWidth: t.spacing(90),
-    position: 'relative',
   },
   input: {
     background: style.appTheme.palette.background.paper,
   },
-  paper: {
-    left: 0,
-    marginTop: t.spacing(0.5),
-    position: 'absolute',
-    right: 0,
-    top: '100%',
+  // The dropdown is portaled (M.Popper) so it floats above the per-bucket tabs
+  // bar instead of being clipped by it.
+  popper: {
     zIndex: t.zIndex.appBar + 2,
+  },
+  paper: {
+    marginTop: t.spacing(0.5),
+    width: '100%',
   },
 }))
 
-// The pseudo-header: a global search bar with suggestions. Pages that carry
-// their own search (the search page, the package list) keep the bar empty for
-// alignment rather than duplicating a search field. When the FrontDoor is on,
-// the home page carries its own unified bar, so this one is suppressed there.
+// The pseudo-header: a global search bar with suggestions (scoped to the current
+// bucket when in one). The search page has its own search field, so the bar is
+// kept empty there (for alignment) rather than duplicating a field. When the
+// FrontDoor is on, the home page carries its own unified bar, so this one is
+// suppressed there.
 export function ContentBar() {
   const classes = useStyles()
   const { paths } = NamedRoutes.use()
+  const bucket = Buckets.useCurrentBucket()
   const onSearchPage = !!RRDom.useRouteMatch({ path: paths.search, exact: true })
-  const onPackageList = !!RRDom.useRouteMatch({ path: paths.bucketPackageList })
   const onHome = !!RRDom.useRouteMatch({ path: paths.home, exact: true })
-  const search = useSearchState()
+  const search = useSearchState(bucket ?? null)
+  const anchorRef = React.useRef<HTMLDivElement>(null)
 
   // FrontDoor omni-suggestions (deep links into packages/objects/tables scopes)
   const quratorEnabled = !!AssistantModel.useIsEnabled()
@@ -63,50 +61,60 @@ export function ContentBar() {
     if (trimmed && assist) assist(trimmed)
   }, [assist, searchValue])
 
-  const hasOwnSearch = onSearchPage || onPackageList || (onHome && !!cfg.frontDoorV2)
+  // The search page has its own search field; every other page (incl. the
+  // package list) uses the header search. When the FrontDoor is on, the home
+  // page carries its own unified bar, so the header one is suppressed there.
+  const hasOwnSearch = onSearchPage || (onHome && !!cfg.frontDoorV2)
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <M.AppBar position="static" color="inherit" className={classes.appBar}>
+      <M.AppBar position="sticky" color="inherit" className={classes.appBar}>
         <M.Toolbar className={classes.toolbar}>
           {!hasOwnSearch && (
-            <M.ClickAwayListener onClickAway={search.onClickAway}>
-              <div className={classes.search}>
-                <M.OutlinedInput
-                  {...search.input}
-                  fullWidth
-                  margin="dense"
-                  placeholder="Search packages, objects, and tables"
-                  className={classes.input}
-                  labelWidth={0}
-                  startAdornment={
-                    <M.InputAdornment position="start">
-                      <M.Icon>search</M.Icon>
-                    </M.InputAdornment>
-                  }
-                />
-                {cfg.frontDoorV2 && searchValue.trim() ? (
-                  search.helpOpen && (
-                    <div className={classes.paper}>
-                      {/* SearchSuggestions suspends on bucket data; never let it blank the shell */}
-                      <React.Suspense fallback={null}>
-                        <SearchSuggestions
-                          query={searchValue}
-                          quratorEnabled={quratorEnabled}
-                          onAskQurator={onAskQurator}
-                        />
-                      </React.Suspense>
-                    </div>
-                  )
-                ) : (
-                  <Suggestions
-                    classes={{ paper: classes.paper }}
-                    open={search.helpOpen}
-                    suggestions={search.suggestions}
-                  />
-                )}
-              </div>
-            </M.ClickAwayListener>
+            <div className={classes.search} ref={anchorRef}>
+              <M.OutlinedInput
+                {...search.input}
+                onBlur={search.onClickAway}
+                fullWidth
+                margin="dense"
+                placeholder="Search"
+                className={classes.input}
+                labelWidth={0}
+                startAdornment={
+                  <M.InputAdornment position="start">
+                    <M.Icon>search</M.Icon>
+                  </M.InputAdornment>
+                }
+              />
+              <M.Popper
+                anchorEl={anchorRef.current}
+                className={classes.popper}
+                open={search.helpOpen}
+                placement="bottom-start"
+                style={{ width: anchorRef.current?.clientWidth }}
+              >
+                {/* Keep focus on the input while clicking a suggestion so it
+                    navigates before onBlur closes the dropdown. */}
+                <div onMouseDown={(e) => e.preventDefault()}>
+                  {cfg.frontDoorV2 && searchValue.trim() ? (
+                    /* SearchSuggestions suspends on bucket data; never let it blank the shell */
+                    <React.Suspense fallback={null}>
+                      <SearchSuggestions
+                        query={searchValue}
+                        quratorEnabled={quratorEnabled}
+                        onAskQurator={onAskQurator}
+                      />
+                    </React.Suspense>
+                  ) : (
+                    <Suggestions
+                      classes={{ paper: classes.paper }}
+                      open={search.helpOpen}
+                      suggestions={search.suggestions}
+                    />
+                  )}
+                </div>
+              </M.Popper>
+            </div>
           )}
         </M.Toolbar>
       </M.AppBar>
