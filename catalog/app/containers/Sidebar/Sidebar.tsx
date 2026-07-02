@@ -20,6 +20,14 @@ import VolumeSelect from './VolumeSelect'
 const useStyles = M.makeStyles((t) => ({
   root: {
     width: t.spacing(32),
+    // Collapse to an icon-only rail on small screens so the content column
+    // keeps a usable width; labels and the volume picker hide below.
+    [t.breakpoints.down('sm')]: {
+      width: t.spacing(9),
+      '& .MuiListItemText-root, & .MuiListSubheader-root': {
+        display: 'none',
+      },
+    },
   },
   // Match the 64px pseudo-header height so the logo and search bar align.
   logo: {
@@ -60,6 +68,10 @@ const useStyles = M.makeStyles((t) => ({
 
 export function Sidebar() {
   const classes = useStyles()
+  const t = M.useTheme()
+  // Icon-only rail on small screens; the text labels are hidden via CSS and
+  // the logo/volume picker swap to compact affordances here.
+  const compact = M.useMediaQuery(t.breakpoints.down('sm'))
   const { paths, urls } = NamedRoutes.use()
   const settings = CatalogSettings.use()
   const subscription = Subscription.useState()
@@ -90,7 +102,11 @@ export function Sidebar() {
     <>
       <Rail className={classes.root}>
         <Link to={urls.home()} className={classes.logo}>
-          <Logo height="32px" width="100%" src={settings?.logo?.url} />
+          {compact ? (
+            <Logo height="27px" width="27px" src={settings?.logo?.url} />
+          ) : (
+            <Logo height="32px" width="100%" src={settings?.logo?.url} />
+          )}
         </Link>
         <M.Divider className={classes.logoDivider} />
 
@@ -126,7 +142,7 @@ export function Sidebar() {
             </M.ListItemIcon>
             <M.ListItemText primary="Volumes" />
           </M.ListItem>
-          <VolumeSelect />
+          {!compact && <VolumeSelect />}
           <M.ListItem button component={Link} to={urls.tables()}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>table_chart</M.Icon>

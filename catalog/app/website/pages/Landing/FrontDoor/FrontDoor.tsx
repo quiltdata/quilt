@@ -74,10 +74,19 @@ const useStyles = M.makeStyles((t) => ({
     '& b': {
       fontWeight: 500,
     },
+    [t.breakpoints.down('sm')]: {
+      fontSize: 32,
+    },
+    [t.breakpoints.down('xs')]: {
+      fontSize: 26,
+    },
   },
   greetingSubtitle: {
     fontSize: 16,
     fontWeight: 300,
+    [t.breakpoints.down('xs')]: {
+      fontSize: 14,
+    },
   },
   examples: {
     display: 'flex',
@@ -96,7 +105,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'grid',
     gap: t.spacing(1.75),
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    [t.breakpoints.down('xs')]: {
+    // Three tiles don't fit below ~960px; step down to one column instead of
+    // squeezing their fixed-width rows.
+    [t.breakpoints.down('sm')]: {
       gridTemplateColumns: '1fr',
     },
   },

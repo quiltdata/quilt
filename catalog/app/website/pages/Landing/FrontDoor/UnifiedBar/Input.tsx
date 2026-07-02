@@ -28,6 +28,9 @@ const useStyles = M.makeStyles((t) => ({
     flex: 'none',
     marginLeft: t.spacing(3.5),
     transition: 'color .3s',
+    [t.breakpoints.down('xs')]: {
+      marginLeft: t.spacing(2),
+    },
   },
   leadQurator: {
     color: t.palette.secondary.main,
@@ -46,11 +49,23 @@ const useStyles = M.makeStyles((t) => ({
     '&::placeholder': {
       color: 'rgba(40,43,80,.4)',
     },
+    [t.breakpoints.down('sm')]: {
+      fontSize: 18,
+      padding: t.spacing(2, 1.5, 2, 1.75),
+    },
+    [t.breakpoints.down('xs')]: {
+      fontSize: 16,
+      padding: t.spacing(1.75, 1, 1.75, 1.25),
+    },
   },
   badge: {
     borderRadius: 20,
     fontWeight: 500,
     marginRight: t.spacing(1),
+    // The pill gets tight on phones; the leading icon already signals the route.
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
   badgeSearch: {
     background: 'rgba(40,43,80,.08)',
@@ -76,6 +91,10 @@ const useStyles = M.makeStyles((t) => ({
     '&:hover': {
       background: '#19163b',
       transform: 'scale(1.06)',
+    },
+    [t.breakpoints.down('xs')]: {
+      height: 40,
+      width: 40,
     },
   },
   sendQurator: {

@@ -39,6 +39,19 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     zIndex: 1,
   },
+  title: {
+    // Leave room for the absolutely-positioned theme toggle in the top-right
+    // corner, and scale the display type down on small screens.
+    paddingRight: t.spacing(6),
+    [t.breakpoints.down('sm')]: {
+      fontSize: '2.25rem',
+      lineHeight: '2.75rem',
+    },
+    [t.breakpoints.down('xs')]: {
+      fontSize: '1.75rem',
+      lineHeight: '2.25rem',
+    },
+  },
   filter: {
     marginBottom: t.spacing(5),
     marginTop: 0,
@@ -156,7 +169,7 @@ export default function Buckets() {
       {dark && <Backlight className={classes.backlight} />}
       <M.Container maxWidth={false} className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
-        <M.Typography variant="h1" color="textPrimary">
+        <M.Typography variant="h1" color="textPrimary" className={classes.title}>
           Volumes
         </M.Typography>
         <M.Box mt={1} />

@@ -104,8 +104,17 @@ const useStatsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
     display: 'flex',
+    // The stats + button row is wider than a phone screen; let it wrap instead
+    // of pushing the whole page into horizontal scroll.
+    flexWrap: 'wrap',
     gap: t.spacing(4),
     justifyContent: 'flex-end',
+    [t.breakpoints.down('sm')]: {
+      gap: t.spacing(2),
+    },
+    [t.breakpoints.down('xs')]: {
+      justifyContent: 'flex-start',
+    },
   },
 }))
 
@@ -181,11 +190,14 @@ function CreatePackage({ bucket }: CreatePackageProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     display: 'flex',
     flexDirection: 'column',
-    [t.breakpoints.up('sm')]: {
+    gap: t.spacing(1),
+    [t.breakpoints.up('md')]: {
+      alignItems: 'center',
       flexDirection: 'row',
+      gap: 0,
       justifyContent: 'space-between',
     },
   },

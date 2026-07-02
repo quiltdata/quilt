@@ -27,6 +27,7 @@ const useStyles = M.makeStyles((t) => ({
         ? '1px solid rgba(255,255,255,.08)'
         : '1px solid rgba(40,43,80,.1)',
     display: 'flex',
+    flexWrap: 'wrap',
     gap: t.spacing(1.5),
     padding: t.spacing(1.875, 2.25),
   },
@@ -50,6 +51,9 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     fontSize: 11,
     padding: t.spacing(0.375, 1.125),
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
   right: {
     alignItems: 'center',

@@ -25,6 +25,7 @@ const useStyles = M.makeStyles((t) => ({
     borderBottom: '1px solid #e9ecf5',
     color: '#6a7090',
     display: 'flex',
+    flexWrap: 'wrap',
     fontSize: 12.5,
     gap: t.spacing(2),
     padding: t.spacing(1.25, 2.5),
@@ -39,6 +40,12 @@ const useStyles = M.makeStyles((t) => ({
     color: '#8a90a6',
     fontSize: 13,
     marginLeft: 'auto',
+    paddingLeft: t.spacing(1),
+    whiteSpace: 'nowrap',
+    // The scope hint is secondary; drop it on phones instead of overflowing.
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
   askRow: {
     background: 'linear-gradient(90deg,rgba(84,113,241,.1),rgba(106,147,255,.03))',
@@ -52,6 +59,11 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: 13,
     fontWeight: 500,
     marginLeft: 'auto',
+    paddingLeft: t.spacing(1),
+    whiteSpace: 'nowrap',
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
 }))
 
