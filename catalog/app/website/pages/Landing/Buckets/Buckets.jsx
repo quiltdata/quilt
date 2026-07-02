@@ -45,6 +45,10 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+    // White filter field over the light wash, per the markup.
+    '& .MuiOutlinedInput-root': {
+      background: t.palette.type === 'dark' ? 'transparent' : t.palette.background.paper,
+    },
   },
   backlight: {
     bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
@@ -81,6 +85,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Buckets() {
   const classes = useStyles()
+  const dark = M.useTheme().palette.type === 'dark'
   // XXX: consider using graphql directly
   const buckets = useRelevantBuckets()
   const { urls } = NamedRoutes.use()
@@ -148,7 +153,7 @@ export default function Buckets() {
 
   return (
     <div className={classes.root}>
-      <Backlight className={classes.backlight} />
+      {dark && <Backlight className={classes.backlight} />}
       <M.Container maxWidth="lg" className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
@@ -213,7 +218,7 @@ export default function Buckets() {
                 color="secondary"
                 href="https://open.quiltdata.com/"
               >
-                Browse Example Buckets
+                Browse example buckets
               </M.Button>
             </M.Box>
           </M.Box>

@@ -17,13 +17,15 @@ const useStyles = M.makeStyles((t) => ({
     border:
       t.palette.type === 'dark'
         ? '1px solid rgba(255,255,255,.12)'
-        : '1px solid rgba(40,43,80,.15)',
+        : '1px solid rgba(40,43,80,.12)',
     borderRadius: 20,
     color: t.palette.text.secondary,
     transition: 'all .15s',
     '&:hover': {
-      background: 'rgba(84,113,241,.18)',
-      borderColor: 'rgba(106,147,255,.5)',
+      background:
+        t.palette.type === 'dark' ? 'rgba(84,113,241,.18)' : 'rgba(84,113,241,.1)',
+      borderColor:
+        t.palette.type === 'dark' ? 'rgba(106,147,255,.5)' : 'rgba(84,113,241,.5)',
       color: t.palette.type === 'dark' ? t.palette.common.white : '#282b50',
     },
   },

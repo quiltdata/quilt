@@ -178,7 +178,7 @@ const websiteLightPalette = {
   },
   text: {
     primary: '#282b50',
-    secondary: '#6a7090',
+    secondary: '#5c6484',
   },
 }
 

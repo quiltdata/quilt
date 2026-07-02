@@ -10,29 +10,30 @@ const useStyles = M.makeStyles((t) => ({
     border:
       t.palette.type === 'dark'
         ? '1px solid rgba(255,255,255,.09)'
-        : '1px solid rgba(40,43,80,.12)',
+        : '1px solid rgba(40,43,80,.1)',
     borderRadius: 12,
-    boxShadow: t.palette.type === 'dark' ? 'none' : '0 4px 16px -8px rgba(40,43,80,.12)',
+    boxShadow: t.palette.type === 'dark' ? 'none' : '0 1px 3px rgba(40,43,80,.06)',
     height: '100%',
     padding: t.spacing(2),
     transition: 'all .18s',
     '&:hover': {
       background:
         t.palette.type === 'dark' ? 'rgba(255,255,255,.09)' : t.palette.common.white,
-      boxShadow: t.palette.type === 'dark' ? 'none' : '0 8px 24px -8px rgba(40,43,80,.2)',
+      boxShadow: t.palette.type === 'dark' ? 'none' : '0 8px 24px rgba(40,43,80,.12)',
       transform: 'translateY(-2px)',
     },
   },
   head: {
     alignItems: 'center',
-    color: t.palette.type === 'dark' ? '#fabdb3' : t.palette.secondary.main,
+    // Warm accent from the markup: peach on dark, amber on light.
+    color: t.palette.type === 'dark' ? '#fabdb3' : '#e0912f',
     display: 'flex',
     gap: t.spacing(1.25),
     marginBottom: t.spacing(1.25),
   },
   headLink: {
     alignItems: 'center',
-    color: t.palette.type === 'dark' ? '#fabdb3' : t.palette.secondary.main,
+    color: t.palette.type === 'dark' ? '#fabdb3' : '#e0912f',
     display: 'flex',
     gap: t.spacing(1.25),
     textDecoration: 'none',

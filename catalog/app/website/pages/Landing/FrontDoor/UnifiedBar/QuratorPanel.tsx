@@ -14,10 +14,9 @@ const useStyles = M.makeStyles((t) => ({
     border:
       t.palette.type === 'dark'
         ? '1px solid rgba(255,255,255,.1)'
-        : '1px solid rgba(40,43,80,.14)',
+        : '1px solid rgba(40,43,80,.1)',
     borderRadius: 16,
-    boxShadow:
-      t.palette.type === 'dark' ? 'none' : '0 12px 40px -16px rgba(40,43,80,.25)',
+    boxShadow: t.palette.type === 'dark' ? 'none' : '0 16px 44px -16px rgba(40,43,80,.3)',
     marginTop: t.spacing(1.75),
     overflow: 'hidden',
   },
@@ -80,21 +79,25 @@ const useStyles = M.makeStyles((t) => ({
   },
   pill: {
     alignItems: 'center',
-    background: 'rgba(106,147,255,.14)',
-    border: '1px solid rgba(106,147,255,.32)',
+    background:
+      t.palette.type === 'dark' ? 'rgba(106,147,255,.14)' : 'rgba(84,113,241,.1)',
+    border:
+      t.palette.type === 'dark'
+        ? '1px solid rgba(106,147,255,.32)'
+        : '1px solid rgba(84,113,241,.28)',
     borderRadius: 18,
-    color: t.palette.type === 'dark' ? '#dbe4ff' : '#3a4a8c',
+    color: t.palette.type === 'dark' ? '#dbe4ff' : '#3a4bb3',
     display: 'inline-flex',
     fontSize: 13,
     gap: t.spacing(0.75),
     padding: t.spacing(0.75, 1.375),
   },
   pillKey: {
-    color: '#6a93ff',
+    color: t.palette.type === 'dark' ? '#6a93ff' : '#5471f1',
     fontWeight: 500,
   },
   lblIcon: {
-    color: '#6a93ff',
+    color: t.palette.type === 'dark' ? '#6a93ff' : '#5471f1',
   },
   actions: {
     display: 'flex',

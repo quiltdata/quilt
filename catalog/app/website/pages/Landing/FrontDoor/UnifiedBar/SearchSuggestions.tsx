@@ -11,11 +11,11 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.common.white,
     borderRadius: 14,
-    border: t.palette.type === 'dark' ? 'none' : '1px solid rgba(40,43,80,.12)',
+    border: t.palette.type === 'dark' ? 'none' : '1px solid rgba(40,43,80,.08)',
     boxShadow:
       t.palette.type === 'dark'
         ? '0 24px 70px -18px rgba(0,0,0,.5)'
-        : '0 18px 50px -18px rgba(40,43,80,.3)',
+        : '0 16px 44px -16px rgba(40,43,80,.3)',
     color: '#282b50',
     marginTop: t.spacing(1.75),
     overflow: 'hidden',

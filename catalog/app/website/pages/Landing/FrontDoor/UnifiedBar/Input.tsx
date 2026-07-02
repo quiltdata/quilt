@@ -11,11 +11,11 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     background: t.palette.common.white,
     borderRadius: 34,
-    border: t.palette.type === 'dark' ? 'none' : '1px solid rgba(40,43,80,.14)',
+    border: t.palette.type === 'dark' ? 'none' : '1px solid rgba(40,43,80,.08)',
     boxShadow:
       t.palette.type === 'dark'
         ? '0 20px 60px -20px rgba(0,0,0,.6)'
-        : '0 16px 44px -20px rgba(40,43,80,.35)',
+        : '0 16px 40px -16px rgba(40,43,80,.28)',
     display: 'flex',
     position: 'relative',
     transition: 'box-shadow .25s',

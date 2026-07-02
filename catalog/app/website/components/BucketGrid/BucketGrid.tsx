@@ -15,9 +15,16 @@ import Collaborators from './Collaborators'
 const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   bucket: {
     animation: '$slideUp 0.3s ease',
-    background: 'linear-gradient(to top, #1f2151, #2f306e)',
+    background:
+      t.palette.type === 'dark'
+        ? 'linear-gradient(to top, #1f2151, #2f306e)'
+        : t.palette.common.white,
+    border: t.palette.type === 'dark' ? 'none' : '1px solid rgba(40,43,80,.09)',
     borderRadius: t.spacing(2),
-    boxShadow: '0px 16px 40px rgba(0, 0, 0, 0.2)',
+    boxShadow:
+      t.palette.type === 'dark'
+        ? '0px 16px 40px rgba(0, 0, 0, 0.2)'
+        : '0 8px 24px rgba(40,43,80,.08)',
     display: 'flex',
     flexDirection: 'column',
     padding: t.spacing(4),
@@ -39,6 +46,17 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
     flexShrink: 0,
     marginRight: t.spacing(2),
     marginTop: t.spacing(1),
+    // Light mode: tinted rounded tile behind the icon, per the markup.
+    ...(t.palette.type === 'dark'
+      ? {}
+      : {
+          alignItems: 'center',
+          background: fade(t.palette.secondary.main, 0.1),
+          borderRadius: t.spacing(1),
+          height: t.spacing(5),
+          justifyContent: 'center',
+          width: t.spacing(5),
+        }),
   },
   title: {
     ...t.typography.h6,
@@ -46,7 +64,7 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
   name: {
     ...t.typography.body1,
-    color: t.palette.text.hint,
+    color: t.palette.type === 'dark' ? t.palette.text.hint : '#8a90a6',
     lineHeight: t.typography.pxToRem(24),
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -73,9 +91,12 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   // A volume is still an S3 bucket for now; the chip names the backing store.
   chip: {
     ...t.typography.overline,
-    border: `1px solid ${fade('#fff', 0.12)}`,
+    border:
+      t.palette.type === 'dark'
+        ? `1px solid ${fade('#fff', 0.12)}`
+        : '1px solid rgba(40,43,80,.15)',
     borderRadius: 3,
-    color: t.palette.text.hint,
+    color: t.palette.type === 'dark' ? t.palette.text.hint : '#8a90a6',
     fontFamily: ['Roboto Mono', 'monospace'].join(','),
     fontSize: 9,
     letterSpacing: '0.1em',
@@ -89,10 +110,13 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
   tag: {
     ...t.typography.body2,
-    background: fade(t.palette.secondary.main, 0.3),
+    background:
+      t.palette.type === 'dark'
+        ? fade(t.palette.secondary.main, 0.3)
+        : fade(t.palette.secondary.main, 0.1),
     border: 'none',
     borderRadius: 2,
-    color: t.palette.text.primary,
+    color: t.palette.type === 'dark' ? t.palette.text.primary : '#4055a8',
     display: 'inline-block',
     lineHeight: t.typography.pxToRem(28),
     marginRight: t.spacing(1),
@@ -107,6 +131,7 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
     },
     '&$matching': {
       background: t.palette.secondary.main,
+      color: t.palette.common.white,
     },
   },
   '@keyframes slideUp': {
@@ -217,14 +242,18 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
   add: {
     alignItems: 'center',
-    border: '2px dashed #2f306e',
+    border:
+      t.palette.type === 'dark' ? '2px dashed #2f306e' : '2px dashed rgba(40,43,80,.2)',
     borderRadius: t.spacing(2),
     color: t.palette.tertiary.main,
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'center',
+    minHeight: t.spacing(25),
     '&:hover': {
       background: fade(t.palette.tertiary.main, 0.04),
+      borderColor:
+        t.palette.type === 'dark' ? '#2f306e' : fade(t.palette.tertiary.main, 0.5),
     },
     '& > span': {
       fontSize: '4rem',

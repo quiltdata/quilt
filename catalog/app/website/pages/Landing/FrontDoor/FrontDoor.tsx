@@ -7,6 +7,7 @@ import { ThemeProvider } from '@material-ui/core/styles'
 import * as style from 'constants/style'
 
 import Buckets from '../Buckets'
+import usePaletteType from '../usePaletteType'
 
 import ExampleQueries from './ExampleQueries'
 import UnifiedBar from './UnifiedBar/UnifiedBar'
@@ -33,7 +34,7 @@ const useStyles = M.makeStyles((t) => ({
     backgroundImage:
       t.palette.type === 'dark'
         ? 'radial-gradient(rgba(106,147,255,.18) 1.4px, transparent 1.5px)'
-        : 'radial-gradient(rgba(84,113,241,.22) 1.4px, transparent 1.5px)',
+        : 'radial-gradient(rgba(84,113,241,.16) 1.4px, transparent 1.5px)',
     backgroundSize: '26px 26px',
     bottom: 0,
     left: 0,
@@ -143,7 +144,7 @@ interface FrontDoorContentProps {
 }
 
 export function FrontDoorContent({
-  paletteType = 'dark',
+  paletteType = 'light',
   onTogglePalette,
 }: FrontDoorContentProps) {
   const classes = useStyles()
@@ -205,31 +206,6 @@ export function FrontDoorContent({
       </M.Container>
     </div>
   )
-}
-
-const PALETTE_STORAGE_KEY = 'QUILT_FRONT_DOOR_PALETTE'
-
-function usePaletteType() {
-  const [type, setType] = React.useState<'light' | 'dark'>(() => {
-    try {
-      const stored = window.localStorage.getItem(PALETTE_STORAGE_KEY)
-      return stored === 'light' ? 'light' : 'dark'
-    } catch {
-      return 'dark'
-    }
-  })
-  const toggle = React.useCallback(() => {
-    setType((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark'
-      try {
-        window.localStorage.setItem(PALETTE_STORAGE_KEY, next)
-      } catch {
-        // best-effort persistence only
-      }
-      return next
-    })
-  }, [])
-  return { type, toggle }
 }
 
 export default function FrontDoor() {

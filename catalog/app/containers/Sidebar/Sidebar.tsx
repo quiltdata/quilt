@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -54,7 +54,8 @@ const useStyles = M.makeStyles((t) => ({
   },
   workspaceAvatar: {
     alignItems: 'center',
-    background: t.palette.primary.main,
+    // Dark navy disc per the markup (not the coral primary).
+    background: '#282b50',
     borderRadius: '50%',
     color: t.palette.common.white,
     display: 'flex',
@@ -110,13 +111,14 @@ const useStyles = M.makeStyles((t) => ({
 
 export function Sidebar() {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
+  const { paths, urls } = NamedRoutes.use()
   const settings = CatalogSettings.use()
   const subscription = Subscription.useState()
   const bookmarks = Bookmarks.use()
   const assistant = Assistant.Model.useAssistantAPI()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
+  const onVolumes = !!useRouteMatch({ path: paths.buckets, exact: true })
 
   const user = NavMenu.AuthState.match(
     { Ready: ({ user: u }) => u, Loading: () => null, Error: () => null },
@@ -168,16 +170,13 @@ export function Sidebar() {
           </>
         )}
 
+        {/* The logo is the "Home" affordance per the markup; the nav leads with
+            Volumes and highlights it while the volume listing is open. */}
         <M.List disablePadding className={classes.nav}>
-          <M.ListItem button component={Link} to={urls.home()}>
-            <M.ListItemIcon className={classes.icon}>
-              <M.Icon>home</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText primary="Home" />
-          </M.ListItem>
           <M.ListItem
             button
             component={Link}
+            selected={onVolumes}
             to={cfg.frontDoorV2 ? urls.buckets() : urls.home()}
           >
             <M.ListItemIcon className={classes.icon}>

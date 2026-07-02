@@ -49,7 +49,7 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
   more: {
-    color: t.palette.type === 'dark' ? '#fabdb3' : t.palette.secondary.main,
+    color: t.palette.type === 'dark' ? '#fabdb3' : '#e0912f',
     display: 'inline-flex',
     fontSize: 12,
     marginTop: t.spacing(0.5),
