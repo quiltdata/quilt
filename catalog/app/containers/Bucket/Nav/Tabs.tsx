@@ -57,25 +57,30 @@ function TabsList({ bucket, preferences, section = false }: TabsListProps) {
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   return (
+    // The redesigned in-volume nav: Overview / Objects / Packages.
+    // "Bucket" (the file tree) reads as "Objects"; Workflows folds into
+    // Packages; Queries left the tab bar for the global Tables rail entry.
+    // The Queries/ES tabs only surface while you're on those routes so
+    // deep links and the workbench remain reachable.
     <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
       <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
-        <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
+        <NavTab label="Objects" value="tree" to={urls.bucketDir(bucket)} />
       )}
-      {preferences.workflows && (
+      {preferences.packages && (
+        <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
+      )}
+      {preferences.workflows && section === 'workflows' && (
         <NavTab
           label="Workflows"
           value="workflows"
           to={urls.bucketWorkflowList(bucket)}
         />
       )}
-      {preferences.packages && (
-        <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
+      {preferences.queries && authenticated && section === 'queries' && (
+        <NavTab label="Tables" value="queries" to={urls.bucketQueries(bucket)} />
       )}
-      {preferences.queries && authenticated && (
-        <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
-      )}
-      {preferences.queries && (section === 'queries' || section === 'es') && (
+      {preferences.queries && section === 'es' && (
         <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
       )}
     </M.Tabs>

@@ -70,6 +70,20 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
   active: {},
   matching: {},
+  // A volume is still an S3 bucket for now; the chip names the backing store.
+  chip: {
+    ...t.typography.overline,
+    border: `1px solid ${fade('#fff', 0.12)}`,
+    borderRadius: 3,
+    color: t.palette.text.hint,
+    fontFamily: ['Roboto Mono', 'monospace'].join(','),
+    fontSize: 9,
+    letterSpacing: '0.1em',
+    lineHeight: '16px',
+    marginBottom: t.spacing(1),
+    padding: '2px 6px',
+    width: 'fit-content',
+  },
   shared: {
     marginLeft: t.spacing(1),
   },
@@ -142,6 +156,7 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
           <BucketIcon src={bucket.iconUrl} />
         </Link>
         <div className={classes.headerText}>
+          <span className={classes.chip}>S3</span>
           <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
             {bucket.title}
           </Link>

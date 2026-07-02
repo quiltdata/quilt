@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -19,48 +20,70 @@ import { makeColorPool } from './ColorPool'
 import Downloads from './Downloads'
 import ObjectsByExt, { COLOR_MAP, MAX_EXTS } from './ObjectsByExt'
 
-import bg from './Overview-bg.jpg'
-
 import { useStats } from './useStats'
 
 const useStatsItemStyles = M.makeStyles((t) => ({
+  // White stat card with a tinted icon tile, per the redesign mock.
   root: {
-    alignItems: 'baseline',
+    alignItems: 'center',
+    background: t.palette.background.paper,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: 12,
     display: 'flex',
+    gap: t.spacing(2),
+    padding: t.spacing(2.5, 2.75),
+  },
+  iconTile: {
+    alignItems: 'center',
+    borderRadius: 10,
+    display: 'flex',
+    flexShrink: 0,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+    '& .material-icons': {
+      fontSize: 22,
+    },
+  },
+  text: {
+    lineHeight: 1.1,
+    minWidth: 0,
+  },
+  value: {
+    color: t.palette.text.primary,
+    display: 'block',
+    fontFamily: ['Roboto Mono', 'monospace'].join(','),
+    fontSize: 28,
+    fontWeight: 300,
   },
   label: {
     ...t.typography.body2,
-    color: t.palette.grey[300],
-    lineHeight: 1,
-    marginLeft: t.spacing(0.5),
-    [t.breakpoints.up('sm')]: {
-      marginLeft: t.spacing(1),
-    },
-  },
-  value: {
-    fontSize: t.typography.h6.fontSize,
-    fontWeight: t.typography.fontWeightBold,
-    letterSpacing: 0,
-    lineHeight: '20px',
-    [t.breakpoints.up('sm')]: {
-      fontSize: t.typography.h4.fontSize,
-      lineHeight: '32px',
-    },
+    color: t.palette.text.secondary,
+    display: 'block',
+    fontWeight: 500,
+    marginTop: 4,
   },
 }))
 
 interface StatsItemProps {
   label?: string
-  value: string
+  value: string | null
+  icon: string
+  color: string
 }
 
-function StatsItem({ label, value }: StatsItemProps) {
+function StatsItem({ label, value, icon, color }: StatsItemProps) {
   const classes = useStatsItemStyles()
   return (
-    <span className={classes.root}>
-      <span className={classes.value}>{value}</span>
-      {!!label && <span className={classes.label}>{label}</span>}
-    </span>
+    <div className={classes.root}>
+      <span className={classes.iconTile} style={{ background: fade(color, 0.13), color }}>
+        <M.Icon>{icon}</M.Icon>
+      </span>
+      <span className={classes.text}>
+        {value ? <span className={classes.value}>{value}</span> : <StatsItemSkeleton />}
+        {!!label && <span className={classes.label}>{label}</span>}
+      </span>
+    </div>
   )
 }
 
@@ -94,17 +117,13 @@ function StatsItemSkeleton() {
 }
 
 const useStatsStyles = M.makeStyles((t) => ({
+  // 3-across stat card grid from the redesign mock.
   root: {
     display: 'grid',
-    alignItems: 'baseline',
-    gridTemplateColumns: 'auto auto auto',
-    gridColumnGap: t.spacing(1.5),
-    justifyContent: 'flex-start',
-    [t.breakpoints.up('sm')]: {
-      gridColumnGap: t.spacing(4),
-    },
-    [t.breakpoints.up('md')]: {
-      gridColumnGap: t.spacing(6),
+    gridGap: t.spacing(2),
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: '1fr',
     },
   },
 }))
@@ -119,13 +138,19 @@ function Stats({ className, bucket }: StatsProps) {
   const { totalBytes, totalObjects, pkgCount } = useStats(bucket)
   return (
     <div className={cx(classes.root, className)}>
-      {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
-      {totalObjects ? (
-        <StatsItem value={totalObjects} label="Objects" />
-      ) : (
-        <StatsItemSkeleton />
-      )}
-      {pkgCount ? <StatsItem value={pkgCount} label="Packages" /> : <StatsItemSkeleton />}
+      <StatsItem
+        value={totalBytes}
+        label="Total size"
+        icon="cloud_done"
+        color="#43a047"
+      />
+      <StatsItem
+        value={totalObjects}
+        label="Objects"
+        icon="insert_drive_file"
+        color="#5471f1"
+      />
+      <StatsItem value={pkgCount} label="Packages" icon="layers" color="#fb8c00" />
     </div>
   )
 }
@@ -134,46 +159,33 @@ function Stats({ className, bucket }: StatsProps) {
 const DOWNLOADS_CHART_H = 22 * MAX_EXTS - 2
 
 const useStyles = M.makeStyles((t) => ({
+  // Flat overview header per the redesign mock: title row, then a 3-card stat
+  // grid, then the charts on a plain card. The legacy hero image is gone.
   root: {
     position: 'relative',
-    [t.breakpoints.down('xs')]: {
-      borderRadius: 0,
-    },
     [t.breakpoints.up('sm')]: {
       marginTop: t.spacing(2),
     },
   },
   top: {
-    background: `center / cover url(${bg}) ${t.palette.grey[700]}`,
-    borderTopLeftRadius: t.shape.borderRadius,
-    borderTopRightRadius: t.shape.borderRadius,
-    color: t.palette.common.white,
-    overflow: 'hidden',
-    paddingBottom: t.spacing(3),
-    paddingLeft: t.spacing(2),
-    paddingRight: t.spacing(2),
-    paddingTop: t.spacing(4),
+    padding: t.spacing(2, 2, 3),
     position: 'relative',
     [t.breakpoints.up('sm')]: {
-      padding: t.spacing(4),
-    },
-    [t.breakpoints.down('xs')]: {
-      borderRadius: 0,
+      padding: t.spacing(0, 0, 3),
     },
   },
   settings: {
-    color: t.palette.common.white,
     position: 'absolute',
-    right: t.spacing(2),
-    top: t.spacing(2),
+    right: 0,
+    top: t.spacing(1),
   },
   stats: {
-    [t.breakpoints.down('xs')]: {
-      marginTop: t.spacing(2),
-    },
-    [t.breakpoints.up('sm')]: {
-      marginTop: t.spacing(3),
-    },
+    marginTop: t.spacing(3),
+  },
+  charts: {
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: 12,
+    boxShadow: 'none',
   },
 }))
 
@@ -191,12 +203,14 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
-    <M.Paper className={classes.root}>
+    <div className={classes.root}>
       <M.Box className={classes.top}>
         <M.Typography variant="h5">{bucket}</M.Typography>
         {!!description && (
           <M.Box mt={1}>
-            <M.Typography variant="body1">{description}</M.Typography>
+            <M.Typography variant="body1" color="textSecondary">
+              {description}
+            </M.Typography>
           </M.Box>
         )}
         <Stats className={classes.stats} bucket={bucket} />
@@ -209,6 +223,8 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
         )}
       </M.Box>
       <M.Box
+        component={M.Paper}
+        className={classes.charts}
         p={{ xs: 2, sm: 4 }}
         display="flex"
         flexDirection={{ xs: 'column', md: 'row' }}
@@ -241,6 +257,6 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
           chartHeight={DOWNLOADS_CHART_H}
         />
       </M.Box>
-    </M.Paper>
+    </div>
   )
 }

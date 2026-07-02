@@ -68,6 +68,9 @@ export const search = route(
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 )
 
+// Global Tables (the Athena workbench promoted out of a single bucket into the rail)
+export const tables = route('/tables', () => '/tables')
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

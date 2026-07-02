@@ -152,12 +152,16 @@ export default function Buckets() {
       <M.Container maxWidth="lg" className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
-          Explore your buckets
+          Volumes
+        </M.Typography>
+        <M.Box mt={1} />
+        <M.Typography color="textSecondary">
+          Every volume is an S3 bucket today — versioned, governed, and searchable.
         </M.Typography>
         <M.Box mt={4} />
         <M.TextField
           className={classes.filter}
-          placeholder="Find a bucket"
+          placeholder="Find a volume"
           variant="outlined"
           margin="dense"
           fullWidth
@@ -186,7 +190,7 @@ export default function Buckets() {
           />
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets matching <b>&quot;{filter}&quot;</b>
+            No volumes matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
@@ -199,7 +203,7 @@ export default function Buckets() {
                   component={Link}
                   to={urls.adminBuckets({ add: true })}
                 >
-                  Add Bucket
+                  Add volume
                 </M.Button>
               </M.Box>
             )}

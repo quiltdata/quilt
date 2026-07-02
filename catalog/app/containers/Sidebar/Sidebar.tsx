@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import * as Assistant from 'components/Assistant'
 import Logo from 'components/Logo'
@@ -34,9 +35,61 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(1),
   },
   title: {
-    ...t.typography.subtitle1,
-    color: 'inherit',
+    ...t.typography.overline,
+    color: fade('#fff', 0.4),
     fontWeight: 500,
+    letterSpacing: '0.12em',
+    lineHeight: '32px',
+  },
+  workspaceButton: {
+    background: fade('#fff', 0.05),
+    borderRadius: t.shape.borderRadius * 2,
+    margin: t.spacing(0, 1.5, 1),
+    padding: t.spacing(1, 1.5),
+    textAlign: 'left',
+    width: `calc(100% - ${t.spacing(3)}px)`,
+    '&:hover': {
+      background: fade('#fff', 0.1),
+    },
+  },
+  workspaceAvatar: {
+    alignItems: 'center',
+    background: t.palette.primary.main,
+    borderRadius: '50%',
+    color: t.palette.common.white,
+    display: 'flex',
+    flexShrink: 0,
+    fontSize: 13,
+    fontWeight: 500,
+    height: 30,
+    justifyContent: 'center',
+    marginRight: t.spacing(1.5),
+    textTransform: 'lowercase',
+    width: 30,
+  },
+  workspaceText: {
+    flexGrow: 1,
+    lineHeight: 1.25,
+    minWidth: 0,
+  },
+  workspaceName: {
+    fontSize: 13.5,
+    fontWeight: 500,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  workspaceRole: {
+    color: fade('#fff', 0.55),
+    fontSize: 11,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  workspaceCaret: {
+    color: fade('#fff', 0.5),
+    flexShrink: 0,
+    fontSize: 16,
   },
   icon: {
     color: 'inherit',
@@ -70,13 +123,29 @@ export function Sidebar() {
     auth,
   )
 
-  const identity = user && (
-    <>
-      <M.ListItemIcon className={classes.icon}>
-        <M.Icon>account_circle</M.Icon>
-      </M.ListItemIcon>
-      <M.ListItemText primary={user.name} secondary={user.role.name} />
-    </>
+  // The workspace is the active role's reachable-volume scope (per the access
+  // spec: switching workspace IS switch-role, persistent and global). The rail
+  // presents the primary role as the workspace identity; clicking it opens the
+  // role switcher when the user holds more than one role.
+  const canSwitch = !!user && user.roles.length > 1
+  const workspace = user && (
+    <M.ButtonBase
+      className={classes.workspaceButton}
+      onClick={canSwitch ? () => switchRole(user) : undefined}
+      disabled={!canSwitch}
+      title={canSwitch ? 'Switch workspace (role)' : undefined}
+    >
+      <span className={classes.workspaceAvatar}>{user.name.slice(0, 2)}</span>
+      <span className={classes.workspaceText}>
+        <M.Typography className={classes.workspaceName} component="span" display="block">
+          {user.name}
+        </M.Typography>
+        <M.Typography className={classes.workspaceRole} component="span" display="block">
+          {user.role.name}
+        </M.Typography>
+      </span>
+      {canSwitch && <M.Icon className={classes.workspaceCaret}>expand_more</M.Icon>}
+    </M.ButtonBase>
   )
 
   return (
@@ -89,29 +158,12 @@ export function Sidebar() {
 
         {user && (
           <>
-            <M.List disablePadding className={classes.workspaces}>
-              <M.ListSubheader disableSticky className={classes.title}>
-                Workspaces
+            <div className={classes.workspaces}>
+              <M.ListSubheader disableSticky className={classes.title} component="div">
+                Workspace
               </M.ListSubheader>
-              {cfg.mode === 'OPEN' ? (
-                <M.ListItem button component={Link} to={urls.profile()}>
-                  {identity}
-                </M.ListItem>
-              ) : (
-                <M.ListItem>{identity}</M.ListItem>
-              )}
-              {user.roles.length > 1 && (
-                <M.ListItem button onClick={() => switchRole(user)}>
-                  <M.ListItemIcon className={classes.icon}>
-                    <M.Icon>people_outline</M.Icon>
-                  </M.ListItemIcon>
-                  <M.ListItemText
-                    primary="Switch role"
-                    secondary={`${user.roles.length} available`}
-                  />
-                </M.ListItem>
-              )}
-            </M.List>
+              {workspace}
+            </div>
             <M.Divider />
           </>
         )}
@@ -121,9 +173,15 @@ export function Sidebar() {
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>storage</M.Icon>
             </M.ListItemIcon>
-            <M.ListItemText primary="Buckets" />
+            <M.ListItemText primary="Volumes" />
           </M.ListItem>
           <VolumeSelect />
+          <M.ListItem button component={Link} to={urls.tables()}>
+            <M.ListItemIcon className={classes.icon}>
+              <M.Icon>table_chart</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Tables" />
+          </M.ListItem>
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
               <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>

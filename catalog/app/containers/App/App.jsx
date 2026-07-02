@@ -64,6 +64,7 @@ const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder)
 const UriResolver = protect(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
 )
+const Tables = protect(RT.mkLazy(() => import('containers/Tables'), Placeholder))
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
@@ -151,6 +152,10 @@ export default function App() {
 
       <Route path={paths.uriResolver}>
         <UriResolver />
+      </Route>
+
+      <Route path={paths.tables} exact>
+        <Tables />
       </Route>
 
       <Route path={paths.bucketSearch} exact>

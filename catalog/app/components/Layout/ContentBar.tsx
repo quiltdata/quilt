@@ -57,7 +57,7 @@ export function ContentBar() {
                   {...search.input}
                   fullWidth
                   margin="dense"
-                  placeholder="Search"
+                  placeholder="Search packages, objects, and tables"
                   className={classes.input}
                   labelWidth={0}
                   startAdornment={
