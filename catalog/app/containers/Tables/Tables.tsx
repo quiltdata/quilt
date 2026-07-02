@@ -24,7 +24,7 @@ function TablesRedirect() {
     <>
       <M.Typography variant="h5">Tables</M.Typography>
       <M.Typography color="textSecondary">
-        No volumes are available to query. Add a bucket to run Athena SQL over its tables.
+        No volumes are available to query. Add a volume to run Athena SQL over its tables.
       </M.Typography>
     </>
   )
