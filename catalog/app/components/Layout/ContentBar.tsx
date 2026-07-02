@@ -14,6 +14,11 @@ const useStyles = M.makeStyles((t) => ({
   appBar: {
     background: style.navTheme.palette.secondary.dark,
     color: t.palette.common.white,
+    // MUI gives every AppBar zIndex 1100, so in-page app bars (e.g. the bucket
+    // tab bar) that appear later in the DOM would paint over our suggestions
+    // dropdown, which is trapped in this bar's stacking context. Lift the whole
+    // bar above them so the dropdown always overlays page content.
+    zIndex: t.zIndex.appBar + 1,
   },
   toolbar: {
     height: 64,
