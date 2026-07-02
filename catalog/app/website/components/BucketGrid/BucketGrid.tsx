@@ -232,6 +232,17 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
 }
 
 const useStyles = M.makeStyles((t: WebsiteTheme) => ({
+  // Container-driven columns: the sidebar shrinks the content column well below
+  // the viewport width, so viewport breakpoints (Grid xs/sm/md/lg) overcommit
+  // columns and cram the cards. auto-fill/minmax sizes off the actual row width.
+  grid: {
+    display: 'grid',
+    gap: t.spacing(4),
+    gridTemplateColumns: 'repeat(auto-fill, minmax(272px, 1fr))',
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: '1fr',
+    },
+  },
   add: {
     alignItems: 'center',
     border:
@@ -269,19 +280,20 @@ export default React.forwardRef<HTMLDivElement, BucketGridProps>(function Bucket
   const { urls } = NamedRoutes.use()
 
   return (
-    <M.Grid container spacing={4} ref={ref}>
+    <div className={classes.grid} ref={ref}>
       {buckets.map((b) => (
-        <M.Grid item xs={12} sm={6} md={4} lg={3} key={b.name}>
-          <BucketCard bucket={b} onTagClick={onTagClick} tagIsMatching={tagIsMatching} />
-        </M.Grid>
+        <BucketCard
+          key={b.name}
+          bucket={b}
+          onTagClick={onTagClick}
+          tagIsMatching={tagIsMatching}
+        />
       ))}
       {showAddLink && (
-        <M.Grid item xs={12} sm={6} md={4} lg={3}>
-          <Link className={classes.add} to={urls.adminBuckets({ add: true })}>
-            <M.Icon>add</M.Icon>
-          </Link>
-        </M.Grid>
+        <Link className={classes.add} to={urls.adminBuckets({ add: true })}>
+          <M.Icon>add</M.Icon>
+        </Link>
       )}
-    </M.Grid>
+    </div>
   )
 })

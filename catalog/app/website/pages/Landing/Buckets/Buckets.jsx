@@ -9,6 +9,7 @@ import cfg from 'constants/config'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import mkSearch from 'utils/mkSearch'
 import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
@@ -153,10 +154,15 @@ export default function Buckets() {
   React.useEffect(() => {
     // TODO: handle route change
     //       and implement BucketGrid tag as <Link />
+    // Stay on the current route: this page is mounted at both "/" (legacy
+    // landing) and "/buckets" (redesign), so pushing to home() would bounce
+    // the user off the Volumes page whenever they type in the filter.
+    // `replace` (not `push`) so each debounced keystroke doesn't stack a
+    // history entry and trap the back button.
     if (filtering.value !== filter) {
-      history.push(urls.home({ q: filtering.value }))
+      history.replace(`${location.pathname}${mkSearch({ q: filtering.value })}`)
     }
-  }, [history, filtering.value, filter, urls])
+  }, [history, location.pathname, filtering.value, filter])
 
   const clearFilter = React.useCallback(() => {
     filtering.set()

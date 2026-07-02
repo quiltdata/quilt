@@ -104,10 +104,11 @@ const useStyles = M.makeStyles((t) => ({
   grid: {
     display: 'grid',
     gap: t.spacing(1.75),
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    // Three tiles don't fit below ~960px; step down to one column instead of
-    // squeezing their fixed-width rows.
-    [t.breakpoints.down('sm')]: {
+    // Container-driven columns: the sidebar eats ~256px of the viewport, so
+    // viewport breakpoints misjudge the actual room. auto-fit sizes columns
+    // off the content column itself (3-up wide, 2-up medium, 1-up narrow).
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    [t.breakpoints.down('xs')]: {
       gridTemplateColumns: '1fr',
     },
   },

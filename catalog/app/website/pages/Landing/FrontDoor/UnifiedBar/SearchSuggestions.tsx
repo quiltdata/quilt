@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { bucketAthena, search } from 'constants/routes'
@@ -112,8 +112,18 @@ export default function SearchSuggestions({
   if (!trimmed && !suggestions.length) return null
 
   const scopes: { id: string; icon: string; label: string; where: string }[] = [
-    { id: 'packages', icon: 'inventory_2', label: 'packages', where: 'all volumes' },
-    { id: 'objects', icon: 'description', label: 'objects', where: 'all volumes' },
+    {
+      id: 'packages',
+      icon: 'inventory_2',
+      label: 'packages',
+      where: 'all volumes',
+    },
+    {
+      id: 'objects',
+      icon: 'description',
+      label: 'objects',
+      where: 'all volumes',
+    },
     {
       id: 'tables',
       icon: 'table_chart',
@@ -149,19 +159,24 @@ export default function SearchSuggestions({
               <span className={classes.where}>{scope.where}</span>
             </M.ListItem>
           ))}
-        {suggestions.map((suggestion) => (
-          <M.ListItem
-            key={suggestion.id}
-            button
-            component={suggestion.url ? 'a' : 'div'}
-            href={suggestion.url}
-          >
-            <M.ListItemIcon>
-              <M.Icon>bookmark</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText primary={suggestion.label} secondary={suggestion.detail} />
-          </M.ListItem>
-        ))}
+        {suggestions.map((suggestion) => {
+          // In-app paths go through the router (no full page reload); anything
+          // else (e.g. absolute URLs from stored history) falls back to <a>.
+          const internal = suggestion.url?.startsWith('/')
+          const linkProps = suggestion.url
+            ? internal
+              ? { component: Link, to: suggestion.url }
+              : { component: 'a' as const, href: suggestion.url }
+            : { component: 'div' as const }
+          return (
+            <M.ListItem key={suggestion.id} button {...linkProps}>
+              <M.ListItemIcon>
+                <M.Icon>bookmark</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary={suggestion.label} secondary={suggestion.detail} />
+            </M.ListItem>
+          )
+        })}
         {quratorEnabled && trimmed && (
           <M.ListItem button className={classes.askRow} onClick={onAskQurator}>
             <M.ListItemIcon>

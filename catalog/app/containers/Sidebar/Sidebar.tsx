@@ -79,7 +79,12 @@ export function Sidebar() {
   const assistant = Assistant.Model.useAssistantAPI()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
-  const onVolumes = !!useRouteMatch({ path: paths.buckets, exact: true })
+  // The Volumes entry points at /buckets when the FrontDoor owns "/", or at
+  // "/" itself otherwise; highlight it wherever it actually leads.
+  const onBucketsRoute = !!useRouteMatch({ path: paths.buckets, exact: true })
+  const onHomeRoute = !!useRouteMatch({ path: paths.home, exact: true })
+  const onVolumes = cfg.frontDoorV2 ? onBucketsRoute : onHomeRoute || onBucketsRoute
+  const onTables = !!useRouteMatch({ path: paths.tables, exact: true })
 
   const user = NavMenu.AuthState.match(
     { Ready: ({ user: u }) => u, Loading: () => null, Error: () => null },
@@ -143,7 +148,7 @@ export function Sidebar() {
             <M.ListItemText primary="Volumes" />
           </M.ListItem>
           {!compact && <VolumeSelect />}
-          <M.ListItem button component={Link} to={urls.tables()}>
+          <M.ListItem button component={Link} selected={onTables} to={urls.tables()}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>table_chart</M.Icon>
             </M.ListItemIcon>
