@@ -160,7 +160,10 @@ export default function App() {
         <BucketSearchRedirect />
       </Route>
 
-      <Route path={paths.dataProductTree}>
+      <Route path={paths.dataProductObjects}>
+        <DataProduct />
+      </Route>
+      <Route path={paths.dataProductPackages}>
         <DataProduct />
       </Route>
       <Route path={paths.dataProduct} exact>

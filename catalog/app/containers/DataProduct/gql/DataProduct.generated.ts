@@ -4,9 +4,9 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type containers_DataProduct_gql_DataProductQueryVariables = Exact<{
   id: string | number
 }>
@@ -17,6 +17,10 @@ export interface containers_DataProduct_gql_DataProductQuery {
     readonly __typename: 'DataProduct'
     readonly id: string
     readonly name: string
+    readonly createdAt: Date
+    readonly ownerRole:
+      | { readonly __typename: 'ManagedRole'; readonly name: string }
+      | { readonly __typename: 'UnmanagedRole'; readonly name: string }
     readonly members: {
       readonly __typename: 'DataProductMembers'
       readonly objects: ReadonlyArray<{
@@ -72,6 +76,43 @@ export const containers_DataProduct_gql_DataProductDocument = {
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'createdAt' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'ownerRole' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                      {
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'ManagedRole' },
+                        },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'UnmanagedRole' },
+                        },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
                 {
                   kind: 'Field',
                   name: { kind: 'Name', value: 'members' },

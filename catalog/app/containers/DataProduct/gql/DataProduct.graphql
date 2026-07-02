@@ -2,6 +2,16 @@ query ($id: ID!) {
   dataProduct(id: $id) {
     id
     name
+    createdAt
+    ownerRole {
+      __typename
+      ... on ManagedRole {
+        name
+      }
+      ... on UnmanagedRole {
+        name
+      }
+    }
     members {
       objects {
         logicalKey

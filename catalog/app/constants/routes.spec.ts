@@ -1,7 +1,12 @@
 import { matchPath } from 'react-router-dom'
 import { describe, it, expect } from 'vitest'
 
-import { bucketPackageAddFiles, dataProduct, dataProductTree } from './routes'
+import {
+  bucketPackageAddFiles,
+  dataProduct,
+  dataProductObjects,
+  dataProductPackages,
+} from './routes'
 
 describe('constants/routes', () => {
   describe('bucketPackageAddFiles', () => {
@@ -43,9 +48,9 @@ describe('constants/routes', () => {
     })
   })
 
-  describe('dataProductTree', () => {
+  describe('dataProductObjects', () => {
     it('pathname created by `url` should match `path`', () => {
-      const { path, url } = dataProductTree
+      const { path, url } = dataProductObjects
 
       const id = 'dp-42'
       const treePath = 'sub/dir/file.csv'
@@ -58,6 +63,22 @@ describe('constants/routes', () => {
 
       expect(match?.params?.id).toBe(id)
       expect(match?.params?.path).toBe(treePath)
+    })
+  })
+
+  describe('dataProductPackages', () => {
+    it('pathname created by `url` should match `path`', () => {
+      const { path, url } = dataProductPackages
+
+      const id = 'dp-42'
+
+      const generatedUrl = url(id)
+      const { pathname } = new URL(generatedUrl, 'http://localhost')
+
+      type MatchParams = { id: string }
+      const match = matchPath<MatchParams>(pathname, { path, exact: true })
+
+      expect(match?.params?.id).toBe(id)
     })
   })
 })

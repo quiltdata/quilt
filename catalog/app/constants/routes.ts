@@ -74,9 +74,14 @@ export const dataProduct = route(
   (id: string) => `/data-products/${id}`,
 )
 
-export const dataProductTree = route(
-  '/data-products/:id/tree/:path(.*)?',
-  (id: string, path = '') => `/data-products/${id}/tree/${path}`,
+export const dataProductObjects = route(
+  '/data-products/:id/objects/:path(.*)?',
+  (id: string, path = '') => `/data-products/${id}/objects/${path}`,
+)
+
+export const dataProductPackages = route(
+  '/data-products/:id/packages',
+  (id: string) => `/data-products/${id}/packages`,
 )
 
 // Immutable URI resolver
