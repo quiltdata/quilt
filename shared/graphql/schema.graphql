@@ -641,6 +641,93 @@ type Me {
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
+type DataProductObjectEntry {
+  logicalKey: String!
+  bucket: String!
+  key: String!
+  versionId: String
+}
+
+# One entry in a data product's packages namespace, placed at an explicit
+# virtual name. `hashOrTag`: null = latest, set = pinned.
+type DataProductPackageEntry {
+  virtualName: String!
+  bucket: String!
+  name: String!
+  hashOrTag: String
+}
+
+# The stored fixed manifest: the two namespaces that define a data product.
+type DataProductDefinition {
+  objects: [DataProductObjectEntry!]!
+  packages: [DataProductPackageEntry!]!
+}
+
+# A dereferenced object entry (echoes the pinned versionId, or null = latest).
+type DataProductObjectMember {
+  logicalKey: String!
+  bucket: String!
+  key: String!
+  versionId: String
+}
+
+# A dereferenced package entry (echoes the pin it dereferenced through).
+type DataProductPackageMember {
+  virtualName: String!
+  bucket: String!
+  name: String!
+  hashOrTag: String
+  package: Package
+}
+
+# The two namespaces, dereferenced and scoped to the caller's readable buckets.
+type DataProductMembers {
+  objects: [DataProductObjectMember!]!
+  packages: [DataProductPackageMember!]!
+}
+
+type DataProduct {
+  id: ID!
+  name: String!
+  ownerRole: Role!
+  createdAt: Datetime!
+  # The stored fixed manifest, echoed back for the browse/edit UI.
+  definition: DataProductDefinition!
+  # The DP's own read field: dereferences the manifest, readable-scoped.
+  members: DataProductMembers!
+}
+
+input DataProductObjectEntryInput {
+  logicalKey: String!
+  bucket: String!
+  key: String!
+  versionId: String
+}
+
+input DataProductPackageEntryInput {
+  virtualName: String!
+  bucket: String!
+  name: String!
+  hashOrTag: String
+}
+
+input DataProductDefinitionInput {
+  objects: [DataProductObjectEntryInput!]!
+  packages: [DataProductPackageEntryInput!]!
+}
+
+input DataProductCreateInput {
+  # Defaults to the creator's active role.
+  ownerRole: ID
+  name: String!
+  # Defaults to an empty manifest.
+  definition: DataProductDefinitionInput
+}
+
+union DataProductCreateResult = DataProduct | InvalidInput | OperationError
+
+union DataProductSetDefinitionResult = DataProduct | InvalidInput | OperationError
+
 type Query {
   me: Me
 
@@ -670,6 +757,9 @@ type Query {
 
   bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
   objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
+
+  dataProducts: [DataProduct!]!
+  dataProduct(id: ID!): DataProduct
 
   admin: AdminQueries! @admin
 
@@ -1049,6 +1139,12 @@ type AdminMutations {
 
 type Mutation {
   switchRole(roleName: String!): SwitchRoleResult!
+
+  dataProductCreate(input: DataProductCreateInput!): DataProductCreateResult!
+  dataProductSetDefinition(
+    id: ID!
+    definition: DataProductDefinitionInput!
+  ): DataProductSetDefinitionResult!
 
   apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
   apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!

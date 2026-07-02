@@ -1,0 +1,20 @@
+query ($id: ID!) {
+  dataProduct(id: $id) {
+    id
+    name
+    members {
+      objects {
+        logicalKey
+        bucket
+        key
+        versionId
+      }
+      packages {
+        virtualName
+        bucket
+        name
+        hashOrTag
+      }
+    }
+  }
+}

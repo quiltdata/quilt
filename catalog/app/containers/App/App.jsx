@@ -59,6 +59,9 @@ const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+const DataProduct = protect(
+  RT.mkLazy(() => import('containers/DataProduct'), Placeholder),
+)
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -155,6 +158,13 @@ export default function App() {
 
       <Route path={paths.bucketSearch} exact>
         <BucketSearchRedirect />
+      </Route>
+
+      <Route path={paths.dataProductTree}>
+        <DataProduct />
+      </Route>
+      <Route path={paths.dataProduct} exact>
+        <DataProduct />
       </Route>
 
       <Route path={paths.bucketRoot}>

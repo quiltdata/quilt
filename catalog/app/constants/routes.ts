@@ -68,6 +68,17 @@ export const search = route(
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 )
 
+// Data products (workspace-global, un-bucketed virtual-bucket browse)
+export const dataProduct = route(
+  '/data-products/:id',
+  (id: string) => `/data-products/${id}`,
+)
+
+export const dataProductTree = route(
+  '/data-products/:id/tree/:path(.*)?',
+  (id: string, path = '') => `/data-products/${id}/tree/${path}`,
+)
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

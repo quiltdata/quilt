@@ -16,6 +16,7 @@ import usePrevious from 'utils/usePrevious'
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
+import DATA_PRODUCTS_QUERY from '../gql/DataProducts.generated'
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
 const PER_PAGE = 24
@@ -27,6 +28,61 @@ function useIsAdmin() {
     fetching: R.F,
     error: R.F,
   })
+}
+
+// Data products the active role owns — rendered as cards on the volume grid.
+function useDataProducts() {
+  const data = GQL.useQuery(DATA_PRODUCTS_QUERY)
+  return GQL.fold(data, {
+    data: ({ dataProducts }) => dataProducts,
+    fetching: () => [],
+    error: () => [],
+  })
+}
+
+const useDataProductStyles = M.makeStyles((t) => ({
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+  },
+  caption: {
+    color: t.palette.text.hint,
+    letterSpacing: 1,
+  },
+  title: {
+    ...t.typography.h6,
+    color: t.palette.tertiary.main,
+  },
+}))
+
+function DataProductCard({ dp }) {
+  const classes = useDataProductStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Card className={classes.card} data-testid="data-product-card">
+      <M.CardHeader
+        disableTypography
+        avatar={
+          <Link aria-hidden="true" tabIndex={-1} to={urls.dataProduct(dp.id)}>
+            <M.Avatar>
+              <M.Icon>view_module</M.Icon>
+            </M.Avatar>
+          </Link>
+        }
+        title={
+          <>
+            <M.Typography variant="overline" className={classes.caption} display="block">
+              Data product
+            </M.Typography>
+            <Link className={classes.title} to={urls.dataProduct(dp.id)}>
+              {dp.name}
+            </Link>
+          </>
+        }
+      />
+    </M.Card>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -145,6 +201,7 @@ export default function Buckets() {
   }, [filtering])
 
   const isAdmin = useIsAdmin()
+  const dataProducts = useDataProducts()
 
   return (
     <div className={classes.root}>
@@ -177,6 +234,20 @@ export default function Buckets() {
           }}
           {...filtering.input}
         />
+        {dataProducts.length > 0 && (
+          <M.Box mb={5}>
+            <M.Typography variant="h4" color="textPrimary" gutterBottom>
+              Data products
+            </M.Typography>
+            <M.Grid container spacing={4}>
+              {dataProducts.map((dp) => (
+                <M.Grid item xs={12} sm={6} md={4} lg={3} key={dp.id}>
+                  <DataProductCard dp={dp} />
+                </M.Grid>
+              ))}
+            </M.Grid>
+          </M.Box>
+        )}
         {paginated.length || !filter ? (
           <BucketGrid
             buckets={paginated}

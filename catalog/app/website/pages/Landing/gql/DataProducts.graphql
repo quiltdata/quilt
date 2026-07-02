@@ -1,0 +1,6 @@
+query {
+  dataProducts {
+    id
+    name
+  }
+}
