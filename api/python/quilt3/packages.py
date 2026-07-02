@@ -1705,6 +1705,234 @@ class Package:
 
         put_bytes(top_hash.encode('utf-8'), latest_path)
 
+    @classmethod
+    @ApiTelemetry("package.search_meta")
+    def search_meta(cls, buckets: T.Union[str, T.List[str]], metadata: T.Dict[str, T.Any]) -> T.List[str]:
+        """
+        Search for Quilt packages based on metadata fields.
+
+        Args:
+            buckets: S3 bucket name or list of bucket names to search in
+            metadata: Dictionary of metadata fields and values to match exactly
+
+        Returns:
+            List of package names that have exact matches of all metadata field/value pairs
+
+        Raises:
+            PackageException: If GraphQL request fails or invalid input provided
+        """
+        from . import session
+        import requests
+
+        # Input validation
+        if isinstance(buckets, str):
+            buckets = [buckets]
+
+        if not buckets:
+            raise PackageException("At least one bucket must be specified")
+
+        if not metadata:
+            raise PackageException("At least one metadata field must be specified")
+
+        # Get registry connection
+        registry_url = session.get_registry_url()
+        if not registry_url:
+            raise PackageException("No registry configured. Use quilt3.config() to set registry URL.")
+
+        # Use raw session to avoid response hooks
+        http_session = session.get_session()
+        raw_session = requests.Session()
+        raw_session.headers.update(http_session.headers)
+
+        # Step 1: Query available facets to discover field types and paths
+        facets_query = """
+        query GetMetadataFacets($buckets: [String!]!) {
+            searchPackages(
+                buckets: $buckets
+                latestOnly: true
+            ) {
+                ... on PackagesSearchResultSet {
+                    stats {
+                        userMeta {
+                            __typename
+                            ... on IPackageUserMetaFacet {
+                                path
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        facets_response = raw_session.post(
+            f"{registry_url}/graphql",
+            json={"query": facets_query, "variables": {"buckets": buckets}},
+            headers={"Content-Type": "application/json"}
+        )
+
+        if facets_response.status_code != 200:
+            raise PackageException(f"Failed to query metadata facets: {facets_response.status_code} {facets_response.text}")
+
+        facets_data = facets_response.json()
+        if "errors" in facets_data:
+            error_msgs = [err.get("message", str(err)) for err in facets_data["errors"]]
+            raise PackageException(f"GraphQL facets query failed: {'; '.join(error_msgs)}")
+
+        # Extract available facets
+        search_result = facets_data.get("data", {}).get("searchPackages", {})
+        stats = search_result.get("stats", {})
+        user_meta_facets = stats.get("userMeta", [])
+
+        # Build facet map: field_name -> (json_pointer_path, facet_type)
+        facet_map = {}
+        for facet in user_meta_facets:
+            path = facet.get("path")
+            facet_type = facet.get("__typename")
+            if path and facet_type:
+                # Convert JSON pointer path back to field name (remove leading slash)
+                field_name = path.lstrip("/")
+                facet_map[field_name] = (path, facet_type)
+
+        # Step 2: Validate that all requested metadata fields are available
+        missing_fields = []
+        for field in metadata.keys():
+            if field not in facet_map:
+                missing_fields.append(field)
+
+        if missing_fields:
+            available_fields = sorted(facet_map.keys())
+            raise PackageException(
+                f"Metadata fields not available for filtering: {missing_fields}. "
+                f"Available fields: {available_fields[:20]}{'...' if len(available_fields) > 20 else ''}"
+            )
+
+        # Step 3: Construct userMetaFilters using correct paths and types
+        user_meta_filters = []
+        for field, value in metadata.items():
+            json_pointer_path, facet_type = facet_map[field]
+
+            # Create predicate based on facet type and value type
+            if facet_type == "KeywordPackageUserMetaFacet":
+                predicate = {
+                    "path": json_pointer_path,
+                    "datetime": None,
+                    "number": None,
+                    "text": None,
+                    "keyword": {"terms": [str(value)], "wildcard": None},
+                    "boolean": None
+                }
+            elif facet_type == "NumberPackageUserMetaFacet":
+                if isinstance(value, (int, float)):
+                    predicate = {
+                        "path": json_pointer_path,
+                        "datetime": None,
+                        "number": {"gte": float(value), "lte": float(value)},
+                        "text": None,
+                        "keyword": None,
+                        "boolean": None
+                    }
+                else:
+                    raise PackageException(f"Field '{field}' is numeric but value '{value}' is not a number")
+            elif facet_type == "BooleanPackageUserMetaFacet":
+                if isinstance(value, bool):
+                    predicate = {
+                        "path": json_pointer_path,
+                        "datetime": None,
+                        "number": None,
+                        "text": None,
+                        "keyword": None,
+                        "boolean": {"true": value, "false": not value}
+                    }
+                else:
+                    raise PackageException(f"Field '{field}' is boolean but value '{value}' is not a boolean")
+            elif facet_type == "TextPackageUserMetaFacet":
+                predicate = {
+                    "path": json_pointer_path,
+                    "datetime": None,
+                    "number": None,
+                    "text": {"queryString": str(value)},
+                    "keyword": None,
+                    "boolean": None
+                }
+            elif facet_type == "DatetimePackageUserMetaFacet":
+                # For exact datetime matching, would need to parse and create range
+                # For now, treat as text search
+                predicate = {
+                    "path": json_pointer_path,
+                    "datetime": None,
+                    "number": None,
+                    "text": {"queryString": str(value)},
+                    "keyword": None,
+                    "boolean": None
+                }
+            else:
+                raise PackageException(f"Unsupported facet type '{facet_type}' for field '{field}'")
+
+            user_meta_filters.append(predicate)
+
+        # Step 4: Execute search with userMetaFilters
+        # Note: Page size limited to 100 to avoid registry limits (demo.quiltdata.com has MAX_PAGE_SIZE=100)
+        search_query = """
+        query SearchPackagesByMetadata($buckets: [String!]!, $userMetaFilters: [PackageUserMetaPredicate!]!) {
+            searchPackages(
+                buckets: $buckets
+                userMetaFilters: $userMetaFilters
+                latestOnly: true
+            ) {
+                ... on PackagesSearchResultSet {
+                    firstPage(size: 100, order: LEX_ASC) {
+                        hits {
+                            name
+                        }
+                    }
+                }
+                ... on EmptySearchResultSet {
+                    __typename
+                }
+            }
+        }
+        """
+        search_variables = {
+            "buckets": buckets,
+            "userMetaFilters": user_meta_filters
+        }
+
+        search_response = raw_session.post(
+            f"{registry_url}/graphql",
+            json={"query": search_query, "variables": search_variables},
+            headers={"Content-Type": "application/json"}
+        )
+
+        if search_response.status_code != 200:
+            raise PackageException(f"GraphQL search request failed: {search_response.status_code} {search_response.text}")
+
+        search_data = search_response.json()
+        if "errors" in search_data:
+            error_msgs = [err.get("message", str(err)) for err in search_data["errors"]]
+            raise PackageException(f"GraphQL search query failed: {'; '.join(error_msgs)}")
+
+        # Extract package names from response
+        search_result = search_data.get("data", {}).get("searchPackages")
+        if not search_result:
+            return []
+
+        # Handle empty search results
+        if search_result.get("__typename") == "EmptySearchResultSet":
+            return []
+
+        # Extract results from first page
+        first_page = search_result.get("firstPage", {})
+        hits = first_page.get("hits", [])
+
+        package_names = []
+        for hit in hits:
+            name = hit.get("name")
+            if name:
+                package_names.append(name)
+
+        return package_names
+
     @ApiTelemetry("package.diff")
     def diff(self, other_pkg):
         """
