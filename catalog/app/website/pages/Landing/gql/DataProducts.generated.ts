@@ -4,9 +4,9 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type website_pages_Landing_gql_DataProductsQueryVariables = Exact<{
   [key: string]: never
 }>
@@ -17,6 +17,19 @@ export interface website_pages_Landing_gql_DataProductsQuery {
     readonly __typename: 'DataProduct'
     readonly id: string
     readonly name: string
+    readonly title: string | null
+    readonly description: string | null
+    readonly definition: {
+      readonly __typename: 'DataProductDefinition'
+      readonly objects: ReadonlyArray<{
+        readonly __typename: 'DataProductObjectEntry'
+        readonly logicalKey: string
+      }>
+      readonly packages: ReadonlyArray<{
+        readonly __typename: 'DataProductPackageEntry'
+        readonly virtualName: string
+      }>
+    }
   }>
 }
 
@@ -38,6 +51,43 @@ export const website_pages_Landing_gql_DataProductsDocument = {
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'definition' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'objects' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'logicalKey' },
+                            },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'packages' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'virtualName' },
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
               ],
             },
           },
