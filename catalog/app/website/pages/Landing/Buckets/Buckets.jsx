@@ -32,11 +32,15 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(5),
     paddingTop: t.spacing(3),
   },
+  wrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(3),
+  },
   filterRow: {
     alignItems: 'center',
     display: 'flex',
     gap: t.spacing(2),
-    marginBottom: t.spacing(4),
     [t.breakpoints.down('xs')]: {
       alignItems: 'flex-start',
       flexDirection: 'column',
@@ -168,83 +172,83 @@ export default function Buckets() {
 
   return (
     <M.Container maxWidth={false} disableGutters className={classes.container}>
-      <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
-      <M.Typography variant="h3" color="textPrimary">
-        Explore your volumes
-      </M.Typography>
-      <M.Box mt={4} />
-      <div className={classes.filterRow}>
-        <M.TextField
-          className={classes.filter}
-          placeholder="Find a bucket"
-          variant="outlined"
-          margin="dense"
-          fullWidth
-          InputProps={{
-            startAdornment: (
-              <M.InputAdornment position="start">
-                <M.Icon>search</M.Icon>
-              </M.InputAdornment>
-            ),
-            endAdornment: filter ? (
-              <M.InputAdornment position="end">
-                <M.IconButton edge="end" onClick={clearFilter}>
-                  <M.Icon>clear</M.Icon>
-                </M.IconButton>
-              </M.InputAdornment>
-            ) : undefined,
-          }}
-          {...filtering.input}
-        />
-        {!!allTags.length && (
-          <div className={classes.tags}>
-            <span className={classes.tagsLabel}>or use shortcuts:</span>
-            {allTags.map((t) => (
-              <M.Chip
-                key={t}
-                label={t}
-                size="small"
-                clickable
-                color={tagIsMatching(t) ? 'primary' : 'default'}
-                onClick={() => filtering.set(t)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      {paginated.length || !filter ? (
-        <BucketList
-          buckets={paginated}
-          onTagClick={filtering.set}
-          tagIsMatching={tagIsMatching}
-          showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
-        />
-      ) : (
-        <M.Typography color="textPrimary" variant="h4">
-          No buckets matching <b>&quot;{filter}&quot;</b>
+      <div className={classes.wrapper} ref={scrollRef}>
+        <M.Typography variant="h3" color="textPrimary">
+          Explore your volumes
         </M.Typography>
-      )}
-      <div className={classes.controls}>
-        <M.Box mt={2}>
-          {buckets.length > 2 && isAdmin && (
-            <M.Button
-              variant="contained"
-              color="primary"
-              component={Link}
-              to={urls.adminBuckets({ add: true })}
-            >
-              Add Bucket
-            </M.Button>
-          )}
-        </M.Box>
-        {pages > 1 && (
-          <Pagination
-            {...{ pages, page, onChange: setPage }}
-            mt={4}
-            mb={0}
-            classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
+        <div className={classes.filterRow}>
+          <M.TextField
+            className={classes.filter}
+            placeholder="Find a bucket"
+            variant="outlined"
+            margin="dense"
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <M.InputAdornment position="start">
+                  <M.Icon>search</M.Icon>
+                </M.InputAdornment>
+              ),
+              endAdornment: filter ? (
+                <M.InputAdornment position="end">
+                  <M.IconButton edge="end" onClick={clearFilter}>
+                    <M.Icon>clear</M.Icon>
+                  </M.IconButton>
+                </M.InputAdornment>
+              ) : undefined,
+            }}
+            {...filtering.input}
           />
+          {!!allTags.length && (
+            <div className={classes.tags}>
+              <span className={classes.tagsLabel}>or use shortcuts:</span>
+              {allTags.map((t) => (
+                <M.Chip
+                  key={t}
+                  label={t}
+                  size="small"
+                  clickable
+                  color={tagIsMatching(t) ? 'primary' : 'default'}
+                  onClick={() => filtering.set(t)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        {paginated.length || !filter ? (
+          <BucketList
+            buckets={paginated}
+            onTagClick={filtering.set}
+            tagIsMatching={tagIsMatching}
+            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
+          />
+        ) : (
+          <M.Typography color="textPrimary" variant="h4">
+            No buckets matching <b>&quot;{filter}&quot;</b>
+          </M.Typography>
         )}
+        <div className={classes.controls}>
+          <M.Box>
+            {buckets.length > 2 && isAdmin && (
+              <M.Button
+                variant="contained"
+                color="primary"
+                component={Link}
+                to={urls.adminBuckets({ add: true })}
+              >
+                Add Bucket
+              </M.Button>
+            )}
+          </M.Box>
+          {pages > 1 && (
+            <Pagination
+              {...{ pages, page, onChange: setPage }}
+              mt={0}
+              mb={0}
+              classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
+            />
+          )}
+        </div>
       </div>
     </M.Container>
   )
