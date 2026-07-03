@@ -4,6 +4,7 @@ import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
+import cfg from 'constants/config'
 import * as NavBar from 'containers/NavBar'
 import { Sidebar } from 'containers/Sidebar'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -107,7 +108,7 @@ export function Layout({
           {!!pre && pre}
           {!!children && <M.Box py={4}>{children}</M.Box>}
           <M.Box flexGrow={1} />
-          {isHomepage?.isExact && <Footer />}
+          {isHomepage?.isExact && cfg.mode !== 'PRODUCT' && <Footer />}
         </Container.FullWidthProvider>
       </M.Box>
     </M.Box>

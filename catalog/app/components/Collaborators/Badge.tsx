@@ -11,6 +11,10 @@ const useStyles = M.makeStyles((t) => ({
   clickable: {
     cursor: 'pointer',
   },
+  badge: {
+    backgroundColor: t.palette.primary.light,
+    color: t.palette.primary.contrastText,
+  },
 }))
 
 interface ComponentProps {
@@ -28,7 +32,12 @@ function Component({ badgeContent, icon, onClick, title }: ComponentProps) {
       title={title}
     >
       {badgeContent ? (
-        <M.Badge badgeContent={badgeContent} color="primary" onClick={onClick} max={99}>
+        <M.Badge
+          badgeContent={badgeContent}
+          classes={{ badge: classes.badge }}
+          onClick={onClick}
+          max={99}
+        >
           <M.Icon>{icon}</M.Icon>
         </M.Badge>
       ) : (

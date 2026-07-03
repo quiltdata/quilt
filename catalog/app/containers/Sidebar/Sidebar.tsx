@@ -10,9 +10,13 @@ import * as Bookmarks from 'containers/Bookmarks'
 import * as NavMenu from 'containers/NavBar/NavMenu'
 import useRoleSwitcher from 'containers/NavBar/RoleSwitcher'
 import * as Subscription from 'containers/NavBar/Subscription'
+import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import copyToClipboard from 'utils/clipboard'
 
+import FollowMenu from './FollowMenu'
+import OutlinedIcon from './OutlinedIcon'
 import { Rail } from './Rail'
 
 const useStyles = M.makeStyles((t) => ({
@@ -26,22 +30,17 @@ const useStyles = M.makeStyles((t) => ({
     height: 64,
     padding: t.spacing(0, 2),
   },
-  logoDivider: {
-    marginTop: -1,
-  },
   workspaces: {
     paddingTop: t.spacing(1),
   },
   title: {
-    ...t.typography.subtitle1,
-    color: 'inherit',
     fontWeight: 500,
   },
   icon: {
     color: 'inherit',
   },
   nav: {
-    paddingTop: t.spacing(1),
+    paddingTop: t.spacing(2),
   },
   spacer: {
     flexGrow: 1,
@@ -52,7 +51,50 @@ const useStyles = M.makeStyles((t) => ({
   account: {
     padding: t.spacing(1, 0, 2),
   },
+  version: {
+    ...t.typography.caption,
+    alignItems: 'center',
+    color: 'inherit',
+    cursor: 'pointer',
+    display: 'flex',
+    gap: t.spacing(0.5),
+    padding: t.spacing(1, 2),
+    '&:hover $copyIcon': {
+      visibility: 'visible',
+    },
+  },
+  versionText: {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  copyIcon: {
+    fontSize: '1rem',
+    marginLeft: t.spacing(0.5),
+    visibility: 'hidden',
+  },
 }))
+
+function Version() {
+  const classes = useStyles()
+  const { push } = Notifications.use()
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(cfg.stackVersion)
+    push('Web catalog container hash has been copied to clipboard')
+  }, [push])
+  if (!cfg.stackVersion) return null
+  return (
+    <div
+      className={classes.version}
+      onClick={handleCopy}
+      title="Copy Platform release version to clipboard"
+    >
+      <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
+      <OutlinedIcon className={classes.copyIcon}>content_copy</OutlinedIcon>
+    </div>
+  )
+}
 
 export function Sidebar() {
   const classes = useStyles()
@@ -72,7 +114,7 @@ export function Sidebar() {
   const workspace = user && (
     <>
       <M.ListItemIcon className={classes.icon}>
-        <M.Icon>work_outline</M.Icon>
+        <OutlinedIcon>work_outline</OutlinedIcon>
       </M.ListItemIcon>
       <M.ListItemText
         primary={user.role.name}
@@ -87,7 +129,6 @@ export function Sidebar() {
         <Link to={urls.home()} className={classes.logo}>
           <Logo height="32px" width="100%" src={settings?.logo?.url} />
         </Link>
-        <M.Divider className={classes.logoDivider} />
 
         {user && (
           <>
@@ -96,28 +137,33 @@ export function Sidebar() {
                 Workspace
               </M.ListSubheader>
               {user.roles.length > 1 ? (
-                <M.ListItem button onClick={() => switchRole(user)}>
+                <M.ListItem button onClick={() => switchRole(user)} selected>
                   {workspace}
                 </M.ListItem>
               ) : (
-                <M.ListItem>{workspace}</M.ListItem>
+                <M.ListItem selected>{workspace}</M.ListItem>
               )}
             </M.List>
-            <M.Divider />
           </>
         )}
 
         <M.List disablePadding className={classes.nav}>
           <M.ListItem button component={Link} to={urls.home()}>
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>storage</M.Icon>
+              <OutlinedIcon>storage</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="Volumes" />
+          </M.ListItem>
+          <M.ListItem button component={Link} to="/b/quilt-bio-production/queries">
+            <M.ListItemIcon className={classes.icon}>
+              <OutlinedIcon>table_chart</OutlinedIcon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Queries" />
           </M.ListItem>
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
               <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>
-                <M.Icon>bookmarks</M.Icon>
+                <OutlinedIcon>bookmarks</OutlinedIcon>
               </M.Badge>
             </M.ListItemIcon>
             <M.ListItemText primary="Bookmarks" />
@@ -125,47 +171,50 @@ export function Sidebar() {
           {assistant && (
             <M.ListItem button onClick={assistant.show}>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon>assistant</M.Icon>
+                <OutlinedIcon>assistant</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary="Qurator" />
             </M.ListItem>
           )}
           {user?.isAdmin && (
-            <>
-              <M.Divider />
-              <M.ListItem button component={Link} to={urls.admin()}>
-                <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>security</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText primary="Admin" />
-              </M.ListItem>
-            </>
+            <M.ListItem button component={Link} to={urls.admin()}>
+              <M.ListItemIcon className={classes.icon}>
+                <OutlinedIcon>security</OutlinedIcon>
+              </M.ListItemIcon>
+              <M.ListItemText primary="Admin" />
+            </M.ListItem>
           )}
         </M.List>
 
         <div className={classes.spacer} />
 
         <M.List disablePadding className={classes.links} dense>
+          <M.ListSubheader disableSticky className={classes.title}>
+            Resources
+          </M.ListSubheader>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>link</M.Icon>
+              <OutlinedIcon>link</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="URI" />
           </M.ListItem>
           <M.ListItem button component="a" href={URLS.docs} target="_blank">
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>menu_book</M.Icon>
+              <OutlinedIcon>menu_book</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="Docs" />
           </M.ListItem>
+          <FollowMenu iconClassName={classes.icon} />
         </M.List>
-        <M.Divider />
 
         <M.List disablePadding className={classes.account} dense>
+          <M.ListSubheader disableSticky className={classes.title}>
+            Account
+          </M.ListSubheader>
           {user && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon>account_circle</M.Icon>
+                <OutlinedIcon>account_circle</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary={user.name} />
             </M.ListItem>
@@ -173,7 +222,7 @@ export function Sidebar() {
           {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon color="error">warning</M.Icon>
+                <OutlinedIcon color="error">warning</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary="Unlicensed" />
             </M.ListItem>
@@ -182,19 +231,20 @@ export function Sidebar() {
             (user ? (
               <M.ListItem button component={Link} to={urls.signOut()}>
                 <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>meeting_room</M.Icon>
+                  <OutlinedIcon>meeting_room</OutlinedIcon>
                 </M.ListItemIcon>
                 <M.ListItemText primary="Sign Out" />
               </M.ListItem>
             ) : (
               <M.ListItem button component={Link} to={urls.signIn()}>
                 <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>exit_to_app</M.Icon>
+                  <OutlinedIcon>exit_to_app</OutlinedIcon>
                 </M.ListItemIcon>
                 <M.ListItemText primary="Sign In" />
               </M.ListItem>
             ))}
         </M.List>
+        <Version />
       </Rail>
       <Bookmarks.Drawer />
     </>

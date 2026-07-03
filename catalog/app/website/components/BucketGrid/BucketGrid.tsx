@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -41,12 +40,12 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   desc: {
     ...t.typography.body2,
     WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 3,
+    WebkitLineClamp: 2,
     color: t.palette.text.secondary,
     display: '-webkit-box',
     lineHeight: t.typography.pxToRem(24),
     margin: 0,
-    maxHeight: t.typography.pxToRem(24 * 3),
+    maxHeight: t.typography.pxToRem(24 * 2),
     overflow: 'hidden',
     overflowWrap: 'break-word',
     textOverflow: 'ellipsis',
@@ -54,28 +53,8 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   tags: {
     display: 'flex',
     flexWrap: 'wrap',
+    gap: t.spacing(0.5),
     padding: t.spacing(0, 2, 2),
-  },
-  active: {},
-  matching: {},
-  tag: {
-    ...t.typography.body2,
-    background: fade(t.palette.primary.main, 0.3),
-    border: 'none',
-    borderRadius: 2,
-    color: t.palette.text.primary,
-    lineHeight: t.typography.pxToRem(28),
-    marginRight: t.spacing(1),
-    marginTop: t.spacing(1),
-    outline: 'none',
-    padding: t.spacing(0, 1),
-    '&$active': {
-      cursor: 'pointer',
-    },
-    '&$matching': {
-      background: t.palette.primary.main,
-      color: t.palette.primary.contrastText,
-    },
   },
   '@keyframes slideUp': {
     '0%': {
@@ -89,7 +68,7 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
 }))
 
-interface Bucket {
+export interface Bucket {
   name: string
   title: string
   iconUrl: string | null
@@ -154,18 +133,14 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
       {!!bucket.tags && !!bucket.tags.length && (
         <div className={classes.tags}>
           {bucket.tags.map((t) => (
-            <button
+            <M.Chip
               key={t}
-              className={cx(
-                classes.tag,
-                tagIsMatching(t) && classes.matching,
-                !!onTagClick && classes.active,
-              )}
-              type="button"
-              onClick={() => onTagClick?.(t)}
-            >
-              {t}
-            </button>
+              label={t}
+              size="small"
+              clickable={!!onTagClick}
+              color={tagIsMatching(t) ? 'primary' : 'default'}
+              onClick={onTagClick ? () => onTagClick(t) : undefined}
+            />
           ))}
         </div>
       )}
@@ -208,7 +183,7 @@ export default React.forwardRef<HTMLDivElement, BucketGridProps>(function Bucket
   const { urls } = NamedRoutes.use()
 
   return (
-    <M.Grid container spacing={4} ref={ref}>
+    <M.Grid container spacing={2} ref={ref}>
       {buckets.map((b) => (
         <M.Grid item xs={12} sm={6} md={4} lg={3} key={b.name}>
           <BucketCard bucket={b} onTagClick={onTagClick} tagIsMatching={tagIsMatching} />

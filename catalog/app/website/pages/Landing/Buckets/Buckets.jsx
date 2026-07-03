@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
-import cfg from 'constants/config'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -13,13 +12,12 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import Backlight from 'website/components/Backgrounds/Backlight1'
-import BucketGrid from 'website/components/BucketGrid'
+import BucketList from 'website/components/BucketGrid/BucketList'
 
 import DATA_PRODUCTS_QUERY from '../gql/DataProducts.generated'
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
-const PER_PAGE = 24
+const PER_PAGE = 15
 
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
@@ -86,25 +84,41 @@ function DataProductCard({ dp }) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'relative',
-  },
   container: {
     paddingBottom: t.spacing(5),
     paddingTop: t.spacing(3),
-    position: 'relative',
-    zIndex: 1,
+  },
+  wrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(3),
+  },
+  filterRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    [t.breakpoints.down('xs')]: {
+      alignItems: 'flex-start',
+      flexDirection: 'column',
+    },
   },
   filter: {
-    marginBottom: t.spacing(5),
+    flexShrink: 0,
+    marginBottom: 0,
     marginTop: 0,
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
   },
-  backlight: {
-    bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
-    opacity: 0.5,
+  tags: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+  },
+  tagsLabel: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
   },
   controls: {
     display: 'flex',
@@ -152,6 +166,16 @@ export default function Buckets() {
   )
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
+
+  const allTags = React.useMemo(
+    () =>
+      R.pipe(
+        R.chain((b) => b.tags || []),
+        R.uniq,
+        R.sortBy(R.toLower),
+      )(buckets),
+    [buckets],
+  )
 
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
@@ -204,38 +228,52 @@ export default function Buckets() {
   const dataProducts = useDataProducts()
 
   return (
-    <div className={classes.root}>
-      <Backlight className={classes.backlight} />
-      <M.Container maxWidth={false} className={classes.container}>
-        <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
+    <M.Container maxWidth={false} disableGutters className={classes.container}>
+      <div className={classes.wrapper} ref={scrollRef}>
         <M.Typography variant="h3" color="textPrimary">
-          Explore your buckets
+          Explore your volumes
         </M.Typography>
-        <M.Box mt={4} />
-        <M.TextField
-          className={classes.filter}
-          placeholder="Find a bucket"
-          variant="outlined"
-          margin="dense"
-          fullWidth
-          InputProps={{
-            startAdornment: (
-              <M.InputAdornment position="start">
-                <M.Icon>search</M.Icon>
-              </M.InputAdornment>
-            ),
-            endAdornment: filter ? (
-              <M.InputAdornment position="end">
-                <M.IconButton edge="end" onClick={clearFilter}>
-                  <M.Icon>clear</M.Icon>
-                </M.IconButton>
-              </M.InputAdornment>
-            ) : undefined,
-          }}
-          {...filtering.input}
-        />
+        <div className={classes.filterRow}>
+          <M.TextField
+            className={classes.filter}
+            placeholder="Find a bucket"
+            variant="outlined"
+            margin="dense"
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <M.InputAdornment position="start">
+                  <M.Icon>search</M.Icon>
+                </M.InputAdornment>
+              ),
+              endAdornment: filter ? (
+                <M.InputAdornment position="end">
+                  <M.IconButton edge="end" onClick={clearFilter}>
+                    <M.Icon>clear</M.Icon>
+                  </M.IconButton>
+                </M.InputAdornment>
+              ) : undefined,
+            }}
+            {...filtering.input}
+          />
+          {!!allTags.length && (
+            <div className={classes.tags}>
+              <span className={classes.tagsLabel}>or use shortcuts:</span>
+              {allTags.map((t) => (
+                <M.Chip
+                  key={t}
+                  label={t}
+                  size="small"
+                  clickable
+                  color={tagIsMatching(t) ? 'primary' : 'default'}
+                  onClick={() => filtering.set(t)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
         {dataProducts.length > 0 && (
-          <M.Box mb={5}>
+          <M.Box mb={2}>
             <M.Typography variant="h4" color="textPrimary" gutterBottom>
               Data products
             </M.Typography>
@@ -249,7 +287,7 @@ export default function Buckets() {
           </M.Box>
         )}
         {paginated.length || !filter ? (
-          <BucketGrid
+          <BucketList
             buckets={paginated}
             onTagClick={filtering.set}
             tagIsMatching={tagIsMatching}
@@ -261,39 +299,28 @@ export default function Buckets() {
           </M.Typography>
         )}
         <div className={classes.controls}>
-          <M.Box mt={2}>
+          <M.Box>
             {buckets.length > 2 && isAdmin && (
-              <M.Box mt={2} mr={2} display="inline-block">
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  component={Link}
-                  to={urls.adminBuckets({ add: true })}
-                >
-                  Add Bucket
-                </M.Button>
-              </M.Box>
-            )}
-            <M.Box mt={2} display="inline-block">
               <M.Button
-                variant="outlined"
+                variant="contained"
                 color="primary"
-                href="https://open.quiltdata.com/"
+                component={Link}
+                to={urls.adminBuckets({ add: true })}
               >
-                Browse Example Buckets
+                Add Bucket
               </M.Button>
-            </M.Box>
+            )}
           </M.Box>
           {pages > 1 && (
             <Pagination
               {...{ pages, page, onChange: setPage }}
-              mt={4}
+              mt={0}
               mb={0}
               classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
             />
           )}
         </div>
-      </M.Container>
-    </div>
+      </div>
+    </M.Container>
   )
 }
