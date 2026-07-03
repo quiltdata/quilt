@@ -159,6 +159,12 @@ export function Sidebar() {
             </M.ListItemIcon>
             <M.ListItemText primary="Volumes" />
           </M.ListItem>
+          <M.ListItem button component={Link} to="/b/quilt-bio-production/queries">
+            <M.ListItemIcon className={classes.icon}>
+              <M.Icon>table_chart</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Queries" />
+          </M.ListItem>
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
               <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>
