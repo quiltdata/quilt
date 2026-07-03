@@ -26,7 +26,11 @@ import * as requests from 'containers/Bucket/requests'
 import DIR_QUERY from 'containers/Bucket/PackageTree/gql/Dir.generated'
 import FILE_QUERY from 'containers/Bucket/PackageTree/gql/File.generated'
 import * as SearchHits from 'containers/Search/List/Hit'
-import { ColumnTag, PackageRow } from 'containers/Search/Table/Table'
+import {
+  ColumnTag,
+  ColumnUserMetaCreate,
+  PackageRow,
+} from 'containers/Search/Table/Table'
 import type {
   Column,
   Hit as SearchTableHit,
@@ -48,6 +52,13 @@ import * as s3paths from 'utils/s3paths'
 
 import DP_QUERY from './gql/DataProduct.generated'
 import type { containers_DataProduct_gql_DataProductQuery as DataProductQuery } from './gql/DataProduct.generated'
+import {
+  compileFilter,
+  defaultVisibleMeta,
+  deriveMetaColumns,
+  matchMeta,
+} from './packagesMeta'
+import type { MetaColumnSpec } from './packagesMeta'
 
 type DataProduct = NonNullable<DataProductQuery['dataProduct']>
 type ObjectMember = DataProduct['members']['objects'][number]
@@ -139,6 +150,9 @@ const useStyles = M.makeStyles((t) => ({
     justifyContent: 'flex-end',
   },
   viewToggle: {
+    marginRight: t.spacing(1),
+  },
+  columnsButton: {
     marginRight: t.spacing(1),
   },
   // Uniform spacing between the shared hit cards and the fallback cards alike
@@ -500,12 +514,16 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
 // DP's in-hand package members (a fixed list, not a search): a filter field, a
 // count + card/table toggle + sort toolbar, then the shared package-listing
 // leaves (Search/List `Hit.Package` cards, Search/Table `PackageRow` rows) fed
-// hit-shaped rows synthesized from the members. Every link is re-rooted
-// DP-local through the leaves' `PackageLinkBuilder` seam
-// (urls.dataProductPackage) — never a /b/<bucket>/ route; the search-model-
-// bound chrome (facet filters, configure-columns, matching-entries expansion)
-// is intentionally absent, and the tab is read-only (no authoring
-// affordances).
+// hit-shaped rows synthesized from the members. Metadata parity is computed
+// client-side over that fixed list (see ./packagesMeta): user-meta paths are
+// derived from the loaded `userMeta` payloads and surfaced as table columns
+// (the leading few by coverage; the rest behind a compact Columns menu), and
+// the filter field understands `key:value` meta terms alongside free-text name
+// terms. Every link is re-rooted DP-local through the leaves'
+// `PackageLinkBuilder` seam (urls.dataProductPackage) — never a /b/<bucket>/
+// route; the search-model-bound chrome (facet drawer, server-side facets,
+// matching-entries expansion) is intentionally absent, and the tab is
+// read-only (no authoring affordances).
 
 type PackageView = 'card' | 'table'
 
@@ -676,9 +694,10 @@ const BASE_COLUMNS: Column[] = [
 // Appended only when at least one member's effective revision carries one.
 const WORKFLOW_COLUMN = staticColumn('workflow', 'KeywordEnum')
 
-// Numbers and dates read right-aligned, mirroring the shared table's rule.
+// Numbers and dates read right-aligned, mirroring the shared table's rule
+// (user-meta columns included — their type is inferred from the leaf values).
 const columnAlign = (column: Column) =>
-  column.tag === ColumnTag.SystemMeta &&
+  column.tag !== ColumnTag.Bucket &&
   ['Number', 'Datetime', 'Boolean'].includes(column.predicateType)
     ? ('right' as const)
     : ('inherit' as const)
@@ -705,6 +724,52 @@ function useMemberLinks(id: string): (virtualName: string) => PackageLinkBuilder
       }
     },
     [id, urls],
+  )
+}
+
+interface MetaColumnsMenuProps {
+  specs: MetaColumnSpec[]
+  visible: Set<string>
+  onToggle: (pointer: string) => void
+}
+
+// A compact show/hide menu over the derived user-meta columns — the DP-local
+// stand-in for the search table's configure-columns drawer (which is bound to
+// the search model). The base system-meta columns are fixed; only meta columns
+// toggle. Checked state lives in the tab (in-memory, per visit).
+function MetaColumnsMenu({ specs, visible, onToggle }: MetaColumnsMenuProps) {
+  const classes = useStyles()
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
+  const close = React.useCallback(() => setAnchor(null), [])
+  return (
+    <>
+      <M.Button
+        className={classes.columnsButton}
+        size="small"
+        onClick={(e) => setAnchor(e.currentTarget)}
+        startIcon={<Icons.ViewColumn />}
+      >
+        Columns
+      </M.Button>
+      <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+        <M.ListSubheader disableSticky>Metadata columns</M.ListSubheader>
+        {specs.map((s) => (
+          <M.MenuItem key={s.pointer} dense onClick={() => onToggle(s.pointer)}>
+            <M.Checkbox
+              checked={visible.has(s.pointer)}
+              disableRipple
+              edge="start"
+              size="small"
+              tabIndex={-1}
+            />
+            <M.ListItemText
+              primary={s.title}
+              secondary={`on ${pluralize(s.count, 'package')}`}
+            />
+          </M.MenuItem>
+        ))}
+      </M.Menu>
+    </>
   )
 }
 
@@ -852,13 +917,41 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
     [dp.members.packages],
   )
 
-  const columns = React.useMemo(
-    () =>
-      items.some((i) => i.hit?.workflow)
-        ? [...BASE_COLUMNS, WORKFLOW_COLUMN]
-        : BASE_COLUMNS,
+  // User-meta paths derived client-side from the members' loaded userMeta
+  // payloads (members whose meta is not in hand simply don't contribute).
+  const meta = React.useMemo(
+    () => deriveMetaColumns(items.map((i) => i.tableHit?.meta)),
     [items],
   )
+
+  // Which meta columns show in the table. Seeded once from the coverage
+  // heuristic (the member list is fixed for the life of the tab), then driven
+  // by the Columns menu.
+  const [visibleMeta, setVisibleMeta] = React.useState(() => defaultVisibleMeta(meta))
+  const toggleMeta = React.useCallback((pointer: string) => {
+    setVisibleMeta((prev) => {
+      const next = new Set(prev)
+      if (next.has(pointer)) next.delete(pointer)
+      else next.add(pointer)
+      return next
+    })
+  }, [])
+
+  const columns = React.useMemo(() => {
+    const base = items.some((i) => i.hit?.workflow)
+      ? [...BASE_COLUMNS, WORKFLOW_COLUMN]
+      : BASE_COLUMNS
+    const metaColumns = meta.specs
+      .filter((s) => visibleMeta.has(s.pointer))
+      .map((s) =>
+        ColumnUserMetaCreate(s.pointer, s.predicateType, {
+          filtered: false,
+          visible: true,
+          inferred: true,
+        }),
+      )
+    return metaColumns.length ? [...base, ...metaColumns] : base
+  }, [items, meta.specs, visibleMeta])
 
   const sortValue = React.useMemo(
     () => SORT_OPTIONS.find((o) => o.valueOf() === sortToValue(sort)) || SORT_OPTIONS[0],
@@ -880,17 +973,26 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
     )
   }, [])
 
+  // The filter input compiles into free-text name terms plus `key:value` meta
+  // terms (see packagesMeta for the grammar), all AND-ed, all evaluated in
+  // memory over the fixed member list.
+  const compiledFilter = React.useMemo(
+    () => compileFilter(filter, meta.specs),
+    [filter, meta.specs],
+  )
+
   const filtered = React.useMemo(() => {
-    const needle = filter.trim().toLowerCase()
-    const matched = needle
-      ? items.filter(
-          ({ member }) =>
-            member.virtualName.toLowerCase().includes(needle) ||
-            `${member.bucket}/${member.name}`.toLowerCase().includes(needle),
-        )
-      : items
-    return [...matched].sort(compareItems(sort))
-  }, [items, filter, sort])
+    const { nameTerms, metaTerms } = compiledFilter
+    const matched = items.filter((item) => {
+      if (nameTerms.length) {
+        const hay =
+          `${item.member.virtualName} ${item.member.bucket}/${item.member.name}`.toLowerCase()
+        if (!nameTerms.every((t) => hay.includes(t))) return false
+      }
+      return matchMeta(metaTerms, item.tableHit?.meta)
+    })
+    return matched.sort(compareItems(sort))
+  }, [items, compiledFilter, sort])
 
   // Reveal from the top again whenever the result set changes (filter/sort).
   React.useEffect(() => setShown(PER_PAGE), [filter, sort])
@@ -908,7 +1010,11 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
         fullWidth
         size="small"
         variant="outlined"
-        placeholder="Filter packages"
+        placeholder={
+          meta.specs.length
+            ? 'Filter packages — free text matches names, key:value matches metadata'
+            : 'Filter packages'
+        }
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         InputProps={{
@@ -929,6 +1035,13 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
       <div className={classes.toolbar}>
         <div className={classes.count}>{pluralize(filtered.length, 'package')}</div>
         <div className={classes.toolbarControls}>
+          {view === 'table' && !!meta.specs.length && (
+            <MetaColumnsMenu
+              specs={meta.specs}
+              visible={visibleMeta}
+              onToggle={toggleMeta}
+            />
+          )}
           <Lab.ToggleButtonGroup
             className={classes.viewToggle}
             size="small"

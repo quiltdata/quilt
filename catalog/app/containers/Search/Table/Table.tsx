@@ -36,7 +36,7 @@ import { Provider, useContext } from './Provider'
 
 // Re-exports for external consumers rendering `PackageRow` with a hand-built
 // static columns list (the `useColumns` hook itself is bound to the search model).
-export { ColumnTag } from './useColumns'
+export { ColumnTag, ColumnUserMetaCreate } from './useColumns'
 export type { Column, ColumnsMap } from './useColumns'
 export type { Hit } from './useResults'
 export type { PackageLinkBuilder } from './links'
