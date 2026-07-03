@@ -549,10 +549,10 @@ interface SortSpec {
 // Client-side sort over the fixed member list, offered through the same
 // SelectDropdown the bucket list uses (and mirrored by the table headers).
 const SORT_OPTIONS = [
-  { toString: () => 'Name: A → Z', valueOf: () => 'name:asc' },
-  { toString: () => 'Name: Z → A', valueOf: () => 'name:desc' },
-  { toString: () => 'Newest first', valueOf: () => 'modified:desc' },
-  { toString: () => 'Oldest first', valueOf: () => 'modified:asc' },
+  { toString: () => 'A → Z', valueOf: () => 'name:asc' },
+  { toString: () => 'Z → A', valueOf: () => 'name:desc' },
+  { toString: () => 'Most recent first', valueOf: () => 'modified:desc' },
+  { toString: () => 'Least recent first', valueOf: () => 'modified:asc' },
 ]
 
 const sortToValue = ({ key, dir }: SortSpec) => `${key}:${dir}`
