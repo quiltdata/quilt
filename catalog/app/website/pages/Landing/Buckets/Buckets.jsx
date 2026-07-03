@@ -227,26 +227,15 @@ export default function Buckets() {
       <div className={classes.controls}>
         <M.Box mt={2}>
           {buckets.length > 2 && isAdmin && (
-            <M.Box mt={2} mr={2} display="inline-block">
-              <M.Button
-                variant="contained"
-                color="primary"
-                component={Link}
-                to={urls.adminBuckets({ add: true })}
-              >
-                Add Bucket
-              </M.Button>
-            </M.Box>
-          )}
-          <M.Box mt={2} display="inline-block">
             <M.Button
-              variant="outlined"
+              variant="contained"
               color="primary"
-              href="https://open.quiltdata.com/"
+              component={Link}
+              to={urls.adminBuckets({ add: true })}
             >
-              Browse Example Buckets
+              Add Bucket
             </M.Button>
-          </M.Box>
+          )}
         </M.Box>
         {pages > 1 && (
           <Pagination
