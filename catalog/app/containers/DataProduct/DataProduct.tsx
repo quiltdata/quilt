@@ -1,24 +1,51 @@
 import * as React from 'react'
-import { Link, Route, Switch, matchPath, useLocation, useParams } from 'react-router-dom'
+import {
+  Link,
+  Redirect,
+  Route,
+  Switch,
+  matchPath,
+  useLocation,
+  useParams,
+} from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import Layout, { Container } from 'components/Layout'
+import Markdown from 'components/Markdown'
+import * as Preview from 'components/Preview'
+import Section from 'containers/Bucket/Section'
 import * as Listing from 'containers/Bucket/Listing'
+import renderPreview from 'containers/Bucket/renderPreview'
+import * as requests from 'containers/Bucket/requests'
+import DIR_QUERY from 'containers/Bucket/PackageTree/gql/Dir.generated'
+import FILE_QUERY from 'containers/Bucket/PackageTree/gql/File.generated'
+import type * as Model from 'model'
+import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
+import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
+import * as s3paths from 'utils/s3paths'
 
 import DP_QUERY from './gql/DataProduct.generated'
 import type { containers_DataProduct_gql_DataProductQuery as DataProductQuery } from './gql/DataProduct.generated'
 
 type DataProduct = NonNullable<DataProductQuery['dataProduct']>
+type ObjectMember = DataProduct['members']['objects'][number]
+type PackageMember = DataProduct['members']['packages'][number]
 
 // The Listing rows are plain navigation links; nothing here mutates, so reload
 // is a no-op.
 const noop = () => {}
 
 const pluralize = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'}`
+
+// The logical key a manifest must place an object at for it to render as the DP
+// overview README (mirrors a bucket overview's README member file).
+const README_KEY = 'README.md'
 
 const useStyles = M.makeStyles((t) => ({
   // Spaces the header card away from the search bar above it, mirroring the
@@ -54,6 +81,26 @@ const useStyles = M.makeStyles((t) => ({
   section: {
     padding: t.spacing(3),
   },
+  // The physical origin of a member is provenance only — a small muted detail,
+  // never a navigation link.
+  provenance: {
+    marginBottom: t.spacing(2),
+  },
+  packageList: {
+    '& > * + *': {
+      marginTop: t.spacing(2),
+    },
+  },
+  packageCard: {
+    padding: t.spacing(2),
+  },
+  packageName: {
+    ...t.typography.body1,
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  readme: {
+    marginBottom: t.spacing(3),
+  },
 }))
 
 type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
@@ -63,11 +110,15 @@ function NavTab(props: NavTabProps) {
 }
 
 // The tail of the current route selects the active tab, exactly as the bucket
-// page's tab tracks its route.
+// page's tab tracks its route. Both the package list and a package drill-in map
+// to the Packages tab.
 function useSection(): string {
   const { paths } = NamedRoutes.use()
   const { pathname } = useLocation()
-  if (matchPath(pathname, { path: paths.dataProductPackages, exact: true })) {
+  if (
+    matchPath(pathname, { path: paths.dataProductPackage }) ||
+    matchPath(pathname, { path: paths.dataProductPackages, exact: true })
+  ) {
     return 'packages'
   }
   if (matchPath(pathname, { path: paths.dataProductObjects })) {
@@ -92,7 +143,7 @@ function Header({ dp }: HeaderProps) {
       <M.Typography variant="overline" color="textSecondary" className={classes.overline}>
         Data product
       </M.Typography>
-      <M.Typography variant="h5">{dp.name}</M.Typography>
+      <M.Typography variant="h5">{dp.title || dp.name}</M.Typography>
       <M.Typography variant="body2" color="textSecondary" className={classes.summary}>
         {summary}
       </M.Typography>
@@ -116,17 +167,90 @@ function Tabs({ id, section }: TabsProps) {
   )
 }
 
+// Renders a file's bytes in place under the DP route: the physical handle
+// (bucket/key/versionId) is used only to fetch bytes — the URL and UI stay
+// DP-local. The bucket is warmed first so cross-bucket presigned URLs get the
+// correct region.
+interface FileHandle {
+  bucket: string
+  key: string
+  version?: string
+  logicalKey: string
+}
+
+function FilePreview({ handle }: { handle: FileHandle }) {
+  return (
+    <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+      {useBucketExistence(handle.bucket).case({
+        Ok: () =>
+          Preview.load(handle, renderPreview(), { context: Preview.CONTEXT.FILE }),
+        Err: () => (
+          <M.Typography color="error">
+            Could not access the object's storage.
+          </M.Typography>
+        ),
+        _: () => <M.CircularProgress />,
+      })}
+    </Section>
+  )
+}
+
+// The physical origin of a member, shown as a small muted detail. It is
+// provenance metadata only — never a navigation target.
+function Provenance({ children }: React.PropsWithChildren<{}>) {
+  const classes = useStyles()
+  return (
+    <M.Typography
+      variant="caption"
+      color="textSecondary"
+      component="div"
+      className={classes.provenance}
+    >
+      Provenance: {children}
+    </M.Typography>
+  )
+}
+
+// Fetches + renders the README member's markdown, like a bucket overview README.
+function ReadmePreview({ member }: { member: ObjectMember }) {
+  const s3 = AWS.S3.use()
+  const handle: Model.S3.S3ObjectLocation = React.useMemo(
+    () => ({
+      bucket: member.bucket,
+      key: member.key,
+      version: member.versionId ?? undefined,
+    }),
+    [member],
+  )
+  const data = useData(requests.fetchFile, { s3, handle })
+  return data.case({
+    Err: () => null,
+    Ok: ({ body }: { body?: { toString: (enc: string) => string } }) => (
+      <Markdown data={body?.toString('utf-8') ?? ''} />
+    ),
+    _: () => <M.CircularProgress />,
+  })
+}
+
 function OverviewTab({ dp }: { dp: DataProduct }) {
   const classes = useStyles()
+  const readmeMember = dp.members.objects.find((o) => o.logicalKey === README_KEY)
   const summary = [
     pluralize(dp.members.packages.length, 'package'),
     pluralize(dp.members.objects.length, 'object'),
   ].join(' · ')
   return (
     <M.Paper className={classes.section}>
-      {/* The v0 SDL exposes no authored own-content (title/description/README)
-          for a DataProduct, so there is nothing to render here yet. */}
-      <M.Typography color="textSecondary">No description</M.Typography>
+      {!!readmeMember && (
+        <div className={classes.readme}>
+          <ReadmePreview member={readmeMember} />
+        </div>
+      )}
+      {dp.description ? (
+        <M.Typography variant="body1">{dp.description}</M.Typography>
+      ) : (
+        <M.Typography color="textSecondary">No description</M.Typography>
+      )}
       <M.Box mt={2}>
         <M.Typography variant="subtitle2" gutterBottom>
           Members
@@ -143,6 +267,14 @@ function OverviewTab({ dp }: { dp: DataProduct }) {
           {dp.ownerRole.name}
         </M.Typography>
       </M.Box>
+      <M.Box mt={2}>
+        <M.Typography variant="subtitle2" gutterBottom>
+          Created
+        </M.Typography>
+        <M.Typography variant="body2" color="textSecondary">
+          {dp.createdAt.toLocaleString()}
+        </M.Typography>
+      </M.Box>
     </M.Paper>
   )
 }
@@ -152,26 +284,37 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
   const { urls } = NamedRoutes.use()
   const { path = '' } = useParams<{ path?: string }>()
 
+  // A leaf: the path names an object member exactly — render its file view in
+  // place under the DP route.
+  const fileMember = dp.members.objects.find((o) => o.logicalKey === path)
+
+  const getSegmentRoute = React.useCallback(
+    (segPath: string) =>
+      urls.dataProductObjects(id, segPath ? s3paths.ensureSlash(segPath) : ''),
+    [id, urls],
+  )
+  const crumbs = BreadCrumbs.use(path, getSegmentRoute, dp.name)
+
+  // The prefix of the virtual folder currently open (always '' or slash-ended);
+  // breadcrumb clicks can arrive without the trailing slash, so normalize.
+  const prefix = fileMember || !path ? '' : s3paths.ensureSlash(path)
+
   // Synthesize the immediate children of the current virtual folder from the
   // flat object members' logical keys: a remainder with a '/' is a virtual dir
-  // (deduped), otherwise a leaf file that opens in place at the native view.
+  // (deduped), otherwise a leaf file that opens in place under the DP route.
   const items = React.useMemo(() => {
     const seenDirs = new Set<string>()
     const result: Listing.Item[] = []
     dp.members.objects.forEach((o) => {
-      if (!o.logicalKey.startsWith(path)) return
-      const rest = o.logicalKey.slice(path.length)
+      if (!o.logicalKey.startsWith(prefix)) return
+      const rest = o.logicalKey.slice(prefix.length)
       if (!rest) return
       const slash = rest.indexOf('/')
       if (slash === -1) {
         result.push({
           type: 'file',
           name: rest,
-          to: urls.bucketFile(
-            o.bucket,
-            o.key,
-            o.versionId ? { version: o.versionId } : undefined,
-          ),
+          to: urls.dataProductObjects(id, o.logicalKey),
         })
       } else {
         const seg = rest.slice(0, slash)
@@ -180,25 +323,34 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
         result.push({
           type: 'dir',
           name: seg,
-          to: urls.dataProductObjects(id, path + seg + '/'),
+          to: urls.dataProductObjects(id, prefix + seg + '/'),
         })
       }
     })
     return result
-  }, [dp.members.objects, id, path, urls])
-
-  const getSegmentRoute = React.useCallback(
-    (segPath: string) => urls.dataProductObjects(id, segPath),
-    [id, urls],
-  )
-  const crumbs = BreadCrumbs.use(path, getSegmentRoute, dp.name)
+  }, [dp.members.objects, id, prefix, urls])
 
   return (
     <>
       <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
         {BreadCrumbs.render(crumbs)}
       </div>
-      {items.length ? (
+      {fileMember ? (
+        <>
+          <Provenance>
+            {`s3://${fileMember.bucket}/${fileMember.key}`}
+            {fileMember.versionId ? ` (version ${fileMember.versionId})` : ''}
+          </Provenance>
+          <FilePreview
+            handle={{
+              bucket: fileMember.bucket,
+              key: fileMember.key,
+              version: fileMember.versionId ?? undefined,
+              logicalKey: fileMember.logicalKey,
+            }}
+          />
+        </>
+      ) : items.length ? (
         <Listing.Listing items={items} onReload={noop} />
       ) : (
         <M.Typography color="textSecondary">No readable objects</M.Typography>
@@ -207,17 +359,255 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
   )
 }
 
-function PackagesTab({ dp }: { dp: DataProduct }) {
+// The Packages tab renders the in-bucket package-list idiom: a results-list,
+// one card per package member at its virtual name (not a tree of dir-rows).
+function PackageCard({ member, to }: { member: PackageMember; to: string }) {
+  const classes = useStyles()
+  const pin = member.hashOrTag ? member.hashOrTag.slice(0, 10) : 'latest'
+  return (
+    <M.Paper variant="outlined" className={classes.packageCard}>
+      <Link to={to} className={classes.packageName}>
+        {member.virtualName}
+      </Link>
+      <Provenance>
+        {`${member.bucket} / ${member.name}`} @ {pin}
+      </Provenance>
+    </M.Paper>
+  )
+}
+
+function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
+  const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const items: Listing.Item[] = dp.members.packages.map((p) => ({
-    type: 'dir',
-    name: p.virtualName,
-    to: urls.bucketPackageTree(p.bucket, p.name, p.hashOrTag ?? undefined),
-  }))
-  return items.length ? (
-    <Listing.Listing items={items} onReload={noop} />
+  if (!dp.members.packages.length) {
+    return <M.Typography color="textSecondary">No readable packages</M.Typography>
+  }
+  return (
+    <div className={classes.packageList}>
+      {dp.members.packages.map((p) => (
+        <PackageCard
+          key={p.virtualName}
+          member={p}
+          to={urls.dataProductPackage(id, p.virtualName)}
+        />
+      ))}
+    </div>
+  )
+}
+
+interface PackageBrowseProps {
+  id: string
+  member: PackageMember
+  path: string
+  crumbs: BreadCrumbs.Crumb[]
+}
+
+// A package member's manifest directory, re-rooted under the DP route: the
+// member's physical (bucket, name, pin) fetches the manifest, but every row
+// links DP-local so browsing stays inside /data-products/:id/….
+function PackageDir({ id, member, path, crumbs }: PackageBrowseProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const hashOrTag = member.hashOrTag ?? 'latest'
+  const q = GQL.useQuery(DIR_QUERY, {
+    bucket: member.bucket,
+    name: member.name,
+    hash: hashOrTag,
+    path: s3paths.ensureNoSlash(path),
+  })
+
+  const renderCrumbs = () => (
+    <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+      {BreadCrumbs.render(crumbs)}
+    </div>
+  )
+
+  return GQL.fold(q, {
+    fetching: () => (
+      <>
+        {renderCrumbs()}
+        <M.CircularProgress />
+      </>
+    ),
+    data: (d) => {
+      const dir = d.package?.revision?.dir
+      if (!dir) {
+        return (
+          <>
+            {renderCrumbs()}
+            <M.Typography color="textSecondary">
+              No such directory in this package
+            </M.Typography>
+          </>
+        )
+      }
+      const items: Listing.Item[] = []
+      if (path) {
+        const up = s3paths.up(path)
+        items.push({
+          type: 'dir',
+          name: '..',
+          to: urls.dataProductPackage(id, member.virtualName, up),
+        })
+      }
+      dir.children.forEach((c) => {
+        switch (c.__typename) {
+          case 'PackageDir':
+            items.push({
+              type: 'dir',
+              name: s3paths.ensureNoSlash(s3paths.withoutPrefix(path, c.path)),
+              to: urls.dataProductPackage(
+                id,
+                member.virtualName,
+                s3paths.ensureSlash(c.path),
+              ),
+              size: c.size,
+            })
+            break
+          case 'PackageFile':
+            items.push({
+              type: 'file',
+              name: s3paths.withoutPrefix(path, c.path),
+              to: urls.dataProductPackage(id, member.virtualName, c.path),
+              size: c.size,
+            })
+            break
+          default:
+            assertNever(c)
+        }
+      })
+      return (
+        <>
+          {renderCrumbs()}
+          {items.length ? (
+            <Listing.Listing items={items} onReload={noop} />
+          ) : (
+            <M.Typography color="textSecondary">Empty package directory</M.Typography>
+          )}
+        </>
+      )
+    },
+  })
+}
+
+// A file leaf inside a package, rendered in place under the DP route.
+function PackageFile({ id, member, path, crumbs }: PackageBrowseProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const hashOrTag = member.hashOrTag ?? 'latest'
+  const q = GQL.useQuery(FILE_QUERY, {
+    bucket: member.bucket,
+    name: member.name,
+    hash: hashOrTag,
+    path,
+  })
+
+  const renderCrumbs = () => (
+    <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+      {BreadCrumbs.render(crumbs)}
+    </div>
+  )
+
+  return GQL.fold(q, {
+    fetching: () => (
+      <>
+        {renderCrumbs()}
+        <M.CircularProgress />
+      </>
+    ),
+    data: (d) => {
+      const file = d.package?.revision?.file
+      if (!file) {
+        // A path that is actually a directory (e.g. a breadcrumb click without a
+        // trailing slash) self-corrects to the directory view, staying DP-local.
+        if (d.package?.revision?.dir) {
+          return (
+            <Redirect
+              to={urls.dataProductPackage(
+                id,
+                member.virtualName,
+                s3paths.ensureSlash(path),
+              )}
+            />
+          )
+        }
+        return (
+          <>
+            {renderCrumbs()}
+            <M.Typography color="textSecondary">
+              No such file in this package
+            </M.Typography>
+          </>
+        )
+      }
+      const loc = s3paths.parseS3Url(file.physicalKey)
+      return (
+        <>
+          {renderCrumbs()}
+          <Provenance>
+            {`${member.bucket} / ${member.name}`} @{' '}
+            {member.hashOrTag ? member.hashOrTag.slice(0, 10) : 'latest'} →{' '}
+            {`s3://${loc.bucket}/${loc.key}`}
+          </Provenance>
+          <FilePreview
+            handle={{
+              bucket: loc.bucket,
+              key: loc.key,
+              version: loc.version,
+              logicalKey: file.path,
+            }}
+          />
+        </>
+      )
+    },
+  })
+}
+
+function PackageTab({ id, dp }: { id: string; dp: DataProduct }) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const { pkg = '', path: rawPath = '' } = useParams<{ pkg?: string; path?: string }>()
+  // The virtual name rides in a single URL segment, encoded so an author-chosen
+  // name containing slashes survives the round-trip; react-router does not decode
+  // params, so reverse it here.
+  const virtualName = decodeURIComponent(pkg)
+  const path = s3paths.decode(rawPath)
+
+  const member = dp.members.packages.find((p) => p.virtualName === virtualName)
+
+  const crumbs = React.useMemo(() => {
+    const sep = BreadCrumbs.Crumb.Sep(<>&nbsp;/ </>)
+    const getPkgRoute = (segPath: string) =>
+      urls.dataProductPackage(id, virtualName, segPath)
+    const inner = BreadCrumbs.getCrumbs(path, getPkgRoute, virtualName, {
+      tailSeparator: path.endsWith('/'),
+    })
+    return [
+      BreadCrumbs.Crumb.Segment({ label: dp.name, to: urls.dataProduct(id) }),
+      sep,
+      BreadCrumbs.Crumb.Segment({ label: 'Packages', to: urls.dataProductPackages(id) }),
+      sep,
+      ...inner,
+    ]
+  }, [dp.name, id, path, urls, virtualName])
+
+  if (!member) {
+    return (
+      <>
+        <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+          {BreadCrumbs.render(crumbs)}
+        </div>
+        <M.Typography color="textSecondary">
+          No such package in this data product
+        </M.Typography>
+      </>
+    )
+  }
+
+  return s3paths.isDir(path) ? (
+    <PackageDir id={id} member={member} path={path} crumbs={crumbs} />
   ) : (
-    <M.Typography color="textSecondary">No readable packages</M.Typography>
+    <PackageFile id={id} member={member} path={path} crumbs={crumbs} />
   )
 }
 
@@ -262,7 +652,7 @@ function DataProductScreen({ id }: DataProductScreenProps) {
 
       return (
         <Container className={classes.content}>
-          <MetaTitle>{dp.name}</MetaTitle>
+          <MetaTitle>{dp.title || dp.name}</MetaTitle>
           <M.Paper className={classes.headerCard}>
             <Header dp={dp} />
             <M.Divider />
@@ -274,8 +664,11 @@ function DataProductScreen({ id }: DataProductScreenProps) {
             <Route path={paths.dataProductObjects}>
               <ObjectsTab id={id} dp={dp} />
             </Route>
-            <Route path={paths.dataProductPackages}>
-              <PackagesTab dp={dp} />
+            <Route path={paths.dataProductPackage}>
+              <PackageTab id={id} dp={dp} />
+            </Route>
+            <Route path={paths.dataProductPackages} exact>
+              <PackagesTab id={id} dp={dp} />
             </Route>
             <Route path={paths.dataProduct} exact>
               <OverviewTab dp={dp} />

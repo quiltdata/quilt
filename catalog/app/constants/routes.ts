@@ -84,6 +84,16 @@ export const dataProductPackages = route(
   (id: string) => `/data-products/${id}/packages`,
 )
 
+// DP-local package drill-in: carries the virtual package name (encoded into a
+// single segment so an author-chosen name containing slashes stays one param)
+// plus the inner manifest path after `/tree/`, so a package's contents are
+// browsed entirely within the DP — never a jump to `/b/<bucket>/…`.
+export const dataProductPackage = route(
+  '/data-products/:id/packages/:pkg/tree/:path(.*)?',
+  (id: string, pkg: string, path = '') =>
+    `/data-products/${id}/packages/${encodeURIComponent(pkg)}/tree/${encode(path)}`,
+)
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

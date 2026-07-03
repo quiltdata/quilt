@@ -17,6 +17,8 @@ export interface containers_DataProduct_gql_DataProductQuery {
     readonly __typename: 'DataProduct'
     readonly id: string
     readonly name: string
+    readonly title: string | null
+    readonly description: string | null
     readonly createdAt: Date
     readonly ownerRole:
       | { readonly __typename: 'ManagedRole'; readonly name: string }
@@ -76,6 +78,8 @@ export const containers_DataProduct_gql_DataProductDocument = {
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'createdAt' } },
                 {
                   kind: 'Field',

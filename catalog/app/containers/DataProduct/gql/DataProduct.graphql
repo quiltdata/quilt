@@ -2,6 +2,8 @@ query ($id: ID!) {
   dataProduct(id: $id) {
     id
     name
+    title
+    description
     createdAt
     ownerRole {
       __typename

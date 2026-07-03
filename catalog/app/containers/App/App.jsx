@@ -163,6 +163,9 @@ export default function App() {
       <Route path={paths.dataProductObjects}>
         <DataProduct />
       </Route>
+      <Route path={paths.dataProductPackage}>
+        <DataProduct />
+      </Route>
       <Route path={paths.dataProductPackages}>
         <DataProduct />
       </Route>

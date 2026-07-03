@@ -5,6 +5,7 @@ import {
   bucketPackageAddFiles,
   dataProduct,
   dataProductObjects,
+  dataProductPackage,
   dataProductPackages,
 } from './routes'
 
@@ -79,6 +80,57 @@ describe('constants/routes', () => {
       const match = matchPath<MatchParams>(pathname, { path, exact: true })
 
       expect(match?.params?.id).toBe(id)
+    })
+  })
+
+  describe('dataProductPackage', () => {
+    it('pathname created by `url` should match `path`', () => {
+      const { path, url } = dataProductPackage
+
+      const id = 'dp-42'
+      const pkg = 'hurricanes'
+      const treePath = 'sub/dir/file.csv'
+
+      const generatedUrl = url(id, pkg, treePath)
+      const { pathname } = new URL(generatedUrl, 'http://localhost')
+
+      type MatchParams = { id: string; pkg: string; path?: string }
+      const match = matchPath<MatchParams>(pathname, { path, exact: true })
+
+      expect(match?.params?.id).toBe(id)
+      expect(match?.params?.pkg).toBe(pkg)
+      expect(match?.params?.path).toBe(treePath)
+    })
+
+    it('keeps a virtual name containing slashes in a single param', () => {
+      const { path, url } = dataProductPackage
+
+      const id = 'dp-42'
+      const pkg = 'group/dataset'
+
+      const generatedUrl = url(id, pkg)
+      const { pathname } = new URL(generatedUrl, 'http://localhost')
+
+      type MatchParams = { id: string; pkg: string; path?: string }
+      const match = matchPath<MatchParams>(pathname, { path, exact: true })
+
+      expect(match?.params?.id).toBe(id)
+      // react-router does not decode params, so the encoded segment round-trips
+      // back to the original name only after decodeURIComponent.
+      expect(decodeURIComponent(match?.params?.pkg ?? '')).toBe(pkg)
+    })
+
+    it('matches the package root (empty inner path)', () => {
+      const { path, url } = dataProductPackage
+
+      const generatedUrl = url('dp-42', 'hurricanes')
+      const { pathname } = new URL(generatedUrl, 'http://localhost')
+
+      type MatchParams = { id: string; pkg: string; path?: string }
+      const match = matchPath<MatchParams>(pathname, { path, exact: true })
+
+      expect(match?.params?.pkg).toBe('hurricanes')
+      expect(match?.params?.path ?? '').toBe('')
     })
   })
 })

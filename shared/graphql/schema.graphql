@@ -691,6 +691,9 @@ type DataProduct {
   name: String!
   ownerRole: Role!
   createdAt: Datetime!
+  # Optional authored own-content; null = none.
+  title: String
+  description: String
   # The stored fixed manifest, echoed back for the browse/edit UI.
   definition: DataProductDefinition!
   # The DP's own read field: dereferences the manifest, readable-scoped.
@@ -722,11 +725,22 @@ input DataProductCreateInput {
   name: String!
   # Defaults to an empty manifest.
   definition: DataProductDefinitionInput
+  # Optional authored own-content.
+  title: String
+  description: String
+}
+
+# A full replace of own-content: each field set to the given value, or null = clear.
+input DataProductSetOwnContentInput {
+  title: String
+  description: String
 }
 
 union DataProductCreateResult = DataProduct | InvalidInput | OperationError
 
 union DataProductSetDefinitionResult = DataProduct | InvalidInput | OperationError
+
+union DataProductSetOwnContentResult = DataProduct | InvalidInput | OperationError
 
 type Query {
   me: Me
@@ -1145,6 +1159,10 @@ type Mutation {
     id: ID!
     definition: DataProductDefinitionInput!
   ): DataProductSetDefinitionResult!
+  dataProductSetOwnContent(
+    id: ID!
+    input: DataProductSetOwnContentInput!
+  ): DataProductSetOwnContentResult!
 
   apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
   apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
