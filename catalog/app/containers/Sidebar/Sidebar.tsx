@@ -75,6 +75,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   copyIcon: {
     fontSize: '1rem',
+    marginLeft: t.spacing(0.5),
     visibility: 'hidden',
   },
 }))
