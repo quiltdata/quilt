@@ -1,18 +1,16 @@
-import { join } from 'path'
-
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type { RouteMap } from 'containers/Bucket/Routes'
 import PreviewValue from 'components/JsonEditor/PreviewValue'
 import * as Format from 'utils/format'
 import * as JSONPointer from 'utils/JSONPointer'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { readableBytes } from 'utils/string'
 
+import { useBucketLinks } from './links'
+import type { PackageLinkBuilder } from './links'
 import { ColumnTag } from './useColumns'
 import type { Column, FilterType } from './useColumns'
 import type { Hit } from './useResults'
@@ -120,10 +118,11 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
 interface SystemMetaValueProps {
   hit: Hit
   filter: FilterType | 'bucket'
+  displayName?: string
+  links: PackageLinkBuilder
 }
 
-function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
-  const { urls } = NamedRoutes.use<RouteMap>()
+function SystemMetaValue({ hit, filter, displayName, links }: SystemMetaValueProps) {
   switch (filter) {
     case 'workflow':
       return hit.workflow ? (
@@ -133,7 +132,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       )
     case 'hash':
       return (
-        <StyledLink to={urls.bucketFile(hit.bucket, join('.quilt/packages', hit.hash))}>
+        <StyledLink
+          to={links.manifest({ bucket: hit.bucket, name: hit.name, hash: hit.hash })}
+        >
           {hit.hash}
         </StyledLink>
       )
@@ -142,13 +143,12 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
     case 'name':
       return (
         <StyledLink
-          to={urls.bucketPackageTree(
-            hit.bucket,
-            hit.name,
-            hit.pointer === 'latest' ? hit.pointer : hit.hash,
+          to={links.packageRoot(
+            { bucket: hit.bucket, name: hit.name, hash: hit.hash },
+            hit.pointer,
           )}
         >
-          <Match on={hit.matchLocations.name}>{hit.name}</Match>
+          <Match on={hit.matchLocations.name}>{displayName ?? hit.name}</Match>
         </StyledLink>
       )
     case 'comment':
@@ -164,7 +164,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
     case 'entries':
       return <>{hit.totalEntriesCount}</>
     case 'bucket':
-      return <StyledLink to={urls.bucketPackageList(hit.bucket)}>{hit.bucket}</StyledLink>
+      return <StyledLink to={links.bucket(hit.bucket)}>{hit.bucket}</StyledLink>
     default:
       assertNever(filter)
   }
@@ -173,13 +173,23 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
 interface CellValueProps {
   column: Column
   hit: Hit
+  displayName?: string
+  links?: PackageLinkBuilder
 }
 
-export default function CellValue({ column, hit }: CellValueProps) {
+export default function CellValue({ column, hit, displayName, links }: CellValueProps) {
+  const bucketLinks = useBucketLinks()
   switch (column.tag) {
     case ColumnTag.Bucket:
     case ColumnTag.SystemMeta:
-      return <SystemMetaValue hit={hit} filter={column.filter} />
+      return (
+        <SystemMetaValue
+          hit={hit}
+          filter={column.filter}
+          displayName={displayName}
+          links={links ?? bucketLinks}
+        />
+      )
     case ColumnTag.UserMeta:
       return <UserMetaValue hit={hit} pointer={column.filter} />
     default:

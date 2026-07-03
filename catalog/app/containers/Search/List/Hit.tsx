@@ -13,6 +13,8 @@ import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
 import * as SearchUIModel from '../model'
+import { useBucketLinks } from '../Table/links'
+import type { PackageLinkBuilder } from '../Table/links'
 
 const useCardStyles = M.makeStyles((t) => ({
   card: {
@@ -164,15 +166,20 @@ interface PackageProps {
   hit: SearchUIModel.SearchHitPackage
   showBucket?: boolean
   showRevision?: boolean
+  displayName?: string
+  links?: PackageLinkBuilder
 }
 
 export function Package({
   hit,
   showBucket = false,
   showRevision = false,
+  displayName,
+  links,
   ...props
 }: PackageProps) {
-  const { urls } = NamedRoutes.use()
+  const bucketLinks = useBucketLinks()
+  const { packageRoot } = links ?? bucketLinks
 
   // this is actually a string, so we need to parse it
   const metaJson = React.useMemo(() => {
@@ -190,14 +197,13 @@ export function Package({
     <Card {...props}>
       <Section grow>
         <Link
-          to={urls.bucketPackageTree(
-            hit.bucket,
-            hit.name,
-            hit.pointer === 'latest' ? hit.pointer : hit.hash,
+          to={packageRoot(
+            { bucket: hit.bucket, name: hit.name, hash: hit.hash },
+            hit.pointer,
           )}
         >
           {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
-          <Heading>{hit.name}</Heading>
+          <Heading>{displayName ?? hit.name}</Heading>
         </Link>
         <Secondary>
           {readableBytes(hit.size)}

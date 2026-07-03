@@ -22,6 +22,7 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
+import type { PackageLinkBuilder } from './links'
 import { ColumnTag, useColumns, ColumnUserMetaCreate } from './useColumns'
 import type {
   Column,
@@ -32,6 +33,13 @@ import type {
 } from './useColumns'
 import type { Hit } from './useResults'
 import { Provider, useContext } from './Provider'
+
+// Re-exports for external consumers rendering `PackageRow` with a hand-built
+// static columns list (the `useColumns` hook itself is bound to the search model).
+export { ColumnTag } from './useColumns'
+export type { Column, ColumnsMap } from './useColumns'
+export type { Hit } from './useResults'
+export type { PackageLinkBuilder } from './links'
 
 function getColumnAlign(column: Column) {
   if (column.tag === ColumnTag.Bucket) return 'inherit'
@@ -286,13 +294,21 @@ const usePackageRowStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface PackageRowProps {
+export interface PackageRowProps {
   hit: Hit
   columnsList: Column[]
   skeletons?: Skeleton.Column[]
+  displayName?: string
+  links?: PackageLinkBuilder
 }
 
-function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
+export function PackageRow({
+  columnsList,
+  hit,
+  skeletons,
+  displayName,
+  links,
+}: PackageRowProps) {
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -334,7 +350,12 @@ function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
               ['data-search-hit-filter']: column.filter,
             })}
           >
-            <CellValue hit={hit} column={column} />
+            <CellValue
+              hit={hit}
+              column={column}
+              displayName={displayName}
+              links={links}
+            />
           </M.TableCell>
         ))}
         {skeletons?.map(({ key, width }) => (
@@ -354,6 +375,7 @@ function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
                 entries={hit.matchingEntries}
                 packageHandle={packageHandle}
                 totalCount={hit.totalEntriesCount}
+                links={links}
               />
             )}
           </M.TableCell>
