@@ -245,8 +245,7 @@ class TestIndex:
             '<span class="p">'
         ) in body_html, 'Last cell output missing'
 
-    # Comfortably below the ~89 KB fixture size so the gate fires without depending on
-    # its exact byte count; the test only needs output exclusion triggered, not a boundary.
+    # well below the fixture size so the gate fires regardless of its exact bytes
     @patch('t4_lambda_preview.LAMBDA_MAX_OUT', 40_000)
     @responses.activate
     def test_ipynb_chop(self):
@@ -263,15 +262,12 @@ class TestIndex:
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
-        # The size gate (file > LAMBDA_MAX_OUT) should force output exclusion. Assert that
-        # behavior rather than an exact HTML byte-count: nbconvert/pygments markup drifts
-        # version-to-version, so a hardcoded length is fragile. The warnings message appears
-        # only on the size-triggered exclude path, so it proves the gate fired.
+        # Assert the exclusion behavior, not an exact HTML length: nbconvert/pygments markup
+        # drifts across versions. This warning is emitted only on the size-triggered path.
         assert body['info'].get('warnings') == "Omitted cell outputs to reduce notebook size", \
             'size gate should have set the exclude_output warning'
-        # Anchor on the output data, not on nbconvert's <pre> wrapper: if that template markup
-        # drifts, a <pre>-anchored `not in` would pass vacuously and hide a chopping regression.
-        # This list-repr appears only in cell 3's output, never in a retained source cell.
+        # Match the output data, not nbconvert's <pre> wrapper, else a wrapper change makes
+        # `not in` pass vacuously. This list-repr is unique to cell 3's output.
         assert "['SEE', 'SE', 'SHW', 'SIG'," not in body_html, 'output cell should have been omitted'
         assert 'SVD of Minute-Market-Data' in body_html, 'code/markdown cells should remain'
 
@@ -302,8 +298,8 @@ class TestIndex:
         # check for some strings we know should be in there
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
-        # anchor on the output data, not nbconvert's <pre> wrapper, so template drift can't
-        # make this `not in` pass vacuously (see test_ipynb_chop)
+        # match the output data, not the <pre> wrapper, so `not in` can't pass vacuously
+        # (see test_ipynb_chop)
         assert "['SEE', 'SE', 'SHW', 'SIG'," not in body_html, \
             'Unexpected output cell; exclude_output:true was given'
         assert (
