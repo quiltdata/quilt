@@ -16,7 +16,7 @@ import BucketList from 'website/components/BucketGrid/BucketList'
 
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
-const PER_PAGE = 24
+const PER_PAGE = 15
 
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
@@ -32,12 +32,33 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(5),
     paddingTop: t.spacing(3),
   },
+  filterRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    marginBottom: t.spacing(4),
+    [t.breakpoints.down('xs')]: {
+      alignItems: 'flex-start',
+      flexDirection: 'column',
+    },
+  },
   filter: {
-    marginBottom: t.spacing(5),
+    flexShrink: 0,
+    marginBottom: 0,
     marginTop: 0,
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+  },
+  tags: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+  },
+  tagsLabel: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
   },
   controls: {
     display: 'flex',
@@ -85,6 +106,16 @@ export default function Buckets() {
   )
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
+
+  const allTags = React.useMemo(
+    () =>
+      R.pipe(
+        R.chain((b) => b.tags || []),
+        R.uniq,
+        R.sortBy(R.toLower),
+      )(buckets),
+    [buckets],
+  )
 
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
@@ -142,28 +173,45 @@ export default function Buckets() {
         Explore your volumes
       </M.Typography>
       <M.Box mt={4} />
-      <M.TextField
-        className={classes.filter}
-        placeholder="Find a bucket"
-        variant="outlined"
-        margin="dense"
-        fullWidth
-        InputProps={{
-          startAdornment: (
-            <M.InputAdornment position="start">
-              <M.Icon>search</M.Icon>
-            </M.InputAdornment>
-          ),
-          endAdornment: filter ? (
-            <M.InputAdornment position="end">
-              <M.IconButton edge="end" onClick={clearFilter}>
-                <M.Icon>clear</M.Icon>
-              </M.IconButton>
-            </M.InputAdornment>
-          ) : undefined,
-        }}
-        {...filtering.input}
-      />
+      <div className={classes.filterRow}>
+        <M.TextField
+          className={classes.filter}
+          placeholder="Find a bucket"
+          variant="outlined"
+          margin="dense"
+          fullWidth
+          InputProps={{
+            startAdornment: (
+              <M.InputAdornment position="start">
+                <M.Icon>search</M.Icon>
+              </M.InputAdornment>
+            ),
+            endAdornment: filter ? (
+              <M.InputAdornment position="end">
+                <M.IconButton edge="end" onClick={clearFilter}>
+                  <M.Icon>clear</M.Icon>
+                </M.IconButton>
+              </M.InputAdornment>
+            ) : undefined,
+          }}
+          {...filtering.input}
+        />
+        {!!allTags.length && (
+          <div className={classes.tags}>
+            <span className={classes.tagsLabel}>or use shortcuts:</span>
+            {allTags.map((t) => (
+              <M.Chip
+                key={t}
+                label={t}
+                size="small"
+                clickable
+                color={tagIsMatching(t) ? 'primary' : 'default'}
+                onClick={() => filtering.set(t)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
       {paginated.length || !filter ? (
         <BucketList
           buckets={paginated}
