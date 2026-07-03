@@ -32,7 +32,6 @@ const PackageRevisions = RT.mkLazy(
 )
 const PackageCompare = RT.mkLazy(() => import('./PackageCompare'), SuspensePlaceholder)
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
-const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
 const useStyles = M.makeStyles((t) => ({
@@ -138,9 +137,6 @@ export default function Bucket() {
           </Route>
           <Route path={paths.bucketWorkflowDetail} exact>
             <Workflows />
-          </Route>
-          <Route path={paths.bucketQueries}>
-            <Queries />
           </Route>
           <Route>
             <NotFoundInTabs />

@@ -29,10 +29,10 @@ interface ValueController<T> {
 
 ### Story 1: View Execution Results
 
-**URL:** `/b/{bucket}/queries/athena/{workgroupId}/{executionId}`
+**URL:** `/queries/athena/{workgroupId}/{executionId}`
 
 ```xml
-<Athena :bucket :workgroupId :executionId>
+<Athena :workgroupId :executionId>
   <execution polling>
     <workgroups>
       <workgroup select=":workgroupId">
@@ -57,10 +57,10 @@ interface ValueController<T> {
 
 ### Story 2: Main Query Interface
 
-**URL:** `/b/{bucket}/queries/athena/{workgroupId}`
+**URL:** `/queries/athena/{workgroupId}`
 
 ```xml
-<Athena :bucket :workgroupId>
+<Athena :workgroupId>
   <workgroups>
     <workgroup select=":workgroupId">
       <queries>
@@ -84,10 +84,10 @@ interface ValueController<T> {
 
 ### Story 3: Landing Page (No Workgroup Selected)
 
-**URL:** `/b/{bucket}/queries/athena`
+**URL:** `/queries/athena`
 
 ```xml
-<Athena :bucket>
+<Athena>
   <workgroups>
     <navigate to=":defaultWorkgroupId" />
   </workgroups>
@@ -97,7 +97,7 @@ interface ValueController<T> {
 ### Story 4: User Selects Different Workgroup
 
 ```xml
-<Athena :bucket :workgroupId>
+<Athena :workgroupId>
   <workgroups>
     <navigate to=":selectedWorkgroupId" />
   </workgroups>
@@ -107,7 +107,7 @@ interface ValueController<T> {
 ### Story 5: User Edits Query Text
 
 ```xml
-<Athena :bucket :workgroupId>
+<Athena :workgroupId>
   <workgroups>
     <workgroup select=":workgroupId">
       <queries>
@@ -131,7 +131,7 @@ interface ValueController<T> {
 ### Story 6: User Submits Query
 
 ```xml
-<Athena :bucket :workgroupId>
+<Athena :workgroupId>
   <workgroups>
     <workgroup select=":workgroupId">
       <queries>

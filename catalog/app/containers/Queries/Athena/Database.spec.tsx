@@ -22,8 +22,6 @@ vi.mock('@material-ui/lab', async () => ({
 }))
 
 const emptyState: Model.State = {
-  bucket: 'any',
-
   catalogName: { value: undefined, setValue: noop },
   catalogNames: { data: undefined, loadMore: noop },
   database: { value: undefined, setValue: noop },
@@ -50,7 +48,7 @@ function Provider({ children, value }: ProviderProps) {
   return <Model.Ctx.Provider value={value}>{children}</Model.Ctx.Provider>
 }
 
-describe('containers/Bucket/Queries/Athena/Database', () => {
+describe('containers/Queries/Athena/Database', () => {
   afterEach(cleanup)
 
   it('should render skeletons', () => {

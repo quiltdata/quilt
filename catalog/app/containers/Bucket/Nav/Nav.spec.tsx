@@ -26,11 +26,6 @@ vi.mock('utils/BucketPreferences', async () => ({
   }),
 }))
 
-// Mock react-redux — mirrors the pattern from Overview/v2/Header.spec.tsx
-vi.mock('react-redux', () => ({
-  useSelector: () => true, // authenticated = true
-}))
-
 const routes = {
   bucketOverview: { path: '/b/:bucket', url: (bucket: string) => `/b/${bucket}` },
   bucketDir: {
@@ -44,14 +39,6 @@ const routes = {
   bucketPackageList: {
     path: '/b/:bucket/packages/',
     url: (bucket: string) => `/b/${bucket}/packages/`,
-  },
-  bucketQueries: {
-    path: '/b/:bucket/queries',
-    url: (bucket: string) => `/b/${bucket}/queries`,
-  },
-  bucketESQueries: {
-    path: '/b/:bucket/queries/es',
-    url: (bucket: string) => `/b/${bucket}/queries/es`,
   },
   bucketFile: {
     path: '/b/:bucket/tree/:path(.*[^/])',
@@ -72,7 +59,7 @@ function renderNav() {
 describe('containers/Bucket/Nav/Nav', () => {
   afterEach(cleanup)
 
-  it('renders Overview and gated-on items (Files, Packages), hides gated-off items (Workflows, Queries, ElasticSearch)', () => {
+  it('renders Overview and gated-on items (Files, Packages), hides gated-off items (Workflows) and never renders Queries/ElasticSearch (moved to the global /queries screen)', () => {
     const { getByText, queryByText } = renderNav()
 
     expect(getByText('Overview')).toBeTruthy()

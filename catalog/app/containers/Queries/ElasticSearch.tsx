@@ -1,9 +1,10 @@
-import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+
+import Skeleton from 'components/Skeleton'
+import * as Buckets from 'utils/Buckets'
 
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
@@ -68,6 +69,8 @@ interface QueriesStateRenderProps {
 }
 
 interface QueriesStateProps {
+  // Bucket the console is scoped to; '' means no bucket scope (all readable
+  // indexes, no saved queries config to load).
   bucket: string
   children: (props: QueriesStateRenderProps) => React.ReactElement
 }
@@ -173,26 +176,73 @@ function Form({ disabled, value, onChange, onError, onSubmit }: FormProps) {
   )
 }
 
+// All readable indexes — the default scope when no bucket is selected.
+const SCOPE_ALL = '_all'
+
 const QUERY_PLACEHOLDER = {
   body: { query: { query_string: { query: 'test' } } },
   filter_path: 'hits.hits._source.key',
-  index: '_all',
   size: 10,
 }
+
+// The selected scope seeds the placeholder's `index`; saved queries carry
+// their own index in their body.
+const mkQueryPlaceholder = (scope: string) => ({ ...QUERY_PLACEHOLDER, index: scope })
 
 const isButtonDisabled = (
   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
   error: Error | null,
 ): boolean => !!error || !!resultsData.case({ Pending: R.T, _: R.F })
 
-export default function ElastiSearch() {
-  const { bucket } = useParams<{ bucket: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+interface ScopeSelectProps {
+  onChange: (scope: string) => void
+  value: string
+}
 
+// The index scope is an input on the console itself: either all readable
+// indexes or a single bucket (which also provides the saved-queries config).
+function ScopeSelect({ value, onChange }: ScopeSelectProps) {
+  const buckets = Buckets.useRelevantBuckets()
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<{ value: unknown }>) => {
+      onChange(event.target.value as string)
+    },
+    [onChange],
+  )
+  return (
+    <M.FormControl fullWidth>
+      <M.InputLabel>Bucket (index scope)</M.InputLabel>
+      <M.Select onChange={handleChange} value={value}>
+        <M.MenuItem value={SCOPE_ALL}>
+          <M.ListItemText>All readable indexes</M.ListItemText>
+        </M.MenuItem>
+        {buckets.map((b) => (
+          <M.MenuItem key={b.name} value={b.name}>
+            <M.ListItemText>{b.name}</M.ListItemText>
+          </M.MenuItem>
+        ))}
+      </M.Select>
+    </M.FormControl>
+  )
+}
+
+function ScopeSelectSkeleton() {
+  return (
+    <>
+      <Skeleton height={24} width={128} animate />
+      <Skeleton height={48} mt={1} animate />
+    </>
+  )
+}
+
+export default function ElastiSearch() {
   const classes = useStyles()
 
+  const [scope, setScope] = React.useState(SCOPE_ALL)
+  const bucket = scope === SCOPE_ALL ? '' : scope
+
   return (
-    <QueriesState bucket={bucket}>
+    <QueriesState bucket={bucket} key={scope}>
       {({
         customQueryBody,
         error: queryBodyError,
@@ -207,6 +257,12 @@ export default function ElastiSearch() {
       }) => (
         <div>
           <M.Typography variant="h6">ElasticSearch queries</M.Typography>
+
+          <div className={classes.select}>
+            <React.Suspense fallback={<ScopeSelectSkeleton />}>
+              <ScopeSelect value={scope} onChange={setScope} />
+            </React.Suspense>
+          </div>
 
           <div className={classes.select}>
             <QuerySelect<requests.Query>
@@ -224,7 +280,7 @@ export default function ElastiSearch() {
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
-                value={customQueryBody || QUERY_PLACEHOLDER}
+                value={customQueryBody || mkQueryPlaceholder(scope)}
               />
             ),
             Ok: (queryBody: requests.ElasticSearchQuery) => (
@@ -233,7 +289,7 @@ export default function ElastiSearch() {
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
-                value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
+                value={customQueryBody || queryBody || mkQueryPlaceholder(scope)}
               />
             ),
             Err: (error: Error) => (

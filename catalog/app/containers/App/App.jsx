@@ -40,6 +40,50 @@ function BucketSearchRedirect() {
   return <Redirect to={url} />
 }
 
+function AthenaWorkgroupRedirect() {
+  const { workgroup } = useParams()
+  const { urls } = NamedRoutes.use()
+  return <Redirect to={urls.queriesAthenaWorkgroup(workgroup)} />
+}
+
+function AthenaExecutionRedirect() {
+  const { workgroup, queryExecutionId } = useParams()
+  const { urls } = NamedRoutes.use()
+  return <Redirect to={urls.queriesAthenaExecution(workgroup, queryExecutionId)} />
+}
+
+function AthenaRootRedirect() {
+  const { bucket } = useParams()
+  const { search } = useLocation()
+  const { urls } = NamedRoutes.use()
+  // The bucket segment becomes the console's `?bucket=` scope param (keeping
+  // `?table=` tabulator deep links alive); the rest of the search is preserved.
+  const params = parseSearch(search, true)
+  return <Redirect to={urls.queriesAthena({ bucket, ...params })} />
+}
+
+// Legacy bucket-scoped query console URLs redirect to the workspace-global
+// /queries screens (the bucket is not a home for the consoles anymore).
+function BucketQueriesRedirect() {
+  const { paths, urls } = NamedRoutes.use()
+  return (
+    <Switch>
+      <Route path={paths.bucketESQueries} exact>
+        <Redirect to={urls.queriesEs()} />
+      </Route>
+      <Route path={paths.bucketAthenaExecution} exact>
+        <AthenaExecutionRedirect />
+      </Route>
+      <Route path={paths.bucketAthenaWorkgroup} exact>
+        <AthenaWorkgroupRedirect />
+      </Route>
+      <Route>
+        <AthenaRootRedirect />
+      </Route>
+    </Switch>
+  )
+}
+
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
 const Admin = requireAdmin(RT.mkLazy(() => import('containers/Admin'), Placeholder))
 
@@ -62,6 +106,9 @@ const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder)
 const DataProduct = protect(
   RT.mkLazy(() => import('containers/DataProduct'), Placeholder),
 )
+// The query consoles always required an authenticated actor, so gate on auth
+// regardless of the app-level protect mode.
+const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -158,6 +205,14 @@ export default function App() {
 
       <Route path={paths.bucketSearch} exact>
         <BucketSearchRedirect />
+      </Route>
+
+      <Route path={paths.queries}>
+        <Queries />
+      </Route>
+
+      <Route path={paths.bucketQueries}>
+        <BucketQueriesRedirect />
       </Route>
 
       <Route path={paths.dataProductObjects}>

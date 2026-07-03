@@ -7,7 +7,7 @@ import { doQueryResultsContainManifestEntries, parseQueryResults } from './creat
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-describe('containers/Bucket/Queries/Athena/model/createPackage', () => {
+describe('containers/Queries/Athena/model/createPackage', () => {
   describe('parseQueryResults', () => {
     it('should return empty', () => {
       const results: Model.QueryManifests = {

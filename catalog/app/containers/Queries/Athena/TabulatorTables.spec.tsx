@@ -13,7 +13,7 @@ vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
 // `useTabulatorTables` returns a tagged result the component switches on.
 const useTabulatorTables = vi.fn<() => unknown>(() => ({ _tag: 'ready', tables: [] }))
 const resolveTabulatorCatalog = vi.fn<(l: readonly string[]) => string | undefined>()
-vi.mock('../../Tabulator/requests', () => ({
+vi.mock('containers/Bucket/Tabulator/requests', () => ({
   useTabulatorTables: () => useTabulatorTables(),
   resolveTabulatorCatalog: (l: readonly string[]) => resolveTabulatorCatalog(l),
 }))
@@ -22,7 +22,6 @@ const queryBody = { setValue: vi.fn() }
 const catalogName = { setValue: vi.fn() }
 const database = { setValue: vi.fn() }
 const modelState = {
-  bucket: 'my-bucket',
   queryBody,
   catalogName,
   database,
@@ -49,7 +48,7 @@ function makeTable(name: string, columnCount = 2) {
   }
 }
 
-function renderTables(entries: string[] = ['/b/my-bucket/queries/athena']) {
+function renderTables(entries: string[] = ['/queries/athena?bucket=my-bucket']) {
   return render(
     <MemoryRouter initialEntries={entries}>
       <TabulatorTables />
@@ -57,10 +56,16 @@ function renderTables(entries: string[] = ['/b/my-bucket/queries/athena']) {
   )
 }
 
-describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
+describe('containers/Queries/Athena/TabulatorTables', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+  })
+
+  it('renders nothing without a ?bucket= scope', () => {
+    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [makeTable('drugs')] })
+    const { container } = renderTables(['/queries/athena'])
+    expect(container.textContent).toBe('')
   })
 
   it('renders nothing when there are no tables', () => {
@@ -116,7 +121,7 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
       tables: [makeTable('drugs'), makeTable('bonds')],
     })
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
-    renderTables(['/b/my-bucket/queries/athena?table=drugs'])
+    renderTables(['/queries/athena?bucket=my-bucket&table=drugs'])
     expect(queryBody.setValue).toHaveBeenCalledWith(
       'SELECT * FROM "foo-tabulator"."my-bucket"."drugs" LIMIT 100',
     )
@@ -127,14 +132,14 @@ describe('containers/Bucket/Queries/Athena/TabulatorTables', () => {
   it('notifies and fills nothing when the ?table= deep link names an unknown table', () => {
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [makeTable('drugs')] })
     resolveTabulatorCatalog.mockReturnValue('foo-tabulator')
-    renderTables(['/b/my-bucket/queries/athena?table=ghost'])
+    renderTables(['/queries/athena?bucket=my-bucket&table=ghost'])
     expect(push).toHaveBeenCalledWith('Table "ghost" not found')
     expect(queryBody.setValue).not.toHaveBeenCalled()
   })
 
   it('notifies and fills nothing when a ?table= deep link arrives but tables failed to load', () => {
     useTabulatorTables.mockReturnValue({ _tag: 'error', error: new Error('boom') })
-    renderTables(['/b/my-bucket/queries/athena?table=drugs'])
+    renderTables(['/queries/athena?bucket=my-bucket&table=drugs'])
     expect(push).toHaveBeenCalledWith('Could not load Tabulator tables')
     expect(queryBody.setValue).not.toHaveBeenCalled()
   })

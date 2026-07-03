@@ -1,10 +1,8 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import * as AuthSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
@@ -46,7 +44,6 @@ interface TabsListProps {
 }
 
 function TabsList({ bucket, preferences, section = false }: TabsListProps) {
-  const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   return (
     <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
@@ -63,12 +60,6 @@ function TabsList({ bucket, preferences, section = false }: TabsListProps) {
       )}
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
-      )}
-      {preferences.queries && authenticated && (
-        <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
-      )}
-      {preferences.queries && (section === 'queries' || section === 'es') && (
-        <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
       )}
     </M.Tabs>
   )

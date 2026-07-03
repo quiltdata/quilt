@@ -46,6 +46,8 @@ export const queriesConfig = async ({
   s3,
   bucket,
 }: QueriesConfigArgs): Promise<Query[] | null> => {
+  // No bucket scope selected — there is no per-bucket config to load.
+  if (!bucket) return []
   try {
     const response = await requests.fetchFile({
       s3,

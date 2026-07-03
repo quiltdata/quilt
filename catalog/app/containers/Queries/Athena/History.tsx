@@ -241,12 +241,11 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface HistoryProps {
-  bucket: string
   executions: Model.QueryExecutionsItem[]
   onLoadMore?: () => void
 }
 
-export default function History({ bucket, executions, onLoadMore }: HistoryProps) {
+export default function History({ executions, onLoadMore }: HistoryProps) {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
 
@@ -305,7 +304,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
               key={queryExecution.id}
               to={
                 queryExecution.status === 'SUCCEEDED'
-                  ? urls.bucketAthenaExecution(bucket, workgroup.data, queryExecution.id)
+                  ? urls.queriesAthenaExecution(workgroup.data, queryExecution.id)
                   : undefined
               }
             />

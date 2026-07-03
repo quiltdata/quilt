@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
 import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -11,8 +10,8 @@ vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
   use: vi.fn(() => ({
     urls: {
-      bucketAthenaExecution: () => 'bucket-route',
-      bucketAthenaWorkgroup: () => 'workgroup-route',
+      queriesAthenaExecution: () => 'execution-route',
+      queriesAthenaWorkgroup: () => 'workgroup-route',
     },
   })),
 }))
@@ -20,7 +19,6 @@ vi.mock('utils/NamedRoutes', async () => ({
 const useParams = vi.fn(
   () =>
     ({
-      bucket: 'b',
       workgroup: 'w',
     }) as Record<string, string>,
 )
@@ -61,22 +59,6 @@ const AthenaApi = {
 vi.mock('utils/AWS', () => ({ Athena: { use: () => AthenaApi } }))
 
 describe('app/containers/Queries/Athena/model/state', () => {
-  it('throw error when no bucket', () => {
-    vi.spyOn(console, 'error').mockImplementationOnce(noop)
-    useParams.mockImplementationOnce(() => ({}))
-    const Component = () => {
-      const state = Model.useState()
-      return <>{JSON.stringify(state, null, 2)}</>
-    }
-    const tree = () =>
-      render(
-        <Model.Provider preferences={{}}>
-          <Component />
-        </Model.Provider>,
-      )
-    expect(tree).toThrow('`bucket` must be defined')
-  })
-
   it('load workgroups and set current workgroup', async () => {
     listWorkGroups.mockImplementation(() => ({
       promise: () =>
@@ -110,7 +92,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
       promise: () => Promise.resolve({ DataCatalogsSummary: [] }),
     }))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <Model.Provider preferences={{}}>{children}</Model.Provider>
+      <Model.Provider>{children}</Model.Provider>
     )
     const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
     await act(async () => {

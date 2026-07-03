@@ -92,7 +92,7 @@ function TabulatorItemWrapper({ bucket }: { bucket: string }) {
         <StatsItem
           value={formatQuantity(result.tables.length)}
           label={<Plural value={result.tables.length} one="table" other="tables" />}
-          to={urls.bucketQueries(bucket)}
+          to={urls.queriesAthena({ bucket })}
         />
       ) : null
     default:
@@ -119,8 +119,9 @@ function Stats({ bucket, stats }: StatsProps) {
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
   const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
-  // The tables stat links into the Queries tab — hide it (and skip its query) for
-  // buckets that disabled Queries via `ui.nav.queries`.
+  // The tables stat links into the global Athena console (scoped to this
+  // bucket) — hide it (and skip its query) for buckets that de-emphasized
+  // queries via `ui.nav.queries`.
   const queriesEnabled = BucketPreferences.Result.match(
     { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
     prefs,

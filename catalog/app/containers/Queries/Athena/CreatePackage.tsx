@@ -23,14 +23,21 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CreatePackageProps {
-  bucket: string
   queryResults: requests.QueryResults
 }
 
-export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {
+export default function CreatePackage({ queryResults }: CreatePackageProps) {
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
-  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  // The console is not scoped to a bucket, so default the destination to the
+  // bucket the manifest entries physically live in (the dialog lets the user
+  // pick another destination).
+  const dst = React.useMemo(() => {
+    const bucket = doQueryResultsContainManifestEntries(queryResults)
+      ? Object.values(parseQueryResults(queryResults).valid)[0]?.bucket || ''
+      : ''
+    return { bucket }
+  }, [queryResults])
   const createDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,

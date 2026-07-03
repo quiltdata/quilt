@@ -6,7 +6,7 @@ import noop from 'utils/noop'
 
 import QuerySelect from './QuerySelect'
 
-describe('containers/Bucket/Queries/QuerySelect', () => {
+describe('containers/Queries/QuerySelect', () => {
   it('should render', () => {
     const { container } = render(
       <QuerySelect label="Label" queries={[]} onChange={noop} value={null} />,

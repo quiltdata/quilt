@@ -4,8 +4,12 @@ import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 
-import type { ParsedTabulatorTable } from '../../Tabulator/requests'
-import { useTabulatorTables, resolveTabulatorCatalog } from '../../Tabulator/requests'
+import type { ParsedTabulatorTable } from 'containers/Bucket/Tabulator/requests'
+import {
+  useTabulatorTables,
+  resolveTabulatorCatalog,
+} from 'containers/Bucket/Tabulator/requests'
+
 import * as Model from './model'
 
 const useStyles = M.makeStyles((t) => ({
@@ -25,9 +29,13 @@ const useStyles = M.makeStyles((t) => ({
 // Athena/Presto identifier quoting: double any embedded `"`.
 const quoteIdent = (s: string) => s.replace(/"/g, '""')
 
-export default function TabulatorTables() {
+interface BucketTabulatorTablesProps {
+  bucket: string
+}
+
+function BucketTabulatorTables({ bucket }: BucketTabulatorTablesProps) {
   const classes = useStyles()
-  const { bucket, queryBody, catalogName, catalogNames, database } = Model.use()
+  const { queryBody, catalogName, catalogNames, database } = Model.use()
   const { push } = Notifications.use()
   const tablesResult = useTabulatorTables(bucket)
   const catalog = React.useMemo(
@@ -58,7 +66,7 @@ export default function TabulatorTables() {
 
   // Deep link from the Overview: `?table=<name>` autofills that table once on load,
   // reusing the same handler as a chip click, then the param is consumed so edits
-  // and reloads aren't re-seeded.
+  // and reloads aren't re-seeded (`?bucket=` stays, keeping the chips visible).
   const location = RRDom.useLocation()
   const history = RRDom.useHistory()
   const appliedRef = React.useRef(false)
@@ -112,4 +120,17 @@ export default function TabulatorTables() {
       </div>
     </div>
   )
+}
+
+// Tabulator tables are a per-bucket feature; on the global console the bucket
+// arrives as a `?bucket=` search param (set by the bucket-page deep links and
+// the legacy-route redirect). Without it there is nothing to list.
+export default function TabulatorTables() {
+  const location = RRDom.useLocation()
+  const bucket = React.useMemo(
+    () => new URLSearchParams(location.search).get('bucket'),
+    [location.search],
+  )
+  if (!bucket) return null
+  return <BucketTabulatorTables bucket={bucket} />
 }

@@ -102,7 +102,7 @@ vi.mock('utils/AWS', () => ({
   },
 }))
 
-describe('containers/Bucket/Queries/Athena/model/requests', () => {
+describe('containers/Queries/Athena/model/requests', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()

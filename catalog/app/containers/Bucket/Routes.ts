@@ -8,7 +8,6 @@ import * as Nav from 'utils/Navigation'
 
 export interface RouteMap {
   bucketDir: routes.BucketDirArgs
-  bucketESQueries: routes.BucketESQueriesArgs
   bucketFile: routes.BucketFileArgs
   bucketOverview: routes.BucketOverviewArgs
   bucketPackageAddFiles: routes.BucketPackageAddFilesArgs
@@ -17,7 +16,6 @@ export interface RouteMap {
   bucketPackageRevisions: routes.BucketPackageRevisionsArgs
   bucketPackageCompare: routes.BucketPackageCompareArgs
   bucketPackageTree: routes.BucketPackageTreeArgs
-  bucketQueries: routes.BucketQueriesArgs
   bucketWorkflowDetail: routes.BucketWorkflowDetailArgs
   bucketWorkflowList: routes.BucketWorkflowListArgs
 }

@@ -13,21 +13,26 @@ import * as Model from './model'
 import * as storage from './model/storage'
 
 interface WorkgroupSelectProps {
-  bucket: string
   disabled?: boolean
   value: Model.Workgroup | null
   workgroups: Model.List<Model.Workgroup>
 }
 
-function WorkgroupSelect({ bucket, disabled, value, workgroups }: WorkgroupSelectProps) {
+function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
+  const location = RRDom.useLocation()
 
   const goToWorkgroup = React.useCallback(
     (workgroup: string) => {
-      history.push(urls.bucketAthenaWorkgroup(bucket, workgroup))
+      // Preserve the query string (e.g. the ?bucket= tabulator scope) across
+      // workgroup switches.
+      history.push({
+        pathname: urls.queriesAthenaWorkgroup(workgroup),
+        search: location.search,
+      })
     },
-    [bucket, history, urls],
+    [history, location.search, urls],
   )
 
   const handleChange = React.useCallback(
@@ -87,11 +92,7 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
   )
 }
 
-interface AthenaWorkgroupsProps {
-  bucket: string
-}
-
-export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
+export default function AthenaWorkgroups() {
   const { queryRun, workgroup, workgroups } = Model.use()
 
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
@@ -110,7 +111,6 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
   return (
     <WorkgroupSelect
       disabled={Model.isLoading(queryRun)}
-      bucket={bucket}
       value={workgroup.data}
       workgroups={workgroups.data}
     />

@@ -79,7 +79,10 @@ vi.mock('./Tabulator/requests', () => ({
 const routes = {
   bucketDir: { path: '', url: (bucket: string) => `/dir/${bucket}` },
   bucketPackageList: { path: '', url: (bucket: string) => `/packages/${bucket}` },
-  bucketQueries: { path: '', url: (bucket: string) => `/queries/${bucket}` },
+  queriesAthena: {
+    path: '',
+    url: ({ bucket }: { bucket?: string } = {}) => `/queries/athena?bucket=${bucket}`,
+  },
   adminBucketEdit: { path: '', url: (bucket: string) => `/admin/${bucket}` },
 }
 
@@ -127,7 +130,7 @@ describe('containers/Bucket/Header', () => {
     expect(link!.getAttribute('href')).toBe('/packages/test-bucket')
   })
 
-  it('shows the Tabulator tables count linked to queries', () => {
+  it('shows the Tabulator tables count linked to the global Athena console scoped to this bucket', () => {
     useTabulatorTables.mockReturnValue({
       _tag: 'ready',
       tables: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
@@ -136,7 +139,7 @@ describe('containers/Bucket/Header', () => {
     expect(getByText('3')).toBeTruthy()
     const link = getByText(/tables/).closest('a')
     expect(link).toBeTruthy()
-    expect(link!.getAttribute('href')).toBe('/queries/test-bucket')
+    expect(link!.getAttribute('href')).toBe('/queries/athena?bucket=test-bucket')
   })
 
   it('hides the tables stat when there are no tabulator tables', () => {

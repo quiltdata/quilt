@@ -2,14 +2,12 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
-import type * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as requests from './requests'
 import * as Model from './utils'
 
 export interface State {
-  bucket: string
   queryExecutionId?: string
 
   /**
@@ -64,29 +62,22 @@ export interface State {
 export const Ctx = React.createContext<State | null>(null)
 
 interface ProviderProps {
-  preferences?: BucketPreferences.AthenaPreferences
   children: React.ReactNode
 }
 
-export function Provider({ preferences, children }: ProviderProps) {
+export function Provider({ children }: ProviderProps) {
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
 
-  const {
-    bucket,
-    queryExecutionId,
-    workgroup: workgroupId,
-  } = RRDom.useParams<{
-    bucket: string
+  const { queryExecutionId, workgroup: workgroupId } = RRDom.useParams<{
     queryExecutionId?: string
     workgroup?: requests.Workgroup
   }>()
-  invariant(!!bucket, '`bucket` must be defined')
 
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 
   const workgroups = requests.useWorkgroups()
-  const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
+  const workgroup = requests.useWorkgroup(workgroups, workgroupId)
   const queries = requests.useQueries(workgroup.data)
   const query = requests.useQuery(queries.data, execution)
   const queryBody = requests.useQueryBody(query.value, query.setValue, execution)
@@ -105,7 +96,6 @@ export function Provider({ preferences, children }: ProviderProps) {
   })
 
   const value: State = {
-    bucket,
     queryExecutionId,
     workgroup,
 
@@ -126,9 +116,14 @@ export function Provider({ preferences, children }: ProviderProps) {
   }
 
   if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
+    // Preserve the query string (e.g. the ?bucket= tabulator scope) across the
+    // execution redirect.
     return (
       <RRDom.Redirect
-        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.id)}
+        to={{
+          pathname: urls.queriesAthenaExecution(workgroup.data, queryRun.id),
+          search: location.search,
+        }}
       />
     )
   }
@@ -138,7 +133,7 @@ export function Provider({ preferences, children }: ProviderProps) {
     return (
       <RRDom.Redirect
         to={{
-          pathname: urls.bucketAthenaWorkgroup(bucket, workgroup.data),
+          pathname: urls.queriesAthenaWorkgroup(workgroup.data),
           search: location.search,
         }}
       />

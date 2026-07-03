@@ -1,10 +1,8 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import * as AuthSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
@@ -17,7 +15,6 @@ interface NavListProps {
 }
 
 function NavList({ bucket, preferences, section }: NavListProps) {
-  const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   const items = [
     { value: 'overview', label: 'Overview', to: urls.bucketOverview(bucket), show: true },
@@ -38,18 +35,6 @@ function NavList({ bucket, preferences, section }: NavListProps) {
       label: 'Packages',
       to: urls.bucketPackageList(bucket),
       show: preferences.packages,
-    },
-    {
-      value: 'queries',
-      label: 'Queries',
-      to: urls.bucketQueries(bucket),
-      show: preferences.queries && authenticated,
-    },
-    {
-      value: 'es',
-      label: 'ElasticSearch',
-      to: urls.bucketESQueries(bucket),
-      show: preferences.queries && (section === 'queries' || section === 'es'),
     },
   ]
   return (
