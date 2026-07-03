@@ -11,6 +11,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 const useStyles = M.makeStyles((t) => ({
   appBar: {
     background: t.palette.common.white,
+    borderRadius: `0 0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px`,
     color: t.palette.getContrastText(t.palette.common.white),
   },
   toolbar: {
@@ -52,7 +53,12 @@ export function ContentBar() {
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <M.AppBar position="sticky" color="inherit" className={classes.appBar}>
+      <M.AppBar
+        position="sticky"
+        color="inherit"
+        className={classes.appBar}
+        elevation={1}
+      >
         <M.Toolbar className={classes.toolbar}>
           {!hasOwnSearch && (
             <div className={classes.search} ref={anchorRef}>
