@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import {
   Link,
@@ -24,6 +23,15 @@ import renderPreview from 'containers/Bucket/renderPreview'
 import * as requests from 'containers/Bucket/requests'
 import DIR_QUERY from 'containers/Bucket/PackageTree/gql/Dir.generated'
 import FILE_QUERY from 'containers/Bucket/PackageTree/gql/File.generated'
+import * as SearchHits from 'containers/Search/List/Hit'
+import { ColumnTag, PackageRow } from 'containers/Search/Table/Table'
+import type {
+  Column,
+  Hit as SearchTableHit,
+  PackageLinkBuilder,
+} from 'containers/Search/Table/Table'
+import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from 'containers/Search/i18n'
+import type { SearchHitPackage } from 'containers/Search/model'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
@@ -31,6 +39,7 @@ import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as s3paths from 'utils/s3paths'
 
@@ -86,14 +95,9 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(3),
   },
   // The physical origin of a member is provenance only — a small muted detail,
-  // never a navigation link. Above a file preview it wants bottom spacing; in a
-  // package row/card the `inline` modifier drops it and adds top spacing.
+  // never a navigation link.
   provenance: {
     marginBottom: t.spacing(2),
-  },
-  provenanceInline: {
-    marginBottom: 0,
-    marginTop: t.spacing(1),
   },
   // Overview: the authored own-content + stats card sits on top; the README
   // member preview is a visually distinct card below it.
@@ -134,15 +138,20 @@ const useStyles = M.makeStyles((t) => ({
   viewToggle: {
     marginRight: t.spacing(1),
   },
-  // Matches the outlined-Paper card the in-bucket package list uses per hit.
+  // Uniform spacing between the shared hit cards and the fallback cards alike
+  // (both spacing idioms only cover same-class siblings on their own).
+  cardList: {
+    '& > * + *': {
+      marginTop: t.spacing(2),
+    },
+  },
+  // Fallback card for a member whose package didn't dereference — matches the
+  // outlined-Paper look of the shared hit card.
   packageCard: {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     padding: t.spacing(2),
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
   },
   packageName: {
     ...t.typography.body1,
@@ -150,6 +159,16 @@ const useStyles = M.makeStyles((t) => ({
   },
   tableRoot: {
     overflowX: 'auto',
+  },
+  // Mirrors the shared search table's column-head typography.
+  tableHeadCell: {
+    ...t.typography.subtitle1,
+    fontWeight: 500,
+    whiteSpace: 'nowrap',
+  },
+  // Trailing spacer column, same as the shared table's placeholder cell.
+  tablePlaceholder: {
+    width: t.spacing(5),
   },
   loadMore: {
     display: 'flex',
@@ -255,17 +274,14 @@ function FilePreview({ handle }: { handle: FileHandle }) {
 
 // The physical origin of a member, shown as a small muted detail. It is
 // provenance metadata only — never a navigation target.
-function Provenance({
-  children,
-  inline = false,
-}: React.PropsWithChildren<{ inline?: boolean }>) {
+function Provenance({ children }: React.PropsWithChildren<{}>) {
   const classes = useStyles()
   return (
     <M.Typography
       variant="caption"
       color="textSecondary"
       component="div"
-      className={cx(classes.provenance, inline && classes.provenanceInline)}
+      className={classes.provenance}
     >
       Provenance: {children}
     </M.Typography>
@@ -427,15 +443,16 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
   )
 }
 
-// The Packages tab replicates the in-bucket package-list presentation over the
+// The Packages tab presents the in-bucket package-list experience over the
 // DP's in-hand package members (a fixed list, not a search): a filter field, a
-// count + card/table toggle + sort toolbar, then a card grid or table — every
-// row/card link re-rooted DP-local (urls.dataProductPackage), never a
-// /b/<bucket>/ link. The in-bucket list is search-model-backed and its rows link
-// into the physical bucket, so its containers can be neither fed this list nor
-// reused without breaking the no-outbound-navigation invariant; hence the
-// model-agnostic primitives (SelectDropdown, the ToggleButtonGroup toggle, MUI
-// Paper/Table) are reused and the search-bound chrome is replicated.
+// count + card/table toggle + sort toolbar, then the shared package-listing
+// leaves (Search/List `Hit.Package` cards, Search/Table `PackageRow` rows) fed
+// hit-shaped rows synthesized from the members. Every link is re-rooted
+// DP-local through the leaves' `PackageLinkBuilder` seam
+// (urls.dataProductPackage) — never a /b/<bucket>/ route; the search-model-
+// bound chrome (facet filters, configure-columns, matching-entries expansion)
+// is intentionally absent, and the tab is read-only (no authoring
+// affordances).
 
 type PackageView = 'card' | 'table'
 
@@ -468,71 +485,301 @@ function useViewMode(): [PackageView, (v: PackageView | null) => void] {
   return [view, set]
 }
 
-type SortOrder = 'asc' | 'desc'
+type SortKey = 'name' | 'modified'
+type SortDir = 'asc' | 'desc'
 
-// Members carry only their virtual name + provenance in hand (no size/date), so
-// the honest sort axis is the name — the A→Z / Z→A pair the bucket list also
-// offers, rendered through the same SelectDropdown.
-const sortOptions = [
-  { toString: () => 'Name: A → Z', valueOf: (): SortOrder => 'asc' },
-  { toString: () => 'Name: Z → A', valueOf: (): SortOrder => 'desc' },
+interface SortSpec {
+  key: SortKey
+  dir: SortDir
+}
+
+// Client-side sort over the fixed member list, offered through the same
+// SelectDropdown the bucket list uses (and mirrored by the table headers).
+const SORT_OPTIONS = [
+  { toString: () => 'Name: A → Z', valueOf: () => 'name:asc' },
+  { toString: () => 'Name: Z → A', valueOf: () => 'name:desc' },
+  { toString: () => 'Newest first', valueOf: () => 'modified:desc' },
+  { toString: () => 'Oldest first', valueOf: () => 'modified:asc' },
 ]
+
+const sortToValue = ({ key, dir }: SortSpec) => `${key}:${dir}`
 
 const PER_PAGE = 30
 
-const pinOf = (member: PackageMember) =>
-  member.hashOrTag ? member.hashOrTag.slice(0, 10) : 'latest'
+type MemberRevision = NonNullable<NonNullable<PackageMember['package']>['revision']>
 
-function PackageCard({ member, to }: { member: PackageMember; to: string }) {
+// The members query dereferences `package.revision` at the default "latest" —
+// GraphQL cannot pass a per-member pin inside one list selection. That latest
+// revision stands in as the member's effective revision only when the member
+// is unpinned, or its pin names that same revision (a full hash, or a >= 6
+// char short-hash prefix); otherwise the stats in hand describe a different
+// revision and must not be shown.
+function effectiveRevision(member: PackageMember): MemberRevision | null {
+  const latest = member.package?.revision
+  if (!latest) return null
+  const pin = member.hashOrTag
+  if (!pin) return latest
+  return latest.hash === pin || (pin.length >= 6 && latest.hash.startsWith(pin))
+    ? latest
+    : null
+}
+
+// Members are a fixed list, not search results, so nothing ever highlights.
+const NO_MATCH_LOCATIONS: SearchHitPackage['matchLocations'] = {
+  __typename: 'SearchHitPackageMatchLocations',
+  comment: false,
+  meta: false,
+  name: false,
+  workflow: false,
+}
+
+// A member shaped as a search hit for the shared package-listing leaves, plus
+// what the tab itself needs. `hit.name` stays the physical package name (the
+// link builder alone keeps navigation DP-local); the virtual name rides in
+// `id` and is rendered via `displayName`. When the effective revision is not
+// in hand (see effectiveRevision), `modified` falls back to the package-level
+// date and the revision-sourced cells (size, entries, comment, workflow,
+// meta) render as unknown/empty.
+interface PackageItem {
+  member: PackageMember
+  modified: Date | null
+  // null: the member's package didn't dereference (fallback row/card instead)
+  hit: SearchHitPackage | null
+  tableHit: SearchTableHit | null
+}
+
+function toPackageItem(member: PackageMember): PackageItem {
+  const pkg = member.package
+  if (!pkg) return { member, modified: null, hit: null, tableHit: null }
+  const rev = effectiveRevision(member)
+  const modified = rev?.modified ?? pkg.modified
+  const hit: SearchHitPackage = {
+    __typename: 'SearchHitPackage',
+    id: member.virtualName,
+    bucket: member.bucket,
+    name: member.name,
+    pointer: member.hashOrTag ?? 'latest',
+    hash: rev?.hash ?? member.hashOrTag ?? '',
+    score: 0,
+    // A nullish size renders as '?' and a nullish entries count as blank —
+    // honest "unknown" cells for a pinned member (the fields are typed
+    // non-null only because search always has them).
+    size: rev?.totalBytes ?? (null as unknown as number),
+    modified,
+    totalEntriesCount: rev?.totalEntries ?? (null as unknown as number),
+    comment: rev?.message ?? null,
+    // The card leaf expects the search wire format: meta as a JSON string.
+    meta: rev?.userMeta ? JSON.stringify(rev.userMeta) : null,
+    workflow: rev?.workflow?.id ? { id: rev.workflow.id } : null,
+    matchLocations: NO_MATCH_LOCATIONS,
+    matchingEntries: [],
+  }
+  return { member, modified, hit, tableHit: { ...hit, meta: rev?.userMeta ?? null } }
+}
+
+const compareItems =
+  ({ key, dir }: SortSpec) =>
+  (a: PackageItem, b: PackageItem): number => {
+    const sign = dir === 'asc' ? 1 : -1
+    if (key === 'modified') {
+      // Members without package data in hand have no date — they sink to the
+      // bottom regardless of direction.
+      if (!a.modified && !b.modified) {
+        return a.member.virtualName.localeCompare(b.member.virtualName)
+      }
+      if (!a.modified) return 1
+      if (!b.modified) return -1
+      return (a.modified.valueOf() - b.modified.valueOf()) * sign
+    }
+    return a.member.virtualName.localeCompare(b.member.virtualName) * sign
+  }
+
+// The static column set replicating the in-bucket table's defaults over the
+// fields the members query provides. `state` is inert here (no
+// configure-columns UI); `predicateType` only drives number/date
+// right-alignment.
+const STATIC_COLUMN_STATE = { filtered: false, visible: true, inferred: false }
+
+const staticColumn = (
+  filter: 'name' | 'modified' | 'size' | 'entries' | 'comment' | 'workflow',
+  predicateType: 'KeywordWildcard' | 'Datetime' | 'Number' | 'Text' | 'KeywordEnum',
+): Column => ({
+  tag: ColumnTag.SystemMeta,
+  filter,
+  fullTitle: PACKAGE_FILTER_LABELS[filter],
+  predicateType,
+  state: STATIC_COLUMN_STATE,
+  title: COLUMN_LABELS[filter],
+})
+
+const BASE_COLUMNS: Column[] = [
+  staticColumn('name', 'KeywordWildcard'),
+  staticColumn('modified', 'Datetime'),
+  staticColumn('size', 'Number'),
+  staticColumn('entries', 'Number'),
+  staticColumn('comment', 'Text'),
+]
+
+// Appended only when at least one member's effective revision carries one.
+const WORKFLOW_COLUMN = staticColumn('workflow', 'KeywordEnum')
+
+// Numbers and dates read right-aligned, mirroring the shared table's rule.
+const columnAlign = (column: Column) =>
+  column.tag === ColumnTag.SystemMeta &&
+  ['Number', 'Datetime', 'Boolean'].includes(column.predicateType)
+    ? ('right' as const)
+    : ('inherit' as const)
+
+const SORTABLE_COLUMNS: readonly string[] = ['name', 'modified'] satisfies SortKey[]
+
+// Per-member PackageLinkBuilder: every target the shared leaves can emit stays
+// under /data-products/:id — physical-bucket (/b/...) routes must never be
+// reachable from this tab. Most builders are unreachable today (no hash/bucket
+// column, no matching entries) but are still pinned DP-local for safety.
+function useMemberLinks(id: string): (virtualName: string) => PackageLinkBuilder {
+  const { urls } = NamedRoutes.use()
+  return React.useCallback(
+    (virtualName: string): PackageLinkBuilder => {
+      const root = urls.dataProductPackage(id, virtualName)
+      return {
+        packageRoot: () => root,
+        packageDetail: () => root,
+        packageEntry: (_handle, logicalKey) =>
+          urls.dataProductPackage(id, virtualName, logicalKey),
+        manifest: () => root,
+        physicalObject: () => root,
+        bucket: () => urls.dataProduct(id),
+      }
+    },
+    [id, urls],
+  )
+}
+
+// A member whose package didn't dereference (not readable or no longer
+// exists) stays visible: its DP-local link plus its physical origin as plain
+// provenance text.
+function UnavailableNote({ member }: { member: PackageMember }) {
+  return (
+    <M.Typography variant="body2" color="textSecondary" component="span">
+      Package data unavailable ({member.bucket}/{member.name})
+    </M.Typography>
+  )
+}
+
+interface PackageCardFallbackProps {
+  id: string
+  member: PackageMember
+}
+
+function PackageCardFallback({ id, member }: PackageCardFallbackProps) {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   return (
     <M.Paper variant="outlined" className={classes.packageCard}>
-      <Link to={to} className={classes.packageName}>
+      <Link
+        to={urls.dataProductPackage(id, member.virtualName)}
+        className={classes.packageName}
+      >
         {member.virtualName}
       </Link>
-      <Provenance inline>
-        {`${member.bucket} / ${member.name}`} @ {pinOf(member)}
-      </Provenance>
+      <UnavailableNote member={member} />
     </M.Paper>
   )
 }
 
-function PackageTable({ id, members }: { id: string; members: PackageMember[] }) {
-  const classes = useStyles()
+interface PackageRowFallbackProps {
+  id: string
+  member: PackageMember
+  // remaining columns after the name cell + the trailing placeholder cell
+  colSpan: number
+}
+
+function PackageRowFallback({ id, member, colSpan }: PackageRowFallbackProps) {
   const { urls } = NamedRoutes.use()
+  return (
+    <M.TableRow hover>
+      <M.TableCell padding="checkbox" />
+      <M.TableCell>
+        <StyledLink to={urls.dataProductPackage(id, member.virtualName)}>
+          {member.virtualName}
+        </StyledLink>
+      </M.TableCell>
+      <M.TableCell colSpan={colSpan}>
+        <UnavailableNote member={member} />
+      </M.TableCell>
+    </M.TableRow>
+  )
+}
+
+interface PackagesTableProps {
+  id: string
+  columns: Column[]
+  items: PackageItem[]
+  linksFor: (virtualName: string) => PackageLinkBuilder
+  sort: SortSpec
+  onSort: (key: SortKey) => void
+}
+
+// The table view: shared PackageRow leaves under a hand-built head — plain
+// sortable name/modified headers instead of the search table's filter-bound
+// column chrome. The head shape (leading checkbox cell, trailing placeholder)
+// matches what PackageRow renders.
+function PackagesTable({
+  id,
+  columns,
+  items,
+  linksFor,
+  sort,
+  onSort,
+}: PackagesTableProps) {
+  const classes = useStyles()
   return (
     <M.Paper className={classes.tableRoot}>
       <M.Table size="small">
         <M.TableHead>
           <M.TableRow>
-            <M.TableCell>Name</M.TableCell>
-            <M.TableCell>Provenance</M.TableCell>
-            <M.TableCell>Revision</M.TableCell>
+            <M.TableCell padding="checkbox" />
+            {columns.map((column) => (
+              <M.TableCell
+                key={column.filter}
+                align={columnAlign(column)}
+                className={classes.tableHeadCell}
+              >
+                {SORTABLE_COLUMNS.includes(column.filter) ? (
+                  <M.TableSortLabel
+                    active={sort.key === column.filter}
+                    direction={sort.key === column.filter ? sort.dir : 'asc'}
+                    onClick={() => onSort(column.filter as SortKey)}
+                  >
+                    {column.title}
+                  </M.TableSortLabel>
+                ) : (
+                  column.title
+                )}
+              </M.TableCell>
+            ))}
+            <M.TableCell className={classes.tablePlaceholder} />
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
-          {members.map((p) => (
-            <M.TableRow key={p.virtualName} hover>
-              <M.TableCell>
-                <Link
-                  to={urls.dataProductPackage(id, p.virtualName)}
-                  className={classes.packageName}
-                >
-                  {p.virtualName}
-                </Link>
-              </M.TableCell>
-              <M.TableCell>
-                <M.Typography variant="body2" color="textSecondary">
-                  {p.bucket} / {p.name}
-                </M.Typography>
-              </M.TableCell>
-              <M.TableCell>
-                <M.Typography variant="body2" color="textSecondary">
-                  {pinOf(p)}
-                </M.Typography>
-              </M.TableCell>
-            </M.TableRow>
-          ))}
+          {items.map((item) =>
+            item.tableHit ? (
+              <PackageRow
+                key={item.member.virtualName}
+                hit={item.tableHit}
+                columnsList={columns}
+                displayName={item.member.virtualName}
+                links={linksFor(item.member.virtualName)}
+              />
+            ) : (
+              <PackageRowFallback
+                key={item.member.virtualName}
+                id={id}
+                member={item.member}
+                colSpan={columns.length}
+              />
+            ),
+          )}
         </M.TableBody>
       </M.Table>
     </M.Paper>
@@ -541,35 +788,59 @@ function PackageTable({ id, members }: { id: string; members: PackageMember[] })
 
 function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
   const [view, setView] = useViewMode()
   const [filter, setFilter] = React.useState('')
-  const [order, setOrder] = React.useState<SortOrder>('asc')
+  const [sort, setSort] = React.useState<SortSpec>({ key: 'name', dir: 'asc' })
   const [shown, setShown] = React.useState(PER_PAGE)
+  const linksFor = useMemberLinks(id)
+
+  const items = React.useMemo(
+    () => dp.members.packages.map(toPackageItem),
+    [dp.members.packages],
+  )
+
+  const columns = React.useMemo(
+    () =>
+      items.some((i) => i.hit?.workflow)
+        ? [...BASE_COLUMNS, WORKFLOW_COLUMN]
+        : BASE_COLUMNS,
+    [items],
+  )
 
   const sortValue = React.useMemo(
-    () => sortOptions.find((o) => o.valueOf() === order) || sortOptions[0],
-    [order],
+    () => SORT_OPTIONS.find((o) => o.valueOf() === sortToValue(sort)) || SORT_OPTIONS[0],
+    [sort],
   )
+
+  const onSortChange = React.useCallback((v: (typeof SORT_OPTIONS)[number]) => {
+    const [key, dir] = v.valueOf().split(':')
+    setSort({ key: key as SortKey, dir: dir as SortDir })
+  }, [])
+
+  // A header click on the active column flips direction; on another column it
+  // starts from that column's natural first direction.
+  const onSortKey = React.useCallback((key: SortKey) => {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: key === 'modified' ? 'desc' : 'asc' },
+    )
+  }, [])
 
   const filtered = React.useMemo(() => {
     const needle = filter.trim().toLowerCase()
     const matched = needle
-      ? dp.members.packages.filter(
-          (p) =>
-            p.virtualName.toLowerCase().includes(needle) ||
-            `${p.bucket}/${p.name}`.toLowerCase().includes(needle),
+      ? items.filter(
+          ({ member }) =>
+            member.virtualName.toLowerCase().includes(needle) ||
+            `${member.bucket}/${member.name}`.toLowerCase().includes(needle),
         )
-      : dp.members.packages.slice()
-    return [...matched].sort((a, b) =>
-      order === 'asc'
-        ? a.virtualName.localeCompare(b.virtualName)
-        : b.virtualName.localeCompare(a.virtualName),
-    )
-  }, [dp.members.packages, filter, order])
+      : items
+    return [...matched].sort(compareItems(sort))
+  }, [items, filter, sort])
 
   // Reveal from the top again whenever the result set changes (filter/sort).
-  React.useEffect(() => setShown(PER_PAGE), [filter, order])
+  React.useEffect(() => setShown(PER_PAGE), [filter, sort])
 
   const page = filtered.slice(0, shown)
 
@@ -620,9 +891,9 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
           <SelectDropdown
-            options={sortOptions}
+            options={SORT_OPTIONS}
             value={sortValue}
-            onChange={(v) => setOrder(v.valueOf())}
+            onChange={onSortChange}
           >
             Sort by:
           </SelectDropdown>
@@ -631,16 +902,32 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
       {!filtered.length ? (
         <M.Typography color="textSecondary">No packages match the filter</M.Typography>
       ) : view === 'table' ? (
-        <PackageTable id={id} members={page} />
+        <PackagesTable
+          id={id}
+          columns={columns}
+          items={page}
+          linksFor={linksFor}
+          sort={sort}
+          onSort={onSortKey}
+        />
       ) : (
-        <div>
-          {page.map((p) => (
-            <PackageCard
-              key={p.virtualName}
-              member={p}
-              to={urls.dataProductPackage(id, p.virtualName)}
-            />
-          ))}
+        <div className={classes.cardList}>
+          {page.map((item) =>
+            item.hit ? (
+              <SearchHits.Package
+                key={item.member.virtualName}
+                hit={item.hit}
+                displayName={item.member.virtualName}
+                links={linksFor(item.member.virtualName)}
+              />
+            ) : (
+              <PackageCardFallback
+                key={item.member.virtualName}
+                id={id}
+                member={item.member}
+              />
+            ),
+          )}
         </div>
       )}
       {filtered.length > shown && (

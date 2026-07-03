@@ -6,6 +6,7 @@ export type Incremental<T> =
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import * as Types from '../../../model/graphql/types.generated'
 
+import type { JsonRecord } from 'utils/types'
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type containers_DataProduct_gql_DataProductQueryVariables = Exact<{
   id: string | number
@@ -38,6 +39,27 @@ export interface containers_DataProduct_gql_DataProductQuery {
         readonly bucket: string
         readonly name: string
         readonly hashOrTag: string | null
+        readonly package: {
+          readonly __typename: 'Package'
+          readonly modified: Date
+          readonly revisions: {
+            readonly __typename: 'PackageRevisionList'
+            readonly total: number
+          }
+          readonly revision: {
+            readonly __typename: 'PackageRevision'
+            readonly hash: string
+            readonly modified: Date
+            readonly message: string | null
+            readonly totalEntries: number | null
+            readonly totalBytes: number | null
+            readonly userMeta: JsonRecord | null
+            readonly workflow: {
+              readonly __typename: 'PackageWorkflow'
+              readonly id: string | null
+            } | null
+          } | null
+        } | null
       }>
     }
   } | null
@@ -152,6 +174,78 @@ export const containers_DataProduct_gql_DataProductDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'bucket' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'hashOrTag' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'package' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'modified' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'revisions' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'total' },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'revision' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'hash' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'modified' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'message' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'totalEntries' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'totalBytes' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'userMeta' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'workflow' },
+                                          selectionSet: {
+                                            kind: 'SelectionSet',
+                                            selections: [
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'id' },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                ],
+                              },
+                            },
                           ],
                         },
                       },
