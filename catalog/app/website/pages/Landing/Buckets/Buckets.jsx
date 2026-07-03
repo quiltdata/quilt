@@ -3,6 +3,7 @@ import * as React from 'react'
 import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
+import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
@@ -13,6 +14,7 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
+import BucketGrid from 'website/components/BucketGrid'
 import BucketList from 'website/components/BucketGrid/BucketList'
 
 import DATA_PRODUCTS_QUERY from '../gql/DataProducts.generated'
@@ -85,6 +87,9 @@ const useStyles = M.makeStyles((t) => ({
   typeToggle: {
     flexShrink: 0,
   },
+  viewToggle: {
+    flexShrink: 0,
+  },
   tags: {
     alignItems: 'center',
     display: 'flex',
@@ -136,7 +141,12 @@ export default function Buckets() {
 
   const location = useLocation()
   // 'type' rides beside 'q': absent = 'all', 'buckets' | 'data-products' narrow the list.
-  const { q: filter = '', type: typeFilter = 'all' } = parseSearch(location.search)
+  // 'view' rides beside both: absent = 'list' (dense rows), 'card' switches to a grid.
+  const {
+    q: filter = '',
+    type: typeFilter = 'all',
+    view: viewMode = 'list',
+  } = parseSearch(location.search)
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],
@@ -215,10 +225,11 @@ export default function Buckets() {
         search: NamedRoutes.mkSearch({
           q: filtering.value || undefined,
           type: typeFilter === 'all' ? undefined : typeFilter,
+          view: viewMode === 'list' ? undefined : viewMode,
         }),
       })
     }
-  }, [history, filtering.value, filter, typeFilter])
+  }, [history, filtering.value, filter, typeFilter, viewMode])
 
   const clearFilter = React.useCallback(() => {
     filtering.set()
@@ -232,10 +243,26 @@ export default function Buckets() {
         search: NamedRoutes.mkSearch({
           q: filter || undefined,
           type: value === 'all' ? undefined : value,
+          view: viewMode === 'list' ? undefined : viewMode,
         }),
       })
     },
-    [history, filter],
+    [history, filter, viewMode],
+  )
+
+  const changeView = React.useCallback(
+    (_e, value) => {
+      // exclusive ToggleButtonGroup emits null when the active button is clicked again
+      if (!value) return
+      history.push({
+        search: NamedRoutes.mkSearch({
+          q: filter || undefined,
+          type: typeFilter === 'all' ? undefined : typeFilter,
+          view: value === 'list' ? undefined : value,
+        }),
+      })
+    },
+    [history, filter, typeFilter],
   )
 
   const isAdmin = useIsAdmin()
@@ -277,8 +304,22 @@ export default function Buckets() {
             onChange={changeType}
           >
             <Lab.ToggleButton value="all">All</Lab.ToggleButton>
-            <Lab.ToggleButton value="buckets">Volumes</Lab.ToggleButton>
+            <Lab.ToggleButton value="buckets">Buckets</Lab.ToggleButton>
             <Lab.ToggleButton value="data-products">Data products</Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
+          <Lab.ToggleButtonGroup
+            className={classes.viewToggle}
+            value={viewMode}
+            exclusive
+            size="small"
+            onChange={changeView}
+          >
+            <Lab.ToggleButton value="card">
+              <Icons.GridOn />
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="list">
+              <Icons.List />
+            </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
           {!!allTags.length && (
             <div className={classes.tags}>
@@ -297,13 +338,23 @@ export default function Buckets() {
           )}
         </div>
         {filtered.total || !filter ? (
-          <BucketList
-            buckets={paginated.buckets}
-            dataProducts={paginated.dps}
-            onTagClick={filtering.set}
-            tagIsMatching={tagIsMatching}
-            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
-          />
+          viewMode === 'card' ? (
+            <BucketGrid
+              buckets={paginated.buckets}
+              dataProducts={paginated.dps}
+              onTagClick={filtering.set}
+              tagIsMatching={tagIsMatching}
+              showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
+            />
+          ) : (
+            <BucketList
+              buckets={paginated.buckets}
+              dataProducts={paginated.dps}
+              onTagClick={filtering.set}
+              tagIsMatching={tagIsMatching}
+              showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
+            />
+          )
         ) : (
           <M.Typography color="textPrimary" variant="h4">
             No volumes matching <b>&quot;{filter}&quot;</b>
