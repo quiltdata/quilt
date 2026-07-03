@@ -8,9 +8,11 @@ query ($id: ID!) {
     ownerRole {
       __typename
       ... on ManagedRole {
+        id
         name
       }
       ... on UnmanagedRole {
+        id
         name
       }
     }

@@ -22,8 +22,12 @@ export interface containers_DataProduct_gql_DataProductQuery {
     readonly description: string | null
     readonly createdAt: Date
     readonly ownerRole:
-      | { readonly __typename: 'ManagedRole'; readonly name: string }
-      | { readonly __typename: 'UnmanagedRole'; readonly name: string }
+      | { readonly __typename: 'ManagedRole'; readonly id: string; readonly name: string }
+      | {
+          readonly __typename: 'UnmanagedRole'
+          readonly id: string
+          readonly name: string
+        }
     readonly members: {
       readonly __typename: 'DataProductMembers'
       readonly objects: ReadonlyArray<{
@@ -119,6 +123,7 @@ export const containers_DataProduct_gql_DataProductDocument = {
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                           ],
                         },
@@ -132,6 +137,7 @@ export const containers_DataProduct_gql_DataProductDocument = {
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                           ],
                         },
