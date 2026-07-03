@@ -21,30 +21,23 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
   heading: {
     alignItems: 'baseline',
-    display: 'flex',
+    display: 'inline-flex',
     gap: t.spacing(1),
+    maxWidth: '100%',
     minWidth: 0,
   },
   // The title is the scan anchor: a constant, bold left column down the list.
   title: {
-    ...t.typography.subtitle2,
     color: t.palette.text.primary,
     flexShrink: 0,
+    fontWeight: 500,
     '&:hover': {
       color: t.palette.tertiary.main,
     },
   },
   name: {
-    ...t.typography.body2,
     color: t.palette.text.hint,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  desc: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    margin: 0,
+    minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -85,20 +78,18 @@ function BucketRow({ bucket, divider, onTagClick, tagIsMatching }: BucketRowProp
         </Link>
       </M.ListItemAvatar>
       <M.ListItemText
-        disableTypography
         primary={
-          <div className={classes.heading}>
+          <span className={classes.heading}>
             <Link className={classes.title} to={to}>
               {bucket.title}
             </Link>
             <Link className={classes.name} to={to} title={`s3://${bucket.name}`}>
               s3://{bucket.name}
             </Link>
-          </div>
+          </span>
         }
-        secondary={
-          bucket.description ? <p className={classes.desc}>{bucket.description}</p> : null
-        }
+        secondary={bucket.description || null}
+        secondaryTypographyProps={{ noWrap: true }}
       />
       {!!bucket.tags && !!bucket.tags.length && (
         <div className={classes.tags}>
