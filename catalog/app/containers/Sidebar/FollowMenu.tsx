@@ -3,6 +3,8 @@ import * as M from '@material-ui/core'
 
 import * as URLS from 'constants/urls'
 
+import OutlinedIcon from './OutlinedIcon'
+
 import iconFacebook from 'components/Footer/icon-facebook.svg'
 import iconGithub from 'components/Footer/icon-github.svg'
 import iconInstagram from 'components/Footer/icon-instagram.svg'
@@ -49,7 +51,7 @@ export default function FollowMenu({ iconClassName }: FollowMenuProps) {
     <>
       <M.ListItem button onClick={open}>
         <M.ListItemIcon className={iconClassName}>
-          <M.Icon>public</M.Icon>
+          <OutlinedIcon>public</OutlinedIcon>
         </M.ListItemIcon>
         <M.ListItemText primary="Follow" />
       </M.ListItem>
@@ -74,7 +76,7 @@ export default function FollowMenu({ iconClassName }: FollowMenuProps) {
               {icon ? (
                 <img src={icon} alt="" className={classes.brand} />
               ) : (
-                <M.Icon fontSize="small">rss_feed</M.Icon>
+                <OutlinedIcon fontSize="small">rss_feed</OutlinedIcon>
               )}
             </M.ListItemIcon>
             <M.ListItemText primary={label} />

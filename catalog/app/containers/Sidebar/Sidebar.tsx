@@ -16,6 +16,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
 
 import FollowMenu from './FollowMenu'
+import OutlinedIcon from './OutlinedIcon'
 import { Rail } from './Rail'
 
 const useStyles = M.makeStyles((t) => ({
@@ -90,7 +91,7 @@ function Version() {
       title="Copy Platform release version to clipboard"
     >
       <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
-      <M.Icon className={classes.copyIcon}>content_copy</M.Icon>
+      <OutlinedIcon className={classes.copyIcon}>content_copy</OutlinedIcon>
     </div>
   )
 }
@@ -113,7 +114,7 @@ export function Sidebar() {
   const workspace = user && (
     <>
       <M.ListItemIcon className={classes.icon}>
-        <M.Icon>work_outline</M.Icon>
+        <OutlinedIcon>work_outline</OutlinedIcon>
       </M.ListItemIcon>
       <M.ListItemText
         primary={user.role.name}
@@ -149,20 +150,20 @@ export function Sidebar() {
         <M.List disablePadding className={classes.nav}>
           <M.ListItem button component={Link} to={urls.home()}>
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>storage</M.Icon>
+              <OutlinedIcon>storage</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="Volumes" />
           </M.ListItem>
           <M.ListItem button component={Link} to="/b/quilt-bio-production/queries">
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>table_chart</M.Icon>
+              <OutlinedIcon>table_chart</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="Queries" />
           </M.ListItem>
           <M.ListItem button onClick={bookmarks?.show} disabled={!bookmarks}>
             <M.ListItemIcon className={classes.icon}>
               <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>
-                <M.Icon>bookmarks</M.Icon>
+                <OutlinedIcon>bookmarks</OutlinedIcon>
               </M.Badge>
             </M.ListItemIcon>
             <M.ListItemText primary="Bookmarks" />
@@ -170,7 +171,7 @@ export function Sidebar() {
           {assistant && (
             <M.ListItem button onClick={assistant.show}>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon>assistant</M.Icon>
+                <OutlinedIcon>assistant</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary="Qurator" />
             </M.ListItem>
@@ -178,7 +179,7 @@ export function Sidebar() {
           {user?.isAdmin && (
             <M.ListItem button component={Link} to={urls.admin()}>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon>security</M.Icon>
+                <OutlinedIcon>security</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary="Admin" />
             </M.ListItem>
@@ -193,13 +194,13 @@ export function Sidebar() {
           </M.ListSubheader>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>link</M.Icon>
+              <OutlinedIcon>link</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="URI" />
           </M.ListItem>
           <M.ListItem button component="a" href={URLS.docs} target="_blank">
             <M.ListItemIcon className={classes.icon}>
-              <M.Icon>menu_book</M.Icon>
+              <OutlinedIcon>menu_book</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="Docs" />
           </M.ListItem>
@@ -213,7 +214,7 @@ export function Sidebar() {
           {user && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon>account_circle</M.Icon>
+                <OutlinedIcon>account_circle</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary={user.name} />
             </M.ListItem>
@@ -221,7 +222,7 @@ export function Sidebar() {
           {subscription.invalid && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
-                <M.Icon color="error">warning</M.Icon>
+                <OutlinedIcon color="error">warning</OutlinedIcon>
               </M.ListItemIcon>
               <M.ListItemText primary="Unlicensed" />
             </M.ListItem>
@@ -230,14 +231,14 @@ export function Sidebar() {
             (user ? (
               <M.ListItem button component={Link} to={urls.signOut()}>
                 <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>meeting_room</M.Icon>
+                  <OutlinedIcon>meeting_room</OutlinedIcon>
                 </M.ListItemIcon>
                 <M.ListItemText primary="Sign Out" />
               </M.ListItem>
             ) : (
               <M.ListItem button component={Link} to={urls.signIn()}>
                 <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>exit_to_app</M.Icon>
+                  <OutlinedIcon>exit_to_app</OutlinedIcon>
                 </M.ListItemIcon>
                 <M.ListItemText primary="Sign In" />
               </M.ListItem>
