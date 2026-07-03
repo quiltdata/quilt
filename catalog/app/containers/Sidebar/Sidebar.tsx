@@ -10,9 +10,12 @@ import * as Bookmarks from 'containers/Bookmarks'
 import * as NavMenu from 'containers/NavBar/NavMenu'
 import useRoleSwitcher from 'containers/NavBar/RoleSwitcher'
 import * as Subscription from 'containers/NavBar/Subscription'
+import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import copyToClipboard from 'utils/clipboard'
 
+import FollowMenu from './FollowMenu'
 import { Rail } from './Rail'
 
 const useStyles = M.makeStyles((t) => ({
@@ -52,7 +55,49 @@ const useStyles = M.makeStyles((t) => ({
   account: {
     padding: t.spacing(1, 0, 2),
   },
+  version: {
+    ...t.typography.caption,
+    alignItems: 'center',
+    color: 'inherit',
+    cursor: 'pointer',
+    display: 'flex',
+    gap: t.spacing(0.5),
+    padding: t.spacing(1, 2),
+    '&:hover $copyIcon': {
+      visibility: 'visible',
+    },
+  },
+  versionText: {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  copyIcon: {
+    fontSize: '1rem',
+    visibility: 'hidden',
+  },
 }))
+
+function Version() {
+  const classes = useStyles()
+  const { push } = Notifications.use()
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(cfg.stackVersion)
+    push('Web catalog container hash has been copied to clipboard')
+  }, [push])
+  if (!cfg.stackVersion) return null
+  return (
+    <div
+      className={classes.version}
+      onClick={handleCopy}
+      title="Copy Platform release version to clipboard"
+    >
+      <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
+      <M.Icon className={classes.copyIcon}>content_copy</M.Icon>
+    </div>
+  )
+}
 
 export function Sidebar() {
   const classes = useStyles()
@@ -158,6 +203,7 @@ export function Sidebar() {
             </M.ListItemIcon>
             <M.ListItemText primary="Docs" />
           </M.ListItem>
+          <FollowMenu iconClassName={classes.icon} />
         </M.List>
         <M.Divider />
 
@@ -195,6 +241,8 @@ export function Sidebar() {
               </M.ListItem>
             ))}
         </M.List>
+        <M.Divider />
+        <Version />
       </Rail>
       <Bookmarks.Drawer />
     </>
