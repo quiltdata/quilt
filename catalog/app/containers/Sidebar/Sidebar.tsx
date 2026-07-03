@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
@@ -98,13 +98,22 @@ function Version() {
 
 export function Sidebar() {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
+  const { urls, paths } = NamedRoutes.use()
   const settings = CatalogSettings.use()
   const subscription = Subscription.useState()
   const bookmarks = Bookmarks.use()
   const assistant = Assistant.Model.useAssistantAPI()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
+
+  // Volumes also owns bucket-browsing routes (`/b/*`), since that's where
+  // clicking into a volume from the home list leads.
+  const isHome = !!useRouteMatch({ path: paths.home, exact: true })
+  const isBucket = !!useRouteMatch(paths.bucketRoot)
+  const volumesActive = isHome || isBucket
+  const searchActive = !!useRouteMatch(paths.search)
+  const queriesActive = !!useRouteMatch(paths.queries)
+  const adminActive = !!useRouteMatch(paths.admin)
 
   const user = NavMenu.AuthState.match(
     { Ready: ({ user: u }) => u, Loading: () => null, Error: () => null },
@@ -148,13 +157,29 @@ export function Sidebar() {
         )}
 
         <M.List disablePadding className={classes.nav}>
-          <M.ListItem button component={Link} to={urls.home()}>
+          <M.ListItem button component={Link} to={urls.home()} selected={volumesActive}>
             <M.ListItemIcon className={classes.icon}>
               <OutlinedIcon>storage</OutlinedIcon>
             </M.ListItemIcon>
             <M.ListItemText primary="Volumes" />
           </M.ListItem>
-          <M.ListItem button component={Link} to="/b/quilt-bio-production/queries">
+          <M.ListItem
+            button
+            component={Link}
+            to={urls.search({})}
+            selected={searchActive}
+          >
+            <M.ListItemIcon className={classes.icon}>
+              <OutlinedIcon>search</OutlinedIcon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Search" />
+          </M.ListItem>
+          <M.ListItem
+            button
+            component={Link}
+            to={urls.queries()}
+            selected={queriesActive}
+          >
             <M.ListItemIcon className={classes.icon}>
               <OutlinedIcon>table_chart</OutlinedIcon>
             </M.ListItemIcon>
@@ -173,11 +198,11 @@ export function Sidebar() {
               <M.ListItemIcon className={classes.icon}>
                 <OutlinedIcon>assistant</OutlinedIcon>
               </M.ListItemIcon>
-              <M.ListItemText primary="Qurator" />
+              <M.ListItemText primary="Ask Qurator" />
             </M.ListItem>
           )}
           {user?.isAdmin && (
-            <M.ListItem button component={Link} to={urls.admin()}>
+            <M.ListItem button component={Link} to={urls.admin()} selected={adminActive}>
               <M.ListItemIcon className={classes.icon}>
                 <OutlinedIcon>security</OutlinedIcon>
               </M.ListItemIcon>
