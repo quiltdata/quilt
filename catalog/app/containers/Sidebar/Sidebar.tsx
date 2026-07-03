@@ -29,22 +29,17 @@ const useStyles = M.makeStyles((t) => ({
     height: 64,
     padding: t.spacing(0, 2),
   },
-  logoDivider: {
-    marginTop: -1,
-  },
   workspaces: {
     paddingTop: t.spacing(1),
   },
   title: {
-    ...t.typography.subtitle1,
-    color: 'inherit',
     fontWeight: 500,
   },
   icon: {
     color: 'inherit',
   },
   nav: {
-    paddingTop: t.spacing(1),
+    paddingTop: t.spacing(2),
   },
   spacer: {
     flexGrow: 1,
@@ -133,7 +128,6 @@ export function Sidebar() {
         <Link to={urls.home()} className={classes.logo}>
           <Logo height="32px" width="100%" src={settings?.logo?.url} />
         </Link>
-        <M.Divider className={classes.logoDivider} />
 
         {user && (
           <>
@@ -142,14 +136,13 @@ export function Sidebar() {
                 Workspace
               </M.ListSubheader>
               {user.roles.length > 1 ? (
-                <M.ListItem button onClick={() => switchRole(user)}>
+                <M.ListItem button onClick={() => switchRole(user)} selected>
                   {workspace}
                 </M.ListItem>
               ) : (
-                <M.ListItem>{workspace}</M.ListItem>
+                <M.ListItem selected>{workspace}</M.ListItem>
               )}
             </M.List>
-            <M.Divider />
           </>
         )}
 
@@ -183,21 +176,21 @@ export function Sidebar() {
             </M.ListItem>
           )}
           {user?.isAdmin && (
-            <>
-              <M.Divider />
-              <M.ListItem button component={Link} to={urls.admin()}>
-                <M.ListItemIcon className={classes.icon}>
-                  <M.Icon>security</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText primary="Admin" />
-              </M.ListItem>
-            </>
+            <M.ListItem button component={Link} to={urls.admin()}>
+              <M.ListItemIcon className={classes.icon}>
+                <M.Icon>security</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary="Admin" />
+            </M.ListItem>
           )}
         </M.List>
 
         <div className={classes.spacer} />
 
         <M.List disablePadding className={classes.links} dense>
+          <M.ListSubheader disableSticky className={classes.title}>
+            Resources
+          </M.ListSubheader>
           <M.ListItem button component={Link} to={urls.uriResolver('')}>
             <M.ListItemIcon className={classes.icon}>
               <M.Icon>link</M.Icon>
@@ -212,9 +205,11 @@ export function Sidebar() {
           </M.ListItem>
           <FollowMenu iconClassName={classes.icon} />
         </M.List>
-        <M.Divider />
 
         <M.List disablePadding className={classes.account} dense>
+          <M.ListSubheader disableSticky className={classes.title}>
+            Account
+          </M.ListSubheader>
           {user && (
             <M.ListItem>
               <M.ListItemIcon className={classes.icon}>
@@ -248,7 +243,6 @@ export function Sidebar() {
               </M.ListItem>
             ))}
         </M.List>
-        <M.Divider />
         <Version />
       </Rail>
       <Bookmarks.Drawer />
