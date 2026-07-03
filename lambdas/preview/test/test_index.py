@@ -2,7 +2,6 @@
 Test functions for preview endpoint
 """
 import json
-import math
 import os
 import re
 from pathlib import Path
@@ -262,8 +261,13 @@ class TestIndex:
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
-        # isclose bc string sizes differ, e.g. on Linux
-        assert math.isclose(len(body_html), 18084, abs_tol=300), "Hmm, didn't chop nb_1200727.ipynb"
+        # The size gate (file > LAMBDA_MAX_OUT) should force output exclusion. Assert that
+        # behavior rather than an exact HTML byte-count: nbconvert/pygments markup drifts
+        # version-to-version, so a hardcoded length is fragile. The warnings message appears
+        # only on the size-triggered exclude path, so it proves the gate fired.
+        assert body['info'].get('warnings') == "Omitted cell outputs to reduce notebook size"
+        assert "<pre>['SEE', 'SE', 'SHW', 'SIG'," not in body_html, 'output cell should have been omitted'
+        assert 'SVD of Minute-Market-Data' in body_html, 'code/markdown cells should remain'
 
     @responses.activate
     def test_ipynb_exclude(self):
