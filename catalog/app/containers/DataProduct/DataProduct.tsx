@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import {
   Link,
@@ -9,11 +10,14 @@ import {
   useParams,
 } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
+import * as Icons from '@material-ui/icons'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import Layout, { Container } from 'components/Layout'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
+import SelectDropdown from 'components/SelectDropdown'
 import Section from 'containers/Bucket/Section'
 import * as Listing from 'containers/Bucket/Listing'
 import renderPreview from 'containers/Bucket/renderPreview'
@@ -82,21 +86,75 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(3),
   },
   // The physical origin of a member is provenance only — a small muted detail,
-  // never a navigation link.
+  // never a navigation link. Above a file preview it wants bottom spacing; in a
+  // package row/card the `inline` modifier drops it and adds top spacing.
   provenance: {
     marginBottom: t.spacing(2),
   },
-  packageList: {
-    '& > * + *': {
+  provenanceInline: {
+    marginBottom: 0,
+    marginTop: t.spacing(1),
+  },
+  // Overview: the authored own-content + stats card sits on top; the README
+  // member preview is a visually distinct card below it.
+  infoCard: {
+    padding: t.spacing(3),
+    marginBottom: t.spacing(2),
+  },
+  readmeCard: {
+    padding: t.spacing(3),
+  },
+  stat: {
+    marginTop: t.spacing(2),
+  },
+  // Packages chrome — replicates the in-bucket package-list idiom (filter field,
+  // a count + card/table toggle + sort toolbar, then the results).
+  filterField: {
+    background: t.palette.background.paper,
+    marginBottom: t.spacing(2),
+  },
+  toolbar: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    minHeight: t.spacing(4.5),
+    marginBottom: t.spacing(2),
+  },
+  count: {
+    ...t.typography.subtitle1,
+    flexShrink: 0,
+    marginRight: t.spacing(2),
+  },
+  toolbarControls: {
+    alignItems: 'center',
+    display: 'flex',
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+  },
+  viewToggle: {
+    marginRight: t.spacing(1),
+  },
+  // Matches the outlined-Paper card the in-bucket package list uses per hit.
+  packageCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    padding: t.spacing(2),
+    '& + &': {
       marginTop: t.spacing(2),
     },
-  },
-  packageCard: {
-    padding: t.spacing(2),
   },
   packageName: {
     ...t.typography.body1,
     fontWeight: t.typography.fontWeightMedium,
+  },
+  tableRoot: {
+    overflowX: 'auto',
+  },
+  loadMore: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginTop: t.spacing(2),
   },
   readme: {
     marginBottom: t.spacing(3),
@@ -197,14 +255,17 @@ function FilePreview({ handle }: { handle: FileHandle }) {
 
 // The physical origin of a member, shown as a small muted detail. It is
 // provenance metadata only — never a navigation target.
-function Provenance({ children }: React.PropsWithChildren<{}>) {
+function Provenance({
+  children,
+  inline = false,
+}: React.PropsWithChildren<{ inline?: boolean }>) {
   const classes = useStyles()
   return (
     <M.Typography
       variant="caption"
       color="textSecondary"
       component="div"
-      className={classes.provenance}
+      className={cx(classes.provenance, inline && classes.provenanceInline)}
     >
       Provenance: {children}
     </M.Typography>
@@ -232,6 +293,24 @@ function ReadmePreview({ member }: { member: ObjectMember }) {
   })
 }
 
+// A labelled stat line inside the Overview info section.
+function Stat({ label, children }: React.PropsWithChildren<{ label: string }>) {
+  const classes = useStyles()
+  return (
+    <div className={classes.stat}>
+      <M.Typography variant="subtitle2" gutterBottom>
+        {label}
+      </M.Typography>
+      <M.Typography variant="body2" color="textSecondary">
+        {children}
+      </M.Typography>
+    </div>
+  )
+}
+
+// Overview: two stacked, visually distinct sections — a top info card (authored
+// own-content + stats), then, only when the manifest places a `README.md`
+// object member, a separate card below it previewing that member.
 function OverviewTab({ dp }: { dp: DataProduct }) {
   const classes = useStyles()
   const readmeMember = dp.members.objects.find((o) => o.logicalKey === README_KEY)
@@ -239,43 +318,32 @@ function OverviewTab({ dp }: { dp: DataProduct }) {
     pluralize(dp.members.packages.length, 'package'),
     pluralize(dp.members.objects.length, 'object'),
   ].join(' · ')
+  const hasOwnContent = !!dp.title || !!dp.description
   return (
-    <M.Paper className={classes.section}>
+    <>
+      <M.Paper className={classes.infoCard}>
+        {hasOwnContent ? (
+          <>
+            {!!dp.title && <M.Typography variant="h6">{dp.title}</M.Typography>}
+            {!!dp.description && (
+              <M.Typography variant="body1">{dp.description}</M.Typography>
+            )}
+          </>
+        ) : (
+          <M.Typography color="textSecondary">
+            No description for this data product
+          </M.Typography>
+        )}
+        <Stat label="Members">{summary}</Stat>
+        <Stat label="Owner">{dp.ownerRole.name}</Stat>
+        <Stat label="Created">{dp.createdAt.toLocaleString()}</Stat>
+      </M.Paper>
       {!!readmeMember && (
-        <div className={classes.readme}>
+        <M.Paper className={classes.readmeCard}>
           <ReadmePreview member={readmeMember} />
-        </div>
+        </M.Paper>
       )}
-      {dp.description ? (
-        <M.Typography variant="body1">{dp.description}</M.Typography>
-      ) : (
-        <M.Typography color="textSecondary">No description</M.Typography>
-      )}
-      <M.Box mt={2}>
-        <M.Typography variant="subtitle2" gutterBottom>
-          Members
-        </M.Typography>
-        <M.Typography variant="body2" color="textSecondary">
-          {summary}
-        </M.Typography>
-      </M.Box>
-      <M.Box mt={2}>
-        <M.Typography variant="subtitle2" gutterBottom>
-          Owner
-        </M.Typography>
-        <M.Typography variant="body2" color="textSecondary">
-          {dp.ownerRole.name}
-        </M.Typography>
-      </M.Box>
-      <M.Box mt={2}>
-        <M.Typography variant="subtitle2" gutterBottom>
-          Created
-        </M.Typography>
-        <M.Typography variant="body2" color="textSecondary">
-          {dp.createdAt.toLocaleString()}
-        </M.Typography>
-      </M.Box>
-    </M.Paper>
+    </>
   )
 }
 
@@ -359,19 +427,114 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
   )
 }
 
-// The Packages tab renders the in-bucket package-list idiom: a results-list,
-// one card per package member at its virtual name (not a tree of dir-rows).
+// The Packages tab replicates the in-bucket package-list presentation over the
+// DP's in-hand package members (a fixed list, not a search): a filter field, a
+// count + card/table toggle + sort toolbar, then a card grid or table — every
+// row/card link re-rooted DP-local (urls.dataProductPackage), never a
+// /b/<bucket>/ link. The in-bucket list is search-model-backed and its rows link
+// into the physical bucket, so its containers can be neither fed this list nor
+// reused without breaking the no-outbound-navigation invariant; hence the
+// model-agnostic primitives (SelectDropdown, the ToggleButtonGroup toggle, MUI
+// Paper/Table) are reused and the search-bound chrome is replicated.
+
+type PackageView = 'card' | 'table'
+
+const VIEW_STORAGE_KEY = 'QUILT_DP_PACKAGES_VIEW'
+
+// The display toggle persists across reloads, the faithful analogue of how the
+// bucket package list persists its view (that one rides the URL search state; a
+// DP is a fixed in-hand list, so a stored local preference plays the same role).
+function useViewMode(): [PackageView, (v: PackageView | null) => void] {
+  const [view, setView] = React.useState<PackageView>(() => {
+    try {
+      const v = localStorage.getItem(VIEW_STORAGE_KEY)
+      return v === 'card' || v === 'table' ? v : 'table'
+    } catch {
+      return 'table'
+    }
+  })
+  const set = React.useCallback((v: PackageView | null) => {
+    // ToggleButtonGroup fires null when the active button is re-clicked; ignore
+    // it so a view is always selected.
+    if (!v) return
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, v)
+    } catch {
+      // Privacy settings can make localStorage throw; the in-memory state still
+      // updates, we just don't persist.
+    }
+  }, [])
+  return [view, set]
+}
+
+type SortOrder = 'asc' | 'desc'
+
+// Members carry only their virtual name + provenance in hand (no size/date), so
+// the honest sort axis is the name — the A→Z / Z→A pair the bucket list also
+// offers, rendered through the same SelectDropdown.
+const sortOptions = [
+  { toString: () => 'Name: A → Z', valueOf: (): SortOrder => 'asc' },
+  { toString: () => 'Name: Z → A', valueOf: (): SortOrder => 'desc' },
+]
+
+const PER_PAGE = 30
+
+const pinOf = (member: PackageMember) =>
+  member.hashOrTag ? member.hashOrTag.slice(0, 10) : 'latest'
+
 function PackageCard({ member, to }: { member: PackageMember; to: string }) {
   const classes = useStyles()
-  const pin = member.hashOrTag ? member.hashOrTag.slice(0, 10) : 'latest'
   return (
     <M.Paper variant="outlined" className={classes.packageCard}>
       <Link to={to} className={classes.packageName}>
         {member.virtualName}
       </Link>
-      <Provenance>
-        {`${member.bucket} / ${member.name}`} @ {pin}
+      <Provenance inline>
+        {`${member.bucket} / ${member.name}`} @ {pinOf(member)}
       </Provenance>
+    </M.Paper>
+  )
+}
+
+function PackageTable({ id, members }: { id: string; members: PackageMember[] }) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Paper className={classes.tableRoot}>
+      <M.Table size="small">
+        <M.TableHead>
+          <M.TableRow>
+            <M.TableCell>Name</M.TableCell>
+            <M.TableCell>Provenance</M.TableCell>
+            <M.TableCell>Revision</M.TableCell>
+          </M.TableRow>
+        </M.TableHead>
+        <M.TableBody>
+          {members.map((p) => (
+            <M.TableRow key={p.virtualName} hover>
+              <M.TableCell>
+                <Link
+                  to={urls.dataProductPackage(id, p.virtualName)}
+                  className={classes.packageName}
+                >
+                  {p.virtualName}
+                </Link>
+              </M.TableCell>
+              <M.TableCell>
+                <M.Typography variant="body2" color="textSecondary">
+                  {p.bucket} / {p.name}
+                </M.Typography>
+              </M.TableCell>
+              <M.TableCell>
+                <M.Typography variant="body2" color="textSecondary">
+                  {pinOf(p)}
+                </M.Typography>
+              </M.TableCell>
+            </M.TableRow>
+          ))}
+        </M.TableBody>
+      </M.Table>
     </M.Paper>
   )
 }
@@ -379,19 +542,115 @@ function PackageCard({ member, to }: { member: PackageMember; to: string }) {
 function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const [view, setView] = useViewMode()
+  const [filter, setFilter] = React.useState('')
+  const [order, setOrder] = React.useState<SortOrder>('asc')
+  const [shown, setShown] = React.useState(PER_PAGE)
+
+  const sortValue = React.useMemo(
+    () => sortOptions.find((o) => o.valueOf() === order) || sortOptions[0],
+    [order],
+  )
+
+  const filtered = React.useMemo(() => {
+    const needle = filter.trim().toLowerCase()
+    const matched = needle
+      ? dp.members.packages.filter(
+          (p) =>
+            p.virtualName.toLowerCase().includes(needle) ||
+            `${p.bucket}/${p.name}`.toLowerCase().includes(needle),
+        )
+      : dp.members.packages.slice()
+    return [...matched].sort((a, b) =>
+      order === 'asc'
+        ? a.virtualName.localeCompare(b.virtualName)
+        : b.virtualName.localeCompare(a.virtualName),
+    )
+  }, [dp.members.packages, filter, order])
+
+  // Reveal from the top again whenever the result set changes (filter/sort).
+  React.useEffect(() => setShown(PER_PAGE), [filter, order])
+
+  const page = filtered.slice(0, shown)
+
   if (!dp.members.packages.length) {
     return <M.Typography color="textSecondary">No readable packages</M.Typography>
   }
+
   return (
-    <div className={classes.packageList}>
-      {dp.members.packages.map((p) => (
-        <PackageCard
-          key={p.virtualName}
-          member={p}
-          to={urls.dataProductPackage(id, p.virtualName)}
-        />
-      ))}
-    </div>
+    <>
+      <M.TextField
+        className={classes.filterField}
+        fullWidth
+        size="small"
+        variant="outlined"
+        placeholder="Filter packages"
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <M.InputAdornment position="start">
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          ),
+          endAdornment: !!filter && (
+            <M.InputAdornment position="end">
+              <M.IconButton edge="end" size="small" onClick={() => setFilter('')}>
+                <M.Icon>close</M.Icon>
+              </M.IconButton>
+            </M.InputAdornment>
+          ),
+        }}
+      />
+      <div className={classes.toolbar}>
+        <div className={classes.count}>{pluralize(filtered.length, 'package')}</div>
+        <div className={classes.toolbarControls}>
+          <Lab.ToggleButtonGroup
+            className={classes.viewToggle}
+            size="small"
+            exclusive
+            value={view}
+            onChange={(_e, v) => setView(v)}
+          >
+            <Lab.ToggleButton value="table">
+              <Icons.GridOn />
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="card">
+              <Icons.List />
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
+          <SelectDropdown
+            options={sortOptions}
+            value={sortValue}
+            onChange={(v) => setOrder(v.valueOf())}
+          >
+            Sort by:
+          </SelectDropdown>
+        </div>
+      </div>
+      {!filtered.length ? (
+        <M.Typography color="textSecondary">No packages match the filter</M.Typography>
+      ) : view === 'table' ? (
+        <PackageTable id={id} members={page} />
+      ) : (
+        <div>
+          {page.map((p) => (
+            <PackageCard
+              key={p.virtualName}
+              member={p}
+              to={urls.dataProductPackage(id, p.virtualName)}
+            />
+          ))}
+        </div>
+      )}
+      {filtered.length > shown && (
+        <div className={classes.loadMore}>
+          <M.Button variant="outlined" onClick={() => setShown((n) => n + PER_PAGE)}>
+            Load more
+          </M.Button>
+        </div>
+      )}
+    </>
   )
 }
 
