@@ -277,7 +277,7 @@ export default function Buckets() {
             onChange={changeType}
           >
             <Lab.ToggleButton value="all">All</Lab.ToggleButton>
-            <Lab.ToggleButton value="buckets">Buckets</Lab.ToggleButton>
+            <Lab.ToggleButton value="buckets">Volumes</Lab.ToggleButton>
             <Lab.ToggleButton value="data-products">Data products</Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
           {!!allTags.length && (

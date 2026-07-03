@@ -1,3 +1,5 @@
+import { dirname, resolve } from 'path'
+
 import * as React from 'react'
 import {
   Link,
@@ -39,6 +41,7 @@ import { useData } from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Resource from 'utils/Resource'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as s3paths from 'utils/s3paths'
@@ -244,6 +247,30 @@ function Tabs({ id, section }: TabsProps) {
   )
 }
 
+// Maps raw markdown link hrefs for content rendered under the DP route:
+// relative (Resource Path) links resolve against the member's virtual
+// logicalKey directory to a sibling DP-local URL; web URLs keep their default
+// behavior; s3:// and bucket-absolute pointers have no DP-local meaning and
+// stay as-is (inert strings) — never rewritten to a physical /b/<bucket>/
+// route.
+function useDPLinkProcessor(logicalKey: string, mkLink: (path: string) => string) {
+  return React.useCallback(
+    (href: string): string =>
+      Resource.Pointer.case({
+        Web: (url: string) => url,
+        S3: () => href,
+        S3Rel: () => href,
+        Path: (p: string) => {
+          if (p.startsWith('/')) return href
+          const hasSlash = p.endsWith('/')
+          const resolved = resolve(dirname(logicalKey), p).slice(1)
+          return mkLink(hasSlash ? `${resolved}/` : resolved)
+        },
+      })(Resource.parse(href)),
+    [logicalKey, mkLink],
+  )
+}
+
 // Renders a file's bytes in place under the DP route: the physical handle
 // (bucket/key/versionId) is used only to fetch bytes — the URL and UI stay
 // DP-local. The bucket is warmed first so cross-bucket presigned URLs get the
@@ -255,12 +282,22 @@ interface FileHandle {
   logicalKey: string
 }
 
-function FilePreview({ handle }: { handle: FileHandle }) {
+interface FilePreviewProps {
+  handle: FileHandle
+  // maps a DP-local logical path to its URL under /data-products/:id
+  mkLink: (path: string) => string
+}
+
+function FilePreview({ handle, mkLink }: FilePreviewProps) {
+  const processLink = useDPLinkProcessor(handle.logicalKey, mkLink)
   return (
     <Section icon="remove_red_eye" heading="Preview" expandable={false}>
       {useBucketExistence(handle.bucket).case({
         Ok: () =>
-          Preview.load(handle, renderPreview(), { context: Preview.CONTEXT.FILE }),
+          Preview.load(handle, renderPreview(), {
+            context: Preview.CONTEXT.FILE,
+            processLink,
+          }),
         Err: () => (
           <M.Typography color="error">
             Could not access the object's storage.
@@ -289,7 +326,8 @@ function Provenance({ children }: React.PropsWithChildren<{}>) {
 }
 
 // Fetches + renders the README member's markdown, like a bucket overview README.
-function ReadmePreview({ member }: { member: ObjectMember }) {
+function ReadmePreview({ id, member }: { id: string; member: ObjectMember }) {
+  const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
   const handle: Model.S3.S3ObjectLocation = React.useMemo(
     () => ({
@@ -299,11 +337,18 @@ function ReadmePreview({ member }: { member: ObjectMember }) {
     }),
     [member],
   )
+  const mkLink = React.useCallback(
+    (p: string) => urls.dataProductObjects(id, p),
+    [id, urls],
+  )
+  // Relative links resolve to sibling object members under the DP route —
+  // never to the physical bucket.
+  const processLink = useDPLinkProcessor(member.logicalKey, mkLink)
   const data = useData(requests.fetchFile, { s3, handle })
   return data.case({
     Err: () => null,
     Ok: ({ body }: { body?: { toString: (enc: string) => string } }) => (
-      <Markdown data={body?.toString('utf-8') ?? ''} />
+      <Markdown data={body?.toString('utf-8') ?? ''} processLink={processLink} />
     ),
     _: () => <M.CircularProgress />,
   })
@@ -356,7 +401,7 @@ function OverviewTab({ dp }: { dp: DataProduct }) {
       </M.Paper>
       {!!readmeMember && (
         <M.Paper className={classes.readmeCard}>
-          <ReadmePreview member={readmeMember} />
+          <ReadmePreview id={dp.id} member={readmeMember} />
         </M.Paper>
       )}
     </>
@@ -378,6 +423,13 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
     [id, urls],
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, dp.name)
+
+  // Relative markdown links inside a previewed member resolve to sibling
+  // object members under the DP route.
+  const mkLink = React.useCallback(
+    (p: string) => urls.dataProductObjects(id, p),
+    [id, urls],
+  )
 
   // The prefix of the virtual folder currently open (always '' or slash-ended);
   // breadcrumb clicks can arrive without the trailing slash, so normalize.
@@ -432,6 +484,7 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
               version: fileMember.versionId ?? undefined,
               logicalKey: fileMember.logicalKey,
             }}
+            mkLink={mkLink}
           />
         </>
       ) : items.length ? (
@@ -919,6 +972,9 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
                 hit={item.hit}
                 displayName={item.member.virtualName}
                 links={linksFor(item.member.virtualName)}
+                // metadata may carry s3:// strings — keep them plain text, never
+                // /b/<bucket>/ links
+                noS3Links
               />
             ) : (
               <PackageCardFallback
@@ -1048,6 +1104,13 @@ function PackageFile({ id, member, path, crumbs }: PackageBrowseProps) {
     path,
   })
 
+  // Relative markdown links inside a previewed entry resolve to sibling
+  // entries of the same package member under the DP route.
+  const mkLink = React.useCallback(
+    (p: string) => urls.dataProductPackage(id, member.virtualName, p),
+    [id, member.virtualName, urls],
+  )
+
   const renderCrumbs = () => (
     <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
       {BreadCrumbs.render(crumbs)}
@@ -1102,6 +1165,7 @@ function PackageFile({ id, member, path, crumbs }: PackageBrowseProps) {
               version: loc.version,
               logicalKey: file.path,
             }}
+            mkLink={mkLink}
           />
         </>
       )

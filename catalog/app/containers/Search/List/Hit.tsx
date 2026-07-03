@@ -168,6 +168,8 @@ interface PackageProps {
   showRevision?: boolean
   displayName?: string
   links?: PackageLinkBuilder
+  // render s3:// strings in the metadata display as plain text (no bucket links)
+  noS3Links?: boolean
 }
 
 export function Package({
@@ -176,6 +178,7 @@ export function Package({
   showRevision = false,
   displayName,
   links,
+  noS3Links = false,
   ...props
 }: PackageProps) {
   const bucketLinks = useBucketLinks()
@@ -237,7 +240,7 @@ export function Package({
 
       {!!metaJson && (
         <Section divider>
-          <JsonDisplay name="Metadata" value={metaJson} />
+          <JsonDisplay name="Metadata" value={metaJson} noS3Links={noS3Links} />
         </Section>
       )}
     </Card>
