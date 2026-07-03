@@ -3,6 +3,7 @@ import * as React from 'react'
 import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
+import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
 import { useRelevantBuckets } from 'utils/Buckets'
@@ -28,58 +29,29 @@ function useIsAdmin() {
   })
 }
 
-// Data products the active role owns — rendered as cards on the volume grid.
+// Data products the active role owns — merged into the volume list as rows,
+// sorted among themselves alphabetically by their displayed label.
 function useDataProducts() {
   const data = GQL.useQuery(DATA_PRODUCTS_QUERY)
-  return GQL.fold(data, {
-    data: ({ dataProducts }) => dataProducts,
+  const dataProducts = GQL.fold(data, {
+    data: (d) => d.dataProducts,
     fetching: () => [],
     error: () => [],
   })
-}
-
-const useDataProductStyles = M.makeStyles((t) => ({
-  card: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-  },
-  caption: {
-    color: t.palette.text.hint,
-    letterSpacing: 1,
-  },
-  title: {
-    ...t.typography.h6,
-    color: t.palette.tertiary.main,
-  },
-}))
-
-function DataProductCard({ dp }) {
-  const classes = useDataProductStyles()
-  const { urls } = NamedRoutes.use()
-  return (
-    <M.Card className={classes.card} data-testid="data-product-card">
-      <M.CardHeader
-        disableTypography
-        avatar={
-          <Link aria-hidden="true" tabIndex={-1} to={urls.dataProduct(dp.id)}>
-            <M.Avatar>
-              <M.Icon>view_module</M.Icon>
-            </M.Avatar>
-          </Link>
-        }
-        title={
-          <>
-            <M.Typography variant="overline" className={classes.caption} display="block">
-              Data product
-            </M.Typography>
-            <Link className={classes.title} to={urls.dataProduct(dp.id)}>
-              {dp.name}
-            </Link>
-          </>
-        }
-      />
-    </M.Card>
+  return React.useMemo(
+    () =>
+      R.sortBy(
+        (dp) => (dp.title || dp.name).toLowerCase(),
+        dataProducts.map((dp) => ({
+          id: dp.id,
+          name: dp.name,
+          title: dp.title,
+          description: dp.description,
+          objectCount: dp.definition.objects.length,
+          packageCount: dp.definition.packages.length,
+        })),
+      ),
+    [dataProducts],
   )
 }
 
@@ -109,6 +81,9 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+  },
+  typeToggle: {
+    flexShrink: 0,
   },
   tags: {
     alignItems: 'center',
@@ -153,13 +128,15 @@ export default function Buckets() {
   const classes = useStyles()
   // XXX: consider using graphql directly
   const buckets = useRelevantBuckets()
+  const dataProducts = useDataProducts()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
   const location = useLocation()
-  const { q: filter = '' } = parseSearch(location.search)
+  // 'type' rides beside 'q': absent = 'all', 'buckets' | 'data-products' narrow the list.
+  const { q: filter = '', type: typeFilter = 'all' } = parseSearch(location.search)
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],
@@ -177,26 +154,44 @@ export default function Buckets() {
     [buckets],
   )
 
+  // One combined list: data products first (fewer, curated), then buckets.
+  // Kept as two arrays — DPs always precede buckets, so a page slice of the
+  // concatenation is a DP run followed by a bucket run.
   const filtered = React.useMemo(() => {
-    if (!terms.length) return buckets
     const matches = R.allPass(R.map(R.includes, terms))
-    return buckets.filter(
-      R.pipe(
-        (b) => [b.title, b.name, b.description, ...(b.tags || [])],
-        R.filter(Boolean),
-        R.map(R.toLower),
-        R.any(matches),
+    const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
+    const dps =
+      typeFilter === 'buckets'
+        ? []
+        : dataProducts.filter(
+            (dp) => !terms.length || anyFieldMatches([dp.title, dp.name, dp.description]),
+          )
+    const bs =
+      typeFilter === 'data-products'
+        ? []
+        : buckets.filter(
+            (b) =>
+              !terms.length ||
+              anyFieldMatches([b.title, b.name, b.description, ...(b.tags || [])]),
+          )
+    return { dps, buckets: bs, total: dps.length + bs.length }
+  }, [terms, typeFilter, dataProducts, buckets])
+
+  const pages = Math.ceil(filtered.total / PER_PAGE)
+
+  const paginated = React.useMemo(() => {
+    if (pages <= 1) return filtered
+    const start = (page - 1) * PER_PAGE
+    const end = page * PER_PAGE
+    const dpTotal = filtered.dps.length
+    return {
+      dps: filtered.dps.slice(Math.min(start, dpTotal), Math.min(end, dpTotal)),
+      buckets: filtered.buckets.slice(
+        Math.max(0, start - dpTotal),
+        Math.max(0, end - dpTotal),
       ),
-    )
-  }, [terms, buckets])
-
-  const pages = Math.ceil(filtered.length / PER_PAGE)
-
-  const paginated = React.useMemo(
-    () =>
-      pages === 1 ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
-    [filtered, pages, page],
-  )
+    }
+  }, [filtered, pages, page])
 
   usePrevious(page, (prev) => {
     if (prev && page !== prev && scrollRef.current) {
@@ -216,16 +211,34 @@ export default function Buckets() {
     // TODO: handle route change
     //       and implement BucketGrid tag as <Link />
     if (filtering.value !== filter) {
-      history.push(urls.home({ q: filtering.value }))
+      history.push({
+        search: NamedRoutes.mkSearch({
+          q: filtering.value || undefined,
+          type: typeFilter === 'all' ? undefined : typeFilter,
+        }),
+      })
     }
-  }, [history, filtering.value, filter, urls])
+  }, [history, filtering.value, filter, typeFilter])
 
   const clearFilter = React.useCallback(() => {
     filtering.set()
   }, [filtering])
 
+  const changeType = React.useCallback(
+    (_e, value) => {
+      // exclusive ToggleButtonGroup emits null when the active button is clicked again
+      if (!value) return
+      history.push({
+        search: NamedRoutes.mkSearch({
+          q: filter || undefined,
+          type: value === 'all' ? undefined : value,
+        }),
+      })
+    },
+    [history, filter],
+  )
+
   const isAdmin = useIsAdmin()
-  const dataProducts = useDataProducts()
 
   return (
     <M.Container maxWidth={false} disableGutters className={classes.container}>
@@ -236,7 +249,7 @@ export default function Buckets() {
         <div className={classes.filterRow}>
           <M.TextField
             className={classes.filter}
-            placeholder="Find a bucket"
+            placeholder="Filter volumes"
             variant="outlined"
             margin="dense"
             fullWidth
@@ -256,6 +269,17 @@ export default function Buckets() {
             }}
             {...filtering.input}
           />
+          <Lab.ToggleButtonGroup
+            className={classes.typeToggle}
+            value={typeFilter}
+            exclusive
+            size="small"
+            onChange={changeType}
+          >
+            <Lab.ToggleButton value="all">All</Lab.ToggleButton>
+            <Lab.ToggleButton value="buckets">Buckets</Lab.ToggleButton>
+            <Lab.ToggleButton value="data-products">Data products</Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
           {!!allTags.length && (
             <div className={classes.tags}>
               <span className={classes.tagsLabel}>or use shortcuts:</span>
@@ -272,30 +296,17 @@ export default function Buckets() {
             </div>
           )}
         </div>
-        {dataProducts.length > 0 && (
-          <M.Box mb={2}>
-            <M.Typography variant="h4" color="textPrimary" gutterBottom>
-              Data products
-            </M.Typography>
-            <M.Grid container spacing={4}>
-              {dataProducts.map((dp) => (
-                <M.Grid item xs={12} sm={6} md={4} lg={3} key={dp.id}>
-                  <DataProductCard dp={dp} />
-                </M.Grid>
-              ))}
-            </M.Grid>
-          </M.Box>
-        )}
-        {paginated.length || !filter ? (
+        {filtered.total || !filter ? (
           <BucketList
-            buckets={paginated}
+            buckets={paginated.buckets}
+            dataProducts={paginated.dps}
             onTagClick={filtering.set}
             tagIsMatching={tagIsMatching}
             showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
           />
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets matching <b>&quot;{filter}&quot;</b>
+            No volumes matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
