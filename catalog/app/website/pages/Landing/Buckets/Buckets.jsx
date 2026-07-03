@@ -12,7 +12,7 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import BucketGrid from 'website/components/BucketGrid'
+import BucketList from 'website/components/BucketGrid/BucketList'
 
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
@@ -165,7 +165,7 @@ export default function Buckets() {
         {...filtering.input}
       />
       {paginated.length || !filter ? (
-        <BucketGrid
+        <BucketList
           buckets={paginated}
           onTagClick={filtering.set}
           tagIsMatching={tagIsMatching}

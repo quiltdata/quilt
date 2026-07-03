@@ -12,10 +12,8 @@ const useStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
   },
   badge: {
-    backgroundColor: t.palette.common.white,
-    border: `1px solid ${t.palette.primary.main}`,
-    color: t.palette.primary.main,
-    marginRight: 1,
+    backgroundColor: t.palette.primary.light,
+    color: t.palette.primary.contrastText,
   },
 }))
 

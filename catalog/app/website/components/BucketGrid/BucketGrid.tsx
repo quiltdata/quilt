@@ -68,7 +68,7 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
 }))
 
-interface Bucket {
+export interface Bucket {
   name: string
   title: string
   iconUrl: string | null
