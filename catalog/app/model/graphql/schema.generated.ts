@@ -1,5 +1,4 @@
 import type { IntrospectionQuery } from 'graphql'
-
 export default {
   __schema: {
     queryType: {
@@ -1686,6 +1685,15 @@ export default {
             args: [],
           },
           {
+            name: 'description',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'id',
             type: {
               kind: 'NON_NULL',
@@ -1730,6 +1738,15 @@ export default {
                 name: 'Role',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
             },
             args: [],
           },
@@ -2060,6 +2077,24 @@ export default {
       {
         kind: 'UNION',
         name: 'DataProductSetDefinitionResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'DataProduct',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'DataProductSetOwnContentResult',
         possibleTypes: [
           {
             kind: 'OBJECT',
@@ -3212,6 +3247,40 @@ export default {
                     kind: 'SCALAR',
                     name: 'ID',
                     ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'dataProductSetOwnContent',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'DataProductSetOwnContentResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
                   },
                 },
               },

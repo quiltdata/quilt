@@ -1,7 +1,7 @@
-import type { Json, JsonRecord } from 'utils/types'
+import type { Json } from 'utils/types'
+import type { JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
-
 export type Maybe<T> = T | null
 export type InputMaybe<T> = Maybe<T>
 /** All built-in and custom scalars, mapped to their actual values */
@@ -360,16 +360,20 @@ export interface DataProduct {
   readonly __typename: 'DataProduct'
   readonly createdAt: Scalars['Datetime']['output']
   readonly definition: DataProductDefinition
+  readonly description: Maybe<Scalars['String']['output']>
   readonly id: Scalars['ID']['output']
   readonly members: DataProductMembers
   readonly name: Scalars['String']['output']
   readonly ownerRole: Role
+  readonly title: Maybe<Scalars['String']['output']>
 }
 
 export interface DataProductCreateInput {
   readonly definition: InputMaybe<DataProductDefinitionInput>
+  readonly description: InputMaybe<Scalars['String']['input']>
   readonly name: Scalars['String']['input']
   readonly ownerRole: InputMaybe<Scalars['ID']['input']>
+  readonly title: InputMaybe<Scalars['String']['input']>
 }
 
 export type DataProductCreateResult = DataProduct | InvalidInput | OperationError
@@ -439,6 +443,13 @@ export interface DataProductPackageMember {
 }
 
 export type DataProductSetDefinitionResult = DataProduct | InvalidInput | OperationError
+
+export interface DataProductSetOwnContentInput {
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly title: InputMaybe<Scalars['String']['input']>
+}
+
+export type DataProductSetOwnContentResult = DataProduct | InvalidInput | OperationError
 
 export interface DatetimeExtents {
   readonly __typename: 'DatetimeExtents'
@@ -606,6 +617,7 @@ export interface Mutation {
   readonly bucketUpdate: BucketUpdateResult
   readonly dataProductCreate: DataProductCreateResult
   readonly dataProductSetDefinition: DataProductSetDefinitionResult
+  readonly dataProductSetOwnContent: DataProductSetOwnContentResult
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
@@ -679,6 +691,11 @@ export interface MutationdataProductCreateArgs {
 export interface MutationdataProductSetDefinitionArgs {
   definition: DataProductDefinitionInput
   id: Scalars['ID']['input']
+}
+
+export interface MutationdataProductSetOwnContentArgs {
+  id: Scalars['ID']['input']
+  input: DataProductSetOwnContentInput
 }
 
 export interface MutationpackageConstructArgs {
