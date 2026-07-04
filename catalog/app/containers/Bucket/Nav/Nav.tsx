@@ -25,16 +25,16 @@ function NavList({ bucket, preferences, section }: NavListProps) {
       show: preferences.files,
     },
     {
-      value: 'workflows',
-      label: 'Workflows',
-      to: urls.bucketWorkflowList(bucket),
-      show: preferences.workflows,
-    },
-    {
       value: 'packages',
       label: 'Packages',
       to: urls.bucketPackageList(bucket),
       show: preferences.packages,
+    },
+    {
+      value: 'workflows',
+      label: 'Workflows',
+      to: urls.bucketWorkflowList(bucket),
+      show: preferences.workflows,
     },
   ]
   return (
