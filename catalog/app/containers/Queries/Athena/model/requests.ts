@@ -1,4 +1,5 @@
 import type { Athena, AWSError } from 'aws-sdk'
+import pLimit from 'p-limit'
 import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
@@ -34,27 +35,81 @@ function listIncludes(list: string[], value: string): boolean {
 
 export type Workgroup = string
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+const TRANSIENT_AWS_ERROR_CODES = new Set([
+  'ThrottlingException',
+  'TooManyRequestsException',
+  'Throttling',
+  'RequestThrottled',
+  'RequestThrottledException',
+  'NetworkingError',
+  'TimeoutError',
+  'RequestTimeout',
+])
+
+// Transient = worth retrying: throttling, any 5xx, or a network/timeout error.
+// Everything else (AccessDenied, InvalidRequest, unknown) is definitive.
+function isTransientAwsError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false
+  const { code, statusCode } = e as Error & { code?: string; statusCode?: number }
+  if (code && TRANSIENT_AWS_ERROR_CODES.has(code)) return true
+  return typeof statusCode === 'number' && statusCode >= 500
+}
+
+function isAwsErrorInvalidRequest(e: unknown): e is AWSError {
+  return (
+    e instanceof Error &&
+    (e as Error & { code?: string }).code === 'InvalidRequestException'
+  )
+}
+
+// Per-workgroup probe (getWorkGroup) resilience. During cold-load credential
+// warmup Athena throttles the ~90-call probe fan-out; a transient failure on the
+// one accessible workgroup would otherwise be indistinguishable from a by-design
+// AccessDenied, drop it from the list, and surface a false "Workgroup not found".
+// Retry only transient failures with bounded exponential backoff + jitter;
+// by-design denials must stay exactly one call each.
+const WORKGROUP_PROBE_RETRIES = 3
+const WORKGROUP_PROBE_BACKOFF_MS = 200
+// Bound the per-page probe fan-out so a page of 50 inaccessible workgroups
+// doesn't fire 50 concurrent getWorkGroup calls and trigger throttling at source.
+const WORKGROUP_PROBE_CONCURRENCY = 10
+
 async function fetchWorkgroup(
   athena: Athena,
   workgroup: Workgroup,
 ): Promise<Workgroup | null> {
-  try {
-    const workgroupOutput = await athena.getWorkGroup({ WorkGroup: workgroup }).promise()
-    if (
-      workgroupOutput?.WorkGroup?.Configuration?.ResultConfiguration?.OutputLocation &&
-      workgroupOutput?.WorkGroup?.State === 'ENABLED' &&
-      workgroupOutput?.WorkGroup?.Name
-    ) {
-      return workgroupOutput.WorkGroup.Name
-    }
-    return null
-  } catch (error) {
-    if (isAwsErrorAccessDenied(error)) {
-      Log.info(`Fetching "${workgroup}" workgroup failed: ${error.code}`)
-    } else {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const workgroupOutput = await athena
+        .getWorkGroup({ WorkGroup: workgroup })
+        .promise()
+      if (
+        workgroupOutput?.WorkGroup?.Configuration?.ResultConfiguration?.OutputLocation &&
+        workgroupOutput?.WorkGroup?.State === 'ENABLED' &&
+        workgroupOutput?.WorkGroup?.Name
+      ) {
+        return workgroupOutput.WorkGroup.Name
+      }
+      return null
+    } catch (error) {
+      // Definitive denial: never retried (the ~89 by-design denials on this
+      // account must stay one call each).
+      if (isAwsErrorAccessDenied(error) || isAwsErrorInvalidRequest(error)) {
+        Log.info(`Fetching "${workgroup}" workgroup failed: ${(error as AWSError).code}`)
+        return null
+      }
+      // Transient (throttle / 5xx / network): retry so a momentary throttle
+      // doesn't drop an accessible workgroup and produce a false-empty list.
+      if (isTransientAwsError(error) && attempt < WORKGROUP_PROBE_RETRIES - 1) {
+        const backoff = WORKGROUP_PROBE_BACKOFF_MS * 2 ** attempt
+        await sleep(backoff + Math.random() * WORKGROUP_PROBE_BACKOFF_MS)
+        continue
+      }
       Log.error(`Fetching "${workgroup}" workgroup failed:`, error)
+      return null
     }
-    return null
   }
 }
 
@@ -69,6 +124,8 @@ async function fetchWorkgroups(
   try {
     const list: Workgroup[] = []
     let token: string | undefined
+    // Bound the per-page probe fan-out; see WORKGROUP_PROBE_CONCURRENCY.
+    const limit = pLimit(WORKGROUP_PROBE_CONCURRENCY)
     // Drain to exhaustion. Pages may contain only workgroups the caller can't
     // getWorkGroup on (filtered to null); accounts with >50 workgroups in a
     // region can push the caller's accessible workgroup to a later page.
@@ -80,7 +137,9 @@ async function fetchWorkgroups(
         .promise()
       const parsed = (out.WorkGroups || []).map(({ Name }) => Name || '').filter(Boolean)
       const available = (
-        await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
+        await Promise.all(
+          parsed.map((workgroup) => limit(() => fetchWorkgroup(athena, workgroup))),
+        )
       ).filter((w): w is Workgroup => w !== null)
       list.push(...available)
       token = out.NextToken
@@ -95,15 +154,35 @@ async function fetchWorkgroups(
 export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
   const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
+  // The AWS credentials identity flaps several times during cold-load warmup and
+  // each flap yields a NEW athena client object, re-firing this [athena] effect.
+  // Left unguarded, every flap restarts the entire ~90-workgroup probe fan-out
+  // (observed 7 passes -> ~930 calls), throttling Athena until the one accessible
+  // workgroup's probe fails and the list resolves empty -> a false "Workgroup not
+  // found". Dedupe to a single in-flight pass: a re-fired effect joins the
+  // existing fan-out instead of launching another. AWS.Athena.use() suspends
+  // until credentials are usable, so the first client we capture is already valid.
+  const mountedRef = React.useRef(true)
+  const inFlightRef = React.useRef<Promise<Model.Data<Model.List<Workgroup>>> | null>(
+    null,
+  )
+  React.useEffect(
+    () => () => {
+      mountedRef.current = false
+    },
+    [],
+  )
   React.useEffect(() => {
     if (!athena) return
-    let mounted = true
-    fetchWorkgroups(athena, () => mounted)
-      .then((d) => mounted && setData(d))
-      .catch((d) => mounted && setData(d))
-    return () => {
-      mounted = false
+    if (!inFlightRef.current) {
+      inFlightRef.current = fetchWorkgroups(athena, () => mountedRef.current).catch(
+        (e: unknown): Model.Data<Model.List<Workgroup>> =>
+          e instanceof Error ? e : new Error(String(e)),
+      )
     }
+    inFlightRef.current.then((d) => {
+      if (mountedRef.current) setData(d)
+    })
   }, [athena])
   return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }

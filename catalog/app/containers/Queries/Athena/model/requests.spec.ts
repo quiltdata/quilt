@@ -844,6 +844,99 @@ describe('containers/Queries/Athena/model/requests', () => {
         unmount()
       })
     })
+
+    it('retries a transient probe failure and resolves the workgroup', async () => {
+      vi.useFakeTimers()
+      listWorkGroups.mockImplementation(
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({
+          WorkGroups: [{ Name: 'foo' }],
+        })),
+      )
+      let calls = 0
+      getWorkGroup.mockImplementation(({ WorkGroup: Name }: A.GetWorkGroupInput) => ({
+        promise: () => {
+          calls += 1
+          // Throttle the first probe, succeed on the retry.
+          return calls === 1
+            ? Promise.reject(new AWSError('ThrottlingException'))
+            : Promise.resolve<A.GetWorkGroupOutput>({
+                WorkGroup: {
+                  Name,
+                  State: 'ENABLED',
+                  Configuration: { ResultConfiguration: { OutputLocation: 'any' } },
+                },
+              })
+        },
+      }))
+      try {
+        const { result, unmount } = renderHook(() => requests.useWorkgroups())
+        await act(async () => {
+          await vi.runAllTimersAsync()
+        })
+        expect(result.current.data).toMatchObject({ list: ['foo'] })
+        expect(getWorkGroup).toHaveBeenCalledTimes(2)
+        unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('probes each workgroup once and never retries AccessDenied', async () => {
+      listWorkGroups.mockImplementation(
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({
+          WorkGroups: [{ Name: 'a' }, { Name: 'b' }, { Name: 'c' }],
+        })),
+      )
+      getWorkGroup.mockImplementation(reqThrowWith(new AWSError('AccessDeniedException')))
+
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+        // One call per by-design denial, no retries.
+        expect(getWorkGroup).toHaveBeenCalledTimes(3)
+        unmount()
+      })
+    })
+
+    it('bounds probe concurrency to the pool size', async () => {
+      vi.useFakeTimers()
+      const WorkGroups = Array.from({ length: 25 }, (_, i) => ({ Name: `wg-${i}` }))
+      listWorkGroups.mockImplementation(
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({ WorkGroups })),
+      )
+      let inFlight = 0
+      let maxInFlight = 0
+      getWorkGroup.mockImplementation(({ WorkGroup: Name }: A.GetWorkGroupInput) => ({
+        promise: () => {
+          inFlight += 1
+          maxInFlight = Math.max(maxInFlight, inFlight)
+          return new Promise<A.GetWorkGroupOutput>((resolve) => {
+            setTimeout(() => {
+              inFlight -= 1
+              resolve({
+                WorkGroup: {
+                  Name,
+                  State: 'ENABLED',
+                  Configuration: { ResultConfiguration: { OutputLocation: 'any' } },
+                },
+              })
+            }, 10)
+          })
+        },
+      }))
+      try {
+        const { result, unmount } = renderHook(() => requests.useWorkgroups())
+        await act(async () => {
+          await vi.runAllTimersAsync()
+        })
+        expect(maxInFlight).toBeGreaterThan(1)
+        expect(maxInFlight).toBeLessThanOrEqual(10)
+        expect(Model.hasData(result.current.data)).toBe(true)
+        unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 
   describe('useExecutions', () => {
