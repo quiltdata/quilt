@@ -124,10 +124,10 @@ export function Sidebar() {
   // Volumes also owns bucket-browsing routes (`/b/*`), since that's where
   // clicking into a volume from the home list leads. Data products are volumes
   // too (an un-bucketed virtual volume), so `/data-products/*` highlights it as
-  // well.
+  // well — but only when the Data Products flag is on (off, those paths 404).
   const isHome = !!useRouteMatch({ path: paths.home, exact: true })
   const isBucket = !!useRouteMatch(paths.bucketRoot)
-  const isDataProduct = !!useRouteMatch(paths.dataProduct)
+  const isDataProduct = !!useRouteMatch(paths.dataProduct) && !!settings?.dataProducts
   const volumesActive = isHome || isBucket || isDataProduct
   const searchActive = !!useRouteMatch(paths.search)
   const queriesActive = !!useRouteMatch(paths.queries)

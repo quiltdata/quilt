@@ -16,32 +16,34 @@ import SearchSettings from './SearchSettings'
 import TabulatorSettings from './TabulatorSettings'
 import ThemeEditor from './ThemeEditor'
 
-function useBeta(): [boolean, (b: boolean) => Promise<void>] {
+type FeatureFlag = 'beta' | 'dataProducts'
+
+function useFeatureFlag(flag: FeatureFlag): [boolean, (b: boolean) => Promise<void>] {
   const settings = CatalogSettings.use()
   const writeSettings = CatalogSettings.useWriteSettings()
   const onChange = React.useCallback(
-    (beta: boolean) =>
+    (enabled: boolean) =>
       writeSettings({
         ...settings,
-        beta,
+        [flag]: enabled,
       }),
-    [settings, writeSettings],
+    [flag, settings, writeSettings],
   )
-  return [settings?.beta || false, onChange]
+  return [settings?.[flag] || false, onChange]
 }
 
-function BetaSwitch() {
-  const [beta, setBeta] = useBeta()
-  const [value, setValue] = React.useState(beta)
+function FeatureFlagSwitch({ flag }: { flag: FeatureFlag }) {
+  const [enabled, setEnabled] = useFeatureFlag(flag)
+  const [value, setValue] = React.useState(enabled)
   const [disabled, setDisabled] = React.useState(false)
   const handleChange = React.useCallback(
     async (event, checked) => {
       setDisabled(true)
       setValue(checked)
-      await setBeta(checked)
+      await setEnabled(checked)
       setDisabled(false)
     },
-    [setBeta],
+    [setEnabled],
   )
   return <M.Switch checked={value} onChange={handleChange} disabled={disabled} />
 }
@@ -326,7 +328,15 @@ export default function Settings() {
             <M.Typography variant="h6" className={classes.sectionHeading}>
               Enable beta features
             </M.Typography>
-            <BetaSwitch />
+            <FeatureFlagSwitch flag="beta" />
+          </M.Paper>
+        </M.Grid>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
+              Data Products
+            </M.Typography>
+            <FeatureFlagSwitch flag="dataProducts" />
           </M.Paper>
         </M.Grid>
       </M.Grid>

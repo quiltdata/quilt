@@ -8,6 +8,7 @@ import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
 import { useRelevantBuckets } from 'utils/Buckets'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -33,8 +34,10 @@ function useIsAdmin() {
 
 // Data products the active role owns — merged into the volume list as rows,
 // sorted among themselves alphabetically by their displayed label.
-function useDataProducts() {
-  const data = GQL.useQuery(DATA_PRODUCTS_QUERY)
+// When the admin-configured Data Products flag is off the query is paused
+// (never fired) and this resolves to an empty list.
+function useDataProducts(enabled) {
+  const data = GQL.useQuery(DATA_PRODUCTS_QUERY, undefined, { pause: !enabled })
   const dataProducts = GQL.fold(data, {
     data: (d) => d.dataProducts,
     fetching: () => [],
@@ -134,9 +137,13 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Buckets() {
   const classes = useStyles()
+  // Admin-configured feature flag (Admin > Settings > Data Products). Reading it
+  // suspends until the catalog settings load, so the list renders with the final
+  // value — no flash of data-product rows.
+  const dataProductsEnabled = !!CatalogSettings.use()?.dataProducts
   // XXX: consider using graphql directly
   const buckets = useRelevantBuckets()
-  const dataProducts = useDataProducts()
+  const dataProducts = useDataProducts(dataProductsEnabled)
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const [page, setPage] = React.useState(1)
@@ -147,9 +154,12 @@ export default function Buckets() {
   // 'view' rides beside both: absent = 'list' (dense rows), 'card' switches to a grid.
   const {
     q: filter = '',
-    type: typeFilter = 'all',
+    type: rawTypeFilter = 'all',
     view: viewMode = 'list',
   } = parseSearch(location.search)
+  // With data products off the type dimension collapses (all == buckets), so any
+  // ?type= riding in the URL is ignored and the toggle is hidden.
+  const typeFilter = dataProductsEnabled ? rawTypeFilter : 'all'
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],
@@ -303,17 +313,19 @@ export default function Buckets() {
             }}
             {...filtering.input}
           />
-          <Lab.ToggleButtonGroup
-            className={classes.typeToggle}
-            value={typeFilter}
-            exclusive
-            size="small"
-            onChange={changeType}
-          >
-            <Lab.ToggleButton value="all">All</Lab.ToggleButton>
-            <Lab.ToggleButton value="buckets">Buckets</Lab.ToggleButton>
-            <Lab.ToggleButton value="data-products">Data products</Lab.ToggleButton>
-          </Lab.ToggleButtonGroup>
+          {dataProductsEnabled && (
+            <Lab.ToggleButtonGroup
+              className={classes.typeToggle}
+              value={typeFilter}
+              exclusive
+              size="small"
+              onChange={changeType}
+            >
+              <Lab.ToggleButton value="all">All</Lab.ToggleButton>
+              <Lab.ToggleButton value="buckets">Buckets</Lab.ToggleButton>
+              <Lab.ToggleButton value="data-products">Data products</Lab.ToggleButton>
+            </Lab.ToggleButtonGroup>
+          )}
           <Lab.ToggleButtonGroup
             className={classes.viewToggle}
             value={viewMode}
