@@ -70,6 +70,9 @@ const useStyles = M.makeStyles((t) => ({
   filterRow: {
     alignItems: 'center',
     display: 'flex',
+    // Let the type/view toggles (and tag shortcuts) wrap below the filter input
+    // at narrow widths instead of overflowing and clipping the toggle labels.
+    flexWrap: 'wrap',
     gap: t.spacing(2),
     [t.breakpoints.down('xs')]: {
       alignItems: 'flex-start',
