@@ -57,6 +57,7 @@ function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) 
           </M.MenuItem>
         ))}
       </M.Select>
+      {!value && <M.FormHelperText>Select a workgroup to run queries</M.FormHelperText>}
     </M.FormControl>
   )
 }
@@ -95,9 +96,11 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
 export default function AthenaWorkgroups() {
   const { queryRun, workgroup, workgroups } = Model.use()
 
+  // A genuine failure while listing workgroups stays a hard error.
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
-  if (Model.isError(workgroup.data)) return <WorkgroupsEmpty error={workgroup.data} />
-  if (!Model.hasData(workgroups.data) || !Model.hasData(workgroup.data)) {
+
+  // Still loading the list, or resolving which workgroup is current.
+  if (!Model.hasData(workgroups.data) || !Model.isReady(workgroup.data)) {
     return (
       <>
         <Skeleton height={24} width={128} animate />
@@ -106,12 +109,15 @@ export default function AthenaWorkgroups() {
     )
   }
 
-  if (!workgroups.data.list.length) return <WorkgroupsEmpty />
-
+  // No workgroup selected or available (e.g. workspace scope with no context):
+  // render the selector with a neutral "Select a workgroup to run queries"
+  // prompt rather than a red "Workgroup not found" error banner. `useWorkgroup`
+  // resolves to an Error only when the list is empty, so a disabled/empty
+  // selector reads as the graceful prompt state.
   return (
     <WorkgroupSelect
       disabled={Model.isLoading(queryRun)}
-      value={workgroup.data}
+      value={Model.hasData(workgroup.data) ? workgroup.data : null}
       workgroups={workgroups.data}
     />
   )
