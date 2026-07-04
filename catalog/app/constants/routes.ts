@@ -76,7 +76,10 @@ export const dataProduct = route(
 
 export const dataProductObjects = route(
   '/data-products/:id/objects/:path(.*)?',
-  (id: string, path = '') => `/data-products/${id}/objects/${path}`,
+  // encode the logical key per segment (like dataProductPackage / bucketFile),
+  // so a key containing url-significant chars (#, %, ?) can't break the URL;
+  // the consumer (DataProduct ObjectsTab) decodes it back symmetrically.
+  (id: string, path = '') => `/data-products/${id}/objects/${encode(path)}`,
 )
 
 export const dataProductPackages = route(

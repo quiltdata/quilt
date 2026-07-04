@@ -1,6 +1,8 @@
 import { matchPath } from 'react-router-dom'
 import { describe, it, expect } from 'vitest'
 
+import { decode } from 'utils/s3paths'
+
 import {
   bucketPackageAddFiles,
   dataProduct,
@@ -116,6 +118,31 @@ describe('constants/routes', () => {
 
       expect(match?.params?.id).toBe(id)
       expect(match?.params?.path).toBe(treePath)
+    })
+
+    it('encodes a logical key containing url-significant chars', () => {
+      const { path, url } = dataProductObjects
+
+      const id = 'dp-42'
+      const treePath = 'weird #1/file %20.csv'
+
+      const generatedUrl = url(id, treePath)
+      // the raw key must not leak #, %, or ? into the URL where they would be
+      // reparsed as a fragment / escape / query
+      expect(generatedUrl).toBe(
+        '/data-products/dp-42/objects/weird%20%231/file%20%2520.csv',
+      )
+
+      const { pathname } = new URL(generatedUrl, 'http://localhost')
+
+      type MatchParams = { id: string; path?: string }
+      const match = matchPath<MatchParams>(pathname, { path, exact: true })
+
+      expect(match?.params?.id).toBe(id)
+      // react-router does not decode params; the per-segment encoding round-trips
+      // back to the original key only after decode (see utils/s3paths.decode),
+      // mirroring how DataProduct ObjectsTab reads the param.
+      expect(decode(match?.params?.path ?? '')).toBe(treePath)
     })
   })
 
