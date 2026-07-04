@@ -12,6 +12,8 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 
+import { BucketQueriesRedirect } from './queryRedirects'
+
 const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 function RedirectTo({ path }) {
@@ -38,50 +40,6 @@ function BucketSearchRedirect() {
   const params = parseSearch(search, true)
   const url = urls.search({ buckets: bucket, ...params })
   return <Redirect to={url} />
-}
-
-function AthenaWorkgroupRedirect() {
-  const { workgroup } = useParams()
-  const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaWorkgroup(workgroup)} />
-}
-
-function AthenaExecutionRedirect() {
-  const { workgroup, queryExecutionId } = useParams()
-  const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaExecution(workgroup, queryExecutionId)} />
-}
-
-function AthenaRootRedirect() {
-  const { bucket } = useParams()
-  const { search } = useLocation()
-  const { urls } = NamedRoutes.use()
-  // The bucket segment becomes the console's `?bucket=` scope param (keeping
-  // `?table=` tabulator deep links alive); the rest of the search is preserved.
-  const params = parseSearch(search, true)
-  return <Redirect to={urls.queriesAthena({ bucket, ...params })} />
-}
-
-// Legacy bucket-scoped query console URLs redirect to the workspace-global
-// /queries screens (the bucket is not a home for the consoles anymore).
-function BucketQueriesRedirect() {
-  const { paths, urls } = NamedRoutes.use()
-  return (
-    <Switch>
-      <Route path={paths.bucketESQueries} exact>
-        <Redirect to={urls.queriesEs()} />
-      </Route>
-      <Route path={paths.bucketAthenaExecution} exact>
-        <AthenaExecutionRedirect />
-      </Route>
-      <Route path={paths.bucketAthenaWorkgroup} exact>
-        <AthenaWorkgroupRedirect />
-      </Route>
-      <Route>
-        <AthenaRootRedirect />
-      </Route>
-    </Switch>
-  )
 }
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })

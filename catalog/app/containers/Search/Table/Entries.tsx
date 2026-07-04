@@ -274,6 +274,9 @@ export default function Entries({
   links: linksProp,
 }: EntriesProps) {
   const bucketLinks = useBucketLinks()
+  // INVARIANT: DP call sites (containers/DataProduct PackagesTab) MUST pass
+  // `links`; omitting it falls back to /b/<bucket>/ routes, breaking the DP
+  // no-/b/ invariant (guarded by a DP regression test).
   const links = linksProp ?? bucketLinks
 
   const classes = useStyles()

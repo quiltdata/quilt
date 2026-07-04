@@ -182,6 +182,10 @@ export function Package({
   ...props
 }: PackageProps) {
   const bucketLinks = useBucketLinks()
+  // INVARIANT: DP call sites (containers/DataProduct PackagesTab) MUST pass
+  // `links` — omitting it silently falls back to /b/<bucket>/ bucket routes,
+  // breaking the DP no-/b/ invariant with no signal (guarded by a regression
+  // test in containers/DataProduct).
   const { packageRoot } = links ?? bucketLinks
 
   // this is actually a string, so we need to parse it

@@ -187,6 +187,9 @@ export default function CellValue({ column, hit, displayName, links }: CellValue
           hit={hit}
           filter={column.filter}
           displayName={displayName}
+          // INVARIANT: DP call sites (containers/DataProduct PackagesTab) MUST
+          // pass `links`; omitting it falls back to /b/<bucket>/ routes,
+          // breaking the DP no-/b/ invariant (guarded by a DP regression test).
           links={links ?? bucketLinks}
         />
       )
