@@ -270,6 +270,10 @@ export default function Buckets() {
 
   const isAdmin = useIsAdmin()
 
+  // The in-list 'Add a bucket' row; the standalone button below is hidden
+  // whenever it shows so the two add affordances don't both appear.
+  const showAddLink = !filter && buckets.length <= PER_PAGE - 1 && isAdmin
+
   return (
     <M.Container maxWidth={false} disableGutters className={classes.container}>
       <div className={classes.wrapper} ref={scrollRef}>
@@ -347,7 +351,7 @@ export default function Buckets() {
               dataProducts={paginated.dps}
               onTagClick={filtering.set}
               tagIsMatching={tagIsMatching}
-              showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
+              showAddLink={showAddLink}
             />
           ) : (
             <BucketList
@@ -355,7 +359,7 @@ export default function Buckets() {
               dataProducts={paginated.dps}
               onTagClick={filtering.set}
               tagIsMatching={tagIsMatching}
-              showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
+              showAddLink={showAddLink}
             />
           )
         ) : (
@@ -365,7 +369,7 @@ export default function Buckets() {
         )}
         <div className={classes.controls}>
           <M.Box>
-            {buckets.length > 2 && isAdmin && (
+            {buckets.length > 2 && isAdmin && !showAddLink && (
               <M.Button
                 variant="contained"
                 color="primary"

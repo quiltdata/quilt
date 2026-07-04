@@ -28,8 +28,13 @@ const useStyles = M.makeStyles((t) => ({
   tabsRow: {
     padding: t.spacing(0, 3),
   },
+  // The active tab's content (Athena form/editor, ES editor) lives in its own
+  // elevated white card so the header above doesn't read as an orphaned float —
+  // same padding idiom as the DP screen's section cards.
   section: {
-    padding: t.spacing(2, 0),
+    backgroundColor: t.palette.common.white,
+    color: t.palette.getContrastText(t.palette.common.white),
+    padding: t.spacing(3),
   },
 }))
 
@@ -68,7 +73,7 @@ function QueriesScreen() {
         </div>
       </M.Paper>
 
-      <div className={classes.section}>
+      <M.Paper className={classes.section}>
         <Switch>
           <Route path={paths.queriesEs} exact>
             <ElasticSearch />
@@ -86,7 +91,7 @@ function QueriesScreen() {
             <Redirect to={urls.queriesAthena()} />
           </Route>
         </Switch>
-      </div>
+      </M.Paper>
     </Container>
   )
 }

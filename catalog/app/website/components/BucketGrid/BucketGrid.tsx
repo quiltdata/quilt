@@ -18,6 +18,10 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
     flexDirection: 'column',
     // Fill the grid cell so cards in the same row are equal height.
     height: '100%',
+    // Floor every variant to the tallest regular one (the DP card: description
+    // + chip + counts) so grid rows stay uniform instead of ragged; the
+    // flexGrow spacer below absorbs the slack when content is shorter.
+    minHeight: t.spacing(26),
   },
   // Keep the collaborators badge within the header padding (drop CardHeader's
   // default negative margins).
@@ -232,7 +236,8 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
     display: 'flex',
     height: '100%',
     justifyContent: 'center',
-    minHeight: t.spacing(25),
+    // Match the card floor so the Add tile's row lines up with the rest.
+    minHeight: t.spacing(26),
     '&:hover': {
       background: fade(t.palette.tertiary.main, 0.04),
     },

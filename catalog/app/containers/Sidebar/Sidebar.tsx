@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import * as Assistant from 'components/Assistant'
 import Logo from 'components/Logo'
@@ -41,6 +42,20 @@ const useStyles = M.makeStyles((t) => ({
   },
   nav: {
     paddingTop: t.spacing(2),
+  },
+  // The active nav item needs to read louder than the always-selected workspace
+  // chip (which keeps the default 0.16 fill): a stronger fill plus a heavier
+  // label, applied only to these items.
+  navItem: {
+    '&.Mui-selected': {
+      backgroundColor: fade(t.palette.common.white, 0.24),
+      '&:hover': {
+        backgroundColor: fade(t.palette.common.white, 0.32),
+      },
+      '& .MuiListItemText-primary': {
+        fontWeight: t.typography.fontWeightMedium,
+      },
+    },
   },
   spacer: {
     flexGrow: 1,
@@ -160,7 +175,13 @@ export function Sidebar() {
         )}
 
         <M.List disablePadding className={classes.nav}>
-          <M.ListItem button component={Link} to={urls.home()} selected={volumesActive}>
+          <M.ListItem
+            button
+            component={Link}
+            to={urls.home()}
+            selected={volumesActive}
+            className={classes.navItem}
+          >
             <M.ListItemIcon className={classes.icon}>
               <OutlinedIcon>storage</OutlinedIcon>
             </M.ListItemIcon>
@@ -171,6 +192,7 @@ export function Sidebar() {
             component={Link}
             to={urls.search({})}
             selected={searchActive}
+            className={classes.navItem}
           >
             <M.ListItemIcon className={classes.icon}>
               <OutlinedIcon>search</OutlinedIcon>
@@ -182,6 +204,7 @@ export function Sidebar() {
             component={Link}
             to={urls.queries()}
             selected={queriesActive}
+            className={classes.navItem}
           >
             <M.ListItemIcon className={classes.icon}>
               <OutlinedIcon>table_chart</OutlinedIcon>
@@ -205,7 +228,13 @@ export function Sidebar() {
             </M.ListItem>
           )}
           {user?.isAdmin && (
-            <M.ListItem button component={Link} to={urls.admin()} selected={adminActive}>
+            <M.ListItem
+              button
+              component={Link}
+              to={urls.admin()}
+              selected={adminActive}
+              className={classes.navItem}
+            >
               <M.ListItemIcon className={classes.icon}>
                 <OutlinedIcon>security</OutlinedIcon>
               </M.ListItemIcon>
