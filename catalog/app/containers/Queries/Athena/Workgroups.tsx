@@ -109,11 +109,13 @@ export default function AthenaWorkgroups() {
     )
   }
 
-  // No workgroup selected or available (e.g. workspace scope with no context):
-  // render the selector with a neutral "Select a workgroup to run queries"
-  // prompt rather than a red "Workgroup not found" error banner. `useWorkgroup`
-  // resolves to an Error only when the list is empty, so a disabled/empty
-  // selector reads as the graceful prompt state.
+  // Zero workgroups exist at all: keep the informative empty state (admin
+  // guidance + docs link) — a bare selector would offer nothing to select.
+  if (!workgroups.data.list.length) return <WorkgroupsEmpty />
+
+  // Workgroups exist but none is selected (e.g. workspace scope with no
+  // context): render the selector with a neutral "Select a workgroup to run
+  // queries" prompt rather than a red "Workgroup not found" error banner.
   return (
     <WorkgroupSelect
       disabled={Model.isLoading(queryRun)}
