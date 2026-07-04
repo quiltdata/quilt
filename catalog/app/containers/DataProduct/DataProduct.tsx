@@ -295,7 +295,7 @@ function Tabs({ id, section }: TabsProps) {
       />
       <NavTab
         className={classes.tab}
-        label="Objects"
+        label="Files"
         value="objects"
         to={urls.dataProductObjects(id)}
       />

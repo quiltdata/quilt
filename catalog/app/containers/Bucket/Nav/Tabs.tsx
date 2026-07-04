@@ -49,7 +49,10 @@ function TabsList({ bucket, preferences, section = false }: TabsListProps) {
     <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
       <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
-        <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
+        <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
+      )}
+      {preferences.packages && (
+        <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}
       {preferences.workflows && (
         <NavTab
@@ -57,9 +60,6 @@ function TabsList({ bucket, preferences, section = false }: TabsListProps) {
           value="workflows"
           to={urls.bucketWorkflowList(bucket)}
         />
-      )}
-      {preferences.packages && (
-        <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}
     </M.Tabs>
   )
