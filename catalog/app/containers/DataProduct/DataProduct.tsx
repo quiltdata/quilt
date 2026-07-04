@@ -15,6 +15,7 @@ import * as Lab from '@material-ui/lab'
 import * as Icons from '@material-ui/icons'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import Empty from 'components/Empty'
 import Layout, { Container } from 'components/Layout'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
@@ -42,6 +43,7 @@ import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
 import { useData } from 'utils/Data'
+import * as Format from 'utils/format'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -100,6 +102,24 @@ const useStyles = M.makeStyles((t) => ({
   tabsRow: {
     padding: t.spacing(0, 3),
   },
+  // Only three short, fixed tabs — let them size to content so the strip never
+  // needs to scroll at the narrow (<=800px) content widths the persistent
+  // sidebar leaves; the 160px sm-breakpoint floor would otherwise overflow and
+  // force scroll mode.
+  tab: {
+    minWidth: 0,
+    [t.breakpoints.up('sm')]: {
+      minWidth: 0,
+    },
+  },
+  // Belt-and-suspenders for any residual overflow: a disabled scroll chevron
+  // (e.g. the left one at the start) collapses to zero width instead of
+  // occupying 40px and clipping the first tab into a sliver.
+  tabScrollButtons: {
+    '&.Mui-disabled': {
+      width: 0,
+    },
+  },
   crumbs: {
     ...t.typography.body1,
     marginBottom: t.spacing(2),
@@ -154,6 +174,17 @@ const useStyles = M.makeStyles((t) => ({
   },
   columnsButton: {
     marginRight: t.spacing(1),
+  },
+  // Matches the in-bucket Sort toolbar: the value reads visually distinct from
+  // the "Sort by:" label, with a space before it (see containers/Search/Sort).
+  sortValue: {
+    fontWeight: t.typography.fontWeightMedium,
+    marginLeft: t.spacing(0.5),
+  },
+  // The home-page "no results" idiom: a large heading that echoes the query,
+  // rather than a small muted body line.
+  noMatch: {
+    marginTop: t.spacing(4),
   },
   // Uniform spacing between the shared hit cards and the fallback cards alike
   // (both spacing idioms only cover same-class siblings on their own).
@@ -251,12 +282,33 @@ interface TabsProps {
 }
 
 function Tabs({ id, section }: TabsProps) {
+  const classes = useStyles()
   const { urls } = NamedRoutes.use()
   return (
-    <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
-      <NavTab label="Overview" value="overview" to={urls.dataProduct(id)} />
-      <NavTab label="Objects" value="objects" to={urls.dataProductObjects(id)} />
-      <NavTab label="Packages" value="packages" to={urls.dataProductPackages(id)} />
+    <M.Tabs
+      value={section}
+      variant="scrollable"
+      scrollButtons="auto"
+      classes={{ scrollButtons: classes.tabScrollButtons }}
+    >
+      <NavTab
+        className={classes.tab}
+        label="Overview"
+        value="overview"
+        to={urls.dataProduct(id)}
+      />
+      <NavTab
+        className={classes.tab}
+        label="Objects"
+        value="objects"
+        to={urls.dataProductObjects(id)}
+      />
+      <NavTab
+        className={classes.tab}
+        label="Packages"
+        value="packages"
+        to={urls.dataProductPackages(id)}
+      />
     </M.Tabs>
   )
 }
@@ -411,7 +463,13 @@ function OverviewTab({ dp }: { dp: DataProduct }) {
         )}
         <Stat label="Members">{summary}</Stat>
         <Stat label="Owner">{dp.ownerRole.name}</Stat>
-        <Stat label="Created">{dp.createdAt.toLocaleString()}</Stat>
+        <Stat label="Created">
+          <M.Tooltip arrow title={dp.createdAt.toLocaleString()}>
+            <span>
+              <Format.Relative value={dp.createdAt} />
+            </span>
+          </M.Tooltip>
+        </Stat>
       </M.Paper>
       {!!readmeMember && (
         <M.Paper className={classes.readmeCard}>
@@ -502,7 +560,11 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
           />
         </>
       ) : items.length ? (
-        <Listing.Listing items={items} onReload={noop} />
+        // Object members carry no size on the registry today (only the package
+        // tree does), so the shared listing would total them to a misleading
+        // "0 B". Hide the size affordance until a registry size increment lands
+        // (deferred) rather than showing zeros.
+        <Listing.Listing items={items} onReload={noop} hideSize />
       ) : (
         <M.Typography color="textSecondary">No readable objects</M.Typography>
       )}
@@ -751,7 +813,17 @@ function MetaColumnsMenu({ specs, visible, onToggle }: MetaColumnsMenuProps) {
       >
         Columns
       </M.Button>
-      <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+      <M.Menu
+        anchorEl={anchor}
+        open={!!anchor}
+        onClose={close}
+        // The menu is wider than its trigger and the trigger sits near the
+        // card's right edge; anchor the menu's right edge to the button so it
+        // opens leftward within the card instead of spilling past it.
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
         <M.ListSubheader disableSticky>Metadata columns</M.ListSubheader>
         {specs.map((s) => (
           <M.MenuItem key={s.pointer} dense onClick={() => onToggle(s.pointer)}>
@@ -908,7 +980,8 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
   const classes = useStyles()
   const [view, setView] = useViewMode()
   const [filter, setFilter] = React.useState('')
-  const [sort, setSort] = React.useState<SortSpec>({ key: 'name', dir: 'asc' })
+  // Default to 'Most recent first', parity with the in-bucket package list.
+  const [sort, setSort] = React.useState<SortSpec>({ key: 'modified', dir: 'desc' })
   const [shown, setShown] = React.useState(PER_PAGE)
   const linksFor = useMemberLinks(id)
 
@@ -1049,10 +1122,10 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
             value={view}
             onChange={(_e, v) => setView(v)}
           >
-            <Lab.ToggleButton value="table">
+            <Lab.ToggleButton value="table" aria-label="Table view">
               <Icons.GridOn />
             </Lab.ToggleButton>
-            <Lab.ToggleButton value="card">
+            <Lab.ToggleButton value="card" aria-label="List view">
               <Icons.List />
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
@@ -1060,13 +1133,21 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
             options={SORT_OPTIONS}
             value={sortValue}
             onChange={onSortChange}
+            classes={{ value: classes.sortValue }}
           >
             Sort by:
           </SelectDropdown>
         </div>
       </div>
       {!filtered.length ? (
-        <M.Typography color="textSecondary">No packages match the filter</M.Typography>
+        <Empty
+          className={classes.noMatch}
+          title={
+            filter.trim()
+              ? `No packages matching "${filter.trim()}"`
+              : 'No packages match'
+          }
+        />
       ) : view === 'table' ? (
         <PackagesTable
           id={id}
