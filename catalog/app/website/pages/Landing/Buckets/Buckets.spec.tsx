@@ -49,13 +49,17 @@ interface QueryState {
   error?: unknown
 }
 
+// `me` is null when signed out — e.g. this component also renders anonymously
+// on the OPEN-mode landing.
+let meIsAdminData: { isAdmin: boolean } | null = { isAdmin: false }
+
 const useQueryMock = vi.fn(
   (query: string, _variables?: unknown, options?: { pause?: boolean }): QueryState => {
     // urql semantics: a paused query never executes
     if (options?.pause) return { data: undefined, fetching: false, error: undefined }
     switch (query) {
       case 'IS_ADMIN_QUERY':
-        return { data: { me: { isAdmin: false } }, fetching: false }
+        return { data: { me: meIsAdminData }, fetching: false }
       case 'DATA_PRODUCTS_QUERY':
         return {
           data: {
@@ -137,6 +141,7 @@ describe('website/pages/Landing/Buckets', () => {
   afterEach(cleanup)
   afterEach(() => {
     useQueryMock.mockClear()
+    meIsAdminData = { isAdmin: false }
   })
 
   it('renders no data product rows and pauses the query when the flag is off', () => {
@@ -160,5 +165,15 @@ describe('website/pages/Landing/Buckets', () => {
     const opts = dpQueryOptions()
     expect(opts.length).toBeGreaterThan(0)
     opts.forEach((o) => expect(o?.pause).toBe(false))
+  })
+
+  it('treats a signed-out (null) me as not-admin instead of crashing', () => {
+    // Reachable anonymously: this is the same component OpenLanding mounts,
+    // and OPEN mode allows unauthenticated visitors.
+    settingsHook.mockReturnValue(null)
+    meIsAdminData = null
+    const { queryByText } = renderBuckets()
+    expect(queryByText('bucket:bucket-one')).toBeTruthy()
+    expect(queryByText('Add Bucket')).toBeFalsy()
   })
 })

@@ -26,7 +26,9 @@ const PER_PAGE = 15
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
   return GQL.fold(data, {
-    data: ({ me: { isAdmin } }) => isAdmin,
+    // 'me' is null when signed out (this landing is reachable anonymously in
+    // OPEN mode) — treat that as "not an admin" rather than crashing.
+    data: ({ me }) => !!me?.isAdmin,
     fetching: R.F,
     error: R.F,
   })
