@@ -57,12 +57,14 @@ The package metadata gains a `links` array, one object per referenced entity,
 each with four fields:
 
 ```json
-{
-  "type": "custom_entity",
-  "id": "bfi_xCUXNVyG",
-  "name": "QB-2743.1",
-  "slug": "qb-2743-1"
-}
+[
+  {
+    "type": "custom_entity",
+    "id": "bfi_xCUXNVyG",
+    "name": "QB-2743.1",
+    "slug": "qb-2743-1"
+  }
+]
 ```
 
 - **`type`** and **`id`** identify the referenced object.
