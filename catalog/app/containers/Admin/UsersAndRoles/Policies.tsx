@@ -230,7 +230,7 @@ function Create({ close }: CreateProps) {
                     Manually set ARN instead of configuring per-bucket permissions. NOTE:
                     You will also need to add that ARN to the stack's{' '}
                     <a
-                      href="https://docs.quilt.bio/quilt-platform-administrator/technical-reference#ManagedUserRoleExtraPolicies"
+                      href="https://docs.quilt.bio/quilt-platform-administrator/technical-reference#manageduserroleextrapolicies"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
