@@ -64,9 +64,7 @@ mappings:
 ```
 
 > Tip: To confirm exactly which claims arrive in the token, decode it at
-[jwt.ms](https://jwt.ms). The registry also logs which mappings matched at
-`DEBUG` log level (`QUILT_LOG_LEVEL=DEBUG`), though it does not log raw
-claim values.
+[jwt.ms](https://jwt.ms).
 
 > Note: By default, mappings are evaluated in order and **only the first
 matching mapping is applied** — to assign multiple roles to a user this way,
