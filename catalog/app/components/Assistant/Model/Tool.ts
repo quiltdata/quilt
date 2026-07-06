@@ -46,8 +46,10 @@ function convertSchema(schema: any) {
   // Process object properties recursively
   Object.values(schema).forEach(convertSchema)
 
-  // Replace empty schema IDs produced by Effect, which are not valid according to draft-2020
-  if (schema.$id === '/schemas/{}') schema.$id = '/schemas/empty'
+  // Replace empty schema IDs produced by Effect, which are not valid according to draft-2020.
+  // Effect <3.18 emitted the raw `/schemas/{}`; >=3.18 percent-encodes it as `/schemas/%7B%7D`.
+  if (schema.$id === '/schemas/{}' || schema.$id === '/schemas/%7B%7D')
+    schema.$id = '/schemas/empty'
 
   // Handle items and additionalItems conversion for draft-2020
   if (Array.isArray(schema.items)) {
@@ -60,6 +62,12 @@ function convertSchema(schema: any) {
   }
 }
 
+/**
+ * Build a draft-2020-12 JSON Schema from an Effect-Schema. Effect emits
+ * draft-07 with array-`items`; Bedrock rejects that shape, so override
+ * `$schema` and run `convertSchema` (rewrites array `items` →
+ * `prefixItems`, etc.).
+ */
 export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
   const out = Eff.JSONSchema.make(schema)
   out.$schema = 'https://json-schema.org/draft/2020-12/schema'
@@ -71,7 +79,10 @@ export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
 ): Descriptor<A> {
-  const jsonSchema = makeJSONSchema(schema)
+  // Lift `description` out of the schema body so Bedrock doesn't ship
+  // it twice (once as `toolSpec.description`, once inside
+  // `inputSchema.json.description`).
+  const { description, ...jsonSchema } = makeJSONSchema(schema)
 
   const decode = Eff.Schema.decodeUnknown(schema, {
     errors: 'all',
@@ -98,7 +109,7 @@ export function make<A, I>(
     )
 
   return {
-    description: jsonSchema.description,
+    description,
     schema: jsonSchema,
     executor: wrappedFn,
   }

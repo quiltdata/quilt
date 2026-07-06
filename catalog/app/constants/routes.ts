@@ -3,10 +3,6 @@ import { encode } from 'utils/s3paths'
 
 const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
-// TODO: make sure types explicitly divide codebase into
-//       main catalog and embed,
-//       so catalog routes aren't called in embed
-
 export type Route<Path extends string, Args extends any[]> = {
   path: Path
   url: (...args: Args) => string
@@ -49,6 +45,9 @@ export const passChange = route(
 export const code = route('/code')
 
 export const activationError = route('/activation_error')
+
+// Connect OAuth
+export const connectAuthorize = route('/connect/authorize')
 
 // Profile
 export const profile = route('/profile')
@@ -96,10 +95,10 @@ export const bucketSearch = route(
 )
 
 interface BucketFileOpts {
-  add?: string
+  add?: string // PackageURI for adding this file to
+  next?: string
   edit?: boolean
   mode?: string
-  next?: string
   version?: string
 }
 
@@ -121,28 +120,36 @@ export const bucketDir = route(
 export type BucketDirArgs = Parameters<typeof bucketDir.url>
 
 interface BucketPackageListOpts {
-  filter?: string
-  sort?: string
-  p?: string
+  // KeywordWildcard value for the search model's `name` filter (e.g. `foo/` →
+  // matches the `foo/*` prefix). Must stay in sync with PackagesSearchFilterIO.
+  name?: string
 }
 
 export const bucketPackageList = route(
   '/b/:bucket/packages/',
-  (bucket: string, { filter, sort, p }: BucketPackageListOpts = {}) =>
-    `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
+  (bucket: string, { name }: BucketPackageListOpts = {}) =>
+    `/b/${bucket}/packages/${mkSearch({ name })}`,
 )
 export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
-interface BucketPackageDetailOpts {
-  action?: string
-}
-
 export const bucketPackageDetail = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  (bucket: string, name: string, { action }: BucketPackageDetailOpts = {}) =>
-    `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
+  (bucket: string, name: string) => `/b/${bucket}/packages/${name}`,
 )
+
 export type BucketPackageDetailArgs = Parameters<typeof bucketPackageDetail.url>
+
+interface BucketPackageAddFilesOpts {
+  [logicalKey: string]: string // S3 url
+}
+
+export const bucketPackageAddFiles = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/add`,
+  (bucket: string, name: string, files: BucketPackageAddFilesOpts = {}) =>
+    `/b/${bucket}/packages/${name}/add${mkSearch(files)}`,
+)
+
+export type BucketPackageAddFilesArgs = Parameters<typeof bucketPackageAddFiles.url>
 
 export const bucketPackageTree = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
@@ -167,6 +174,26 @@ export const bucketPackageRevisions = route(
 
 export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
 
+interface BucketPackageCompareOpts {
+  showAll?: boolean
+}
+
+export const bucketPackageCompare = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/compare/:baseHash/:otherHash?/`,
+  (
+    bucket: string,
+    name: string,
+    base: string,
+    other?: string,
+    { showAll }: BucketPackageCompareOpts = {},
+  ) =>
+    other
+      ? `/b/${bucket}/packages/${name}/compare/${base}/${other}/${mkSearch({ showAll })}`
+      : `/b/${bucket}/packages/${name}/compare/${base}/${mkSearch({ showAll })}`,
+)
+
+export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
+
 export const bucketQueries = route(
   '/b/:bucket/queries',
   (bucket: string) => `/b/${bucket}/queries`,
@@ -183,7 +210,9 @@ export type BucketESQueriesArgs = Parameters<typeof bucketESQueries.url>
 
 export const bucketAthena = route(
   '/b/:bucket/queries/athena',
-  (bucket: string) => `/b/${bucket}/queries/athena`,
+  // `table` deep-links a Tabulator table to autofill the query editor.
+  (bucket: string, { table }: { table?: string } = {}) =>
+    `/b/${bucket}/queries/athena${mkSearch({ table })}`,
 )
 
 export const bucketAthenaWorkgroup = route(
@@ -232,5 +261,4 @@ export const adminBucketEdit = route(
 )
 
 export const adminSettings = route('/admin/settings')
-export const adminSync = route('/admin/sync')
 export const adminStatus = route('/admin/status')

@@ -14,7 +14,7 @@ __Returns__
 
 A new Bucket
 
-## Bucket.search(self, query: Union[str, dict], limit: int = 10) -> List[dict]  {#Bucket.search}
+## Bucket.search(self, query: str | dict, limit: int = 10) -> List[dict]  {#Bucket.search}
 
 Execute a search against the configured search endpoint.
 
@@ -25,8 +25,11 @@ __Arguments__
 
 Query Syntax:
     [Query String Query](
-        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
-    [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
+        https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html)
+    [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl.html)
+
+Index schemas and search examples can be found in the
+[Quilt Search documentation](https://docs.quilt.bio/quilt-platform-catalog-user/search).
 
 __Returns__
 

@@ -5,7 +5,8 @@ from unittest import mock
 
 import pytest
 from botocore.stub import Stubber
-from index import (
+
+from t4_lambda_pkgevents import (
     EventsQueue,
     PutEventsException,
     handler,
@@ -30,7 +31,6 @@ from index import (
             '.quilt/named_packages/a/b/1451631599',
             '.quilt/named_packages/a/b/1451631600/',
             '.quilt/named_packages/a/b/1767250800/',
-            '.quilt/named_packages/a/b/1767250801',
             '.quilt/named_packages//b/1451631600',
             '.quilt/named_packages/a//1451631600',
             '.quilt/named_packages/a/b/145163160߀',
@@ -45,15 +45,25 @@ def test_pkg_created_event_bad_key(key):
                 'object': {
                     'key': key,
                 },
+                "bucket": {
+                    "name": "test-bucket",
+                },
             },
         }
     ) is None
 
 
-def test_pkg_created_event():
+@pytest.mark.parametrize(
+    "pointer_file",
+    (
+        "1451631600",
+        "9999999999",
+    ),
+)
+def test_pkg_created_event(pointer_file):
     bucket_name = 'test-bucket'
     handle = 'a/b'
-    key = f'.quilt/named_packages/{handle}/1451631600'
+    key = f".quilt/named_packages/{handle}/{pointer_file}"
     event_time = '2021-03-11T14:29:19.277067Z'
     top_hash = b'a' * 64
     event = {
@@ -136,9 +146,9 @@ def test_pkg_created_event():
         stubber.assert_no_pending_responses()
 
 
-@mock.patch('index.EventsQueue.flush')
-@mock.patch('index.EventsQueue.append')
-@mock.patch('index.pkg_created_event', wraps=str)
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush")
+@mock.patch("t4_lambda_pkgevents.EventsQueue.append")
+@mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
     event = {
         'Records': [
@@ -164,7 +174,7 @@ def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
 
 @pytest.mark.parametrize('failed_count', (0, 1))
 def test_queue(failed_count):
-    with mock.patch('index.event_bridge.put_events') as put_events_mock:
+    with mock.patch("t4_lambda_pkgevents.event_bridge.put_events") as put_events_mock:
         put_events_mock.return_value = {'FailedEntryCount': failed_count}
         q = EventsQueue()
         for x in range(EventsQueue.MAX_SIZE - 1):

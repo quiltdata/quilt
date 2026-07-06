@@ -1,6 +1,0 @@
--c requirements.txt
-pytest ~= 8.0
-pytest-asyncio ~= 0.23
-pytest-cov ~= 6.0
-pytest-env ~= 1.1
-pytest-mock ~= 3.12

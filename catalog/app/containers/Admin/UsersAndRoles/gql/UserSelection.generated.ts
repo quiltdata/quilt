@@ -1,35 +1,31 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type UserSelectionFragment = { readonly __typename: 'User' } & Pick<
-  Types.User,
-  | 'name'
-  | 'email'
-  | 'dateJoined'
-  | 'lastLogin'
-  | 'isActive'
-  | 'isAdmin'
-  | 'isSsoOnly'
-  | 'isService'
-  | 'isRoleAssignmentDisabled'
-  | 'isAdminAssignmentDisabled'
-> & {
-    readonly role: Types.Maybe<
-      | ({ readonly __typename: 'UnmanagedRole' } & Pick<
-          Types.UnmanagedRole,
-          'id' | 'name'
-        >)
-      | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
-    >
-    readonly extraRoles: ReadonlyArray<
-      | ({ readonly __typename: 'UnmanagedRole' } & Pick<
-          Types.UnmanagedRole,
-          'id' | 'name'
-        >)
-      | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
-    >
-  }
+export type UserSelectionFragment = {
+  readonly __typename: 'User'
+  readonly name: string
+  readonly email: string
+  readonly dateJoined: Date
+  readonly lastLogin: Date
+  readonly isActive: boolean
+  readonly isAdmin: boolean
+  readonly isSsoOnly: boolean
+  readonly isService: boolean
+  readonly isRoleAssignmentDisabled: boolean
+  readonly isAdminAssignmentDisabled: boolean
+  readonly role:
+    | { readonly __typename: 'ManagedRole'; readonly id: string; readonly name: string }
+    | { readonly __typename: 'UnmanagedRole'; readonly id: string; readonly name: string }
+    | null
+  readonly extraRoles: ReadonlyArray<
+    | { readonly __typename: 'ManagedRole'; readonly id: string; readonly name: string }
+    | { readonly __typename: 'UnmanagedRole'; readonly id: string; readonly name: string }
+  >
+}
 
 export const UserSelectionFragmentDoc = {
   kind: 'Document',

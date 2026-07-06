@@ -27,8 +27,8 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
     data: ({ searchObjects: r }) => {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
-          return undefined
         case 'InvalidInput':
+        case 'OperationError':
           return undefined
         case 'ObjectsSearchResultSet':
           if (field === 'modified' || field === 'size' || field === 'ext') {

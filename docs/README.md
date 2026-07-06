@@ -1,9 +1,8 @@
-# Quilt: A Data Lakehouse for Actionable Data
+# Quilt: Scientific Data Management on AWS
 
-Quilt connects teams to actionable data by simplifying data discovery, sharing,
-and analysis. It’s designed to serve data-driven organizations with powerful
-tools for managing data as code, enabling rapid experimentation, and ensuring
-data integrity at scale.
+Quilt is a Scientific Data Management Platform on AWS that helps teams and AI
+find, trust, and reuse data through deeply versioned, context-rich data
+packages.
 
 ---
 
@@ -26,8 +25,9 @@ Guide](Quickstart.md) or explore the [Installation
 Instructions](Installation.md) for setting up your environment.
 
 If you have any questions or need help, join our [Slack
-community](https://slack.quiltdata.com/) or submit a support request to
-<support@quiltdata.io>.
+community][quilt-slack] or submit a support request to <support@quilt.bio>.
+
+[quilt-slack]: https://slack.quilt.bio
 
 ---
 
@@ -43,7 +43,7 @@ quickly find the information you need.
 The **Quilt Platform** powers the core features of the Quilt data catalog,
 providing tools for browsing, searching, and visualizing data stored in AWS S3.
 The platform is ideal for teams needing to collaborate on data, with
-capabilities like embeddable previews and metadata collection.
+capabilities like document previews and metadata collection.
 
 **Core Sections:**
 

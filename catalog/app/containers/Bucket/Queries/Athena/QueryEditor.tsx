@@ -54,6 +54,11 @@ function EditorField() {
   const classes = useStyles()
   const { queryBody, queryRun } = Model.use()
 
+  const editorProps = React.useMemo(
+    () => ({ $blockScrolling: true, readonly: Model.isLoading(queryRun) }),
+    [queryRun],
+  )
+
   if (Model.isNone(queryBody.value)) {
     return null
   }
@@ -73,7 +78,7 @@ function EditorField() {
       </M.Typography>
       <M.Paper className={classes.editor}>
         <AceEditor
-          editorProps={{ $blockScrolling: true }}
+          editorProps={editorProps}
           height="200px"
           mode="sql"
           onChange={queryBody.setValue}

@@ -2,10 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
-import Skeleton from 'components/Skeleton'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import * as PD from 'containers/Bucket/PackageDialog'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
@@ -25,47 +25,56 @@ const useCreatePackageStyles = M.makeStyles({
   },
 })
 
+interface CreatePackageButtonProps {
+  className: string
+  onClick: () => void
+}
+
+function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
+  const classes = useCreatePackageStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  return xs ? (
+    <M.Button
+      className={className}
+      color="primary"
+      onClick={onClick}
+      size="medium"
+      variant="contained"
+    >
+      <M.Icon>add</M.Icon>
+    </M.Button>
+  ) : (
+    <M.Button
+      className={className}
+      color="primary"
+      onClick={onClick}
+      size={sm ? 'medium' : 'small'}
+      startIcon={<M.Icon>add</M.Icon>}
+      variant="contained"
+    >
+      <span className={classes.label}>Create new package</span>
+    </M.Button>
+  )
+}
+
 interface CreatePackageProps {
   className: string
 }
 
 function CreatePackage({ className }: CreatePackageProps) {
-  const classes = useCreatePackageStyles()
   const bucket = useBucketStrict()
-  const createDialog = usePackageCreationDialog({
-    bucket,
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const { open, render } = PD.useCreateDialog({
+    dst,
     delayHashing: true,
     disableStateDisplay: true,
   })
-  const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <>
-      {xs ? (
-        <M.Button
-          className={className}
-          color="primary"
-          onClick={handleClick}
-          size="medium"
-          variant="contained"
-        >
-          <M.Icon>add</M.Icon>
-        </M.Button>
-      ) : (
-        <M.Button
-          className={className}
-          color="primary"
-          onClick={handleClick}
-          size={sm ? 'medium' : 'small'}
-          startIcon={<M.Icon>add</M.Icon>}
-          variant="contained"
-        >
-          <span className={classes.label}>Create new package</span>
-        </M.Button>
-      )}
-      {createDialog.render({
+      <CreatePackageButton className={className} onClick={open} />
+      {render({
         successTitle: 'Package created',
         successRenderMessage: ({ packageLink }) => (
           <>Package {packageLink} successfully created</>
@@ -97,30 +106,23 @@ function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
   return Format.pluralify(n, I18_COUNT_RESULTS)
 }
 
-interface ResultsCountProps {
-  className: string
-}
-
-function ResultsCount({ className }: ResultsCountProps) {
+function ResultsCount() {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
   switch (r._tag) {
     case 'fetching':
-      return <Skeleton width={140} height={24} />
+      return <Lab.Skeleton width={140} />
     case 'error':
       return null
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
         case 'InvalidInput':
+        case 'OperationError':
           return null
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
-          return (
-            <ColumnTitle className={className}>
-              {resultsCountI18n(r.data.total, model.state)}
-            </ColumnTitle>
-          )
+          return <>{resultsCountI18n(r.data.total, model.state)}</>
         default:
           assertNever(r.data)
       }
@@ -186,10 +188,10 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
       size="small"
     >
       <Lab.ToggleButton value={SearchUIModel.View.Table} classes={classes}>
-        <M.Icon>grid_on</M.Icon>
+        <Icons.GridOn />
       </Lab.ToggleButton>
       <Lab.ToggleButton value={SearchUIModel.View.List} classes={classes}>
-        <M.Icon>list</M.Icon>
+        <Icons.List />
       </Lab.ToggleButton>
     </Lab.ToggleButtonGroup>
   )
@@ -239,16 +241,23 @@ interface ResultsProps {
 
 export default function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
+  const r = model.firstPageQuery
   const classes = useResultsStyles()
   const { paths } = NamedRoutes.use()
   return (
     <div className={classes.root}>
-      <ResultsCount className={classes.title} />
+      <ColumnTitle className={classes.title}>
+        <ResultsCount />
+      </ColumnTitle>
 
       <div className={classes.controls}>
         <RRDom.Switch>
           <RRDom.Route path={paths.bucketRoot}>
-            <CreatePackage className={classes.create} />
+            {r._tag === 'data' &&
+              (r.data.__typename === 'ObjectsSearchResultSet' ||
+                r.data.__typename === 'PackagesSearchResultSet') && (
+                <CreatePackage className={classes.create} />
+              )}
           </RRDom.Route>
         </RRDom.Switch>
 

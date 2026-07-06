@@ -1,16 +1,19 @@
 import cx from 'classnames'
 import createDOMPurify from 'dompurify'
-import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
 import * as React from 'react'
-import * as Remarkable from 'remarkable'
-import { linkify } from 'remarkable/linkify'
+import MarkdownIt from 'markdown-it'
 import * as M from '@material-ui/core'
+import * as Sentry from '@sentry/react'
 
+import Skel from 'components/Skeleton'
+import HljsBoundary from 'utils/HljsBoundary'
+import log from 'utils/Logging'
+import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
-import parseTasklist, { CheckboxContentToken } from './parseTasklist'
+import * as tasklist from './parseTasklist'
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
@@ -21,6 +24,15 @@ import parseTasklist, { CheckboxContentToken } from './parseTasklist'
  * I opted not to include UI tags (opt, optgroup); ditto for base, body, head,
  * meta, title
  * which shouldn't be needed
+ *
+ * NOTE: this allowlist is the union of two categories:
+ * (a) tags emitted by the markdown-it parser with the options we enable
+ *     (default preset, which already includes ~~strike~~, + linkify + typographer);
+ * (b) tags that can reach the sanitizer via raw HTML pass-through (`html: true`)
+ *     when authors embed inline HTML in markdown source.
+ * Examples in category (b): input, abbr, dd, dl, dt, ins, mark, sub, sup, del.
+ * If we add a markdown-it plugin (e.g. markdown-it-abbr, -mark, -sub, -sup,
+ * -ins, -deflist, -footnote) the corresponding tags are already covered here.
  */
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
@@ -66,6 +78,7 @@ const SANITIZE_OPTS = {
     'p',
     'param',
     'pre',
+    's',
     'section',
     'span',
     'strong',
@@ -87,42 +100,25 @@ const SANITIZE_OPTS = {
 
 // TODO: switch to pluggable react-aware renderer
 // TODO: use react-router's Link component for local links
+// No `hljs.highlightAuto` fallback: `utils/hljs` registers only a subset of
+// grammars, and auto-detection misfires when run against a partial registry.
+// Unlabeled or unsupported fences render as plain monospace via markdown-it's
+// default escaping. To highlight a new fence label, register it in `utils/hljs`.
 const highlight = (str: string, lang: string) => {
-  if (lang === 'none') {
-    return ''
-  }
   if (hljs.getLanguage(lang)) {
     try {
       return hljs.highlight(str, { language: lang }).value
     } catch (err) {
-      // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
-    }
-  } else {
-    try {
-      return hljs.highlightAuto(str).value
-    } catch (err) {
-      // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
+      log.error(err)
     }
   }
-  // istanbul ignore next
-  return '' // use external default escaping
+  return ''
 }
 
-interface RemarkableWithUtils extends Remarkable.Remarkable {
-  // NOTE: Remarkable.Remarkable doesn't export utils
-  utils: {
-    unescapeMd: (str: string) => string
-  }
-}
-
-const { unescapeMd } = (Remarkable as unknown as RemarkableWithUtils).utils
-
-const checkboxHandler = (md: Remarkable.Remarkable) => {
-  md.inline.ruler.push('tasklist', parseTasklist, {})
-  md.renderer.rules.tasklist = (tokens, idx) =>
-    (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
+const checkboxHandler = (md: MarkdownIt) => {
+  md.inline.ruler.push('tasklist', tasklist.parse)
+  md.renderer.rules[tasklist.CHECKED] = () => '☑'
+  md.renderer.rules[tasklist.UNCHECKED] = () => '☐'
 }
 
 type AttributeProcessor = (attr: string) => string
@@ -131,11 +127,11 @@ function handleImage(process: AttributeProcessor, element: Element) {
   const attributeValue = element.getAttribute('src')
   if (!attributeValue) return
 
-  element.setAttribute('src', process(attributeValue))
-
-  const alt = element.getAttribute('alt')
-  if (alt) {
-    element.setAttribute('alt', unescapeMd(alt))
+  try {
+    element.setAttribute('src', process(attributeValue))
+  } catch (e) {
+    element.removeAttribute('src')
+    Sentry.captureException(e)
   }
 }
 
@@ -143,7 +139,12 @@ function handleLink(process: AttributeProcessor, element: HTMLElement) {
   const attributeValue = element.getAttribute('href')
   if (typeof attributeValue !== 'string') return
 
-  element.setAttribute('href', process(attributeValue))
+  try {
+    element.setAttribute('href', process(attributeValue))
+  } catch (e) {
+    element.removeAttribute('href')
+    Sentry.captureException(e)
+  }
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
@@ -167,23 +168,36 @@ interface RendererArgs {
 
 export const getRenderer = memoize(
   ({ processImg, processLink, win = window }: RendererArgs) => {
-    const md = new Remarkable.Remarkable('full', {
+    const md = new MarkdownIt({
       highlight,
       html: true,
+      linkify: true,
       typographer: true,
-    }).use(linkify)
+    })
     md.use(checkboxHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(
       'uponSanitizeElement',
       htmlHandler(processLink, processImg) as $TSFixMe,
     )
-    return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+    return (data: string) => {
+      // Share one `env` between parse and render, as `md.render` does, so a
+      // future env-carrying plugin works across both phases.
+      const env = {}
+      const tokens = md.parse(data, env)
+      ensureLanguages(
+        tokens
+          .filter((t) => t.type === 'fence')
+          .map((t) => t.info.trim().split(/\s+/)[0])
+          .filter(Boolean),
+      )
+      return purify.sanitize(md.renderer.render(tokens, md.options, env), SANITIZE_OPTS)
+    }
   },
 )
 
 interface ContainerProps {
-  children: string
+  children?: string
   className?: string
 }
 
@@ -237,7 +251,7 @@ export function Container({ className, children }: ContainerProps) {
     <div
       className={cx(className, classes.root)}
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: children }}
+      dangerouslySetInnerHTML={{ __html: children ?? '' }}
     />
   )
 }
@@ -246,15 +260,40 @@ interface MarkdownProps extends RendererArgs, Omit<ContainerProps, 'children'> {
   data?: string
 }
 
-export default function Markdown({
-  data,
-  processImg,
-  processLink,
-  ...props
-}: MarkdownProps) {
+const useSkeletonStyles = M.makeStyles((t) => ({
+  line: {
+    height: t.spacing(3),
+    marginBottom: t.spacing(1),
+  },
+}))
+
+// Small (unlike the full-page Preview skeleton) because the default <Markdown>
+// also renders inline surfaces such as Chat messages.
+function LoadingSkeleton({ className }: Pick<ContainerProps, 'className'>) {
+  const classes = useSkeletonStyles()
+  return (
+    <div className={className}>
+      {[80, 50, 95].map((width, index) => (
+        <Skel className={classes.line} width={`${width}%`} key={`${width}_${index}`} />
+      ))}
+    </div>
+  )
+}
+
+// Separate child so getRenderer's Suspense throw lands inside HljsBoundary — an
+// inline call would throw during Markdown's own render, above the boundary.
+function MarkdownContent({ data, processImg, processLink, ...props }: MarkdownProps) {
   return (
     <Container {...props}>
       {getRenderer({ processImg, processLink })(data || '')}
     </Container>
+  )
+}
+
+export default function Markdown(props: MarkdownProps) {
+  return (
+    <HljsBoundary fallback={<LoadingSkeleton className={props.className} />}>
+      <MarkdownContent {...props} />
+    </HljsBoundary>
   )
 }

@@ -33,6 +33,12 @@ export function viewModeToSelectOption(m: FileType | null): SelectOption | null 
   )
 }
 
+export interface ViewModes {
+  modes: FileType[]
+  mode: FileType | null
+  handlePreviewResult: () => void
+}
+
 export function useViewModes(modeInput: string | null | undefined) {
   const [previewResult, setPreviewResult] = React.useState(null)
 

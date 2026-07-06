@@ -2,6 +2,7 @@ import * as Eff from 'effect'
 import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
+import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
 import * as XML from 'utils/XML'
 
 import type { BucketListingResult } from './requests'
@@ -54,4 +55,13 @@ export const ListingContext = Assistant.Context.LazyContext(
       messages: Eff.Option.toArray(msg),
     }
   },
+)
+
+interface DirContextFilesProps {
+  bucket: string
+  path: string
+}
+
+export const DirContextFiles = Assistant.Context.LazyContext<DirContextFilesProps>(
+  ({ bucket, path }) => ContextFiles.useBucketDirContextFiles(bucket, path),
 )

@@ -3,10 +3,30 @@ import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Cache from 'utils/ResourceCache'
 
 const CONFIG_KEY = 'catalog/settings.json'
+
+// Pinned to the IAM allowlist in deployment (t4/template/const.py:CATALOG_LOGO_EXTENSIONS).
+// SVG is intentionally omitted: inline <script> in SVG executes on direct navigation,
+// which is exactly the public-bucket scenario.
+const LOGO_MIME_TO_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+
+export const ACCEPTED_LOGO_MIME_TYPES = Object.keys(LOGO_MIME_TO_EXT)
+
+export class UnsupportedLogoTypeError extends Error {
+  constructor(type: string) {
+    super(`Unsupported logo file type: ${type || '(unknown)'}`)
+    this.name = 'UnsupportedLogoTypeError'
+  }
+}
 
 export interface CatalogSettings {
   beta?: boolean
@@ -63,13 +83,26 @@ function format(settings: CatalogSettings) {
   return JSON.stringify(settings, null, 2)
 }
 
-// FIXME: remove if decide to not use file upload for logo
 export function useUploadFile() {
-  return React.useCallback(async (file: File) => {
-    // eslint-disable-next-line no-console
-    console.log(file)
-    throw new Error('This functionality is not ready yet')
-  }, [])
+  const s3 = AWS.S3.use()
+  return React.useCallback(
+    async (file: File): Promise<Model.S3.S3ObjectLocation> => {
+      const ext = LOGO_MIME_TO_EXT[file.type]
+      if (!ext) throw new UnsupportedLogoTypeError(file.type)
+      const key = `catalog/logo.${ext}`
+      const buf = await file.arrayBuffer()
+      const res = await s3
+        .putObject({
+          Bucket: cfg.serviceBucket,
+          Key: key,
+          Body: new Uint8Array(buf),
+          ContentType: file.type,
+        })
+        .promise()
+      return { bucket: cfg.serviceBucket, key, version: res.VersionId }
+    },
+    [s3],
+  )
 }
 
 export function useWriteSettings() {

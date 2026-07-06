@@ -69,7 +69,7 @@ with open("example.jsonl", "w") as f:
     p.dump(f)
 
 # Loading manifest
-p.load(open("example.jsonl", "r"))
+p.load(open("example.jsonl"))
 ```
 
     Loading manifest: 100%|██████████| 2/2 [00:00<00:00, 2141.59entries/s]

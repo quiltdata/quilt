@@ -75,7 +75,7 @@ async function uploadBucketPreferences(
       Body: updatedConfig,
     })
     .promise()
-  return parse(updatedConfig)
+  return parse(updatedConfig, bucket)
 }
 
 interface State {
@@ -112,16 +112,16 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
         // You can adjust input here to add beta features if `settings?.beta`
         // For example,
         // const input = CatalogSettings.use()?.beta ? merge(body, {ui: { some: true }}) : body
-        return Result.Ok(parse(body))
+        return Result.Ok(parse(body, bucket))
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('Unable to parse bucket preferences')
         // eslint-disable-next-line no-console
         console.error(e)
-        return Result.Ok(parse(''))
+        return Result.Ok(parse('', bucket))
       }
     },
-    Err: () => Result.Ok(parse('')),
+    Err: () => Result.Ok(parse('', bucket)),
     Pending: Result.Pending,
     Init: Result.Init,
   })

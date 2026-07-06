@@ -1,31 +1,42 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { S3ObjectLocation } from 'model/S3'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Status_gql_ReportsQueryVariables = Types.Exact<{
-  page: Types.Scalars['Int']
-  perPage: Types.Scalars['Int']
+export interface StatusReportListFilter {
+  readonly timestampFrom: Date | null | undefined
+  readonly timestampTo: Date | null | undefined
+}
+
+export type StatusReportListOrder = 'NEW_FIRST' | 'OLD_FIRST'
+
+export type containers_Admin_Status_gql_ReportsQueryVariables = Exact<{
+  page: number
+  perPage: number
   filter: Types.StatusReportListFilter
   order: Types.StatusReportListOrder
 }>
 
-export type containers_Admin_Status_gql_ReportsQuery = {
+export interface containers_Admin_Status_gql_ReportsQuery {
   readonly __typename: 'Query'
-} & {
   readonly status:
-    | ({ readonly __typename: 'Status' } & {
-        readonly reports: { readonly __typename: 'StatusReportList' } & Pick<
-          Types.StatusReportList,
-          'total'
-        > & {
-            readonly page: ReadonlyArray<
-              { readonly __typename: 'StatusReport' } & Pick<
-                Types.StatusReport,
-                'timestamp' | 'renderedReportLocation'
-              >
-            >
-          }
-      })
+    | {
+        readonly __typename: 'Status'
+        readonly reports: {
+          readonly __typename: 'StatusReportList'
+          readonly total: number
+          readonly page: ReadonlyArray<{
+            readonly __typename: 'StatusReport'
+            readonly timestamp: Date
+            readonly renderedReportLocation: S3ObjectLocation
+          }>
+        }
+      }
     | { readonly __typename: 'Unavailable' }
 }
 

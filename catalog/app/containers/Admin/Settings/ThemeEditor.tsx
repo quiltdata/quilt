@@ -11,9 +11,8 @@ import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import Logo from 'components/Logo'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import * as s3paths from 'utils/s3paths'
 import * as validators from 'utils/validators'
-
-import * as Form from '../Form'
 
 const useInputColorStyles = M.makeStyles((t) => ({
   root: {
@@ -85,17 +84,7 @@ function InputColor({
   )
 }
 
-const useInputFileStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    outline: `2px dashed ${t.palette.primary.light}`,
-    padding: '2px',
-  },
-  note: {
-    flexGrow: 1,
-    textAlign: 'center',
-  },
+const usePreviewStyles = M.makeStyles((t) => ({
   placeholder: {
     alignItems: 'center',
     border: `1px solid ${t.palette.action.disabled}`,
@@ -104,48 +93,112 @@ const useInputFileStyles = M.makeStyles((t) => ({
     justifyContent: 'center',
     width: '50px',
   },
-  preview: {
-    height: '50px',
-    width: '50px',
+}))
+
+interface PreviewProps {
+  source: FileWithPath | string
+  blobUrl: string | null
+  invalid: boolean
+}
+
+function Preview({ source, blobUrl, invalid }: PreviewProps) {
+  const classes = usePreviewStyles()
+  if (!invalid) {
+    if (typeof source === 'string' && source)
+      return <Logo src={source} height="50px" width="50px" />
+    if (blobUrl) return <Logo src={blobUrl} height="50px" width="50px" />
+    return (
+      <div className={classes.placeholder}>
+        <M.Icon>hide_image</M.Icon>
+      </div>
+    )
+  }
+  return (
+    <div className={classes.placeholder}>
+      <M.Icon>broken_image</M.Icon>
+    </div>
+  )
+}
+
+const useInputFileStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gap: t.spacing(1),
+  },
+  dropzone: {
+    alignItems: 'center',
+    display: 'flex',
+    outline: `2px dashed ${t.palette.primary.light}`,
+    padding: '2px',
+    cursor: 'pointer',
+  },
+  note: {
+    flexGrow: 1,
+    textAlign: 'center',
+  },
+  or: {
+    textAlign: 'center',
+    color: t.palette.text.secondary,
   },
 }))
 
 interface InputFileProps {
   input: {
     value: FileWithPath | string
-    onChange: (value: FileWithPath) => void
+    onChange: (value: FileWithPath | string) => void
   }
+  errors?: Record<string, React.ReactNode>
+  meta?: RF.FieldMetaState<string>
 }
 
-function InputFile({ input: { value, onChange } }: InputFileProps) {
+export function InputFile({ input: { value, onChange }, meta, errors }: InputFileProps) {
+  const showError = meta?.modified || meta?.submitFailed
+  const error = showError && (meta?.error || meta?.submitError)
   const classes = useInputFileStyles()
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
+      if (files.length === 0) return
       onChange(files[0])
     },
     [onChange],
   )
   const { getInputProps, getRootProps } = useDropzone({
     maxFiles: 1,
+    accept: Object.fromEntries(
+      CatalogSettings.ACCEPTED_LOGO_MIME_TYPES.map((t) => [t, []]),
+    ),
     onDrop,
   })
-  const previewUrl = React.useMemo(() => {
-    if (!value || typeof value === 'string') return null
-    return URL.createObjectURL(value)
+  const [blobUrl, setBlobUrl] = React.useState<string | null>(null)
+  React.useEffect(() => {
+    if (!value || typeof value === 'string') {
+      setBlobUrl(null)
+      return undefined
+    }
+    const url = URL.createObjectURL(value)
+    setBlobUrl(url)
+    return () => URL.revokeObjectURL(url)
   }, [value])
   return (
-    <div className={classes.root} {...getRootProps()}>
-      <input {...getInputProps()} />
-      {!!value && typeof value === 'string' && (
-        <Logo src={value} height="50px" width="50px" />
-      )}
-      {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
-      {!value && (
-        <div className={classes.placeholder}>
-          <M.Icon>hide_image</M.Icon>
-        </div>
-      )}
-      <p className={classes.note}>Drop logo here</p>
+    <div className={classes.root}>
+      <div className={classes.dropzone} {...getRootProps()}>
+        <input {...getInputProps()} />
+        <Preview source={value} blobUrl={blobUrl} invalid={!!error} />
+        <p className={classes.note}>Drop logo here</p>
+      </div>
+      <div className={classes.or}>or</div>
+      <M.TextField
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="https://example.com/logo.png"
+        label="Logo URL"
+        fullWidth
+        size="small"
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+        error={!!error}
+        helperText={error ? errors?.[error] || error : null}
+      />
     </div>
   )
 }
@@ -179,9 +232,7 @@ const useThemePreviewStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ThemePreviewProps {}
-
-function ThemePreview({}: ThemePreviewProps) {
+function ThemePreview() {
   const settings = CatalogSettings.use()
   const classes = useThemePreviewStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
@@ -268,12 +319,12 @@ export default function ThemeEditor() {
   }, [editing, removing, settings, writeSettings, push])
 
   const onSubmit = React.useCallback(
-    async (values: { logoUrl: string; primaryColor: string }) => {
+    async (values: { logoUrl: string | FileWithPath; primaryColor: string }) => {
       try {
-        let logoUrl = values?.logoUrl
-        // TODO: check is instance of File explicitly
-        if (logoUrl && typeof logoUrl !== 'string') {
-          logoUrl = await uploadFile(logoUrl)
+        const raw = values?.logoUrl
+        let logoUrl: string = typeof raw === 'string' ? raw : ''
+        if (raw && typeof raw !== 'string') {
+          logoUrl = s3paths.handleToS3Url(await uploadFile(raw))
         }
         const updatedSettings = settings || {}
         if (logoUrl) {
@@ -305,9 +356,6 @@ export default function ThemeEditor() {
     },
     [settings, writeSettings, uploadFile],
   )
-
-  // FIXME: remove when file upload would be ready
-  const useThirdPartyDomainForLogo = true
 
   return (
     <>
@@ -356,43 +404,26 @@ export default function ThemeEditor() {
               <M.DialogTitle>Configure theme</M.DialogTitle>
               <M.DialogContent>
                 <form onSubmit={handleSubmit}>
-                  {useThirdPartyDomainForLogo ? (
-                    <RF.Field
-                      component={Form.Field}
-                      initialValue={settings?.logo?.url || ''}
-                      name="logoUrl"
-                      label="Logo URL"
-                      placeholder="e.g. https://example.com/path.jpg"
-                      validate={validators.url as FF.FieldValidator<string>}
-                      errors={{
-                        url: 'Image should be valid url',
-                      }}
-                      disabled={submitting}
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  ) : (
-                    <RF.Field
-                      component={InputFile}
-                      initialValue={settings?.logo?.url || ''}
-                      name="logoUrl"
-                      label="Logo URL"
-                      placeholder="e.g. https://example.com/path.jpg"
-                      validate={
-                        validators.composeOr(
-                          validators.file,
-                          validators.url,
-                        ) as FF.FieldValidator<string>
-                      }
-                      errors={{
-                        url: 'Image should be valid url',
-                        file: 'Image should be file',
-                      }}
-                      disabled={submitting}
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  )}
+                  <RF.Field
+                    component={InputFile}
+                    initialValue={settings?.logo?.url || ''}
+                    name="logoUrl"
+                    label="Logo URL"
+                    placeholder="e.g. https://example.com/path.jpg"
+                    validate={
+                      validators.composeOr(
+                        validators.file,
+                        validators.logoUrl,
+                      ) as FF.FieldValidator<string>
+                    }
+                    errors={{
+                      logoUrl: 'Enter a valid URL (https:// or s3://bucket/key)',
+                      file: 'Image should be a file',
+                    }}
+                    disabled={submitting}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
                   <M.Box pt={2} />
                   <RF.Field
                     // @ts-expect-error

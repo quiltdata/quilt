@@ -1,42 +1,52 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_Search_gql_NextPageObjectsQueryVariables = Types.Exact<{
-  after: Types.Scalars['String']
+export type containers_Search_gql_NextPageObjectsQueryVariables = Exact<{
+  after: string
 }>
 
-export type containers_Search_gql_NextPageObjectsQuery = {
+export interface containers_Search_gql_NextPageObjectsQuery {
   readonly __typename: 'Query'
-} & {
   readonly searchMoreObjects:
-    | ({ readonly __typename: 'ObjectsSearchResultSetPage' } & Pick<
-        Types.ObjectsSearchResultSetPage,
-        'cursor'
-      > & {
-          readonly hits: ReadonlyArray<
-            { readonly __typename: 'SearchHitObject' } & Pick<
-              Types.SearchHitObject,
-              | 'id'
-              | 'bucket'
-              | 'score'
-              | 'size'
-              | 'modified'
-              | 'key'
-              | 'version'
-              | 'deleted'
-              | 'indexedContent'
-            >
-          >
-        })
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'ObjectsSearchResultSetPage'
+        readonly cursor: string | null
+        readonly hits: ReadonlyArray<{
+          readonly __typename: 'SearchHitObject'
+          readonly id: string
+          readonly bucket: string
+          readonly score: number
+          readonly size: number
+          readonly modified: Date
+          readonly key: string
+          readonly version: string
+          readonly deleted: boolean
+          readonly indexedContent: string | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
 }
 
 export const containers_Search_gql_NextPageObjectsDocument = {
@@ -133,6 +143,21 @@ export const containers_Search_gql_NextPageObjectsDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

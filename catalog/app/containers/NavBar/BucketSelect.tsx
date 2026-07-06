@@ -9,7 +9,7 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 
 import BucketIcon from 'components/BucketIcon'
 import * as style from 'constants/style'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const normalizeBucket: (b: string) => string = R.pipe(
@@ -108,7 +108,7 @@ function Bucket({ iconUrl, name, title, description }: BucketProps) {
   const classes = useBucketStyles()
   return (
     <div className={classes.root} title={description || undefined}>
-      <BucketIcon alt={title} className={classes.icon} src={iconUrl || undefined} />
+      <BucketIcon alt={title} className={classes.icon} src={iconUrl} />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})
@@ -133,7 +133,7 @@ function CustomPopper({ style: css, ...props }: CustomPopperProps) {
   )
 }
 
-type Option = ReturnType<typeof BucketConfig.useRelevantBucketConfigs>[number] | string
+type Option = ReturnType<typeof Buckets.useRelevantBuckets>[number] | string
 
 interface FocusHandler {
   focus: () => void
@@ -145,9 +145,9 @@ interface BucketSelectProps extends M.BoxProps {
 }
 
 function BucketSelect({ cancel, forwardedRef, ...props }: BucketSelectProps) {
-  const currentBucket = BucketConfig.useCurrentBucket()
+  const currentBucket = Buckets.useCurrentBucket()
   // XXX: consider using graphql directly
-  const bucketConfigs: Option[] = BucketConfig.useRelevantBucketConfigs()
+  const buckets: Option[] = Buckets.useRelevantBuckets()
   const history = useHistory()
   const { urls } = NamedRoutes.use()
 
@@ -168,7 +168,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }: BucketSelectProps) {
           freeSolo
           disableClearable
           openOnFocus
-          options={bucketConfigs}
+          options={buckets}
           value=""
           inputValue={inputValue}
           onInputChange={(_event, newValue) => setInputValue(newValue)}

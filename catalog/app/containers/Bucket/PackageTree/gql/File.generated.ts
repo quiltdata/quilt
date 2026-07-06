@@ -1,37 +1,40 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageTree_gql_FileQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
-  name: Types.Scalars['String']
-  hash: Types.Scalars['String']
-  path: Types.Scalars['String']
+export type containers_Bucket_PackageTree_gql_FileQueryVariables = Exact<{
+  bucket: string
+  name: string
+  hash: string
+  path: string
 }>
 
-export type containers_Bucket_PackageTree_gql_FileQuery = {
+export interface containers_Bucket_PackageTree_gql_FileQuery {
   readonly __typename: 'Query'
-} & {
-  readonly package: Types.Maybe<
-    { readonly __typename: 'Package' } & Pick<Types.Package, 'bucket' | 'name'> & {
-        readonly revision: Types.Maybe<
-          { readonly __typename: 'PackageRevision' } & Pick<
-            Types.PackageRevision,
-            'hash'
-          > & {
-              readonly file: Types.Maybe<
-                { readonly __typename: 'PackageFile' } & Pick<
-                  Types.PackageFile,
-                  'path' | 'metadata' | 'size' | 'physicalKey'
-                >
-              >
-              readonly dir: Types.Maybe<
-                { readonly __typename: 'PackageDir' } & Pick<Types.PackageDir, 'path'>
-              >
-            }
-        >
-      }
-  >
+  readonly package: {
+    readonly __typename: 'Package'
+    readonly bucket: string
+    readonly name: string
+    readonly revision: {
+      readonly __typename: 'PackageRevision'
+      readonly hash: string
+      readonly modified: Date
+      readonly file: {
+        readonly __typename: 'PackageFile'
+        readonly path: string
+        readonly metadata: JsonRecord | null
+        readonly size: number
+        readonly physicalKey: string
+      } | null
+      readonly dir: { readonly __typename: 'PackageDir'; readonly path: string } | null
+    } | null
+  } | null
 }
 
 export const containers_Bucket_PackageTree_gql_FileDocument = {
@@ -112,6 +115,7 @@ export const containers_Bucket_PackageTree_gql_FileDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'file' },

@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Log from 'utils/Logging'
+import noop from 'utils/noop'
 
 import * as storage from './storage'
 import * as Model from './utils'
@@ -57,26 +58,34 @@ async function fetchWorkgroup(
   }
 }
 
+// Athena's list* APIs cap at 50 per page; request the max so accounts with
+// many workgroups / catalogs / databases settle in fewer round-trips.
+const MAX_RESULTS_PER_PAGE = 50
+
 async function fetchWorkgroups(
   athena: Athena,
-  prev: Model.List<Workgroup> | null,
+  isMounted: () => boolean,
 ): Promise<Model.List<Workgroup>> {
   try {
-    const workgroupsOutput = await athena
-      .listWorkGroups({ NextToken: prev?.next })
-      .promise()
-    const parsed = (workgroupsOutput.WorkGroups || [])
-      .map(({ Name }) => Name || '')
-      .filter(Boolean)
-      .sort()
-    const available = (
-      await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
-    ).filter(Boolean)
-    const list = (prev?.list || []).concat(available as Workgroup[])
-    return {
-      list,
-      next: workgroupsOutput.NextToken,
-    }
+    const list: Workgroup[] = []
+    let token: string | undefined
+    // Drain to exhaustion. Pages may contain only workgroups the caller can't
+    // getWorkGroup on (filtered to null); accounts with >50 workgroups in a
+    // region can push the caller's accessible workgroup to a later page.
+    // `isMounted` between iterations stops the drain on navigation.
+    do {
+      if (!isMounted()) return { list }
+      const out = await athena
+        .listWorkGroups({ NextToken: token, MaxResults: MAX_RESULTS_PER_PAGE })
+        .promise()
+      const parsed = (out.WorkGroups || []).map(({ Name }) => Name || '').filter(Boolean)
+      const available = (
+        await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
+      ).filter((w): w is Workgroup => w !== null)
+      list.push(...available)
+      token = out.NextToken
+    } while (token)
+    return { list: list.sort() }
   } catch (e) {
     Log.error(e)
     throw e
@@ -85,45 +94,47 @@ async function fetchWorkgroups(
 
 export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
   React.useEffect(() => {
-    let mounted = true
     if (!athena) return
-    fetchWorkgroups(athena, prev)
+    let mounted = true
+    fetchWorkgroups(athena, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
     return () => {
       mounted = false
     }
-  }, [athena, prev])
-  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+  }, [athena])
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
   preferences?: BucketPreferences.AthenaPreferences,
-): Model.DataController<CatalogName> {
+): Model.DataController<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
-    setData((d) => {
-      if (!Model.hasData(workgroups.data)) return d
-      if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
-        return requestedWorkgroup
-      }
-      const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-      if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
-        return initialWorkgroup
-      }
-      return workgroups.data.list[0] || new Error('Workgroup not found')
-    })
+
+    // URL parameter workgroup (user navigation)
+    if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
+      setData(requestedWorkgroup)
+      return
+    }
+
+    // Stored or default workgroup
+    const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
+    if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
+      setData(initialWorkgroup)
+      return
+    }
+
+    // First available workgroup or error. Producer drains to exhaustion, so
+    // an accessible workgroup that exists is in this list.
+    setData(workgroups.data.list[0] || new Error('Workgroup not found'))
   }, [preferences, requestedWorkgroup, workgroups])
-  return React.useMemo(
-    () => Model.wrapData(data, workgroups.loadMore),
-    [data, workgroups.loadMore],
-  )
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export interface QueryExecution {
@@ -283,15 +294,15 @@ export function useWaitForQueryExecution(
   queryExecutionId?: string,
 ): Model.Value<QueryExecution> {
   const [data, fetch] = useFetchQueryExecution(queryExecutionId)
-  const [timer, setTimer] = React.useState<NodeJS.Timer | null>(null)
+  const [timer, setTimer] = React.useState<number | null>(null)
   React.useEffect(() => {
-    const t = setInterval(fetch, 1000)
+    const t = window.setInterval(fetch, 1000)
     setTimer(t)
     return () => clearInterval(t)
   }, [queryExecutionId, fetch])
   React.useEffect(() => {
     if (Model.isReady(data) && timer) {
-      clearInterval(timer)
+      window.clearInterval(timer)
     }
   }, [timer, data])
   return data
@@ -467,37 +478,58 @@ export function useResults(
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
+async function fetchDatabases(
+  athena: Athena,
+  catalogName: CatalogName,
+  isMounted: () => boolean,
+): Promise<Model.List<Database>> {
+  try {
+    const list: Database[] = []
+    let token: string | undefined
+    // Drain to exhaustion. ListDatabases has no per-item access filter, but
+    // the picker dropdown wants the full set; for federated catalogs (one DB
+    // per bucket) accounts with many buckets accumulate across pages.
+    do {
+      if (!isMounted()) return { list }
+      const out = await athena
+        .listDatabases({
+          CatalogName: catalogName,
+          NextToken: token,
+          MaxResults: MAX_RESULTS_PER_PAGE,
+        })
+        .promise()
+      const names = (out.DatabaseList || []).map(({ Name }) => Name || 'Unknown')
+      list.push(...names)
+      token = out.NextToken
+    } while (token)
+    return { list: list.sort() }
+  } catch (e) {
+    Sentry.captureException(e)
+    throw e
+  }
+}
+
 export function useDatabases(
   catalogName: Model.Value<CatalogName>,
 ): Model.DataController<Model.List<Database>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<Database> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Database>>>()
   React.useEffect(() => {
     if (!Model.hasData(catalogName)) {
       setData(catalogName || undefined)
       return
     }
+    if (!athena) return
+    let mounted = true
     setData(Model.Loading)
-    const request = athena?.listDatabases(
-      {
-        CatalogName: catalogName,
-        NextToken: prev?.next,
-      },
-      (error, d) => {
-        const { DatabaseList, NextToken: next } = d || {}
-        if (error) {
-          Sentry.captureException(error)
-          setData(error)
-          return
-        }
-        const list = DatabaseList?.map(({ Name }) => Name || 'Unknown').sort() || []
-        setData({ list: (prev?.list || []).concat(list), next })
-      },
-    )
-    return () => request?.abort()
-  }, [athena, catalogName, prev])
-  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+    fetchDatabases(athena, catalogName, () => mounted)
+      .then((d) => mounted && setData(d))
+      .catch((d) => mounted && setData(d))
+    return () => {
+      mounted = false
+    }
+  }, [athena, catalogName])
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export function useDatabase(
@@ -511,6 +543,7 @@ export function useDatabase(
       return
     }
     setValue((v) => {
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
         execution.db &&
@@ -518,13 +551,19 @@ export function useDatabase(
       ) {
         return execution.db
       }
+
+      // 2. Keep current selection
       if (Model.hasData(v) && listIncludes(databases.list, v)) {
         return v
       }
+
+      // 3. Restore from storage
       const initialDatabase = storage.getDatabase()
       if (initialDatabase && listIncludes(databases.list, initialDatabase)) {
         return initialDatabase
       }
+
+      // 4. Default to first available or null
       return databases.list[0] || null
     })
   }, [databases, execution])
@@ -565,24 +604,27 @@ async function fetchCatalogName(
 async function fetchCatalogNames(
   athena: Athena,
   workgroup: Workgroup,
-  prev: Model.List<CatalogName> | null,
+  isMounted: () => boolean,
 ): Promise<Model.List<CatalogName>> {
   try {
-    const catalogsOutput = await athena
-      .listDataCatalogs({ NextToken: prev?.next })
-      .promise()
-    const parsed = (catalogsOutput.DataCatalogsSummary || [])
-      .map(({ CatalogName }) => CatalogName || '')
-      .filter(Boolean)
-      .sort()
-    const available = (
-      await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
-    ).filter(Boolean)
-    const list = (prev?.list || []).concat(available as CatalogName[])
-    return {
-      list,
-      next: catalogsOutput.NextToken,
-    }
+    const list: CatalogName[] = []
+    let token: string | undefined
+    // ListDataCatalogs defaults to 10 per page (max 50); explicit cap matters here.
+    do {
+      if (!isMounted()) return { list }
+      const out = await athena
+        .listDataCatalogs({ NextToken: token, MaxResults: MAX_RESULTS_PER_PAGE })
+        .promise()
+      const parsed = (out.DataCatalogsSummary || [])
+        .map(({ CatalogName }) => CatalogName || '')
+        .filter(Boolean)
+      const available = (
+        await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
+      ).filter((n): n is CatalogName => n !== null)
+      list.push(...available)
+      token = out.NextToken
+    } while (token)
+    return { list: list.sort() }
   } catch (e) {
     Log.error(e)
     throw e
@@ -593,23 +635,25 @@ export function useCatalogNames(
   workgroup: Model.Value<Workgroup>,
 ): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroup)) {
       setData(workgroup || undefined)
       return
     }
-    let mounted = true
     if (!athena) return
-    fetchCatalogNames(athena, workgroup, prev)
+    let mounted = true
+    // Clear the prior workgroup's catalog list so a fast user-switch doesn't
+    // momentarily show / pick a catalog that belongs to the old workgroup.
+    setData(Model.Loading)
+    fetchCatalogNames(athena, workgroup, () => mounted)
       .then((d) => mounted && setData(d))
       .catch((d) => mounted && setData(d))
     return () => {
       mounted = false
     }
-  }, [athena, prev, workgroup])
-  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+  }, [athena, workgroup])
+  return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
 export function useCatalogName(
@@ -623,6 +667,7 @@ export function useCatalogName(
       return
     }
     setValue((v) => {
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
         execution.catalog &&
@@ -630,13 +675,18 @@ export function useCatalogName(
       ) {
         return execution.catalog
       }
+
+      // 2. Keep current selection
       if (Model.hasData(v) && listIncludes(catalogNames.list, v)) {
         return v
       }
+
+      // 3. Restore from storage
       const initialCatalogName = storage.getCatalog()
       if (initialCatalogName && listIncludes(catalogNames.list, initialCatalogName)) {
         return initialCatalogName
       }
+      // 4. Default to first available or null
       return catalogNames.list[0] || null
     })
   }, [catalogNames, execution])
@@ -654,13 +704,23 @@ export function useQuery(
       return
     }
     setValue((v) => {
+      // 1. Match execution query
       if (Model.hasData(execution) && execution.query) {
         const executionQuery = queries.list.find((q) => execution.query === q.body)
         return executionQuery || null
       }
+
+      // 2. Keep current selection
       if (Model.hasData(v) && queries.list.includes(v)) {
         return v
       }
+
+      // 3. Preserve during execution loading (prevents flickering)
+      if (!Model.isReady(execution)) {
+        return v
+      }
+
+      // 4. Default to first available or null
       return queries.list[0] || null
     })
   }, [execution, queries])
@@ -679,12 +739,21 @@ export function useQueryBody(
       return
     }
     setValue((v) => {
+      // 1. Error state: clear query body
       if (Model.isError(query)) return null
+
+      // 2. Selected query: use its body content
       if (Model.hasData(query)) return query.body
+
+      // 3. Execution context: show executed query
       if (Model.hasData(execution) && execution.query) return execution.query
+
+      // 4. All ready but no values: set to null (clear state)
       if (!Model.isReady(v) && Model.isReady(query) && Model.isReady(execution)) {
         return null
       }
+
+      // 5. Preserve current value
       return v
     })
   }, [execution, query])

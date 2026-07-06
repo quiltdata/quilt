@@ -1,40 +1,47 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Buckets_gql_TabulatorTablesRenameMutationVariables =
-  Types.Exact<{
-    bucketName: Types.Scalars['String']
-    tableName: Types.Scalars['String']
-    newTableName: Types.Scalars['String']
-  }>
+export type containers_Admin_Buckets_gql_TabulatorTablesRenameMutationVariables = Exact<{
+  bucketName: string
+  tableName: string
+  newTableName: string
+}>
 
-export type containers_Admin_Buckets_gql_TabulatorTablesRenameMutation = {
+export interface containers_Admin_Buckets_gql_TabulatorTablesRenameMutation {
   readonly __typename: 'Mutation'
-} & {
-  readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly bucketRenameTabulatorTable:
-      | ({ readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
-            readonly tabulatorTables: ReadonlyArray<
-              { readonly __typename: 'TabulatorTable' } & Pick<
-                Types.TabulatorTable,
-                'name' | 'config'
-              >
-            >
-          })
-      | ({ readonly __typename: 'InvalidInput' } & {
-          readonly errors: ReadonlyArray<
-            { readonly __typename: 'InputError' } & Pick<
-              Types.InputError,
-              'path' | 'message'
-            >
-          >
-        })
-      | ({ readonly __typename: 'OperationError' } & Pick<
-          Types.OperationError,
-          'message'
-        >)
-  }
+  readonly bucketRenameTabulatorTable:
+    | {
+        readonly __typename: 'BucketConfig'
+        readonly name: string
+        readonly tabulatorTables: ReadonlyArray<{
+          readonly __typename: 'TabulatorTable'
+          readonly name: string
+          readonly config: string
+        }>
+      }
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly name: string
+          readonly message: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
 }
 
 export const containers_Admin_Buckets_gql_TabulatorTablesRenameDocument = {
@@ -75,115 +82,92 @@ export const containers_Admin_Buckets_gql_TabulatorTablesRenameDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'admin' },
+            name: { kind: 'Name', value: 'bucketRenameTabulatorTable' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'bucketName' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'bucketName' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'tableName' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'tableName' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'newTableName' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'newTableName' },
+                },
+              },
+            ],
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
+                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
                 {
-                  kind: 'Field',
-                  name: { kind: 'Name', value: 'bucketRenameTabulatorTable' },
-                  arguments: [
-                    {
-                      kind: 'Argument',
-                      name: { kind: 'Name', value: 'bucketName' },
-                      value: {
-                        kind: 'Variable',
-                        name: { kind: 'Name', value: 'bucketName' },
-                      },
-                    },
-                    {
-                      kind: 'Argument',
-                      name: { kind: 'Name', value: 'tableName' },
-                      value: {
-                        kind: 'Variable',
-                        name: { kind: 'Name', value: 'tableName' },
-                      },
-                    },
-                    {
-                      kind: 'Argument',
-                      name: { kind: 'Name', value: 'newTableName' },
-                      value: {
-                        kind: 'Variable',
-                        name: { kind: 'Name', value: 'newTableName' },
-                      },
-                    },
-                  ],
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'BucketConfig' },
+                  },
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                       {
-                        kind: 'InlineFragment',
-                        typeCondition: {
-                          kind: 'NamedType',
-                          name: { kind: 'Name', value: 'BucketConfig' },
-                        },
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'tabulatorTables' },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
                             { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'tabulatorTables' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'name' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'config' },
-                                  },
-                                ],
-                              },
-                            },
+                            { kind: 'Field', name: { kind: 'Name', value: 'config' } },
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'InvalidInput' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
                       {
-                        kind: 'InlineFragment',
-                        typeCondition: {
-                          kind: 'NamedType',
-                          name: { kind: 'Name', value: 'InvalidInput' },
-                        },
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'errors' },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'errors' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'path' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'message' },
-                                  },
-                                ],
-                              },
-                            },
-                          ],
-                        },
-                      },
-                      {
-                        kind: 'InlineFragment',
-                        typeCondition: {
-                          kind: 'NamedType',
-                          name: { kind: 'Name', value: 'OperationError' },
-                        },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'path' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

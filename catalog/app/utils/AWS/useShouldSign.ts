@@ -3,12 +3,12 @@ import * as redux from 'react-redux'
 
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 
 export default function useShouldSign() {
   const authenticated = redux.useSelector(authSelectors.authenticated)
-  const isInStack = BucketConfig.useIsInStack()
+  const isInStack = Buckets.useIsInStack()
   const statusReportsBucket = useStatusReportsBucket()
 
   return React.useCallback(

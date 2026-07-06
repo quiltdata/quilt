@@ -4,7 +4,6 @@ import invariant from 'invariant'
 import { useParams } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
-// import * as Model from 'model'
 import * as Nav from 'utils/Navigation'
 
 export interface RouteMap {
@@ -12,9 +11,11 @@ export interface RouteMap {
   bucketESQueries: routes.BucketESQueriesArgs
   bucketFile: routes.BucketFileArgs
   bucketOverview: routes.BucketOverviewArgs
+  bucketPackageAddFiles: routes.BucketPackageAddFilesArgs
   bucketPackageDetail: routes.BucketPackageDetailArgs
   bucketPackageList: routes.BucketPackageListArgs
   bucketPackageRevisions: routes.BucketPackageRevisionsArgs
+  bucketPackageCompare: routes.BucketPackageCompareArgs
   bucketPackageTree: routes.BucketPackageTreeArgs
   bucketQueries: routes.BucketQueriesArgs
   bucketWorkflowDetail: routes.BucketWorkflowDetailArgs
@@ -49,7 +50,9 @@ const PATH_SEP = '/'
 const mapSegments = (separator: string, map: (s: string) => string) =>
   Eff.flow(Eff.String.split(separator), Eff.Array.map(map), Eff.Array.join(separator))
 
-const S3Path = S.brand('S3Path')(S.String)
+// NB: use the piped form; effect >=3.18 infers a non-`never` schema Context
+// for the curried `S.brand('S3Path')(S.String)`, which breaks `fromPathParams`.
+const S3Path = S.String.pipe(S.brand('S3Path'))
 
 const S3PathFromString = (S3PathSchema: typeof S3Path) =>
   S.transform(S.String, S3PathSchema, {

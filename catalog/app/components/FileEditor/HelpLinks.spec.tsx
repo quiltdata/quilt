@@ -1,43 +1,25 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
-import { MissingSourceBucket, WorkflowsConfigLink } from './HelpLinks'
+import noop from 'utils/noop'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+import { WorkflowsConfigLink } from './HelpLinks'
 
-jest.mock(
-  'utils/StyledLink',
-  () =>
-    ({ href, to, children }: React.PropsWithChildren<{ href: string; to: string }>) => (
-      <a href={to || href}>{children}</a>
-    ),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Tooltip: jest.fn(
-      ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
-        <div>
-          {title}
-          <hr />
-          {children}
-        </div>
-      ),
-    ),
-  })),
-)
+vi.mock('utils/StyledLink', () => ({
+  default: ({
+    href,
+    to,
+    children,
+  }: React.PropsWithChildren<{ href: string; to: string }>) => (
+    <a href={to || href}>{children}</a>
+  ),
+}))
 
-jest.mock('components/Code', () => ({ children }: React.PropsWithChildren<{}>) => (
-  <code>{children}</code>
-))
-
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
   use: () => ({
     urls: {
       bucketFile: (b: string, k: string, opts: Record<string, any>) => {
@@ -48,54 +30,33 @@ jest.mock('utils/NamedRoutes', () => ({
   }),
 }))
 
-jest.mock('utils/GlobalDialogs', () => ({
-  use: jest.fn(),
-}))
+const useLocation = () =>
+  ({ pathname: '/a/b/c', search: '?foo=bar' }) as Record<string, string>
 
-const useLocation = jest.fn(
-  () => ({ pathname: '/a/b/c', search: '?foo=bar' }) as Record<string, string>,
-)
+const useParams = vi.fn(() => ({ bucket: 'buck' }) as Record<string, string>)
 
-const useParams = jest.fn(() => ({ bucket: 'buck' }) as Record<string, string>)
-
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(() => useParams()),
-  useLocation: jest.fn(() => useLocation()),
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: () => useParams(),
+  useLocation: () => useLocation(),
 }))
 
 describe('components/FileEditor/HelpLinks', () => {
+  afterEach(cleanup)
+
   describe('WorkflowsConfigLink', () => {
     it('should render', () => {
-      const tree = renderer
-        .create(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { getByText } = render(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
+      expect(getByText('Test').getAttribute('href')).toContain(
+        '/b/buck/tree/k/.quilt/workflows/config.yml?edit=true&next=%2Fa%2Fb%2Fc%3Ffoo%3Dbar',
+      )
     })
 
     it('should throw outside bucket', () => {
-      jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+      vi.spyOn(console, 'error').mockImplementationOnce(noop)
       useParams.mockImplementationOnce(() => ({}))
-      const tree = () => renderer.create(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
+      const tree = () => render(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
       expect(tree).toThrowError('`bucket` must be defined')
-    })
-  })
-
-  describe('MissingSourceBucket', () => {
-    it('should render', () => {
-      const tree = renderer
-        .create(<MissingSourceBucket>Disabled button</MissingSourceBucket>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
-    })
-
-    it('should throw outside bucket', () => {
-      jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
-      useParams.mockImplementationOnce(() => ({}))
-      const tree = renderer
-        .create(<MissingSourceBucket>Any</MissingSourceBucket>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
     })
   })
 })

@@ -16,6 +16,40 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
+* [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
+
+## 7.3.0 - 2026-04-07
+
+### Python API
+
+* [Added] Admin role and policy management APIs: `quilt3.admin.roles` (list/get/get-default/create/update/patch/delete/set-default) and `quilt3.admin.policies` (list/get/create/update/patch/delete); all lookup and mutation methods accept name/title in addition to ID ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin.ManagedRole` now exposes `policies` and `permissions` fields ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin` now exports `Policy`, `PolicySummary`, `Permission` (with `.read()` / `.read_write()` shorthand constructors), `BucketPermissionLevel` types and `RoleAssignedError`, `RoleSsoConfigConflictError`, `RoleTypeMismatchError` exceptions ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+
+## 7.2.0 - 2026-01-28
+
+### Python API
+
+* [Added] Verification of packages with crc64nvme hashes ([#4696](https://github.com/quiltdata/quilt/pull/4696))
+* [Added] API key support (`quilt3.api_keys`, `quilt3.admin.api_keys`, `login_with_api_key()`) ([#4690](https://github.com/quiltdata/quilt/pull/4690), [#4705](https://github.com/quiltdata/quilt/pull/4705))
+
+## 7.1.0 - 2025-12-22
+
+### Python API
+
+* [Added] `quilt3.admin.buckets` sub-module for managing bucket configuration ([#4667](https://github.com/quiltdata/quilt/pull/4667))
+
+## 7.0.0 - 2025-08-25
+
+### Python API
+
+* [Changed] **BREAKING:** Change the default `selector_fn` for `Package.push`. Now, files in the same bucket as the destination registry are not copied by default. This change was requested by users who were inadvertently creating extra copies of files in packages that were created from files in S3. ([#4464](https://github.com/quiltdata/quilt/pull/4464))
+
 ## 6.3.1 - 2025-03-10
 
 ### Python API
@@ -156,7 +190,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
 * [Fixed] Hide filters in a sidebar drawer on mobile ([#3801](https://github.com/quiltdata/quilt/pull/3801))
 * [Fixed] Fix copying selected text in code samples ([#3803](https://github.com/quiltdata/quilt/pull/3803))
-* [Fixed] Add current bucket as a succesor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
+* [Fixed] Add current bucket as a successor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))

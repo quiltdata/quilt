@@ -45,14 +45,14 @@ function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProp
 interface TablePageProps {
   className?: string
   bucket?: string
-  emptyFallback?: JSX.Element
+  emptySlot: JSX.Element
   onRefine: (action: NoResults.Refine) => void
 }
 
 export default function TablePage({
   className,
   bucket,
-  emptyFallback,
+  emptySlot,
   onRefine,
 }: TablePageProps) {
   Layout.useSetFullWidth()
@@ -64,30 +64,49 @@ export default function TablePage({
     case 'in-progress':
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
-      const { error, _tag: tag } = results.error
-      const kind = error.name === 'QuerySyntaxError' ? 'syntax' : undefined
-      switch (tag) {
+      const { error } = results
+      switch (error._tag) {
         case 'general':
         case 'page':
           return (
-            <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
-              {error.message}
+            <NoResults.Error className={className} onRefine={onRefine}>
+              {error.error.message}
             </NoResults.Error>
           )
         case 'data':
-          return (
-            <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
-              Invalid input at <code>{error.path}</code>: {error.name}
-              <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
-            </NoResults.Error>
-          )
+          const err = error.error
+          switch (err.__typename) {
+            case 'InputError':
+              const kind = err.name === 'QuerySyntaxError' ? 'syntax' : undefined
+              return (
+                <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
+                  Invalid input at <code>{err.path}</code>: {err.name}
+                  <pre style={{ whiteSpace: 'pre-wrap' }}>{err.message}</pre>
+                </NoResults.Error>
+              )
+            case 'OperationError':
+              if (err.name === 'Timeout') {
+                return (
+                  <NoResults.Error
+                    className={className}
+                    kind="timeout"
+                    onRefine={onRefine}
+                  />
+                )
+              }
+              return (
+                <NoResults.Error className={className} onRefine={onRefine}>
+                  Operation error: {err.message}
+                </NoResults.Error>
+              )
+            default:
+              assertNever(err)
+          }
         default:
-          assertNever(tag)
+          assertNever(error)
       }
     case 'empty':
-      return (
-        emptyFallback || <NoResults.Empty className={className} onRefine={onRefine} />
-      )
+      return emptySlot
     case 'ok':
       return (
         <ResultsInner

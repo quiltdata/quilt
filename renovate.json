@@ -7,10 +7,31 @@
     ":dependencyDashboardApproval"
   ],
   "enabledManagers": [
-    "npm"
+    "npm",
+    "dockerfile"
   ],
   "rangeStrategy": "bump",
   "labels": [
     "js dependencies"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["dockerfile"],
+      "labels": ["docker"],
+      "major": {
+        "enabled": false
+      },
+      "additionalBranchPrefix": "{{packageFileDir}}-",
+      "commitMessageSuffix": " in /{{packageFileDir}}",
+      "dependencyDashboardCategory": "docker"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["public.ecr.aws/lambda/python"],
+      "minor": {
+        "enabled": false
+      },
+      "separateMinorPatch": true
+    }
   ]
 }

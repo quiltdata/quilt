@@ -1,65 +1,76 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_Search_gql_NextPagePackagesQueryVariables = Types.Exact<{
-  after: Types.Scalars['String']
+export type containers_Search_gql_NextPagePackagesQueryVariables = Exact<{
+  after: string
 }>
 
-export type containers_Search_gql_NextPagePackagesQuery = {
+export interface containers_Search_gql_NextPagePackagesQuery {
   readonly __typename: 'Query'
-} & {
   readonly searchMorePackages:
-    | ({ readonly __typename: 'PackagesSearchResultSetPage' } & Pick<
-        Types.PackagesSearchResultSetPage,
-        'cursor'
-      > & {
-          readonly hits: ReadonlyArray<
-            { readonly __typename: 'SearchHitPackage' } & Pick<
-              Types.SearchHitPackage,
-              | 'id'
-              | 'bucket'
-              | 'name'
-              | 'pointer'
-              | 'hash'
-              | 'score'
-              | 'size'
-              | 'modified'
-              | 'totalEntriesCount'
-              | 'comment'
-              | 'meta'
-              | 'workflow'
-            > & {
-                readonly matchLocations: {
-                  readonly __typename: 'SearchHitPackageMatchLocations'
-                } & Pick<
-                  Types.SearchHitPackageMatchLocations,
-                  'comment' | 'meta' | 'name' | 'workflow'
-                >
-                readonly matchingEntries: ReadonlyArray<
-                  { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
-                    Types.SearchHitPackageMatchingEntry,
-                    'logicalKey' | 'physicalKey' | 'size' | 'meta'
-                  > & {
-                      readonly matchLocations: {
-                        readonly __typename: 'SearchHitPackageEntryMatchLocations'
-                      } & Pick<
-                        Types.SearchHitPackageEntryMatchLocations,
-                        'contents' | 'logicalKey' | 'meta' | 'physicalKey'
-                      >
-                    }
-                >
-              }
-          >
-        })
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
+    | {
+        readonly __typename: 'PackagesSearchResultSetPage'
+        readonly cursor: string | null
+        readonly hits: ReadonlyArray<{
+          readonly __typename: 'SearchHitPackage'
+          readonly id: string
+          readonly bucket: string
+          readonly name: string
+          readonly pointer: string
+          readonly hash: string
+          readonly score: number
+          readonly size: number
+          readonly modified: Date
+          readonly totalEntriesCount: number
+          readonly comment: string | null
+          readonly meta: string | null
+          readonly workflow: JsonRecord | null
+          readonly matchLocations: {
+            readonly __typename: 'SearchHitPackageMatchLocations'
+            readonly comment: boolean
+            readonly meta: boolean
+            readonly name: boolean
+            readonly workflow: boolean
+          }
+          readonly matchingEntries: ReadonlyArray<{
+            readonly __typename: 'SearchHitPackageMatchingEntry'
+            readonly logicalKey: string
+            readonly physicalKey: string
+            readonly size: number
+            readonly meta: string | null
+            readonly matchLocations: {
+              readonly __typename: 'SearchHitPackageEntryMatchLocations'
+              readonly contents: boolean
+              readonly logicalKey: boolean
+              readonly meta: boolean
+              readonly physicalKey: boolean
+            }
+          }>
+        }>
+      }
 }
 
 export const containers_Search_gql_NextPagePackagesDocument = {
@@ -234,6 +245,21 @@ export const containers_Search_gql_NextPagePackagesDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

@@ -37,13 +37,39 @@ to automatically generate thumbnail previews of common image formats
 and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg,
 .png, .webp, .tif, .tiff (including `OME-TIFF`), and .czi.
 
-### Known limitations
+8-bit, 16-bit, and floating-point pixel data are all supported. Quilt
+reduces multi-dimensional microscopy images to a single 2D preview:
+channels are laid out as a grid of per-channel previews, Z-stacks are
+flattened with a maximum-intensity projection, and time-series show their
+middle timepoint.
 
-Automated previews of 8-bit depth and higher image files are not
-currently supported.
+### Display normalization
+
+> Thumbnails are a visual aid, not a faithful reproduction of the original
+> pixel values.
+
+Previews of high-bit-depth and microscopy images are **contrast-stretched
+per image** to keep faint, low-contrast detail visible: each grayscale
+image — and each channel of a multi-channel image — is rescaled from its
+own range of pixel values, after clipping the most extreme values so a few
+hot or dead pixels don't flatten the rest. Color previews are stretched the
+same way, jointly across their channels so the colors aren't skewed.
+
+As a result, displayed brightness does **not** represent absolute pixel
+intensity: it is not comparable between thumbnails, nor between the
+channels of a multi-channel montage. Ordinary 8-bit images (such as .jpg
+files) are already display-ready and are shown unchanged.
+
+### Limitations
+
+* Integer images deeper than 16 bits may render incorrectly or fail to
+  preview.
+* Very large images may fail to preview if they exceed memory or pixel
+  limits.
 
 ## Binary and special file format previews
 
+* AnnData (.h5ad) — annotated matrix metadata, with QC metrics for small files
 * FCS Flow Cytometry files (.fcs)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * Jupyter notebooks (.ipynb)

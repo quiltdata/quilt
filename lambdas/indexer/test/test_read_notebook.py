@@ -6,7 +6,8 @@ import os
 import pytest
 from nbformat.reader import NotJSONError
 
-from ..index import extract_text
+from t4_lambda_es_indexer.index import extract_text
+
 from .constants import NORMAL_EXTRACT
 
 NB_RAISES = {

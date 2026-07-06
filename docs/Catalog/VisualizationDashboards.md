@@ -432,7 +432,7 @@ If you encounter a rendering error, please first try a different browser (Firefo
 Safari, Edge) on the same machine. If the error persists, next disable all third-party
 extensions, turning each one back on, one-by-one, until the problem
 extension is identified. Please then notify
-[support@quiltdata.io](mailto:support@quiltdata.io) with the extension
+[support@quilt.bio](mailto:support@quilt.bio) with the extension
 name and version.
 
 ### Live packages

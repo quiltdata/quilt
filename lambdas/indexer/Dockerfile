@@ -1,12 +1,45 @@
-FROM public.ecr.aws/lambda/python:3.11@sha256:90a552bb30fd493ed9177e3c1b7e96088925c490938446edc1e81ce8ad110338 AS base
+ARG FUNCTION_DIR="/function"
+
+FROM public.ecr.aws/lambda/python:3.12.2026.06.21.12@sha256:e5d193e114642db0aefc860339bcfa80a20b3c6e1c178592c9da060b940808fc AS base
 
 FROM base AS build
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=${FUNCTION_DIR}
+
+RUN --mount=type=cache,target=/root/.cache \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync \
+    --locked \
+    --no-dev \
+    --group=prod \
+    --no-install-project
+
 COPY . /src
 WORKDIR /src
-RUN uv pip install --target /target -r ./requirements.txt .
+RUN --mount=type=cache,target=/root/.cache \
+    uv sync \
+    --locked \
+    --no-dev \
+    --group=prod \
+    --no-editable
 
 FROM base
-COPY --from=build /target ${LAMBDA_TASK_ROOT}
 
-CMD [ "index.handler" ]
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Set working directory to function root directory
+WORKDIR ${FUNCTION_DIR}
+
+COPY --from=build --chown=app:app ${FUNCTION_DIR} ${FUNCTION_DIR}
+
+ENTRYPOINT ["./bin/python3", "-m", "awslambdaric"]
+CMD ["t4_lambda_es_indexer.index.handler"]
