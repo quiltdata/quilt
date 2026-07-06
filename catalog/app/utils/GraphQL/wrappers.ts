@@ -57,8 +57,7 @@ interface FoldOptions {
 }
 
 interface FoldConfig<Data, OnData, OnFecthing, OnError>
-  extends FoldCases<Data, OnData, OnFecthing, OnError>,
-    FoldOptions {}
+  extends FoldCases<Data, OnData, OnFecthing, OnError>, FoldOptions {}
 
 /**
  * Fold / unwrap an {@link urql#UseQueryState | `urql` query result} into a value.

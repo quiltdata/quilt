@@ -154,6 +154,17 @@ settings][app-settings].
 
 [app-settings]: https://docs.benchling.com/docs/getting-started-benchling-apps#installing-your-app
 
+In the Benchling **Webhook Setup** dialog, set **Webhook Routing Setting** to
+**Suffixed**. Benchling then appends a path suffix based on the kind of event
+(`/lifecycle`, `/event`, or `/canvas`) to your configured webhook URL, which is
+what the Quilt webhook expects.
+
+![Webhook Routing Setting](../imgs/benchling-webhook-routing.png)
+
+> **Important:** Do **not** select **Stable**. It posts every event to the bare
+> webhook URL with no suffix, which the Quilt webhook does not handle — requests
+> return `404 Endpoint not found`.
+
 ### 4. Test Integration
 
 In Benchling:

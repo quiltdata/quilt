@@ -232,9 +232,7 @@ const useThemePreviewStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ThemePreviewProps {}
-
-function ThemePreview({}: ThemePreviewProps) {
+function ThemePreview() {
   const settings = CatalogSettings.use()
   const classes = useThemePreviewStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,

@@ -1,18 +1,25 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_SsoConfigQueryVariables = Types.Exact<{
+export type containers_Admin_UsersAndRoles_gql_SsoConfigQueryVariables = Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_UsersAndRoles_gql_SsoConfigQuery = {
+export interface containers_Admin_UsersAndRoles_gql_SsoConfigQuery {
   readonly __typename: 'Query'
-} & {
-  readonly admin: { readonly __typename: 'AdminQueries' } & {
-    readonly ssoConfig: Types.Maybe<
-      { readonly __typename: 'SsoConfig' } & Pick<Types.SsoConfig, 'text' | 'timestamp'>
-    >
+  readonly admin: {
+    readonly __typename: 'AdminQueries'
+    readonly ssoConfig: {
+      readonly __typename: 'SsoConfig'
+      readonly text: string
+      readonly timestamp: Date
+    } | null
   }
 }
 

@@ -2,7 +2,7 @@ import path from 'path'
 import { describe, expect, it } from 'vitest'
 
 import dedent from 'dedent'
-import xlsx from 'xlsx'
+import * as xlsx from 'xlsx'
 
 import * as spreadsheets from './spreadsheets'
 

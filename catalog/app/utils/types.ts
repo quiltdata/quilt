@@ -25,8 +25,11 @@ export const decode = <T>(codec: IO.Type<T, any, any>) =>
     ),
   ) as (i: unknown) => T
 
-export interface NullableC<C extends IO.Mixed>
-  extends IO.Type<IO.TypeOf<C> | null, IO.OutputOf<C> | null, unknown> {}
+export interface NullableC<C extends IO.Mixed> extends IO.Type<
+  IO.TypeOf<C> | null,
+  IO.OutputOf<C> | null,
+  unknown
+> {}
 
 export type Nullable<T> = T | null
 
@@ -45,7 +48,7 @@ export const nullable = <C extends IO.Mixed>(
 enum Enum {}
 
 export class EnumType<E extends typeof Enum> extends IO.Type<E[keyof E]> {
-  readonly _tag: 'EnumType' = 'EnumType'
+  readonly _tag = 'EnumType' as const
 
   private readonly enum: E
 

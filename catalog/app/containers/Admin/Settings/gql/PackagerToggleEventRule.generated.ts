@@ -1,35 +1,39 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
 export type containers_Admin_Settings_gql_PackagerToggleEventRuleMutationVariables =
-  Types.Exact<{
-    name: Types.Scalars['String']
-    enabled: Types.Scalars['Boolean']
+  Exact<{
+    name: string
+    enabled: boolean
   }>
 
-export type containers_Admin_Settings_gql_PackagerToggleEventRuleMutation = {
+export interface containers_Admin_Settings_gql_PackagerToggleEventRuleMutation {
   readonly __typename: 'Mutation'
-} & {
-  readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly packager: { readonly __typename: 'PackagerAdminMutations' } & {
+  readonly admin: {
+    readonly __typename: 'AdminMutations'
+    readonly packager: {
+      readonly __typename: 'PackagerAdminMutations'
       readonly toggleEventRule:
-        | ({ readonly __typename: 'PackagerEventRule' } & Pick<
-            Types.PackagerEventRule,
-            'name' | 'enabled'
-          >)
-        | ({ readonly __typename: 'OperationError' } & Pick<
-            Types.OperationError,
-            'message'
-          >)
-        | ({ readonly __typename: 'InvalidInput' } & {
-            readonly errors: ReadonlyArray<
-              { readonly __typename: 'InputError' } & Pick<
-                Types.InputError,
-                'path' | 'message'
-              >
-            >
-          })
+        | {
+            readonly __typename: 'InvalidInput'
+            readonly errors: ReadonlyArray<{
+              readonly __typename: 'InputError'
+              readonly path: string | null
+              readonly message: string
+            }>
+          }
+        | { readonly __typename: 'OperationError'; readonly message: string }
+        | {
+            readonly __typename: 'PackagerEventRule'
+            readonly name: string
+            readonly enabled: boolean
+          }
     }
   }
 }

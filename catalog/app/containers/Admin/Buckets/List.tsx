@@ -102,7 +102,7 @@ interface CustomBucketIconProps {
 function CustomBucketIcon({ src }: CustomBucketIconProps) {
   const classes = useCustomBucketIconStyles()
 
-  return <BucketIcon alt="" classes={classes} src={src} title="Default icon" />
+  return <BucketIcon classes={classes} src={src} title="Default icon" />
 }
 
 const columns: Table.Column<BucketConfig>[] = [
@@ -196,7 +196,6 @@ export default function List() {
     column: columns[0],
   })
   const pagination = Pagination.use(ordering.ordered, {
-    // @ts-expect-error
     getItemId: R.prop('name'),
   })
   const { open: openDialog, render: renderDialogs } = Dialogs.use()

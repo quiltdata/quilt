@@ -11,6 +11,16 @@ export default defineConfig({
       },
     },
 
+    // Node 25+ enables the Web Storage API by default; its built-in
+    // `localStorage` global reads as undefined without --localstorage-file and
+    // shadows jsdom's, so app code using the bare `localStorage` global sees
+    // undefined. Disable Node's webstorage (the forks pool reads NODE_OPTIONS
+    // at spawn) so jsdom owns localStorage again — no test-side storage mock.
+    // See https://github.com/vitest-dev/vitest/issues/8757.
+    env: {
+      NODE_OPTIONS: '--no-webstorage',
+    },
+
     setupFiles: ['./setup-vitest.ts'],
 
     include: ['app/**/*.spec.{js,ts,tsx}'],
