@@ -6,7 +6,7 @@ import type { containers_DataProduct_gql_DataProductQuery as DataProductQuery } 
 // Shaping the DP's in-hand package members into the search-hit rows the shared
 // listing leaves consume. Pure, data-source-agnostic transforms — kept out of
 // the component tree so their pin-matching / fallback semantics are unit
-// testable (the packagesMeta sibling idiom).
+// testable.
 
 type DataProduct = NonNullable<DataProductQuery['dataProduct']>
 export type PackageMember = DataProduct['members']['packages'][number]

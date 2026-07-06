@@ -27,11 +27,7 @@ import * as requests from 'containers/Bucket/requests'
 import DIR_QUERY from 'containers/Bucket/PackageTree/gql/Dir.generated'
 import FILE_QUERY from 'containers/Bucket/PackageTree/gql/File.generated'
 import * as SearchHits from 'containers/Search/List/Hit'
-import {
-  ColumnTag,
-  ColumnUserMetaCreate,
-  PackageRow,
-} from 'containers/Search/Table/Table'
+import { ColumnTag, PackageRow } from 'containers/Search/Table/Table'
 import type { Column, PackageLinkBuilder } from 'containers/Search/Table/Table'
 import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from 'containers/Search/i18n'
 import type * as Model from 'model'
@@ -51,13 +47,6 @@ import DP_QUERY from './gql/DataProduct.generated'
 import type { containers_DataProduct_gql_DataProductQuery as DataProductQuery } from './gql/DataProduct.generated'
 import { toPackageItem } from './packageItems'
 import type { PackageItem, PackageMember } from './packageItems'
-import {
-  compileFilter,
-  defaultVisibleMeta,
-  deriveMetaColumns,
-  matchMeta,
-} from './packagesMeta'
-import type { MetaColumnSpec } from './packagesMeta'
 
 type DataProduct = NonNullable<DataProductQuery['dataProduct']>
 type ObjectMember = DataProduct['members']['objects'][number]
@@ -165,11 +154,19 @@ const useStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     justifyContent: 'flex-end',
   },
+  // The card/table switch and the Sort dropdown sit at the right of the
+  // toolbar, same height and vertically centered — mirroring the in-bucket
+  // package-list toolbar (containers/Search/Layout/Results.tsx). The gap
+  // between them matches the search toolbar's inter-control spacing.
   viewToggle: {
     marginRight: t.spacing(1),
   },
-  columnsButton: {
-    marginRight: t.spacing(1),
+  // The small ToggleButtons default to a taller box than the small outlined
+  // SelectDropdown button; this padding + border color pins them to the same
+  // height (the exact idiom from Search/Layout/Results.tsx ToggleResultsView).
+  toggleButton: {
+    padding: '5px',
+    borderColor: 'rgba(0, 0, 0, 0.23)',
   },
   // Matches the in-bucket Sort toolbar: the value reads visually distinct from
   // the "Sort by:" label, with a space before it (see containers/Search/Sort).
@@ -576,16 +573,14 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
 // DP's in-hand package members (a fixed list, not a search): a filter field, a
 // count + card/table toggle + sort toolbar, then the shared package-listing
 // leaves (Search/List `Hit.Package` cards, Search/Table `PackageRow` rows) fed
-// hit-shaped rows synthesized from the members. Metadata parity is computed
-// client-side over that fixed list (see ./packagesMeta): user-meta paths are
-// derived from the loaded `userMeta` payloads and surfaced as table columns
-// (the leading few by coverage; the rest behind a compact Columns menu), and
-// the filter field understands `key:value` meta terms alongside free-text name
-// terms. Every link is re-rooted DP-local through the leaves'
+// hit-shaped rows synthesized from the members. The table columns are a fixed
+// system-meta set (name, modified, size, files, comment — plus workflow when a
+// member carries one); the filter is a plain substring match over the package
+// name. Every link is re-rooted DP-local through the leaves'
 // `PackageLinkBuilder` seam (urls.dataProductPackage) — never a /b/<bucket>/
 // route; the search-model-bound chrome (facet drawer, server-side facets,
-// matching-entries expansion) is intentionally absent, and the tab is
-// read-only (no authoring affordances).
+// configurable columns, matching-entries expansion) is intentionally absent,
+// and the tab is read-only (no authoring affordances).
 
 type PackageView = 'card' | 'table'
 
@@ -715,62 +710,6 @@ function useMemberLinks(id: string): (virtualName: string) => PackageLinkBuilder
       }
     },
     [id, urls],
-  )
-}
-
-interface MetaColumnsMenuProps {
-  specs: MetaColumnSpec[]
-  visible: Set<string>
-  onToggle: (pointer: string) => void
-}
-
-// A compact show/hide menu over the derived user-meta columns — the DP-local
-// stand-in for the search table's configure-columns drawer (which is bound to
-// the search model). The base system-meta columns are fixed; only meta columns
-// toggle. Checked state lives in the tab (in-memory, per visit).
-function MetaColumnsMenu({ specs, visible, onToggle }: MetaColumnsMenuProps) {
-  const classes = useStyles()
-  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
-  const close = React.useCallback(() => setAnchor(null), [])
-  return (
-    <>
-      <M.Button
-        className={classes.columnsButton}
-        size="small"
-        onClick={(e) => setAnchor(e.currentTarget)}
-        startIcon={<Icons.ViewColumn />}
-      >
-        Columns
-      </M.Button>
-      <M.Menu
-        anchorEl={anchor}
-        open={!!anchor}
-        onClose={close}
-        // The menu is wider than its trigger and the trigger sits near the
-        // card's right edge; anchor the menu's right edge to the button so it
-        // opens leftward within the card instead of spilling past it.
-        getContentAnchorEl={null}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <M.ListSubheader disableSticky>Metadata columns</M.ListSubheader>
-        {specs.map((s) => (
-          <M.MenuItem key={s.pointer} dense onClick={() => onToggle(s.pointer)}>
-            <M.Checkbox
-              checked={visible.has(s.pointer)}
-              disableRipple
-              edge="start"
-              size="small"
-              tabIndex={-1}
-            />
-            <M.ListItemText
-              primary={s.title}
-              secondary={`on ${pluralize(s.count, 'package')}`}
-            />
-          </M.MenuItem>
-        ))}
-      </M.Menu>
-    </>
   )
 }
 
@@ -919,41 +858,16 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
     [dp.members.packages],
   )
 
-  // User-meta paths derived client-side from the members' loaded userMeta
-  // payloads (members whose meta is not in hand simply don't contribute).
-  const meta = React.useMemo(
-    () => deriveMetaColumns(items.map((i) => i.tableHit?.meta)),
+  // A fixed system-meta column set (no configure-columns UI): the base columns
+  // plus the workflow column only when some member's effective revision carries
+  // one.
+  const columns = React.useMemo(
+    () =>
+      items.some((i) => i.hit?.workflow)
+        ? [...BASE_COLUMNS, WORKFLOW_COLUMN]
+        : BASE_COLUMNS,
     [items],
   )
-
-  // Which meta columns show in the table. Seeded once from the coverage
-  // heuristic (the member list is fixed for the life of the tab), then driven
-  // by the Columns menu.
-  const [visibleMeta, setVisibleMeta] = React.useState(() => defaultVisibleMeta(meta))
-  const toggleMeta = React.useCallback((pointer: string) => {
-    setVisibleMeta((prev) => {
-      const next = new Set(prev)
-      if (next.has(pointer)) next.delete(pointer)
-      else next.add(pointer)
-      return next
-    })
-  }, [])
-
-  const columns = React.useMemo(() => {
-    const base = items.some((i) => i.hit?.workflow)
-      ? [...BASE_COLUMNS, WORKFLOW_COLUMN]
-      : BASE_COLUMNS
-    const metaColumns = meta.specs
-      .filter((s) => visibleMeta.has(s.pointer))
-      .map((s) =>
-        ColumnUserMetaCreate(s.pointer, s.predicateType, {
-          filtered: false,
-          visible: true,
-          inferred: true,
-        }),
-      )
-    return metaColumns.length ? [...base, ...metaColumns] : base
-  }, [items, meta.specs, visibleMeta])
 
   const sortValue = React.useMemo(
     () => SORT_OPTIONS.find((o) => o.valueOf() === sortToValue(sort)) || SORT_OPTIONS[0],
@@ -975,26 +889,15 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
     )
   }, [])
 
-  // The filter input compiles into free-text name terms plus `key:value` meta
-  // terms (see packagesMeta for the grammar), all AND-ed, all evaluated in
-  // memory over the fixed member list.
-  const compiledFilter = React.useMemo(
-    () => compileFilter(filter, meta.specs),
-    [filter, meta.specs],
-  )
-
+  // A plain case-insensitive substring match over the full prefix/suffix
+  // package name (virtualName), evaluated in memory over the fixed member list.
   const filtered = React.useMemo(() => {
-    const { nameTerms, metaTerms } = compiledFilter
-    const matched = items.filter((item) => {
-      if (nameTerms.length) {
-        const hay =
-          `${item.member.virtualName} ${item.member.bucket}/${item.member.name}`.toLowerCase()
-        if (!nameTerms.every((t) => hay.includes(t))) return false
-      }
-      return matchMeta(metaTerms, item.tableHit?.meta)
-    })
+    const needle = filter.trim().toLowerCase()
+    const matched = items.filter(
+      (item) => !needle || item.member.virtualName.toLowerCase().includes(needle),
+    )
     return matched.sort(compareItems(sort))
-  }, [items, compiledFilter, sort])
+  }, [items, filter, sort])
 
   // Reveal from the top again whenever the result set changes (filter/sort).
   React.useEffect(() => setShown(PER_PAGE), [filter, sort])
@@ -1012,11 +915,7 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
         fullWidth
         size="small"
         variant="outlined"
-        placeholder={
-          meta.specs.length
-            ? 'Filter packages — free text matches names, key:value matches metadata'
-            : 'Filter packages'
-        }
+        placeholder="Filter packages"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         InputProps={{
@@ -1037,13 +936,6 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
       <div className={classes.toolbar}>
         <div className={classes.count}>{pluralize(filtered.length, 'package')}</div>
         <div className={classes.toolbarControls}>
-          {view === 'table' && !!meta.specs.length && (
-            <MetaColumnsMenu
-              specs={meta.specs}
-              visible={visibleMeta}
-              onToggle={toggleMeta}
-            />
-          )}
           <Lab.ToggleButtonGroup
             className={classes.viewToggle}
             size="small"
@@ -1051,10 +943,18 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
             value={view}
             onChange={(_e, v) => setView(v)}
           >
-            <Lab.ToggleButton value="table" aria-label="Table view">
+            <Lab.ToggleButton
+              value="table"
+              aria-label="Table view"
+              classes={{ root: classes.toggleButton }}
+            >
               <Icons.GridOn />
             </Lab.ToggleButton>
-            <Lab.ToggleButton value="card" aria-label="List view">
+            <Lab.ToggleButton
+              value="card"
+              aria-label="List view"
+              classes={{ root: classes.toggleButton }}
+            >
               <Icons.List />
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
@@ -1063,6 +963,10 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
             value={sortValue}
             onChange={onSortChange}
             classes={{ value: classes.sortValue }}
+            // The in-bucket Sort toolbar (Search/Layout/Results.tsx) renders a
+            // medium outlined button; pairing it with the padding-5 toggle
+            // idiom lands both controls at the same 36px height.
+            ButtonProps={{ size: 'medium' }}
           >
             Sort by:
           </SelectDropdown>
