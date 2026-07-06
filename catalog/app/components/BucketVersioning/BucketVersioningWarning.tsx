@@ -2,9 +2,16 @@ import * as React from 'react'
 import * as Lab from '@material-ui/lab'
 
 import * as GQL from 'utils/GraphQL'
+import StyledLink from 'utils/StyledLink'
 import { BucketVersioningState } from 'model/graphql/types.generated'
 
 import BUCKET_VERSIONING_STATUS_QUERY from './gql/BucketVersioningStatus.generated'
+
+// AWS docs on enabling / configuring S3 bucket versioning. Quilt's own docs
+// don't have a dedicated "enable versioning" page, so we link out to AWS
+// (same approach as the S3 Glacier restore docs link in RehydrateDialog).
+const S3_VERSIONING_DOC =
+  'https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html'
 
 // Advisory copy for the states we warn about. `ENABLED` and `UNKNOWN` are
 // intentionally absent: versioning is fine when enabled, and we must not warn
@@ -41,7 +48,10 @@ export default function BucketVersioningWarning({
   if (!warning) return null
   return (
     <Lab.Alert severity="warning" className={className}>
-      {warning}
+      {warning}{' '}
+      <StyledLink href={S3_VERSIONING_DOC} target="_blank">
+        Learn how to enable versioning
+      </StyledLink>
     </Lab.Alert>
   )
 }
