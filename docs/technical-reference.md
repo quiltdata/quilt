@@ -73,6 +73,21 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
    - Create security groups in Entra and assign users.
    - In the app registration, go to **Token configuration → Add groups claim** (or **Edit** if it already exists) and configure it to emit **Group IDs** in the **ID token**.
    - Create a [configuration file](./advanced-features/sso-permissions.md) to map Entra Group IDs to Quilt roles.
+   > **Guest / multi-tenant users:** the `groups` claim carries only groups
+   > from the tenant that issues the token. Users who sign in as **B2B guests**
+   > (e.g. employees of one company logging into another company's tenant) will
+   > **not** receive their home-tenant security groups, so group-based mappings
+   > won't match for them. For these setups, prefer **App roles**: define roles
+   > on the app registration (**App roles**), ensure the roles are enabled, and
+   > assign users/groups to those roles. Entra includes assigned app roles in
+   > the ID token's `roles` claim; this is not configured through **Token
+   > configuration**. App roles live on the resource application, so they
+   > populate for guests too.
+   > Then map on the `roles` claim instead of `groups` (see
+   > [SSO permissions mapping](./advanced-features/sso-permissions.md#which-claims-are-matched)).
+   > Note also that Quilt reads only the ID token, so the Entra **group
+   > overage** behavior (>~200 groups) is not resolved — another reason to use
+   > app roles at scale.
 1. Proceed to [Enabling SSO](#enabling-sso).
 
 ### Okta
