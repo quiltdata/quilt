@@ -243,7 +243,32 @@ Note the comma after the object. Your trust relationship should now look somethi
 }
 ```
 
-You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
+You can now configure a Quilt Role with this role (using the Catalog's Admin panel, or `quilt3.admin.create_role`).
+
+### ManagedUserRoleExtraPolicies
+
+The `ManagedUserRoleExtraPolicies` parameter allows you to add additional IAM
+policies to the managed user role. This is useful for granting additional
+permissions to users in your Quilt instance.
+
+This parameter works in conjunction with Quilt policy configuration in the Admin panel.
+You need to:
+1. Create the appropriate IAM policy
+2. Add its ARN to `ManagedUserRoleExtraPolicies` (this step)
+3. In the Admin panel, create a Quilt policy with the "Manually set ARN instead of
+   configuring per-bucket permissions" option enabled, and enter the same policy ARN
+4. Attach that Quilt policy to the managed (Source=Quilt) roles that should receive the
+   additional permissions
+
+In the AWS Console, go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
+and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
+at the bottom of the page:
+
+![](imgs/ManagedUserRoleExtraPolicies.png)
+
+This parameter accepts a comma-separated list of policy ARNs.
+
+**Note:** This parameter is needed only for managed (Source=Quilt) roles. Quilt scopes each managed role's session to the policies attached to it, so an added permission must be granted in both places: on the role (this parameter) and as an attached Quilt policy (steps 3-4). For custom (Source=Custom) roles, attach policies directly in IAM without this parameter.
 
 ### S3 buckets with Service-Side Encryption using Key Management Service (SSE-KMS)
 
@@ -275,14 +300,7 @@ create an IAM policy that explicitly enables KMS access.
 }
 ```
 
-Go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
-and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
-at the bottom of the page:
-
-![](imgs/ManagedUserRoleExtraPolicies.png)
-
-If other policies are already in that field, 
-you will need to add a comma before appending the ARN.
+Then add this policy to the `ManagedUserRoleExtraPolicies` as described above.
 
 #### 2. Add Quilt Principals to KMS Key Policy
 
@@ -341,7 +359,7 @@ that gives a Quilt role access to the keys for specific buckets, e.g:
 }
 ```
 
-You can now create a Quilt Policy from this policy using the Catalog's admin panel.
+You can now create a Quilt Policy from this policy using the Catalog's Admin panel.
 Afterwards, you can attach that Policy to a user-defined Quilt Role
 (which has Source=Quilt in the Roles panel, 
 as opposed to system-defined Source=Custom Roles).
