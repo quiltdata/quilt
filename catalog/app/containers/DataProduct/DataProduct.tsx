@@ -642,13 +642,13 @@ const compareItems =
       // Members without package data in hand have no date — they sink to the
       // bottom regardless of direction.
       if (!a.modified && !b.modified) {
-        return a.member.virtualName.localeCompare(b.member.virtualName)
+        return a.member.name.localeCompare(b.member.name)
       }
       if (!a.modified) return 1
       if (!b.modified) return -1
       return (a.modified.valueOf() - b.modified.valueOf()) * sign
     }
-    return a.member.virtualName.localeCompare(b.member.virtualName) * sign
+    return a.member.name.localeCompare(b.member.name) * sign
   }
 
 // The static column set replicating the in-bucket table's defaults over the
@@ -738,7 +738,7 @@ function PackageCardFallback({ id, member }: PackageCardFallbackProps) {
         to={urls.dataProductPackage(id, member.virtualName)}
         className={classes.packageName}
       >
-        {member.virtualName}
+        {member.name}
       </Link>
       <UnavailableNote member={member} />
     </M.Paper>
@@ -759,7 +759,7 @@ function PackageRowFallback({ id, member, colSpan }: PackageRowFallbackProps) {
       <M.TableCell padding="checkbox" />
       <M.TableCell>
         <StyledLink to={urls.dataProductPackage(id, member.virtualName)}>
-          {member.virtualName}
+          {member.name}
         </StyledLink>
       </M.TableCell>
       <M.TableCell colSpan={colSpan}>
@@ -826,7 +826,7 @@ function PackagesTable({
                 key={item.member.virtualName}
                 hit={item.tableHit}
                 columnsList={columns}
-                displayName={item.member.virtualName}
+                displayName={item.member.name}
                 links={linksFor(item.member.virtualName)}
               />
             ) : (
@@ -894,7 +894,7 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
   const filtered = React.useMemo(() => {
     const needle = filter.trim().toLowerCase()
     const matched = items.filter(
-      (item) => !needle || item.member.virtualName.toLowerCase().includes(needle),
+      (item) => !needle || item.member.name.toLowerCase().includes(needle),
     )
     return matched.sort(compareItems(sort))
   }, [items, filter, sort])
@@ -997,7 +997,7 @@ function PackagesTab({ id, dp }: { id: string; dp: DataProduct }) {
               <SearchHits.Package
                 key={item.member.virtualName}
                 hit={item.hit}
-                displayName={item.member.virtualName}
+                displayName={item.member.name}
                 links={linksFor(item.member.virtualName)}
                 // metadata may carry s3:// strings — keep them plain text, never
                 // /b/<bucket>/ links
@@ -1216,7 +1216,9 @@ function PackageTab({ id, dp }: { id: string; dp: DataProduct }) {
     const sep = BreadCrumbs.Crumb.Sep(<>&nbsp;/ </>)
     const getPkgRoute = (segPath: string) =>
       urls.dataProductPackage(id, virtualName, segPath)
-    const inner = BreadCrumbs.getCrumbs(path, getPkgRoute, virtualName, {
+    // The package crumb shows the physical prefix/suffix name (the package's
+    // real identity); the URL segment stays the virtual name.
+    const inner = BreadCrumbs.getCrumbs(path, getPkgRoute, member?.name ?? virtualName, {
       tailSeparator: path.endsWith('/'),
     })
     return [
@@ -1226,7 +1228,7 @@ function PackageTab({ id, dp }: { id: string; dp: DataProduct }) {
       sep,
       ...inner,
     ]
-  }, [dp.name, id, path, urls, virtualName])
+  }, [dp.name, id, path, urls, virtualName, member?.name])
 
   if (!member) {
     return (
