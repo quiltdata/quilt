@@ -4947,6 +4947,29 @@ export default {
             args: [],
           },
           {
+            name: 'bucketVersioningStatus',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'buckets',
             type: {
               kind: 'NON_NULL',

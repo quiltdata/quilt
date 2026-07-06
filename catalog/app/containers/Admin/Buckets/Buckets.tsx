@@ -11,6 +11,7 @@ import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import { BucketVersioningWarning } from 'components/BucketVersioning'
 import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
@@ -1192,6 +1193,9 @@ const useStyles = M.makeStyles((t) => ({
   fields: {
     marginTop: t.spacing(2),
   },
+  versioningWarning: {
+    marginTop: t.spacing(2),
+  },
 }))
 
 interface AddPageSkeletonProps {
@@ -1248,6 +1252,35 @@ function parseResponseError(
     default:
       return assertNever(r)
   }
+}
+
+interface DebouncedVersioningWarningProps {
+  name: string
+  className?: string
+}
+
+function DebouncedVersioningWarning({
+  name,
+  className,
+}: DebouncedVersioningWarningProps) {
+  const [debouncedName] = useDebounce(name, 500)
+  return <BucketVersioningWarning bucketName={debouncedName} className={className} />
+}
+
+// Advisory S3 versioning notice for the add form: probes the bucket name as it
+// is typed (debounced). Non-blocking — never disables submit.
+function AddVersioningWarning() {
+  const classes = useStyles()
+  return (
+    <RF.FormSpy subscription={{ values: true }}>
+      {({ values }) => (
+        <DebouncedVersioningWarning
+          name={values.name || ''}
+          className={classes.versioningWarning}
+        />
+      )}
+    </RF.FormSpy>
+  )
 }
 
 interface AddProps {
@@ -1310,6 +1343,7 @@ function Add({ back, settings, submit }: AddProps) {
           <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
             <Card className={classes.card} title="Display settings">
               <PrimaryForm />
+              <AddVersioningWarning />
             </Card>
             <Card className={classes.card} title="Metadata">
               <MetadataForm />
@@ -1615,6 +1649,10 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
       <SubPageHeader back={back} disabled={disabled}>
         {`s3://${bucket.name}`}
       </SubPageHeader>
+      <BucketVersioningWarning
+        bucketName={bucket.name}
+        className={classes.versioningWarning}
+      />
       <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
         <div className={classes.fields} ref={scrollingRef}>
           <div className={classes.card}>

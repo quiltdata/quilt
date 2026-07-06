@@ -194,6 +194,13 @@ type Bucket {
   collaborators: [CollaboratorBucketConnection!]!
 }
 
+enum BucketVersioningState {
+  ENABLED
+  SUSPENDED
+  UNVERSIONED
+  UNKNOWN
+}
+
 # XXX: consider unifying ManagedRole and UnmanagedRole
 type UnmanagedRole {
   id: ID!
@@ -649,6 +656,7 @@ type Query {
   bucketConfig(name: String!): BucketConfig
   buckets: [Bucket!]!
   bucket(name: String!): Bucket
+  bucketVersioningStatus(name: String!): BucketVersioningState!
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
