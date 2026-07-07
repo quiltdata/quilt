@@ -20,7 +20,11 @@ export type components_BucketVersioning_gql_BucketVersioningStatusQueryVariables
 
 export interface components_BucketVersioning_gql_BucketVersioningStatusQuery {
   readonly __typename: 'Query'
-  readonly bucketVersioningStatus: Types.BucketVersioningState
+  readonly bucketVersioningStatus: {
+    readonly __typename: 'BucketVersioningStatus'
+    readonly state: Types.BucketVersioningState | null
+    readonly error: string | null
+  }
 }
 
 export const components_BucketVersioning_gql_BucketVersioningStatusDocument = {
@@ -56,6 +60,13 @@ export const components_BucketVersioning_gql_BucketVersioningStatusDocument = {
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'name' } },
               },
             ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'state' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'error' } },
+              ],
+            },
           },
         ],
       },

@@ -1421,6 +1421,30 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'BucketVersioningStatus',
+        fields: [
+          {
+            name: 'error',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'state',
+            type: {
+              kind: 'SCALAR',
+              name: 'Any',
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Canary',
         fields: [
           {
@@ -4951,8 +4975,9 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'Any',
+                kind: 'OBJECT',
+                name: 'BucketVersioningStatus',
+                ofType: null,
               },
             },
             args: [

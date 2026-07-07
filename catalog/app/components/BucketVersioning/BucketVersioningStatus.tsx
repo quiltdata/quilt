@@ -128,10 +128,12 @@ export default function BucketVersioningStatus({
     )
   }
 
-  // Transient error (e.g. `extensions.code === "VERSIONING_UNAVAILABLE"`, or any
-  // other failure to reach S3 / the registry). The state values below
-  // (NOT_FOUND / ACCESS_DENIED) come back as data, not errors.
-  if (!result.data) {
+  // Transient failure to reach S3 / the registry. The primary path is a
+  // `bucketVersioningStatus` object with `state: null` and a `error` reason
+  // (see below); this handles a hard query error that returns no data at all,
+  // falling back to the same retry rendering.
+  const status = result.data?.bucketVersioningStatus
+  if (!status) {
     return (
       <StatusAlert
         severity="warning"
@@ -144,7 +146,21 @@ export default function BucketVersioningStatus({
     )
   }
 
-  switch (result.data.bucketVersioningStatus) {
+  // Transient reason as data: no state resolved, `error` carries the reason.
+  if (!status.state) {
+    return (
+      <StatusAlert
+        severity="warning"
+        className={className}
+        refresh={refreshProps}
+        icon={<M.Icon fontSize="inherit">sync_problem</M.Icon>}
+      >
+        {status.error || "Couldn't reach S3."} Try again.
+      </StatusAlert>
+    )
+  }
+
+  switch (status.state) {
     case BucketVersioningState.ENABLED:
       return (
         <StatusAlert
