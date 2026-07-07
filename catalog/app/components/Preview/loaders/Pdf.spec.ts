@@ -69,7 +69,8 @@ vi.mock('../types', () => ({
   },
 }))
 vi.mock('./utils', () => ({
-  GLACIER_ERROR_RE: /storage class/i,
+  GLACIER_ERROR_RE:
+    /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/,
   extIn: (extensions: string[]) => (key: string) =>
     extensions.some((ext) => key.toLowerCase().endsWith(ext)),
   useErrorHandling,
@@ -220,7 +221,7 @@ describe('components/Preview/loaders/Pdf', () => {
         new Response(
           JSON.stringify({
             error: 'Forbidden',
-            text: "The operation is not valid for the object's storage class",
+            text: "<Error><Code>InvalidObjectState</Code><Message>The operation is not valid for the object's storage class</Message></Error>",
           }),
           { status: 403 },
         ),
