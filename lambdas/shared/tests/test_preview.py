@@ -2,6 +2,7 @@
 Preview helper functions
 """
 
+import json
 import os
 import pathlib
 from unittest import TestCase
@@ -16,8 +17,8 @@ from t4_lambda_shared.preview import (
     FCS_GRID_SPACING,
     FCS_MAX_PANELS,
     FCS_PANEL_COLUMNS,
-    FCS_SCATTER_LIMIT,
     FCS_SCATTER_RANDOM_SEED,
+    FCS_SCATTER_TOTAL_LIMIT,
     FCS_SINGLE_PANEL_HEIGHT,
     _axis_label,
     _build_fcs_scatter_spec,
@@ -188,10 +189,11 @@ class TestPreview(TestCase):
                     assert body == expected_data['columns_string']
 
     def test_fcs_scatter_spec_downsamples(self):
+        # A single (non-canonical) panel gets the whole event budget.
         data = pandas.DataFrame(
             {
-                'alpha': range(FCS_SCATTER_LIMIT * 2),
-                'beta': range(FCS_SCATTER_LIMIT * 2, FCS_SCATTER_LIMIT * 4),
+                'alpha': range(FCS_SCATTER_TOTAL_LIMIT * 2),
+                'beta': range(FCS_SCATTER_TOTAL_LIMIT * 2, FCS_SCATTER_TOTAL_LIMIT * 4),
             }
         )
 
@@ -199,16 +201,16 @@ class TestPreview(TestCase):
 
         # non-canonical channels -> single panel over the first two columns
         assert spec['title']['text'] == 'alpha vs beta'
-        assert spec['title']['subtitle'] == f'{FCS_SCATTER_LIMIT} events (downsampled)'
+        assert spec['title']['subtitle'] == f'{FCS_SCATTER_TOTAL_LIMIT} events (downsampled)'
         assert spec['encoding']['x']['title'] == 'alpha'
         assert spec['encoding']['y']['title'] == 'beta'
-        assert len(spec['data']['values']) == FCS_SCATTER_LIMIT
+        assert len(spec['data']['values']) == FCS_SCATTER_TOTAL_LIMIT
 
     def test_fcs_scatter_spec_downsampling_is_seeded(self):
         data = pandas.DataFrame(
             {
-                'alpha': range(FCS_SCATTER_LIMIT + 37),
-                'beta': range(FCS_SCATTER_LIMIT + 37, (FCS_SCATTER_LIMIT * 2) + 74),
+                'alpha': range(FCS_SCATTER_TOTAL_LIMIT + 37),
+                'beta': range(FCS_SCATTER_TOTAL_LIMIT + 37, (FCS_SCATTER_TOTAL_LIMIT * 2) + 74),
             }
         )
 
@@ -225,7 +227,7 @@ class TestPreview(TestCase):
             }
         )
 
-        spec = _build_fcs_scatter_spec(data, limit=10)
+        spec = _build_fcs_scatter_spec(data, total_limit=10)
 
         assert spec['title']['subtitle'] == '1 events'
         assert spec['data']['values'] == [{'x': 1.0, 'y': 10.0}]
@@ -338,6 +340,37 @@ class TestPreview(TestCase):
             index=[1, 2, 3],
         )
         assert _fcs_channel_markers({'_channels_': channels}) == {'FL1-A': 'CD3'}
+
+    def test_fcs_channel_markers_flat_keys_tolerate_gaps(self):
+        # A gap in the flat keys ($P3N missing) must not drop later markers; the
+        # loop should skip the gap and still pick up $P4S.
+        meta = {
+            '$PAR': '4',
+            '$P1N': 'FSC-A',
+            '$P1S': '',  # blank -> omitted
+            '$P2N': 'FL1-A',
+            '$P2S': 'CD3',
+            # $P3N / $P3S intentionally absent
+            '$P4N': 'FL2-A',
+            '$P4S': 'CD4',
+        }
+        assert _fcs_channel_markers(meta) == {'FL1-A': 'CD3', 'FL2-A': 'CD4'}
+
+    def test_fcs_scatter_spec_payload_stays_under_lambda_cap(self):
+        # A large multi-panel FCS file must not blow past the preview lambda's
+        # 6 MB response cap: the total event budget is shared across all panels.
+        lambda_max_out = 6_000_000
+        n = FCS_SCATTER_TOTAL_LIMIT * 5  # far more events than the budget
+        data = pandas.DataFrame(
+            {ch: range(n) for ch in ('FSC-A', 'SSC-A', 'FSC-H', 'SSC-H', 'FL1-A', 'FL2-A', 'FL3-A', 'FL4-A')}
+        )
+
+        spec = _build_fcs_scatter_spec(data)
+
+        total_events = sum(len(panel['data']['values']) for panel in spec['concat'])
+        assert total_events <= FCS_SCATTER_TOTAL_LIMIT
+        # Serialized payload must have real headroom under the cap.
+        assert len(json.dumps(spec).encode('utf-8')) < lambda_max_out
 
     def test_axis_label_dedup_and_fallback(self):
         markers = {'FL1-A': 'CD3', 'FSC-A': 'FSC-A'}

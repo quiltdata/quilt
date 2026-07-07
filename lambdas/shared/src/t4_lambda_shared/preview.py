@@ -22,7 +22,13 @@ CATALOG_LIMIT_BYTES = 1024 * 1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_LINES = 100_000
 READ_CHUNK = 1024
-FCS_SCATTER_LIMIT = 50_000
+# Total {x,y} events budgeted ACROSS all selected gating panels (not per-panel).
+# Each event serializes to ~30-50 bytes of JSON, so ~60k events is ~2-3 MB inline
+# in the vegaLite spec, leaving ample headroom under the preview lambda's 6 MB
+# (LAMBDA_MAX_OUT) response cap. Split across a 6-panel grid this is ~10k events per
+# panel -- well within the 5k-20k range flow tools routinely subsample to for
+# revealing gating structure.
+FCS_SCATTER_TOTAL_LIMIT = 60_000
 FCS_SCATTER_RANDOM_SEED = 0
 SKIPPED = "Skipped rows; insufficient memory"
 # common string used to explain truncation to user
@@ -170,15 +176,23 @@ def _fcs_channel_markers(meta):
         if markers:
             return markers
 
-    idx = 1
-    while True:
+    # Iterate a bounded range rather than breaking at the first missing index, so
+    # files with a gap (e.g. $P1N, $P2N, $P4N with $P3N absent) don't silently drop
+    # later markers. Bound by $PAR (total parameter count) when present, else a sane
+    # cap; the FCS spec numbers parameters 1..$PAR contiguously in practice, but gaps
+    # in the flat keys are tolerated.
+    try:
+        par = int(str(meta.get('$PAR') or meta.get('par') or '').strip())
+    except ValueError:
+        par = 0
+    upper_bound = par if par > 0 else 512
+    for idx in range(1, upper_bound + 1):
         name = meta.get(f'$P{idx}N') or meta.get(f'p{idx}n')
         if name is None:
-            break
+            continue
         marker = _keep_marker(meta.get(f'$P{idx}S') or meta.get(f'p{idx}s'))
         if marker:
             markers[str(name)] = marker
-        idx += 1
     return markers
 
 
@@ -229,7 +243,6 @@ def _select_fcs_panels(columns):
 
 def _build_fcs_panel(data, x_axis, y_axis, label, channel_markers, *, limit):
     import numpy
-    import pandas
 
     sampled = data[[x_axis, y_axis]].copy()
     sampled[x_axis] = pandas.to_numeric(sampled[x_axis], errors='coerce')
@@ -266,15 +279,21 @@ def _build_fcs_panel(data, x_axis, y_axis, label, channel_markers, *, limit):
     }
 
 
-def _build_fcs_scatter_spec(data, *, limit=FCS_SCATTER_LIMIT, channel_markers=None):
+def _build_fcs_scatter_spec(data, *, total_limit=FCS_SCATTER_TOTAL_LIMIT, channel_markers=None):
     if data.shape[1] < 2:
         return None
 
     panels = _select_fcs_panels(list(data.columns))
+    if not panels:
+        return None
+
+    # Budget events across ALL selected panels so the inline vegaLite payload stays
+    # under the lambda response cap regardless of how many panels are emitted.
+    per_panel_limit = max(1, total_limit // max(1, len(panels)))
     sub_specs = [
         spec
         for x, y, label in panels
-        if (spec := _build_fcs_panel(data, x, y, label, channel_markers, limit=limit)) is not None
+        if (spec := _build_fcs_panel(data, x, y, label, channel_markers, limit=per_panel_limit)) is not None
     ]
     if not sub_specs:
         return None
