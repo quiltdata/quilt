@@ -100,7 +100,12 @@ const getSchemaItem = (key: string, schema?: JsonSchema) =>
   schema && schema.properties && schema.properties[key]
 
 function formatDateValue(value: MetadataValue): string {
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  if (value instanceof Date) {
+    const yyyy = value.getFullYear()
+    const mm = String(value.getMonth() + 1).padStart(2, '0')
+    const dd = String(value.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
   return String(value)
 }
 
