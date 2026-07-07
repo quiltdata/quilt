@@ -397,7 +397,7 @@ def pptx_to_pdf(*, path: str, page: int):
     # installs it as "soffice"; both are the same LibreOffice CLI.
     soffice_bin = shutil.which("libreoffice") or shutil.which("soffice")
     if soffice_bin is None:
-        raise PDFThumbError("Missing required command: libreoffice")
+        raise PDFThumbError("Missing required command: libreoffice or soffice")
     with tempfile.TemporaryDirectory() as out_dir:
         with tempfile.TemporaryDirectory() as tmp_dir:
             subprocess.run(
