@@ -485,6 +485,7 @@ function File() {
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                   <div className={classes.preview}>
                     <ErrorBoundary
+                      resetKeys={[version, resetKey]}
                       fallbackRender={() => (
                         <Message headline="Preview unavailable">
                           Something went wrong loading the preview

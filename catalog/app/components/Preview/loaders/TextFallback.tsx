@@ -47,7 +47,7 @@ interface TextEnvelope {
 type PreviewEnvelope = BinaryEnvelope | TextEnvelope
 
 const isBinaryEnvelope = (r: PreviewEnvelope): r is BinaryEnvelope =>
-  Boolean((r as BinaryEnvelope)?.info?.error === 'binary')
+  (r as BinaryEnvelope)?.info?.error === 'binary'
 
 interface Handle {
   key: string
