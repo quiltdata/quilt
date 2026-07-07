@@ -7,7 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import hljs, { ensureLanguages } from 'utils/hljs'
 import HljsBoundary from 'utils/HljsBoundary'
 
-import { PreviewData } from '../types'
+import { PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
 import * as utils from './utils'
@@ -63,13 +63,13 @@ const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (n
 
 export const detect = R.pipe(findLang, Boolean)
 
-const getLang = (path: string): string => {
+export const getLang = (path: string): string => {
   const pair = findLang(path) as $TSFixMe
   const [lang = 'plaintext'] = pair ?? []
   return lang
 }
 
-const hl = (language: string) => (contents: string) =>
+export const hl = (language: string) => (contents: string) =>
   hljs.highlight(contents, { language }).value
 
 const TextLoaderInner = function TextLoader({
@@ -84,9 +84,31 @@ const TextLoaderInner = function TextLoader({
   })
   const processed = utils.useProcessing(
     result,
-    ({ info: { data, note, warnings } }: $TSFixMe) => {
+    ({ info }: $TSFixMe) => {
+      if (info && info.error === 'binary') {
+        const detected = info.detected ? ` (${info.detected})` : ''
+        throw PreviewError.Unsupported({
+          handle,
+          message: `Binary file${detected} — no text preview available`,
+        })
+      }
+      if (!info) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: fetch,
+          message: 'preview lambda returned an unexpected envelope (missing info)',
+        })
+      }
+      const { data, note, warnings } = info
+      if (!data || !data.head) {
+        throw PreviewError.Unexpected({
+          handle,
+          retry: fetch,
+          message: 'preview lambda returned an unexpected envelope (missing info.data)',
+        })
+      }
       const head = data.head.join('\n')
-      const tail = data.tail.join('\n')
+      const tail = (data.tail || []).join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
       ensureLanguages([lang])
       // TODO: move highlightjs call to renderer

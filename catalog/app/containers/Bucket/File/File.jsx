@@ -5,6 +5,8 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { ErrorBoundary } from 'react-error-boundary'
+
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as FileEditor from 'components/FileEditor'
 import * as Hash from 'components/Hash'
@@ -482,13 +484,22 @@ function File() {
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                   <div className={classes.preview}>
-                    {versionExistsData.case({
-                      _: () => <CenteredProgress />,
-                      Err: (e) => {
-                        throw e
-                      },
-                      Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                    })}
+                    <ErrorBoundary
+                      resetKeys={[version, resetKey]}
+                      fallbackRender={() => (
+                        <Message headline="Preview unavailable">
+                          Something went wrong loading the preview
+                        </Message>
+                      )}
+                    >
+                      {versionExistsData.case({
+                        _: () => <CenteredProgress />,
+                        Err: (e) => {
+                          throw e
+                        },
+                        Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                      })}
+                    </ErrorBoundary>
                   </div>
                 </Section>
               )}

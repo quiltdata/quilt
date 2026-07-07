@@ -45,7 +45,7 @@ export const PreviewError = tagged([
   'Forbidden', // { handle }
   'Gated', // { handle, load }
   'TooLarge', // { handle }
-  'Unsupported', // { handle }
+  'Unsupported', // { handle, message? }
   'DoesNotExist', // { handle }
   'SrcDoesNotExist', // { handle }
   'MalformedJson', // { handle, message }
