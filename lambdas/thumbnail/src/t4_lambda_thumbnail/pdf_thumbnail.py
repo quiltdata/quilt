@@ -12,6 +12,10 @@ from PIL import Image
 DEFAULT_PDF_RENDER_DPI = 300
 MAX_PDF_RENDER_DPI = 600
 
+# Resolve external tools once at import time instead of probing PATH on every call.
+_PDFTOPPM = shutil.which("pdftoppm")
+_PDFINFO = shutil.which("pdfinfo")
+
 
 class PDFThumbError(Exception):
     pass
@@ -36,7 +40,10 @@ def _render_pdf_page_with_pdfium(*, path: str, page: int, dpi: int) -> Image.Ima
         pdf_page = document[page_index]
         try:
             bitmap = pdf_page.render(scale=dpi / 72)
-            return bitmap.to_pil()
+            try:
+                return bitmap.to_pil()
+            finally:
+                bitmap.close()
         finally:
             pdf_page.close()
     finally:
@@ -71,7 +78,7 @@ def resize_pdf_page(img: Image.Image, *, size: int) -> Image.Image:
 
 
 def render_pdf_page(*, path: str, page: int, dpi: int) -> Image.Image:
-    if shutil.which("pdftoppm") is None:
+    if _PDFTOPPM is None:
         return _render_pdf_page_with_pdfium(path=path, page=page, dpi=dpi)
 
     with tempfile.TemporaryDirectory() as out_dir:
@@ -97,7 +104,7 @@ def render_pdf_page(*, path: str, page: int, dpi: int) -> Image.Image:
 
 
 def count_pdf_pages(path: str) -> int:
-    if shutil.which("pdfinfo") is None:
+    if _PDFINFO is None:
         return _count_pdf_pages_with_pdfium(path)
 
     result = _run_command("pdfinfo", path)

@@ -63,7 +63,7 @@ def test_render_pdf_page_uses_pdfium_when_pdftoppm_is_missing(monkeypatch):
     def render_mock(**kwargs):
         return expected
 
-    monkeypatch.setattr(pdf_thumbnail.shutil, "which", lambda _: None)
+    monkeypatch.setattr(pdf_thumbnail, "_PDFTOPPM", None)
     monkeypatch.setattr(pdf_thumbnail, "_render_pdf_page_with_pdfium", render_mock)
 
     result = pdf_thumbnail.render_pdf_page(path="demo.pdf", page=3, dpi=144)
@@ -82,7 +82,7 @@ def test_render_pdf_page_uses_pdftoppm_output(monkeypatch, tmp_path):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    monkeypatch.setattr(pdf_thumbnail.shutil, "which", lambda _: "/usr/bin/pdftoppm")
+    monkeypatch.setattr(pdf_thumbnail, "_PDFTOPPM", "/usr/bin/pdftoppm")
     monkeypatch.setattr(pdf_thumbnail.tempfile, "TemporaryDirectory", TempDir)
     monkeypatch.setattr(pdf_thumbnail, "_run_command", lambda *args: None)
 
@@ -92,14 +92,14 @@ def test_render_pdf_page_uses_pdftoppm_output(monkeypatch, tmp_path):
 
 
 def test_count_pdf_pages_uses_pdfium_when_pdfinfo_is_missing(monkeypatch):
-    monkeypatch.setattr(pdf_thumbnail.shutil, "which", lambda _: None)
+    monkeypatch.setattr(pdf_thumbnail, "_PDFINFO", None)
     monkeypatch.setattr(pdf_thumbnail, "_count_pdf_pages_with_pdfium", lambda path: 8)
 
     assert pdf_thumbnail.count_pdf_pages("demo.pdf") == 8
 
 
 def test_count_pdf_pages_parses_pdfinfo_output(monkeypatch):
-    monkeypatch.setattr(pdf_thumbnail.shutil, "which", lambda _: "/usr/bin/pdfinfo")
+    monkeypatch.setattr(pdf_thumbnail, "_PDFINFO", "/usr/bin/pdfinfo")
     monkeypatch.setattr(
         pdf_thumbnail,
         "_run_command",
@@ -110,7 +110,7 @@ def test_count_pdf_pages_parses_pdfinfo_output(monkeypatch):
 
 
 def test_count_pdf_pages_errors_when_pdfinfo_output_has_no_pages(monkeypatch):
-    monkeypatch.setattr(pdf_thumbnail.shutil, "which", lambda _: "/usr/bin/pdfinfo")
+    monkeypatch.setattr(pdf_thumbnail, "_PDFINFO", "/usr/bin/pdfinfo")
     monkeypatch.setattr(
         pdf_thumbnail,
         "_run_command",
