@@ -4,16 +4,9 @@
 
 const path = require('path')
 
-const PerspectivePlugin = require('@finos/perspective-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
-
-class RevertPathOverwriteByPerspective {
-  apply(compiler) {
-    compiler.options.resolve.fallback.path = require.resolve('path-browserify')
-  }
-}
 
 // TODO: use webpack-merge, it's already in node_modules
 module.exports = (options) => ({
@@ -69,6 +62,13 @@ module.exports = (options) => ({
         use: ['style-loader', 'css-loader'],
       },
       {
+        // Perspective 3.x ships its data engine + viewer as .wasm assets and
+        // fetches them at runtime; emit them as files. (Replaces the legacy
+        // @finos/perspective-webpack-plugin, retired in the 1.9.4 -> 3.x upgrade.)
+        test: /\.wasm$/,
+        type: 'asset/resource',
+      },
+      {
         test: /\.(eot|otf|ttf|woff|woff2)$/,
         type: 'asset/resource',
       },
@@ -110,6 +110,13 @@ module.exports = (options) => ({
       },
     ],
   },
+  // Perspective 3.x's .wasm is emitted as a fetched asset (asset/resource rule
+  // above), so disable webpack's WASM module experiments — otherwise webpack
+  // tries to treat .wasm as a first-class WebAssembly module.
+  experiments: {
+    asyncWebAssembly: false,
+    syncWebAssembly: false,
+  },
   plugins: options.plugins.concat([
     new CopyWebpackPlugin({
       patterns: [{ from: 'static', globOptions: { ignore: ['**/.prettierrc.json'] } }],
@@ -130,18 +137,15 @@ module.exports = (options) => ({
       process: 'process/browser.js',
       Buffer: ['buffer', 'Buffer'],
     }),
-
-    new PerspectivePlugin(),
-
-    new RevertPathOverwriteByPerspective(),
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
     fallback: {
-      // See RevertPathOverwriteByPerspective and source of the PerspectivePlugin for details
-      // path: require.resolve('path-browserify'),
+      // Previously set by RevertPathOverwriteByPerspective (the old Perspective
+      // plugin nulled resolve.fallback.path); set it directly now the plugin is gone.
+      path: require.resolve('path-browserify'),
     },
   },
   devtool: options.devtool,
