@@ -10,7 +10,7 @@ dependencies = [
   "pillow~=12.2",
   "python-pptx~=1.0.0",
   "requests>=2.26.0,<3",
-  "t4_lambda_shared @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared",
+  "t4-lambda-shared",
   "bioio~=3.0",
   "bioio-base~=3.0",
   "bioio-czi~=2.7",
@@ -37,4 +37,7 @@ prod = [
 
 [tool.uv]
 default-groups = ["test"]
+
+[tool.uv.sources]
+t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
 
