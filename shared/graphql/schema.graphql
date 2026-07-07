@@ -203,9 +203,10 @@ enum BucketVersioningState {
 }
 
 type BucketVersioningStatus {
-  state: BucketVersioningState
-  error: String
+  state: BucketVersioningState!
 }
+
+union BucketVersioningStatusResult = BucketVersioningStatus | OperationError
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
 type UnmanagedRole {
@@ -662,7 +663,7 @@ type Query {
   bucketConfig(name: String!): BucketConfig
   buckets: [Bucket!]!
   bucket(name: String!): Bucket
-  bucketVersioningStatus(name: String!): BucketVersioningStatus!
+  bucketVersioningStatus(name: String!): BucketVersioningStatusResult!
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package

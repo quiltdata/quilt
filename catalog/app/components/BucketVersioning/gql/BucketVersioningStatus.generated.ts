@@ -20,11 +20,12 @@ export type components_BucketVersioning_gql_BucketVersioningStatusQueryVariables
 
 export interface components_BucketVersioning_gql_BucketVersioningStatusQuery {
   readonly __typename: 'Query'
-  readonly bucketVersioningStatus: {
-    readonly __typename: 'BucketVersioningStatus'
-    readonly state: Types.BucketVersioningState | null
-    readonly error: string | null
-  }
+  readonly bucketVersioningStatus:
+    | {
+        readonly __typename: 'BucketVersioningStatus'
+        readonly state: Types.BucketVersioningState
+      }
+    | { readonly __typename: 'OperationError'; readonly message: string }
 }
 
 export const components_BucketVersioning_gql_BucketVersioningStatusDocument = {
@@ -63,8 +64,33 @@ export const components_BucketVersioning_gql_BucketVersioningStatusDocument = {
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
-                { kind: 'Field', name: { kind: 'Name', value: 'state' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'error' } },
+                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'BucketVersioningStatus' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'state' } },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                    ],
+                  },
+                },
               ],
             },
           },

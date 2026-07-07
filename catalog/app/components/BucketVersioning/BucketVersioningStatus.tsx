@@ -128,12 +128,12 @@ export default function BucketVersioningStatus({
     )
   }
 
-  // Transient failure to reach S3 / the registry. The primary path is a
-  // `bucketVersioningStatus` object with `state: null` and a `error` reason
-  // (see below); this handles a hard query error that returns no data at all,
-  // falling back to the same retry rendering.
+  // The query returns a union of the success payload and the standard
+  // OperationError type. Discriminate on `__typename`: OperationError (or a
+  // hard query error with no data at all) renders the transient box, using the
+  // OperationError `message` as the reason.
   const status = result.data?.bucketVersioningStatus
-  if (!status) {
+  if (!status || status.__typename === 'OperationError') {
     return (
       <StatusAlert
         severity="warning"
@@ -141,21 +141,7 @@ export default function BucketVersioningStatus({
         refresh={refreshProps}
         icon={<M.Icon fontSize="inherit">sync_problem</M.Icon>}
       >
-        Couldn't reach S3. Try again.
-      </StatusAlert>
-    )
-  }
-
-  // Transient reason as data: no state resolved, `error` carries the reason.
-  if (!status.state) {
-    return (
-      <StatusAlert
-        severity="warning"
-        className={className}
-        refresh={refreshProps}
-        icon={<M.Icon fontSize="inherit">sync_problem</M.Icon>}
-      >
-        {status.error || "Couldn't reach S3."} Try again.
+        {status?.message || "Couldn't reach S3."} Try again.
       </StatusAlert>
     )
   }

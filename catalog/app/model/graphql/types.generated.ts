@@ -329,9 +329,10 @@ export enum BucketVersioningState {
 
 export interface BucketVersioningStatus {
   readonly __typename: 'BucketVersioningStatus'
-  readonly error: Maybe<Scalars['String']['output']>
-  readonly state: Maybe<BucketVersioningState>
+  readonly state: BucketVersioningState
 }
+
+export type BucketVersioningStatusResult = BucketVersioningStatus | OperationError
 
 export interface Canary {
   readonly __typename: 'Canary'
@@ -1061,7 +1062,7 @@ export interface Query {
   readonly bucketAccessCounts: Maybe<BucketAccessCounts>
   readonly bucketConfig: Maybe<BucketConfig>
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
-  readonly bucketVersioningStatus: BucketVersioningStatus
+  readonly bucketVersioningStatus: BucketVersioningStatusResult
   readonly buckets: ReadonlyArray<Bucket>
   readonly config: Config
   readonly defaultRole: Maybe<Role>

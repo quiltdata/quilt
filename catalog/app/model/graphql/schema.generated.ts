@@ -1424,24 +1424,32 @@ export default {
         name: 'BucketVersioningStatus',
         fields: [
           {
-            name: 'error',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
             name: 'state',
             type: {
-              kind: 'SCALAR',
-              name: 'Any',
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
             },
             args: [],
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'BucketVersioningStatusResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BucketVersioningStatus',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
@@ -4975,8 +4983,8 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'BucketVersioningStatus',
+                kind: 'UNION',
+                name: 'BucketVersioningStatusResult',
                 ofType: null,
               },
             },
