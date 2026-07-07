@@ -6,7 +6,7 @@ requires-python = "~=3.13.0"
 dependencies = [
   "dask[array]~=2026.1",
   "numpy~=2.3",
-  "pdf2image>=1.13.1,<2",
+  "pypdfium2>=4,<5",
   "pillow~=12.2",
   "python-pptx~=1.0.0",
   "requests>=2.33.0,<3",
