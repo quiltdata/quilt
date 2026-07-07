@@ -648,7 +648,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
     { name = "pyyaml", specifier = ">=5.1" },
     { name = "quilt3-local", marker = "extra == 'catalog'", specifier = ">=2,<3" },
-    { name = "requests", specifier = ">=2.33.0" },
+    { name = "requests", specifier = ">=2.12.4" },
     { name = "requests-futures", specifier = "==1.0.0" },
     { name = "tenacity", specifier = ">=5.1.1,!=8.4.0" },
     { name = "tqdm", specifier = ">=4.32" },
