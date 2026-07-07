@@ -9,7 +9,7 @@ dependencies = [
   "pdf2image>=1.13.1,<2",
   "pillow~=12.2",
   "python-pptx~=1.0.0",
-  "requests>=2.26.0,<3",
+  "requests>=2.33.0,<3",
   "t4-lambda-shared",
   "bioio~=3.0",
   "bioio-base~=3.0",
