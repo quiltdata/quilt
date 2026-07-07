@@ -11,7 +11,7 @@ import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import { BucketVersioningWarning } from 'components/BucketVersioning'
+import { BucketVersioningStatus } from 'components/BucketVersioning'
 import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
@@ -759,6 +759,7 @@ interface PrimaryCardProps {
 }
 
 function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
+  const classes = useStyles()
   const initialValues = bucketToPrimaryValues(bucket)
   const ref = React.useRef<HTMLElement>(null)
   const { urls } = NamedRoutes.use()
@@ -776,6 +777,10 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
           ref={ref}
           title="Display settings"
         >
+          <BucketVersioningStatus
+            bucketName={bucket.name}
+            className={classes.versioningStatus}
+          />
           <form onSubmit={handleSubmit}>
             <PrimaryForm bucket={bucket} />
           </form>
@@ -1193,8 +1198,8 @@ const useStyles = M.makeStyles((t) => ({
   fields: {
     marginTop: t.spacing(2),
   },
-  versioningWarning: {
-    marginTop: t.spacing(2),
+  versioningStatus: {
+    marginBottom: t.spacing(2),
   },
 }))
 
@@ -1254,29 +1259,26 @@ function parseResponseError(
   }
 }
 
-interface DebouncedVersioningWarningProps {
+interface DebouncedVersioningStatusProps {
   name: string
   className?: string
 }
 
-function DebouncedVersioningWarning({
-  name,
-  className,
-}: DebouncedVersioningWarningProps) {
+function DebouncedVersioningStatus({ name, className }: DebouncedVersioningStatusProps) {
   const [debouncedName] = useDebounce(name, 500)
-  return <BucketVersioningWarning bucketName={debouncedName} className={className} />
+  return <BucketVersioningStatus bucketName={debouncedName} className={className} />
 }
 
-// Advisory S3 versioning notice for the add form: probes the bucket name as it
+// Live S3 versioning status box for the add form: probes the bucket name as it
 // is typed (debounced). Non-blocking — never disables submit.
-function AddVersioningWarning() {
+function AddVersioningStatus() {
   const classes = useStyles()
   return (
     <RF.FormSpy subscription={{ values: true }}>
       {({ values }) => (
-        <DebouncedVersioningWarning
+        <DebouncedVersioningStatus
           name={values.name || ''}
-          className={classes.versioningWarning}
+          className={classes.versioningStatus}
         />
       )}
     </RF.FormSpy>
@@ -1342,8 +1344,8 @@ function Add({ back, settings, submit }: AddProps) {
           </SubPageHeader>
           <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
             <Card className={classes.card} title="Display settings">
+              <AddVersioningStatus />
               <PrimaryForm />
-              <AddVersioningWarning />
             </Card>
             <Card className={classes.card} title="Metadata">
               <MetadataForm />
@@ -1649,10 +1651,6 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
       <SubPageHeader back={back} disabled={disabled}>
         {`s3://${bucket.name}`}
       </SubPageHeader>
-      <BucketVersioningWarning
-        bucketName={bucket.name}
-        className={classes.versioningWarning}
-      />
       <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
         <div className={classes.fields} ref={scrollingRef}>
           <div className={classes.card}>

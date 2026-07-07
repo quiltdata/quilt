@@ -1,1 +1,1 @@
-export { default as BucketVersioningWarning } from './BucketVersioningWarning'
+export { default as BucketVersioningStatus } from './BucketVersioningStatus'

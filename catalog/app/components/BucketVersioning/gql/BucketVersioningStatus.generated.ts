@@ -7,7 +7,12 @@ export type Incremental<T> =
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type BucketVersioningState = 'ENABLED' | 'SUSPENDED' | 'UNKNOWN' | 'UNVERSIONED'
+export type BucketVersioningState =
+  | 'ACCESS_DENIED'
+  | 'ENABLED'
+  | 'NOT_FOUND'
+  | 'SUSPENDED'
+  | 'UNVERSIONED'
 
 export type components_BucketVersioning_gql_BucketVersioningStatusQueryVariables = Exact<{
   name: string

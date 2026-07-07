@@ -320,9 +320,10 @@ export interface BucketUpdateSuccess {
 }
 
 export enum BucketVersioningState {
+  ACCESS_DENIED = 'ACCESS_DENIED',
   ENABLED = 'ENABLED',
+  NOT_FOUND = 'NOT_FOUND',
   SUSPENDED = 'SUSPENDED',
-  UNKNOWN = 'UNKNOWN',
   UNVERSIONED = 'UNVERSIONED',
 }
 

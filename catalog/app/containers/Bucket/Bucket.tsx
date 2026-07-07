@@ -2,7 +2,6 @@ import * as React from 'react'
 import { Route, Switch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { BucketVersioningWarning } from 'components/BucketVersioning'
 import Layout, { Container } from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { useBucketStrict } from 'containers/Bucket/Routes'
@@ -39,9 +38,6 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
   },
-  versioningWarning: {
-    marginBottom: t.spacing(2),
-  },
 }))
 
 interface BucketLayoutProps {
@@ -61,15 +57,7 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
           </M.AppBar>
           <Container>
             {bucketExistenceData.case({
-              Ok: () => (
-                <>
-                  <BucketVersioningWarning
-                    bucketName={bucket}
-                    className={classes.versioningWarning}
-                  />
-                  {children}
-                </>
-              ),
+              Ok: () => <>{children}</>,
               Err: displayError(),
               _: () => <SuspensePlaceholder />,
             })}

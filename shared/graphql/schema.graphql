@@ -198,7 +198,8 @@ enum BucketVersioningState {
   ENABLED
   SUSPENDED
   UNVERSIONED
-  UNKNOWN
+  NOT_FOUND
+  ACCESS_DENIED
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
