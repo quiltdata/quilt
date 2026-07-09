@@ -109,9 +109,11 @@ export function useAuthExchange() {
         if (handleInvalidToken && isAuthLost(r.error)) {
           const authAttached = Boolean((r.operation.context as any).authAttached)
           if (isHandshakeRace(waitingRef.current, authAttached)) {
-            // let the in-flight sign-in handshake complete rather than
-            // bouncing a query that raced it
-            return r
+            // Hold the query pending — do not surface the racing 401 — so no
+            // error flashes during the handshake. The post-sign-in client
+            // rebuild (on sessionId change) re-issues it. Same as the redirect
+            // path below, minus the authLost dispatch.
+            return new Promise<urql.OperationResult>(() => {})
           }
           dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
           // never resolve on auth error
