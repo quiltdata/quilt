@@ -26,8 +26,10 @@ const makeHeadersFromTokens = ({ token }) => ({
  *   Auth tokens object to use, or `true` to take them from redux.
  *
  * @property {boolean} handleInvalidToken
- *   Whether to intercept 401 responses with 'Token invalid.' message and
- *   dispatch authentication lost action.
+ *   Whether to intercept 401 (auth-lost) responses and dispatch the
+ *   authentication-lost action. The registry returns 401 for any
+ *   unauthenticatable request — missing, invalid, or refresh-failed
+ *   credential — so the status alone is the signal.
  */
 
 /**
@@ -55,7 +57,7 @@ export default function* authMiddleware({ auth = true, ...opts }, next) {
   try {
     return yield call(next, nextOpts)
   } catch (e) {
-    if (handleInvalidToken && HTTPError.is(e, 401, 'Token invalid.')) {
+    if (handleInvalidToken && HTTPError.is(e, 401)) {
       yield put(authLost(new InvalidToken({ originalError: e })))
     }
     throw e
