@@ -38,15 +38,25 @@ const getFetchOptions = (op: urql.Operation) =>
 // whole signal; the specific error message is not load-bearing.
 export const isAuthLost = (error?: urql.CombinedError) => error?.response?.status === 401
 
-// A freshly-mounted SPA can fire GraphQL queries that race the
-// post-OAuth-callback login handshake: such a query carries no credential
-// (there is no session yet) and lands a 401 while sign-in is still in
-// flight. Suppress the redirect only in that exact shape — waiting AND no
-// credential was sent — so the handshake can finish. A 401 on a request
-// that *did* carry a credential is a genuinely dead session (e.g. a failed
-// SSO refresh), so it must still redirect.
-export const isHandshakeRace = (waiting: boolean, authAttached: boolean) =>
-  waiting && !authAttached
+export type AuthLossAction = 'redirect' | 'hold'
+
+// Given an auth-loss 401 whose interception is enabled, decide between:
+// - 'redirect' — a credential WAS sent and still 401'd, so the session is
+//   dead; or there is no session and none is being established (logged out).
+// - 'hold' — no credential was sent AND a session already exists or is being
+//   established. The request is a stale straggler issued before the session,
+//   or a query racing the post-OAuth handshake; bouncing it would log out a
+//   live/arriving session. A held query is superseded by the client rebuild
+//   on sign-in, or unmounted by requireAuth's redirect if sign-in fails.
+export function decideAuthLoss(p: {
+  authAttached: boolean
+  authenticated: boolean
+  waiting: boolean
+}): AuthLossAction {
+  if (p.authAttached) return 'redirect'
+  if (p.authenticated || p.waiting) return 'hold'
+  return 'redirect'
+}
 
 export function useAuthExchange() {
   const dispatch = redux.useDispatch()
@@ -58,6 +68,10 @@ export function useAuthExchange() {
   const waiting = redux.useSelector(selectors.waiting)
   const waitingRef = React.useRef(waiting)
   waitingRef.current = waiting
+
+  const authenticated = redux.useSelector(selectors.authenticated)
+  const authenticatedRef = React.useRef(authenticated)
+  authenticatedRef.current = authenticated
 
   const getTokens = React.useCallback(() => {
     const { resolver, promise } = defer<AuthTokens>()
@@ -80,8 +94,8 @@ export function useAuthExchange() {
       const fetchOptions = getFetchOptions(op)
 
       // Record whether we actually sent a credential, so handleResult can
-      // tell a racing unauthenticated request (post-OAuth handshake) apart
-      // from a genuinely rejected session. See isHandshakeRace.
+      // tell a racing/straggler unauthenticated request apart from a
+      // genuinely rejected session. See decideAuthLoss.
       const context = {
         ...op.context,
         authAttached: !!authHeaders,
@@ -98,29 +112,30 @@ export function useAuthExchange() {
 
   const handleResult = React.useCallback(
     async (r: urql.OperationResult) => {
-      if (r.error) {
-        const ctx: AuthContext = r.operation.context as any
+      if (!r.error) return r
 
-        const handleInvalidToken =
-          typeof ctx.auth === 'boolean'
-            ? ctx.auth
-            : R.defaultTo(ctx.auth?.handleInvalidToken, true)
+      const ctx: AuthContext = r.operation.context as any
+      const handleInvalidToken =
+        typeof ctx.auth === 'boolean'
+          ? ctx.auth
+          : R.defaultTo(ctx.auth?.handleInvalidToken, true)
 
-        if (handleInvalidToken && isAuthLost(r.error)) {
-          const authAttached = Boolean((r.operation.context as any).authAttached)
-          if (isHandshakeRace(waitingRef.current, authAttached)) {
-            // Hold the query pending — do not surface the racing 401 — so no
-            // error flashes during the handshake. The post-sign-in client
-            // rebuild (on sessionId change) re-issues it. Same as the redirect
-            // path below, minus the authLost dispatch.
-            return new Promise<urql.OperationResult>(() => {})
-          }
-          dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
-          // never resolve on auth error
-          return new Promise<urql.OperationResult>(() => {})
-        }
+      if (!handleInvalidToken || !isAuthLost(r.error)) return r
+
+      const outcome = decideAuthLoss({
+        authAttached: Boolean((r.operation.context as any).authAttached),
+        authenticated: authenticatedRef.current,
+        waiting: waitingRef.current,
+      })
+
+      if (outcome === 'redirect') {
+        dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
       }
-      return r
+      // Both 'redirect' and 'hold' leave the operation unresolved: on redirect
+      // so nothing renders before navigation; on hold so the racing/straggler
+      // query is superseded by the post-sign-in client rebuild (or unmounted by
+      // requireAuth's redirect if sign-in fails) rather than surfacing its 401.
+      return new Promise<urql.OperationResult>(() => {})
     },
     [dispatch],
   )
