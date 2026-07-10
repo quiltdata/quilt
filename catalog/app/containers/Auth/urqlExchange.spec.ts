@@ -1,17 +1,25 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { CombinedError } from 'urql'
 
-import { authLost } from './actions'
-import { InvalidToken } from './errors'
-import { isAuthLost, applyAuthLoss } from './urqlExchange'
+import { isAuthLost, classifyAuthLoss } from './urqlExchange'
 
 // A real urql CombinedError with a real fetch Response, so the test exercises
 // the actual contract (status read off error.response) rather than a shape we
 // invented — it would catch a urql upgrade that relocated the status.
-const err = (status?: number) =>
+const err = (status?: number, graphQLErrors: { message: string }[] = []) =>
   new CombinedError({
-    graphQLErrors: [],
+    graphQLErrors,
     response: status == null ? undefined : new Response(null, { status }),
+  })
+
+const classify = (over: Partial<Parameters<typeof classifyAuthLoss>[0]>) =>
+  classifyAuthLoss({
+    handleInvalidToken: true,
+    is401: true,
+    authAttached: false,
+    authenticated: false,
+    waiting: false,
+    ...over,
   })
 
 describe('containers/Auth/urqlExchange', () => {
@@ -25,6 +33,9 @@ describe('containers/Auth/urqlExchange', () => {
     it('does not flag a 5xx', () => {
       expect(isAuthLost(err(500))).toBe(false)
     })
+    it('does not flag a 200 that carries graphQLErrors (not auth-loss)', () => {
+      expect(isAuthLost(err(200, [{ message: 'boom' }]))).toBe(false)
+    })
     it('does not flag a network error with no response', () => {
       expect(isAuthLost(err(undefined))).toBe(false)
     })
@@ -33,20 +44,23 @@ describe('containers/Auth/urqlExchange', () => {
     })
   })
 
-  describe('applyAuthLoss', () => {
-    it('dispatches authLost (wrapping the error) on redirect', () => {
-      const dispatch = vi.fn()
-      const e = err(401)
-      applyAuthLoss('redirect', e, dispatch)
-      expect(dispatch).toHaveBeenCalledTimes(1)
-      expect(dispatch).toHaveBeenCalledWith(
-        authLost(new InvalidToken({ originalError: e })),
-      )
+  describe('classifyAuthLoss', () => {
+    it('passes through when interception is disabled', () => {
+      expect(classify({ handleInvalidToken: false })).toBe('passthrough')
+      expect(classify({ handleInvalidToken: undefined })).toBe('passthrough')
     })
-    it('does nothing on hold', () => {
-      const dispatch = vi.fn()
-      applyAuthLoss('hold', err(401), dispatch)
-      expect(dispatch).not.toHaveBeenCalled()
+    it('passes through a non-401', () => {
+      expect(classify({ is401: false })).toBe('passthrough')
+    })
+    it('redirects a handled 401 that carried a credential (dead session)', () => {
+      expect(classify({ authAttached: true })).toBe('redirect')
+    })
+    it('holds a handled no-credential 401 while a session exists or is arriving', () => {
+      expect(classify({ authAttached: false, waiting: true })).toBe('hold')
+      expect(classify({ authAttached: false, authenticated: true })).toBe('hold')
+    })
+    it('redirects a handled no-credential 401 with no session in sight', () => {
+      expect(classify({})).toBe('redirect')
     })
   })
 })

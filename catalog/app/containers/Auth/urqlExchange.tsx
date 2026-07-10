@@ -34,32 +34,29 @@ const getFetchOptions = (op: urql.Operation) =>
     ? op.context.fetchOptions()
     : op.context.fetchOptions || {}
 
-// A registry 401 means the request could not be authenticated — the
-// credential was missing, invalid, or its server-side SSO refresh failed.
-// The registry collapses every such failure to a single 401 (403 is
-// reserved for authenticated-but-forbidden), so the HTTP status is the
-// whole signal; the specific error message is not load-bearing.
+// A registry 401 is auth-loss (missing, invalid, or refresh-failed credential):
+// the status is the whole signal, the message is not load-bearing (403 is
+// authenticated-but-forbidden, handled elsewhere).
 export const isAuthLost = (error?: urql.CombinedError) => error?.response?.status === 401
 
-// Apply the auth-loss decision's side effect: 'redirect' dispatches authLost
-// (clears the session and navigates to /login); 'hold' does nothing. Either
-// way the caller leaves the operation unresolved.
-export function applyAuthLoss(
-  action: AuthLossAction,
-  error: urql.CombinedError,
-  dispatch: (action: unknown) => void,
-): void {
-  if (action === 'redirect') {
-    dispatch(actions.authLost(new InvalidToken({ originalError: error })))
-  }
+// The full handleResult decision as a pure function: a result that isn't a
+// handled 401 passes through untouched; otherwise defer to decideAuthLoss.
+export function classifyAuthLoss(p: {
+  handleInvalidToken: boolean | undefined
+  is401: boolean
+  authAttached: boolean
+  authenticated: boolean
+  waiting: boolean
+}): 'passthrough' | AuthLossAction {
+  if (!p.handleInvalidToken || !p.is401) return 'passthrough'
+  return decideAuthLoss(p)
 }
 
 export function useAuthExchange() {
   const dispatch = redux.useDispatch()
 
-  // Read fresh auth state synchronously when a response lands (the codebase
-  // idiom — cf. PFSCookieManager, Assistant). The exchange can't depend on
-  // these selectors without tearing down in-flight operations on each change.
+  // Read fresh auth state synchronously when a response lands — the exchange
+  // can't subscribe without tearing down in-flight operations (cf. PFSCookieManager).
   const store = redux.useStore()
 
   const getTokens = React.useCallback(() => {
@@ -82,9 +79,8 @@ export function useAuthExchange() {
 
       const fetchOptions = getFetchOptions(op)
 
-      // Record whether we actually sent a credential, so handleResult can
-      // tell a racing/straggler unauthenticated request apart from a
-      // genuinely rejected session. See decideAuthLoss.
+      // Record whether we sent a credential — decideAuthLoss uses it to tell a
+      // racing/straggler request from a genuinely rejected session.
       const context = {
         ...op.context,
         authAttached: !!authHeaders,
@@ -104,26 +100,24 @@ export function useAuthExchange() {
       if (!r.error) return r
 
       const ctx: AuthContext = r.operation.context as any
-      const handleInvalidToken =
-        typeof ctx.auth === 'boolean'
-          ? ctx.auth
-          : R.defaultTo(ctx.auth?.handleInvalidToken, true)
-
-      if (!handleInvalidToken || !isAuthLost(r.error)) return r
-
       const state = store.getState()
-      applyAuthLoss(
-        decideAuthLoss({
-          authAttached: Boolean(ctx.authAttached),
-          authenticated: selectors.authenticated(state),
-          waiting: selectors.waiting(state),
-        }),
-        r.error,
-        dispatch,
-      )
-      // Leave the operation unresolved either way: on redirect so nothing
-      // renders before navigation; on hold so the superseded query never
-      // surfaces its 401.
+      const outcome = classifyAuthLoss({
+        handleInvalidToken:
+          typeof ctx.auth === 'boolean'
+            ? ctx.auth
+            : R.defaultTo(ctx.auth?.handleInvalidToken, true),
+        is401: isAuthLost(r.error),
+        authAttached: Boolean(ctx.authAttached),
+        authenticated: selectors.authenticated(state),
+        waiting: selectors.waiting(state),
+      })
+
+      if (outcome === 'passthrough') return r
+      if (outcome === 'redirect') {
+        dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
+      }
+      // Leave the operation unresolved: on redirect so nothing renders before
+      // navigation; on hold so the superseded query never surfaces its 401.
       return new Promise<urql.OperationResult>(() => {})
     },
     [dispatch, store],
