@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -24,20 +23,6 @@ const EnableVersioningLink = (
   </StyledLink>
 )
 
-const useStyles = M.makeStyles((t) => ({
-  idle: {
-    color: t.palette.text.secondary,
-  },
-  loading: {
-    alignItems: 'center',
-    color: t.palette.text.secondary,
-    display: 'flex',
-  },
-  spinner: {
-    marginRight: t.spacing(1),
-  },
-}))
-
 interface RefreshButtonProps {
   disabled: boolean
   onClick: () => void
@@ -49,7 +34,7 @@ interface RefreshButtonProps {
 // (cached) status for the rest of the session.
 function RefreshButton({ disabled, onClick }: RefreshButtonProps) {
   return (
-    <M.Tooltip title="Re-check versioning">
+    <M.Tooltip title="Re-check versioning" arrow>
       <M.IconButton size="small" color="inherit" onClick={onClick} disabled={disabled}>
         <M.Icon fontSize="small">refresh</M.Icon>
       </M.IconButton>
@@ -93,7 +78,6 @@ export default function BucketVersioningStatus({
   bucketName,
   className,
 }: BucketVersioningStatusProps) {
-  const classes = useStyles()
   const tooShort = bucketName.length < MIN_BUCKET_NAME_LENGTH
   // Non-suspending query; we render every state explicitly rather than
   // throwing / suspending.
@@ -109,22 +93,34 @@ export default function BucketVersioningStatus({
   )
   const refreshProps: RefreshButtonProps = { onClick: refresh, disabled: result.fetching }
 
-  // Idle: nothing to check yet.
+  // Idle: nothing to check yet. Rendered through the same StatusAlert container
+  // as the result states (info severity) so the box keeps a constant shape and
+  // doesn't jump on the idle -> loading -> result transitions. Refresh is
+  // disabled since there's no bucket to re-check.
   if (tooShort) {
     return (
-      <M.Typography variant="body2" className={cx(classes.idle, className)}>
+      <StatusAlert
+        severity="info"
+        className={className}
+        refresh={{ onClick: refresh, disabled: true }}
+      >
         Enter a bucket name to check S3 versioning.
-      </M.Typography>
+      </StatusAlert>
     )
   }
 
-  // Loading: initial fetch (no data yet).
+  // Loading: initial fetch (no data yet). Same info container; the spinner takes
+  // the Alert's icon slot in place of the severity icon.
   if (result.fetching && !result.data) {
     return (
-      <M.Typography variant="body2" className={cx(classes.loading, className)}>
-        <M.CircularProgress size={16} className={classes.spinner} />
+      <StatusAlert
+        severity="info"
+        className={className}
+        refresh={refreshProps}
+        icon={<M.CircularProgress size={16} color="inherit" />}
+      >
         Checking versioning…
-      </M.Typography>
+      </StatusAlert>
     )
   }
 
