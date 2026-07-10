@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -8,20 +9,48 @@ import { BucketVersioningState } from 'model/graphql/types.generated'
 
 import BUCKET_VERSIONING_STATUS_QUERY from './gql/BucketVersioningStatus.generated'
 
-// AWS docs on enabling / configuring S3 bucket versioning. Quilt's own docs
-// don't have a dedicated "enable versioning" page, so we link out to AWS
-// (same approach as the S3 Glacier restore docs link in RehydrateDialog).
-const S3_VERSIONING_DOC =
-  'https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html'
+// Quilt's own admin docs, which recommend bucket versioning and cover the
+// related lifecycle guidance (preferred over linking out to AWS).
+const VERSIONING_DOC = 'https://docs.quilt.bio/quilt-platform-administrator/installation'
 
 // S3 bucket names are at least 3 chars, so don't probe shorter (partial) input.
 const MIN_BUCKET_NAME_LENGTH = 3
 
 const EnableVersioningLink = (
-  <StyledLink href={S3_VERSIONING_DOC} target="_blank">
-    Learn how to enable versioning
+  <StyledLink href={VERSIONING_DOC} target="_blank">
+    Learn about bucket versioning
   </StyledLink>
 )
+
+// Give each severity a solid, clearly-visible background pulled from the theme
+// palette (mirroring `classes.warning` in Admin/Buckets/Buckets.tsx), rather
+// than the default `standard` variant's faint tint that's barely legible on
+// white. Text/icon/link stay legible via the palette's `contrastText` (dark on
+// the light-yellow warning, white on the saturated info/error/success). The
+// warning icon uses `warning.dark` to match the Buckets.tsx treatment. All
+// states share this container, so they read as one consistent control.
+const useStatusAlertStyles = M.makeStyles((t) => ({
+  info: {
+    backgroundColor: t.palette.info.main,
+    color: t.palette.info.contrastText,
+    '& .MuiAlert-icon': { color: t.palette.info.contrastText },
+  },
+  success: {
+    backgroundColor: t.palette.success.main,
+    color: t.palette.success.contrastText,
+    '& .MuiAlert-icon': { color: t.palette.success.contrastText },
+  },
+  warning: {
+    backgroundColor: t.palette.warning.main,
+    color: t.palette.warning.contrastText,
+    '& .MuiAlert-icon': { color: t.palette.warning.dark },
+  },
+  error: {
+    backgroundColor: t.palette.error.main,
+    color: t.palette.error.contrastText,
+    '& .MuiAlert-icon': { color: t.palette.error.contrastText },
+  },
+}))
 
 interface RefreshButtonProps {
   disabled: boolean
@@ -50,15 +79,18 @@ interface StatusAlertProps {
   children: React.ReactNode
 }
 
-// Higher-contrast than the default outlined look: `standard` renders a solid
-// tinted background with a colored icon, giving success and warning equal weight.
+// Higher-contrast than the default `standard` tint: we keep the `standard`
+// variant but override its faint background with a solid, palette-driven one per
+// severity (see `useStatusAlertStyles`) so every state reads clearly on white
+// and the always-visible box looks like one consistent control.
 function StatusAlert({ severity, icon, className, refresh, children }: StatusAlertProps) {
+  const classes = useStatusAlertStyles()
   return (
     <Lab.Alert
       variant="standard"
       severity={severity}
       icon={icon}
-      className={className}
+      className={cx(classes[severity], className)}
       action={<RefreshButton {...refresh} />}
     >
       {children}
