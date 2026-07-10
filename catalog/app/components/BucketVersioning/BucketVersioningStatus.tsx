@@ -22,33 +22,14 @@ const EnableVersioningLink = (
   </StyledLink>
 )
 
-// Give each severity a solid, clearly-visible background pulled from the theme
-// palette (mirroring `classes.warning` in Admin/Buckets/Buckets.tsx), rather
-// than the default `standard` variant's faint tint that's barely legible on
-// white. Text/icon/link stay legible via the palette's `contrastText` (dark on
-// the light-yellow warning, white on the saturated info/error/success). The
-// warning icon uses `warning.dark` to match the Buckets.tsx treatment. All
-// states share this container, so they read as one consistent control.
+// The default `standard` variant's warning tint (a very light yellow in this
+// palette) is barely visible on white, so give the warning states just a thin
+// `warning.main` outline to set them apart. Everything else — including the
+// standard text and icon colors — stays as the default variant. The other
+// severities (info/success/error) use the plain `standard` tint unchanged.
 const useStatusAlertStyles = M.makeStyles((t) => ({
-  info: {
-    backgroundColor: t.palette.info.main,
-    color: t.palette.info.contrastText,
-    '& .MuiAlert-icon': { color: t.palette.info.contrastText },
-  },
-  success: {
-    backgroundColor: t.palette.success.main,
-    color: t.palette.success.contrastText,
-    '& .MuiAlert-icon': { color: t.palette.success.contrastText },
-  },
   warning: {
-    backgroundColor: t.palette.warning.main,
-    color: t.palette.warning.contrastText,
-    '& .MuiAlert-icon': { color: t.palette.warning.dark },
-  },
-  error: {
-    backgroundColor: t.palette.error.main,
-    color: t.palette.error.contrastText,
-    '& .MuiAlert-icon': { color: t.palette.error.contrastText },
+    border: `1px solid ${t.palette.warning.main}`,
   },
 }))
 
@@ -79,10 +60,9 @@ interface StatusAlertProps {
   children: React.ReactNode
 }
 
-// Higher-contrast than the default `standard` tint: we keep the `standard`
-// variant but override its faint background with a solid, palette-driven one per
-// severity (see `useStatusAlertStyles`) so every state reads clearly on white
-// and the always-visible box looks like one consistent control.
+// Plain `standard` variant, with a thin outline on the warning states (see
+// `useStatusAlertStyles`) so the otherwise-faint warning tint doesn't blend
+// into white.
 function StatusAlert({ severity, icon, className, refresh, children }: StatusAlertProps) {
   const classes = useStatusAlertStyles()
   return (
@@ -90,7 +70,7 @@ function StatusAlert({ severity, icon, className, refresh, children }: StatusAle
       variant="standard"
       severity={severity}
       icon={icon}
-      className={cx(classes[severity], className)}
+      className={cx(severity === 'warning' && classes.warning, className)}
       action={<RefreshButton {...refresh} />}
     >
       {children}
