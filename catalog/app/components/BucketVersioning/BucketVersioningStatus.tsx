@@ -5,6 +5,7 @@ import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import * as GQL from 'utils/GraphQL'
+import log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 import { BucketVersioningState } from 'model/graphql/types.generated'
 
@@ -211,6 +212,10 @@ export default function BucketVersioningStatus({
       )
 
     default:
+      // A BucketVersioningState the frontend enum doesn't know about (e.g. a
+      // backend-only deploy added a new state first). Degrade gracefully to an
+      // empty box, but surface the unexpected value so it isn't silently blank.
+      log.warn(`BucketVersioningStatus: unexpected state ${status.state}`)
       return null
   }
 }
