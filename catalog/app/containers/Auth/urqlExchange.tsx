@@ -7,6 +7,7 @@ import * as W from 'wonka'
 import defer from 'utils/defer'
 
 import * as actions from './actions'
+import { AuthLossAction, decideAuthLoss } from './authLoss'
 import { InvalidToken } from './errors'
 import * as selectors from './selectors'
 
@@ -21,6 +22,8 @@ interface AuthOptions {
 
 interface AuthContext {
   auth?: boolean | AuthOptions
+  // set by transformOp: whether this operation carried a credential
+  authAttached?: boolean
 }
 
 // TODO: dedupe
@@ -38,40 +41,26 @@ const getFetchOptions = (op: urql.Operation) =>
 // whole signal; the specific error message is not load-bearing.
 export const isAuthLost = (error?: urql.CombinedError) => error?.response?.status === 401
 
-export type AuthLossAction = 'redirect' | 'hold'
-
-// Given an auth-loss 401 whose interception is enabled, decide between:
-// - 'redirect' — a credential WAS sent and still 401'd, so the session is
-//   dead; or there is no session and none is being established (logged out).
-// - 'hold' — no credential was sent AND a session already exists or is being
-//   established. The request is a stale straggler issued before the session,
-//   or a query racing the post-OAuth handshake; bouncing it would log out a
-//   live/arriving session. A held query is superseded by the client rebuild
-//   on sign-in, or unmounted by requireAuth's redirect if sign-in fails.
-export function decideAuthLoss(p: {
-  authAttached: boolean
-  authenticated: boolean
-  waiting: boolean
-}): AuthLossAction {
-  if (p.authAttached) return 'redirect'
-  if (p.authenticated || p.waiting) return 'hold'
-  return 'redirect'
+// Apply the auth-loss decision's side effect: 'redirect' dispatches authLost
+// (clears the session and navigates to /login); 'hold' does nothing. Either
+// way the caller leaves the operation unresolved.
+export function applyAuthLoss(
+  action: AuthLossAction,
+  error: urql.CombinedError,
+  dispatch: (action: unknown) => void,
+): void {
+  if (action === 'redirect') {
+    dispatch(actions.authLost(new InvalidToken({ originalError: error })))
+  }
 }
 
 export function useAuthExchange() {
   const dispatch = redux.useDispatch()
 
-  // Subscribe so the ref stays current; handleResult reads it
-  // synchronously when a response lands. It can't take `waiting` as a
-  // dependency without re-creating the exchange and tearing down
-  // in-flight operations.
-  const waiting = redux.useSelector(selectors.waiting)
-  const waitingRef = React.useRef(waiting)
-  waitingRef.current = waiting
-
-  const authenticated = redux.useSelector(selectors.authenticated)
-  const authenticatedRef = React.useRef(authenticated)
-  authenticatedRef.current = authenticated
+  // Read fresh auth state synchronously when a response lands (the codebase
+  // idiom — cf. PFSCookieManager, Assistant). The exchange can't depend on
+  // these selectors without tearing down in-flight operations on each change.
+  const store = redux.useStore()
 
   const getTokens = React.useCallback(() => {
     const { resolver, promise } = defer<AuthTokens>()
@@ -122,22 +111,22 @@ export function useAuthExchange() {
 
       if (!handleInvalidToken || !isAuthLost(r.error)) return r
 
-      const outcome = decideAuthLoss({
-        authAttached: Boolean((r.operation.context as any).authAttached),
-        authenticated: authenticatedRef.current,
-        waiting: waitingRef.current,
-      })
-
-      if (outcome === 'redirect') {
-        dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
-      }
-      // Both 'redirect' and 'hold' leave the operation unresolved: on redirect
-      // so nothing renders before navigation; on hold so the racing/straggler
-      // query is superseded by the post-sign-in client rebuild (or unmounted by
-      // requireAuth's redirect if sign-in fails) rather than surfacing its 401.
+      const state = store.getState()
+      applyAuthLoss(
+        decideAuthLoss({
+          authAttached: Boolean(ctx.authAttached),
+          authenticated: selectors.authenticated(state),
+          waiting: selectors.waiting(state),
+        }),
+        r.error,
+        dispatch,
+      )
+      // Leave the operation unresolved either way: on redirect so nothing
+      // renders before navigation; on hold so the superseded query never
+      // surfaces its 401.
       return new Promise<urql.OperationResult>(() => {})
     },
-    [dispatch],
+    [dispatch, store],
   )
 
   return React.useCallback(

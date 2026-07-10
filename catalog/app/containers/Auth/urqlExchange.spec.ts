@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { CombinedError } from 'urql'
 
-import { isAuthLost, decideAuthLoss } from './urqlExchange'
+import { authLost } from './actions'
+import { InvalidToken } from './errors'
+import { isAuthLost, applyAuthLoss } from './urqlExchange'
 
 // A real urql CombinedError with a real fetch Response, so the test exercises
 // the actual contract (status read off error.response) rather than a shape we
@@ -11,9 +13,6 @@ const err = (status?: number) =>
     graphQLErrors: [],
     response: status == null ? undefined : new Response(null, { status }),
   })
-
-const decide = (over: Partial<Parameters<typeof decideAuthLoss>[0]>) =>
-  decideAuthLoss({ authAttached: false, authenticated: false, waiting: false, ...over })
 
 describe('containers/Auth/urqlExchange', () => {
   describe('isAuthLost', () => {
@@ -34,22 +33,20 @@ describe('containers/Auth/urqlExchange', () => {
     })
   })
 
-  describe('decideAuthLoss', () => {
-    it('redirects a 401 whose request carried a credential (dead session)', () => {
-      expect(decide({ authAttached: true })).toBe('redirect')
-      // even mid-handshake: a rejected credential is never racy
-      expect(decide({ authAttached: true, waiting: true })).toBe('redirect')
-    })
-    it('holds a no-credential 401 while a sign-in handshake is in flight', () => {
-      expect(decide({ authAttached: false, waiting: true })).toBe('hold')
-    })
-    it('holds a no-credential 401 once a session already exists (stale straggler)', () => {
-      expect(decide({ authAttached: false, authenticated: true })).toBe('hold')
-    })
-    it('redirects a no-credential 401 with no session and no sign-in in flight', () => {
-      expect(decide({ authAttached: false, authenticated: false, waiting: false })).toBe(
-        'redirect',
+  describe('applyAuthLoss', () => {
+    it('dispatches authLost (wrapping the error) on redirect', () => {
+      const dispatch = vi.fn()
+      const e = err(401)
+      applyAuthLoss('redirect', e, dispatch)
+      expect(dispatch).toHaveBeenCalledTimes(1)
+      expect(dispatch).toHaveBeenCalledWith(
+        authLost(new InvalidToken({ originalError: e })),
       )
+    })
+    it('does nothing on hold', () => {
+      const dispatch = vi.fn()
+      applyAuthLoss('hold', err(401), dispatch)
+      expect(dispatch).not.toHaveBeenCalled()
     })
   })
 })

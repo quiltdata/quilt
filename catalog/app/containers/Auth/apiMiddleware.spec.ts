@@ -34,36 +34,48 @@ import { InvalidToken } from './errors'
 
 // Pass tokens explicitly so the middleware does not call getTokens; then drive
 // the generator to `yield call(next)` and inject the failure via throw.
-const drive = (handleInvalidToken: boolean) =>
+// tokens: false -> no credential attached (authAttached === false).
+const drive = ({ handleInvalidToken = true, tokens = { token: 't' } as any } = {}) =>
   authMiddleware(
-    { auth: { tokens: { token: 't' }, handleInvalidToken }, endpoint: '/x' } as any,
+    { auth: { tokens, handleInvalidToken }, endpoint: '/x' } as any,
     (() => {}) as any,
   )
 
 const httpError = (status: number) => new (HTTPError as any)(status, { message: 'nope' })
 
 describe('containers/Auth/apiMiddleware', () => {
-  it('dispatches authLost on a 401, then rethrows', () => {
+  it('redirects (authLost + rethrow) on a 401 whose request carried a credential', () => {
     const e = httpError(401)
-    const gen = drive(true)
-    gen.next() // -> yield call(next, nextOpts)
-    const step = gen.throw(e) // catch -> yield put(authLost(...))
+    const gen = drive() // tokens provided -> authAttached true -> decideAuthLoss = redirect
+    gen.next() // yield call(next)
+    gen.throw(e) // catch -> yield select(authenticated)
+    gen.next(false) // -> yield select(waiting)
+    const step = gen.next(false) // authAttached true -> redirect -> yield put(authLost)
     expect(step.done).toBe(false)
     expect(step.value).toEqual(put(authLost(new InvalidToken({ originalError: e }))))
     expect(() => gen.next()).toThrow(e) // after the put, e is rethrown
   })
 
+  it('holds (no authLost) a no-credential 401 while a session already exists', () => {
+    const e = httpError(401)
+    const gen = drive({ tokens: false }) // authAttached false
+    gen.next() // yield call(next)
+    gen.throw(e) // -> yield select(authenticated)
+    gen.next(true) // authenticated=true -> yield select(waiting)
+    expect(() => gen.next(false)).toThrow(e) // decideAuthLoss -> hold -> no put, straight rethrow
+  })
+
   it('does not dispatch when handleInvalidToken is false', () => {
     const e = httpError(401)
-    const gen = drive(false)
+    const gen = drive({ handleInvalidToken: false })
     gen.next()
-    expect(() => gen.throw(e)).toThrow(e) // straight rethrow, no put
+    expect(() => gen.throw(e)).toThrow(e) // guard false -> no selects, straight rethrow
   })
 
   it('does not dispatch on a non-401 (e.g. 403)', () => {
     const e = httpError(403)
-    const gen = drive(true)
+    const gen = drive()
     gen.next()
-    expect(() => gen.throw(e)).toThrow(e) // not auth-loss, no put
+    expect(() => gen.throw(e)).toThrow(e) // not auth-loss -> no selects, rethrow
   })
 })
