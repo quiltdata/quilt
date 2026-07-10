@@ -10,6 +10,10 @@ from botocore.stub import Stubber
 from t4_lambda_access_counts import index
 
 
+def _normalize_sql(sql):
+    return ' '.join(sql.split())
+
+
 class TestAccessCounts(TestCase):
     """Tests S3 Select"""
     def setUp(self):
@@ -77,13 +81,14 @@ class TestAccessCounts(TestCase):
         )
 
         self.s3_stubber.add_response(
-            method='list_objects_v2',
+            method='get_object',
             expected_params={
                 'Bucket': 'results-bucket',
-                'Prefix': 'AthenaQueryResults',
-                'MaxKeys': 1000,
+                'Key': 'ObjectAccessLog.schema_version.txt',
             },
-            service_response={}
+            service_response={
+                'Body': BytesIO(index.OBJECT_ACCESS_LOG_SCHEMA_VERSION.encode()),
+            }
         )
 
         self.s3_stubber.add_response(
@@ -98,6 +103,16 @@ class TestAccessCounts(TestCase):
                     'Prefix': 'AWSLogs/123456/'
                 }]
             }
+        )
+
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Prefix': 'AthenaQueryResults',
+                'MaxKeys': 1000,
+            },
+            service_response={}
         )
 
         self._run_queries([index.DROP_CLOUDTRAIL, index.DROP_OBJECT_ACCESS_LOG, index.DROP_PACKAGE_HASHES])
@@ -136,16 +151,34 @@ class TestAccessCounts(TestCase):
             },
             service_response={}
         )
+        self.s3_stubber.add_response(
+            method='put_object',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Key': 'ObjectAccessLog.schema_version.txt',
+                'ContentType': 'text/plain',
+                'Body': index.OBJECT_ACCESS_LOG_SCHEMA_VERSION,
+            },
+            service_response={}
+        )
 
         self._run_queries([
             index.OBJECT_ACCESS_COUNTS,
             index.PACKAGE_ACCESS_COUNTS,
             index.PACKAGE_VERSION_ACCESS_COUNTS,
             index.BUCKET_ACCESS_COUNTS,
-            index.EXTS_ACCESS_COUNTS
+            index.EXTS_ACCESS_COUNTS,
+            index.USER_PACKAGE_ACCESS_COUNTS,
         ])
 
-        for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
+        for idx, (output_dir, name) in enumerate([
+            ('AccessCounts', 'Objects'),
+            ('AccessCounts', 'Packages'),
+            ('AccessCounts', 'PackageVersions'),
+            ('AccessCounts', 'Bucket'),
+            ('AccessCounts', 'Exts'),
+            ('UserAccessCounts', 'Users'),
+        ]):
             self.s3_stubber.add_response(
                 method='head_object',
                 expected_params={
@@ -164,7 +197,7 @@ class TestAccessCounts(TestCase):
                         'Key': f'AthenaQueryResults/{idx}.csv',
                     },
                     'Bucket': 'results-bucket',
-                    'Key': f'AccessCounts/{name}.csv',
+                    'Key': f'{output_dir}/{name}.csv',
                 },
                 service_response={}
             )
@@ -172,3 +205,77 @@ class TestAccessCounts(TestCase):
         with patch('t4_lambda_access_counts.index.now', return_value=now), \
              patch('time.sleep', return_value=None):
             index.handler(None, None)
+
+    def test_username_sql(self):
+        object_access_sql = _normalize_sql(index.CREATE_OBJECT_ACCESS_LOG)
+        assert 'eventname STRING, bucket STRING, key STRING, username STRING' in object_access_sql
+
+        insert_sql = _normalize_sql(index.INSERT_INTO_OBJECT_ACCESS_LOG)
+        assert 'SELECT eventname, bucket, key, username, date_format(eventtime' in insert_sql
+        assert "coalesce(nullif(split_part(useridentity.principalId, ':', 2), ''), 'unknown') AS username" in insert_sql
+
+        user_counts_sql = _normalize_sql(index.USER_PACKAGE_ACCESS_COUNTS)
+        assert 'eventname, bucket, username, name, CAST(map_agg(date, count) AS JSON) AS counts' in user_counts_sql
+        assert 'GROUP BY 5, 4, 3, 2, 1' in user_counts_sql
+        assert 'GROUP BY 4, 3, 2, 1' in user_counts_sql
+        assert 'AccessCounts' != index.USER_ACCESS_COUNTS_OUTPUT_DIR
+
+    def test_get_earliest_cloudtrail_ts(self):
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            expected_params={
+                'Bucket': 'cloudtrail-bucket',
+                'Prefix': 'AWSLogs/123456/CloudTrail/us-east-1/',
+                'MaxKeys': 10,
+            },
+            service_response={
+                'Contents': [
+                    {'Key': 'AWSLogs/123456/CloudTrail/us-east-1/'},
+                    {'Key': 'AWSLogs/123456/CloudTrail/us-east-1/2020/06/01/log.json.gz'},
+                ],
+            },
+        )
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            expected_params={
+                'Bucket': 'cloudtrail-bucket',
+                'Prefix': 'AWSLogs/123456/CloudTrail/us-west-2/',
+                'MaxKeys': 10,
+            },
+            service_response={
+                'Contents': [
+                    {'Key': 'AWSLogs/123456/CloudTrail/us-west-2/2019/05/31/log.json.gz'},
+                ],
+            },
+        )
+
+        assert index.get_earliest_cloudtrail_ts(
+            ['123456'],
+            ['us-east-1', 'us-west-2'],
+        ) == datetime(2019, 5, 31, tzinfo=timezone.utc)
+
+    def test_object_access_log_schema_is_current(self):
+        self.s3_stubber.add_response(
+            method='get_object',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Key': 'ObjectAccessLog.schema_version.txt',
+            },
+            service_response={
+                'Body': BytesIO(index.OBJECT_ACCESS_LOG_SCHEMA_VERSION.encode()),
+            },
+        )
+        assert index.object_access_log_schema_is_current()
+
+    def test_cloudtrail_date_from_key(self):
+        prefix = 'AWSLogs/123456/CloudTrail/us-east-1/'
+
+        assert index.get_cloudtrail_date_from_key(
+            prefix,
+            'AWSLogs/123456/CloudTrail/us-east-1/2020/06/01/log.json.gz',
+        ) == datetime(2020, 6, 1, tzinfo=timezone.utc).date()
+        assert index.get_cloudtrail_date_from_key(prefix, 'AWSLogs/123456/CloudTrail/us-east-1/') is None
+        assert index.get_cloudtrail_date_from_key(
+            prefix,
+            'AWSLogs/123456/CloudTrail/us-east-1/not-a-date/06/01/log.json.gz',
+        ) is None
