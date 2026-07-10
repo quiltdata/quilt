@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import * as GQL from 'utils/GraphQL'
@@ -10,8 +11,10 @@ import { BucketVersioningState } from 'model/graphql/types.generated'
 import BUCKET_VERSIONING_STATUS_QUERY from './gql/BucketVersioningStatus.generated'
 
 // Quilt's own admin docs, which recommend bucket versioning and cover the
-// related lifecycle guidance (preferred over linking out to AWS).
-const VERSIONING_DOC = 'https://docs.quilt.bio/quilt-platform-administrator/installation'
+// related lifecycle guidance (preferred over linking out to AWS). Deep-linked
+// to the versioning section so it doesn't land at the top of the page.
+const VERSIONING_DOC =
+  'https://docs.quilt.bio/quilt-platform-administrator/installation#before-you-install-quilt'
 
 // S3 bucket names are at least 3 chars, so don't probe shorter (partial) input.
 const MIN_BUCKET_NAME_LENGTH = 3
@@ -22,14 +25,16 @@ const EnableVersioningLink = (
   </StyledLink>
 )
 
-// The default `standard` variant's warning tint (a very light yellow in this
-// palette) is barely visible on white, so give the warning states just a thin
-// `warning.main` outline to set them apart. Everything else — including the
-// standard text and icon colors — stays as the default variant. The other
-// severities (info/success/error) use the plain `standard` tint unchanged.
+// This app's `palette.warning.main` is a pale `yellow[200]`, so the default
+// `standard` warning tint (and its icon) come out much lighter than the
+// success/info/error alerts. Darken just the warning states to match that
+// weight: a light-amber background tint derived from `warning.dark` and a
+// readable dark-amber icon, keeping the default dark text (legible on the light
+// amber). Still `variant="standard"` — no border, no solid fill.
 const useStatusAlertStyles = M.makeStyles((t) => ({
   warning: {
-    border: `1px solid ${t.palette.warning.main}`,
+    backgroundColor: fade(t.palette.warning.dark, 0.1),
+    '& .MuiAlert-icon': { color: t.palette.warning.dark },
   },
 }))
 
@@ -60,9 +65,9 @@ interface StatusAlertProps {
   children: React.ReactNode
 }
 
-// Plain `standard` variant, with a thin outline on the warning states (see
-// `useStatusAlertStyles`) so the otherwise-faint warning tint doesn't blend
-// into white.
+// Plain `standard` variant; the warning states get a slightly darker amber
+// tint + icon (see `useStatusAlertStyles`) so they match the weight of the
+// other standard alerts instead of the pale default yellow.
 function StatusAlert({ severity, icon, className, refresh, children }: StatusAlertProps) {
   const classes = useStatusAlertStyles()
   return (
