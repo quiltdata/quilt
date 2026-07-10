@@ -126,9 +126,16 @@ export default function BucketVersioningStatus({
     )
   }
 
-  // Loading: initial fetch (no data yet). Same info container; the spinner takes
-  // the Alert's icon slot in place of the severity icon.
-  if (result.fetching && !result.data) {
+  // Loading: shown for the initial fetch and any in-flight re-fetch. We must not
+  // render a resolved state off stale `result.data` while a new name is being
+  // fetched — the current `bucketName` prop gets interpolated into the previous
+  // result's message, flashing e.g. "No bucket named ‹new name› found" before it
+  // resolves. So treat the box as loading whenever the query is in-flight, or
+  // whenever the data on hand was fetched for a different name than the current
+  // `bucketName` (belt-and-suspenders for a stale render where `fetching` hasn't
+  // flipped yet). Same info container; the spinner takes the Alert's icon slot.
+  const fetchedName = result.operation?.variables?.name
+  if (result.fetching || fetchedName !== bucketName) {
     return (
       <StatusAlert
         severity="info"
