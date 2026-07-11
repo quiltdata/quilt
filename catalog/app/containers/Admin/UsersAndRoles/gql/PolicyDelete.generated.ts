@@ -1,26 +1,29 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_PolicyDeleteMutationVariables =
-  Types.Exact<{
-    id: Types.Scalars['ID']
-  }>
+export type containers_Admin_UsersAndRoles_gql_PolicyDeleteMutationVariables = Exact<{
+  id: string | number
+}>
 
-export type containers_Admin_UsersAndRoles_gql_PolicyDeleteMutation = {
+export interface containers_Admin_UsersAndRoles_gql_PolicyDeleteMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly policyDelete:
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+        }>
+      }
     | { readonly __typename: 'Ok' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
+    | { readonly __typename: 'OperationError'; readonly message: string }
 }
 
 export const containers_Admin_UsersAndRoles_gql_PolicyDeleteDocument = {

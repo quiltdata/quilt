@@ -1,18 +1,27 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_NavBar_gql_MeQueryVariables = Types.Exact<{ [key: string]: never }>
+export type containers_NavBar_gql_MeQueryVariables = Exact<{ [key: string]: never }>
 
-export type containers_NavBar_gql_MeQuery = { readonly __typename: 'Query' } & {
-  readonly me: Types.Maybe<
-    { readonly __typename: 'Me' } & Pick<Types.Me, 'name' | 'email' | 'isAdmin'> & {
-        readonly role: { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
-        readonly roles: ReadonlyArray<
-          { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
-        >
-      }
-  >
+export interface containers_NavBar_gql_MeQuery {
+  readonly __typename: 'Query'
+  readonly me: {
+    readonly __typename: 'Me'
+    readonly name: string
+    readonly email: string
+    readonly isAdmin: boolean
+    readonly role: { readonly __typename: 'MyRole'; readonly name: string }
+    readonly roles: ReadonlyArray<{
+      readonly __typename: 'MyRole'
+      readonly name: string
+    }>
+  } | null
 }
 
 export const containers_NavBar_gql_MeDocument = {

@@ -1,11 +1,13 @@
 import defaultTo from 'lodash/defaultTo'
-import { call, put } from 'redux-saga/effects'
+import { call, put, select } from 'redux-saga/effects'
 
 import { HTTPError } from 'utils/APIConnector'
 
 import { authLost } from './actions'
+import { decideAuthLoss } from './authLoss'
 import { InvalidToken } from './errors'
 import { getTokens } from './saga'
+import * as selectors from './selectors'
 
 /**
  * Make auth headers from given auth token.
@@ -26,8 +28,10 @@ const makeHeadersFromTokens = ({ token }) => ({
  *   Auth tokens object to use, or `true` to take them from redux.
  *
  * @property {boolean} handleInvalidToken
- *   Whether to intercept 401 responses with 'Token invalid.' message and
- *   dispatch authentication lost action.
+ *   Whether to intercept 401 (auth-lost) responses and dispatch the
+ *   authentication-lost action. The registry returns 401 for any
+ *   unauthenticatable request — missing, invalid, or refresh-failed
+ *   credential — so the status alone is the signal.
  */
 
 /**
@@ -55,8 +59,20 @@ export default function* authMiddleware({ auth = true, ...opts }, next) {
   try {
     return yield call(next, nextOpts)
   } catch (e) {
-    if (handleInvalidToken && HTTPError.is(e, 401, 'Token invalid.')) {
-      yield put(authLost(new InvalidToken({ originalError: e })))
+    // Same auth-loss policy as the GraphQL exchange (decideAuthLoss): only
+    // redirect on a genuinely dead/absent session, never on a no-credential
+    // 401 that raced or preceded an arriving session.
+    if (handleInvalidToken && HTTPError.is(e, 401)) {
+      const authenticated = yield select(selectors.authenticated)
+      const waiting = yield select(selectors.waiting)
+      const action = decideAuthLoss({
+        authAttached: !!authHeaders,
+        authenticated,
+        waiting,
+      })
+      if (action === 'redirect') {
+        yield put(authLost(new InvalidToken({ originalError: e })))
+      }
     }
     throw e
   }

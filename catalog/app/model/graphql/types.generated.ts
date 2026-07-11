@@ -3,37 +3,34 @@ import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
 
 export type Maybe<T> = T | null
-export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
-export type MakeOptional<T, K extends keyof T> = Omit<T, K> & {
-  [SubKey in K]?: Maybe<T[SubKey]>
-}
-export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & {
-  [SubKey in K]: Maybe<T[SubKey]>
-}
+export type InputMaybe<T> = Maybe<T>
 /** All built-in and custom scalars, mapped to their actual values */
 export interface Scalars {
-  ID: string
-  String: string
-  Boolean: boolean
-  Int: number
-  Float: number
-  Datetime: Date
-  Json: Json
-  JsonRecord: JsonRecord
-  PackageContentsFlatMap: PackageContentsFlatMap
-  S3ObjectLocation: S3ObjectLocation
+  ID: { input: string; output: string }
+  String: { input: string; output: string }
+  Boolean: { input: boolean; output: boolean }
+  Int: { input: number; output: number }
+  Float: { input: number; output: number }
+  Datetime: { input: Date; output: Date }
+  Json: { input: Json; output: Json }
+  JsonRecord: { input: JsonRecord; output: JsonRecord }
+  PackageContentsFlatMap: {
+    input: PackageContentsFlatMap
+    output: PackageContentsFlatMap
+  }
+  S3ObjectLocation: { input: S3ObjectLocation; output: S3ObjectLocation }
 }
 
 export interface APIKey {
   readonly __typename: 'APIKey'
-  readonly id: Scalars['ID']
-  readonly name: Scalars['String']
-  readonly fingerprint: Scalars['String']
-  readonly createdAt: Scalars['Datetime']
-  readonly expiresAt: Scalars['Datetime']
-  readonly lastUsedAt: Maybe<Scalars['Datetime']>
-  readonly userEmail: Scalars['String']
+  readonly createdAt: Scalars['Datetime']['output']
+  readonly expiresAt: Scalars['Datetime']['output']
+  readonly fingerprint: Scalars['String']['output']
+  readonly id: Scalars['ID']['output']
+  readonly lastUsedAt: Maybe<Scalars['Datetime']['output']>
+  readonly name: Scalars['String']['output']
   readonly status: APIKeyStatus
+  readonly userEmail: Scalars['String']['output']
 }
 
 export interface APIKeyAdminMutations {
@@ -42,29 +39,29 @@ export interface APIKeyAdminMutations {
 }
 
 export interface APIKeyAdminMutationsrevokeArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
 }
 
 export interface APIKeyAdminQueries {
   readonly __typename: 'APIKeyAdminQueries'
-  readonly list: ReadonlyArray<APIKey>
   readonly get: Maybe<APIKey>
-}
-
-export interface APIKeyAdminQuerieslistArgs {
-  email: Maybe<Scalars['String']>
-  name: Maybe<Scalars['String']>
-  fingerprint: Maybe<Scalars['String']>
-  status: Maybe<APIKeyStatus>
+  readonly list: ReadonlyArray<APIKey>
 }
 
 export interface APIKeyAdminQueriesgetArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
+}
+
+export interface APIKeyAdminQuerieslistArgs {
+  email: InputMaybe<Scalars['String']['input']>
+  fingerprint: InputMaybe<Scalars['String']['input']>
+  name: InputMaybe<Scalars['String']['input']>
+  status: InputMaybe<APIKeyStatus>
 }
 
 export interface APIKeyCreateInput {
-  readonly name: Scalars['String']
-  readonly expiresInDays: Scalars['Int']
+  readonly expiresInDays: Scalars['Int']['input']
+  readonly name: Scalars['String']['input']
 }
 
 export type APIKeyCreateResult = APIKeyCreated | InvalidInput
@@ -72,10 +69,10 @@ export type APIKeyCreateResult = APIKeyCreated | InvalidInput
 export interface APIKeyCreated {
   readonly __typename: 'APIKeyCreated'
   readonly apiKey: APIKey
-  readonly secret: Scalars['String']
+  readonly secret: Scalars['String']['output']
 }
 
-export type APIKeyRevokeResult = Ok | InvalidInput
+export type APIKeyRevokeResult = InvalidInput | Ok
 
 export enum APIKeyStatus {
   ACTIVE = 'ACTIVE',
@@ -84,79 +81,79 @@ export enum APIKeyStatus {
 
 export interface AccessCountForDate {
   readonly __typename: 'AccessCountForDate'
-  readonly date: Scalars['Datetime']
-  readonly value: Scalars['Int']
+  readonly date: Scalars['Datetime']['output']
+  readonly value: Scalars['Int']['output']
 }
 
 export interface AccessCounts {
   readonly __typename: 'AccessCounts'
-  readonly total: Scalars['Int']
   readonly counts: ReadonlyArray<AccessCountForDate>
+  readonly total: Scalars['Int']['output']
 }
 
 export interface AccessCountsGroup {
   readonly __typename: 'AccessCountsGroup'
-  readonly ext: Scalars['String']
   readonly counts: AccessCounts
+  readonly ext: Scalars['String']['output']
 }
 
 export interface AdminMutations {
   readonly __typename: 'AdminMutations'
-  readonly user: UserAdminMutations
-  readonly setSsoConfig: Maybe<SetSsoConfigResult>
-  /** @deprecated Field no longer supported */
-  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly apiKeys: APIKeyAdminMutations
   /** @deprecated Field no longer supported */
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
-  readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
+  /** @deprecated Field no longer supported */
+  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly packager: PackagerAdminMutations
-  readonly apiKeys: APIKeyAdminMutations
-}
-
-export interface AdminMutationssetSsoConfigArgs {
-  config: Maybe<Scalars['String']>
-}
-
-export interface AdminMutationsbucketSetTabulatorTableArgs {
-  bucketName: Scalars['String']
-  tableName: Scalars['String']
-  config: Maybe<Scalars['String']>
+  readonly setSsoConfig: Maybe<SetSsoConfigResult>
+  readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
+  readonly user: UserAdminMutations
 }
 
 export interface AdminMutationsbucketRenameTabulatorTableArgs {
-  bucketName: Scalars['String']
-  tableName: Scalars['String']
-  newTableName: Scalars['String']
+  bucketName: Scalars['String']['input']
+  newTableName: Scalars['String']['input']
+  tableName: Scalars['String']['input']
+}
+
+export interface AdminMutationsbucketSetTabulatorTableArgs {
+  bucketName: Scalars['String']['input']
+  config: InputMaybe<Scalars['String']['input']>
+  tableName: Scalars['String']['input']
+}
+
+export interface AdminMutationssetSsoConfigArgs {
+  config: InputMaybe<Scalars['String']['input']>
 }
 
 export interface AdminMutationssetTabulatorOpenQueryArgs {
-  enabled: Scalars['Boolean']
+  enabled: Scalars['Boolean']['input']
 }
 
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
-  readonly user: UserAdminQueries
-  readonly ssoConfig: Maybe<SsoConfig>
-  readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
-  readonly tabulatorOpenQuery: Scalars['Boolean']
-  readonly packager: PackagerAdminQueries
   readonly apiKeys: APIKeyAdminQueries
+  readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
+  readonly packager: PackagerAdminQueries
+  readonly ssoConfig: Maybe<SsoConfig>
+  readonly tabulatorOpenQuery: Scalars['Boolean']['output']
+  readonly user: UserAdminQueries
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'BooleanPackageUserMetaFacet'
-  readonly path: Scalars['String']
+  readonly path: Scalars['String']['output']
 }
 
 export interface BooleanSearchPredicate {
-  readonly true: Maybe<Scalars['Boolean']>
-  readonly false: Maybe<Scalars['Boolean']>
+  readonly false: InputMaybe<Scalars['Boolean']['input']>
+  readonly true: InputMaybe<Scalars['Boolean']['input']>
 }
 
 export interface BrowsingSession {
   readonly __typename: 'BrowsingSession'
-  readonly id: Scalars['ID']
-  readonly expires: Scalars['Datetime']
+  readonly expires: Scalars['Datetime']['output']
+  readonly id: Scalars['ID']['output']
 }
 
 export type BrowsingSessionCreateResult = BrowsingSession | InvalidInput | OperationError
@@ -167,14 +164,14 @@ export type BrowsingSessionRefreshResult = BrowsingSession | InvalidInput | Oper
 
 export interface Bucket {
   readonly __typename: 'Bucket'
-  readonly name: Scalars['String']
-  readonly title: Scalars['String']
-  readonly iconUrl: Maybe<Scalars['String']>
-  readonly description: Maybe<Scalars['String']>
-  readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly relevanceScore: Scalars['Int']
-  readonly browsable: Scalars['Boolean']
+  readonly browsable: Scalars['Boolean']['output']
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
+  readonly description: Maybe<Scalars['String']['output']>
+  readonly iconUrl: Maybe<Scalars['String']['output']>
+  readonly name: Scalars['String']['output']
+  readonly relevanceScore: Scalars['Int']['output']
+  readonly tags: Maybe<ReadonlyArray<Scalars['String']['output']>>
+  readonly title: Scalars['String']['output']
 }
 
 export interface BucketAccessCounts {
@@ -184,26 +181,26 @@ export interface BucketAccessCounts {
 }
 
 export interface BucketAccessCountsbyExtArgs {
-  groups: Maybe<Scalars['Int']>
+  groups: InputMaybe<Scalars['Int']['input']>
 }
 
 export interface BucketAddInput {
-  readonly name: Scalars['String']
-  readonly title: Scalars['String']
-  readonly iconUrl: Maybe<Scalars['String']>
-  readonly description: Maybe<Scalars['String']>
-  readonly linkedData: Maybe<Scalars['Json']>
-  readonly overviewUrl: Maybe<Scalars['String']>
-  readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly relevanceScore: Maybe<Scalars['Int']>
-  readonly snsNotificationArn: Maybe<Scalars['String']>
-  readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
-  readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
-  readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly indexContentBytes: Maybe<Scalars['Int']>
-  readonly delayScan: Maybe<Scalars['Boolean']>
-  readonly browsable: Maybe<Scalars['Boolean']>
-  readonly prefixes: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly browsable: InputMaybe<Scalars['Boolean']['input']>
+  readonly delayScan: InputMaybe<Scalars['Boolean']['input']>
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly fileExtensionsToIndex: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly iconUrl: InputMaybe<Scalars['String']['input']>
+  readonly indexContentBytes: InputMaybe<Scalars['Int']['input']>
+  readonly linkedData: InputMaybe<Scalars['Json']['input']>
+  readonly name: Scalars['String']['input']
+  readonly overviewUrl: InputMaybe<Scalars['String']['input']>
+  readonly prefixes: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly relevanceScore: InputMaybe<Scalars['Int']['input']>
+  readonly scannerParallelShardsDepth: InputMaybe<Scalars['Int']['input']>
+  readonly skipMetaDataIndexing: InputMaybe<Scalars['Boolean']['input']>
+  readonly snsNotificationArn: InputMaybe<Scalars['String']['input']>
+  readonly tags: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly title: Scalars['String']['input']
 }
 
 export type BucketAddResult =
@@ -225,50 +222,50 @@ export interface BucketAddSuccess {
 
 export interface BucketAlreadyAdded {
   readonly __typename: 'BucketAlreadyAdded'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface BucketConfig {
   readonly __typename: 'BucketConfig'
-  readonly name: Scalars['String']
-  readonly title: Scalars['String']
-  readonly iconUrl: Maybe<Scalars['String']>
-  readonly description: Maybe<Scalars['String']>
-  readonly linkedData: Maybe<Scalars['Json']>
-  readonly overviewUrl: Maybe<Scalars['String']>
-  readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly relevanceScore: Scalars['Int']
-  readonly lastIndexed: Maybe<Scalars['Datetime']>
-  readonly browsable: Scalars['Boolean']
-  readonly snsNotificationArn: Maybe<Scalars['String']>
-  readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
-  readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
-  readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly indexContentBytes: Maybe<Scalars['Int']>
-  readonly prefixes: ReadonlyArray<Scalars['String']>
   readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
+  readonly browsable: Scalars['Boolean']['output']
+  readonly description: Maybe<Scalars['String']['output']>
+  readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']['output']>>
+  readonly iconUrl: Maybe<Scalars['String']['output']>
+  readonly indexContentBytes: Maybe<Scalars['Int']['output']>
+  readonly lastIndexed: Maybe<Scalars['Datetime']['output']>
+  readonly linkedData: Maybe<Scalars['Json']['output']>
+  readonly name: Scalars['String']['output']
+  readonly overviewUrl: Maybe<Scalars['String']['output']>
+  readonly prefixes: ReadonlyArray<Scalars['String']['output']>
+  readonly relevanceScore: Scalars['Int']['output']
+  readonly scannerParallelShardsDepth: Maybe<Scalars['Int']['output']>
+  readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']['output']>
+  readonly snsNotificationArn: Maybe<Scalars['String']['output']>
   readonly tabulatorTables: ReadonlyArray<TabulatorTable>
+  readonly tags: Maybe<ReadonlyArray<Scalars['String']['output']>>
+  readonly title: Scalars['String']['output']
 }
 
 export interface BucketDoesNotExist {
   readonly __typename: 'BucketDoesNotExist'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface BucketFileExtensionsToIndexInvalid {
   readonly __typename: 'BucketFileExtensionsToIndexInvalid'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface BucketIndexContentBytesInvalid {
   readonly __typename: 'BucketIndexContentBytesInvalid'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface BucketNotFound {
   readonly __typename: 'BucketNotFound'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface BucketPermission {
@@ -281,37 +278,37 @@ export enum BucketPermissionLevel {
   READ_WRITE = 'READ_WRITE',
 }
 
-export type BucketRemoveResult = BucketRemoveSuccess | BucketNotFound | IndexingInProgress
+export type BucketRemoveResult = BucketNotFound | BucketRemoveSuccess | IndexingInProgress
 
 export interface BucketRemoveSuccess {
   readonly __typename: 'BucketRemoveSuccess'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export type BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
 
 export interface BucketUpdateInput {
-  readonly title: Scalars['String']
-  readonly iconUrl: Maybe<Scalars['String']>
-  readonly description: Maybe<Scalars['String']>
-  readonly linkedData: Maybe<Scalars['Json']>
-  readonly overviewUrl: Maybe<Scalars['String']>
-  readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly relevanceScore: Maybe<Scalars['Int']>
-  readonly snsNotificationArn: Maybe<Scalars['String']>
-  readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
-  readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
-  readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly indexContentBytes: Maybe<Scalars['Int']>
-  readonly browsable: Maybe<Scalars['Boolean']>
-  readonly prefixes: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly browsable: InputMaybe<Scalars['Boolean']['input']>
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly fileExtensionsToIndex: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly iconUrl: InputMaybe<Scalars['String']['input']>
+  readonly indexContentBytes: InputMaybe<Scalars['Int']['input']>
+  readonly linkedData: InputMaybe<Scalars['Json']['input']>
+  readonly overviewUrl: InputMaybe<Scalars['String']['input']>
+  readonly prefixes: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly relevanceScore: InputMaybe<Scalars['Int']['input']>
+  readonly scannerParallelShardsDepth: InputMaybe<Scalars['Int']['input']>
+  readonly skipMetaDataIndexing: InputMaybe<Scalars['Boolean']['input']>
+  readonly snsNotificationArn: InputMaybe<Scalars['String']['input']>
+  readonly tags: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly title: Scalars['String']['input']
 }
 
 export type BucketUpdateResult =
-  | BucketUpdateSuccess
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | BucketUpdateSuccess
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -324,20 +321,20 @@ export interface BucketUpdateSuccess {
 
 export interface Canary {
   readonly __typename: 'Canary'
-  readonly name: Scalars['String']
-  readonly region: Scalars['String']
-  readonly group: Scalars['String']
-  readonly title: Scalars['String']
-  readonly description: Scalars['String']
-  readonly schedule: Scalars['String']
-  readonly ok: Maybe<Scalars['Boolean']>
-  readonly lastRun: Maybe<Scalars['Datetime']>
+  readonly description: Scalars['String']['output']
+  readonly group: Scalars['String']['output']
+  readonly lastRun: Maybe<Scalars['Datetime']['output']>
+  readonly name: Scalars['String']['output']
+  readonly ok: Maybe<Scalars['Boolean']['output']>
+  readonly region: Scalars['String']['output']
+  readonly schedule: Scalars['String']['output']
+  readonly title: Scalars['String']['output']
 }
 
 export interface Collaborator {
   readonly __typename: 'Collaborator'
-  readonly email: Scalars['String']
-  readonly username: Scalars['String']
+  readonly email: Scalars['String']['output']
+  readonly username: Scalars['String']['output']
 }
 
 export interface CollaboratorBucketConnection {
@@ -353,60 +350,60 @@ export interface Config {
 
 export interface ContentIndexingSettings {
   readonly __typename: 'ContentIndexingSettings'
-  readonly extensions: ReadonlyArray<Scalars['String']>
-  readonly bytesDefault: Scalars['Int']
-  readonly bytesMin: Scalars['Int']
-  readonly bytesMax: Scalars['Int']
+  readonly bytesDefault: Scalars['Int']['output']
+  readonly bytesMax: Scalars['Int']['output']
+  readonly bytesMin: Scalars['Int']['output']
+  readonly extensions: ReadonlyArray<Scalars['String']['output']>
 }
 
 export interface DatetimeExtents {
   readonly __typename: 'DatetimeExtents'
-  readonly min: Scalars['Datetime']
-  readonly max: Scalars['Datetime']
+  readonly max: Scalars['Datetime']['output']
+  readonly min: Scalars['Datetime']['output']
 }
 
 export interface DatetimePackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'DatetimePackageUserMetaFacet'
-  readonly path: Scalars['String']
   readonly extents: DatetimeExtents
+  readonly path: Scalars['String']['output']
 }
 
 export interface DatetimeSearchPredicate {
-  readonly gte: Maybe<Scalars['Datetime']>
-  readonly lte: Maybe<Scalars['Datetime']>
+  readonly gte: InputMaybe<Scalars['Datetime']['input']>
+  readonly lte: InputMaybe<Scalars['Datetime']['input']>
 }
 
 export interface EmptySearchResultSet {
   readonly __typename: 'EmptySearchResultSet'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export enum GlacierRestoreTier {
-  STANDARD = 'STANDARD',
   BULK = 'BULK',
   EXPEDITED = 'EXPEDITED',
+  STANDARD = 'STANDARD',
 }
 
 export interface IPackageUserMetaFacet {
-  readonly path: Scalars['String']
+  readonly path: Scalars['String']['output']
 }
 
 export interface IndexingInProgress {
   readonly __typename: 'IndexingInProgress'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface InputError {
   readonly __typename: 'InputError'
-  readonly path: Maybe<Scalars['String']>
-  readonly message: Scalars['String']
-  readonly name: Scalars['String']
-  readonly context: Maybe<Scalars['JsonRecord']>
+  readonly context: Maybe<Scalars['JsonRecord']['output']>
+  readonly message: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
+  readonly path: Maybe<Scalars['String']['output']>
 }
 
 export interface InsufficientPermissions {
   readonly __typename: 'InsufficientPermissions'
-  readonly message: Scalars['String']
+  readonly message: Scalars['String']['output']
 }
 
 export interface InvalidInput {
@@ -416,133 +413,129 @@ export interface InvalidInput {
 
 export interface KeywordExtents {
   readonly __typename: 'KeywordExtents'
-  readonly values: ReadonlyArray<Scalars['String']>
+  readonly values: ReadonlyArray<Scalars['String']['output']>
 }
 
 export interface KeywordPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'KeywordPackageUserMetaFacet'
-  readonly path: Scalars['String']
   readonly extents: KeywordExtents
+  readonly path: Scalars['String']['output']
 }
 
 export interface KeywordSearchPredicate {
-  readonly terms: Maybe<ReadonlyArray<Scalars['String']>>
-  readonly wildcard: Maybe<Scalars['String']>
+  readonly terms: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly wildcard: InputMaybe<Scalars['String']['input']>
 }
 
 export interface ManagedPolicyInput {
-  readonly title: Scalars['String']
   readonly permissions: ReadonlyArray<PermissionInput>
-  readonly roles: ReadonlyArray<Scalars['ID']>
+  readonly roles: ReadonlyArray<Scalars['ID']['input']>
+  readonly title: Scalars['String']['input']
 }
 
 export interface ManagedRole {
   readonly __typename: 'ManagedRole'
-  readonly id: Scalars['ID']
-  readonly name: Scalars['String']
-  readonly arn: Scalars['String']
-  readonly policies: ReadonlyArray<Policy>
+  readonly arn: Scalars['String']['output']
+  readonly id: Scalars['ID']['output']
+  readonly name: Scalars['String']['output']
   readonly permissions: ReadonlyArray<RoleBucketPermission>
+  readonly policies: ReadonlyArray<Policy>
 }
 
 export interface ManagedRoleInput {
-  readonly name: Scalars['String']
-  readonly policies: ReadonlyArray<Scalars['ID']>
+  readonly name: Scalars['String']['input']
+  readonly policies: ReadonlyArray<Scalars['ID']['input']>
 }
 
 export interface Me {
   readonly __typename: 'Me'
-  readonly name: Scalars['String']
-  readonly email: Scalars['String']
-  readonly isAdmin: Scalars['Boolean']
+  readonly apiKey: Maybe<APIKey>
+  readonly apiKeys: ReadonlyArray<APIKey>
+  readonly email: Scalars['String']['output']
+  readonly isAdmin: Scalars['Boolean']['output']
+  readonly name: Scalars['String']['output']
   readonly role: MyRole
   readonly roles: ReadonlyArray<MyRole>
-  readonly apiKeys: ReadonlyArray<APIKey>
-  readonly apiKey: Maybe<APIKey>
-}
-
-export interface MeapiKeysArgs {
-  name: Maybe<Scalars['String']>
-  fingerprint: Maybe<Scalars['String']>
-  status: Maybe<APIKeyStatus>
 }
 
 export interface MeapiKeyArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
+}
+
+export interface MeapiKeysArgs {
+  fingerprint: InputMaybe<Scalars['String']['input']>
+  name: InputMaybe<Scalars['String']['input']>
+  status: InputMaybe<APIKeyStatus>
 }
 
 export interface MutateUserAdminMutations {
   readonly __typename: 'MutateUserAdminMutations'
+  readonly addRoles: UserResult
   readonly delete: OperationResult
+  readonly removeRoles: UserResult
+  readonly resetPassword: OperationResult
+  readonly setActive: UserResult
+  readonly setAdmin: UserResult
   readonly setEmail: UserResult
   readonly setRole: UserResult
-  readonly addRoles: UserResult
-  readonly removeRoles: UserResult
-  readonly setAdmin: UserResult
-  readonly setActive: UserResult
-  readonly resetPassword: OperationResult
-}
-
-export interface MutateUserAdminMutationssetEmailArgs {
-  email: Scalars['String']
-}
-
-export interface MutateUserAdminMutationssetRoleArgs {
-  role: Scalars['String']
-  extraRoles: Maybe<ReadonlyArray<Scalars['String']>>
-  append?: Scalars['Boolean']
 }
 
 export interface MutateUserAdminMutationsaddRolesArgs {
-  roles: ReadonlyArray<Scalars['String']>
+  roles: ReadonlyArray<Scalars['String']['input']>
 }
 
 export interface MutateUserAdminMutationsremoveRolesArgs {
-  roles: ReadonlyArray<Scalars['String']>
-  fallback: Maybe<Scalars['String']>
-}
-
-export interface MutateUserAdminMutationssetAdminArgs {
-  admin: Scalars['Boolean']
+  fallback: InputMaybe<Scalars['String']['input']>
+  roles: ReadonlyArray<Scalars['String']['input']>
 }
 
 export interface MutateUserAdminMutationssetActiveArgs {
-  active: Scalars['Boolean']
+  active: Scalars['Boolean']['input']
+}
+
+export interface MutateUserAdminMutationssetAdminArgs {
+  admin: Scalars['Boolean']['input']
+}
+
+export interface MutateUserAdminMutationssetEmailArgs {
+  email: Scalars['String']['input']
+}
+
+export interface MutateUserAdminMutationssetRoleArgs {
+  append?: Scalars['Boolean']['input']
+  extraRoles: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  role: Scalars['String']['input']
 }
 
 export interface Mutation {
   readonly __typename: 'Mutation'
-  readonly switchRole: SwitchRoleResult
+  readonly admin: AdminMutations
   readonly apiKeyCreate: APIKeyCreateResult
   readonly apiKeyRevoke: APIKeyRevokeResult
+  readonly browsingSessionCreate: BrowsingSessionCreateResult
+  readonly browsingSessionDispose: BrowsingSessionDisposeResult
+  readonly browsingSessionRefresh: BrowsingSessionRefreshResult
+  readonly bucketAdd: BucketAddResult
+  readonly bucketRemove: BucketRemoveResult
+  readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
+  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly bucketUpdate: BucketUpdateResult
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
-  readonly admin: AdminMutations
-  readonly bucketAdd: BucketAddResult
-  readonly bucketUpdate: BucketUpdateResult
-  readonly bucketRemove: BucketRemoveResult
-  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
-  readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly policyCreateManaged: PolicyResult
   readonly policyCreateUnmanaged: PolicyResult
+  readonly policyDelete: PolicyDeleteResult
   readonly policyUpdateManaged: PolicyResult
   readonly policyUpdateUnmanaged: PolicyResult
-  readonly policyDelete: PolicyDeleteResult
+  readonly restoreObject: RestoreObjectResult
   readonly roleCreateManaged: RoleCreateResult
   readonly roleCreateUnmanaged: RoleCreateResult
-  readonly roleUpdateManaged: RoleUpdateResult
-  readonly roleUpdateUnmanaged: RoleUpdateResult
   readonly roleDelete: RoleDeleteResult
   readonly roleSetDefault: RoleSetDefaultResult
-  readonly browsingSessionCreate: BrowsingSessionCreateResult
-  readonly browsingSessionRefresh: BrowsingSessionRefreshResult
-  readonly browsingSessionDispose: BrowsingSessionDisposeResult
-  readonly restoreObject: RestoreObjectResult
-}
-
-export interface MutationswitchRoleArgs {
-  roleName: Scalars['String']
+  readonly roleUpdateManaged: RoleUpdateResult
+  readonly roleUpdateUnmanaged: RoleUpdateResult
+  readonly switchRole: SwitchRoleResult
 }
 
 export interface MutationapiKeyCreateArgs {
@@ -550,8 +543,47 @@ export interface MutationapiKeyCreateArgs {
 }
 
 export interface MutationapiKeyRevokeArgs {
-  id: Maybe<Scalars['ID']>
-  secret: Maybe<Scalars['String']>
+  id: InputMaybe<Scalars['ID']['input']>
+  secret: InputMaybe<Scalars['String']['input']>
+}
+
+export interface MutationbrowsingSessionCreateArgs {
+  scope: Scalars['String']['input']
+  ttl?: Scalars['Int']['input']
+}
+
+export interface MutationbrowsingSessionDisposeArgs {
+  id: Scalars['ID']['input']
+}
+
+export interface MutationbrowsingSessionRefreshArgs {
+  id: Scalars['ID']['input']
+  ttl?: Scalars['Int']['input']
+}
+
+export interface MutationbucketAddArgs {
+  input: BucketAddInput
+}
+
+export interface MutationbucketRemoveArgs {
+  name: Scalars['String']['input']
+}
+
+export interface MutationbucketRenameTabulatorTableArgs {
+  bucketName: Scalars['String']['input']
+  newTableName: Scalars['String']['input']
+  tableName: Scalars['String']['input']
+}
+
+export interface MutationbucketSetTabulatorTableArgs {
+  bucketName: Scalars['String']['input']
+  config: InputMaybe<Scalars['String']['input']>
+  tableName: Scalars['String']['input']
+}
+
+export interface MutationbucketUpdateArgs {
+  input: BucketUpdateInput
+  name: Scalars['String']['input']
 }
 
 export interface MutationpackageConstructArgs {
@@ -560,40 +592,15 @@ export interface MutationpackageConstructArgs {
 }
 
 export interface MutationpackagePromoteArgs {
+  destPrefix: InputMaybe<Scalars['String']['input']>
   params: PackagePushParams
   src: PackagePromoteSource
-  destPrefix: Maybe<Scalars['String']>
 }
 
 export interface MutationpackageRevisionDeleteArgs {
-  bucket: Scalars['String']
-  name: Scalars['String']
-  hash: Scalars['String']
-}
-
-export interface MutationbucketAddArgs {
-  input: BucketAddInput
-}
-
-export interface MutationbucketUpdateArgs {
-  name: Scalars['String']
-  input: BucketUpdateInput
-}
-
-export interface MutationbucketRemoveArgs {
-  name: Scalars['String']
-}
-
-export interface MutationbucketSetTabulatorTableArgs {
-  bucketName: Scalars['String']
-  tableName: Scalars['String']
-  config: Maybe<Scalars['String']>
-}
-
-export interface MutationbucketRenameTabulatorTableArgs {
-  bucketName: Scalars['String']
-  tableName: Scalars['String']
-  newTableName: Scalars['String']
+  bucket: Scalars['String']['input']
+  hash: Scalars['String']['input']
+  name: Scalars['String']['input']
 }
 
 export interface MutationpolicyCreateManagedArgs {
@@ -604,18 +611,26 @@ export interface MutationpolicyCreateUnmanagedArgs {
   input: UnmanagedPolicyInput
 }
 
+export interface MutationpolicyDeleteArgs {
+  id: Scalars['ID']['input']
+}
+
 export interface MutationpolicyUpdateManagedArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
   input: ManagedPolicyInput
 }
 
 export interface MutationpolicyUpdateUnmanagedArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
   input: UnmanagedPolicyInput
 }
 
-export interface MutationpolicyDeleteArgs {
-  id: Scalars['ID']
+export interface MutationrestoreObjectArgs {
+  bucket: Scalars['String']['input']
+  days: Scalars['Int']['input']
+  key: Scalars['String']['input']
+  tier: GlacierRestoreTier
+  version: InputMaybe<Scalars['String']['input']>
 }
 
 export interface MutationroleCreateManagedArgs {
@@ -626,164 +641,146 @@ export interface MutationroleCreateUnmanagedArgs {
   input: UnmanagedRoleInput
 }
 
+export interface MutationroleDeleteArgs {
+  id: Scalars['ID']['input']
+}
+
+export interface MutationroleSetDefaultArgs {
+  id: Scalars['ID']['input']
+}
+
 export interface MutationroleUpdateManagedArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
   input: ManagedRoleInput
 }
 
 export interface MutationroleUpdateUnmanagedArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
   input: UnmanagedRoleInput
 }
 
-export interface MutationroleDeleteArgs {
-  id: Scalars['ID']
-}
-
-export interface MutationroleSetDefaultArgs {
-  id: Scalars['ID']
-}
-
-export interface MutationbrowsingSessionCreateArgs {
-  scope: Scalars['String']
-  ttl?: Scalars['Int']
-}
-
-export interface MutationbrowsingSessionRefreshArgs {
-  id: Scalars['ID']
-  ttl?: Scalars['Int']
-}
-
-export interface MutationbrowsingSessionDisposeArgs {
-  id: Scalars['ID']
-}
-
-export interface MutationrestoreObjectArgs {
-  bucket: Scalars['String']
-  key: Scalars['String']
-  version: Maybe<Scalars['String']>
-  tier: GlacierRestoreTier
-  days: Scalars['Int']
+export interface MutationswitchRoleArgs {
+  roleName: Scalars['String']['input']
 }
 
 export interface MyRole {
   readonly __typename: 'MyRole'
-  readonly name: Scalars['String']
+  readonly name: Scalars['String']['output']
 }
 
 export interface NotificationConfigurationError {
   readonly __typename: 'NotificationConfigurationError'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface NotificationTopicNotFound {
   readonly __typename: 'NotificationTopicNotFound'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface NumberExtents {
   readonly __typename: 'NumberExtents'
-  readonly min: Scalars['Float']
-  readonly max: Scalars['Float']
+  readonly max: Scalars['Float']['output']
+  readonly min: Scalars['Float']['output']
 }
 
 export interface NumberPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'NumberPackageUserMetaFacet'
-  readonly path: Scalars['String']
   readonly extents: NumberExtents
+  readonly path: Scalars['String']['output']
 }
 
 export interface NumberSearchPredicate {
-  readonly gte: Maybe<Scalars['Float']>
-  readonly lte: Maybe<Scalars['Float']>
+  readonly gte: InputMaybe<Scalars['Float']['input']>
+  readonly lte: InputMaybe<Scalars['Float']['input']>
 }
 
 export interface ObjectsSearchFilter {
-  readonly modified: Maybe<DatetimeSearchPredicate>
-  readonly size: Maybe<NumberSearchPredicate>
-  readonly ext: Maybe<KeywordSearchPredicate>
-  readonly key: Maybe<KeywordSearchPredicate>
-  readonly content: Maybe<TextSearchPredicate>
-  readonly deleted: Maybe<BooleanSearchPredicate>
+  readonly content: InputMaybe<TextSearchPredicate>
+  readonly deleted: InputMaybe<BooleanSearchPredicate>
+  readonly ext: InputMaybe<KeywordSearchPredicate>
+  readonly key: InputMaybe<KeywordSearchPredicate>
+  readonly modified: InputMaybe<DatetimeSearchPredicate>
+  readonly size: InputMaybe<NumberSearchPredicate>
 }
 
 export type ObjectsSearchMoreResult =
-  | ObjectsSearchResultSetPage
   | InvalidInput
+  | ObjectsSearchResultSetPage
   | OperationError
 
 export type ObjectsSearchResult =
-  | ObjectsSearchResultSet
   | EmptySearchResultSet
   | InvalidInput
+  | ObjectsSearchResultSet
   | OperationError
 
 export interface ObjectsSearchResultSet {
   readonly __typename: 'ObjectsSearchResultSet'
-  readonly total: Scalars['Int']
-  readonly stats: ObjectsSearchStats
   readonly firstPage: ObjectsSearchResultSetPage
+  readonly stats: ObjectsSearchStats
+  readonly total: Scalars['Int']['output']
 }
 
 export interface ObjectsSearchResultSetfirstPageArgs {
-  size?: Maybe<Scalars['Int']>
-  order: Maybe<SearchResultOrder>
+  order: InputMaybe<SearchResultOrder>
+  size?: InputMaybe<Scalars['Int']['input']>
 }
 
 export interface ObjectsSearchResultSetPage {
   readonly __typename: 'ObjectsSearchResultSetPage'
-  readonly cursor: Maybe<Scalars['String']>
+  readonly cursor: Maybe<Scalars['String']['output']>
   readonly hits: ReadonlyArray<SearchHitObject>
 }
 
 export interface ObjectsSearchStats {
   readonly __typename: 'ObjectsSearchStats'
+  readonly ext: KeywordExtents
   readonly modified: DatetimeExtents
   readonly size: NumberExtents
-  readonly ext: KeywordExtents
 }
 
 export interface Ok {
   readonly __typename: 'Ok'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface OperationError {
   readonly __typename: 'OperationError'
-  readonly message: Scalars['String']
-  readonly name: Scalars['String']
-  readonly context: Maybe<Scalars['JsonRecord']>
+  readonly context: Maybe<Scalars['JsonRecord']['output']>
+  readonly message: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
 }
 
-export type OperationResult = Ok | InvalidInput | OperationError
+export type OperationResult = InvalidInput | Ok | OperationError
 
 export interface Package {
   readonly __typename: 'Package'
-  readonly bucket: Scalars['String']
-  readonly name: Scalars['String']
-  readonly modified: Scalars['Datetime']
-  readonly revisions: PackageRevisionList
-  readonly revision: Maybe<PackageRevision>
   readonly accessCounts: Maybe<AccessCounts>
-}
-
-export interface PackagerevisionArgs {
-  hashOrTag?: Maybe<Scalars['String']>
+  readonly bucket: Scalars['String']['output']
+  readonly modified: Scalars['Datetime']['output']
+  readonly name: Scalars['String']['output']
+  readonly revision: Maybe<PackageRevision>
+  readonly revisions: PackageRevisionList
 }
 
 export interface PackageaccessCountsArgs {
-  window?: Maybe<Scalars['Int']>
+  window?: InputMaybe<Scalars['Int']['input']>
+}
+
+export interface PackagerevisionArgs {
+  hashOrTag?: InputMaybe<Scalars['String']['input']>
 }
 
 export interface PackageConstructEntry {
-  readonly logicalKey: Scalars['String']
-  readonly physicalKey: Scalars['String']
-  readonly hash: Maybe<PackageEntryHash>
-  readonly size: Maybe<Scalars['Float']>
-  readonly meta: Maybe<Scalars['JsonRecord']>
+  readonly hash: InputMaybe<PackageEntryHash>
+  readonly logicalKey: Scalars['String']['input']
+  readonly meta: InputMaybe<Scalars['JsonRecord']['input']>
+  readonly physicalKey: Scalars['String']['input']
+  readonly size: InputMaybe<Scalars['Float']['input']>
 }
 
-export type PackageConstructResult = PackagePushSuccess | InvalidInput | OperationError
+export type PackageConstructResult = InvalidInput | OperationError | PackagePushSuccess
 
 export interface PackageConstructSource {
   readonly entries: ReadonlyArray<PackageConstructEntry>
@@ -791,58 +788,58 @@ export interface PackageConstructSource {
 
 export interface PackageDir {
   readonly __typename: 'PackageDir'
-  readonly path: Scalars['String']
-  readonly metadata: Maybe<Scalars['JsonRecord']>
-  readonly size: Scalars['Float']
   readonly children: ReadonlyArray<PackageEntry>
+  readonly metadata: Maybe<Scalars['JsonRecord']['output']>
+  readonly path: Scalars['String']['output']
+  readonly size: Scalars['Float']['output']
 }
 
-export type PackageEntry = PackageFile | PackageDir
+export type PackageEntry = PackageDir | PackageFile
 
 export interface PackageEntryHash {
-  readonly type: Scalars['String']
-  readonly value: Scalars['String']
+  readonly type: Scalars['String']['input']
+  readonly value: Scalars['String']['input']
 }
 
 export interface PackageFile {
   readonly __typename: 'PackageFile'
-  readonly path: Scalars['String']
-  readonly metadata: Maybe<Scalars['JsonRecord']>
-  readonly size: Scalars['Float']
-  readonly physicalKey: Scalars['String']
+  readonly metadata: Maybe<Scalars['JsonRecord']['output']>
+  readonly path: Scalars['String']['output']
+  readonly physicalKey: Scalars['String']['output']
+  readonly size: Scalars['Float']['output']
 }
 
 export interface PackageList {
   readonly __typename: 'PackageList'
-  readonly total: Scalars['Int']
   readonly page: ReadonlyArray<Package>
+  readonly total: Scalars['Int']['output']
 }
 
 export interface PackageListpageArgs {
-  number?: Maybe<Scalars['Int']>
-  perPage?: Maybe<Scalars['Int']>
-  order?: Maybe<PackageListOrder>
+  number?: InputMaybe<Scalars['Int']['input']>
+  order?: InputMaybe<PackageListOrder>
+  perPage?: InputMaybe<Scalars['Int']['input']>
 }
 
 export enum PackageListOrder {
-  NAME = 'NAME',
   MODIFIED = 'MODIFIED',
+  NAME = 'NAME',
 }
 
-export type PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
+export type PackagePromoteResult = InvalidInput | OperationError | PackagePushSuccess
 
 export interface PackagePromoteSource {
-  readonly bucket: Scalars['String']
-  readonly name: Scalars['String']
-  readonly hash: Scalars['String']
+  readonly bucket: Scalars['String']['input']
+  readonly hash: Scalars['String']['input']
+  readonly name: Scalars['String']['input']
 }
 
 export interface PackagePushParams {
-  readonly message: Maybe<Scalars['String']>
-  readonly userMeta: Maybe<Scalars['JsonRecord']>
-  readonly workflow: Maybe<Scalars['String']>
-  readonly bucket: Scalars['String']
-  readonly name: Scalars['String']
+  readonly bucket: Scalars['String']['input']
+  readonly message: InputMaybe<Scalars['String']['input']>
+  readonly name: Scalars['String']['input']
+  readonly userMeta: InputMaybe<Scalars['JsonRecord']['input']>
+  readonly workflow: InputMaybe<Scalars['String']['input']>
 }
 
 export interface PackagePushSuccess {
@@ -853,82 +850,82 @@ export interface PackagePushSuccess {
 
 export interface PackageRevision {
   readonly __typename: 'PackageRevision'
-  readonly hash: Scalars['String']
-  readonly modified: Scalars['Datetime']
-  readonly message: Maybe<Scalars['String']>
-  readonly metadata: Scalars['JsonRecord']
-  readonly userMeta: Maybe<Scalars['JsonRecord']>
-  readonly workflow: Maybe<PackageWorkflow>
-  readonly totalEntries: Maybe<Scalars['Int']>
-  readonly totalBytes: Maybe<Scalars['Float']>
+  readonly accessCounts: Maybe<AccessCounts>
+  readonly contentsFlatMap: Maybe<Scalars['PackageContentsFlatMap']['output']>
   readonly dir: Maybe<PackageDir>
   readonly file: Maybe<PackageFile>
-  readonly accessCounts: Maybe<AccessCounts>
-  readonly contentsFlatMap: Maybe<Scalars['PackageContentsFlatMap']>
-}
-
-export interface PackageRevisiondirArgs {
-  path: Scalars['String']
-}
-
-export interface PackageRevisionfileArgs {
-  path: Scalars['String']
+  readonly hash: Scalars['String']['output']
+  readonly message: Maybe<Scalars['String']['output']>
+  readonly metadata: Scalars['JsonRecord']['output']
+  readonly modified: Scalars['Datetime']['output']
+  readonly totalBytes: Maybe<Scalars['Float']['output']>
+  readonly totalEntries: Maybe<Scalars['Int']['output']>
+  readonly userMeta: Maybe<Scalars['JsonRecord']['output']>
+  readonly workflow: Maybe<PackageWorkflow>
 }
 
 export interface PackageRevisionaccessCountsArgs {
-  window?: Maybe<Scalars['Int']>
+  window?: InputMaybe<Scalars['Int']['input']>
 }
 
 export interface PackageRevisioncontentsFlatMapArgs {
-  max?: Maybe<Scalars['Int']>
+  max?: InputMaybe<Scalars['Int']['input']>
 }
 
-export type PackageRevisionDeleteResult = PackageRevisionDeleteSuccess | OperationError
+export interface PackageRevisiondirArgs {
+  path: Scalars['String']['input']
+}
+
+export interface PackageRevisionfileArgs {
+  path: Scalars['String']['input']
+}
+
+export type PackageRevisionDeleteResult = OperationError | PackageRevisionDeleteSuccess
 
 export interface PackageRevisionDeleteSuccess {
   readonly __typename: 'PackageRevisionDeleteSuccess'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface PackageRevisionList {
   readonly __typename: 'PackageRevisionList'
-  readonly total: Scalars['Int']
   readonly page: ReadonlyArray<PackageRevision>
+  readonly total: Scalars['Int']['output']
 }
 
 export interface PackageRevisionListpageArgs {
-  number?: Maybe<Scalars['Int']>
-  perPage?: Maybe<Scalars['Int']>
+  number?: InputMaybe<Scalars['Int']['input']>
+  perPage?: InputMaybe<Scalars['Int']['input']>
 }
 
 export type PackageUserMetaFacet =
-  | NumberPackageUserMetaFacet
+  | BooleanPackageUserMetaFacet
   | DatetimePackageUserMetaFacet
   | KeywordPackageUserMetaFacet
+  | NumberPackageUserMetaFacet
   | TextPackageUserMetaFacet
-  | BooleanPackageUserMetaFacet
 
 export enum PackageUserMetaFacetType {
-  NUMBER = 'NUMBER',
+  BOOLEAN = 'BOOLEAN',
   DATETIME = 'DATETIME',
   KEYWORD = 'KEYWORD',
+  NUMBER = 'NUMBER',
   TEXT = 'TEXT',
-  BOOLEAN = 'BOOLEAN',
 }
 
 export interface PackageUserMetaPredicate {
-  readonly path: Scalars['String']
-  readonly datetime: Maybe<DatetimeSearchPredicate>
-  readonly number: Maybe<NumberSearchPredicate>
-  readonly text: Maybe<TextSearchPredicate>
-  readonly keyword: Maybe<KeywordSearchPredicate>
-  readonly boolean: Maybe<BooleanSearchPredicate>
+  readonly boolean: InputMaybe<BooleanSearchPredicate>
+  readonly datetime: InputMaybe<DatetimeSearchPredicate>
+  readonly keyword: InputMaybe<KeywordSearchPredicate>
+  readonly number: InputMaybe<NumberSearchPredicate>
+  readonly path: Scalars['String']['input']
+  readonly text: InputMaybe<TextSearchPredicate>
 }
 
 export interface PackageWorkflow {
   readonly __typename: 'PackageWorkflow'
-  readonly config: Scalars['String']
-  readonly id: Maybe<Scalars['String']>
+  readonly config: Scalars['String']['output']
+  readonly id: Maybe<Scalars['String']['output']>
 }
 
 export interface PackagerAdminMutations {
@@ -937,227 +934,227 @@ export interface PackagerAdminMutations {
 }
 
 export interface PackagerAdminMutationstoggleEventRuleArgs {
-  name: Scalars['String']
-  enabled: Scalars['Boolean']
+  enabled: Scalars['Boolean']['input']
+  name: Scalars['String']['input']
 }
 
 export interface PackagerAdminQueries {
   readonly __typename: 'PackagerAdminQueries'
-  readonly eventRules: ReadonlyArray<PackagerEventRule>
   readonly eventRule: Maybe<PackagerEventRule>
+  readonly eventRules: ReadonlyArray<PackagerEventRule>
 }
 
 export interface PackagerAdminQuerieseventRuleArgs {
-  name: Scalars['String']
+  name: Scalars['String']['input']
 }
 
 export interface PackagerEventRule {
   readonly __typename: 'PackagerEventRule'
-  readonly name: Scalars['String']
-  readonly enabled: Scalars['Boolean']
+  readonly enabled: Scalars['Boolean']['output']
+  readonly name: Scalars['String']['output']
 }
 
 export type PackagerEventRuleToggleResult =
-  | PackagerEventRule
-  | OperationError
   | InvalidInput
+  | OperationError
+  | PackagerEventRule
 
 export interface PackagesSearchFilter {
-  readonly modified: Maybe<DatetimeSearchPredicate>
-  readonly size: Maybe<NumberSearchPredicate>
-  readonly name: Maybe<KeywordSearchPredicate>
-  readonly hash: Maybe<KeywordSearchPredicate>
-  readonly entries: Maybe<NumberSearchPredicate>
-  readonly comment: Maybe<TextSearchPredicate>
-  readonly workflow: Maybe<KeywordSearchPredicate>
+  readonly comment: InputMaybe<TextSearchPredicate>
+  readonly entries: InputMaybe<NumberSearchPredicate>
+  readonly hash: InputMaybe<KeywordSearchPredicate>
+  readonly modified: InputMaybe<DatetimeSearchPredicate>
+  readonly name: InputMaybe<KeywordSearchPredicate>
+  readonly size: InputMaybe<NumberSearchPredicate>
+  readonly workflow: InputMaybe<KeywordSearchPredicate>
 }
 
 export type PackagesSearchMoreResult =
-  | PackagesSearchResultSetPage
   | InvalidInput
   | OperationError
+  | PackagesSearchResultSetPage
 
 export type PackagesSearchResult =
-  | PackagesSearchResultSet
   | EmptySearchResultSet
   | InvalidInput
   | OperationError
+  | PackagesSearchResultSet
 
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
-  readonly total: Scalars['Int']
-  readonly stats: PackagesSearchStats
   readonly filteredUserMetaFacets: ReadonlyArray<PackageUserMetaFacet>
   readonly firstPage: PackagesSearchResultSetPage
+  readonly stats: PackagesSearchStats
+  readonly total: Scalars['Int']['output']
 }
 
 export interface PackagesSearchResultSetfilteredUserMetaFacetsArgs {
-  path: Scalars['String']
-  type: Maybe<PackageUserMetaFacetType>
+  path: Scalars['String']['input']
+  type: InputMaybe<PackageUserMetaFacetType>
 }
 
 export interface PackagesSearchResultSetfirstPageArgs {
-  size?: Maybe<Scalars['Int']>
-  order: Maybe<SearchResultOrder>
+  order: InputMaybe<SearchResultOrder>
+  size?: InputMaybe<Scalars['Int']['input']>
 }
 
 export interface PackagesSearchResultSetPage {
   readonly __typename: 'PackagesSearchResultSetPage'
-  readonly cursor: Maybe<Scalars['String']>
+  readonly cursor: Maybe<Scalars['String']['output']>
   readonly hits: ReadonlyArray<SearchHitPackage>
 }
 
 export interface PackagesSearchStats {
   readonly __typename: 'PackagesSearchStats'
+  readonly entries: NumberExtents
   readonly modified: DatetimeExtents
   readonly size: NumberExtents
-  readonly entries: NumberExtents
-  readonly workflow: KeywordExtents
   readonly userMeta: ReadonlyArray<PackageUserMetaFacet>
-  readonly userMetaTruncated: Scalars['Boolean']
+  readonly userMetaTruncated: Scalars['Boolean']['output']
+  readonly workflow: KeywordExtents
 }
 
 export interface PermissionInput {
-  readonly bucket: Scalars['String']
+  readonly bucket: Scalars['String']['input']
   readonly level: BucketPermissionLevel
 }
 
 export interface Policy {
   readonly __typename: 'Policy'
-  readonly id: Scalars['ID']
-  readonly title: Scalars['String']
-  readonly arn: Scalars['String']
-  readonly managed: Scalars['Boolean']
+  readonly arn: Scalars['String']['output']
+  readonly id: Scalars['ID']['output']
+  readonly managed: Scalars['Boolean']['output']
   readonly permissions: ReadonlyArray<PolicyBucketPermission>
   readonly roles: ReadonlyArray<ManagedRole>
+  readonly title: Scalars['String']['output']
 }
 
 export interface PolicyBucketPermission extends BucketPermission {
   readonly __typename: 'PolicyBucketPermission'
-  readonly policy: Policy
   readonly bucket: BucketConfig
   readonly level: BucketPermissionLevel
+  readonly policy: Policy
 }
 
-export type PolicyDeleteResult = Ok | InvalidInput | OperationError
+export type PolicyDeleteResult = InvalidInput | Ok | OperationError
 
-export type PolicyResult = Policy | InvalidInput | OperationError
+export type PolicyResult = InvalidInput | OperationError | Policy
 
 export interface Query {
   readonly __typename: 'Query'
-  readonly me: Maybe<Me>
-  readonly config: Config
-  readonly bucketConfigs: ReadonlyArray<BucketConfig>
-  readonly bucketConfig: Maybe<BucketConfig>
-  readonly buckets: ReadonlyArray<Bucket>
-  readonly bucket: Maybe<Bucket>
-  readonly potentialCollaborators: ReadonlyArray<Collaborator>
-  readonly packages: Maybe<PackageList>
-  readonly package: Maybe<Package>
-  readonly searchObjects: ObjectsSearchResult
-  readonly searchPackages: PackagesSearchResult
-  readonly searchMoreObjects: ObjectsSearchMoreResult
-  readonly searchMorePackages: PackagesSearchMoreResult
-  readonly subscription: SubscriptionState
-  readonly bucketAccessCounts: Maybe<BucketAccessCounts>
-  readonly objectAccessCounts: Maybe<AccessCounts>
   readonly admin: AdminQueries
+  readonly bucket: Maybe<Bucket>
+  readonly bucketAccessCounts: Maybe<BucketAccessCounts>
+  readonly bucketConfig: Maybe<BucketConfig>
+  readonly bucketConfigs: ReadonlyArray<BucketConfig>
+  readonly buckets: ReadonlyArray<Bucket>
+  readonly config: Config
+  readonly defaultRole: Maybe<Role>
+  readonly me: Maybe<Me>
+  readonly objectAccessCounts: Maybe<AccessCounts>
+  readonly package: Maybe<Package>
+  readonly packages: Maybe<PackageList>
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
-  readonly roles: ReadonlyArray<Role>
+  readonly potentialCollaborators: ReadonlyArray<Collaborator>
   readonly role: Maybe<Role>
-  readonly defaultRole: Maybe<Role>
+  readonly roles: ReadonlyArray<Role>
+  readonly searchMoreObjects: ObjectsSearchMoreResult
+  readonly searchMorePackages: PackagesSearchMoreResult
+  readonly searchObjects: ObjectsSearchResult
+  readonly searchPackages: PackagesSearchResult
   readonly status: StatusResult
-}
-
-export interface QuerybucketConfigArgs {
-  name: Scalars['String']
+  readonly subscription: SubscriptionState
 }
 
 export interface QuerybucketArgs {
-  name: Scalars['String']
-}
-
-export interface QuerypackagesArgs {
-  bucket: Scalars['String']
-  filter: Maybe<Scalars['String']>
-}
-
-export interface QuerypackageArgs {
-  bucket: Scalars['String']
-  name: Scalars['String']
-}
-
-export interface QuerysearchObjectsArgs {
-  buckets: Maybe<ReadonlyArray<Scalars['String']>>
-  searchString: Maybe<Scalars['String']>
-  filter: Maybe<ObjectsSearchFilter>
-}
-
-export interface QuerysearchPackagesArgs {
-  buckets: Maybe<ReadonlyArray<Scalars['String']>>
-  searchString: Maybe<Scalars['String']>
-  filter: Maybe<PackagesSearchFilter>
-  userMetaFilters: Maybe<ReadonlyArray<PackageUserMetaPredicate>>
-  latestOnly?: Scalars['Boolean']
-}
-
-export interface QuerysearchMoreObjectsArgs {
-  after: Scalars['String']
-  size?: Maybe<Scalars['Int']>
-}
-
-export interface QuerysearchMorePackagesArgs {
-  after: Scalars['String']
-  size?: Maybe<Scalars['Int']>
+  name: Scalars['String']['input']
 }
 
 export interface QuerybucketAccessCountsArgs {
-  bucket: Scalars['String']
-  window: Scalars['Int']
+  bucket: Scalars['String']['input']
+  window: Scalars['Int']['input']
+}
+
+export interface QuerybucketConfigArgs {
+  name: Scalars['String']['input']
 }
 
 export interface QueryobjectAccessCountsArgs {
-  bucket: Scalars['String']
-  key: Scalars['String']
-  window: Scalars['Int']
+  bucket: Scalars['String']['input']
+  key: Scalars['String']['input']
+  window: Scalars['Int']['input']
+}
+
+export interface QuerypackageArgs {
+  bucket: Scalars['String']['input']
+  name: Scalars['String']['input']
+}
+
+export interface QuerypackagesArgs {
+  bucket: Scalars['String']['input']
+  filter: InputMaybe<Scalars['String']['input']>
 }
 
 export interface QuerypolicyArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
 }
 
 export interface QueryroleArgs {
-  id: Scalars['ID']
+  id: Scalars['ID']['input']
 }
 
-export type RestoreObjectResult = RestoreObjectSuccess | InvalidInput | OperationError
+export interface QuerysearchMoreObjectsArgs {
+  after: Scalars['String']['input']
+  size?: InputMaybe<Scalars['Int']['input']>
+}
+
+export interface QuerysearchMorePackagesArgs {
+  after: Scalars['String']['input']
+  size?: InputMaybe<Scalars['Int']['input']>
+}
+
+export interface QuerysearchObjectsArgs {
+  buckets: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  filter: InputMaybe<ObjectsSearchFilter>
+  searchString: InputMaybe<Scalars['String']['input']>
+}
+
+export interface QuerysearchPackagesArgs {
+  buckets: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  filter: InputMaybe<PackagesSearchFilter>
+  latestOnly?: Scalars['Boolean']['input']
+  searchString: InputMaybe<Scalars['String']['input']>
+  userMetaFilters: InputMaybe<ReadonlyArray<PackageUserMetaPredicate>>
+}
+
+export type RestoreObjectResult = InvalidInput | OperationError | RestoreObjectSuccess
 
 export interface RestoreObjectSuccess {
   readonly __typename: 'RestoreObjectSuccess'
-  readonly alreadyRestored: Scalars['Boolean']
+  readonly alreadyRestored: Scalars['Boolean']['output']
 }
 
-export type Role = UnmanagedRole | ManagedRole
+export type Role = ManagedRole | UnmanagedRole
 
 export interface RoleAssigned {
   readonly __typename: 'RoleAssigned'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleBucketPermission extends BucketPermission {
   readonly __typename: 'RoleBucketPermission'
-  readonly role: Role
   readonly bucket: BucketConfig
   readonly level: BucketPermissionLevel
+  readonly role: Role
 }
 
 export type RoleCreateResult =
   | RoleCreateSuccess
-  | RoleNameReserved
+  | RoleHasTooManyPoliciesToAttach
   | RoleNameExists
   | RoleNameInvalid
-  | RoleHasTooManyPoliciesToAttach
+  | RoleNameReserved
 
 export interface RoleCreateSuccess {
   readonly __typename: 'RoleCreateSuccess'
@@ -1165,60 +1162,60 @@ export interface RoleCreateSuccess {
 }
 
 export type RoleDeleteResult =
+  | RoleAssigned
   | RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
-  | RoleAssigned
 
 export interface RoleDeleteSuccess {
   readonly __typename: 'RoleDeleteSuccess'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleDoesNotExist {
   readonly __typename: 'RoleDoesNotExist'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleHasTooManyPoliciesToAttach {
   readonly __typename: 'RoleHasTooManyPoliciesToAttach'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleIsManaged {
   readonly __typename: 'RoleIsManaged'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleIsUnmanaged {
   readonly __typename: 'RoleIsUnmanaged'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleNameExists {
   readonly __typename: 'RoleNameExists'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleNameInvalid {
   readonly __typename: 'RoleNameInvalid'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleNameReserved {
   readonly __typename: 'RoleNameReserved'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface RoleNameUsedBySsoConfig {
   readonly __typename: 'RoleNameUsedBySsoConfig'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export type RoleSetDefaultResult =
-  | RoleSetDefaultSuccess
   | RoleDoesNotExist
+  | RoleSetDefaultSuccess
   | SsoConfigConflict
 
 export interface RoleSetDefaultSuccess {
@@ -1227,14 +1224,14 @@ export interface RoleSetDefaultSuccess {
 }
 
 export type RoleUpdateResult =
-  | RoleUpdateSuccess
-  | RoleNameReserved
-  | RoleNameExists
-  | RoleNameInvalid
-  | RoleNameUsedBySsoConfig
+  | RoleHasTooManyPoliciesToAttach
   | RoleIsManaged
   | RoleIsUnmanaged
-  | RoleHasTooManyPoliciesToAttach
+  | RoleNameExists
+  | RoleNameInvalid
+  | RoleNameReserved
+  | RoleNameUsedBySsoConfig
+  | RoleUpdateSuccess
 
 export interface RoleUpdateSuccess {
   readonly __typename: 'RoleUpdateSuccess'
@@ -1243,73 +1240,73 @@ export interface RoleUpdateSuccess {
 
 export interface SearchHitObject {
   readonly __typename: 'SearchHitObject'
-  readonly id: Scalars['ID']
-  readonly score: Scalars['Float']
-  readonly bucket: Scalars['String']
-  readonly key: Scalars['String']
-  readonly version: Scalars['String']
-  readonly size: Scalars['Float']
-  readonly modified: Scalars['Datetime']
-  readonly deleted: Scalars['Boolean']
-  readonly indexedContent: Maybe<Scalars['String']>
+  readonly bucket: Scalars['String']['output']
+  readonly deleted: Scalars['Boolean']['output']
+  readonly id: Scalars['ID']['output']
+  readonly indexedContent: Maybe<Scalars['String']['output']>
+  readonly key: Scalars['String']['output']
+  readonly modified: Scalars['Datetime']['output']
+  readonly score: Scalars['Float']['output']
+  readonly size: Scalars['Float']['output']
+  readonly version: Scalars['String']['output']
 }
 
 export interface SearchHitPackage {
   readonly __typename: 'SearchHitPackage'
-  readonly id: Scalars['ID']
-  readonly score: Scalars['Float']
-  readonly bucket: Scalars['String']
-  readonly name: Scalars['String']
-  readonly pointer: Scalars['String']
-  readonly hash: Scalars['String']
-  readonly size: Scalars['Float']
-  readonly modified: Scalars['Datetime']
-  readonly totalEntriesCount: Scalars['Int']
-  readonly comment: Maybe<Scalars['String']>
-  readonly meta: Maybe<Scalars['String']>
-  readonly workflow: Maybe<Scalars['JsonRecord']>
+  readonly bucket: Scalars['String']['output']
+  readonly comment: Maybe<Scalars['String']['output']>
+  readonly hash: Scalars['String']['output']
+  readonly id: Scalars['ID']['output']
   readonly matchLocations: SearchHitPackageMatchLocations
   readonly matchingEntries: ReadonlyArray<SearchHitPackageMatchingEntry>
+  readonly meta: Maybe<Scalars['String']['output']>
+  readonly modified: Scalars['Datetime']['output']
+  readonly name: Scalars['String']['output']
+  readonly pointer: Scalars['String']['output']
+  readonly score: Scalars['Float']['output']
+  readonly size: Scalars['Float']['output']
+  readonly totalEntriesCount: Scalars['Int']['output']
+  readonly workflow: Maybe<Scalars['JsonRecord']['output']>
 }
 
 export interface SearchHitPackageEntryMatchLocations {
   readonly __typename: 'SearchHitPackageEntryMatchLocations'
-  readonly logicalKey: Scalars['Boolean']
-  readonly physicalKey: Scalars['Boolean']
-  readonly meta: Scalars['Boolean']
-  readonly contents: Scalars['Boolean']
+  readonly contents: Scalars['Boolean']['output']
+  readonly logicalKey: Scalars['Boolean']['output']
+  readonly meta: Scalars['Boolean']['output']
+  readonly physicalKey: Scalars['Boolean']['output']
 }
 
 export interface SearchHitPackageMatchLocations {
   readonly __typename: 'SearchHitPackageMatchLocations'
-  readonly name: Scalars['Boolean']
-  readonly comment: Scalars['Boolean']
-  readonly meta: Scalars['Boolean']
-  readonly workflow: Scalars['Boolean']
+  readonly comment: Scalars['Boolean']['output']
+  readonly meta: Scalars['Boolean']['output']
+  readonly name: Scalars['Boolean']['output']
+  readonly workflow: Scalars['Boolean']['output']
 }
 
 export interface SearchHitPackageMatchingEntry {
   readonly __typename: 'SearchHitPackageMatchingEntry'
-  readonly logicalKey: Scalars['String']
-  readonly physicalKey: Scalars['String']
-  readonly size: Scalars['Float']
-  readonly meta: Maybe<Scalars['String']>
+  readonly logicalKey: Scalars['String']['output']
   readonly matchLocations: SearchHitPackageEntryMatchLocations
+  readonly meta: Maybe<Scalars['String']['output']>
+  readonly physicalKey: Scalars['String']['output']
+  readonly size: Scalars['Float']['output']
 }
 
 export enum SearchResultOrder {
   BEST_MATCH = 'BEST_MATCH',
-  NEWEST = 'NEWEST',
-  OLDEST = 'OLDEST',
   LEX_ASC = 'LEX_ASC',
   LEX_DESC = 'LEX_DESC',
+  NEWEST = 'NEWEST',
+  OLDEST = 'OLDEST',
 }
 
-export type SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
+export type SetSsoConfigResult = InvalidInput | OperationError | SsoConfig
 
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export enum SortDirection {
@@ -1319,54 +1316,54 @@ export enum SortDirection {
 
 export interface SsoConfig {
   readonly __typename: 'SsoConfig'
-  readonly text: Scalars['String']
-  readonly timestamp: Scalars['Datetime']
+  readonly text: Scalars['String']['output']
+  readonly timestamp: Scalars['Datetime']['output']
   readonly uploader: User
 }
 
 export interface SsoConfigConflict {
   readonly __typename: 'SsoConfigConflict'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface Status {
   readonly __typename: 'Status'
   readonly canaries: ReadonlyArray<Canary>
   readonly latestStats: TestStats
-  readonly stats: TestStatsTimeSeries
   readonly reports: StatusReportList
-  readonly reportsBucket: Scalars['String']
-}
-
-export interface StatusstatsArgs {
-  window?: Maybe<Scalars['Int']>
+  readonly reportsBucket: Scalars['String']['output']
+  readonly stats: TestStatsTimeSeries
 }
 
 export interface StatusreportsArgs {
-  filter: Maybe<StatusReportListFilter>
+  filter: InputMaybe<StatusReportListFilter>
+}
+
+export interface StatusstatsArgs {
+  window?: InputMaybe<Scalars['Int']['input']>
 }
 
 export interface StatusReport {
   readonly __typename: 'StatusReport'
-  readonly timestamp: Scalars['Datetime']
-  readonly renderedReportLocation: Scalars['S3ObjectLocation']
+  readonly renderedReportLocation: Scalars['S3ObjectLocation']['output']
+  readonly timestamp: Scalars['Datetime']['output']
 }
 
 export interface StatusReportList {
   readonly __typename: 'StatusReportList'
-  readonly total: Scalars['Int']
   readonly page: ReadonlyArray<StatusReport>
+  readonly total: Scalars['Int']['output']
 }
 
 export interface StatusReportListpageArgs {
-  number?: Scalars['Int']
-  perPage?: Scalars['Int']
+  number?: Scalars['Int']['input']
   order?: StatusReportListOrder
+  perPage?: Scalars['Int']['input']
 }
 
 export interface StatusReportListFilter {
-  readonly timestampFrom: Maybe<Scalars['Datetime']>
-  readonly timestampTo: Maybe<Scalars['Datetime']>
+  readonly timestampFrom: InputMaybe<Scalars['Datetime']['input']>
+  readonly timestampTo: InputMaybe<Scalars['Datetime']['input']>
 }
 
 export enum StatusReportListOrder {
@@ -1378,88 +1375,88 @@ export type StatusResult = Status | Unavailable
 
 export interface SubscriptionInvalid {
   readonly __typename: 'SubscriptionInvalid'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface SubscriptionState {
   readonly __typename: 'SubscriptionState'
-  readonly active: Scalars['Boolean']
-  readonly timestamp: Scalars['Datetime']
+  readonly active: Scalars['Boolean']['output']
+  readonly timestamp: Scalars['Datetime']['output']
 }
 
-export type SwitchRoleResult = Me | InvalidInput | OperationError
+export type SwitchRoleResult = InvalidInput | Me | OperationError
 
 export interface TabulatorOpenQueryResult {
   readonly __typename: 'TabulatorOpenQueryResult'
-  readonly tabulatorOpenQuery: Scalars['Boolean']
+  readonly tabulatorOpenQuery: Scalars['Boolean']['output']
 }
 
 export interface TabulatorTable {
   readonly __typename: 'TabulatorTable'
-  readonly name: Scalars['String']
-  readonly config: Scalars['String']
+  readonly config: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
 }
 
 export interface TestStats {
   readonly __typename: 'TestStats'
-  readonly passed: Scalars['Int']
-  readonly failed: Scalars['Int']
-  readonly running: Scalars['Int']
+  readonly failed: Scalars['Int']['output']
+  readonly passed: Scalars['Int']['output']
+  readonly running: Scalars['Int']['output']
 }
 
 export interface TestStatsTimeSeries {
   readonly __typename: 'TestStatsTimeSeries'
-  readonly datetimes: ReadonlyArray<Scalars['Datetime']>
-  readonly passed: ReadonlyArray<Scalars['Int']>
-  readonly failed: ReadonlyArray<Scalars['Int']>
+  readonly datetimes: ReadonlyArray<Scalars['Datetime']['output']>
+  readonly failed: ReadonlyArray<Scalars['Int']['output']>
+  readonly passed: ReadonlyArray<Scalars['Int']['output']>
 }
 
 export interface TextPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'TextPackageUserMetaFacet'
-  readonly path: Scalars['String']
+  readonly path: Scalars['String']['output']
 }
 
 export interface TextSearchPredicate {
-  readonly queryString: Scalars['String']
+  readonly queryString: Scalars['String']['input']
 }
 
 export interface Unavailable {
   readonly __typename: 'Unavailable'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface UnmanagedPolicyInput {
-  readonly title: Scalars['String']
-  readonly arn: Scalars['String']
-  readonly roles: ReadonlyArray<Scalars['ID']>
+  readonly arn: Scalars['String']['input']
+  readonly roles: ReadonlyArray<Scalars['ID']['input']>
+  readonly title: Scalars['String']['input']
 }
 
 export interface UnmanagedRole {
   readonly __typename: 'UnmanagedRole'
-  readonly id: Scalars['ID']
-  readonly name: Scalars['String']
-  readonly arn: Scalars['String']
+  readonly arn: Scalars['String']['output']
+  readonly id: Scalars['ID']['output']
+  readonly name: Scalars['String']['output']
 }
 
 export interface UnmanagedRoleInput {
-  readonly name: Scalars['String']
-  readonly arn: Scalars['String']
+  readonly arn: Scalars['String']['input']
+  readonly name: Scalars['String']['input']
 }
 
 export interface User {
   readonly __typename: 'User'
-  readonly name: Scalars['String']
-  readonly email: Scalars['String']
-  readonly dateJoined: Scalars['Datetime']
-  readonly lastLogin: Scalars['Datetime']
-  readonly isActive: Scalars['Boolean']
-  readonly isAdmin: Scalars['Boolean']
-  readonly isSsoOnly: Scalars['Boolean']
-  readonly isService: Scalars['Boolean']
-  readonly role: Maybe<Role>
+  readonly dateJoined: Scalars['Datetime']['output']
+  readonly email: Scalars['String']['output']
   readonly extraRoles: ReadonlyArray<Role>
-  readonly isRoleAssignmentDisabled: Scalars['Boolean']
-  readonly isAdminAssignmentDisabled: Scalars['Boolean']
+  readonly isActive: Scalars['Boolean']['output']
+  readonly isAdmin: Scalars['Boolean']['output']
+  readonly isAdminAssignmentDisabled: Scalars['Boolean']['output']
+  readonly isRoleAssignmentDisabled: Scalars['Boolean']['output']
+  readonly isService: Scalars['Boolean']['output']
+  readonly isSsoOnly: Scalars['Boolean']['output']
+  readonly lastLogin: Scalars['Datetime']['output']
+  readonly name: Scalars['String']['output']
+  readonly role: Maybe<Role>
 }
 
 export interface UserAdminMutations {
@@ -1473,24 +1470,24 @@ export interface UserAdminMutationscreateArgs {
 }
 
 export interface UserAdminMutationsmutateArgs {
-  name: Scalars['String']
+  name: Scalars['String']['input']
 }
 
 export interface UserAdminQueries {
   readonly __typename: 'UserAdminQueries'
-  readonly list: ReadonlyArray<User>
   readonly get: Maybe<User>
+  readonly list: ReadonlyArray<User>
 }
 
 export interface UserAdminQueriesgetArgs {
-  name: Scalars['String']
+  name: Scalars['String']['input']
 }
 
 export interface UserInput {
-  readonly name: Scalars['String']
-  readonly email: Scalars['String']
-  readonly role: Scalars['String']
-  readonly extraRoles: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly email: Scalars['String']['input']
+  readonly extraRoles: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly name: Scalars['String']['input']
+  readonly role: Scalars['String']['input']
 }
 
-export type UserResult = User | InvalidInput | OperationError
+export type UserResult = InvalidInput | OperationError | User

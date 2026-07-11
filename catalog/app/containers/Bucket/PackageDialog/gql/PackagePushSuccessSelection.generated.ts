@@ -1,59 +1,55 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
 export type PackagePushSuccessSelectionFragment = {
   readonly __typename: 'PackagePushSuccess'
-} & {
-  readonly package: { readonly __typename: 'Package' } & Pick<
-    Types.Package,
-    'bucket' | 'name' | 'modified'
-  > & {
-      readonly revision: Types.Maybe<
-        { readonly __typename: 'PackageRevision' } & Pick<
-          Types.PackageRevision,
-          'hash' | 'modified'
-        >
-      >
-      readonly revisions: { readonly __typename: 'PackageRevisionList' } & Pick<
-        Types.PackageRevisionList,
-        'total'
-      > & {
-          readonly page: ReadonlyArray<
-            { readonly __typename: 'PackageRevision' } & Pick<
-              Types.PackageRevision,
-              'hash'
-            >
-          >
-          readonly page1: ReadonlyArray<
-            { readonly __typename: 'PackageRevision' } & Pick<
-              Types.PackageRevision,
-              'hash'
-            >
-          >
-        }
+  readonly package: {
+    readonly __typename: 'Package'
+    readonly bucket: string
+    readonly name: string
+    readonly modified: Date
+    readonly revision: {
+      readonly __typename: 'PackageRevision'
+      readonly hash: string
+      readonly modified: Date
+    } | null
+    readonly revisions: {
+      readonly __typename: 'PackageRevisionList'
+      readonly total: number
+      readonly page: ReadonlyArray<{
+        readonly __typename: 'PackageRevision'
+        readonly hash: string
+      }>
+      readonly page1: ReadonlyArray<{
+        readonly __typename: 'PackageRevision'
+        readonly hash: string
+      }>
     }
-  readonly revision: { readonly __typename: 'PackageRevision' } & Pick<
-    Types.PackageRevision,
-    | 'hash'
-    | 'modified'
-    | 'message'
-    | 'metadata'
-    | 'userMeta'
-    | 'totalEntries'
-    | 'totalBytes'
-  > & {
-      readonly accessCounts: Types.Maybe<
-        { readonly __typename: 'AccessCounts' } & Pick<Types.AccessCounts, 'total'> & {
-            readonly counts: ReadonlyArray<
-              { readonly __typename: 'AccessCountForDate' } & Pick<
-                Types.AccessCountForDate,
-                'date' | 'value'
-              >
-            >
-          }
-      >
-    }
+  }
+  readonly revision: {
+    readonly __typename: 'PackageRevision'
+    readonly hash: string
+    readonly modified: Date
+    readonly message: string | null
+    readonly metadata: JsonRecord
+    readonly userMeta: JsonRecord | null
+    readonly totalEntries: number | null
+    readonly totalBytes: number | null
+    readonly accessCounts: {
+      readonly __typename: 'AccessCounts'
+      readonly total: number
+      readonly counts: ReadonlyArray<{
+        readonly __typename: 'AccessCountForDate'
+        readonly date: Date
+        readonly value: number
+      }>
+    } | null
+  }
 }
 
 export const PackagePushSuccessSelectionFragmentDoc = {

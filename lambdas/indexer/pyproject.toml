@@ -14,7 +14,7 @@ dependencies = [
     "strict-rfc3339~=0.7",  # for jsonschema format
     "tenacity~=9.0",
     "quilt-shared[boto,es]",
-    "t4_lambda_shared[mem,preview]",
+    "t4-lambda-shared[mem,preview]",
 ]
 
 [build-system]
@@ -27,7 +27,7 @@ quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/df53c9ce125ea
 
 [dependency-groups]
 test = [
-    "pytest~=9.0",
+    "pytest~=9.1",
     "pytest-cov~=7.0",
     "pytest-env~=1.1",
     "pytest-mock~=3.15",

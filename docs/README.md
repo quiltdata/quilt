@@ -43,7 +43,7 @@ quickly find the information you need.
 The **Quilt Platform** powers the core features of the Quilt data catalog,
 providing tools for browsing, searching, and visualizing data stored in AWS S3.
 The platform is ideal for teams needing to collaborate on data, with
-capabilities like embeddable previews and metadata collection.
+capabilities like document previews and metadata collection.
 
 **Core Sections:**
 

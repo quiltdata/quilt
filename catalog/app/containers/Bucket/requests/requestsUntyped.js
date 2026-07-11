@@ -129,19 +129,10 @@ export const ensureObjectIsPresent = (...args) =>
 export const ensureQuiltSummarizeIsPresent = ({ s3, bucket }) =>
   ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
 
-export const bucketSummary = async ({ s3, req, bucket, inStack }) => {
-  const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
-  if (handle) {
-    try {
-      return await summarize({ s3, handle })
-    } catch (e) {
-      const display = `${handle.bucket}/${handle.key}`
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch configured summary from '${display}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
+// Auto-discovered summary entries (no quilt_summarize.json): an Elasticsearch
+// sample when the bucket is in-stack, otherwise an S3 listing filtered by
+// extension. Each discovered file is its own single-file entry.
+const bucketSummaryFallback = async ({ s3, req, bucket, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
@@ -195,6 +186,30 @@ export const bucketSummary = async ({ s3, req, bucket, inStack }) => {
     console.error(e)
   }
   return []
+}
+
+// When `withSource` is false (the default, used by the legacy Overview), the
+// return value is the flat entries array. When
+// `withSource` is true, returns `{ entries, fromQuiltSummarize }` so callers
+// can tell whether the layout was user-authored (quilt_summarize.json) or
+// auto-discovered, and skip the auto-discovered case if they choose.
+export const bucketSummary = async ({ s3, req, bucket, inStack, withSource = false }) => {
+  const wrap = (entries, fromQuiltSummarize) =>
+    withSource ? { entries, fromQuiltSummarize } : entries
+
+  const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
+  if (handle) {
+    try {
+      return wrap(await summarize({ s3, handle }), true)
+    } catch (e) {
+      const display = `${handle.bucket}/${handle.key}`
+      // eslint-disable-next-line no-console
+      console.log(`Unable to fetch configured summary from '${display}':`)
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }
+  return wrap(await bucketSummaryFallback({ s3, req, bucket, inStack }), false)
 }
 
 export const bucketReadmes = ({ s3, bucket }) =>

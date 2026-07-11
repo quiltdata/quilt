@@ -1,50 +1,86 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_Workflows_gql_WorkflowPackagesQueryVariables = Types.Exact<{
-  buckets: ReadonlyArray<Types.Scalars['String']>
+export interface DatetimeSearchPredicate {
+  readonly gte: Date | null | undefined
+  readonly lte: Date | null | undefined
+}
+
+export interface KeywordSearchPredicate {
+  readonly terms: Array<string> | null | undefined
+  readonly wildcard: string | null | undefined
+}
+
+export interface NumberSearchPredicate {
+  readonly gte: number | null | undefined
+  readonly lte: number | null | undefined
+}
+
+export interface PackagesSearchFilter {
+  readonly comment: TextSearchPredicate | null | undefined
+  readonly entries: NumberSearchPredicate | null | undefined
+  readonly hash: KeywordSearchPredicate | null | undefined
+  readonly modified: DatetimeSearchPredicate | null | undefined
+  readonly name: KeywordSearchPredicate | null | undefined
+  readonly size: NumberSearchPredicate | null | undefined
+  readonly workflow: KeywordSearchPredicate | null | undefined
+}
+
+export interface TextSearchPredicate {
+  readonly queryString: string
+}
+
+export type containers_Bucket_Workflows_gql_WorkflowPackagesQueryVariables = Exact<{
+  buckets: ReadonlyArray<string>
   filter: Types.PackagesSearchFilter
 }>
 
-export type containers_Bucket_Workflows_gql_WorkflowPackagesQuery = {
+export interface containers_Bucket_Workflows_gql_WorkflowPackagesQuery {
   readonly __typename: 'Query'
-} & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
-        Types.PackagesSearchResultSet,
-        'total'
-      > & {
-          readonly firstPage: { readonly __typename: 'PackagesSearchResultSetPage' } & {
-            readonly hits: ReadonlyArray<
-              { readonly __typename: 'SearchHitPackage' } & Pick<
-                Types.SearchHitPackage,
-                | 'id'
-                | 'bucket'
-                | 'size'
-                | 'modified'
-                | 'name'
-                | 'hash'
-                | 'comment'
-                | 'meta'
-                | 'workflow'
-              >
-            >
-          }
-        })
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message' | 'context'
-      >)
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
+    | {
+        readonly __typename: 'PackagesSearchResultSet'
+        readonly total: number
+        readonly firstPage: {
+          readonly __typename: 'PackagesSearchResultSetPage'
+          readonly hits: ReadonlyArray<{
+            readonly __typename: 'SearchHitPackage'
+            readonly id: string
+            readonly bucket: string
+            readonly size: number
+            readonly modified: Date
+            readonly name: string
+            readonly hash: string
+            readonly comment: string | null
+            readonly meta: string | null
+            readonly workflow: JsonRecord | null
+          }>
+        }
+      }
 }
 
 export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {

@@ -1,32 +1,38 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../model/graphql/types.generated'
 
-export type utils_BucketsQueryVariables = Types.Exact<{
-  includeCollaborators?: Types.Scalars['Boolean']
+export type BucketPermissionLevel = 'READ' | 'READ_WRITE'
+
+export type utils_BucketsQueryVariables = Exact<{
+  includeCollaborators?: boolean
 }>
 
-export type utils_BucketsQuery = { readonly __typename: 'Query' } & {
-  readonly buckets: ReadonlyArray<
-    { readonly __typename: 'Bucket' } & Pick<
-      Types.Bucket,
-      'name' | 'title' | 'iconUrl' | 'description' | 'tags' | 'relevanceScore'
-    > & {
-        readonly collaborators?: Types.Maybe<
-          ReadonlyArray<
-            { readonly __typename: 'CollaboratorBucketConnection' } & Pick<
-              Types.CollaboratorBucketConnection,
-              'permissionLevel'
-            > & {
-                readonly collaborator: { readonly __typename: 'Collaborator' } & Pick<
-                  Types.Collaborator,
-                  'email' | 'username'
-                >
-              }
-          >
-        >
+export interface utils_BucketsQuery {
+  readonly __typename: 'Query'
+  readonly buckets: ReadonlyArray<{
+    readonly __typename: 'Bucket'
+    readonly name: string
+    readonly title: string
+    readonly iconUrl: string | null
+    readonly description: string | null
+    readonly tags: ReadonlyArray<string> | null
+    readonly relevanceScore: number
+    readonly collaborators?: ReadonlyArray<{
+      readonly __typename: 'CollaboratorBucketConnection'
+      readonly permissionLevel: Types.BucketPermissionLevel
+      readonly collaborator: {
+        readonly __typename: 'Collaborator'
+        readonly email: string
+        readonly username: string
       }
-  >
+    }>
+  }>
 }
 
 export const utils_BucketsDocument = {

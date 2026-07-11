@@ -566,15 +566,35 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
   )
 }
 
+interface SummaryWithSource {
+  entries: SummarizeFile[]
+  fromQuiltSummarize: boolean
+}
+
 interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
+  // When true, only user-authored quilt_summarize.json layouts are rendered;
+  // auto-discovered file previews (the fallback) render nothing. Omit to keep
+  // the legacy behavior of also showing auto-discovered previews.
+  quiltSummarizeOnly?: boolean
 }
 
-export function SummaryRoot({ s3, bucket, inStack }: SummaryRootProps) {
+export function SummaryRoot({
+  s3,
+  bucket,
+  inStack,
+  quiltSummarizeOnly = false,
+}: SummaryRootProps) {
   const req = APIConnector.use()
-  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack })
+  const data = useData(requests.bucketSummary, {
+    req,
+    s3,
+    bucket,
+    inStack,
+    withSource: quiltSummarizeOnly,
+  })
   return (
     <FileThemeContext.Provider value={FileThemes.Overview}>
       {data.case({
@@ -585,7 +605,14 @@ export function SummaryRoot({ s3, bucket, inStack }: SummaryRootProps) {
           console.error(e)
           return null
         },
-        Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} />,
+        Ok: (result: SummarizeFile[] | SummaryWithSource) => {
+          if (!quiltSummarizeOnly) {
+            return <SummaryEntries entries={result as SummarizeFile[]} s3={s3} />
+          }
+          const { entries, fromQuiltSummarize } = result as SummaryWithSource
+          if (!fromQuiltSummarize) return null
+          return <SummaryEntries entries={entries} s3={s3} />
+        },
         Pending: () => <FilePreviewSkel />,
         _: () => null,
       })}

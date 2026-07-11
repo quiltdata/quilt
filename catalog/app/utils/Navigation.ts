@@ -45,8 +45,16 @@ export const PathParams = S.Record({
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type PathParams = typeof PathParams.Type
 
-export const fromPathParams = <T extends typeof PathParams.Type>(schema: S.Schema<T>) =>
+export const fromPathParams = <
+  A extends typeof PathParams.Type,
+  I extends typeof PathParams.Type,
+>(
+  schema: S.Schema<A, I>,
+) =>
   S.transformOrFail(PathParams, schema, {
+    // non-strict: decoded params may be branded/refined subtypes of the raw
+    // string-record encoding (e.g. S3Path), so the identity encode widens.
+    strict: false,
     encode: (toI) => Eff.Effect.succeed(toI),
     decode: (fromA, _parseOptions, ast) =>
       Eff.pipe(
