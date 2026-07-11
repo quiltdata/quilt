@@ -15,9 +15,9 @@ configured to call your stack's unique webhook (see Installation, below).
 
 ## Availability
 
-It is available in the Quilt Platform (1.65 or later; Referenced Entities
-require 1.70.0 or later) or as a standalone CDK stack via the
-`@quiltdata/benchling-webhook`
+It is available in the Quilt Platform (1.65 or later; Referenced Entities and
+bucketless deployments require 1.70.0 or later) or as a standalone CDK stack via
+the `@quiltdata/benchling-webhook`
 [npm package](https://www.npmjs.com/package/@quiltdata/benchling-webhook).
 
 ## Functionality
@@ -45,6 +45,29 @@ automatically:
   package.
 - **Enables organizational data discovery** by making contents available in
   ElasticSearch, and metadata available in Amazon Athena.
+
+### Bucketless Deployments
+
+[Auto-Packaging](#auto-packaging) writes each entry's package to a configured
+**package bucket**. That bucket is now **optional** — you can run the webhook
+without one. This suits organizations that link Benchling entries to Quilt
+packages spread across many buckets rather than a single dedicated one.
+
+When no package bucket is configured:
+
+- **Setup omits the bucket.** The configuration wizard and secret creation no
+  longer require a package bucket, so you can stand up the integration without
+  dedicating one.
+- **No default package is auto-created.** Entry and canvas events skip per-entry
+  package creation and instead surface the Quilt packages that already reference
+  the entry.
+- **Discovery spans every bucket.** Linked-package search runs across all Quilt
+  package-view buckets in the stack (via Amazon Athena) instead of a single
+  bucket, and the source bucket is preserved when you browse a linked package's
+  files or metadata from a Benchling canvas.
+
+> **Note:** Requires Quilt Platform 1.70.0 or later (or standalone
+> benchling-webhook v0.19.0 or later).
 
 ### Referenced Entities
 
