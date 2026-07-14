@@ -22,14 +22,14 @@ function useBlob(blob) {
   return url
 }
 
-async function loadBlob({ sign, handle, page, firstPageBlob, type }) {
-  if (page === 1) return firstPageBlob
+async function loadBlob({ signRef, handle, page, type, firstPageBlobRef }) {
+  if (page === 1) return firstPageBlobRef.current
   try {
-    const url = sign(handle)
+    const url = signRef.current(handle)
     const search = mkSearch({
       url,
       input: type,
-      size: 'w1024h768',
+      size: 'w2048h1536',
       page,
     })
     const r = await fetch(`${cfg.apiGatewayEndpoint}/thumbnail${search}`)
@@ -109,7 +109,12 @@ function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   const [page, setPage] = React.useState(1)
   const [pageValue, setPageValue] = React.useState(page)
 
-  const data = Data.use(loadBlob, { sign, handle, page, firstPageBlob, type })
+  const signRef = React.useRef(sign)
+  signRef.current = sign
+  const firstPageBlobRef = React.useRef(firstPageBlob)
+  firstPageBlobRef.current = firstPageBlob
+
+  const data = Data.use(loadBlob, { signRef, handle, page, type, firstPageBlobRef })
 
   const [blob, setBlob] = React.useState(firstPageBlob)
 
