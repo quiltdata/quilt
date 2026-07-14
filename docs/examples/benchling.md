@@ -16,7 +16,7 @@ configured to call your stack's unique webhook (see Installation, below).
 ## Availability
 
 It is available in the Quilt Platform (1.65 or later; Referenced Entities and
-bucketless deployments require 1.70.0 or later) or as a standalone CDK stack via
+bucketless deployments require 1.71.0 or later) or as a standalone CDK stack via
 the `@quiltdata/benchling-webhook`
 [npm package](https://www.npmjs.com/package/@quiltdata/benchling-webhook).
 
@@ -66,7 +66,7 @@ When no package bucket is configured:
   bucket, and the source bucket is preserved when you browse a linked package's
   files or metadata from a Benchling canvas.
 
-> **Note:** Requires Quilt Platform 1.70.0 or later (or standalone
+> **Note:** Requires Quilt Platform 1.71.0 or later (or standalone
 > benchling-webhook v0.19.0 or later).
 
 ### Referenced Entities
@@ -104,7 +104,7 @@ its name (e.g. `QB-2743.1`); matches are scoped to `links.name`.
 The raw discovery is also written to a `links.json` file in each package for
 auditing and reprocessing.
 
-> **Note:** This requires Quilt Platform 1.70.0 or later (or standalone
+> **Note:** This requires Quilt Platform 1.71.0 or later (or standalone
 > benchling-webhook v0.18.0 or later). It is distinct from the manual
 > [Package Linking](#package-linking) below, which tags packages by
 > `experiment_id`.
