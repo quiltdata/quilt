@@ -29,6 +29,12 @@ objects or inline content, and patch existing packages by adding,
 updating, or removing entries — all without leaving the conversation.
 Workflows and user metadata are supported on create and update.
 
+When you try to create a package that already exists, the assistant will not
+silently replace it: `package_create` refuses and points you to `package_patch`
+for incremental changes, and requires `overwrite=true` to replace the package
+outright. An overwrite reports an added / removed / kept entry diff against the
+previous revision.
+
 ### S3 Objects
 
 List, read, inspect, download, and upload S3 objects. The assistant can
@@ -80,6 +86,7 @@ assistants additional context about your environment:
 The Platform MCP Server works with any MCP-compatible AI client, including:
 
 - **Claude.ai** (web)
+- **Claude Code** (CLI)
 - **Cursor** (desktop)
 - **ChatGPT** (web)
 - **Databricks** (web)
