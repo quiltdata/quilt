@@ -15,6 +15,16 @@ Quilt can display any plaintext file format, including the following.
   (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
+### Markdown rendering
+
+> Changed in Quilt Platform version 1.70
+
+Markdown file previews (.md) render using standard
+[GitHub-Flavored Markdown](https://github.github.com/gfm/) (GFM), a superset
+of [CommonMark](https://commonmark.org/). Idiosyncratic
+Pandoc/PHP-Markdown-Extra shortcuts are no longer supported; author Markdown
+against the CommonMark + GFM spec for consistent rendering.
+
 ## Chemical structures
 
 The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl)
