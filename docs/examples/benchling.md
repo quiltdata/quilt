@@ -126,15 +126,6 @@ From inside the Quilt Catalog:
    value.
 5. Set the commit message and click 'Save'
 
-### Searching by Referenced Entities
-
-Each auto-created entry package also records the Benchling objects that the
-notebook entry references — registry items such as plasmids and samples linked
-from the entry. Because those objects' human-readable names are indexed, you can
-find every entry that references a given object: searching the catalog for a
-plasmid's name such as `QB-2743.1`, for example, surfaces every experiment that
-references it.
-
 ### Benchling App Canvas
 
 ![App Canvas - Home](../imgs/benchling-canvas.png)
