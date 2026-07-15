@@ -6,7 +6,6 @@ const path = require('path')
 
 const PerspectivePlugin = require('@finos/perspective-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
 
@@ -21,8 +20,6 @@ module.exports = (options) => ({
   mode: options.mode,
   entry: options.entry || {
     app: path.join(process.cwd(), 'app/app'), // Start with app/app.js
-    embed: path.join(process.cwd(), 'app/embed'),
-    'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
   },
   output: {
     // Compile into js/build.js
@@ -45,7 +42,7 @@ module.exports = (options) => ({
         use: {
           loader: 'ts-loader',
           options: {
-            // disable type checking - we use ForkTsCheckerWebpackPlugin for that
+            // disable type checking - the standalone `npm run typecheck` (tsc) is the type gate
             transpileOnly: true,
           },
         },
@@ -123,20 +120,6 @@ module.exports = (options) => ({
       template: 'app/index.html',
       inject: true,
     }),
-    new HtmlWebpackPlugin({
-      chunks: ['embed'],
-      template: 'app/embed/index.html',
-      filename: 'embed.html',
-      inject: true,
-    }),
-    new HtmlWebpackPlugin({
-      chunks: ['embed-debug-harness'],
-      template: 'app/embed/debug-harness.html',
-      filename: 'embed-debug-harness.html',
-      inject: true,
-    }),
-
-    new ForkTsCheckerWebpackPlugin(),
 
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({

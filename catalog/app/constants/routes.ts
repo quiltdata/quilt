@@ -3,10 +3,6 @@ import { encode } from 'utils/s3paths'
 
 const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
-// TODO: make sure types explicitly divide codebase into
-//       main catalog and embed,
-//       so catalog routes aren't called in embed
-
 export type Route<Path extends string, Args extends any[]> = {
   path: Path
   url: (...args: Args) => string
@@ -124,15 +120,15 @@ export const bucketDir = route(
 export type BucketDirArgs = Parameters<typeof bucketDir.url>
 
 interface BucketPackageListOpts {
-  filter?: string
-  sort?: string
-  p?: string
+  // KeywordWildcard value for the search model's `name` filter (e.g. `foo/` →
+  // matches the `foo/*` prefix). Must stay in sync with PackagesSearchFilterIO.
+  name?: string
 }
 
 export const bucketPackageList = route(
   '/b/:bucket/packages/',
-  (bucket: string, { filter, sort, p }: BucketPackageListOpts = {}) =>
-    `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
+  (bucket: string, { name }: BucketPackageListOpts = {}) =>
+    `/b/${bucket}/packages/${mkSearch({ name })}`,
 )
 export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
@@ -214,7 +210,9 @@ export type BucketESQueriesArgs = Parameters<typeof bucketESQueries.url>
 
 export const bucketAthena = route(
   '/b/:bucket/queries/athena',
-  (bucket: string) => `/b/${bucket}/queries/athena`,
+  // `table` deep-links a Tabulator table to autofill the query editor.
+  (bucket: string, { table }: { table?: string } = {}) =>
+    `/b/${bucket}/queries/athena${mkSearch({ table })}`,
 )
 
 export const bucketAthenaWorkgroup = route(

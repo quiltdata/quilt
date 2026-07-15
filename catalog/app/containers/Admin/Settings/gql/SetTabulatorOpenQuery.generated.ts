@@ -1,19 +1,24 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Settings_gql_SetTabulatorOpenQueryMutationVariables =
-  Types.Exact<{
-    enabled: Types.Scalars['Boolean']
-  }>
+export type containers_Admin_Settings_gql_SetTabulatorOpenQueryMutationVariables = Exact<{
+  enabled: boolean
+}>
 
-export type containers_Admin_Settings_gql_SetTabulatorOpenQueryMutation = {
+export interface containers_Admin_Settings_gql_SetTabulatorOpenQueryMutation {
   readonly __typename: 'Mutation'
-} & {
-  readonly admin: { readonly __typename: 'AdminMutations' } & {
+  readonly admin: {
+    readonly __typename: 'AdminMutations'
     readonly setTabulatorOpenQuery: {
       readonly __typename: 'TabulatorOpenQueryResult'
-    } & Pick<Types.TabulatorOpenQueryResult, 'tabulatorOpenQuery'>
+      readonly tabulatorOpenQuery: boolean
+    }
   }
 }
 

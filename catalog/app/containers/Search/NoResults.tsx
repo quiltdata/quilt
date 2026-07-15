@@ -3,7 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Empty from 'components/Empty'
-import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
@@ -12,6 +11,10 @@ import assertNever from 'utils/assertNever'
 import * as Hit from './List/Hit'
 import { Table as TableSkeleton } from './Table/Skeleton'
 import * as SearchUIModel from './model'
+
+const ES_V = '6.8'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}`
+const ES_REF_SYNTAX = `${ES_REF}/query-dsl-query-string-query.html#query-string-syntax`
 
 interface SkeletonProps {
   className?: string
@@ -208,7 +211,9 @@ export function Error({
             Oops, couldn&apos;t parse that search.
             <br />
             Try quoting{' '}
-            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Search)}>
+              your query
+            </StyledLink> or
             read about{' '}
             <StyledLink href={ES_REF_SYNTAX} target="_blank">
               supported query syntax
@@ -221,7 +226,9 @@ export function Error({
           <>
             Oops, the search cluster seems stressed.
             <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Network)}>
+              Try again
+            </StyledLink> or
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
@@ -231,7 +238,9 @@ export function Error({
           <>
             Oops, something went wrong.
             <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Network)}>
+              Try again
+            </StyledLink> or
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>

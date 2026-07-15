@@ -29,6 +29,12 @@ objects or inline content, and patch existing packages by adding,
 updating, or removing entries — all without leaving the conversation.
 Workflows and user metadata are supported on create and update.
 
+When you try to create a package that already exists, the assistant will not
+silently replace it: `package_create` refuses and points you to `package_patch`
+for incremental changes, and requires `overwrite=true` to replace the package
+outright. An overwrite reports an added / removed / kept entry diff against the
+previous revision.
+
 ### S3 Objects
 
 List, read, inspect, download, and upload S3 objects. The assistant can
@@ -80,10 +86,12 @@ assistants additional context about your environment:
 The Platform MCP Server works with any MCP-compatible AI client, including:
 
 - **Claude.ai** (web)
+- **Claude Code** (CLI)
 - **Cursor** (desktop)
-- **ChatGPT** (web, Developer mode)
-- **Databricks** (Catalog HTTP connection)
-- **Codex** (desktop)
+- **ChatGPT** (web)
+- **Databricks** (web)
+- **Benchling AI** (web)
+- **OpenAI Codex** (desktop/IDE)
 - **Any client** supporting the [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Connecting Claude.ai
@@ -114,6 +122,8 @@ Add the following to your MCP client configuration
 
 ### Connecting ChatGPT
 
+> Requires Quilt **1.70 or later**.
+
 In ChatGPT, go to **Settings -> Apps -> Create app** (Developer mode
 required). Set:
 
@@ -127,6 +137,8 @@ Leave the OAuth endpoint fields on their auto-discovered values.
 [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
 
 ### Connecting Databricks
+
+> Requires Quilt **1.70 or later**.
 
 In the Databricks Catalog **HTTP connection** UI, fill in:
 
@@ -179,18 +191,59 @@ already emits the `:443`-explicit metadata Databricks requires — see
 > and
 > [managing serverless network policies](https://docs.databricks.com/aws/en/security/network/serverless-network-security/manage-network-policies).
 
-### Connecting Codex
+### Connecting Benchling AI
 
-Codex connects to the Platform MCP server over its local loopback callback,
-so no additional `ConnectAllowedHosts` entry is required provided `localhost`
-is included in `ConnectAllowedHosts` (which enables both
-`http://localhost:<port>` and `http://127.0.0.1:<port>`). Point Codex at:
+Benchling AI's [AI Connectors](https://help.benchling.com/hc/en-us/articles/42715696739341-Configure-AI-Connectors-for-Benchling-AI)
+let Chat and Deep Research query external MCP servers — including the
+Quilt Platform MCP Server — so scientists can reach Quilt data without
+leaving Benchling. Chat or Deep Research must be enabled on your tenant.
+
+A Benchling **tenant admin** adds Quilt as a Custom AI Connector:
+
+1. Go to **Tenant admin console -> Settings -> AI Connectors**
+2. Click **Add AI Connector**
+3. Complete the configuration:
+   - **Name:** `Quilt` (this is what users see)
+   - **Server:** `https://<connect-host>/mcp/platform/mcp`
+   - **Type:** `HTTP`
+4. Review the tools exposed by the server and select which ones users may
+   access (at least one must be enabled)
+5. Click **Save**
+
+Each Benchling user then enables the connector once:
+
+1. In the navigation bar, click **AI**, then the **Settings** icon
+2. Open the **AI Connectors** tab and click **Connect** next to Quilt
+3. Complete the Quilt OAuth flow in the window that opens (see
+   [User Authorization](#user-authorization) below)
+4. Return to Benchling to finalize the connector
+
+> Benchling completes its OAuth handshake from
+> `https://<tenant>.benchling.com/...`, so `.benchling.com` must be in
+> `ConnectAllowedHosts` (see
+> [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+
+### Connecting OpenAI Codex
+
+> Requires Quilt **1.70 or later**.
+
+In the [Codex](https://developers.openai.com/codex/) desktop app or IDE
+extension, open **Settings -> MCP servers -> + Add server**, choose
+**Streamable HTTP**, and enter the URL:
 
 ```text
 https://<connect-host>/mcp/platform/mcp
 ```
 
-The OAuth flow starts automatically the first time Codex connects.
+Leave **Bearer token env var**, **Headers**, and **Headers from environment
+variables** blank to use OAuth, then **Save** and **Authenticate**.
+
+You can also configure it via the `codex mcp add` CLI or by editing
+`~/.codex/config.toml` directly; see
+[Codex MCP configuration](https://developers.openai.com/codex/mcp).
+
+Codex starts the OAuth flow on first connect and opens a browser to the
+Quilt authorization page.
 
 ### User Authorization
 

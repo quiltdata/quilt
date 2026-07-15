@@ -14,7 +14,8 @@ Amazon Athena or external data warehouses that support Iceberg
 ## Tables
 
 For each bucket registered with Quilt, four per-bucket tables are maintained in
-the Iceberg Glue database (the `IcebergDatabase` resource in your stack):
+the Iceberg Glue database, whose name is exposed as the `IcebergDatabaseName`
+output in your CloudFormation stack:
 
 - `{bucket}_package_revision` — package revisions with timestamps
 - `{bucket}_package_tag` — named package tags (currently only `latest`)
@@ -40,6 +41,12 @@ have stack-wide access by design.
 > grants, Lake Formation denies the stack and per-bucket Iceberg access (among
 > other things) breaks. Leave the parameter off only on accounts that do not
 > enforce Lake Formation.
+
+## Finding the tables in the Queries tab
+
+As of Quilt Platform 1.71.0, managed users can select the Iceberg package-index
+database directly from the **Database** dropdown in the catalog's **Queries**
+tab, instead of typing its fully-qualified name.
 
 ## Example: Get entries and metadata for the latest version of a package
 
