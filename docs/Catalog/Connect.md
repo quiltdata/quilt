@@ -72,6 +72,14 @@ If your DNS is hosted elsewhere, create a `CNAME` record pointing to the
 [Installation CNAMEs section](Installation.md#cnames) for the equivalent
 catalog DNS records.
 
+> **ALB scheme (internal vs. internet-facing).** As of Quilt 1.71, the Connect
+> ALB follows the same scheme as the main catalog load balancer. On an
+> internet-facing stack the Connect endpoint is reachable from the public
+> internet; on an internal stack it is internal — reachable only from within
+> your VPC or over your VPN, like the catalog itself. On internal stacks,
+> local or desktop MCP clients (Cursor, Claude Code, etc.) must therefore run
+> on a network with access to the Connect host.
+
 > **TLS certificate:** by default (`CertificateArnConnect` empty) the Connect
 > ALB reuses the main stack certificate (`CertificateArnELB`), which must then
 > cover the Connect host (the `ConnectHost` output) — via an explicit Subject

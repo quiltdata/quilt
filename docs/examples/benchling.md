@@ -126,6 +126,15 @@ From inside the Quilt Catalog:
    value.
 5. Set the commit message and click 'Save'
 
+### Searching by Referenced Entities
+
+Each auto-created entry package also records the Benchling objects that the
+notebook entry references — registry items such as plasmids and samples linked
+from the entry. Because those objects' human-readable names are indexed, you can
+find every entry that references a given object: searching the catalog for a
+plasmid's name such as `QB-2743.1`, for example, surfaces every experiment that
+references it.
+
 ### Benchling App Canvas
 
 ![App Canvas - Home](../imgs/benchling-canvas.png)
@@ -242,3 +251,18 @@ In Benchling:
 A Quilt package will be automatically created and linked to your notebook
 entry.
 If you run into problems, contact [Quilt Support](mailto:support@quilt.bio)
+
+## Package Bucket (Optional)
+
+As of Quilt Platform 1.71.0, a dedicated Benchling package bucket is optional.
+
+- **With a dedicated bucket**, Benchling entry packages live in that bucket (the
+  traditional setup).
+- **Without one**, linked-package search on entry canvases spans all of your
+  package-view buckets via a single Iceberg query.
+
+When no dedicated bucket is configured, the Benchling task role is wired for
+cross-bucket, Iceberg-backed search: it receives a `QUILT_ICEBERG_DATABASE`
+environment variable, read-only Glue and S3 permissions, and a Lake Formation
+grant on the Iceberg database. Stack admins auditing IAM or Lake Formation
+permissions should expect these grants.
