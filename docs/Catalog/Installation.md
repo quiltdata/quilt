@@ -297,13 +297,6 @@ An upgrade to the 2.0 network, unlike routine Quilt upgrades, requires you to cr
 a new stack with a new load balancer. You must therefore also update your
 [DNS records](#dns-records) to point to the new load balancer.
 
-> **In-place migration (Quilt 1.71+).** For eligible stacks, Quilt now also
-> offers an _in-place_ network 1.0 → 2.0 migration that upgrades your existing
-> stack — with no new stack, no load-balancer or DNS change, and no search
-> reindexing. It is an operator-guided procedure; contact your Quilt account
-> manager to confirm eligibility and obtain the migration runbook. The
-> new-stack path described below remains available as an alternative.
-
 ## Create a new stack with an existing configuration
 
 Terraform users can create a new Quilt stack with the same configuration as an existing
