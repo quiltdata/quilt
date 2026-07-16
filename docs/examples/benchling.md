@@ -242,18 +242,3 @@ In Benchling:
 A Quilt package will be automatically created and linked to your notebook
 entry.
 If you run into problems, contact [Quilt Support](mailto:support@quilt.bio)
-
-## Package Bucket (Optional)
-
-As of Quilt Platform 1.71.0, a dedicated Benchling package bucket is optional.
-
-- **With a dedicated bucket**, Benchling entry packages live in that bucket (the
-  traditional setup).
-- **Without one**, linked-package search on entry canvases spans all of your
-  package-view buckets via a single Iceberg query.
-
-When no dedicated bucket is configured, the Benchling task role is wired for
-cross-bucket, Iceberg-backed search: it receives a `QUILT_ICEBERG_DATABASE`
-environment variable, read-only Glue and S3 permissions, and a Lake Formation
-grant on the Iceberg database. Stack admins auditing IAM or Lake Formation
-permissions should expect these grants.
