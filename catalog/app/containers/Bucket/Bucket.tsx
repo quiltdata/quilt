@@ -57,7 +57,7 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
           </M.AppBar>
           <Container>
             {bucketExistenceData.case({
-              Ok: () => children,
+              Ok: () => <>{children}</>,
               Err: displayError(),
               _: () => <SuspensePlaceholder />,
             })}

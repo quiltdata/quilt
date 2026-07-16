@@ -1,0 +1,11 @@
+query ($name: String!) {
+  bucketVersioningStatus(name: $name) {
+    __typename
+    ... on BucketVersioningStatus {
+      state
+    }
+    ... on OperationError {
+      message
+    }
+  }
+}

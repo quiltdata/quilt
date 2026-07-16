@@ -319,6 +319,21 @@ export interface BucketUpdateSuccess {
   readonly bucketConfig: BucketConfig
 }
 
+export enum BucketVersioningState {
+  ACCESS_DENIED = 'ACCESS_DENIED',
+  ENABLED = 'ENABLED',
+  NOT_FOUND = 'NOT_FOUND',
+  SUSPENDED = 'SUSPENDED',
+  UNVERSIONED = 'UNVERSIONED',
+}
+
+export interface BucketVersioningStatus {
+  readonly __typename: 'BucketVersioningStatus'
+  readonly state: BucketVersioningState
+}
+
+export type BucketVersioningStatusResult = BucketVersioningStatus | OperationError
+
 export interface Canary {
   readonly __typename: 'Canary'
   readonly description: Scalars['String']['output']
@@ -1047,6 +1062,7 @@ export interface Query {
   readonly bucketAccessCounts: Maybe<BucketAccessCounts>
   readonly bucketConfig: Maybe<BucketConfig>
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
+  readonly bucketVersioningStatus: BucketVersioningStatusResult
   readonly buckets: ReadonlyArray<Bucket>
   readonly config: Config
   readonly defaultRole: Maybe<Role>
@@ -1077,6 +1093,10 @@ export interface QuerybucketAccessCountsArgs {
 }
 
 export interface QuerybucketConfigArgs {
+  name: Scalars['String']['input']
+}
+
+export interface QuerybucketVersioningStatusArgs {
   name: Scalars['String']['input']
 }
 

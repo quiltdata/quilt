@@ -1421,6 +1421,38 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'BucketVersioningStatus',
+        fields: [
+          {
+            name: 'state',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'BucketVersioningStatusResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BucketVersioningStatus',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Canary',
         fields: [
           {
@@ -4945,6 +4977,30 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'bucketVersioningStatus',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketVersioningStatusResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
           },
           {
             name: 'buckets',

@@ -194,6 +194,20 @@ type Bucket {
   collaborators: [CollaboratorBucketConnection!]!
 }
 
+enum BucketVersioningState {
+  ENABLED
+  SUSPENDED
+  UNVERSIONED
+  NOT_FOUND
+  ACCESS_DENIED
+}
+
+type BucketVersioningStatus {
+  state: BucketVersioningState!
+}
+
+union BucketVersioningStatusResult = BucketVersioningStatus | OperationError
+
 # XXX: consider unifying ManagedRole and UnmanagedRole
 type UnmanagedRole {
   id: ID!
@@ -649,6 +663,7 @@ type Query {
   bucketConfig(name: String!): BucketConfig
   buckets: [Bucket!]!
   bucket(name: String!): Bucket
+  bucketVersioningStatus(name: String!): BucketVersioningStatusResult!
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
