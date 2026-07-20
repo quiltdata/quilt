@@ -7,6 +7,14 @@ enabling users to run SQL queries directly on the contents of Quilt packages.
 You can even use named capture groups to extract additional columns from
 the logical key and package name.
 
+> **Faster, cheaper as of Quilt Platform version 1.70.** Tabulator now
+> resolves the packages it needs from the per-bucket
+> [Iceberg package index](iceberg-tables.md) instead of doing a full S3 scan
+> through Glue/Athena SerDe tables on every call. Queries are cheaper and
+> faster end-to-end. Permissions are unchanged: each caller queries under
+> their own bucket-scoped credentials, and existing role and bucket
+> permissions apply automatically.
+
 The configuration is written in YAML and managed using the
 `quilt3.admin.tabulator`
 [APIs](../api-reference/Admin.md#quilt3.admin.tabulator) or via the
@@ -147,25 +155,28 @@ the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
 SELECT * FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
 ```
 
-You can join this with any other Athena table, including the package and
-object tables automatically created by Quilt. For example, this is the package
-table:
+You can join this with the per-bucket
+[Iceberg package tables](iceberg-tables.md) that Quilt maintains
+automatically. (As of Quilt Platform version 1.70 these per-bucket Iceberg
+tables replace the previous global `*_packages-view` tables, which have been
+removed.) For example, `udp-spec_package_manifest` holds package-level
+metadata keyed by `top_hash`. These tables live in the Iceberg Glue database
+(the `IcebergDatabase` resource in your stack), which is a different database
+from the Tabulator one used above, so qualify them with that database name —
+e.g. `"<IcebergDatabase>"."udp-spec_package_manifest"` — when joining across
+the two.
 
-```sql
-SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-LIMIT 10
-```
-
-We can then join on `PKG_NAME` to add the `user_meta` field from the package
-metadata to the tabulated results:
+Tabulator exposes the revision of each row's package as the `$top_hash`
+column, so you can join on it to add package-level `metadata` to the
+tabulated results:
 
 ```sql
 SELECT
   "ccle_tsv".*,
-  "udp-spec_packages-view".user_meta
+  m.metadata
 FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
-JOIN "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-ON "ccle_tsv".pkg_name = "udp-spec_packages-view".pkg_name
+JOIN "<IcebergDatabase>"."udp-spec_package_manifest" m
+  ON "ccle_tsv"."$top_hash" = m.top_hash
 ```
 
 ### From Outside the Quilt Catalog

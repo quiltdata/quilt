@@ -15,8 +15,9 @@ configured to call your stack's unique webhook (see Installation, below).
 
 ## Availability
 
-It is available in the Quilt Platform (1.65 or later) or as a standalone CDK
-stack via the `@quiltdata/benchling-webhook`
+It is available in the Quilt Platform (1.65 or later; Referenced Entities and
+bucketless deployments require 1.71.0 or later) or as a standalone CDK stack via
+the `@quiltdata/benchling-webhook`
 [npm package](https://www.npmjs.com/package/@quiltdata/benchling-webhook).
 
 ## Functionality
@@ -36,12 +37,77 @@ automatically:
   - `display_id` (e.g. `"EXP0000XXXXXX"`)
   - `entry_id` (e.g. `"etr_XXXXXX"`)
   - `files` (list)
+  - `links` (list of referenced Benchling objects — see
+    [Referenced Entities](#referenced-entities))
   - `modified_at` (ISO timestamp)
   - `web_url` (URL string)
 - **Copies attachments** from that notebook into Amazon S3 as part of the
   package.
 - **Enables organizational data discovery** by making contents available in
   ElasticSearch, and metadata available in Amazon Athena.
+
+### Bucketless Deployments
+
+[Auto-Packaging](#auto-packaging) writes each entry's package to a configured
+**package bucket**. That bucket is now **optional** — you can run the webhook
+without one. This suits organizations that link Benchling entries to Quilt
+packages spread across many buckets rather than a single dedicated one.
+
+When no package bucket is configured:
+
+- **Setup omits the bucket.** The configuration wizard and secret creation no
+  longer require a package bucket, so you can stand up the integration without
+  dedicating one.
+- **No default package is auto-created.** Entry and canvas events skip per-entry
+  package creation and instead surface the Quilt packages that already reference
+  the entry.
+- **Discovery spans every bucket.** Linked-package search runs across all Quilt
+  package-view buckets in the stack (via Amazon Athena) instead of a single
+  bucket, and the source bucket is preserved when you browse a linked package's
+  files or metadata from a Benchling canvas.
+
+> **Note:** Requires Quilt Platform 1.71.0 or later (or standalone
+> benchling-webhook v0.19.0 or later).
+
+### Referenced Entities
+
+When packaging a notebook entry, the webhook also discovers the Benchling
+objects that entry references — custom entities, sequences, results tables,
+and so on — and makes them **searchable by their human-readable name**. This
+answers questions like *"show me every experiment that referenced QB-2743.1."*
+
+The package metadata gains a `links` array, one object per referenced entity,
+each with four fields:
+
+```json
+[
+  {
+    "type": "custom_entity",
+    "id": "bfi_xCUXNVyG",
+    "name": "QB-2743.1",
+    "slug": "qb-2743-1"
+  }
+]
+```
+
+- **`type`** and **`id`** identify the referenced object.
+- **`name`** is the authoritative Benchling display name, resolved via the
+  Benchling API. It is the field you search on. It is `null` when the app
+  lacks registry access for that object or the object type is unsupported.
+- **`slug`** is a lossy token parsed from the object's URL, shown for
+  reference only — it is **never** treated as a name or matched by name
+  search.
+
+To find packages that reference a given entity, search the Quilt Catalog for
+its name (e.g. `QB-2743.1`); matches are scoped to `links.name`.
+
+The raw discovery is also written to a `links.json` file in each package for
+auditing and reprocessing.
+
+> **Note:** This requires Quilt Platform 1.71.0 or later (or standalone
+> benchling-webhook v0.18.0 or later). It is distinct from the manual
+> [Package Linking](#package-linking) below, which tags packages by
+> `experiment_id`.
 
 ### Package Linking
 

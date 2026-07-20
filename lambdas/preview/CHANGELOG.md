@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Close the streaming HTTP response via a context manager so its socket is released deterministically ([#5121](https://github.com/quiltdata/quilt/pull/5121))
 - [Changed] Switch to uv ([#4650](https://github.com/quiltdata/quilt/pull/4650))
 - [Changed] Upgrade to Python 3.13 ([#4650](https://github.com/quiltdata/quilt/pull/4650))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))

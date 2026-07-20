@@ -15,6 +15,16 @@ Quilt can display any plaintext file format, including the following.
   (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
+### Markdown rendering
+
+> Changed in Quilt Platform version 1.70
+
+Markdown file previews (.md) render using standard
+[GitHub-Flavored Markdown](https://github.github.com/gfm/) (GFM), a superset
+of [CommonMark](https://commonmark.org/). Idiosyncratic
+Pandoc/PHP-Markdown-Extra shortcuts are no longer supported; author Markdown
+against the CommonMark + GFM spec for consistent rendering.
+
 ## Chemical structures
 
 The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl)
@@ -37,7 +47,8 @@ to automatically generate thumbnail previews of common image formats
 and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg,
 .png, .webp, .tif, .tiff (including `OME-TIFF`), and .czi.
 
-8-bit, 16-bit, and floating-point pixel data are all supported. Quilt
+8-bit, 16-bit, 32/64-bit integer (signed or unsigned), and floating-point
+pixel data are all supported. Quilt
 reduces multi-dimensional microscopy images to a single 2D preview:
 channels are laid out as a grid of per-channel previews, Z-stacks are
 flattened with a maximum-intensity projection, and time-series show their
@@ -62,8 +73,6 @@ files) are already display-ready and are shown unchanged.
 
 ### Limitations
 
-* Integer images deeper than 16 bits may render incorrectly or fail to
-  preview.
 * Very large images may fail to preview if they exceed memory or pixel
   limits.
 
