@@ -21,8 +21,9 @@ $ npm start
 
 ## Design context
 
-UI work is governed by [PRODUCT.md](./PRODUCT.md) (who the catalog serves, positioning,
-anti-references) and [DESIGN.md](./DESIGN.md) (the visual-system contract: tokens + doctrine).
+UI work is governed by [PRODUCT.md](./PRODUCT.md) (who the catalog serves,
+positioning, anti-references) and [DESIGN.md](./DESIGN.md) (the visual-system
+contract: tokens + doctrine).
 
 ## Notes
 
