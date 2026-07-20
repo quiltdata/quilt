@@ -14,3 +14,6 @@ npm-debug.log
 .idea
 .firebase*
 firebase-debug.log
+
+# impeccable live-mode session state (local, not source)
+.impeccable/live/sessions/
