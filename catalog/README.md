@@ -19,6 +19,11 @@ $ vi static-dev/config.js
 $ npm start
 ```
 
+## Design context
+
+UI work is governed by [PRODUCT.md](./PRODUCT.md) (who the catalog serves, positioning,
+anti-references) and [DESIGN.md](./DESIGN.md) (the visual-system contract: tokens + doctrine).
+
 ## Notes
 
 - don't be surprised if react-boilerplate code and doc gets way ahead of our repo;

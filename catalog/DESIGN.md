@@ -2,6 +2,7 @@
 name: Quilt Catalog
 description: The web catalog of the Quilt platform — versioned scientific data, browsable in place on the customer's own S3.
 colors:
+  primary: "#282b50"
   indigo-chassis: "#282b50"
   indigo-chassis-deep: "#1d2146"
   amber-indicator: "#fb8c00"
@@ -71,7 +72,7 @@ components:
   button-primary-hover:
     backgroundColor: "{colors.indigo-chassis-deep}"
   button-outlined:
-    backgroundColor: "transparent"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.indigo-chassis}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
@@ -123,7 +124,7 @@ separate dark marketing set that stays out of the app.
 ### Primary
 - **Deep Indigo Chassis** (#282b50): the app's structural chrome — app bar, primary buttons,
   active-state fills, links in their strongest form. This is the color that says "Quilt" inside
-  the product.
+  the product. (`primary` is its role alias for role-keyed consumers; same value, one color.)
 - **Indigo Chassis Deep** (#1d2146): the pressed/hover depth of the chassis; never a surface of
   its own.
 
