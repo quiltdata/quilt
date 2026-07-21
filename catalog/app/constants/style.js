@@ -58,39 +58,6 @@ const appTypography = {
   ...baseTypography,
 }
 
-const websiteTypography = {
-  ...baseTypography,
-  h1: {
-    fontSize: '3rem',
-    lineHeight: '3.5rem',
-  },
-  h2: {
-    fontSize: '2.25rem',
-    lineHeight: 44 / 36,
-  },
-  h3: {
-    fontSize: '1.75rem',
-    lineHeight: 32 / 28,
-  },
-  h4: {
-    fontSize: '1.25rem',
-    lineHeight: 1.4,
-  },
-  h5: {
-    fontSize: '1rem',
-    lineHeight: 1.5,
-  },
-  body1: {
-    lineHeight: 2,
-  },
-  body2: {
-    lineHeight: 2,
-  },
-  button: {
-    fontWeight: defaultTheme.typography.fontWeightRegular,
-  },
-}
-
 const tooltipOverrides = {
   MuiTooltip: {
     tooltip: {
@@ -152,14 +119,6 @@ export const navTheme = createMuiTheme({
   mixins,
 })
 
-// theme used for "website" pages
-export const websiteTheme = createMuiTheme({
-  palette: websitePalette,
-  typography: websiteTypography,
-  overrides: { ...tooltipOverrides, ...websiteOverrides },
-  mixins,
-})
-
 export const createCustomAppTheme = (
   { palette, typography, mixins: mxs, ...rest },
   ...args
@@ -176,5 +135,5 @@ export const createCustomAppTheme = (
 
 // expose themes for development purposes
 if (process.env.NODE_ENV === 'development') {
-  window.THEMES = { appTheme, navTheme, websiteTheme }
+  window.THEMES = { appTheme, navTheme }
 }

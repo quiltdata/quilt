@@ -94,7 +94,7 @@ vi.mock('website/components/BucketGrid/BucketList', () => ({
 function renderBuckets() {
   return render(
     <MemoryRouter>
-      <M.MuiThemeProvider theme={style.websiteTheme}>
+      <M.MuiThemeProvider theme={style.appTheme}>
         <Buckets />
       </M.MuiThemeProvider>
     </MemoryRouter>,
