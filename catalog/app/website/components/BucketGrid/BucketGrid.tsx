@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -15,30 +14,18 @@ import Collaborators from './Collaborators'
 const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   bucket: {
     animation: '$slideUp 0.3s ease',
-    background: 'linear-gradient(to top, #1f2151, #2f306e)',
-    borderRadius: t.spacing(2),
-    boxShadow: '0px 16px 40px rgba(0, 0, 0, 0.2)',
     display: 'flex',
     flexDirection: 'column',
-    padding: t.spacing(4),
-    position: 'relative',
-    overflow: 'hidden',
+    // Fill the grid cell so cards in the same row are equal height.
+    height: '100%',
+    // Floor every card to a uniform height so grid rows stay uniform instead of
+    // ragged; the flexGrow spacer below absorbs the slack when content is shorter.
+    minHeight: t.spacing(26),
   },
-  header: {
-    alignItems: 'flex-start',
-    display: 'flex',
-  },
-  headerText: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    minWidth: 0,
-  },
-  icon: {
-    display: 'flex',
-    flexShrink: 0,
-    marginRight: t.spacing(2),
-    marginTop: t.spacing(1),
+  // Keep the collaborators badge within the header padding (drop CardHeader's
+  // default negative margins).
+  action: {
+    margin: 0,
   },
   title: {
     ...t.typography.h6,
@@ -47,53 +34,30 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   name: {
     ...t.typography.body1,
     color: t.palette.text.hint,
+    display: 'block',
     lineHeight: t.typography.pxToRem(24),
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   desc: {
     ...t.typography.body2,
     WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 3,
+    WebkitLineClamp: 2,
     color: t.palette.text.secondary,
     display: '-webkit-box',
     lineHeight: t.typography.pxToRem(24),
-    marginBottom: t.spacing(4),
-    marginTop: t.spacing(3),
-    maxHeight: t.typography.pxToRem(24 * 3),
+    margin: 0,
+    maxHeight: t.typography.pxToRem(24 * 2),
     overflow: 'hidden',
     overflowWrap: 'break-word',
     textOverflow: 'ellipsis',
   },
   tags: {
-    marginRight: t.spacing(-1),
-  },
-  active: {},
-  matching: {},
-  shared: {
-    marginLeft: t.spacing(1),
-  },
-  tag: {
-    ...t.typography.body2,
-    background: fade(t.palette.secondary.main, 0.3),
-    border: 'none',
-    borderRadius: 2,
-    color: t.palette.text.primary,
-    display: 'inline-block',
-    lineHeight: t.typography.pxToRem(28),
-    marginRight: t.spacing(1),
-    marginTop: t.spacing(1),
-    outline: 'none',
-    paddingBottom: 0,
-    paddingLeft: t.spacing(1),
-    paddingRight: t.spacing(1),
-    paddingTop: 0,
-    '&$active': {
-      cursor: 'pointer',
-    },
-    '&$matching': {
-      background: t.palette.secondary.main,
-    },
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+    padding: t.spacing(0, 2, 2),
   },
   '@keyframes slideUp': {
     '0%': {
@@ -107,7 +71,7 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
   },
 }))
 
-interface Bucket {
+export interface Bucket {
   name: string
   title: string
   iconUrl: string | null
@@ -127,24 +91,25 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
   const { urls } = NamedRoutes.use()
 
   return (
-    <div
+    <M.Card
       className={classes.bucket}
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}
     >
-      <div className={classes.header}>
-        <Link
-          aria-hidden="true"
-          className={classes.icon}
-          tabIndex={-1}
-          to={urls.bucketRoot(bucket.name)}
-        >
-          <BucketIcon src={bucket.iconUrl} />
-        </Link>
-        <div className={classes.headerText}>
+      <M.CardHeader
+        classes={{ action: classes.action }}
+        disableTypography
+        avatar={
+          <Link aria-hidden="true" tabIndex={-1} to={urls.bucketRoot(bucket.name)}>
+            <BucketIcon src={bucket.iconUrl} />
+          </Link>
+        }
+        title={
           <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
             {bucket.title}
           </Link>
+        }
+        subheader={
           <Link
             className={classes.name}
             to={urls.bucketRoot(bucket.name)}
@@ -152,54 +117,41 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
           >
             s3://{bucket.name}
           </Link>
-        </div>
-        {cfg.mode === 'PRODUCT' && (
-          <div className={classes.shared}>
+        }
+        action={
+          cfg.mode === 'PRODUCT' ? (
             <Collaborators
               bucket={bucket.name}
               collaborators={bucket.collaborators ?? null}
             />
-          </div>
-        )}
-      </div>
-      {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
+          ) : undefined
+        }
+      />
+      {!!bucket.description && (
+        <M.CardContent>
+          <p className={classes.desc}>{bucket.description}</p>
+        </M.CardContent>
+      )}
       <M.Box flexGrow={1} />
       {!!bucket.tags && !!bucket.tags.length && (
         <div className={classes.tags}>
           {bucket.tags.map((t) => (
-            <button
+            <M.Chip
               key={t}
-              className={cx(
-                classes.tag,
-                tagIsMatching(t) && classes.matching,
-                !!onTagClick && classes.active,
-              )}
-              type="button"
-              onClick={() => onTagClick?.(t)}
-            >
-              {t}
-            </button>
+              label={t}
+              size="small"
+              clickable={!!onTagClick}
+              color={tagIsMatching(t) ? 'primary' : 'default'}
+              onClick={onTagClick ? () => onTagClick(t) : undefined}
+            />
           ))}
         </div>
       )}
-    </div>
+    </M.Card>
   )
 }
 
 const useStyles = M.makeStyles((t: WebsiteTheme) => ({
-  root: {
-    display: 'grid',
-    gridColumnGap: t.spacing(4),
-    gridRowGap: t.spacing(4),
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gridAutoRows: `minmax(${t.spacing(25)}px, auto)`,
-    [t.breakpoints.down('sm')]: {
-      gridTemplateColumns: '1fr 1fr',
-    },
-    [t.breakpoints.down('xs')]: {
-      gridTemplateColumns: 'auto',
-    },
-  },
   add: {
     alignItems: 'center',
     border: '2px dashed #2f306e',
@@ -207,7 +159,10 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
     color: t.palette.tertiary.main,
     cursor: 'pointer',
     display: 'flex',
+    height: '100%',
     justifyContent: 'center',
+    // Match the card floor so the Add tile's row lines up with the rest.
+    minHeight: t.spacing(26),
     '&:hover': {
       background: fade(t.palette.tertiary.main, 0.04),
     },
@@ -232,20 +187,19 @@ export default React.forwardRef<HTMLDivElement, BucketGridProps>(function Bucket
   const { urls } = NamedRoutes.use()
 
   return (
-    <div className={classes.root} ref={ref}>
+    <M.Grid container spacing={2} ref={ref}>
       {buckets.map((b) => (
-        <BucketCard
-          bucket={b}
-          key={b.name}
-          onTagClick={onTagClick}
-          tagIsMatching={tagIsMatching}
-        />
+        <M.Grid item xs={12} sm={6} md={4} lg={3} key={b.name}>
+          <BucketCard bucket={b} onTagClick={onTagClick} tagIsMatching={tagIsMatching} />
+        </M.Grid>
       ))}
       {showAddLink && (
-        <Link className={classes.add} to={urls.adminBuckets({ add: true })}>
-          <M.Icon>add</M.Icon>
-        </Link>
+        <M.Grid item xs={12} sm={6} md={4} lg={3}>
+          <Link className={classes.add} to={urls.adminBuckets({ add: true })}>
+            <M.Icon>add</M.Icon>
+          </Link>
+        </M.Grid>
       )}
-    </div>
+    </M.Grid>
   )
 })

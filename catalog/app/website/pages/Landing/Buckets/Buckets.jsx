@@ -3,9 +3,10 @@ import * as React from 'react'
 import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
+import * as Icons from '@material-ui/icons'
+import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
-import cfg from 'constants/config'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -13,42 +14,66 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
+import BucketList from 'website/components/BucketGrid/BucketList'
 
 import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
-const PER_PAGE = 9
+const PER_PAGE = 15
 
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
   return GQL.fold(data, {
-    data: ({ me: { isAdmin } }) => isAdmin,
+    // 'me' is null when signed out (this landing is reachable anonymously in
+    // OPEN mode) — treat that as "not an admin" rather than crashing.
+    data: ({ me }) => !!me?.isAdmin,
     fetching: R.F,
     error: R.F,
   })
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'relative',
-  },
   container: {
     paddingBottom: t.spacing(5),
-    paddingTop: t.spacing(8),
-    position: 'relative',
-    zIndex: 1,
+    paddingTop: t.spacing(3),
+  },
+  wrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(3),
+  },
+  filterRow: {
+    alignItems: 'center',
+    display: 'flex',
+    // Let the view toggle (and tag shortcuts) wrap below the filter input
+    // at narrow widths instead of overflowing and clipping the toggle labels.
+    flexWrap: 'wrap',
+    gap: t.spacing(2),
+    [t.breakpoints.down('xs')]: {
+      alignItems: 'flex-start',
+      flexDirection: 'column',
+    },
   },
   filter: {
-    marginBottom: t.spacing(5),
+    flexShrink: 0,
+    marginBottom: 0,
     marginTop: 0,
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
   },
-  backlight: {
-    bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
-    opacity: 0.5,
+  viewToggle: {
+    flexShrink: 0,
+  },
+  tags: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+  },
+  tagsLabel: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
   },
   controls: {
     display: 'flex',
@@ -60,21 +85,21 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   pgBtn: {
-    background: fade(t.palette.secondary.main, 0),
-    border: `1px solid ${t.palette.secondary.main}`,
-    color: t.palette.secondary.main,
+    background: fade(t.palette.primary.main, 0),
+    border: `1px solid ${t.palette.primary.main}`,
+    color: t.palette.primary.main,
     '&:hover': {
-      background: fade(t.palette.secondary.main, t.palette.action.hoverOpacity),
+      background: fade(t.palette.primary.main, t.palette.action.hoverOpacity),
     },
     '&:not(:last-child)': {
       borderRight: 'none',
     },
   },
   pgCurrent: {
-    color: t.palette.text.primary,
-    background: t.palette.secondary.main,
+    color: t.palette.primary.contrastText,
+    background: t.palette.primary.main,
     '&:hover': {
-      background: t.palette.secondary.main,
+      background: t.palette.primary.main,
     },
   },
 }))
@@ -89,7 +114,8 @@ export default function Buckets() {
   const scrollRef = React.useRef(null)
 
   const location = useLocation()
-  const { q: filter = '' } = parseSearch(location.search)
+  // 'view' rides beside 'q': absent = 'list' (dense rows), 'card' switches to a grid.
+  const { q: filter = '', view: viewMode = 'list' } = parseSearch(location.search)
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],
@@ -97,16 +123,22 @@ export default function Buckets() {
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
 
+  const allTags = React.useMemo(
+    () =>
+      R.pipe(
+        R.chain((b) => b.tags || []),
+        R.uniq,
+        R.sortBy(R.toLower),
+      )(buckets),
+    [buckets],
+  )
+
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
     const matches = R.allPass(R.map(R.includes, terms))
-    return buckets.filter(
-      R.pipe(
-        (b) => [b.title, b.name, b.description, ...(b.tags || [])],
-        R.filter(Boolean),
-        R.map(R.toLower),
-        R.any(matches),
-      ),
+    const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
+    return buckets.filter((b) =>
+      anyFieldMatches([b.title, b.name, b.description, ...(b.tags || [])]),
     )
   }, [terms, buckets])
 
@@ -114,7 +146,7 @@ export default function Buckets() {
 
   const paginated = React.useMemo(
     () =>
-      pages === 1 ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
+      pages <= 1 ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
     [filtered, pages, page],
   )
 
@@ -136,93 +168,142 @@ export default function Buckets() {
     // TODO: handle route change
     //       and implement BucketGrid tag as <Link />
     if (filtering.value !== filter) {
-      history.push(urls.home({ q: filtering.value }))
+      history.push({
+        search: NamedRoutes.mkSearch({
+          q: filtering.value || undefined,
+          view: viewMode === 'list' ? undefined : viewMode,
+        }),
+      })
     }
-  }, [history, filtering.value, filter, urls])
+  }, [history, filtering.value, filter, viewMode])
 
   const clearFilter = React.useCallback(() => {
     filtering.set()
   }, [filtering])
 
+  const changeView = React.useCallback(
+    (_e, value) => {
+      // exclusive ToggleButtonGroup emits null when the active button is clicked again
+      if (!value) return
+      history.push({
+        search: NamedRoutes.mkSearch({
+          q: filter || undefined,
+          view: value === 'list' ? undefined : value,
+        }),
+      })
+    },
+    [history, filter],
+  )
+
   const isAdmin = useIsAdmin()
 
+  // The in-list 'Add a bucket' row; the standalone button below is hidden
+  // whenever it shows so the two add affordances don't both appear.
+  const showAddLink = !filter && buckets.length <= PER_PAGE - 1 && isAdmin
+
   return (
-    <div className={classes.root}>
-      <Backlight className={classes.backlight} />
-      <M.Container maxWidth="lg" className={classes.container}>
-        <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
-        <M.Typography variant="h1" color="textPrimary">
-          Explore your buckets
+    <M.Container maxWidth={false} disableGutters className={classes.container}>
+      <div className={classes.wrapper} ref={scrollRef}>
+        <M.Typography variant="h3" color="textPrimary">
+          Explore your volumes
         </M.Typography>
-        <M.Box mt={4} />
-        <M.TextField
-          className={classes.filter}
-          placeholder="Find a bucket"
-          variant="outlined"
-          margin="dense"
-          fullWidth
-          InputProps={{
-            startAdornment: (
-              <M.InputAdornment position="start">
-                <M.Icon>search</M.Icon>
-              </M.InputAdornment>
-            ),
-            endAdornment: filter ? (
-              <M.InputAdornment position="end">
-                <M.IconButton edge="end" onClick={clearFilter}>
-                  <M.Icon>clear</M.Icon>
-                </M.IconButton>
-              </M.InputAdornment>
-            ) : undefined,
-          }}
-          {...filtering.input}
-        />
-        {paginated.length || !filter ? (
-          <BucketGrid
-            buckets={paginated}
-            onTagClick={filtering.set}
-            tagIsMatching={tagIsMatching}
-            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
+        <div className={classes.filterRow}>
+          <M.TextField
+            className={classes.filter}
+            placeholder="Filter volumes"
+            variant="outlined"
+            margin="dense"
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <M.InputAdornment position="start">
+                  <M.Icon>search</M.Icon>
+                </M.InputAdornment>
+              ),
+              endAdornment: filter ? (
+                <M.InputAdornment position="end">
+                  <M.IconButton edge="end" onClick={clearFilter}>
+                    <M.Icon>clear</M.Icon>
+                  </M.IconButton>
+                </M.InputAdornment>
+              ) : undefined,
+            }}
+            {...filtering.input}
           />
+          <Lab.ToggleButtonGroup
+            className={classes.viewToggle}
+            value={viewMode}
+            exclusive
+            size="small"
+            onChange={changeView}
+          >
+            <Lab.ToggleButton value="card">
+              <Icons.GridOn />
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="list">
+              <Icons.List />
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
+          {!!allTags.length && (
+            <div className={classes.tags}>
+              <span className={classes.tagsLabel}>or use shortcuts:</span>
+              {allTags.map((t) => (
+                <M.Chip
+                  key={t}
+                  label={t}
+                  size="small"
+                  clickable
+                  color={tagIsMatching(t) ? 'primary' : 'default'}
+                  onClick={() => filtering.set(t)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        {filtered.length || !filter ? (
+          viewMode === 'card' ? (
+            <BucketGrid
+              buckets={paginated}
+              onTagClick={filtering.set}
+              tagIsMatching={tagIsMatching}
+              showAddLink={showAddLink}
+            />
+          ) : (
+            <BucketList
+              buckets={paginated}
+              onTagClick={filtering.set}
+              tagIsMatching={tagIsMatching}
+              showAddLink={showAddLink}
+            />
+          )
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets matching <b>&quot;{filter}&quot;</b>
+            No volumes matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
-          <M.Box mt={2}>
-            {buckets.length > 2 && isAdmin && (
-              <M.Box mt={2} mr={2} display="inline-block">
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  component={Link}
-                  to={urls.adminBuckets({ add: true })}
-                >
-                  Add Bucket
-                </M.Button>
-              </M.Box>
-            )}
-            <M.Box mt={2} display="inline-block">
+          <M.Box>
+            {buckets.length > 2 && isAdmin && !showAddLink && (
               <M.Button
                 variant="contained"
-                color="secondary"
-                href="https://open.quiltdata.com/"
+                color="primary"
+                component={Link}
+                to={urls.adminBuckets({ add: true })}
               >
-                Browse Example Buckets
+                Add Bucket
               </M.Button>
-            </M.Box>
+            )}
           </M.Box>
           {pages > 1 && (
             <Pagination
               {...{ pages, page, onChange: setPage }}
-              mt={4}
+              mt={0}
               mb={0}
               classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
             />
           )}
         </div>
-      </M.Container>
-    </div>
+      </div>
+    </M.Container>
   )
 }

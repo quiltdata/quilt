@@ -753,9 +753,18 @@ interface FooterProps {
   locked?: boolean
   loadMore?: () => void
   items: Item[]
+  // Suppress the aggregate size cell for listings whose items carry no size
+  // (it would otherwise total to a misleading "0 B").
+  hideSize?: boolean
 }
 
-function Footer({ truncated = false, locked = false, loadMore, items }: FooterProps) {
+function Footer({
+  truncated = false,
+  locked = false,
+  loadMore,
+  items,
+  hideSize = false,
+}: FooterProps) {
   const { state } = DG.useGridSlotComponentProps()
   const classes = useFooterStyles()
 
@@ -834,10 +843,12 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
           )}
         </div>
         <div className={classes.spacer} />
-        <div className={classes.cellSecond}>
-          {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
-          {readableBytes(stats.size, truncated ? '+' : '')}
-        </div>
+        {!hideSize && (
+          <div className={classes.cellSecond}>
+            {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
+            {readableBytes(stats.size, truncated ? '+' : '')}
+          </div>
+        )}
         {modified && (
           <div className={classes.cellLast}>
             {truncated ? '~' : ''}
@@ -1046,6 +1057,9 @@ interface ListingProps {
   className?: string
   dataGridProps?: Partial<DG.DataGridProps>
   onReload: () => void
+  // Omit the size column and the footer size total (for listings whose items
+  // carry no size, where it would read as a misleading "0 B").
+  hideSize?: boolean
 }
 
 export function Listing({
@@ -1062,6 +1076,7 @@ export function Listing({
   className,
   dataGridProps,
   onReload,
+  hideSize = false,
 }: ListingProps) {
   const classes = useStyles()
   const t = M.useTheme()
@@ -1147,7 +1162,7 @@ export function Listing({
         },
       },
     ]
-    if (items.some(({ size }) => size != null)) {
+    if (!hideSize && items.some(({ size }) => size != null)) {
       columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
@@ -1219,7 +1234,7 @@ export function Listing({
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm, prefs, onReload])
+  }, [classes, CellComponent, items, sm, prefs, onReload, hideSize])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
@@ -1253,7 +1268,7 @@ export function Listing({
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
           toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
-          footer: { truncated, locked, loadMore, items },
+          footer: { truncated, locked, loadMore, items, hideSize },
         }}
         getRowId={(row) => row.name.replaceAll("'", "\\'")}
         pagination

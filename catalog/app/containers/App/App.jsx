@@ -12,6 +12,8 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 
+import { BucketQueriesRedirect } from './queryRedirects'
+
 const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 function RedirectTo({ path }) {
@@ -59,6 +61,9 @@ const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+// The query consoles always required an authenticated actor, so gate on auth
+// regardless of the app-level protect mode.
+const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -155,6 +160,14 @@ export default function App() {
 
       <Route path={paths.bucketSearch} exact>
         <BucketSearchRedirect />
+      </Route>
+
+      <Route path={paths.queries}>
+        <Queries />
+      </Route>
+
+      <Route path={paths.bucketQueries}>
+        <BucketQueriesRedirect />
       </Route>
 
       <Route path={paths.bucketRoot}>

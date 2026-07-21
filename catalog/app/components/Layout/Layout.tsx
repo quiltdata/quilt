@@ -1,13 +1,16 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
-import * as Bookmarks from 'containers/Bookmarks'
+import cfg from 'constants/config'
 import * as NavBar from 'containers/NavBar'
+import { Sidebar } from 'containers/Sidebar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as Container from './Container'
+import { ContentBar } from './ContentBar'
 
 const useRootStyles = M.makeStyles({
   root: {
@@ -35,30 +38,80 @@ export function Root({ dark = false, ...props }: RootProps) {
   )
 }
 
+const useShellStyles = M.makeStyles((t) => ({
+  shell: {
+    display: 'flex',
+    height: '100vh',
+    overflowX: 'hidden',
+    position: 'relative',
+  },
+  // `.main` is the scroll container; the sticky ContentBar pins to its top.
+  main: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minWidth: 0,
+    overflowY: 'auto',
+  },
+  // Single source of horizontal inset for everything in `.main` (search bar and
+  // page content alike). Skipped for full-bleed pages via the `flush` prop.
+  padded: {
+    paddingLeft: t.spacing(3),
+    paddingRight: t.spacing(3),
+  },
+}))
+
 export interface LayoutProps {
   bare?: boolean
   dark?: boolean
+  flush?: boolean
   children?: React.ReactNode
   pre?: React.ReactNode
 }
 
-export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
+export function Layout({
+  bare = false,
+  dark = false,
+  flush = false,
+  children,
+  pre,
+}: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
-  const bucketRoute = useRouteMatch(paths.bucketRoot)
-  const { bucket } = (bucketRoute?.params as { bucket?: string }) || {}
-  const bookmarks = Bookmarks.use()
+  const classes = useShellStyles()
+
+  // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
+  if (bare) {
+    return (
+      <Root dark={dark}>
+        <Container.FullWidthProvider>
+          <NavBar.Container />
+          {!!pre && pre}
+          {!!children && <M.Box p={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+        </Container.FullWidthProvider>
+      </Root>
+    )
+  }
+
+  // The sidebar rails run full height on the left; the main column has a search
+  // bar (ContentBar) on top and the scrolling page content beneath.
   return (
-    <Root dark={dark}>
-      <Container.FullWidthProvider>
-        {bare ? <NavBar.Container /> : <NavBar.NavBar />}
-        {!!pre && pre}
-        {!!children && <M.Box p={4}>{children}</M.Box>}
-        <M.Box flexGrow={1} />
-        {isHomepage?.isExact && <Footer />}
-        {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
-      </Container.FullWidthProvider>
-    </Root>
+    <M.Box
+      className={classes.shell}
+      bgcolor={dark ? 'primary.main' : 'background.default'}
+    >
+      <Sidebar />
+      <M.Box component="main" className={cx(classes.main, !flush && classes.padded)}>
+        <ContentBar />
+        <Container.FullWidthProvider>
+          {!!pre && pre}
+          {!!children && <M.Box py={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+          {isHomepage?.isExact && cfg.mode !== 'PRODUCT' && <Footer />}
+        </Container.FullWidthProvider>
+      </M.Box>
+    </M.Box>
   )
 }
 
