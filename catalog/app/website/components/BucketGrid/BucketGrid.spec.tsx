@@ -43,7 +43,7 @@ const bucket = {
 
 function renderGrid(buckets: Buckets) {
   return render(
-    <M.MuiThemeProvider theme={style.websiteTheme}>
+    <M.MuiThemeProvider theme={style.appTheme}>
       <BucketGrid buckets={buckets} />
     </M.MuiThemeProvider>,
   )
