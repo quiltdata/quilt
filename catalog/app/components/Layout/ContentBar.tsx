@@ -1,11 +1,14 @@
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Suggestions from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
 import * as style from 'constants/style'
+import * as URLS from 'constants/urls'
 import * as SearchUIModel from 'containers/Search/model'
 import * as Buckets from 'utils/Buckets'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 const useStyles = M.makeStyles((t) => ({
   appBar: {
@@ -33,6 +36,11 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(0.5),
     width: '100%',
   },
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: 'auto',
+  },
 }))
 
 // The pseudo-header: a global search bar with suggestions (scoped to the current
@@ -41,6 +49,7 @@ const useStyles = M.makeStyles((t) => ({
 // -- the page mounts no query field of its own.
 export function ContentBar() {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   const bucket = Buckets.useCurrentBucket()
   // Non-null only on the search page, where the model is provided above the Layout.
   const searchModel = SearchUIModel.useUnsafe()
@@ -93,6 +102,18 @@ export function ContentBar() {
                 />
               </div>
             </M.Popper>
+          </div>
+          <div className={classes.actions}>
+            <M.Tooltip title="Resolve a Quilt URI">
+              <M.IconButton component={Link} to={urls.uriResolver('')}>
+                <M.Icon className="material-icons-outlined">link</M.Icon>
+              </M.IconButton>
+            </M.Tooltip>
+            <M.Tooltip title="Documentation">
+              <M.IconButton component="a" href={URLS.docs} target="_blank" rel="noopener">
+                <M.Icon className="material-icons-outlined">menu_book</M.Icon>
+              </M.IconButton>
+            </M.Tooltip>
           </div>
         </M.Toolbar>
       </M.AppBar>
