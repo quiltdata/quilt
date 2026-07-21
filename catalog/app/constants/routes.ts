@@ -68,6 +68,35 @@ export const search = route(
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 )
 
+// Data products (workspace-global, un-bucketed virtual-bucket browse)
+export const dataProduct = route(
+  '/data-products/:id',
+  (id: string) => `/data-products/${id}`,
+)
+
+export const dataProductObjects = route(
+  '/data-products/:id/objects/:path(.*)?',
+  // encode the logical key per segment (like dataProductPackage / bucketFile),
+  // so a key containing url-significant chars (#, %, ?) can't break the URL;
+  // the consumer (DataProduct ObjectsTab) decodes it back symmetrically.
+  (id: string, path = '') => `/data-products/${id}/objects/${encode(path)}`,
+)
+
+export const dataProductPackages = route(
+  '/data-products/:id/packages',
+  (id: string) => `/data-products/${id}/packages`,
+)
+
+// DP-local package drill-in: carries the virtual package name (encoded into a
+// single segment so an author-chosen name containing slashes stays one param)
+// plus the inner manifest path after `/tree/`, so a package's contents are
+// browsed entirely within the DP — never a jump to `/b/<bucket>/…`.
+export const dataProductPackage = route(
+  '/data-products/:id/packages/:pkg/tree/:path(.*)?',
+  (id: string, pkg: string, path = '') =>
+    `/data-products/${id}/packages/${encodeURIComponent(pkg)}/tree/${encode(path)}`,
+)
+
 // Queries (workspace-global query consoles; the bucket is a parameter of the
 // console, never part of the mount point)
 export const queries = route('/queries')

@@ -30,6 +30,7 @@ export class UnsupportedLogoTypeError extends Error {
 
 export interface CatalogSettings {
   beta?: boolean
+  dataProducts?: boolean
   customNavLink?: {
     url: string
     label: string

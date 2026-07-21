@@ -1,0 +1,55 @@
+query ($id: ID!) {
+  dataProduct(id: $id) {
+    id
+    name
+    title
+    description
+    createdAt
+    ownerRole {
+      __typename
+      ... on ManagedRole {
+        id
+        name
+      }
+      ... on UnmanagedRole {
+        id
+        name
+      }
+    }
+    members {
+      objects {
+        logicalKey
+        bucket
+        key
+        versionId
+      }
+      packages {
+        virtualName
+        bucket
+        name
+        hashOrTag
+        # Revision-level stats for the listing. `revision` cannot take the
+        # member's own pin (no per-list-item arguments in GraphQL), so it
+        # dereferences the default "latest" — the client only trusts it when
+        # the member is unpinned or its pin matches this revision's hash.
+        package {
+          modified
+          revisions {
+            total
+          }
+          revision {
+            hash
+            modified
+            message
+            totalEntries
+            totalBytes
+            userMeta
+            workflow {
+              id
+            }
+          }
+        }
+      }
+    }
+  }
+}

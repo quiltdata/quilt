@@ -51,6 +51,20 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
     marginLeft: t.spacing(2),
     maxWidth: '40%',
   },
+  // Right-hand column of a data product row: type chip + counts,
+  // occupying the slot where bucket rows show tags/collaborators.
+  dpMeta: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    gap: t.spacing(0.5),
+    marginLeft: t.spacing(2),
+  },
+  dpCounts: {
+    ...t.typography.caption,
+    color: t.palette.text.hint,
+  },
 }))
 
 interface BucketRowProps {
@@ -117,15 +131,81 @@ function BucketRow({ bucket, divider, onTagClick, tagIsMatching }: BucketRowProp
   )
 }
 
+export interface DataProductItem {
+  id: string
+  name: string
+  title: string | null
+  description: string | null
+  objectCount: number
+  packageCount: number
+}
+
+interface DataProductRowProps {
+  dp: DataProductItem
+  divider: boolean
+}
+
+// A data product row wearing the same ListItem markup as BucketRow:
+// links go to the DP's virtual-bucket browse, never to a physical bucket.
+function DataProductRow({ dp, divider }: DataProductRowProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const to = urls.dataProduct(dp.id)
+
+  return (
+    <M.ListItem
+      className={classes.row}
+      divider={divider}
+      data-testid="bucket-grid--data-product"
+      data-data-product={dp.name}
+    >
+      <M.ListItemAvatar className={classes.avatar}>
+        <Link aria-hidden="true" tabIndex={-1} to={to}>
+          <M.Avatar>
+            <M.Icon>view_module</M.Icon>
+          </M.Avatar>
+        </Link>
+      </M.ListItemAvatar>
+      <M.ListItemText
+        primary={
+          <span className={classes.heading}>
+            <Link className={classes.title} to={to}>
+              {dp.title || dp.name}
+            </Link>
+            <Link className={classes.name} to={to} title={dp.name}>
+              {dp.name}
+            </Link>
+          </span>
+        }
+        secondary={dp.description || null}
+        secondaryTypographyProps={{ noWrap: true }}
+      />
+      <div className={classes.dpMeta}>
+        <M.Chip label="Data product" size="small" />
+        <span className={classes.dpCounts}>
+          {dp.packageCount} packages &middot; {dp.objectCount} objects
+        </span>
+      </div>
+    </M.ListItem>
+  )
+}
+
 interface BucketListProps {
   buckets: ReadonlyArray<Bucket>
+  dataProducts?: ReadonlyArray<DataProductItem>
   onTagClick?: (tag: string) => void
   tagIsMatching?: (tag: string) => boolean
   showAddLink?: boolean
 }
 
 export default React.forwardRef<HTMLDivElement, BucketListProps>(function BucketList(
-  { buckets, onTagClick, tagIsMatching = () => false, showAddLink = false },
+  {
+    buckets,
+    dataProducts = [],
+    onTagClick,
+    tagIsMatching = () => false,
+    showAddLink = false,
+  },
   ref,
 ) {
   const { urls } = NamedRoutes.use()
@@ -133,6 +213,13 @@ export default React.forwardRef<HTMLDivElement, BucketListProps>(function Bucket
   return (
     <M.Paper ref={ref}>
       <M.List disablePadding>
+        {dataProducts.map((dp, i) => (
+          <DataProductRow
+            key={dp.id}
+            dp={dp}
+            divider={showAddLink || !!buckets.length || i < dataProducts.length - 1}
+          />
+        ))}
         {buckets.map((b, i) => (
           <BucketRow
             key={b.name}

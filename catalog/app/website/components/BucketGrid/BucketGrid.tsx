@@ -18,8 +18,9 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
     flexDirection: 'column',
     // Fill the grid cell so cards in the same row are equal height.
     height: '100%',
-    // Floor every card to a uniform height so grid rows stay uniform instead of
-    // ragged; the flexGrow spacer below absorbs the slack when content is shorter.
+    // Floor every variant to the tallest regular one (the DP card: description
+    // + chip + counts) so grid rows stay uniform instead of ragged; the
+    // flexGrow spacer below absorbs the slack when content is shorter.
     minHeight: t.spacing(26),
   },
   // Keep the collaborators badge within the header padding (drop CardHeader's
@@ -58,6 +59,18 @@ const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
     flexWrap: 'wrap',
     gap: t.spacing(0.5),
     padding: t.spacing(0, 2, 2),
+  },
+  // Footer of a data product card: type chip + counts, occupying the slot
+  // where bucket cards show tags.
+  dpMeta: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: t.spacing(0, 2, 2),
+  },
+  dpCounts: {
+    ...t.typography.caption,
+    color: t.palette.text.hint,
   },
   '@keyframes slideUp': {
     '0%': {
@@ -151,6 +164,68 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
   )
 }
 
+export interface DataProductItem {
+  id: string
+  name: string
+  title: string | null
+  description: string | null
+  objectCount: number
+  packageCount: number
+}
+
+interface DataProductCardProps {
+  dp: DataProductItem
+}
+
+// A data product card wearing the same M.Card markup as BucketCard: links go
+// to the DP's virtual-bucket browse, never to a physical bucket.
+function DataProductCard({ dp }: DataProductCardProps) {
+  const classes = useBucketStyles()
+  const { urls } = NamedRoutes.use()
+  const to = urls.dataProduct(dp.id)
+
+  return (
+    <M.Card
+      className={classes.bucket}
+      data-testid="bucket-grid--data-product"
+      data-data-product={dp.name}
+    >
+      <M.CardHeader
+        disableTypography
+        avatar={
+          <Link aria-hidden="true" tabIndex={-1} to={to}>
+            <M.Avatar>
+              <M.Icon>view_module</M.Icon>
+            </M.Avatar>
+          </Link>
+        }
+        title={
+          <Link className={classes.title} to={to}>
+            {dp.title || dp.name}
+          </Link>
+        }
+        subheader={
+          <Link className={classes.name} to={to} title={dp.name}>
+            {dp.name}
+          </Link>
+        }
+      />
+      {!!dp.description && (
+        <M.CardContent>
+          <p className={classes.desc}>{dp.description}</p>
+        </M.CardContent>
+      )}
+      <M.Box flexGrow={1} />
+      <div className={classes.dpMeta}>
+        <M.Chip label="Data product" size="small" />
+        <span className={classes.dpCounts}>
+          {dp.packageCount} packages &middot; {dp.objectCount} objects
+        </span>
+      </div>
+    </M.Card>
+  )
+}
+
 const useStyles = M.makeStyles((t: WebsiteTheme) => ({
   add: {
     alignItems: 'center',
@@ -174,13 +249,20 @@ const useStyles = M.makeStyles((t: WebsiteTheme) => ({
 
 interface BucketGridProps {
   buckets: ReadonlyArray<Bucket>
+  dataProducts?: ReadonlyArray<DataProductItem>
   onTagClick?: (tag: string) => void
   tagIsMatching?: (tag: string) => boolean
   showAddLink?: boolean
 }
 
 export default React.forwardRef<HTMLDivElement, BucketGridProps>(function BucketGrid(
-  { buckets, onTagClick, tagIsMatching = () => false, showAddLink = false },
+  {
+    buckets,
+    dataProducts = [],
+    onTagClick,
+    tagIsMatching = () => false,
+    showAddLink = false,
+  },
   ref,
 ) {
   const classes = useStyles()
@@ -188,6 +270,11 @@ export default React.forwardRef<HTMLDivElement, BucketGridProps>(function Bucket
 
   return (
     <M.Grid container spacing={2} ref={ref}>
+      {dataProducts.map((dp) => (
+        <M.Grid item xs={12} sm={6} md={4} lg={3} key={dp.id}>
+          <DataProductCard dp={dp} />
+        </M.Grid>
+      ))}
       {buckets.map((b) => (
         <M.Grid item xs={12} sm={6} md={4} lg={3} key={b.name}>
           <BucketCard bucket={b} onTagClick={onTagClick} tagIsMatching={tagIsMatching} />
