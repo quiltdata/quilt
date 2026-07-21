@@ -51,6 +51,29 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Microsoft Entra ID (Azure Active Directory)
 
+Quilt uses **OpenID Connect (OIDC)** over **OAuth 2.0** — not SAML.
+
+#### Delegated Setup
+
+If someone else is configuring Entra on your behalf, give them the
+following:
+
+| Field | Value |
+| --- | --- |
+| Protocol | OpenID Connect (OIDC). If the form only lists SAML/OAuth, pick **OAuth**; if neither fits, pick **Other** and link to this page. |
+| Platform | Web |
+| Redirect URI (Reply URL) | `<QuiltWebHost>/oauth-callback` (e.g. `https://quilt.example.com/oauth-callback`) |
+| Sign-in audience | Single tenant (unless you have a specific multi-tenant requirement) |
+| Implicit grant — ID tokens | **Enabled** (required; login fails without it) |
+| Delegated Microsoft Graph permissions | `openid`, `profile`, `email`, `offline_access`, `User.Read` — with **admin consent granted** |
+| Groups claim (optional) | Emit **Group IDs** in the **ID token**. Required only for [SSO Permissions Mapping](./advanced-features/sso-permissions.md). |
+| Client secret | Required. Have them share the secret **Value** (not the Secret ID) over a secure channel. |
+
+Ask them to send back: **Application (client) ID**, **Directory (tenant) ID**,
+and the client secret **Value**.
+
+#### Self-Service Configuration
+
 1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
 1. Name the app, select the supported account types, and click **Register**.
    Note the **Application (client) ID** and **Directory (tenant) ID**.
