@@ -58,7 +58,7 @@ const useStyles = M.makeStyles((t) => {
       },
     },
     sectionLabel: {
-      color: fade(t.palette.common.white, 0.6),
+      color: t.palette.navigation.textMuted,
       fontSize: 11,
       fontWeight: 500,
       letterSpacing: '0.06em',
@@ -115,11 +115,11 @@ const useStyles = M.makeStyles((t) => {
           backgroundColor: fade(t.palette.common.white, 0.24),
         },
         '&::before': {
-          // amber indicator (appTheme secondary #fb8c00) — accepted via impeccable
-          // live 2026-07-22: 3px bracket, 8px vertical inset; tokenizes with the
-          // palette.navigation slice in the fix pass (navTheme.secondary is cobalt,
-          // NOT amber — do not use t.palette.secondary here).
-          background: '#fb8c00',
+          // amber indicator — accepted via impeccable live 2026-07-22: 3px
+          // bracket, 8px vertical inset. Sourced from palette.navigation.indicator
+          // (do not use t.palette.secondary — that's a different amber/cobalt
+          // depending on which theme is ambient).
+          background: t.palette.navigation.indicator,
           borderRadius: '0 2px 2px 0',
           bottom: 8,
           content: '""',
@@ -167,6 +167,9 @@ const useStyles = M.makeStyles((t) => {
       fontSize: '1rem',
       marginLeft: t.spacing(0.5),
       visibility: 'hidden',
+    },
+    badgeDot: {
+      backgroundColor: t.palette.navigation.indicator,
     },
   }
 })
@@ -419,7 +422,11 @@ export function Sidebar() {
               className={classes.navItem}
             >
               <M.ListItemIcon className={classes.icon}>
-                <M.Badge color="primary" variant="dot" invisible={!bookmarks?.hasUpdates}>
+                <M.Badge
+                  variant="dot"
+                  invisible={!bookmarks?.hasUpdates}
+                  classes={{ dot: classes.badgeDot }}
+                >
                   <OutlinedIcon>bookmarks</OutlinedIcon>
                 </M.Badge>
               </M.ListItemIcon>

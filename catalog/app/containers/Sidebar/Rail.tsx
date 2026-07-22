@@ -3,16 +3,14 @@ import * as React from 'react'
 import { fade } from '@material-ui/core/styles'
 import * as M from '@material-ui/core'
 
-import * as style from 'constants/style'
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     // The rail wears the app primary (ratified midnight). Children render
-    // inside the nav theme below, so their MUI styles pick up the dark
-    // palette (light text/icons/dividers).
-    background: style.appTheme.palette.primary.main,
+    // under the ambient app theme; nav-specific text/indicator colors come
+    // from the palette.navigation token slice (see constants/style.js).
+    background: t.palette.primary.main,
     borderRight: `1px solid ${fade('#fff', 0.12)}`,
-    color: style.navTheme.palette.text.primary,
+    color: t.palette.navigation.text,
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,
@@ -31,9 +29,5 @@ interface RailProps {
 
 export function Rail({ className, children }: RailProps) {
   const classes = useStyles()
-  return (
-    <M.MuiThemeProvider theme={style.navTheme}>
-      <nav className={cx(classes.root, className)}>{children}</nav>
-    </M.MuiThemeProvider>
-  )
+  return <nav className={cx(classes.root, className)}>{children}</nav>
 }

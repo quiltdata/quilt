@@ -24,6 +24,14 @@ const appPalette = {
     contrastText: colors.common.white,
     main: '#19163b',
   },
+  // The navigation chrome (the midnight rail + its indicator vocabulary).
+  navigation: {
+    indicator: colors.orange[600],
+    text: 'rgba(255, 255, 255, 0.85)',
+    textMuted: 'rgba(255, 255, 255, 0.6)',
+    hover: 'rgba(255, 255, 255, 0.06)',
+    selected: 'rgba(255, 255, 255, 0.18)',
+  },
 }
 
 const websitePalette = {

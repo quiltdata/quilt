@@ -16,3 +16,21 @@ declare module '@material-ui/core/styles/createTypography' {
     monospace: FontStyle
   }
 }
+
+declare module '@material-ui/core/styles/createPalette' {
+  interface NavigationPalette {
+    indicator: string
+    text: string
+    textMuted: string
+    hover: string
+    selected: string
+  }
+
+  interface Palette {
+    navigation: NavigationPalette
+  }
+
+  interface PaletteOptions {
+    navigation?: NavigationPalette
+  }
+}
