@@ -7,11 +7,11 @@ export type Incremental<T> =
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_NavBar_gql_SwitchRoleMutationVariables = Exact<{
+export type containers_Sidebar_gql_SwitchRoleMutationVariables = Exact<{
   roleName: string
 }>
 
-export interface containers_NavBar_gql_SwitchRoleMutation {
+export interface containers_Sidebar_gql_SwitchRoleMutation {
   readonly __typename: 'Mutation'
   readonly switchRole:
     | {
@@ -31,13 +31,13 @@ export interface containers_NavBar_gql_SwitchRoleMutation {
       }
 }
 
-export const containers_NavBar_gql_SwitchRoleDocument = {
+export const containers_Sidebar_gql_SwitchRoleDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_NavBar_gql_SwitchRole' },
+      name: { kind: 'Name', value: 'containers_Sidebar_gql_SwitchRole' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -111,8 +111,8 @@ export const containers_NavBar_gql_SwitchRoleDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_NavBar_gql_SwitchRoleMutation,
-  containers_NavBar_gql_SwitchRoleMutationVariables
+  containers_Sidebar_gql_SwitchRoleMutation,
+  containers_Sidebar_gql_SwitchRoleMutationVariables
 >
 
-export { containers_NavBar_gql_SwitchRoleDocument as default }
+export { containers_Sidebar_gql_SwitchRoleDocument as default }

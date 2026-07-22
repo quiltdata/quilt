@@ -148,7 +148,7 @@ type LayoutHeading = React.ReactNode | ((props: {}) => React.ReactNode)
 export const mkLayout =
   (heading: LayoutHeading) =>
   ({ children, ...props }: LayoutProps) => (
-    <Layout>
+    <Layout bare>
       <Container>
         <M.Box pt={5} pb={2}>
           <Heading data-testid="auth-heading">

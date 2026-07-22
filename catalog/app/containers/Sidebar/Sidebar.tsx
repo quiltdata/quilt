@@ -9,16 +9,16 @@ import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as Bookmarks from 'containers/Bookmarks'
-import * as NavMenu from 'containers/NavBar/NavMenu'
-import useRoleSwitcher from 'containers/NavBar/RoleSwitcher'
-import * as Subscription from 'containers/NavBar/Subscription'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
 
+import * as NavMenu from './AuthState'
 import OutlinedIcon from './OutlinedIcon'
 import { Rail } from './Rail'
+import useRoleSwitcher from './RoleSwitcher'
+import * as Subscription from './Subscription'
 
 const useStyles = M.makeStyles((t) => {
   const box = {

@@ -5,10 +5,10 @@ import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
 import cfg from 'constants/config'
-import * as NavBar from 'containers/NavBar'
 import { Sidebar } from 'containers/Sidebar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import BareHeader from './BareHeader'
 import * as Container from './Container'
 import { ContentBar } from './ContentBar'
 
@@ -94,7 +94,7 @@ export function Layout({
     return (
       <Root dark={dark}>
         <Container.FullWidthProvider>
-          <NavBar.Container />
+          <BareHeader />
           {!!pre && pre}
           {!!children && <M.Box p={4}>{children}</M.Box>}
           <M.Box flexGrow={1} />

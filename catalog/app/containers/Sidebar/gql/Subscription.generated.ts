@@ -7,11 +7,11 @@ export type Incremental<T> =
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_NavBar_gql_SubscriptionQueryVariables = Exact<{
+export type containers_Sidebar_gql_SubscriptionQueryVariables = Exact<{
   [key: string]: never
 }>
 
-export interface containers_NavBar_gql_SubscriptionQuery {
+export interface containers_Sidebar_gql_SubscriptionQuery {
   readonly __typename: 'Query'
   readonly subscription: {
     readonly __typename: 'SubscriptionState'
@@ -20,13 +20,13 @@ export interface containers_NavBar_gql_SubscriptionQuery {
   }
 }
 
-export const containers_NavBar_gql_SubscriptionDocument = {
+export const containers_Sidebar_gql_SubscriptionDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_NavBar_gql_Subscription' },
+      name: { kind: 'Name', value: 'containers_Sidebar_gql_Subscription' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -46,8 +46,8 @@ export const containers_NavBar_gql_SubscriptionDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_NavBar_gql_SubscriptionQuery,
-  containers_NavBar_gql_SubscriptionQueryVariables
+  containers_Sidebar_gql_SubscriptionQuery,
+  containers_Sidebar_gql_SubscriptionQueryVariables
 >
 
-export { containers_NavBar_gql_SubscriptionDocument as default }
+export { containers_Sidebar_gql_SubscriptionDocument as default }

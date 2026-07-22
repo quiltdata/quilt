@@ -7,9 +7,9 @@ export type Incremental<T> =
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_NavBar_gql_MeQueryVariables = Exact<{ [key: string]: never }>
+export type containers_Sidebar_gql_MeQueryVariables = Exact<{ [key: string]: never }>
 
-export interface containers_NavBar_gql_MeQuery {
+export interface containers_Sidebar_gql_MeQuery {
   readonly __typename: 'Query'
   readonly me: {
     readonly __typename: 'Me'
@@ -24,13 +24,13 @@ export interface containers_NavBar_gql_MeQuery {
   } | null
 }
 
-export const containers_NavBar_gql_MeDocument = {
+export const containers_Sidebar_gql_MeDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_NavBar_gql_Me' },
+      name: { kind: 'Name', value: 'containers_Sidebar_gql_Me' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -71,8 +71,8 @@ export const containers_NavBar_gql_MeDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_NavBar_gql_MeQuery,
-  containers_NavBar_gql_MeQueryVariables
+  containers_Sidebar_gql_MeQuery,
+  containers_Sidebar_gql_MeQueryVariables
 >
 
-export { containers_NavBar_gql_MeDocument as default }
+export { containers_Sidebar_gql_MeDocument as default }
