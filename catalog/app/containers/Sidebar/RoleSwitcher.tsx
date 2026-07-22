@@ -41,8 +41,11 @@ const useRoleSwitcherStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  // text.hint (rgba(0,0,0,0.38)) on the white dialog surface measures ~2.68:1
+  // — fails WCAG AA (4.5:1) for this small annotation text. text.secondary
+  // (rgba(0,0,0,0.54)) measures ~4.6:1, clearing the bar.
   hint: {
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
     fontWeight: t.typography.fontWeightLight,
   },
 }))

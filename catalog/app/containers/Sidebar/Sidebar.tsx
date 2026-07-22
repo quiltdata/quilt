@@ -46,6 +46,10 @@ const useStyles = M.makeStyles((t) => {
       display: 'flex',
       height: 64,
       padding: t.spacing(0, 2),
+      '&:focus-visible': {
+        outline: `2px solid ${t.palette.navigation.indicator}`,
+        outlineOffset: -2,
+      },
     },
     workspaceBox: {
       ...box,
@@ -72,6 +76,10 @@ const useStyles = M.makeStyles((t) => {
     },
     wsRowClickable: {
       ...rowHover,
+      '&:focus-visible': {
+        outline: `2px solid ${t.palette.navigation.indicator}`,
+        outlineOffset: -2,
+      },
     },
     wsText: {
       minWidth: 0,
@@ -89,6 +97,10 @@ const useStyles = M.makeStyles((t) => {
       padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
       ...rowHover,
+      '&:focus-visible': {
+        outline: `2px solid ${t.palette.navigation.indicator}`,
+        outlineOffset: -2,
+      },
     },
     // Accepted via impeccable live (2026-07-21): inset rounded nav rows —
     // 8px side inset, 4px radius, 44px rows, 16px icon-label gap, flush items.
@@ -103,8 +115,8 @@ const useStyles = M.makeStyles((t) => {
       padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
       ...rowHover,
-      '&.Mui-focusVisible': {
-        outline: `2px solid ${fade(t.palette.common.white, 0.85)}`,
+      '&:focus-visible': {
+        outline: `2px solid ${t.palette.navigation.indicator}`,
         outlineOffset: -2,
       },
       '&.Mui-selected': {
@@ -156,15 +168,21 @@ const useStyles = M.makeStyles((t) => {
       '&:hover $copyIcon': {
         visibility: 'visible',
       },
+      '&:focus-visible': {
+        opacity: 0.9,
+        outline: `2px solid ${t.palette.navigation.indicator}`,
+        outlineOffset: -2,
+      },
     },
     versionText: {
+      fontFamily: t.typography.monospace.fontFamily,
       minWidth: 0,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
     },
     copyIcon: {
-      fontSize: '1rem',
+      fontSize: t.typography.body2.fontSize,
       marginLeft: t.spacing(0.5),
       visibility: 'hidden',
     },
@@ -267,11 +285,29 @@ function Version() {
     copyToClipboard(cfg.stackVersion)
     push('Web catalog container hash has been copied to clipboard')
   }, [push])
+  // Plain div + role="button" rather than M.ButtonBase: ButtonBase's root
+  // defaults to `display: inline-flex; justify-content: center`, which would
+  // fight this row's own `display: flex` (default justify-content: flex-start,
+  // relied on to keep the text flush-left and the copy icon flush-right).
+  // role/tabIndex/onKeyDown gets the same keyboard semantics without risking
+  // that cascade conflict.
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        handleCopy()
+      }
+    },
+    [handleCopy],
+  )
   if (!cfg.stackVersion) return null
   return (
     <div
       className={classes.version}
       onClick={handleCopy}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
       title="Copy Platform release version to clipboard"
     >
       <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
