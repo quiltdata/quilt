@@ -23,13 +23,17 @@ const useSuggestionsStyles = M.makeStyles((t) => ({
     '& b': {
       fontWeight: t.typography.fontWeightMedium,
     },
+    '& code': {
+      fontFamily: t.typography.monospace.fontFamily,
+      fontSize: 'inherit',
+    },
   },
   help: {
     ...t.typography.caption,
     borderTop: `1px solid ${t.palette.divider}`,
     marginTop: t.spacing(1),
     padding: t.spacing(2, 5.5, 1),
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
   },
   helpExample: {
     borderBottom: `1px dotted ${t.palette.text.primary}`,
@@ -55,7 +59,10 @@ function SuggestionsList({ items, selected }: SuggestionsProps) {
           selected={selected === index}
           to={item.url}
         >
-          <M.ListItemText primary={displaySuggestion(item)} />
+          <M.ListItemText
+            primary={displaySuggestion(item)}
+            primaryTypographyProps={{ variant: 'body2' }}
+          />
         </M.MenuItem>
       ))}
       <div className={classes.help}>
@@ -85,7 +92,7 @@ function PaperWrapper({ children, classes, open }: PaperWrapperProps) {
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Fade in={open}>
-        <M.Paper className={classes?.paper}>
+        <M.Paper className={classes?.paper} elevation={8}>
           <div className={classes?.contents}>{children}</div>
         </M.Paper>
       </M.Fade>

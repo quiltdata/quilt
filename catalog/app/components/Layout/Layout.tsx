@@ -55,9 +55,18 @@ const useShellStyles = M.makeStyles((t) => ({
   },
   // Single source of horizontal inset for everything in `.main` (search bar and
   // page content alike). Skipped for full-bleed pages via the `flush` prop.
+  // The inset now lives on the inner content column, not `main`, so the
+  // sticky ContentBar above it can run full-bleed.
   padded: {
     paddingLeft: t.spacing(3),
     paddingRight: t.spacing(3),
+  },
+  // The page content column: carries the horizontal inset (so the sticky
+  // ContentBar above it can run full-bleed) and grows to push the footer down.
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
   },
 }))
 
@@ -102,14 +111,16 @@ export function Layout({
       bgcolor={dark ? 'primary.main' : 'background.default'}
     >
       <Sidebar />
-      <M.Box component="main" className={cx(classes.main, !flush && classes.padded)}>
+      <M.Box component="main" className={classes.main}>
         <ContentBar />
-        <Container.FullWidthProvider>
-          {!!pre && pre}
-          {!!children && <M.Box py={4}>{children}</M.Box>}
-          <M.Box flexGrow={1} />
-          {isHomepage?.isExact && cfg.mode !== 'PRODUCT' && <Footer />}
-        </Container.FullWidthProvider>
+        <div className={cx(classes.content, !flush && classes.padded)}>
+          <Container.FullWidthProvider>
+            {!!pre && pre}
+            {!!children && <M.Box py={4}>{children}</M.Box>}
+            <M.Box flexGrow={1} />
+            {isHomepage?.isExact && cfg.mode !== 'PRODUCT' && <Footer />}
+          </Container.FullWidthProvider>
+        </div>
       </M.Box>
     </M.Box>
   )
