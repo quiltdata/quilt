@@ -74,7 +74,7 @@
     "date-fns": "^2.30.0",
     "dedent": "^1.5.1",
     "diff": "^8.0.2",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.12",
     "echarts": "^5.5.0",
     "effect": "^3.21.4",
     "final-form": "^4.20.9",
