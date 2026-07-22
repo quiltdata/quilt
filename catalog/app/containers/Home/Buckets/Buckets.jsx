@@ -14,10 +14,10 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import BucketGrid from 'website/components/BucketGrid'
-import BucketList from 'website/components/BucketGrid/BucketList'
+import BucketGrid from 'containers/Home/BucketGrid'
+import BucketList from 'containers/Home/BucketGrid/BucketList'
 
-import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
+import IS_ADMIN_QUERY from 'website/pages/Landing/gql/IsAdmin.generated'
 
 const PER_PAGE = 15
 

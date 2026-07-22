@@ -1,12 +1,8 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import Footer from 'components/Footer'
-import cfg from 'constants/config'
 import { Sidebar } from 'containers/Sidebar'
-import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BareHeader from './BareHeader'
 import * as Container from './Container'
@@ -85,8 +81,6 @@ export function Layout({
   children,
   pre,
 }: LayoutProps) {
-  const { paths } = NamedRoutes.use()
-  const isHomepage = useRouteMatch(paths.home)
   const classes = useShellStyles()
 
   // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
@@ -118,7 +112,6 @@ export function Layout({
             {!!pre && pre}
             {!!children && <M.Box py={4}>{children}</M.Box>}
             <M.Box flexGrow={1} />
-            {isHomepage?.isExact && cfg.mode !== 'PRODUCT' && <Footer />}
           </Container.FullWidthProvider>
         </div>
       </M.Box>

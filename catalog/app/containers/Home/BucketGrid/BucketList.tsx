@@ -5,12 +5,11 @@ import * as M from '@material-ui/core'
 import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import type { WebsiteTheme } from 'website/theme'
 
 import type { Bucket } from './BucketGrid'
 import Collaborators from './Collaborators'
 
-const useStyles = M.makeStyles((t: WebsiteTheme) => ({
+const useStyles = M.makeStyles((t) => ({
   row: {
     '&:hover': {
       backgroundColor: t.palette.action.hover,

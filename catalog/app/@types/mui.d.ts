@@ -2,6 +2,10 @@ import type * as React from 'react'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type * as MUI from '@material-ui/core'
 import type { FontStyle } from '@material-ui/core/styles/createTypography'
+import type {
+  PaletteColor,
+  SimplePaletteColorOptions,
+} from '@material-ui/core/styles/createPalette'
 
 declare module '@material-ui/core' {
   // workaround for MUI@4 not having ref in BoxProps
@@ -28,9 +32,11 @@ declare module '@material-ui/core/styles/createPalette' {
 
   interface Palette {
     navigation: NavigationPalette
+    tertiary: PaletteColor
   }
 
   interface PaletteOptions {
     navigation?: NavigationPalette
+    tertiary?: SimplePaletteColorOptions
   }
 }

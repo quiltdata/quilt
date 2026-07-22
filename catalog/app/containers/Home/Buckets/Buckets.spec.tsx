@@ -33,7 +33,9 @@ vi.mock('utils/NamedRoutes', async () => ({
 
 // Sentinel standing in for the generated query document, so the mocked
 // `useQuery` below can dispatch on query identity.
-vi.mock('../gql/IsAdmin.generated', () => ({ default: 'IS_ADMIN_QUERY' }))
+vi.mock('website/pages/Landing/gql/IsAdmin.generated', () => ({
+  default: 'IS_ADMIN_QUERY',
+}))
 
 interface QueryState {
   data?: unknown
@@ -84,10 +86,10 @@ const Rows = ({ buckets }: RowsProps) => (
 
 // NB: `(props) => <Rows ... />` (not `default: Rows`) so the hoisted factories
 // only touch `Rows` at render time, after the module body has run.
-vi.mock('website/components/BucketGrid', () => ({
+vi.mock('containers/Home/BucketGrid', () => ({
   default: (props: RowsProps) => <Rows {...props} />,
 }))
-vi.mock('website/components/BucketGrid/BucketList', () => ({
+vi.mock('containers/Home/BucketGrid/BucketList', () => ({
   default: (props: RowsProps) => <Rows {...props} />,
 }))
 

@@ -26,7 +26,7 @@ const routeList = [
     description: 'Home page',
     // searchParams: S.Struct({
     //   // XXX: passing this param doesn't actually work bc of how it's implemented in
-    //   //      website/pages/Landing/Buckets/Buckets.js
+    //   //      containers/Home/Buckets/Buckets.jsx
     //   q: SearchParamLastOpt.annotations({
     //     title: 'bucket filter query',
     //     description: 'filter buckets in the bucket grid',

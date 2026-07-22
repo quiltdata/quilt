@@ -22,7 +22,7 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     // Explicit midnight ground (matches the global html/body background in
     // global-styles.tsx) rather than relying on a dark-type theme's
-    // background.default — this screen no longer sits inside navTheme.
+    // background.default.
     backgroundColor: t.palette.primary.main,
     display: 'flex',
     flexDirection: 'column',
@@ -48,9 +48,10 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
     borderColor: fade(t.palette.common.white, 0.23),
   },
   header: {
-    // Was theme.palette.text.primary, which navTheme overrode to a light
-    // color for legibility on dark. Pinned explicitly now that this screen
-    // renders under appTheme (light-type default text.primary is near-black).
+    // Was theme.palette.text.primary, which a former dark-type theme overrode
+    // to a light color for legibility on dark. Pinned explicitly now that
+    // this screen renders under appTheme (light-type default text.primary is
+    // near-black).
     color: fade(t.palette.common.white, 0.85),
   },
   headerIcon: {

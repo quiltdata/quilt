@@ -7,11 +7,10 @@ import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import type { WebsiteTheme } from 'website/theme'
 
 import Collaborators from './Collaborators'
 
-const useBucketStyles = M.makeStyles((t: WebsiteTheme) => ({
+const useBucketStyles = M.makeStyles((t) => ({
   bucket: {
     animation: '$slideUp 0.3s ease',
     display: 'flex',
@@ -151,7 +150,7 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
   )
 }
 
-const useStyles = M.makeStyles((t: WebsiteTheme) => ({
+const useStyles = M.makeStyles((t) => ({
   add: {
     alignItems: 'center',
     border: '2px dashed #2f306e',

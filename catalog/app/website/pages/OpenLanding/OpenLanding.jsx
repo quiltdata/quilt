@@ -1,10 +1,10 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Buckets from 'containers/Home/Buckets'
 import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
-import Buckets from 'website/pages/Landing/Buckets'
 
 import Search from './Search'
 

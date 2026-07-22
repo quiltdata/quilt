@@ -1,11 +1,11 @@
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import Buckets from 'containers/Home/Buckets'
 import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
 
-import Buckets from './Buckets'
 import LocalMode from './LocalMode'
 
 export default function Landing() {

@@ -5,6 +5,7 @@ import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-do
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
 import cfg from 'constants/config'
+import * as URLS from 'constants/urls'
 import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { NotFoundPage } from 'containers/NotFound'
@@ -19,6 +20,15 @@ const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 function RedirectTo({ path }) {
   const { search } = useLocation()
   return <Redirect to={`${path}${search}`} />
+}
+
+// /install leaves the SPA for the installation docs — react-router's
+// <Redirect> can't navigate off-app, so this hits the browser API directly.
+function InstallDocsRedirect() {
+  React.useEffect(() => {
+    window.location.replace(URLS.install)
+  }, [])
+  return null
 }
 
 const Activate = () => {
@@ -75,7 +85,6 @@ const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeho
 const OpenProfile = requireAuth()(
   RT.mkLazy(() => import('website/pages/OpenProfile'), Placeholder),
 )
-const Install = RT.mkLazy(() => import('website/pages/Install'), Placeholder)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
@@ -89,7 +98,7 @@ export default function App() {
       </Route>
 
       <Route path={paths.install} exact>
-        <Install />
+        <InstallDocsRedirect />
       </Route>
 
       {!!cfg.legacyPackagesRedirect && (
@@ -143,12 +152,9 @@ export default function App() {
         <ConnectAuthorize />
       </Route>
 
-      {cfg.mode === 'OPEN' && (
-        // XXX: show profile in all modes?
-        <Route path={paths.profile} exact>
-          <OpenProfile />
-        </Route>
-      )}
+      <Route path={paths.profile} exact>
+        <OpenProfile />
+      </Route>
 
       <Route path={paths.admin}>
         <Admin />
