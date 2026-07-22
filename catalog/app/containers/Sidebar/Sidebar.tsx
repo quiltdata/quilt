@@ -332,7 +332,9 @@ export function Sidebar() {
       <Freeze>
         <Rail className={classes.root}>
           <Link to={urls.home()} className={classes.logo}>
-            <Logo height="32px" width="100%" src={settings?.logo?.url} />
+            {/* 29px = exactly half of quilt.png's 58px natural height, so the
+                mark maps 1:1 to device pixels on 2x displays (no resampling blur). */}
+            <Logo height="29px" width="100%" src={settings?.logo?.url} />
           </Link>
 
           {(user || cfg.mode !== 'LOCAL') && (
