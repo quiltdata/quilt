@@ -159,7 +159,7 @@ const useStyles = M.makeStyles((t) => {
       cursor: 'pointer',
       display: 'flex',
       gap: t.spacing(0.5),
-      opacity: 0.35,
+      opacity: 0.55,
       padding: t.spacing(0.5, 2, 1.5),
       transition: 'opacity 150ms',
       '&:hover': {
