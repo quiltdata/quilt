@@ -7,11 +7,12 @@ import * as style from 'constants/style'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    // Navy surface like the header. Children render inside the nav theme below,
-    // so their MUI styles pick up the dark palette (light text/icons/dividers).
-    background: style.navTheme.palette.secondary.dark,
+    // Midnight surface like the header/footer. Children render inside the nav
+    // theme below, so their MUI styles pick up the dark palette (light
+    // text/icons/dividers).
+    background: style.navTheme.palette.background.default,
     borderRight: `1px solid ${fade('#fff', 0.12)}`,
-    color: style.navTheme.palette.common.white,
+    color: style.navTheme.palette.text.primary,
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,

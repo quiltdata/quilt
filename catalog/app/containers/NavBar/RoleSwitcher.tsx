@@ -95,7 +95,7 @@ function RoleSwitcher({ user, close }: RoleSwitcherProps) {
     <RF.Form<FormValues> initialValues={{ role: user.role.name }} onSubmit={onSubmit}>
       {({ handleSubmit, submitting, submitError }) => (
         <>
-          <M.DialogTitle>Switch role</M.DialogTitle>
+          <M.DialogTitle>Switch workspace</M.DialogTitle>
           <M.Collapse in={!!submitError} mountOnEnter unmountOnExit>
             <div>
               <M.Divider />
@@ -103,7 +103,7 @@ function RoleSwitcher({ user, close }: RoleSwitcherProps) {
                 severity="error"
                 classes={{ root: classes.error, icon: classes.errorIcon }}
               >
-                <Lab.AlertTitle>Could not switch role</Lab.AlertTitle>
+                <Lab.AlertTitle>Could not switch workspace</Lab.AlertTitle>
                 Try again or contact support.
                 <br />
                 Error details:

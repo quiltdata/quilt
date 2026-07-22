@@ -44,7 +44,8 @@ const websitePalette = {
     main: '#6a93ff',
   },
   text: {
-    secondary: '#b2bddb',
+    primary: 'rgba(255, 255, 255, 0.85)',
+    secondary: 'rgba(255, 255, 255, 0.6)',
   },
 }
 
