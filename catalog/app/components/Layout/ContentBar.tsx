@@ -104,12 +104,12 @@ export function ContentBar() {
             </M.Popper>
           </div>
           <div className={classes.actions}>
-            <M.Tooltip title="Resolve a Quilt URI">
+            <M.Tooltip arrow title="Resolve a Quilt URI">
               <M.IconButton component={Link} to={urls.uriResolver('')}>
                 <M.Icon className="material-icons-outlined">link</M.Icon>
               </M.IconButton>
             </M.Tooltip>
-            <M.Tooltip title="Documentation">
+            <M.Tooltip arrow title="Documentation">
               <M.IconButton component="a" href={URLS.docs} target="_blank" rel="noopener">
                 <M.Icon className="material-icons-outlined">menu_book</M.Icon>
               </M.IconButton>
