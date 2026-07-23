@@ -196,7 +196,22 @@ already emits the `:443`-explicit metadata Databricks requires — see
 Benchling AI's [AI Connectors](https://help.benchling.com/hc/en-us/articles/42715696739341-Configure-AI-Connectors-for-Benchling-AI)
 let Chat and Deep Research query external MCP servers — including the
 Quilt Platform MCP Server — so scientists can reach Quilt data without
-leaving Benchling. Chat or Deep Research must be enabled on your tenant.
+leaving Benchling. Either Chat or Deep Research must be enabled on your
+tenant; Deep Research is not required.
+
+Before configuring Benchling, enable Quilt Connect Server by adding
+`.benchling.com` to the `ConnectAllowedHosts` CloudFormation parameter and
+deploying the stack. Preserve any existing entries in the comma-separated
+list. For example:
+
+```text
+.benchling.com,chatgpt.com,claude.ai
+```
+
+The leading dot is required: it allows OAuth callbacks from every Benchling
+tenant subdomain. See
+[ConnectAllowedHosts entry formats](Connect.md#connectallowedhosts-entry-formats)
+for the complete syntax.
 
 A Benchling **tenant admin** adds Quilt as a Custom AI Connector:
 
@@ -214,14 +229,17 @@ Each Benchling user then enables the connector once:
 
 1. In the navigation bar, click **AI**, then the **Settings** icon
 2. Open the **AI Connectors** tab and click **Connect** next to Quilt
-3. Complete the Quilt OAuth flow in the window that opens (see
+3. In the pop-up window, click **Connect**
+4. Complete the Quilt OAuth flow in the new tab or window (see
    [User Authorization](#user-authorization) below)
-4. Return to Benchling to finalize the connector
+5. Return to Benchling and select the Quilt tools to enable
+6. Click **Save**
 
-> Benchling completes its OAuth handshake from
-> `https://<tenant>.benchling.com/...`, so `.benchling.com` must be in
-> `ConnectAllowedHosts` (see
-> [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+To verify the connection, open Benchling Chat and ask it to search or list
+content in Quilt. Benchling automatically decides when to call the enabled
+Quilt tools. If Quilt is unavailable, confirm that at least one tool is
+enabled, the user completed authorization, and `.benchling.com` remains in
+`ConnectAllowedHosts`.
 
 ### Connecting OpenAI Codex
 
