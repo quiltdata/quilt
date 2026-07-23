@@ -218,19 +218,20 @@ A Benchling **tenant admin** installs Quilt from the AI Connector Directory:
 1. Go to **Tenant admin console -> Settings -> AI Connectors**
 2. Click **Browse directory**
 3. Search for `Quilt` and select the **Quilt by Quilt** connector
-4. Enter the **Stack name** and **Domain** for the Quilt deployment.
+4. On the connector details page, click **Install**
+5. Enter the **Stack name** and **Domain** for the Quilt deployment.
    Benchling uses them to construct this server URL:
 
    ```text
    https://<stack-name>-connect.<domain>/mcp/platform/mcp
    ```
 
-5. Confirm that the **AI Connector URL preview** matches the Quilt
+6. Confirm that the **AI Connector URL preview** matches the Quilt
    `ConnectHost` CloudFormation output followed by `/mcp/platform/mcp`
-6. Click **Install**
-7. Review the tools exposed by the server and select which ones users may
+7. Click **Install** to install the configured connector
+8. Review the tools exposed by the server and select which ones users may
    access (at least one must be enabled)
-8. Click **Save**
+9. Click **Save**
 
 Each Benchling user then enables the connector once:
 
