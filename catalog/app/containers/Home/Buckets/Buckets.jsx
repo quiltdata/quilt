@@ -205,12 +205,12 @@ export default function Buckets() {
     <M.Container maxWidth={false} disableGutters className={classes.container}>
       <div className={classes.wrapper} ref={scrollRef}>
         <M.Typography variant="h3" color="textPrimary">
-          Explore your volumes
+          Explore your buckets
         </M.Typography>
         <div className={classes.filterRow}>
           <M.TextField
             className={classes.filter}
-            placeholder="Filter volumes"
+            placeholder="Filter buckets"
             variant="outlined"
             margin="dense"
             fullWidth
@@ -278,7 +278,7 @@ export default function Buckets() {
           )
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No volumes matching <b>&quot;{filter}&quot;</b>
+            No buckets matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>

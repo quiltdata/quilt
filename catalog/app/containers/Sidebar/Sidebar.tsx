@@ -326,11 +326,11 @@ export function Sidebar() {
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
 
-  // Volumes also owns bucket-browsing routes (`/b/*`), since that's where
-  // clicking into a volume from the home list leads.
+  // Buckets also owns bucket-browsing routes (`/b/*`), since that's where
+  // clicking into a bucket from the home list leads.
   const isHome = !!useRouteMatch({ path: paths.home, exact: true })
   const isBucket = !!useRouteMatch(paths.bucketRoot)
-  const volumesActive = isHome || isBucket
+  const bucketsActive = isHome || isBucket
   const searchActive = !!useRouteMatch(paths.search)
   const queriesActive = !!useRouteMatch(paths.queries)
   const adminActive = !!useRouteMatch(paths.admin)
@@ -419,13 +419,13 @@ export function Sidebar() {
               button
               component={Link}
               to={urls.home()}
-              selected={volumesActive}
+              selected={bucketsActive}
               className={classes.navItem}
             >
               <M.ListItemIcon className={classes.icon}>
                 <OutlinedIcon>storage</OutlinedIcon>
               </M.ListItemIcon>
-              <M.ListItemText primary="Volumes" classes={{ primary: classes.navLabel }} />
+              <M.ListItemText primary="Buckets" classes={{ primary: classes.navLabel }} />
             </M.ListItem>
             <M.ListItem
               button
