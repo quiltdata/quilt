@@ -68,10 +68,11 @@ export class S3Signer extends Eff.Context.Tag('S3Signer')<
 >() {}
 
 export const fromS3Signer = (
-  signer: (handle: S3ObjectLocation, options?: S3SignerOptions) => string,
+  // signer is async in v3 (presigner)
+  signer: (handle: S3ObjectLocation, options?: S3SignerOptions) => Promise<string>,
 ) =>
   Eff.Layer.succeed(S3Signer, {
-    sign: (...args) => Eff.Effect.sync(() => signer(...args)),
+    sign: (...args) => Eff.Effect.promise(() => signer(...args)),
   })
 
 // The document file name can only contain:
