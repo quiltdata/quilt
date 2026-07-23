@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Support running Athena queries in a dedicated workgroup via optional `ATHENA_WORKGROUP` env var ([#5136](https://github.com/quiltdata/quilt/pull/5136))
 - [Added] Make `s3.copy()` chunk size and concurrency configurable via env vars ([#4746](https://github.com/quiltdata/quilt/pull/4746))
 - [Added] Bundle `awscrt` via `boto3[crt]` for improved S3 transfer performance ([#4746](https://github.com/quiltdata/quilt/pull/4746))
 - [Changed] Migrate to proper package structure ([#4618](https://github.com/quiltdata/quilt/pull/4618))
