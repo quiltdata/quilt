@@ -10,6 +10,13 @@ from botocore.stub import Stubber
 from t4_lambda_access_counts import index
 
 
+class TestQueries(TestCase):
+    def test_no_ctas_external_location(self):
+        # A CTAS specifying external_location fails outright in a workgroup that
+        # enforces a query results location — keep it out.
+        self.assertNotIn('external_location', index.CREATE_PACKAGE_HASHES)
+
+
 class TestAccessCounts(TestCase):
     # Effective result location reported by Athena; the redirect subclass simulates
     # a workgroup configuration overriding the requested location.
