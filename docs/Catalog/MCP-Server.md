@@ -226,6 +226,17 @@ A Benchling **tenant admin** installs Quilt from the AI Connector Directory:
    https://<stack-name>-connect.<domain>/mcp/platform/mcp
    ```
 
+   For example, given the Quilt catalog URL `https://open.quiltdata.com`:
+
+   - **Stack name:** `open`
+   - **Domain:** `quiltdata.com`
+   - **AI Connector URL preview:**
+     `https://open-connect.quiltdata.com/mcp/platform/mcp`
+
+   Use the stack name from the catalog hostname, not a display name such as
+   `Quilt Open`. Enter only the parent domain in **Domain**, not the full
+   catalog hostname (`open.quiltdata.com`).
+
 6. Confirm that the **AI Connector URL preview** matches the Quilt
    `ConnectHost` CloudFormation output followed by `/mcp/platform/mcp`
 7. Click **Install** to install the configured connector
