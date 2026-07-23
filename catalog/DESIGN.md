@@ -2,9 +2,9 @@
 name: Quilt Catalog
 description: The web catalog of the Quilt platform — versioned scientific data, browsable in place on the customer's own S3.
 colors:
-  primary: "#282b50"
-  indigo-chassis: "#282b50"
-  indigo-chassis-deep: "#1d2146"
+  primary: "#19163b"
+  midnight-chassis: "#19163b"
+  midnight-chassis-deep: "#100e28"
   amber-indicator: "#fb8c00"
   info-blue: "#039be5"
   info-blue-wash: "#e1f5fe"
@@ -64,16 +64,16 @@ spacing:
   xl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.indigo-chassis}"
+    backgroundColor: "{colors.midnight-chassis}"
     textColor: "#ffffff"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "6px 16px"
   button-primary-hover:
-    backgroundColor: "{colors.indigo-chassis-deep}"
+    backgroundColor: "{colors.midnight-chassis-deep}"
   button-outlined:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.indigo-chassis}"
+    textColor: "{colors.midnight-chassis}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "5px 15px"
@@ -82,7 +82,7 @@ components:
     rounded: "{rounded.md}"
     padding: "{spacing.md}"
   app-bar:
-    backgroundColor: "{colors.indigo-chassis}"
+    backgroundColor: "{colors.midnight-chassis}"
     textColor: "#ffffff"
   chip:
     backgroundColor: "#e0e0e0"
@@ -103,17 +103,20 @@ used freely, and the loudest element on any screen is the user's data.
 
 The system has **two registers in one codebase**. The authenticated app (the
 instrument) runs the light theme: white surfaces on a near-white canvas, deep
-indigo chrome, Roboto throughout. The marketing/website register (landing pages,
-sign-in) runs a separate dark theme — web-midnight ground, coral and cobalt
-accents, gradient buttons — and that energy is quarantined there: it never
-enters the authenticated app. Per PRODUCT.md, the system explicitly rejects
-consumer-SaaS gloss, cloud-console density, and legacy-lab-software chrome.
+midnight chrome, Roboto throughout. The marketing/website register (landing
+pages, sign-in) runs a separate dark theme — the same midnight ground, plus
+coral and cobalt accents and gradient buttons — and *that energy* (the accents
+and gradients, not the ground) is quarantined there: it never enters the
+authenticated app. The two registers now share one dark — midnight `#19163b`,
+the color that says Quilt — so the boundary is the accent vocabulary, not the
+ground. Per PRODUCT.md, the system explicitly rejects consumer-SaaS gloss,
+cloud-console density, and legacy-lab-software chrome.
 
 **Key Characteristics:**
 
 - Single-family typography (Roboto), with Roboto Mono reserved for machine-exact
   identity.
-- Deep indigo chrome around white working surfaces; one amber accent as the
+- Deep midnight chrome around white working surfaces; one amber accent as the
   indicator.
 - Flat-leaning depth: borders and tonal separation first, shadows for true
   overlays only.
@@ -122,16 +125,19 @@ consumer-SaaS gloss, cloud-console density, and legacy-lab-software chrome.
 
 ## 2. Colors
 
-A restrained instrument palette: indigo chassis, white surfaces, one amber
-indicator — with a separate dark marketing set that stays out of the app.
+A restrained instrument palette: midnight chassis, white surfaces, one amber
+indicator — with a separate dark marketing accent set that stays out of the app.
 
 ### Primary
 
-- **Deep Indigo Chassis** (#282b50): the app's structural chrome — app bar,
-  primary buttons, active-state fills, links in their strongest form. This is
-  the color that says "Quilt" inside the product. (`primary` is its role alias
-  for role-keyed consumers; same value, one color.)
-- **Indigo Chassis Deep** (#1d2146): the pressed/hover depth of the chassis;
+- **Midnight Chassis** (#19163b): the app's structural chrome — app bar, the
+  navigation rail, primary buttons, active-state fills, links in their strongest
+  form. This is the color that says "Quilt" inside the product. Ratified
+  2026-07-22, retiring the former indigo #282b50; it is the same dark the
+  website register grounds on (`web-midnight`), so the product and the marketing
+  surfaces now share one dark. (`primary` is its role alias for role-keyed
+  consumers; same value, one color.)
+- **Midnight Chassis Deep** (#100e28): the pressed/hover depth of the chassis;
   never a surface of its own.
 
 ### Secondary
@@ -141,7 +147,9 @@ indicator — with a separate dark marketing set that stays out of the app.
 
 ### Tertiary (website register only)
 
-- **Web Midnight** (#19163b): the dark ground of marketing/website pages.
+- **Web Midnight** (#19163b): the dark ground of marketing/website pages — the
+  same value as Midnight Chassis. The shared ground is *not* register-specific;
+  what follows is.
 - **Coral Signal** (#f38681, light #fabdb3): the website's primary accent;
   carries the gradient CTA treatment there.
 - **Cobalt Trace** (#5471f1, deep #2d306d) and **Cobalt Sky** (#6a93ff): the
@@ -163,10 +171,13 @@ indicator — with a separate dark marketing set that stays out of the app.
 **The Indicator Rule.** Accents indicate — actions, selection, state. An accent
 on ≤10% of any app screen; an accent used as decoration is a defect.
 
-**The Two-Registers Rule.** The dark coral/cobalt marketing palette belongs to
-the website register exclusively. No gradient, coral, or midnight ground ever
-appears inside the authenticated app; no bare canvas-gray utilitarianism leaks
-onto marketing pages.
+**The Two-Registers Rule.** The two registers share one dark ground (midnight
+`#19163b`) but not one accent vocabulary. The coral/cobalt accents and the
+gradient CTA treatment belong to the website register exclusively: no gradient,
+coral, or cobalt ever appears inside the authenticated app, and the app's amber
+indicator never leaks onto marketing pages. Likewise, no bare canvas-gray
+utilitarianism leaks onto marketing pages. The boundary the rule polices is the
+accent set, not the ground.
 
 ## 3. Typography
 
@@ -227,11 +238,11 @@ Every control uses the same vocabulary on every screen.
 ### Buttons
 
 - **Shape:** gently rounded (4px); website-register buttons are squarer (2px).
-- **Primary:** Deep Indigo Chassis fill, white uppercase label (0.875rem/500),
+- **Primary:** Midnight Chassis fill, white uppercase label (0.875rem/500),
   6px 16px padding.
-- **Hover / Focus:** fill deepens to Indigo Chassis Deep; focus is the standard
+- **Hover / Focus:** fill deepens to Midnight Chassis Deep; focus is the standard
   Material ripple + visible focus state. Transitions 150–250ms, standard easing.
-- **Outlined / Text:** indigo label on transparent ground; same label treatment.
+- **Outlined / Text:** midnight label on transparent ground; same label treatment.
   The gradient contained buttons (coral/cobalt) are website-register only.
 
 ### Chips
@@ -258,7 +269,7 @@ Every control uses the same vocabulary on every screen.
 
 ### Navigation
 
-- **App chrome:** Deep Indigo Chassis app bar (the dark navTheme band), white
+- **App chrome:** Midnight Chassis app bar (the dark navTheme band), white
   controls; tabs use the standard Material tab anatomy with the active tab
   clearly selected; breadcrumbs render path segments as links with the current
   segment inert.
@@ -273,7 +284,7 @@ Every control uses the same vocabulary on every screen.
 
 ### Do
 
-- **Do** keep the instrument quiet: white surfaces, indigo chrome, one accent
+- **Do** keep the instrument quiet: white surfaces, midnight chrome, one accent
   indicating — the data is the loudest thing on screen.
 - **Do** use Roboto Mono for every hash, URI, handle, and version (the Mono
   Identity Rule).
@@ -294,7 +305,8 @@ Every control uses the same vocabulary on every screen.
 - **Don't** regress toward legacy lab software: no beige chrome, no modal mazes,
   no dead affordances — anything styled as interactive must act (PRODUCT.md
   anti-reference).
-- **Don't** use the coral/cobalt/midnight website palette inside the app (the
-  Two-Registers Rule).
+- **Don't** use the coral/cobalt website accents or gradient CTAs inside the app
+  (the Two-Registers Rule — the shared midnight ground is fine; the accents are
+  not).
 - **Don't** signal state with color alone; pair color with text or iconography.
 - **Don't** use display sizes or the 300 weight inside the app.

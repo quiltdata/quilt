@@ -10,6 +10,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import type { Bucket } from './BucketGrid'
 import Collaborators from './Collaborators'
+import useTagStyles from './tagStyles'
 
 const useStyles = M.makeStyles((t) => ({
   row: {
@@ -112,6 +113,7 @@ function BucketRow({
   showCollaborators,
 }: BucketRowProps) {
   const classes = useStyles()
+  const tagClasses = useTagStyles()
   const { urls } = NamedRoutes.use()
   const to = urls.bucketRoot(bucket.name)
 
@@ -157,10 +159,10 @@ function BucketRow({
           {bucket.tags.map((t) => (
             <M.Chip
               key={t}
+              className={cx(tagClasses.tag, tagIsMatching(t) && tagClasses.tagActive)}
               label={t}
               size="small"
               clickable={!!onTagClick}
-              color={tagIsMatching(t) ? 'primary' : 'default'}
               onClick={onTagClick ? () => onTagClick(t) : undefined}
             />
           ))}

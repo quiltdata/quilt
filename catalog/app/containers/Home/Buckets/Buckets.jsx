@@ -146,6 +146,16 @@ const useStyles = M.makeStyles((t) => ({
       textDecoration: 'underline',
     },
   },
+  // Empty-search state: a calm readout (Headline-ceiling h6, not a shout) paired
+  // with a recovery control so the dead end has an exit — the user isn't left to
+  // hunt for the small clear affordance inside the filter field.
+  empty: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(2),
+    padding: t.spacing(4, 0),
+  },
   controls: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -198,7 +208,11 @@ export default function Buckets() {
     [filter],
   )
 
-  const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
+  // A tag is "matching" only when it is one of the whole filter terms — not a
+  // substring of the filter string. `filter.includes(t)` marked "rna" active
+  // while filtering "rna-seq"; comparing against the tokenized terms fixes the
+  // false positive on the chip's active state.
+  const tagIsMatching = React.useCallback((t) => terms.includes(t.toLowerCase()), [terms])
 
   const allTags = React.useMemo(
     () =>
@@ -216,9 +230,11 @@ export default function Buckets() {
   const visibleTags = React.useMemo(() => {
     if (tagsExpanded || allTags.length <= TAGS_COLLAPSED) return allTags
     const head = allTags.slice(0, TAGS_COLLAPSED)
-    const active = allTags.filter((t) => filter.includes(t) && !head.includes(t))
+    const active = allTags.filter(
+      (t) => terms.includes(t.toLowerCase()) && !head.includes(t),
+    )
     return [...head, ...active]
-  }, [allTags, tagsExpanded, filter])
+  }, [allTags, tagsExpanded, terms])
   const hiddenTagCount = allTags.length - visibleTags.length
 
   const filtered = React.useMemo(() => {
@@ -292,7 +308,7 @@ export default function Buckets() {
   return (
     <M.Container maxWidth={false} disableGutters className={classes.container}>
       <div className={classes.wrapper} ref={scrollRef}>
-        <M.Typography variant="h3" color="textPrimary">
+        <M.Typography variant="h5" color="textPrimary">
           Explore your volumes
         </M.Typography>
         <div className={classes.filterRow}>
@@ -401,9 +417,19 @@ export default function Buckets() {
             />
           )
         ) : (
-          <M.Typography color="textPrimary" variant="h4">
-            No volumes matching <b>&quot;{filter}&quot;</b>
-          </M.Typography>
+          <div className={classes.empty}>
+            <M.Typography color="textPrimary" variant="h6">
+              No volumes matching <b>&quot;{filter}&quot;</b>
+            </M.Typography>
+            <M.Button
+              variant="outlined"
+              size="small"
+              startIcon={<M.Icon>clear</M.Icon>}
+              onClick={clearFilter}
+            >
+              Clear filter
+            </M.Button>
+          </div>
         )}
         <div className={classes.controls}>
           <M.Box>
