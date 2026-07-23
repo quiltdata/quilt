@@ -213,17 +213,24 @@ tenant subdomain. See
 [ConnectAllowedHosts entry formats](Connect.md#connectallowedhosts-entry-formats)
 for the complete syntax.
 
-A Benchling **tenant admin** adds Quilt as a Custom AI Connector:
+A Benchling **tenant admin** installs Quilt from the AI Connector Directory:
 
 1. Go to **Tenant admin console -> Settings -> AI Connectors**
-2. Click **Add AI Connector**
-3. Complete the configuration:
-   - **Name:** `Quilt` (this is what users see)
-   - **Server:** `https://<connect-host>/mcp/platform/mcp`
-   - **Type:** `HTTP`
-4. Review the tools exposed by the server and select which ones users may
+2. Click **Browse directory**
+3. Search for `Quilt` and select the **Quilt by Quilt** connector
+4. Enter the **Stack name** and **Domain** for the Quilt deployment.
+   Benchling uses them to construct this server URL:
+
+   ```text
+   https://<stack-name>-connect.<domain>/mcp/platform/mcp
+   ```
+
+5. Confirm that the **AI Connector URL preview** matches the Quilt
+   `ConnectHost` CloudFormation output followed by `/mcp/platform/mcp`
+6. Click **Install**
+7. Review the tools exposed by the server and select which ones users may
    access (at least one must be enabled)
-5. Click **Save**
+8. Click **Save**
 
 Each Benchling user then enables the connector once:
 
