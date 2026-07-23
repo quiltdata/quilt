@@ -40,30 +40,14 @@ export function useGetFullWidth() {
   return ctx.state
 }
 
-const useStyles = M.makeStyles((t) => ({
-  fullWidth: {
-    animation: t.transitions.create('$expand'),
-  },
-  contained: {
-    animation: t.transitions.create('$collapse'),
-  },
-  '@keyframes expand': {
-    '0%': {
-      transform: 'scaleX(0.94)',
-    },
-    '100%': {
-      transform: 'scaleX(1)',
-    },
-  },
-  '@keyframes collapse': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: 1,
-    },
-  },
-}))
+const useStyles = M.makeStyles({
+  // Marker classes only — the full-bleed layout comes from `maxWidth={false}`.
+  // The full-width scaleX(0.94)→1 "expand" (and the "collapse" fade back) were
+  // dropped: every view is effectively full-width now, so the transition just
+  // read as an unwanted enter animation on the package table view.
+  fullWidth: {},
+  contained: {},
+})
 
 export function Container({ children, className }: M.ContainerProps) {
   const classes = useStyles()
@@ -73,7 +57,8 @@ export function Container({ children, className }: M.ContainerProps) {
   return (
     <M.Container
       className={cx(fullWidth ? classes.fullWidth : classes.contained, className)}
-      maxWidth={!fullWidth && 'lg'}
+      maxWidth={false}
+      disableGutters
     >
       {children}
     </M.Container>

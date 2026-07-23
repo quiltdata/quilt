@@ -34,11 +34,12 @@ const theme = createMuiTheme({
 })
 
 const routes = {
-  bucketQueries: { path: '', url: (bucket: string) => `/b/${bucket}/queries` },
-  bucketAthena: {
+  queriesAthena: {
     path: '',
-    url: (bucket: string, { table }: { table?: string } = {}) =>
-      `/b/${bucket}/queries/athena${table ? `?table=${encodeURIComponent(table)}` : ''}`,
+    url: ({ bucket, table }: { bucket?: string; table?: string } = {}) =>
+      `/queries/athena?bucket=${encodeURIComponent(bucket || '')}${
+        table ? `&table=${encodeURIComponent(table)}` : ''
+      }`,
   },
 }
 
@@ -114,7 +115,7 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     expect(getByText('bonds')).toBeTruthy()
     expect(getByText(/a\/b · drugs\.csv/)).toBeTruthy()
     const link = getByText(/More queries/i).closest('a')
-    expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries')
+    expect(link!.getAttribute('href')).toBe('/queries/athena?bucket=my-bucket')
     expect(queryByText('col_0')).toBeNull()
   })
 
@@ -129,7 +130,9 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     expect(getByText('col_8')).toBeTruthy()
     expect(queryByText(/\+\d+ more/)).toBeNull()
     const link = getByText(/Query/).closest('a')
-    expect(link!.getAttribute('href')).toBe('/b/my-bucket/queries/athena?table=drugs')
+    expect(link!.getAttribute('href')).toBe(
+      '/queries/athena?bucket=my-bucket&table=drugs',
+    )
   })
 
   it('URL-encodes special characters in the Query deep link', () => {
@@ -141,7 +144,7 @@ describe('containers/Bucket/Overview/v2/TabulatorTables', () => {
     fireEvent.click(getByText('we/ird"'))
     const link = getByText(/Query/).closest('a')
     expect(link!.getAttribute('href')).toBe(
-      '/b/my-bucket/queries/athena?table=we%2Fird%22',
+      '/queries/athena?bucket=my-bucket&table=we%2Fird%22',
     )
   })
 })

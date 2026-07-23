@@ -212,8 +212,9 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const { prefs } = BucketPreferences.use()
   const tablesResult = useTabulatorTables(bucket)
 
-  // The whole section links into the Queries tab, so respect a bucket that has
-  // disabled it via `ui.nav.queries`.
+  // The whole section links into the global Athena console (scoped to this
+  // bucket), so respect a bucket that de-emphasized queries via
+  // `ui.nav.queries`.
   const queriesEnabled = BucketPreferences.Result.match(
     { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
     prefs,
@@ -234,7 +235,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const { tables } = tablesResult
   if (tables.length === 0) return null
 
-  const queryUrl = urls.bucketQueries(bucket)
+  const queryUrl = urls.queriesAthena({ bucket })
   return (
     <M.Paper className={classes.root}>
       <div className={classes.head}>
@@ -251,7 +252,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
           <TableRow
             key={table.name}
             table={table}
-            queryUrl={urls.bucketAthena(bucket, { table: table.name })}
+            queryUrl={urls.queriesAthena({ bucket, table: table.name })}
           />
         ))}
       </div>

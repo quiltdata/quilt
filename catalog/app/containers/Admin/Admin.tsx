@@ -3,7 +3,7 @@ import * as RR from 'react-router-dom'
 import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
-import Layout from 'components/Layout'
+import Layout, { Container } from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { NotFoundInTabs } from 'containers/NotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -25,22 +25,21 @@ const AdminErrorFallback = () => (
   </M.Box>
 )
 
-const useTabStyles = M.makeStyles((t) => ({
-  root: {
-    minHeight: t.spacing(8),
-    minWidth: 120,
-  },
-}))
-
 function NavTab(props: M.TabProps & RR.LinkProps) {
-  const classes = useTabStyles()
-  return <M.Tab classes={classes} component={RR.Link} {...props} />
+  return <M.Tab component={RR.Link} {...props} />
 }
 
 const useStyles = M.makeStyles((t) => ({
-  appBar: {
+  // Horizontal inset comes from `.main`; only vertical spacing here.
+  content: {
+    marginTop: t.spacing(3),
+  },
+  tabsCard: {
+    // Explicit white so it never inherits the dark themed paper color.
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
+    marginBottom: t.spacing(2),
+    padding: t.spacing(0, 3),
   },
 }))
 
@@ -54,17 +53,17 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
   return (
     <Layout
       pre={
-        <>
-          <M.AppBar position="static" className={classes.appBar}>
-            <M.Tabs value={section} centered>
+        <Container className={classes.content}>
+          <M.Paper className={classes.tabsCard}>
+            <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
               <NavTab label="Status" value="status" to={urls.adminStatus()} />
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
-          </M.AppBar>
-          <M.Container maxWidth="lg">{children as React.ReactChild}</M.Container>
-        </>
+          </M.Paper>
+          {children}
+        </Container>
       }
     />
   )

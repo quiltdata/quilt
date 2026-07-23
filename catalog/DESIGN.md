@@ -2,10 +2,14 @@
 name: Quilt Catalog
 description: The web catalog of the Quilt platform — versioned scientific data, browsable in place on the customer's own S3.
 colors:
-  primary: "#282b50"
-  indigo-chassis: "#282b50"
-  indigo-chassis-deep: "#1d2146"
+  primary: "#19163b"
+  midnight-chassis: "#19163b"
+  midnight-chassis-deep: "#100e28"
   amber-indicator: "#fb8c00"
+  navigation-text: "rgba(255, 255, 255, 0.85)"
+  navigation-text-muted: "rgba(255, 255, 255, 0.6)"
+  navigation-hover: "rgba(255, 255, 255, 0.06)"
+  navigation-selected: "rgba(255, 255, 255, 0.18)"
   info-blue: "#039be5"
   info-blue-wash: "#e1f5fe"
   warning-amber: "#fff59d"
@@ -15,13 +19,6 @@ colors:
   ink: "#000000de"
   ink-secondary: "#0000008a"
   divider: "#0000001f"
-  web-midnight: "#19163b"
-  coral-signal: "#f38681"
-  coral-signal-light: "#fabdb3"
-  cobalt-trace: "#5471f1"
-  cobalt-trace-deep: "#2d306d"
-  cobalt-sky: "#6a93ff"
-  web-text-secondary: "#b2bddb"
 typography:
   display:
     fontFamily: "Roboto, Helvetica, Arial, sans-serif"
@@ -49,6 +46,17 @@ typography:
     fontWeight: 500
     lineHeight: 1.75
     letterSpacing: "0.02857em"
+  caption:
+    fontFamily: "Roboto, Helvetica, Arial, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    lineHeight: 1.66
+  overline:
+    fontFamily: "Roboto, Helvetica, Arial, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.6
+    letterSpacing: "0.06em"
   mono:
     fontFamily: "Roboto Mono, monospace"
     fontSize: "0.875rem"
@@ -64,16 +72,16 @@ spacing:
   xl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.indigo-chassis}"
+    backgroundColor: "{colors.midnight-chassis}"
     textColor: "#ffffff"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "6px 16px"
   button-primary-hover:
-    backgroundColor: "{colors.indigo-chassis-deep}"
+    backgroundColor: "{colors.midnight-chassis-deep}"
   button-outlined:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.indigo-chassis}"
+    textColor: "{colors.midnight-chassis}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "5px 15px"
@@ -81,9 +89,14 @@ components:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.md}"
     padding: "{spacing.md}"
-  app-bar:
-    backgroundColor: "{colors.indigo-chassis}"
-    textColor: "#ffffff"
+  navigation-rail:
+    backgroundColor: "{colors.midnight-chassis}"
+    textColor: "{colors.navigation-text}"
+    width: "256px"
+  search-band:
+    backgroundColor: "{colors.surface}"
+    borderBottom: "1px solid {colors.divider}"
+    height: "64px"
   chip:
     backgroundColor: "#e0e0e0"
     textColor: "{colors.ink}"
@@ -101,19 +114,20 @@ an instrument does, through consistency, legibility, and exact values, never
 through decoration. Emphasis is rationed: one accent used sparingly beats three
 used freely, and the loudest element on any screen is the user's data.
 
-The system has **two registers in one codebase**. The authenticated app (the
-instrument) runs the light theme: white surfaces on a near-white canvas, deep
-indigo chrome, Roboto throughout. The marketing/website register (landing pages,
-sign-in) runs a separate dark theme — web-midnight ground, coral and cobalt
-accents, gradient buttons — and that energy is quarantined there: it never
-enters the authenticated app. Per PRODUCT.md, the system explicitly rejects
-consumer-SaaS gloss, cloud-console density, and legacy-lab-software chrome.
+The system has **one register**. The instrument runs the light theme — white
+working surfaces on a near-white canvas — framed by midnight chrome: the
+navigation rail and the primary actions carry the one dark that says "Quilt."
+The former marketing/website register (coral, cobalt, gradients, dark hero
+grounds) is retired; its energy has no home inside the product. Bare moments
+(sign-in, terminal errors) wear a stripped variant of the same register, never
+a different one. Per PRODUCT.md, the system explicitly rejects consumer-SaaS
+gloss, cloud-console density, and legacy-lab-software chrome.
 
 **Key Characteristics:**
 
 - Single-family typography (Roboto), with Roboto Mono reserved for machine-exact
   identity.
-- Deep indigo chrome around white working surfaces; one amber accent as the
+- Midnight chrome around white working surfaces; one amber accent as the
   indicator.
 - Flat-leaning depth: borders and tonal separation first, shadows for true
   overlays only.
@@ -122,31 +136,36 @@ consumer-SaaS gloss, cloud-console density, and legacy-lab-software chrome.
 
 ## 2. Colors
 
-A restrained instrument palette: indigo chassis, white surfaces, one amber
-indicator — with a separate dark marketing set that stays out of the app.
+A restrained instrument palette: midnight chassis, white surfaces, one amber
+indicator.
 
 ### Primary
 
-- **Deep Indigo Chassis** (#282b50): the app's structural chrome — app bar,
-  primary buttons, active-state fills, links in their strongest form. This is
-  the color that says "Quilt" inside the product. (`primary` is its role alias
-  for role-keyed consumers; same value, one color.)
-- **Indigo Chassis Deep** (#1d2146): the pressed/hover depth of the chassis;
+- **Midnight Chassis** (#19163b): the app's structural chrome — the navigation
+  rail's ground, primary buttons, focus rings on light surfaces, links in their
+  strongest form. This is the color that says "Quilt" inside the product; there
+  is one dark, product-wide. (`primary` is its role alias for role-keyed
+  consumers; same value, one color.)
+- **Midnight Chassis Deep** (#100e28): the pressed/hover depth of the chassis;
   never a surface of its own.
 
 ### Secondary
 
-- **Amber Indicator** (#fb8c00): the instrument's indicator light — secondary
-  actions, selection highlights, attention cues. An accent, never a surface.
+- **Amber Indicator** (#fb8c00): the instrument's indicator light — selection,
+  attention cues, and keyboard focus on midnight ground. An accent, never a
+  surface. In chrome it renders as the selection bracket (see the Indicator
+  Rule) and as the focus ring on the rail.
 
-### Tertiary (website register only)
+### Navigation (the chrome's own strokes)
 
-- **Web Midnight** (#19163b): the dark ground of marketing/website pages.
-- **Coral Signal** (#f38681, light #fabdb3): the website's primary accent;
-  carries the gradient CTA treatment there.
-- **Cobalt Trace** (#5471f1, deep #2d306d) and **Cobalt Sky** (#6a93ff): the
-  website's secondary and tertiary accents.
-- **Web Text Secondary** (#b2bddb): muted text on midnight ground.
+On the midnight ground, text and state washes come from the navigation slice —
+white at fixed alphas, not theme grays:
+
+- **Navigation Text** (85% white): labels and icons at rest (full white +
+  medium weight when selected).
+- **Navigation Text Muted** (60% white): section labels, secondary readouts.
+- **Navigation Hover** (6% white) / **Navigation Selected** (18% white): the
+  row washes. Selection additionally wears the amber bracket.
 
 ### Neutral
 
@@ -158,15 +177,32 @@ indicator — with a separate dark marketing set that stays out of the app.
 - **Info Blue** (#039be5, wash #e1f5fe) and **Warning Amber** (#fff59d, deep
   #f57f17): semantic states, used with their standard Material meanings.
 
+### Retired
+
+The website register's palette — coral (#f38681), cobalt (#5471f1, #2d306d,
+#6a93ff), and the muted web text (#b2bddb) — is removed along with its themes
+(`navTheme`, `websitePalette`). Web Midnight was promoted to the primary above;
+the rest does not come back. Do not reintroduce these values; a surface that
+seems to need them needs a different design.
+
 ### Named Rules
 
-**The Indicator Rule.** Accents indicate — actions, selection, state. An accent
-on ≤10% of any app screen; an accent used as decoration is a defect.
+**The Indicator Rule.** Accents indicate — selection, state, attention. One
+selection vocabulary product-wide: the selected item wears the amber indicator
+— a 3px bracket on the rail's selected nav item, the underline on a content
+tab — alongside its wash. An accent on ≤10% of any screen; an accent used as
+decoration is a defect. Amber is never a surface, a tint, or a fill.
 
-**The Two-Registers Rule.** The dark coral/cobalt marketing palette belongs to
-the website register exclusively. No gradient, coral, or midnight ground ever
-appears inside the authenticated app; no bare canvas-gray utilitarianism leaks
-onto marketing pages.
+**The One-Register Rule.** The product has one register: the instrument. No
+gradient CTAs, coral accents, hero typography, or marketing chrome anywhere —
+including sign-in, error pages, and anonymous surfaces, which wear the bare
+variant of the same register. (Legacy OPEN-landing surfaces are pending
+conformance under the homepage redesign.)
+
+**The Focus Ring Rule.** Keyboard focus is never invisible: a 2px ring in the
+counter-color of the ground — Amber Indicator on midnight chrome, Midnight
+Chassis on light surfaces — with the standard Material focus behaviors kept
+underneath.
 
 ## 3. Typography
 
@@ -179,8 +215,8 @@ signal, not a style.
 
 ### Hierarchy
 
-- **Display** (300, 3rem, 3.5rem line): website-register hero headings only;
-  never in the app.
+- **Display** (300, 3rem, 3.5rem line): legacy landing surfaces only, pending
+  the homepage redesign; never in the app.
 - **Headline** (400, 1.5rem, 1.334): page-level headings in the app (Material
   h5).
 - **Title** (500, 1.25rem, 1.6): section and card headings (Material h6).
@@ -188,6 +224,10 @@ signal, not a style.
   prose (Material body2; 1rem body1 for roomier prose). Prose runs ≤75ch.
 - **Label** (500, 0.875rem, 0.02857em tracking, UPPERCASE): buttons and control
   labels — Material's standard button treatment.
+- **Caption** (400, 0.75rem, 1.66): fine print and compact readouts — the
+  version row, keycap hints, helper lines.
+- **Overline** (500, 0.6875rem, 0.06em tracking, UPPERCASE): the chrome's
+  section labels (the rail's "Workspace"); a signpost step, never body text.
 - **Mono** (400, 0.875rem): machine-exact identity — see the rule below.
 
 ### Named Rules
@@ -196,8 +236,9 @@ signal, not a style.
 hashes, `s3://` URIs, package handles, version ids — renders in Roboto Mono.
 Prose never does.
 
-**The No-Display-Font Rule.** Display sizes and the 300 weight exist for the
-website register. Inside the app, nothing outranks a Headline.
+**The No-Display-Font Rule.** Display sizes and the 300 weight have no home in
+the app; nothing outranks a Headline. They linger only on legacy landing
+surfaces pending the homepage redesign.
 
 ## 4. Elevation
 
@@ -210,8 +251,8 @@ border-delineated flatness; do not add new resting shadows.
 
 ### Shadow Vocabulary
 
-- **Overlay** (Material elevation 8, e.g. menus): the standard floating-control
-  depth.
+- **Overlay** (Material elevation 8, e.g. menus, the search suggestions): the
+  standard floating-control depth.
 - **Modal** (Material elevation 24, dialogs): the strongest depth in the system.
 
 ### Named Rules
@@ -226,13 +267,14 @@ Every control uses the same vocabulary on every screen.
 
 ### Buttons
 
-- **Shape:** gently rounded (4px); website-register buttons are squarer (2px).
-- **Primary:** Deep Indigo Chassis fill, white uppercase label (0.875rem/500),
+- **Shape:** gently rounded (4px).
+- **Primary:** Midnight Chassis fill, white uppercase label (0.875rem/500),
   6px 16px padding.
-- **Hover / Focus:** fill deepens to Indigo Chassis Deep; focus is the standard
-  Material ripple + visible focus state. Transitions 150–250ms, standard easing.
-- **Outlined / Text:** indigo label on transparent ground; same label treatment.
-  The gradient contained buttons (coral/cobalt) are website-register only.
+- **Hover / Focus:** fill deepens to Midnight Chassis Deep; focus is the
+  standard Material ripple + the Focus Ring Rule. Transitions 150–250ms,
+  standard easing.
+- **Outlined / Text:** midnight label on transparent ground; same label
+  treatment. No gradient fills anywhere (One-Register Rule).
 
 ### Chips
 
@@ -256,12 +298,32 @@ Every control uses the same vocabulary on every screen.
   Material.
 - **Error:** Material error red with helper text; never color alone.
 
-### Navigation
+### Navigation (the chrome)
 
-- **App chrome:** Deep Indigo Chassis app bar (the dark navTheme band), white
-  controls; tabs use the standard Material tab anatomy with the active tab
-  clearly selected; breadcrumbs render path segments as links with the current
-  segment inert.
+- **The rail:** a persistent 256px Midnight Chassis sidebar worn by every
+  screen — the one dark mass on screen. Split layout: the brand mark at a 64px
+  logo block; an Overline section label above the workspace box (the role
+  switcher — a faint bordered box, row = role name + chevron when switchable,
+  "Switch workspace" as the action's name); the nav list (icon 20px in a 34px
+  column, 16px inset, whole-row hover wash, 44px rows); a spacer; the identity
+  box at the foot; the version readout (Caption + Mono) under it. Selection =
+  Navigation Selected wash + the amber bracket (Indicator Rule); keyboard focus
+  per the Focus Ring Rule. Icon actions carry tooltips with arrows.
+- **The search band:** the top bar is chrome, not a card — Surface white,
+  full-bleed to the rail's edge, square, flat (no resting shadow), delineated
+  by a Divider hairline, height-registered at 64px with the rail's logo block
+  so one header line crosses the seam. The field sits left-aligned (max 720px):
+  white with a visible 1px border, faint leading search icon that warms on
+  focus, a `/` keycap hint that hides while typing; `/` and Cmd/Ctrl+K focus it
+  from anywhere. Its suggestions dropdown is a true overlay (elevation 8) with
+  `s3://` scopes in Mono.
+- **Bare pages:** sign-in and terminal errors wear the bare header — a static
+  64px Midnight Chassis band carrying only the mark as a home link — with the
+  page content centered beneath. No nav, no search, no marketing (One-Register
+  Rule).
+- **Tabs & sub-nav:** per-area tab bars stay in-page and use the standard
+  Material tab anatomy; the active tab's underline is the same selection
+  vocabulary as the rail's bracket (Indicator Rule).
 
 ### Data Identity (signature)
 
@@ -273,7 +335,7 @@ Every control uses the same vocabulary on every screen.
 
 ### Do
 
-- **Do** keep the instrument quiet: white surfaces, indigo chrome, one accent
+- **Do** keep the instrument quiet: white surfaces, midnight chrome, one accent
   indicating — the data is the loudest thing on screen.
 - **Do** use Roboto Mono for every hash, URI, handle, and version (the Mono
   Identity Rule).
@@ -283,18 +345,19 @@ Every control uses the same vocabulary on every screen.
   on every screen.
 - **Do** show exact values: real counts, real timestamps, real sizes, with copy
   affordances.
+- **Do** give every interactive element a visible keyboard focus (the Focus
+  Ring Rule).
 
 ### Don't
 
-- **Don't** let consumer-SaaS gloss into the authenticated app: no gradient
-  CTAs, no hero metrics, no marketing chrome (PRODUCT.md anti-reference,
-  verbatim).
+- **Don't** let consumer-SaaS gloss into the app: no gradient CTAs, no hero
+  metrics, no marketing chrome (PRODUCT.md anti-reference, verbatim).
 - **Don't** drift toward cloud-console density: no wall-of-controls, no
   every-option-visible screens without hierarchy (PRODUCT.md anti-reference).
 - **Don't** regress toward legacy lab software: no beige chrome, no modal mazes,
   no dead affordances — anything styled as interactive must act (PRODUCT.md
   anti-reference).
-- **Don't** use the coral/cobalt/midnight website palette inside the app (the
-  Two-Registers Rule).
+- **Don't** reintroduce the retired website palette — coral, cobalt, gradients
+  (the One-Register Rule); there is one dark and it is the Midnight Chassis.
 - **Don't** signal state with color alone; pair color with text or iconography.
 - **Don't** use display sizes or the 300 weight inside the app.

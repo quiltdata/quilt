@@ -219,7 +219,7 @@ const useThemePreviewStyles = M.makeStyles((t) => ({
   logoWrapper: {
     padding: t.spacing(1),
     backgroundColor: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || '#282b50',
+      backgroundColor || '#19163b',
     alignItems: 'center',
     display: 'flex',
     height: '46px',
@@ -431,10 +431,10 @@ export default function ThemeEditor() {
                     initialValue={settings?.theme?.palette?.primary?.main || ''}
                     name="primaryColor"
                     label="Background color"
-                    placeholder="#282b50"
+                    placeholder="#19163b"
                     validate={validators.hexColor as FF.FieldValidator<string>}
                     errors={{
-                      hex: 'Enter 6-digit hex color, ex. #282b50',
+                      hex: 'Enter 6-digit hex color, ex. #19163b',
                     }}
                     disabled={submitting}
                     fullWidth

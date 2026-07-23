@@ -147,10 +147,11 @@ function S3UrlValue({ href, children }: React.PropsWithChildren<{ href: string }
   )
 }
 
-function StringValue({ value }: { value: string }) {
+function StringValue({ value, noS3Links }: { value: string; noS3Links?: boolean }) {
   const href = React.useMemo(() => getHref(value), [value])
   if (!href) return <div>"{value}"</div>
   if (s3paths.isS3Url(href)) {
+    if (noS3Links) return <div>"{value}"</div>
     try {
       return <S3UrlValue href={href}>{value}</S3UrlValue>
     } catch (error) {
@@ -172,6 +173,7 @@ function PrimitiveEntry({
   name,
   value,
   topLevel,
+  noS3Links,
   classes,
 }: JsonDisplayInnerProps<PrimitiveValue>) {
   return (
@@ -180,7 +182,7 @@ function PrimitiveEntry({
       <Key classes={classes}>{name}</Key>
       <div className={classes.value}>
         {typeof value === 'string' ? (
-          <StringValue value={value} />
+          <StringValue value={value} noS3Links={noS3Links} />
         ) : (
           <NonStringValue value={value} />
         )}
@@ -276,6 +278,7 @@ function CompoundEntry({
   defaultExpanded,
   showKeysWhenCollapsed,
   showValuesWhenCollapsed,
+  noS3Links,
   classes,
 }: JsonDisplayInnerProps<CompoundValue>) {
   const braces = Array.isArray(value) ? '[]' : '{}'
@@ -337,6 +340,7 @@ function CompoundEntry({
                 defaultExpanded={defaultExpanded - 1}
                 showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
                 showValuesWhenCollapsed={showValuesWhenCollapsed}
+                noS3Links={noS3Links}
               />
             ))}
             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
@@ -356,6 +360,7 @@ interface JsonDisplayInnerProps<Value> {
   classes: Classes
   showValuesWhenCollapsed: boolean
   showKeysWhenCollapsed: number
+  noS3Links?: boolean
 }
 
 function JsonDisplayInner({ value, ...rest }: JsonDisplayInnerProps<unknown>) {
@@ -379,6 +384,8 @@ interface JsonDisplayProps extends M.BoxProps {
   // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
   showKeysWhenCollapsed?: boolean | number | 'auto'
   showValuesWhenCollapsed?: boolean
+  // render s3:// strings as plain text instead of links to the bucket view
+  noS3Links?: boolean
 }
 
 export default function JsonDisplay({
@@ -388,6 +395,7 @@ export default function JsonDisplay({
   defaultExpanded = false,
   showKeysWhenCollapsed = 'auto',
   showValuesWhenCollapsed = true,
+  noS3Links = false,
   className,
   ...props
 }: JsonDisplayProps) {
@@ -419,6 +427,7 @@ export default function JsonDisplay({
             classes,
             showValuesWhenCollapsed,
             showKeysWhenCollapsed: computedKeys,
+            noS3Links,
           }}
         />
       </React.Suspense>

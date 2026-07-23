@@ -96,14 +96,23 @@ const I18_COUNT_PACKAGES = {
   other: (n: number) => (n > 0 ? `${n} packages` : 'Packages'),
 }
 
+const I18_COUNT_OBJECTS = {
+  one: '1 object',
+  other: (n: number) => (n > 0 ? `${n} objects` : 'Objects'),
+}
+
+// Name the count after what's being counted, matching the DP tab's "N
+// packages": packages for QuiltPackage, objects for S3Object (regardless of
+// list/table view).
 function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
-  if (
-    state.resultType === SearchUIModel.ResultType.QuiltPackage &&
-    state.view === SearchUIModel.View.Table
-  ) {
-    return Format.pluralify(n, I18_COUNT_PACKAGES)
+  switch (state.resultType) {
+    case SearchUIModel.ResultType.QuiltPackage:
+      return Format.pluralify(n, I18_COUNT_PACKAGES)
+    case SearchUIModel.ResultType.S3Object:
+      return Format.pluralify(n, I18_COUNT_OBJECTS)
+    default:
+      return Format.pluralify(n, I18_COUNT_RESULTS)
   }
-  return Format.pluralify(n, I18_COUNT_RESULTS)
 }
 
 function ResultsCount() {
