@@ -11,7 +11,8 @@ from t4_lambda_access_counts import index
 
 
 class TestAccessCounts(TestCase):
-    """Tests S3 Select"""
+    workgroup = None
+
     def setUp(self):
         self.s3_stubber = Stubber(index.s3)
         self.s3_stubber.activate()
@@ -19,20 +20,28 @@ class TestAccessCounts(TestCase):
         self.athena_stubber = Stubber(index.athena)
         self.athena_stubber.activate()
 
+        workgroup_patcher = patch.object(index, 'ATHENA_WORKGROUP', self.workgroup)
+        workgroup_patcher.start()
+        self.addCleanup(workgroup_patcher.stop)
+
     def tearDown(self):
         self.athena_stubber.deactivate()
         self.s3_stubber.deactivate()
 
     def _start_query(self, query, execution_id):
+        expected_params = {
+            'QueryExecutionContext': {
+                'Database': 'athena-db'
+            },
+            'QueryString': query,
+            'ResultConfiguration': {'OutputLocation': 's3://results-bucket/AthenaQueryResults/'}
+        }
+        if self.workgroup is not None:
+            expected_params['WorkGroup'] = self.workgroup
+
         self.athena_stubber.add_response(
             method='start_query_execution',
-            expected_params={
-                'QueryExecutionContext': {
-                    'Database': 'athena-db'
-                },
-                'QueryString': query,
-                'ResultConfiguration': {'OutputLocation': 's3://results-bucket/AthenaQueryResults/'}
-            },
+            expected_params=expected_params,
             service_response={
                 'QueryExecutionId': execution_id
             },
@@ -146,6 +155,19 @@ class TestAccessCounts(TestCase):
         ])
 
         for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
+            self.athena_stubber.add_response(
+                method='get_query_execution',
+                expected_params={
+                    'QueryExecutionId': str(idx),
+                },
+                service_response={
+                    'QueryExecution': {
+                        'ResultConfiguration': {
+                            'OutputLocation': f's3://results-bucket/AthenaQueryResults/{idx}.csv',
+                        },
+                    },
+                },
+            )
             self.s3_stubber.add_response(
                 method='head_object',
                 expected_params={
@@ -172,3 +194,7 @@ class TestAccessCounts(TestCase):
         with patch('t4_lambda_access_counts.index.now', return_value=now), \
              patch('time.sleep', return_value=None):
             index.handler(None, None)
+
+
+class TestAccessCountsWithWorkgroup(TestAccessCounts):
+    workgroup = 'test-workgroup'

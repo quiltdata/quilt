@@ -6,6 +6,7 @@ and creates summaries of object and package access events.
 import os
 import textwrap
 import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 import boto3
@@ -20,6 +21,8 @@ CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
+# Athena workgroup to run queries in. If unset, the account default ("primary") is used.
+ATHENA_WORKGROUP = os.environ.get('ATHENA_WORKGROUP')
 
 MiB = 1024 * 1024
 S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
@@ -289,16 +292,31 @@ s3 = boto3.client('s3')
 def start_query(query_string):
     output = 's3://%s/%s/' % (QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
+    workgroup_params = {'WorkGroup': ATHENA_WORKGROUP} if ATHENA_WORKGROUP else {}
     response = athena.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext=dict(Database=ATHENA_DATABASE),
-        ResultConfiguration=dict(OutputLocation=output)
+        ResultConfiguration=dict(OutputLocation=output),
+        **workgroup_params,
     )
     print("Started query:", response)
 
     execution_id = response['QueryExecutionId']
 
     return execution_id
+
+
+def get_result_location(execution_id):
+    """
+    Return (bucket, key) of the query's result file, as reported by Athena.
+    Not derived from QUERY_TEMP_DIR: an enforced workgroup configuration can
+    override the output location we request.
+    """
+    response = athena.get_query_execution(QueryExecutionId=execution_id)
+    url = response['QueryExecution']['ResultConfiguration']['OutputLocation']
+    parts = urllib.parse.urlparse(url)
+    assert parts.scheme == 's3', f"Unexpected result location: {url}"
+    return parts.netloc, parts.path.lstrip('/')
 
 
 def query_finished(execution_id):
@@ -453,12 +471,12 @@ def handler(event, context):
     execution_ids = run_multiple_queries([query for _, query in queries])
 
     for (filename, _), execution_id in zip(queries, execution_ids):
-        src_key = f'{QUERY_TEMP_DIR}/{execution_id}.csv'
+        src_bucket, src_key = get_result_location(execution_id)
         dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
 
         s3.copy(
             CopySource=dict(
-                Bucket=QUERY_RESULT_BUCKET,
+                Bucket=src_bucket,
                 Key=src_key
             ),
             Bucket=QUERY_RESULT_BUCKET,
