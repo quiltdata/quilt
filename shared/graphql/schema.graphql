@@ -360,6 +360,27 @@ enum SearchResultOrder {
   LEX_DESC
 }
 
+enum PackageSystemField {
+  NAME
+  MODIFIED
+  SIZE
+  HASH
+  WORKFLOW
+  COMMENT
+  ENTRIES
+}
+
+input PackageSortField {
+  system: PackageSystemField
+  userMeta: String
+}
+
+input PackageSortInput {
+  preset: SearchResultOrder
+  field: PackageSortField
+  direction: SortDirection
+}
+
 type DatetimeExtents {
   min: Datetime!
   max: Datetime!
@@ -504,7 +525,7 @@ type PackagesSearchResultSet {
   total: Int!
   stats: PackagesSearchStats!
   filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
-  firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
+  firstPage(size: Int = 30, order: SearchResultOrder, sort: PackageSortInput): PackagesSearchResultSetPage!
 }
 
 type EmptySearchResultSet {
