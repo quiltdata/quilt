@@ -22,10 +22,19 @@ const useBucketStyles = M.makeStyles((t) => ({
     // ragged; the flexGrow spacer below absorbs the slack when content is shorter.
     minHeight: t.spacing(26),
   },
-  // Keep the collaborators badge within the header padding (drop CardHeader's
-  // default negative margins).
-  action: {
-    margin: 0,
+  // Collaborators read as an exact footer readout, not a floating corner badge:
+  // the MUI Badge's translate(50%,-50%) overhang collided with the card's
+  // top-right corner and clipped. A labelled footer line ("Shared with N")
+  // seats the count on a consistent baseline across every card and never
+  // overflows the rounded corner.
+  footer: {
+    alignItems: 'center',
+    borderTop: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    justifyContent: 'space-between',
+    minHeight: t.spacing(5),
+    padding: t.spacing(0, 2),
   },
   title: {
     ...t.typography.h6,
@@ -108,7 +117,6 @@ function BucketCard({
       data-bucket={bucket.name}
     >
       <M.CardHeader
-        classes={{ action: classes.action }}
         disableTypography
         avatar={
           <Link aria-hidden="true" tabIndex={-1} to={urls.bucketRoot(bucket.name)}>
@@ -129,21 +137,12 @@ function BucketCard({
             s3://{bucket.name}
           </Link>
         }
-        action={
-          cfg.mode === 'PRODUCT' && showCollaborators ? (
-            <Collaborators
-              bucket={bucket.name}
-              collaborators={bucket.collaborators ?? null}
-            />
-          ) : undefined
-        }
       />
       {!!bucket.description && (
         <M.CardContent>
           <p className={classes.desc}>{bucket.description}</p>
         </M.CardContent>
       )}
-      <M.Box flexGrow={1} />
       {!!bucket.tags && !!bucket.tags.length && (
         <div className={classes.tags}>
           {bucket.tags.map((t) => (
@@ -156,6 +155,15 @@ function BucketCard({
               onClick={onTagClick ? () => onTagClick(t) : undefined}
             />
           ))}
+        </div>
+      )}
+      <M.Box flexGrow={1} />
+      {cfg.mode === 'PRODUCT' && showCollaborators && (
+        <div className={classes.footer}>
+          <Collaborators
+            bucket={bucket.name}
+            collaborators={bucket.collaborators ?? null}
+          />
         </div>
       )}
     </M.Card>

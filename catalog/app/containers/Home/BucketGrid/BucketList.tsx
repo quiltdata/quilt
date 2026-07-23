@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -15,6 +16,15 @@ const useStyles = M.makeStyles((t) => ({
     '&:hover': {
       backgroundColor: t.palette.action.hover,
     },
+  },
+  // The collaborator readout rides the right edge in an absolutely-positioned
+  // secondary-action slot. Reserve a right gutter wide enough for the compact
+  // "group glyph + N+" readout so neither the stacked title/address nor the
+  // right-aligned tags ever slide under it. The slot sits at spacing(2) from
+  // the edge; this reserves that plus the readout's own width. Applied only
+  // when the readout is present.
+  rowWithSecondary: {
+    paddingRight: t.spacing(9),
   },
   avatar: {
     minWidth: t.spacing(6),
@@ -105,9 +115,13 @@ function BucketRow({
   const { urls } = NamedRoutes.use()
   const to = urls.bucketRoot(bucket.name)
 
+  // Only reserve the right gutter when the readout actually occupies the
+  // secondary-action slot; otherwise the row keeps its full width.
+  const hasCollaborators = cfg.mode === 'PRODUCT' && showCollaborators
+
   return (
     <M.ListItem
-      className={classes.row}
+      className={cx(classes.row, hasCollaborators && classes.rowWithSecondary)}
       divider={divider}
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}
@@ -152,11 +166,12 @@ function BucketRow({
           ))}
         </div>
       )}
-      {cfg.mode === 'PRODUCT' && showCollaborators && (
+      {hasCollaborators && (
         <M.ListItemSecondaryAction>
           <Collaborators
             bucket={bucket.name}
             collaborators={bucket.collaborators ?? null}
+            variant="inline"
           />
         </M.ListItemSecondaryAction>
       )}
