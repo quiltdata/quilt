@@ -6,7 +6,6 @@ and creates summaries of object and package access events.
 import os
 import textwrap
 import time
-import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 import boto3
@@ -150,12 +149,15 @@ INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
           eventtime >= from_unixtime({start_ts:f}) AND eventtime < from_unixtime({end_ts:f})
 """)
 
-CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
+# No external_location: a CTAS that specifies one fails in a workgroup that enforces a query results
+# location; Athena instead writes the table data under the result location ("tables/<query-id>/"),
+# which is inside QUERY_TEMP_DIR and thus cleaned up by delete_dir.
+# https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html
+CREATE_PACKAGE_HASHES = textwrap.dedent("""\
     CREATE TABLE package_hashes
     WITH (
         format = 'Parquet',
-        parquet_compression = 'SNAPPY',
-        external_location = 's3://{sql_escape(QUERY_RESULT_BUCKET)}/{sql_escape(QUERY_TEMP_DIR)}/package_hashes/'
+        parquet_compression = 'SNAPPY'
     )
     AS
     SELECT DISTINCT
@@ -308,9 +310,11 @@ def get_result_location(execution_id):
     """Return (bucket, key) of the result file (the workgroup config may override the requested location)."""
     response = athena.get_query_execution(QueryExecutionId=execution_id)
     url = response['QueryExecution']['ResultConfiguration']['OutputLocation']
-    parts = urllib.parse.urlparse(url)
-    assert parts.scheme == 's3', f"Unexpected result location: {url}"
-    return parts.netloc, parts.path.lstrip('/')
+    # Not urllib.parse.urlparse(): '?' and '#' are legal in S3 keys but would be parsed as query/fragment.
+    scheme, _, rest = url.partition('://')
+    assert scheme == 's3', f"Unexpected result location: {url}"
+    bucket, _, key = rest.partition('/')
+    return bucket, key
 
 
 def query_finished(execution_id):
@@ -374,7 +378,7 @@ def delete_dir(bucket, prefix):
             break
 
         delete_response = s3.delete_objects(
-            Bucket=QUERY_RESULT_BUCKET,
+            Bucket=bucket,
             Delete=dict(
                 Objects=[dict(
                     Key=obj['Key']
