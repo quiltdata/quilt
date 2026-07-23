@@ -21,8 +21,7 @@ CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
-# Athena workgroup to run queries in. If unset, the account default ("primary") is used.
-ATHENA_WORKGROUP = os.environ.get('ATHENA_WORKGROUP')
+ATHENA_WORKGROUP = os.environ['ATHENA_WORKGROUP']
 
 MiB = 1024 * 1024
 S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
@@ -292,12 +291,11 @@ s3 = boto3.client('s3')
 def start_query(query_string):
     output = 's3://%s/%s/' % (QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
-    workgroup_params = {'WorkGroup': ATHENA_WORKGROUP} if ATHENA_WORKGROUP else {}
     response = athena.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext=dict(Database=ATHENA_DATABASE),
         ResultConfiguration=dict(OutputLocation=output),
-        **workgroup_params,
+        WorkGroup=ATHENA_WORKGROUP,
     )
     print("Started query:", response)
 
@@ -307,11 +305,7 @@ def start_query(query_string):
 
 
 def get_result_location(execution_id):
-    """
-    Return (bucket, key) of the query's result file, as reported by Athena.
-    Not derived from QUERY_TEMP_DIR: an enforced workgroup configuration can
-    override the output location we request.
-    """
+    """Return (bucket, key) of the result file (the workgroup config may override the requested location)."""
     response = athena.get_query_execution(QueryExecutionId=execution_id)
     url = response['QueryExecution']['ResultConfiguration']['OutputLocation']
     parts = urllib.parse.urlparse(url)
