@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import BucketIcon from 'components/BucketIcon'
+import { assignGlyphs } from 'components/BucketIcon/seedGlyphs'
 import cfg from 'constants/config'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -21,19 +22,31 @@ const useBucketStyles = M.makeStyles((t) => ({
     // ragged; the flexGrow spacer below absorbs the slack when content is shorter.
     minHeight: t.spacing(26),
   },
-  // Keep the collaborators badge within the header padding (drop CardHeader's
-  // default negative margins).
-  action: {
-    margin: 0,
+  // Collaborators read as an exact footer readout, not a floating corner badge:
+  // the MUI Badge's translate(50%,-50%) overhang collided with the card's
+  // top-right corner and clipped. A labelled footer line ("Shared with N")
+  // seats the count on a consistent baseline across every card and never
+  // overflows the rounded corner.
+  footer: {
+    alignItems: 'center',
+    borderTop: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    justifyContent: 'space-between',
+    minHeight: t.spacing(5),
+    padding: t.spacing(0, 2),
   },
   title: {
     ...t.typography.h6,
     color: t.palette.tertiary.main,
   },
+  // The s3:// address is machine-exact identity, not prose: render it in the
+  // mono face (the Mono Identity Rule), subordinate to the title above it.
   name: {
-    ...t.typography.body1,
+    ...t.typography.body2,
     color: t.palette.text.hint,
     display: 'block',
+    fontFamily: t.typography.monospace.fontFamily,
     lineHeight: t.typography.pxToRem(24),
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -81,11 +94,19 @@ export interface Bucket {
 
 interface BucketCardProps {
   bucket: Bucket
+  glyphIndex?: number
   onTagClick?: (tag: string) => void
   tagIsMatching: (tag: string) => boolean
+  showCollaborators: boolean
 }
 
-function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
+function BucketCard({
+  bucket,
+  glyphIndex,
+  onTagClick,
+  tagIsMatching,
+  showCollaborators,
+}: BucketCardProps) {
   const classes = useBucketStyles()
   const { urls } = NamedRoutes.use()
 
@@ -96,11 +117,10 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
       data-bucket={bucket.name}
     >
       <M.CardHeader
-        classes={{ action: classes.action }}
         disableTypography
         avatar={
           <Link aria-hidden="true" tabIndex={-1} to={urls.bucketRoot(bucket.name)}>
-            <BucketIcon src={bucket.iconUrl} />
+            <BucketIcon seed={bucket.name} glyphIndex={glyphIndex} src={bucket.iconUrl} />
           </Link>
         }
         title={
@@ -117,21 +137,12 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
             s3://{bucket.name}
           </Link>
         }
-        action={
-          cfg.mode === 'PRODUCT' ? (
-            <Collaborators
-              bucket={bucket.name}
-              collaborators={bucket.collaborators ?? null}
-            />
-          ) : undefined
-        }
       />
       {!!bucket.description && (
         <M.CardContent>
           <p className={classes.desc}>{bucket.description}</p>
         </M.CardContent>
       )}
-      <M.Box flexGrow={1} />
       {!!bucket.tags && !!bucket.tags.length && (
         <div className={classes.tags}>
           {bucket.tags.map((t) => (
@@ -144,6 +155,15 @@ function BucketCard({ bucket, onTagClick, tagIsMatching }: BucketCardProps) {
               onClick={onTagClick ? () => onTagClick(t) : undefined}
             />
           ))}
+        </div>
+      )}
+      <M.Box flexGrow={1} />
+      {cfg.mode === 'PRODUCT' && showCollaborators && (
+        <div className={classes.footer}>
+          <Collaborators
+            bucket={bucket.name}
+            collaborators={bucket.collaborators ?? null}
+          />
         </div>
       )}
     </M.Card>
@@ -176,20 +196,38 @@ interface BucketGridProps {
   onTagClick?: (tag: string) => void
   tagIsMatching?: (tag: string) => boolean
   showAddLink?: boolean
+  showCollaborators?: boolean
 }
 
 export default React.forwardRef<HTMLDivElement, BucketGridProps>(function BucketGrid(
-  { buckets, onTagClick, tagIsMatching = () => false, showAddLink = false },
+  {
+    buckets,
+    onTagClick,
+    tagIsMatching = () => false,
+    showAddLink = false,
+    showCollaborators = true,
+  },
   ref,
 ) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
+  // Collision-free glyph assignment across the whole grid so no two seeded
+  // bucket icons on the page repeat a glyph (recomputed only when the set of
+  // names changes).
+  const glyphs = React.useMemo(() => assignGlyphs(buckets.map((b) => b.name)), [buckets])
+
   return (
     <M.Grid container spacing={2} ref={ref}>
       {buckets.map((b) => (
         <M.Grid item xs={12} sm={6} md={4} lg={3} key={b.name}>
-          <BucketCard bucket={b} onTagClick={onTagClick} tagIsMatching={tagIsMatching} />
+          <BucketCard
+            bucket={b}
+            glyphIndex={glyphs.get(b.name)}
+            onTagClick={onTagClick}
+            tagIsMatching={tagIsMatching}
+            showCollaborators={showCollaborators}
+          />
         </M.Grid>
       ))}
       {showAddLink && (

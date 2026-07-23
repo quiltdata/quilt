@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link, useHistory, useLocation } from 'react-router-dom'
@@ -7,6 +8,7 @@ import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
+import cfg from 'constants/config'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -61,19 +63,88 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+    // Square the outline (2px) so the filter controls — this input and the
+    // shortcut tokens — form one crisp, right-angled family, set apart from the
+    // circular bucket discs and the pill toggles by shape, not just color.
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2,
+    },
   },
   viewToggle: {
     flexShrink: 0,
   },
+  // The collaborators toggle governs the avatar column at the FAR RIGHT of each
+  // bucket row, so push it to the right edge of the filter row — it sits over
+  // the column it controls instead of hiding among the left-side controls. A
+  // hover tooltip (not a text label) explains it, keeping the control compact.
+  // On xs the row is a column, so drop the auto-margin.
+  collabToggle: {
+    flexShrink: 0,
+    marginLeft: 'auto',
+    [t.breakpoints.down('xs')]: {
+      marginLeft: 0,
+    },
+  },
+  // The shortcuts live on their OWN row beneath the filter controls, not inside
+  // filterRow — a growing tag set must never crowd or wrap the filter input.
   tags: {
-    alignItems: 'center',
+    alignItems: 'baseline',
     display: 'flex',
     flexWrap: 'wrap',
     gap: t.spacing(1),
   },
   tagsLabel: {
+    ...t.typography.overline,
+    color: t.palette.text.hint,
+    // align the label to the chip row's baseline without stretching
+    flexShrink: 0,
+    marginRight: t.spacing(0.5),
+  },
+  // A quiet "filter token", not a loud chip. Two deliberate moves: (1) SQUARE
+  // corners (2px) so the tokens read as a distinct class from the circular
+  // bucket discs and fully-round Material chips — shape, not just color, does
+  // the differentiating; (2) a SOFT tertiary tint at rest (wash fill + tinted
+  // text) so the row carries a little brand color without flooding the screen.
+  // No '#' prefix — the row is labeled "Shortcuts", so the marker is redundant.
+  // The active token fills solid with the tertiary accent.
+  shortcut: {
+    backgroundColor: fade(t.palette.tertiary.main, 0.08),
+    border: `1px solid ${fade(t.palette.tertiary.main, 0.24)}`,
+    borderRadius: 2,
+    color: t.palette.tertiary.main,
+    fontWeight: 500,
+    '&:hover': {
+      backgroundColor: fade(t.palette.tertiary.main, 0.16),
+      borderColor: fade(t.palette.tertiary.main, 0.5),
+    },
+    '& .MuiChip-label': {
+      paddingLeft: t.spacing(1.25),
+      paddingRight: t.spacing(1.25),
+    },
+  },
+  // Active token: filled tertiary, so the current filter is unmistakable.
+  shortcutActive: {
+    backgroundColor: t.palette.tertiary.main,
+    borderColor: t.palette.tertiary.main,
+    color: t.palette.common.white,
+    '&:hover': {
+      backgroundColor: t.palette.tertiary.dark,
+      borderColor: t.palette.tertiary.dark,
+    },
+  },
+  // The "+N more" / "less" expander: text-weight, no border, so it reads as an
+  // action on the row rather than another tag.
+  shortcutMore: {
     ...t.typography.body2,
-    color: t.palette.text.secondary,
+    background: 'none',
+    border: 'none',
+    color: t.palette.tertiary.main,
+    cursor: 'pointer',
+    fontWeight: 500,
+    padding: t.spacing(0, 0.5),
+    '&:hover': {
+      textDecoration: 'underline',
+    },
   },
   controls: {
     display: 'flex',
@@ -111,6 +182,12 @@ export default function Buckets() {
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const [page, setPage] = React.useState(1)
+  // Collaborators are opt-out: shown by default (PRODUCT mode only), but the
+  // scientist scanning volumes can hide the avatar column to reduce the row.
+  const [showCollaborators, setShowCollaborators] = React.useState(true)
+  // Shortcuts collapse past a threshold so a large tag vocabulary can't flood
+  // the layout; the expander reveals the rest on demand.
+  const [tagsExpanded, setTagsExpanded] = React.useState(false)
   const scrollRef = React.useRef(null)
 
   const location = useLocation()
@@ -132,6 +209,17 @@ export default function Buckets() {
       )(buckets),
     [buckets],
   )
+
+  // Cap the shortcut row until expanded. An active (currently-filtering) tag is
+  // always shown even past the cap so the live filter never hides behind "more".
+  const TAGS_COLLAPSED = 8
+  const visibleTags = React.useMemo(() => {
+    if (tagsExpanded || allTags.length <= TAGS_COLLAPSED) return allTags
+    const head = allTags.slice(0, TAGS_COLLAPSED)
+    const active = allTags.filter((t) => filter.includes(t) && !head.includes(t))
+    return [...head, ...active]
+  }, [allTags, tagsExpanded, filter])
+  const hiddenTagCount = allTags.length - visibleTags.length
 
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
@@ -244,22 +332,56 @@ export default function Buckets() {
               <Icons.List />
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
-          {!!allTags.length && (
-            <div className={classes.tags}>
-              <span className={classes.tagsLabel}>or use shortcuts:</span>
-              {allTags.map((t) => (
-                <M.Chip
-                  key={t}
-                  label={t}
-                  size="small"
-                  clickable
-                  color={tagIsMatching(t) ? 'primary' : 'default'}
-                  onClick={() => filtering.set(t)}
-                />
-              ))}
-            </div>
+          {cfg.mode === 'PRODUCT' && (
+            <M.Tooltip
+              title={
+                showCollaborators
+                  ? 'Hide the collaborators column'
+                  : 'Show who can access each volume'
+              }
+            >
+              <Lab.ToggleButton
+                className={classes.collabToggle}
+                value="collaborators"
+                size="small"
+                selected={showCollaborators}
+                onChange={() => setShowCollaborators((s) => !s)}
+                aria-label="Toggle collaborators column"
+              >
+                <Icons.People fontSize="small" />
+              </Lab.ToggleButton>
+            </M.Tooltip>
           )}
         </div>
+        {!!allTags.length && (
+          <div className={classes.tags}>
+            <span className={classes.tagsLabel}>Shortcuts</span>
+            {visibleTags.map((t) => (
+              <M.Chip
+                key={t}
+                className={cx(
+                  classes.shortcut,
+                  tagIsMatching(t) && classes.shortcutActive,
+                )}
+                label={t}
+                size="small"
+                clickable
+                // Clicking an already-selected shortcut clears it (toggle off);
+                // otherwise it becomes the active filter.
+                onClick={() => filtering.set(tagIsMatching(t) ? undefined : t)}
+              />
+            ))}
+            {(hiddenTagCount > 0 || tagsExpanded) && allTags.length > TAGS_COLLAPSED && (
+              <button
+                type="button"
+                className={classes.shortcutMore}
+                onClick={() => setTagsExpanded((e) => !e)}
+              >
+                {tagsExpanded ? 'Show less' : `+${hiddenTagCount} more`}
+              </button>
+            )}
+          </div>
+        )}
         {filtered.length || !filter ? (
           viewMode === 'card' ? (
             <BucketGrid
@@ -267,6 +389,7 @@ export default function Buckets() {
               onTagClick={filtering.set}
               tagIsMatching={tagIsMatching}
               showAddLink={showAddLink}
+              showCollaborators={showCollaborators}
             />
           ) : (
             <BucketList
@@ -274,6 +397,7 @@ export default function Buckets() {
               onTagClick={filtering.set}
               tagIsMatching={tagIsMatching}
               showAddLink={showAddLink}
+              showCollaborators={showCollaborators}
             />
           )
         ) : (

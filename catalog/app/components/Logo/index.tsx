@@ -8,32 +8,61 @@ import assertNever from 'utils/assertNever'
 import * as s3paths from 'utils/s3paths'
 
 import quilt from './quilt.png'
+import quiltIcon from './quilt-icon.png'
+import quiltWordmark from './quilt-wordmark.png'
+
+// 'mark' = the compact coral-dot square (default; fits square/tight slots).
+// 'wordmark' = the full quilt.bio horizontal lockup for wide slots (e.g. the
+// NavBar header + sign-in), where the brand should read as a name, not a dot.
+// 'icon' = the full-color quilt.bio "Q" logomark, a centered square that reads
+// on its own — used where the rail collapses to icons only.
+type LogoVariant = 'mark' | 'wordmark' | 'icon'
 
 interface LogoProps {
   className?: string
   src?: string
   height: string
   width: string
+  variant?: LogoVariant
 }
 
 const useStyles = M.makeStyles(() => ({
   custom: ({ height }: { height: string }) => ({
     height,
   }),
-  quilt: ({ height, width }: { height: string; width: string }) => ({
+  quilt: ({
     height,
     width,
-    // HACK: hardcoded increased height, because there is the tall "l" in logo
+    variant,
+  }: {
+    height: string
+    width: string
+    variant?: LogoVariant
+  }) => ({
+    height,
+    width,
+    // The wordmark is a wide lockup: fit it by height and let width flex, left-
+    // aligned. The icon is a square logomark: contain it and center it in the
+    // slot. The mark keeps its original sizing (HACK: +2px for the tall "l").
     backgroundSize:
-      height === width ? `auto ${Number.parseInt(height) + 2}px` : `auto ${height}`,
-    backgroundImage: `url(${quilt})`,
-    backgroundPosition: '0 100%',
+      variant === 'wordmark'
+        ? `auto ${height}`
+        : variant === 'icon'
+          ? `${height} ${height}`
+          : height === width
+            ? `auto ${Number.parseInt(height) + 2}px`
+            : `auto ${height}`,
+    backgroundImage: `url(${
+      variant === 'wordmark' ? quiltWordmark : variant === 'icon' ? quiltIcon : quilt
+    })`,
+    backgroundPosition:
+      variant === 'wordmark' ? '0 50%' : variant === 'icon' ? '50% 50%' : '0 100%',
     backgroundRepeat: 'no-repeat',
   }),
 }))
 
-function QuiltLogo({ className, height, width }: LogoProps) {
-  const classes = useStyles({ height, width })
+function QuiltLogo({ className, height, width, variant = 'mark' }: LogoProps) {
+  const classes = useStyles({ height, width, variant })
   return <div className={cx(classes.quilt, className)} />
 }
 
