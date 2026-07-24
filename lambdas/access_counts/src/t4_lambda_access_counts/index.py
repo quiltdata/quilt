@@ -20,6 +20,12 @@ CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
+ATHENA_WORKGROUP = os.environ['ATHENA_WORKGROUP']
+# Prefix under QUERY_RESULT_BUCKET where the workgroup writes query results; wiped at the start of each run.
+ATHENA_QUERY_RESULTS_PREFIX = os.environ['ATHENA_QUERY_RESULTS_PREFIX']
+# An empty prefix would make the cleanup wipe the whole bucket.
+assert ATHENA_QUERY_RESULTS_PREFIX and not ATHENA_QUERY_RESULTS_PREFIX.startswith('/'), \
+    f"Bad ATHENA_QUERY_RESULTS_PREFIX: {ATHENA_QUERY_RESULTS_PREFIX!r}"
 
 MiB = 1024 * 1024
 S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
@@ -28,9 +34,6 @@ S3_COPY_CONFIG = TransferConfig(
     multipart_threshold=S3_COPY_CHUNKSIZE,
     max_concurrency=int(os.environ['S3_COPY_MAX_CONCURRENCY']),
 )
-
-# A temporary directory where Athena query results will be written.
-QUERY_TEMP_DIR = 'AthenaQueryResults'
 
 # Pre-processed CloudTrail logs, persistent across different runs of the lambda.
 OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
@@ -148,12 +151,13 @@ INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
           eventtime >= from_unixtime({start_ts:f}) AND eventtime < from_unixtime({end_ts:f})
 """)
 
-CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
+# Athena writes the table data under the workgroup's result location ("tables/<query-id>/"),
+# i.e. inside ATHENA_QUERY_RESULTS_PREFIX, so delete_dir cleans it up.
+CREATE_PACKAGE_HASHES = textwrap.dedent("""\
     CREATE TABLE package_hashes
     WITH (
         format = 'Parquet',
-        parquet_compression = 'SNAPPY',
-        external_location = 's3://{sql_escape(QUERY_RESULT_BUCKET)}/{sql_escape(QUERY_TEMP_DIR)}/package_hashes/'
+        parquet_compression = 'SNAPPY'
     )
     AS
     SELECT DISTINCT
@@ -287,18 +291,28 @@ s3 = boto3.client('s3')
 
 
 def start_query(query_string):
-    output = 's3://%s/%s/' % (QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
-
+    # No ResultConfiguration: the workgroup configuration owns the result location.
     response = athena.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext=dict(Database=ATHENA_DATABASE),
-        ResultConfiguration=dict(OutputLocation=output)
+        WorkGroup=ATHENA_WORKGROUP,
     )
     print("Started query:", response)
 
     execution_id = response['QueryExecutionId']
 
     return execution_id
+
+
+def get_result_location(execution_id):
+    """Return (bucket, key) of the query's result file, as reported by Athena."""
+    response = athena.get_query_execution(QueryExecutionId=execution_id)
+    url = response['QueryExecution']['ResultConfiguration']['OutputLocation']
+    # Not urllib.parse.urlparse(): '?' and '#' are legal in S3 keys but would be parsed as query/fragment.
+    scheme, _, rest = url.partition('://')
+    assert scheme == 's3', f"Unexpected result location: {url}"
+    bucket, _, key = rest.partition('/')
+    return bucket, key
 
 
 def query_finished(execution_id):
@@ -362,7 +376,7 @@ def delete_dir(bucket, prefix):
             break
 
         delete_response = s3.delete_objects(
-            Bucket=QUERY_RESULT_BUCKET,
+            Bucket=bucket,
             Delete=dict(
                 Objects=[dict(
                     Key=obj['Key']
@@ -399,8 +413,8 @@ def handler(event, context):
     # and let the next invocation handle the rest.
     end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
 
-    # Delete the temporary directory where Athena query results are written to.
-    delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
+    # Delete query results left by previous runs.
+    delete_dir(QUERY_RESULT_BUCKET, ATHENA_QUERY_RESULTS_PREFIX)
 
     # Find all accounts in the CloudTrail.
     accounts = []
@@ -453,12 +467,12 @@ def handler(event, context):
     execution_ids = run_multiple_queries([query for _, query in queries])
 
     for (filename, _), execution_id in zip(queries, execution_ids):
-        src_key = f'{QUERY_TEMP_DIR}/{execution_id}.csv'
+        src_bucket, src_key = get_result_location(execution_id)
         dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
 
         s3.copy(
             CopySource=dict(
-                Bucket=QUERY_RESULT_BUCKET,
+                Bucket=src_bucket,
                 Key=src_key
             ),
             Bucket=QUERY_RESULT_BUCKET,
