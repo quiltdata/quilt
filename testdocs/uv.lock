@@ -489,7 +489,7 @@ dev = [
     { name = "pytest-subtests" },
     { name = "quilt3", extras = ["pyarrow", "anndata"] },
     { name = "responses" },
-    { name = "ruff", specifier = ">=0.12.11" },
+    { name = "ruff", specifier = ">=0.16.0" },
 ]
 
 [[package]]
