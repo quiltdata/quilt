@@ -75,7 +75,7 @@
     "dedent": "^1.5.1",
     "diff": "^8.0.2",
     "dompurify": "^3.4.11",
-    "echarts": "^5.5.0",
+    "echarts": "^6.0.0",
     "effect": "^3.21.4",
     "final-form": "^4.20.9",
     "fontfaceobserver": "^2.3.0",
