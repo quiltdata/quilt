@@ -16,7 +16,7 @@ class APIKeySelection(BaseModel):
     fingerprint: str
     created_at: datetime = Field(alias="createdAt")
     expires_at: datetime = Field(alias="expiresAt")
-    last_used_at: Optional[datetime] = Field(alias="lastUsedAt")
+    last_used_at: datetime | None = Field(alias="lastUsedAt")
     status: APIKeyStatus
     user_email: str = Field(alias="userEmail")
 
@@ -24,29 +24,29 @@ class APIKeySelection(BaseModel):
 class BucketConfigSelection(BaseModel):
     name: str
     title: str
-    icon_url: Optional[str] = Field(alias="iconUrl")
-    description: Optional[str]
-    overview_url: Optional[str] = Field(alias="overviewUrl")
-    tags: Optional[List[str]]
+    icon_url: str | None = Field(alias="iconUrl")
+    description: str | None
+    overview_url: str | None = Field(alias="overviewUrl")
+    tags: list[str] | None
     relevance_score: int = Field(alias="relevanceScore")
-    last_indexed: Optional[datetime] = Field(alias="lastIndexed")
-    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn")
-    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth")
-    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing")
-    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex")
-    index_content_bytes: Optional[int] = Field(alias="indexContentBytes")
-    prefixes: List[str]
+    last_indexed: datetime | None = Field(alias="lastIndexed")
+    sns_notification_arn: str | None = Field(alias="snsNotificationArn")
+    scanner_parallel_shards_depth: int | None = Field(alias="scannerParallelShardsDepth")
+    skip_meta_data_indexing: bool | None = Field(alias="skipMetaDataIndexing")
+    file_extensions_to_index: list[str] | None = Field(alias="fileExtensionsToIndex")
+    index_content_bytes: int | None = Field(alias="indexContentBytes")
+    prefixes: list[str]
 
 
 class InvalidInputSelection(BaseModel):
-    errors: List["InvalidInputSelectionErrors"]
+    errors: list["InvalidInputSelectionErrors"]
 
 
 class InvalidInputSelectionErrors(BaseModel):
-    path: Optional[str]
+    path: str | None
     message: str
     name: str
-    context: Optional[Any]
+    context: Any | None
 
 
 class PermissionSelection(BaseModel):
@@ -63,7 +63,7 @@ class PolicySummarySelection(BaseModel):
     title: str
     arn: str
     managed: bool
-    permissions: List["PolicySummarySelectionPermissions"]
+    permissions: list["PolicySummarySelectionPermissions"]
 
 
 class PolicySummarySelectionPermissions(PermissionSelection):
@@ -84,8 +84,8 @@ class ManagedRoleSelection(BaseModel):
     id: str
     name: str
     arn: str
-    policies: List["ManagedRoleSelectionPolicies"]
-    permissions: List["ManagedRoleSelectionPermissions"]
+    policies: list["ManagedRoleSelectionPolicies"]
+    permissions: list["ManagedRoleSelectionPermissions"]
 
 
 class ManagedRoleSelectionPolicies(PolicySummarySelection):
@@ -99,7 +99,7 @@ class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
 class OperationErrorSelection(BaseModel):
     message: str
     name: str
-    context: Optional[Any]
+    context: Any | None
 
 
 class PolicySelection(BaseModel):
@@ -107,8 +107,8 @@ class PolicySelection(BaseModel):
     title: str
     arn: str
     managed: bool
-    permissions: List["PolicySelectionPermissions"]
-    roles: List["PolicySelectionRoles"]
+    permissions: list["PolicySelectionPermissions"]
+    roles: list["PolicySelectionRoles"]
 
 
 class PolicySelectionPermissions(PermissionSelection):
@@ -135,13 +135,13 @@ class UserSelection(BaseModel):
     is_admin: bool = Field(alias="isAdmin")
     is_sso_only: bool = Field(alias="isSsoOnly")
     is_service: bool = Field(alias="isService")
-    role: Optional[
+    role: (
         Annotated[
-            Union["UserSelectionRoleUnmanagedRole", "UserSelectionRoleManagedRole"],
-            Field(discriminator="typename__"),
+            Union["UserSelectionRoleUnmanagedRole", "UserSelectionRoleManagedRole"], Field(discriminator="typename__")
         ]
-    ]
-    extra_roles: List[
+        | None
+    )
+    extra_roles: list[
         Annotated[
             Union[
                 "UserSelectionExtraRolesUnmanagedRole",

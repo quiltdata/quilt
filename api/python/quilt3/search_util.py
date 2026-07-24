@@ -10,7 +10,7 @@ import typing as T
 from . import session
 
 
-def search_api(query: T.Union[str, dict], index: str, limit: int = 10):
+def search_api(query: str | dict, index: str, limit: int = 10):
     """
     Send a query to the search API
     """

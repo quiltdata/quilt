@@ -166,7 +166,7 @@ def _disable_telemetry():
 
 
 @ApiTelemetry("api.search")
-def search(query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
+def search(query: str | dict, limit: int = 10) -> list[dict]:
     """
     Execute a search against the configured search endpoint.
 

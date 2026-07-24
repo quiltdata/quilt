@@ -18,7 +18,7 @@ class SsoConfigSet(BaseModel):
 
 
 class SsoConfigSetAdmin(BaseModel):
-    set_sso_config: Optional[
+    set_sso_config: (
         Annotated[
             Union[
                 "SsoConfigSetAdminSetSsoConfigSsoConfig",
@@ -27,7 +27,8 @@ class SsoConfigSetAdmin(BaseModel):
             ],
             Field(discriminator="typename__"),
         ]
-    ] = Field(alias="setSsoConfig")
+        | None
+    ) = Field(alias="setSsoConfig")
 
 
 class SsoConfigSetAdminSetSsoConfigSsoConfig(SsoConfigSelection):

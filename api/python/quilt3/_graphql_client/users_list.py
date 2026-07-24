@@ -16,7 +16,7 @@ class UsersListAdmin(BaseModel):
 
 
 class UsersListAdminUser(BaseModel):
-    list: List["UsersListAdminUserList"]
+    list: list["UsersListAdminUserList"]
 
 
 class UsersListAdminUserList(UserSelection):

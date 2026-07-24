@@ -10,7 +10,7 @@ from .fragments import ManagedRoleSelection, UnmanagedRoleSelection
 
 
 class RolesList(BaseModel):
-    roles: List[
+    roles: list[
         Annotated[
             Union["RolesListRolesUnmanagedRole", "RolesListRolesManagedRole"],
             Field(discriminator="typename__"),

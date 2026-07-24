@@ -10,7 +10,7 @@ from .fragments import BucketConfigSelection
 
 
 class BucketsList(BaseModel):
-    bucket_configs: List["BucketsListBucketConfigs"] = Field(alias="bucketConfigs")
+    bucket_configs: list["BucketsListBucketConfigs"] = Field(alias="bucketConfigs")
 
 
 class BucketsListBucketConfigs(BucketConfigSelection):

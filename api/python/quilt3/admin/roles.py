@@ -1,21 +1,22 @@
+import builtins
 import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
 
 
-def _get_by_id(id: str) -> T.Optional[types.Role]:
+def _get_by_id(id: str) -> types.Role | None:
     result = util.get_client().role_get(id=id)
     if result is None:
         return None
     return types._parse_role(result)
 
 
-def _get_by_name(name: str) -> T.Optional[types.Role]:
+def _get_by_name(name: str) -> types.Role | None:
     return next((r for r in list() if r.name == name), None)
 
 
-def get(id_or_name: str) -> T.Optional[types.Role]:
+def get(id_or_name: str) -> types.Role | None:
     """
     Get a role by ID or name. Return `None` if the role does not exist.
 
@@ -33,7 +34,7 @@ def _resolve_role(id_or_name: str) -> types.Role:
     raise exceptions.RoleNotFoundError()
 
 
-def get_default() -> T.Optional[types.Role]:
+def get_default() -> types.Role | None:
     """
     Get the default role from the registry. Return `None` if no default role is set.
     """
@@ -43,14 +44,14 @@ def get_default() -> T.Optional[types.Role]:
     return types._parse_role(result)
 
 
-def list() -> T.List[types.Role]:
+def list() -> list[types.Role]:
     """
     Get a list of all roles in the registry.
     """
     return [types._parse_role(role) for role in util.get_client().roles_list()]
 
 
-def create_managed(name: str, policies: T.List[str] = ()) -> types.ManagedRole:
+def create_managed(name: str, policies: builtins.list[str] = ()) -> types.ManagedRole:
     """
     Create a managed role in the registry.
 
@@ -76,7 +77,7 @@ def create_unmanaged(name: str, arn: str) -> types.UnmanagedRole:
     return _handle_role_mutation_result(result)
 
 
-def update_managed(id_or_name: str, *, name: str, policies: T.List[str]) -> types.ManagedRole:
+def update_managed(id_or_name: str, *, name: str, policies: builtins.list[str]) -> types.ManagedRole:
     """
     Update a managed role in the registry (full replacement).
 
@@ -111,7 +112,7 @@ def update_unmanaged(id_or_name: str, *, name: str, arn: str) -> types.Unmanaged
 
 
 def patch_managed(
-    id_or_name: str, *, name: T.Optional[str] = None, policies: T.Optional[T.List[str]] = None
+    id_or_name: str, *, name: str | None = None, policies: builtins.list[str] | None = None
 ) -> types.ManagedRole:
     """
     Partially update a managed role — only specified fields are changed.
@@ -135,7 +136,7 @@ def patch_managed(
 
 
 def patch_unmanaged(
-    id_or_name: str, *, name: T.Optional[str] = None, arn: T.Optional[str] = None
+    id_or_name: str, *, name: str | None = None, arn: str | None = None
 ) -> types.UnmanagedRole:
     """
     Partially update an unmanaged role — only specified fields are changed.

@@ -19,7 +19,7 @@ class APIKey:
     fingerprint: str
     created_at: datetime
     expires_at: datetime
-    last_used_at: T.Optional[datetime]
+    last_used_at: datetime | None
     status: APIKeyStatus
     user_email: str
 
@@ -45,10 +45,10 @@ def _handle_errors(result):
 
 
 def list(
-    name: T.Optional[str] = None,
-    fingerprint: T.Optional[str] = None,
-    status: T.Optional[APIKeyStatus] = None,
-) -> T.List[APIKey]:
+    name: str | None = None,
+    fingerprint: str | None = None,
+    status: APIKeyStatus | None = None,
+) -> list[APIKey]:
     """
     List your API keys. Optionally filter by name, fingerprint, or status.
 
@@ -70,7 +70,7 @@ def list(
     return [APIKey(**k.model_dump()) for k in result.api_keys]
 
 
-def get(id: str) -> T.Optional[APIKey]:
+def get(id: str) -> APIKey | None:
     """
     Get a specific API key by ID.
 
@@ -89,7 +89,7 @@ def get(id: str) -> T.Optional[APIKey]:
 def create(
     name: str,
     expires_in_days: int = 90,
-) -> T.Tuple[APIKey, str]:
+) -> tuple[APIKey, str]:
     """
     Create a new API key for yourself.
 
@@ -110,7 +110,7 @@ def create(
     return APIKey(**result.api_key.model_dump()), result.secret
 
 
-def revoke(id: T.Optional[str] = None, secret: T.Optional[str] = None) -> None:
+def revoke(id: str | None = None, secret: str | None = None) -> None:
     """
     Revoke an API key. Provide either the key ID or the secret.
 

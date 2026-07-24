@@ -10,12 +10,10 @@ from .fragments import ManagedRoleSelection, UnmanagedRoleSelection
 
 
 class RoleGet(BaseModel):
-    role: Optional[
-        Annotated[
-            Union["RoleGetRoleUnmanagedRole", "RoleGetRoleManagedRole"],
-            Field(discriminator="typename__"),
-        ]
-    ]
+    role: (
+        Annotated[Union["RoleGetRoleUnmanagedRole", "RoleGetRoleManagedRole"], Field(discriminator="typename__")]
+        | None
+    )
 
 
 class RoleGetRoleUnmanagedRole(UnmanagedRoleSelection):

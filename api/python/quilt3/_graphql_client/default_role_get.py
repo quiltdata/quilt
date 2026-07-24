@@ -10,15 +10,13 @@ from .fragments import ManagedRoleSelection, UnmanagedRoleSelection
 
 
 class DefaultRoleGet(BaseModel):
-    default_role: Optional[
+    default_role: (
         Annotated[
-            Union[
-                "DefaultRoleGetDefaultRoleUnmanagedRole",
-                "DefaultRoleGetDefaultRoleManagedRole",
-            ],
+            Union["DefaultRoleGetDefaultRoleUnmanagedRole", "DefaultRoleGetDefaultRoleManagedRole"],
             Field(discriminator="typename__"),
         ]
-    ] = Field(alias="defaultRole")
+        | None
+    ) = Field(alias="defaultRole")
 
 
 class DefaultRoleGetDefaultRoleUnmanagedRole(UnmanagedRoleSelection):

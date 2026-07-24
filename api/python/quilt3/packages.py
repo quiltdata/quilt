@@ -82,10 +82,10 @@ SUPPORTED_HASH_TYPES = (
 class CopyFileListFn(T.Protocol):
     def __call__(
         self,
-        file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
-        message: T.Optional[str] = None,
-        callback: T.Optional[T.Callable] = None,
-    ) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]: ...
+        file_list: list[tuple[PhysicalKey, PhysicalKey, int]],
+        message: str | None = None,
+        callback: T.Callable | None = None,
+    ) -> list[tuple[PhysicalKey, str | None]]: ...
 
 
 def _fix_docstring(**kwargs):
@@ -1491,7 +1491,7 @@ class Package:
         print_info,
         force: bool,
         dedupe: bool,
-        copy_file_list_fn: T.Optional[CopyFileListFn] = None,
+        copy_file_list_fn: CopyFileListFn | None = None,
     ):
         if copy_file_list_fn is None:
             copy_file_list_fn = copy_file_list

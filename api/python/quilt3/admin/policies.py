@@ -1,21 +1,22 @@
+import builtins
 import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
 
 
-def _get_by_id(id: str) -> T.Optional[types.Policy]:
+def _get_by_id(id: str) -> types.Policy | None:
     result = util.get_client().policy_get(id=id)
     if result is None:
         return None
     return types.Policy.from_gql(result)
 
 
-def _get_by_title(title: str) -> T.Optional[types.Policy]:
+def _get_by_title(title: str) -> types.Policy | None:
     return next((p for p in list() if p.title == title), None)
 
 
-def get(id_or_title: str) -> T.Optional[types.Policy]:
+def get(id_or_title: str) -> types.Policy | None:
     """
     Get a policy by ID or title. Return `None` if the policy does not exist.
 
@@ -33,14 +34,14 @@ def _resolve_policy(id_or_title: str) -> types.Policy:
     raise exceptions.PolicyNotFoundError()
 
 
-def list() -> T.List[types.Policy]:
+def list() -> list[types.Policy]:
     """
     Get a list of all policies in the registry.
     """
     return [types.Policy.from_gql(policy) for policy in util.get_client().policies_list()]
 
 
-def create_managed(title: str, *, permissions: T.List[types.Permission], roles: T.List[str] = ()) -> types.Policy:
+def create_managed(title: str, *, permissions: builtins.list[types.Permission], roles: builtins.list[str] = ()) -> types.Policy:
     """
     Create a managed policy in the registry.
 
@@ -59,7 +60,7 @@ def create_managed(title: str, *, permissions: T.List[types.Permission], roles: 
     return _handle_policy_result(result)
 
 
-def create_unmanaged(title: str, *, arn: str, roles: T.List[str] = ()) -> types.Policy:
+def create_unmanaged(title: str, *, arn: str, roles: builtins.list[str] = ()) -> types.Policy:
     """
     Create an unmanaged policy in the registry.
 
@@ -75,7 +76,7 @@ def create_unmanaged(title: str, *, arn: str, roles: T.List[str] = ()) -> types.
 
 
 def update_managed(
-    id_or_title: str, *, title: str, permissions: T.List[types.Permission], roles: T.List[str]
+    id_or_title: str, *, title: str, permissions: builtins.list[types.Permission], roles: builtins.list[str]
 ) -> types.Policy:
     """
     Update a managed policy in the registry (full replacement).
@@ -98,7 +99,7 @@ def update_managed(
     return _handle_policy_result(result)
 
 
-def update_unmanaged(id_or_title: str, *, title: str, arn: str, roles: T.List[str]) -> types.Policy:
+def update_unmanaged(id_or_title: str, *, title: str, arn: str, roles: builtins.list[str]) -> types.Policy:
     """
     Update an unmanaged policy in the registry (full replacement).
 
@@ -119,9 +120,9 @@ def update_unmanaged(id_or_title: str, *, title: str, arn: str, roles: T.List[st
 def patch_managed(
     id_or_title: str,
     *,
-    title: T.Optional[str] = None,
-    permissions: T.Optional[T.List[types.Permission]] = None,
-    roles: T.Optional[T.List[str]] = None,
+    title: str | None = None,
+    permissions: builtins.list[types.Permission] | None = None,
+    roles: builtins.list[str] | None = None,
 ) -> types.Policy:
     """
     Partially update a managed policy — only specified fields are changed.
@@ -151,9 +152,9 @@ def patch_managed(
 def patch_unmanaged(
     id_or_title: str,
     *,
-    title: T.Optional[str] = None,
-    arn: T.Optional[str] = None,
-    roles: T.Optional[T.List[str]] = None,
+    title: str | None = None,
+    arn: str | None = None,
+    roles: builtins.list[str] | None = None,
 ) -> types.Policy:
     """
     Partially update an unmanaged policy — only specified fields are changed.
