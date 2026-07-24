@@ -124,7 +124,7 @@ __Raises__
 Do not use Quilt credentials. Useful if you have existing AWS credentials.
 
 
-## search(query: str | dict, limit: int = 10) -> List[dict]  {#search}
+## search(query: str | dict, limit: int = 10) -> list[dict]  {#search}
 
 Execute a search against the configured search endpoint.
 
@@ -155,7 +155,7 @@ An API key for programmatic access.
 ## APIKeyError(result)  {#APIKeyError}
 Error during API key operation.
 
-## list(name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+## list(name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> list[quilt3.api\_keys.APIKey]  {#list}
 
 List your API keys. Optionally filter by name, fingerprint, or status.
 
@@ -183,7 +183,7 @@ __Returns__
 The API key, or None if not found.
 
 
-## create(name: str, expires\_in\_days: int = 90) -> Tuple[quilt3.api\_keys.APIKey, str]  {#create}
+## create(name: str, expires\_in\_days: int = 90) -> tuple[quilt3.api\_keys.APIKey, str]  {#create}
 
 Create a new API key for yourself.
 

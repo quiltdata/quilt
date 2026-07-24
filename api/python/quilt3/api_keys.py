@@ -1,5 +1,6 @@
 """API for managing your own API keys."""
 
+import builtins
 import typing as T
 from datetime import datetime
 
@@ -48,7 +49,7 @@ def list(
     name: str | None = None,
     fingerprint: str | None = None,
     status: APIKeyStatus | None = None,
-) -> list[APIKey]:
+) -> builtins.list[APIKey]:
     """
     List your API keys. Optionally filter by name, fingerprint, or status.
 

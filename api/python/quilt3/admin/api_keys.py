@@ -1,5 +1,7 @@
 """Admin API for managing API keys."""
 
+import builtins
+
 from .. import _graphql_client
 from ..api_keys import APIKey, APIKeyStatus
 from . import util
@@ -10,7 +12,7 @@ def list(
     key_name: str | None = None,
     fingerprint: str | None = None,
     status: APIKeyStatus | None = None,
-) -> list[APIKey]:
+) -> builtins.list[APIKey]:
     """
     List API keys. Optionally filter by user email, key name, fingerprint, or status.
 
