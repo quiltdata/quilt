@@ -23,6 +23,9 @@ ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 ATHENA_WORKGROUP = os.environ['ATHENA_WORKGROUP']
 # Prefix under QUERY_RESULT_BUCKET where the workgroup writes query results; wiped at the start of each run.
 ATHENA_QUERY_RESULTS_PREFIX = os.environ['ATHENA_QUERY_RESULTS_PREFIX']
+# An empty prefix would make the cleanup wipe the whole bucket.
+assert ATHENA_QUERY_RESULTS_PREFIX and not ATHENA_QUERY_RESULTS_PREFIX.startswith('/'), \
+    f"Bad ATHENA_QUERY_RESULTS_PREFIX: {ATHENA_QUERY_RESULTS_PREFIX!r}"
 
 MiB = 1024 * 1024
 S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
