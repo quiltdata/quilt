@@ -74,7 +74,7 @@ dev = [
     "pytest-subtests",
     "pytest~=9.1",
     "responses",
-    "ruff>=0.12.11",
+    "ruff>=0.16.0",
     "quilt3[pyarrow,anndata]",
 ]
 
