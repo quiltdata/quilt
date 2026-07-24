@@ -148,10 +148,8 @@ INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
           eventtime >= from_unixtime({start_ts:f}) AND eventtime < from_unixtime({end_ts:f})
 """)
 
-# No external_location: a CTAS that specifies one fails in a workgroup that enforces a query results
-# location; Athena instead writes the table data under the result location ("tables/<query-id>/"),
-# which is inside ATHENA_QUERY_RESULTS_PREFIX and thus cleaned up by delete_dir.
-# https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html
+# Athena writes the table data under the workgroup's result location ("tables/<query-id>/"),
+# i.e. inside ATHENA_QUERY_RESULTS_PREFIX, so delete_dir cleans it up.
 CREATE_PACKAGE_HASHES = textwrap.dedent("""\
     CREATE TABLE package_hashes
     WITH (
