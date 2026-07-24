@@ -2,6 +2,7 @@
 Helper functions for connecting to the Quilt Registry.
 """
 
+import getpass
 import json
 import os
 import platform
@@ -247,7 +248,7 @@ def login():
     open_url(login_url)
 
     print()
-    refresh_token = input("Enter the code from the webpage: ")
+    refresh_token = getpass.getpass("Enter the code from the webpage: ")
 
     login_with_token(refresh_token)
 
