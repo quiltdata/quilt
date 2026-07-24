@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import BucketIcon from 'components/BucketIcon'
+import BucketIcon, { resolveTint } from 'components/BucketIcon'
 import { assignGlyphs } from 'components/BucketIcon/seedGlyphs'
 import cfg from 'constants/config'
 import type * as Model from 'model'
@@ -14,73 +14,81 @@ import Collaborators from './Collaborators'
 import useTagStyles from './tagStyles'
 
 const useBucketStyles = M.makeStyles((t) => ({
+  // Border-first (per the Elevation doctrine): the card rests on a hairline, not
+  // a shadow. `--bucket-tint` is set inline per card so the identity band and the
+  // hover edge track the bucket's own glyph color without re-deriving it here.
   bucket: {
+    border: `1px solid ${t.palette.divider}`,
+    boxShadow: 'none',
     display: 'flex',
     flexDirection: 'column',
-    // Fill the grid cell so cards in the same row are equal height.
     height: '100%',
-    // Floor every card to a uniform height so grid rows stay uniform instead of
-    // ragged; the flexGrow spacer below absorbs the slack when content is shorter.
     minHeight: t.spacing(26),
-    // The entrance animation is decoration on a task surface: gated behind
-    // `no-preference` so reduced-motion users (PRODUCT.md accessibility floor)
-    // get the card with no motion at all, not a suppressed-but-declared animation.
+    overflow: 'hidden', // clip the tint band to the rounded corners
+    // Hover is a state on a link target, not decoration: the edge takes the
+    // bucket tint and the card lifts a hair. One transition, reduced-motion-
+    // gated; the resting card has no motion declared at all.
+    transition: t.transitions.create(['border-color', 'box-shadow'], {
+      duration: t.transitions.duration.shortest,
+    }),
+    '&:hover': {
+      borderColor: 'var(--bucket-tint, currentColor)',
+      boxShadow: t.shadows[2],
+    },
     '@media (prefers-reduced-motion: no-preference)': {
       animation: '$slideUp 0.3s ease',
     },
   },
-  // Collaborators read as an exact footer readout, not a floating corner badge:
-  // the MUI Badge's translate(50%,-50%) overhang collided with the card's
-  // top-right corner and clipped. A labelled footer line ("Shared with N")
-  // seats the count on a consistent baseline across every card and never
-  // overflows the rounded corner.
-  footer: {
+  // The identity band: the glyph is the hero here, on a quiet wash of the
+  // bucket's own tint (border-first bottom rule, not a shadow; no gradient — the
+  // anti-reference bans it). A wall of volumes now differentiates by colour+glyph
+  // at a glance, which is the whole point of the seeded-glyph system.
+  identity: {
     alignItems: 'center',
-    borderTop: `1px solid ${t.palette.divider}`,
-    color: t.palette.text.secondary,
+    background: 'var(--bucket-tint-wash, transparent)',
+    borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    justifyContent: 'space-between',
-    minHeight: t.spacing(5),
-    padding: t.spacing(0, 2),
+    gap: t.spacing(1.5),
+    padding: t.spacing(1.5, 2),
   },
-  // MUI seats the title/subheader in a flex child (.MuiCardHeader-content) whose
-  // default `min-width: auto` refuses to shrink below its content — so the
-  // `nowrap` s3:// address and a long title push the box wider than the card and
-  // clip under the rounded corner instead of ellipsizing. `min-width: 0` lets the
-  // content box shrink so the ellipsis rules below actually engage. This is the
-  // fix for the "weird cutting" on the cards.
-  header: {
-    // Reserve the intrinsic-width trap fix at the content slot, not the header,
-    // so the avatar keeps its fixed track.
-    '& .MuiCardHeader-content': {
-      minWidth: 0,
-    },
+  // The glyph, promoted from a 32px corner avatar to a 44px identity mark.
+  glyph: {
+    flexShrink: 0,
+    height: t.spacing(5.5),
+    width: t.spacing(5.5),
   },
-  // The title is the scan anchor, not a rival link: full-strength text at rest,
-  // accent only on hover — matching the list row so the same element reads the
-  // same way across both views (it was tertiary-at-rest here, text.primary in
-  // the list, one element in two resting colors). Truncates to a single line so
-  // a long human name can't wrap and break the uniform card floor; the link's
-  // `title` attr is the escape hatch to the full name.
+  // Title + s3:// URI, stacked beside the glyph. min-width:0 lets the nowrap
+  // lines ellipsize instead of pushing the card wider (the old "weird cutting").
+  identityText: {
+    minWidth: 0,
+  },
+  body: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    padding: t.spacing(1.5, 2, 0),
+  },
+  // The title is the scan anchor: full-strength at rest, tint on hover — one
+  // element reading one way. Single line; `title` attr is the full-name escape.
   title: {
-    ...t.typography.h6,
+    ...t.typography.subtitle1,
     color: t.palette.text.primary,
     display: 'block',
+    fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     '&:hover': {
-      color: t.palette.tertiary.main,
+      color: 'var(--bucket-tint, currentColor)',
     },
   },
-  // The s3:// address is machine-exact identity, not prose: render it in the
-  // mono face (the Mono Identity Rule), subordinate to the title above it.
+  // The s3:// address is machine-exact identity → Roboto Mono (the Mono Identity
+  // Rule), subordinate to the title.
   name: {
-    ...t.typography.body2,
+    ...t.typography.caption,
     color: t.palette.text.hint,
     display: 'block',
     fontFamily: t.typography.monospace.fontFamily,
-    lineHeight: t.typography.pxToRem(24),
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -91,9 +99,9 @@ const useBucketStyles = M.makeStyles((t) => ({
     WebkitLineClamp: 2,
     color: t.palette.text.secondary,
     display: '-webkit-box',
-    lineHeight: t.typography.pxToRem(24),
-    margin: 0,
-    maxHeight: t.typography.pxToRem(24 * 2),
+    lineHeight: t.typography.pxToRem(20),
+    margin: t.spacing(1, 0, 0),
+    maxHeight: t.typography.pxToRem(20 * 2),
     overflow: 'hidden',
     overflowWrap: 'break-word',
     textOverflow: 'ellipsis',
@@ -102,7 +110,26 @@ const useBucketStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexWrap: 'wrap',
     gap: t.spacing(0.5),
-    padding: t.spacing(0, 2, 2),
+    marginTop: t.spacing(1.5),
+  },
+  // Reserved for the deferred trust row (Indexed <time> · N objects · size).
+  // The GraphQL query doesn't carry those fields yet; the row is the seam.
+  meta: {
+    ...t.typography.caption,
+    color: t.palette.text.hint,
+    marginTop: t.spacing(1),
+  },
+  // Access readout, promoted from a quiet afterthought to a first-class footer
+  // on a consistent baseline: who can reach this volume, at a glance.
+  footer: {
+    alignItems: 'center',
+    borderTop: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: t.spacing(1.5),
+    minHeight: t.spacing(5),
+    padding: t.spacing(0, 2),
   },
   '@keyframes slideUp': {
     '0%': {
@@ -144,21 +171,34 @@ function BucketCard({
   const tagClasses = useTagStyles()
   const { urls } = NamedRoutes.use()
 
+  // The bucket's own glyph tint drives the identity band and hover edge. Resolve
+  // it the same way BucketIcon does (explicit ?c= wins, else name-hash) so the
+  // card and its icon never disagree; undefined for a custom-image icon.
+  const tint = resolveTint(bucket.iconUrl, bucket.name)
+  const tintVars = tint
+    ? ({
+        ['--bucket-tint' as any]: tint,
+        '--bucket-tint-wash': fade(tint, 0.1),
+      } as React.CSSProperties)
+    : undefined
+
   return (
     <M.Card
       className={classes.bucket}
+      style={tintVars}
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}
     >
-      <M.CardHeader
-        className={classes.header}
-        disableTypography
-        avatar={
-          <Link aria-hidden="true" tabIndex={-1} to={urls.bucketRoot(bucket.name)}>
-            <BucketIcon seed={bucket.name} glyphIndex={glyphIndex} src={bucket.iconUrl} />
-          </Link>
-        }
-        title={
+      <div className={classes.identity}>
+        <Link aria-hidden="true" tabIndex={-1} to={urls.bucketRoot(bucket.name)}>
+          <BucketIcon
+            className={classes.glyph}
+            seed={bucket.name}
+            glyphIndex={glyphIndex}
+            src={bucket.iconUrl}
+          />
+        </Link>
+        <div className={classes.identityText}>
           <Link
             className={classes.title}
             to={urls.bucketRoot(bucket.name)}
@@ -166,8 +206,6 @@ function BucketCard({
           >
             {bucket.title}
           </Link>
-        }
-        subheader={
           <Link
             className={classes.name}
             to={urls.bucketRoot(bucket.name)}
@@ -175,28 +213,26 @@ function BucketCard({
           >
             s3://{bucket.name}
           </Link>
-        }
-      />
-      {!!bucket.description && (
-        <M.CardContent>
-          <p className={classes.desc}>{bucket.description}</p>
-        </M.CardContent>
-      )}
-      {!!bucket.tags && !!bucket.tags.length && (
-        <div className={classes.tags}>
-          {bucket.tags.map((t) => (
-            <M.Chip
-              key={t}
-              className={cx(tagClasses.tag, tagIsMatching(t) && tagClasses.tagActive)}
-              label={t}
-              size="small"
-              clickable={!!onTagClick}
-              onClick={onTagClick ? () => onTagClick(t) : undefined}
-            />
-          ))}
         </div>
-      )}
-      <M.Box flexGrow={1} />
+      </div>
+      <div className={classes.body}>
+        {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
+        {!!bucket.tags && !!bucket.tags.length && (
+          <div className={classes.tags}>
+            {bucket.tags.map((tag) => (
+              <M.Chip
+                key={tag}
+                className={cx(tagClasses.tag, tagIsMatching(tag) && tagClasses.tagActive)}
+                label={tag}
+                size="small"
+                clickable={!!onTagClick}
+                onClick={onTagClick ? () => onTagClick(tag) : undefined}
+              />
+            ))}
+          </div>
+        )}
+        <M.Box flexGrow={1} />
+      </div>
       {cfg.mode === 'PRODUCT' && showCollaborators && (
         <div className={classes.footer}>
           <Collaborators

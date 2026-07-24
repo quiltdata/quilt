@@ -2,8 +2,9 @@ import cx from 'classnames'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
-import BucketIcon from 'components/BucketIcon'
+import BucketIcon, { resolveTint } from 'components/BucketIcon'
 import { assignGlyphs } from 'components/BucketIcon/seedGlyphs'
 import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -13,9 +14,12 @@ import Collaborators from './Collaborators'
 import useTagStyles from './tagStyles'
 
 const useStyles = M.makeStyles((t) => ({
+  // Hover tints the row with the bucket's own colour (a faint wash), matching
+  // the grid card's tinted-edge hover so both views react the same way to the
+  // same element. `--bucket-tint` is set inline per row.
   row: {
     '&:hover': {
-      backgroundColor: t.palette.action.hover,
+      backgroundColor: 'var(--bucket-tint-wash, rgba(0,0,0,0.04))',
     },
   },
   // The collaborator readout rides the right edge in an absolutely-positioned
@@ -60,7 +64,7 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     '&:hover': {
-      color: t.palette.tertiary.main,
+      color: 'var(--bucket-tint, currentColor)',
     },
   },
   // The s3:// address is machine-exact identity, not prose: render it in the
@@ -76,7 +80,7 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
     minWidth: 0,
     '&:hover $nameId': {
-      color: t.palette.tertiary.main,
+      color: 'var(--bucket-tint, currentColor)',
     },
   },
   // dimmed, non-truncating scheme prefix — the constant part carries no info
@@ -129,9 +133,20 @@ function BucketRow({
   // secondary-action slot; otherwise the row keeps its full width.
   const hasCollaborators = cfg.mode === 'PRODUCT' && showCollaborators
 
+  // Same tint the grid card and the icon use, so the row's hover wash and the
+  // title/name hover colour track this bucket's own glyph colour.
+  const tint = resolveTint(bucket.iconUrl, bucket.name)
+  const tintVars = tint
+    ? ({
+        ['--bucket-tint' as any]: tint,
+        '--bucket-tint-wash': fade(tint, 0.08),
+      } as React.CSSProperties)
+    : undefined
+
   return (
     <M.ListItem
       className={cx(classes.row, hasCollaborators && classes.rowWithSecondary)}
+      style={tintVars}
       divider={divider}
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}

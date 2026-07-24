@@ -161,6 +161,25 @@ function seedToArt(
   }
 }
 
+// The disc tint a bucket resolves to, exposed so surrounding chrome (e.g. the
+// volume card's identity header) can tint itself to match the icon without
+// re-deriving — and drift from — the hashing here. An explicit `?c=` color in a
+// stored glyph src wins; otherwise the tint hashes from `seed` (the bucket
+// name). Returns undefined for a custom-image icon (no seeded tint to match).
+export function resolveTint(
+  src: string | null | undefined,
+  seed?: string,
+): string | undefined {
+  if (isGlyphSrc(src)) {
+    const { name, color } = parseGlyphSrc(src)
+    if (color) return color
+    return seedToArt(seed || name).tint
+  }
+  if (src) return undefined // custom image — no seeded tint
+  if (seed) return seedToArt(seed).tint
+  return undefined
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     borderRadius: '50%',
