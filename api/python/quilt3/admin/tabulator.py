@@ -1,5 +1,3 @@
-import typing as T
-
 from . import exceptions, types, util
 
 

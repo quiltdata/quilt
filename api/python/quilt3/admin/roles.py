@@ -1,5 +1,4 @@
 import builtins
-import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
@@ -44,7 +43,7 @@ def get_default() -> types.Role | None:
     return types._parse_role(result)
 
 
-def list() -> list[types.Role]:
+def list() -> builtins.list[types.Role]:
     """
     Get a list of all roles in the registry.
     """
@@ -135,9 +134,7 @@ def patch_managed(
     return _handle_role_mutation_result(result)
 
 
-def patch_unmanaged(
-    id_or_name: str, *, name: str | None = None, arn: str | None = None
-) -> types.UnmanagedRole:
+def patch_unmanaged(id_or_name: str, *, name: str | None = None, arn: str | None = None) -> types.UnmanagedRole:
     """
     Partially update an unmanaged role — only specified fields are changed.
 

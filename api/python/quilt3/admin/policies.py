@@ -1,5 +1,4 @@
 import builtins
-import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
@@ -34,14 +33,16 @@ def _resolve_policy(id_or_title: str) -> types.Policy:
     raise exceptions.PolicyNotFoundError()
 
 
-def list() -> list[types.Policy]:
+def list() -> builtins.list[types.Policy]:
     """
     Get a list of all policies in the registry.
     """
     return [types.Policy.from_gql(policy) for policy in util.get_client().policies_list()]
 
 
-def create_managed(title: str, *, permissions: builtins.list[types.Permission], roles: builtins.list[str] = ()) -> types.Policy:
+def create_managed(
+    title: str, *, permissions: builtins.list[types.Permission], roles: builtins.list[str] = ()
+) -> types.Policy:
     """
     Create a managed policy in the registry.
 

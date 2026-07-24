@@ -10,7 +10,6 @@ import stat
 import subprocess
 import sys
 import time
-import typing as T
 from importlib import metadata
 
 import boto3

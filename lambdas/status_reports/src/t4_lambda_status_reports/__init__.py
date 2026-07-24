@@ -3,7 +3,6 @@ import datetime
 import functools
 import itertools
 import os
-import typing as T
 
 import aiobotocore.session
 import jinja2

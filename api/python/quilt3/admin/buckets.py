@@ -1,5 +1,4 @@
 import builtins
-import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util

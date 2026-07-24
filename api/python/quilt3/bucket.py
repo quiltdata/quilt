@@ -6,7 +6,6 @@ Contains the Bucket class, which provides several useful functions
 """
 
 import pathlib
-import typing as T
 
 from .data_transfer import (
     copy_file,

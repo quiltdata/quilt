@@ -1,7 +1,5 @@
 """Admin API for managing API keys."""
 
-import typing as T
-
 from .. import _graphql_client
 from ..api_keys import APIKey, APIKeyStatus
 from . import util

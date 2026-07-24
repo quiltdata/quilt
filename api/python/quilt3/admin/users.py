@@ -1,5 +1,4 @@
 import builtins
-import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
@@ -18,7 +17,7 @@ def get(name: str) -> types.User | None:
     return types.User.from_gql(result)
 
 
-def list() -> list[types.User]:
+def list() -> builtins.list[types.User]:
     """
     Get a list of all users in the registry.
     """
