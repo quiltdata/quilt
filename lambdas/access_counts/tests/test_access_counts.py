@@ -10,12 +10,11 @@ from botocore.stub import Stubber
 from t4_lambda_access_counts import index
 
 
-class TestQueries(TestCase):
-    def test_no_ctas_external_location(self):
-        # A CTAS specifying external_location fails outright in a workgroup that
-        # enforces a query results location — keep it out.
-        # https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html
-        self.assertNotIn('external_location', index.CREATE_PACKAGE_HASHES)
+def test_no_ctas_external_location():
+    # A CTAS specifying external_location fails outright in a workgroup that
+    # enforces a query results location — keep it out.
+    # https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html
+    assert 'external_location' not in index.CREATE_PACKAGE_HASHES
 
 
 class TestAccessCounts(TestCase):
