@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+      # TEMP (revert before merge): build branch artifacts for the dev-stack smoke test
+      - access-counts-athena-workgroup
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
