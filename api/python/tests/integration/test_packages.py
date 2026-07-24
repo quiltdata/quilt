@@ -1034,6 +1034,18 @@ class PackageTest(QuiltTestCase):
         quilt3.delete_package('Quilt/Test')
         assert 'Quilt/Test' not in quilt3.list_packages()
 
+    def test_local_package_delete_keeps_sibling_packages(self):
+        """delete_package must remove only the named package, not the whole user namespace."""
+        Package().build("Quilt/Test1")
+        Package().build("Quilt/Test2")
+        assert {"Quilt/Test1", "Quilt/Test2"} <= set(quilt3.list_packages())
+
+        quilt3.delete_package("Quilt/Test1")
+
+        packages = set(quilt3.list_packages())
+        assert "Quilt/Test1" not in packages
+        assert "Quilt/Test2" in packages
+
     def test_local_delete_package_revision(self):
         pkg_name = 'Quilt/Test'
         top_hash1 = 'top_hash1'
