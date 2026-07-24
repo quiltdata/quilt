@@ -210,7 +210,7 @@ def gql(q: str) -> str:
 
 
 class Client(BaseClient):
-    def roles_list(self, **kwargs: Any) -> list[RolesListRolesUnmanagedRole | RolesListRolesManagedRole]:
+    def roles_list(self, **kwargs: Any) -> List[Union[RolesListRolesUnmanagedRole, RolesListRolesManagedRole]]:
         query = gql(
             """
             query rolesList {
@@ -270,12 +270,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="rolesList", variables=variables, **kwargs)
         data = self.get_data(response)
         return RolesList.model_validate(data).roles
 
-    def role_get(self, id: str, **kwargs: Any) -> RoleGetRoleUnmanagedRole | RoleGetRoleManagedRole | None:
+    def role_get(self, id: str, **kwargs: Any) -> Optional[Union[RoleGetRoleUnmanagedRole, RoleGetRoleManagedRole]]:
         query = gql(
             """
             query roleGet($id: ID!) {
@@ -335,12 +335,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="roleGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleGet.model_validate(data).role
 
-    def policies_list(self, **kwargs: Any) -> list[PoliciesListPolicies]:
+    def policies_list(self, **kwargs: Any) -> List[PoliciesListPolicies]:
         query = gql(
             """
             query policiesList {
@@ -400,12 +400,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="policiesList", variables=variables, **kwargs)
         data = self.get_data(response)
         return PoliciesList.model_validate(data).policies
 
-    def policy_get(self, id: str, **kwargs: Any) -> PolicyGetPolicy | None:
+    def policy_get(self, id: str, **kwargs: Any) -> Optional[PolicyGetPolicy]:
         query = gql(
             """
             query policyGet($id: ID!) {
@@ -465,14 +465,14 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="policyGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return PolicyGet.model_validate(data).policy
 
     def default_role_get(
         self, **kwargs: Any
-    ) -> DefaultRoleGetDefaultRoleUnmanagedRole | DefaultRoleGetDefaultRoleManagedRole | None:
+    ) -> Optional[Union[DefaultRoleGetDefaultRoleUnmanagedRole, DefaultRoleGetDefaultRoleManagedRole]]:
         query = gql(
             """
             query defaultRoleGet {
@@ -532,20 +532,20 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="defaultRoleGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return DefaultRoleGet.model_validate(data).default_role
 
     def role_create_managed(
         self, input: ManagedRoleInput, **kwargs: Any
-    ) -> (
-        RoleCreateManagedRoleCreateManagedRoleCreateSuccess
-        | RoleCreateManagedRoleCreateManagedRoleNameReserved
-        | RoleCreateManagedRoleCreateManagedRoleNameExists
-        | RoleCreateManagedRoleCreateManagedRoleNameInvalid
-        | RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach
-    ):
+    ) -> Union[
+        RoleCreateManagedRoleCreateManagedRoleCreateSuccess,
+        RoleCreateManagedRoleCreateManagedRoleNameReserved,
+        RoleCreateManagedRoleCreateManagedRoleNameExists,
+        RoleCreateManagedRoleCreateManagedRoleNameInvalid,
+        RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach,
+    ]:
         query = gql(
             """
             mutation roleCreateManaged($input: ManagedRoleInput!) {
@@ -610,20 +610,20 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="roleCreateManaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleCreateManaged.model_validate(data).role_create_managed
 
     def role_create_unmanaged(
         self, input: UnmanagedRoleInput, **kwargs: Any
-    ) -> (
-        RoleCreateUnmanagedRoleCreateUnmanagedRoleCreateSuccess
-        | RoleCreateUnmanagedRoleCreateUnmanagedRoleNameReserved
-        | RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists
-        | RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid
-        | RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach
-    ):
+    ) -> Union[
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleCreateSuccess,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleNameReserved,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach,
+    ]:
         query = gql(
             """
             mutation roleCreateUnmanaged($input: UnmanagedRoleInput!) {
@@ -688,23 +688,23 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="roleCreateUnmanaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleCreateUnmanaged.model_validate(data).role_create_unmanaged
 
     def role_update_managed(
         self, id: str, input: ManagedRoleInput, **kwargs: Any
-    ) -> (
-        RoleUpdateManagedRoleUpdateManagedRoleUpdateSuccess
-        | RoleUpdateManagedRoleUpdateManagedRoleNameReserved
-        | RoleUpdateManagedRoleUpdateManagedRoleNameExists
-        | RoleUpdateManagedRoleUpdateManagedRoleNameInvalid
-        | RoleUpdateManagedRoleUpdateManagedRoleNameUsedBySsoConfig
-        | RoleUpdateManagedRoleUpdateManagedRoleIsManaged
-        | RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged
-        | RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach
-    ):
+    ) -> Union[
+        RoleUpdateManagedRoleUpdateManagedRoleUpdateSuccess,
+        RoleUpdateManagedRoleUpdateManagedRoleNameReserved,
+        RoleUpdateManagedRoleUpdateManagedRoleNameExists,
+        RoleUpdateManagedRoleUpdateManagedRoleNameInvalid,
+        RoleUpdateManagedRoleUpdateManagedRoleNameUsedBySsoConfig,
+        RoleUpdateManagedRoleUpdateManagedRoleIsManaged,
+        RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged,
+        RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach,
+    ]:
         query = gql(
             """
             mutation roleUpdateManaged($id: ID!, $input: ManagedRoleInput!) {
@@ -769,23 +769,23 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id, "input": input}
+        variables: Dict[str, object] = {"id": id, "input": input}
         response = self.execute(query=query, operation_name="roleUpdateManaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleUpdateManaged.model_validate(data).role_update_managed
 
     def role_update_unmanaged(
         self, id: str, input: UnmanagedRoleInput, **kwargs: Any
-    ) -> (
-        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleUpdateSuccess
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameReserved
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameExists
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameInvalid
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameUsedBySsoConfig
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsManaged
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsUnmanaged
-        | RoleUpdateUnmanagedRoleUpdateUnmanagedRoleHasTooManyPoliciesToAttach
-    ):
+    ) -> Union[
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleUpdateSuccess,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameReserved,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameExists,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameInvalid,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameUsedBySsoConfig,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsManaged,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsUnmanaged,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleHasTooManyPoliciesToAttach,
+    ]:
         query = gql(
             """
             mutation roleUpdateUnmanaged($id: ID!, $input: UnmanagedRoleInput!) {
@@ -850,20 +850,20 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id, "input": input}
+        variables: Dict[str, object] = {"id": id, "input": input}
         response = self.execute(query=query, operation_name="roleUpdateUnmanaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleUpdateUnmanaged.model_validate(data).role_update_unmanaged
 
     def role_delete(
         self, id: str, **kwargs: Any
-    ) -> (
-        RoleDeleteRoleDeleteRoleDeleteSuccess
-        | RoleDeleteRoleDeleteRoleDoesNotExist
-        | RoleDeleteRoleDeleteRoleNameReserved
-        | RoleDeleteRoleDeleteRoleNameUsedBySsoConfig
-        | RoleDeleteRoleDeleteRoleAssigned
-    ):
+    ) -> Union[
+        RoleDeleteRoleDeleteRoleDeleteSuccess,
+        RoleDeleteRoleDeleteRoleDoesNotExist,
+        RoleDeleteRoleDeleteRoleNameReserved,
+        RoleDeleteRoleDeleteRoleNameUsedBySsoConfig,
+        RoleDeleteRoleDeleteRoleAssigned,
+    ]:
         query = gql(
             """
             mutation roleDelete($id: ID!) {
@@ -873,18 +873,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="roleDelete", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleDelete.model_validate(data).role_delete
 
     def role_set_default(
         self, id: str, **kwargs: Any
-    ) -> (
-        RoleSetDefaultRoleSetDefaultRoleSetDefaultSuccess
-        | RoleSetDefaultRoleSetDefaultRoleDoesNotExist
-        | RoleSetDefaultRoleSetDefaultSsoConfigConflict
-    ):
+    ) -> Union[
+        RoleSetDefaultRoleSetDefaultRoleSetDefaultSuccess,
+        RoleSetDefaultRoleSetDefaultRoleDoesNotExist,
+        RoleSetDefaultRoleSetDefaultSsoConfigConflict,
+    ]:
         query = gql(
             """
             mutation roleSetDefault($id: ID!) {
@@ -949,18 +949,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="roleSetDefault", variables=variables, **kwargs)
         data = self.get_data(response)
         return RoleSetDefault.model_validate(data).role_set_default
 
     def policy_create_managed(
         self, input: ManagedPolicyInput, **kwargs: Any
-    ) -> (
-        PolicyCreateManagedPolicyCreateManagedPolicy
-        | PolicyCreateManagedPolicyCreateManagedInvalidInput
-        | PolicyCreateManagedPolicyCreateManagedOperationError
-    ):
+    ) -> Union[
+        PolicyCreateManagedPolicyCreateManagedPolicy,
+        PolicyCreateManagedPolicyCreateManagedInvalidInput,
+        PolicyCreateManagedPolicyCreateManagedOperationError,
+    ]:
         query = gql(
             """
             mutation policyCreateManaged($input: ManagedPolicyInput!) {
@@ -1038,18 +1038,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="policyCreateManaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return PolicyCreateManaged.model_validate(data).policy_create_managed
 
     def policy_create_unmanaged(
         self, input: UnmanagedPolicyInput, **kwargs: Any
-    ) -> (
-        PolicyCreateUnmanagedPolicyCreateUnmanagedPolicy
-        | PolicyCreateUnmanagedPolicyCreateUnmanagedInvalidInput
-        | PolicyCreateUnmanagedPolicyCreateUnmanagedOperationError
-    ):
+    ) -> Union[
+        PolicyCreateUnmanagedPolicyCreateUnmanagedPolicy,
+        PolicyCreateUnmanagedPolicyCreateUnmanagedInvalidInput,
+        PolicyCreateUnmanagedPolicyCreateUnmanagedOperationError,
+    ]:
         query = gql(
             """
             mutation policyCreateUnmanaged($input: UnmanagedPolicyInput!) {
@@ -1127,18 +1127,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="policyCreateUnmanaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return PolicyCreateUnmanaged.model_validate(data).policy_create_unmanaged
 
     def policy_update_managed(
         self, id: str, input: ManagedPolicyInput, **kwargs: Any
-    ) -> (
-        PolicyUpdateManagedPolicyUpdateManagedPolicy
-        | PolicyUpdateManagedPolicyUpdateManagedInvalidInput
-        | PolicyUpdateManagedPolicyUpdateManagedOperationError
-    ):
+    ) -> Union[
+        PolicyUpdateManagedPolicyUpdateManagedPolicy,
+        PolicyUpdateManagedPolicyUpdateManagedInvalidInput,
+        PolicyUpdateManagedPolicyUpdateManagedOperationError,
+    ]:
         query = gql(
             """
             mutation policyUpdateManaged($id: ID!, $input: ManagedPolicyInput!) {
@@ -1216,18 +1216,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id, "input": input}
+        variables: Dict[str, object] = {"id": id, "input": input}
         response = self.execute(query=query, operation_name="policyUpdateManaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return PolicyUpdateManaged.model_validate(data).policy_update_managed
 
     def policy_update_unmanaged(
         self, id: str, input: UnmanagedPolicyInput, **kwargs: Any
-    ) -> (
-        PolicyUpdateUnmanagedPolicyUpdateUnmanagedPolicy
-        | PolicyUpdateUnmanagedPolicyUpdateUnmanagedInvalidInput
-        | PolicyUpdateUnmanagedPolicyUpdateUnmanagedOperationError
-    ):
+    ) -> Union[
+        PolicyUpdateUnmanagedPolicyUpdateUnmanagedPolicy,
+        PolicyUpdateUnmanagedPolicyUpdateUnmanagedInvalidInput,
+        PolicyUpdateUnmanagedPolicyUpdateUnmanagedOperationError,
+    ]:
         query = gql(
             """
             mutation policyUpdateUnmanaged($id: ID!, $input: UnmanagedPolicyInput!) {
@@ -1305,14 +1305,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id, "input": input}
+        variables: Dict[str, object] = {"id": id, "input": input}
         response = self.execute(query=query, operation_name="policyUpdateUnmanaged", variables=variables, **kwargs)
         data = self.get_data(response)
         return PolicyUpdateUnmanaged.model_validate(data).policy_update_unmanaged
 
     def policy_delete(
         self, id: str, **kwargs: Any
-    ) -> PolicyDeletePolicyDeleteOk | PolicyDeletePolicyDeleteInvalidInput | PolicyDeletePolicyDeleteOperationError:
+    ) -> Union[
+        PolicyDeletePolicyDeleteOk,
+        PolicyDeletePolicyDeleteInvalidInput,
+        PolicyDeletePolicyDeleteOperationError,
+    ]:
         query = gql(
             """
             mutation policyDelete($id: ID!) {
@@ -1339,12 +1343,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="policyDelete", variables=variables, **kwargs)
         data = self.get_data(response)
         return PolicyDelete.model_validate(data).policy_delete
 
-    def users_get(self, name: str, **kwargs: Any) -> UsersGetAdminUserGet | None:
+    def users_get(self, name: str, **kwargs: Any) -> Optional[UsersGetAdminUserGet]:
         query = gql(
             """
             query usersGet($name: String!) {
@@ -1425,12 +1429,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(query=query, operation_name="usersGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersGet.model_validate(data).admin.user.get
 
-    def users_list(self, **kwargs: Any) -> list[UsersListAdminUserList]:
+    def users_list(self, **kwargs: Any) -> List[UsersListAdminUserList]:
         query = gql(
             """
             query usersList {
@@ -1511,18 +1515,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="usersList", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersList.model_validate(data).admin.user.list
 
     def users_create(
         self, input: UserInput, **kwargs: Any
-    ) -> (
-        UsersCreateAdminUserCreateUser
-        | UsersCreateAdminUserCreateInvalidInput
-        | UsersCreateAdminUserCreateOperationError
-    ):
+    ) -> Union[
+        UsersCreateAdminUserCreateUser,
+        UsersCreateAdminUserCreateInvalidInput,
+        UsersCreateAdminUserCreateOperationError,
+    ]:
         query = gql(
             """
             mutation usersCreate($input: UserInput!) {
@@ -1625,12 +1629,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="usersCreate", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersCreate.model_validate(data).admin.user.create
 
-    def users_delete(self, name: str, **kwargs: Any) -> UsersDeleteAdminUserMutate | None:
+    def users_delete(self, name: str, **kwargs: Any) -> Optional[UsersDeleteAdminUserMutate]:
         query = gql(
             """
             mutation usersDelete($name: String!) {
@@ -1663,12 +1667,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(query=query, operation_name="usersDelete", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersDelete.model_validate(data).admin.user.mutate
 
-    def users_set_email(self, email: str, name: str, **kwargs: Any) -> UsersSetEmailAdminUserMutate | None:
+    def users_set_email(self, email: str, name: str, **kwargs: Any) -> Optional[UsersSetEmailAdminUserMutate]:
         query = gql(
             """
             mutation usersSetEmail($email: String!, $name: String!) {
@@ -1773,12 +1777,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"email": email, "name": name}
+        variables: Dict[str, object] = {"email": email, "name": name}
         response = self.execute(query=query, operation_name="usersSetEmail", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersSetEmail.model_validate(data).admin.user.mutate
 
-    def users_set_admin(self, name: str, admin: bool, **kwargs: Any) -> UsersSetAdminAdminUserMutate | None:
+    def users_set_admin(self, name: str, admin: bool, **kwargs: Any) -> Optional[UsersSetAdminAdminUserMutate]:
         query = gql(
             """
             mutation usersSetAdmin($name: String!, $admin: Boolean!) {
@@ -1883,12 +1887,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name, "admin": admin}
+        variables: Dict[str, object] = {"name": name, "admin": admin}
         response = self.execute(query=query, operation_name="usersSetAdmin", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersSetAdmin.model_validate(data).admin.user.mutate
 
-    def users_set_active(self, active: bool, name: str, **kwargs: Any) -> UsersSetActiveAdminUserMutate | None:
+    def users_set_active(self, active: bool, name: str, **kwargs: Any) -> Optional[UsersSetActiveAdminUserMutate]:
         query = gql(
             """
             mutation usersSetActive($active: Boolean!, $name: String!) {
@@ -1993,12 +1997,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"active": active, "name": name}
+        variables: Dict[str, object] = {"active": active, "name": name}
         response = self.execute(query=query, operation_name="usersSetActive", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersSetActive.model_validate(data).admin.user.mutate
 
-    def users_reset_password(self, name: str, **kwargs: Any) -> UsersResetPasswordAdminUserMutate | None:
+    def users_reset_password(self, name: str, **kwargs: Any) -> Optional[UsersResetPasswordAdminUserMutate]:
         query = gql(
             """
             mutation usersResetPassword($name: String!) {
@@ -2031,14 +2035,19 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(query=query, operation_name="usersResetPassword", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersResetPassword.model_validate(data).admin.user.mutate
 
     def users_set_role(
-        self, name: str, role: str, append: bool, extra_roles: list[str] | None | UnsetType = UNSET, **kwargs: Any
-    ) -> UsersSetRoleAdminUserMutate | None:
+        self,
+        name: str,
+        role: str,
+        append: bool,
+        extra_roles: Union[Optional[List[str]], UnsetType] = UNSET,
+        **kwargs: Any,
+    ) -> Optional[UsersSetRoleAdminUserMutate]:
         query = gql(
             """
             mutation usersSetRole($name: String!, $role: String!, $extraRoles: [String!], $append: Boolean!) {
@@ -2139,7 +2148,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {
+        variables: Dict[str, object] = {
             "name": name,
             "role": role,
             "extraRoles": extra_roles,
@@ -2149,7 +2158,7 @@ class Client(BaseClient):
         data = self.get_data(response)
         return UsersSetRole.model_validate(data).admin.user.mutate
 
-    def users_add_roles(self, name: str, roles: list[str], **kwargs: Any) -> UsersAddRolesAdminUserMutate | None:
+    def users_add_roles(self, name: str, roles: List[str], **kwargs: Any) -> Optional[UsersAddRolesAdminUserMutate]:
         query = gql(
             """
             mutation usersAddRoles($name: String!, $roles: [String!]!) {
@@ -2250,14 +2259,14 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name, "roles": roles}
+        variables: Dict[str, object] = {"name": name, "roles": roles}
         response = self.execute(query=query, operation_name="usersAddRoles", variables=variables, **kwargs)
         data = self.get_data(response)
         return UsersAddRoles.model_validate(data).admin.user.mutate
 
     def users_remove_roles(
-        self, name: str, roles: list[str], fallback: str | None | UnsetType = UNSET, **kwargs: Any
-    ) -> UsersRemoveRolesAdminUserMutate | None:
+        self, name: str, roles: List[str], fallback: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
+    ) -> Optional[UsersRemoveRolesAdminUserMutate]:
         query = gql(
             """
             mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String) {
@@ -2358,7 +2367,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {
+        variables: Dict[str, object] = {
             "name": name,
             "roles": roles,
             "fallback": fallback,
@@ -2367,7 +2376,7 @@ class Client(BaseClient):
         data = self.get_data(response)
         return UsersRemoveRoles.model_validate(data).admin.user.mutate
 
-    def sso_config_get(self, **kwargs: Any) -> SsoConfigGetAdminSsoConfig | None:
+    def sso_config_get(self, **kwargs: Any) -> Optional[SsoConfigGetAdminSsoConfig]:
         query = gql(
             """
             query ssoConfigGet {
@@ -2454,19 +2463,20 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="ssoConfigGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return SsoConfigGet.model_validate(data).admin.sso_config
 
     def sso_config_set(
-        self, config: str | None | UnsetType = UNSET, **kwargs: Any
-    ) -> (
-        SsoConfigSetAdminSetSsoConfigSsoConfig
-        | SsoConfigSetAdminSetSsoConfigInvalidInput
-        | SsoConfigSetAdminSetSsoConfigOperationError
-        | None
-    ):
+        self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
+    ) -> Optional[
+        Union[
+            SsoConfigSetAdminSetSsoConfigSsoConfig,
+            SsoConfigSetAdminSetSsoConfigInvalidInput,
+            SsoConfigSetAdminSetSsoConfigOperationError,
+        ]
+    ]:
         query = gql(
             """
             mutation ssoConfigSet($config: String) {
@@ -2571,12 +2581,14 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"config": config}
+        variables: Dict[str, object] = {"config": config}
         response = self.execute(query=query, operation_name="ssoConfigSet", variables=variables, **kwargs)
         data = self.get_data(response)
         return SsoConfigSet.model_validate(data).admin.set_sso_config
 
-    def bucket_tabulator_tables_list(self, name: str, **kwargs: Any) -> BucketTabulatorTablesListBucketConfig | None:
+    def bucket_tabulator_tables_list(
+        self, name: str, **kwargs: Any
+    ) -> Optional[BucketTabulatorTablesListBucketConfig]:
         query = gql(
             """
             query bucketTabulatorTablesList($name: String!) {
@@ -2589,18 +2601,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(query=query, operation_name="bucketTabulatorTablesList", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketTabulatorTablesList.model_validate(data).bucket_config
 
     def bucket_tabulator_table_set(
-        self, bucket_name: str, table_name: str, config: str | None | UnsetType = UNSET, **kwargs: Any
-    ) -> (
-        BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig
-        | BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput
-        | BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError
-    ):
+        self, bucket_name: str, table_name: str, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
+    ) -> Union[
+        BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig,
+        BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput,
+        BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError,
+    ]:
         query = gql(
             """
             mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $config: String) {
@@ -2633,7 +2645,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {
+        variables: Dict[str, object] = {
             "bucketName": bucket_name,
             "tableName": table_name,
             "config": config,
@@ -2644,11 +2656,11 @@ class Client(BaseClient):
 
     def bucket_tabulator_table_rename(
         self, bucket_name: str, table_name: str, new_table_name: str, **kwargs: Any
-    ) -> (
-        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig
-        | BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput
-        | BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError
-    ):
+    ) -> Union[
+        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig,
+        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput,
+        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError,
+    ]:
         query = gql(
             """
             mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!) {
@@ -2681,7 +2693,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {
+        variables: Dict[str, object] = {
             "bucketName": bucket_name,
             "tableName": table_name,
             "newTableName": new_table_name,
@@ -2702,7 +2714,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="tabulatorGetOpenQuery", variables=variables, **kwargs)
         data = self.get_data(response)
         return TabulatorGetOpenQuery.model_validate(data).admin.tabulator_open_query
@@ -2719,12 +2731,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"enabled": enabled}
+        variables: Dict[str, object] = {"enabled": enabled}
         response = self.execute(query=query, operation_name="tabulatorSetOpenQuery", variables=variables, **kwargs)
         data = self.get_data(response)
         return TabulatorSetOpenQuery.model_validate(data).admin.set_tabulator_open_query.tabulator_open_query
 
-    def bucket_get(self, name: str, **kwargs: Any) -> BucketGetBucketConfig | None:
+    def bucket_get(self, name: str, **kwargs: Any) -> Optional[BucketGetBucketConfig]:
         query = gql(
             """
             query bucketGet($name: String!) {
@@ -2751,12 +2763,12 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(query=query, operation_name="bucketGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketGet.model_validate(data).bucket_config
 
-    def buckets_list(self, **kwargs: Any) -> list[BucketsListBucketConfigs]:
+    def buckets_list(self, **kwargs: Any) -> List[BucketsListBucketConfigs]:
         query = gql(
             """
             query bucketsList {
@@ -2783,25 +2795,25 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {}
+        variables: Dict[str, object] = {}
         response = self.execute(query=query, operation_name="bucketsList", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketsList.model_validate(data).bucket_configs
 
     def bucket_add(
         self, input: BucketAddInput, **kwargs: Any
-    ) -> (
-        BucketAddBucketAddBucketAddSuccess
-        | BucketAddBucketAddBucketAlreadyAdded
-        | BucketAddBucketAddBucketDoesNotExist
-        | BucketAddBucketAddBucketFileExtensionsToIndexInvalid
-        | BucketAddBucketAddBucketIndexContentBytesInvalid
-        | BucketAddBucketAddInsufficientPermissions
-        | BucketAddBucketAddNotificationConfigurationError
-        | BucketAddBucketAddNotificationTopicNotFound
-        | BucketAddBucketAddSnsInvalid
-        | BucketAddBucketAddSubscriptionInvalid
-    ):
+    ) -> Union[
+        BucketAddBucketAddBucketAddSuccess,
+        BucketAddBucketAddBucketAlreadyAdded,
+        BucketAddBucketAddBucketDoesNotExist,
+        BucketAddBucketAddBucketFileExtensionsToIndexInvalid,
+        BucketAddBucketAddBucketIndexContentBytesInvalid,
+        BucketAddBucketAddInsufficientPermissions,
+        BucketAddBucketAddNotificationConfigurationError,
+        BucketAddBucketAddNotificationTopicNotFound,
+        BucketAddBucketAddSnsInvalid,
+        BucketAddBucketAddSubscriptionInvalid,
+    ]:
         query = gql(
             """
             mutation bucketAdd($input: BucketAddInput!) {
@@ -2840,23 +2852,23 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="bucketAdd", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketAdd.model_validate(data).bucket_add
 
     def bucket_update(
         self, name: str, input: BucketUpdateInput, **kwargs: Any
-    ) -> (
-        BucketUpdateBucketUpdateBucketUpdateSuccess
-        | BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid
-        | BucketUpdateBucketUpdateBucketIndexContentBytesInvalid
-        | BucketUpdateBucketUpdateBucketNotFound
-        | BucketUpdateBucketUpdateInsufficientPermissions
-        | BucketUpdateBucketUpdateNotificationConfigurationError
-        | BucketUpdateBucketUpdateNotificationTopicNotFound
-        | BucketUpdateBucketUpdateSnsInvalid
-    ):
+    ) -> Union[
+        BucketUpdateBucketUpdateBucketUpdateSuccess,
+        BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid,
+        BucketUpdateBucketUpdateBucketIndexContentBytesInvalid,
+        BucketUpdateBucketUpdateBucketNotFound,
+        BucketUpdateBucketUpdateInsufficientPermissions,
+        BucketUpdateBucketUpdateNotificationConfigurationError,
+        BucketUpdateBucketUpdateNotificationTopicNotFound,
+        BucketUpdateBucketUpdateSnsInvalid,
+    ]:
         query = gql(
             """
             mutation bucketUpdate($name: String!, $input: BucketUpdateInput!) {
@@ -2895,18 +2907,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name, "input": input}
+        variables: Dict[str, object] = {"name": name, "input": input}
         response = self.execute(query=query, operation_name="bucketUpdate", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketUpdate.model_validate(data).bucket_update
 
     def bucket_remove(
         self, name: str, **kwargs: Any
-    ) -> (
-        BucketRemoveBucketRemoveBucketRemoveSuccess
-        | BucketRemoveBucketRemoveBucketNotFound
-        | BucketRemoveBucketRemoveIndexingInProgress
-    ):
+    ) -> Union[
+        BucketRemoveBucketRemoveBucketRemoveSuccess,
+        BucketRemoveBucketRemoveBucketNotFound,
+        BucketRemoveBucketRemoveIndexingInProgress,
+    ]:
         query = gql(
             """
             mutation bucketRemove($name: String!) {
@@ -2920,18 +2932,18 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"name": name}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(query=query, operation_name="bucketRemove", variables=variables, **kwargs)
         data = self.get_data(response)
         return BucketRemove.model_validate(data).bucket_remove
 
     def api_keys_list(
         self,
-        name: str | None | UnsetType = UNSET,
-        fingerprint: str | None | UnsetType = UNSET,
-        status: APIKeyStatus | None | UnsetType = UNSET,
+        name: Union[Optional[str], UnsetType] = UNSET,
+        fingerprint: Union[Optional[str], UnsetType] = UNSET,
+        status: Union[Optional[APIKeyStatus], UnsetType] = UNSET,
         **kwargs: Any,
-    ) -> ApiKeysListMe | None:
+    ) -> Optional[ApiKeysListMe]:
         query = gql(
             """
             query apiKeysList($name: String, $fingerprint: String, $status: APIKeyStatus) {
@@ -2954,7 +2966,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {
+        variables: Dict[str, object] = {
             "name": name,
             "fingerprint": fingerprint,
             "status": status,
@@ -2963,7 +2975,7 @@ class Client(BaseClient):
         data = self.get_data(response)
         return ApiKeysList.model_validate(data).me
 
-    def api_key_get(self, id: str, **kwargs: Any) -> ApiKeyGetMe | None:
+    def api_key_get(self, id: str, **kwargs: Any) -> Optional[ApiKeyGetMe]:
         query = gql(
             """
             query apiKeyGet($id: ID!) {
@@ -2986,14 +2998,14 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="apiKeyGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return ApiKeyGet.model_validate(data).me
 
     def api_key_create(
         self, input: APIKeyCreateInput, **kwargs: Any
-    ) -> ApiKeyCreateApiKeyCreateAPIKeyCreated | ApiKeyCreateApiKeyCreateInvalidInput:
+    ) -> Union[ApiKeyCreateApiKeyCreateAPIKeyCreated, ApiKeyCreateApiKeyCreateInvalidInput]:
         query = gql(
             """
             mutation apiKeyCreate($input: APIKeyCreateInput!) {
@@ -3030,14 +3042,17 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"input": input}
+        variables: Dict[str, object] = {"input": input}
         response = self.execute(query=query, operation_name="apiKeyCreate", variables=variables, **kwargs)
         data = self.get_data(response)
         return ApiKeyCreate.model_validate(data).api_key_create
 
     def api_key_revoke(
-        self, id: str | None | UnsetType = UNSET, secret: str | None | UnsetType = UNSET, **kwargs: Any
-    ) -> ApiKeyRevokeApiKeyRevokeOk | ApiKeyRevokeApiKeyRevokeInvalidInput:
+        self,
+        id: Union[Optional[str], UnsetType] = UNSET,
+        secret: Union[Optional[str], UnsetType] = UNSET,
+        **kwargs: Any,
+    ) -> Union[ApiKeyRevokeApiKeyRevokeOk, ApiKeyRevokeApiKeyRevokeInvalidInput]:
         query = gql(
             """
             mutation apiKeyRevoke($id: ID, $secret: String) {
@@ -3057,19 +3072,19 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id, "secret": secret}
+        variables: Dict[str, object] = {"id": id, "secret": secret}
         response = self.execute(query=query, operation_name="apiKeyRevoke", variables=variables, **kwargs)
         data = self.get_data(response)
         return ApiKeyRevoke.model_validate(data).api_key_revoke
 
     def admin_api_keys_list(
         self,
-        email: str | None | UnsetType = UNSET,
-        name: str | None | UnsetType = UNSET,
-        fingerprint: str | None | UnsetType = UNSET,
-        status: APIKeyStatus | None | UnsetType = UNSET,
+        email: Union[Optional[str], UnsetType] = UNSET,
+        name: Union[Optional[str], UnsetType] = UNSET,
+        fingerprint: Union[Optional[str], UnsetType] = UNSET,
+        status: Union[Optional[APIKeyStatus], UnsetType] = UNSET,
         **kwargs: Any,
-    ) -> list[AdminApiKeysListAdminApiKeysList]:
+    ) -> List[AdminApiKeysListAdminApiKeysList]:
         query = gql(
             """
             query adminApiKeysList($email: String, $name: String, $fingerprint: String, $status: APIKeyStatus) {
@@ -3094,7 +3109,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {
+        variables: Dict[str, object] = {
             "email": email,
             "name": name,
             "fingerprint": fingerprint,
@@ -3104,7 +3119,7 @@ class Client(BaseClient):
         data = self.get_data(response)
         return AdminApiKeysList.model_validate(data).admin.api_keys.list
 
-    def admin_api_key_get(self, id: str, **kwargs: Any) -> AdminApiKeyGetAdminApiKeysGet | None:
+    def admin_api_key_get(self, id: str, **kwargs: Any) -> Optional[AdminApiKeyGetAdminApiKeysGet]:
         query = gql(
             """
             query adminApiKeyGet($id: ID!) {
@@ -3129,14 +3144,17 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="adminApiKeyGet", variables=variables, **kwargs)
         data = self.get_data(response)
         return AdminApiKeyGet.model_validate(data).admin.api_keys.get
 
     def admin_api_key_revoke(
         self, id: str, **kwargs: Any
-    ) -> AdminApiKeyRevokeAdminApiKeysRevokeOk | AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput:
+    ) -> Union[
+        AdminApiKeyRevokeAdminApiKeysRevokeOk,
+        AdminApiKeyRevokeAdminApiKeysRevokeInvalidInput,
+    ]:
         query = gql(
             """
             mutation adminApiKeyRevoke($id: ID!) {
@@ -3160,7 +3178,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: dict[str, object] = {"id": id}
+        variables: Dict[str, object] = {"id": id}
         response = self.execute(query=query, operation_name="adminApiKeyRevoke", variables=variables, **kwargs)
         data = self.get_data(response)
         return AdminApiKeyRevoke.model_validate(data).admin.api_keys.revoke

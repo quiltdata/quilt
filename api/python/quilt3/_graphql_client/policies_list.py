@@ -8,7 +8,7 @@ from .fragments import PolicySelection
 
 
 class PoliciesList(BaseModel):
-    policies: list["PoliciesListPolicies"]
+    policies: List["PoliciesListPolicies"]
 
 
 class PoliciesListPolicies(PolicySelection):

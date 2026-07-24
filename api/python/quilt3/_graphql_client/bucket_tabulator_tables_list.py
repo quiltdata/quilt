@@ -13,7 +13,7 @@ class BucketTabulatorTablesList(BaseModel):
 
 
 class BucketTabulatorTablesListBucketConfig(BaseModel):
-    tabulator_tables: list["BucketTabulatorTablesListBucketConfigTabulatorTables"] = Field(alias="tabulatorTables")
+    tabulator_tables: List["BucketTabulatorTablesListBucketConfigTabulatorTables"] = Field(alias="tabulatorTables")
 
 
 class BucketTabulatorTablesListBucketConfigTabulatorTables(BaseModel):

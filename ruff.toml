@@ -61,6 +61,11 @@ ignore = [
 
 [lint.per-file-ignores]
 "docs/**" = ["I001"]
+# ariadne-codegen output and the templates it copies in verbatim. Left as the generator emits it: rewriting
+# `List["Model"]` to `list["Model"]` drops the ForwardRef wrapper, and pydantic then fails to resolve models
+# defined later in the file on Python 3.10 (quilt3's floor).
+"api/python/quilt3/_graphql_client/**" = ["UP006", "UP007", "UP045"]
+"api/python/quilt3-graphql/**" = ["UP006", "UP007", "UP045"]
 
 [lint.isort]
 known-first-party = ["quilt3", "quilt_shared", "t4_lambda_*"]

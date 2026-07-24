@@ -18,7 +18,7 @@ class AdminApiKeysListAdmin(BaseModel):
 
 
 class AdminApiKeysListAdminApiKeys(BaseModel):
-    list: list["AdminApiKeysListAdminApiKeysList"]
+    list: List["AdminApiKeysListAdminApiKeysList"]
 
 
 class AdminApiKeysListAdminApiKeysList(APIKeySelection):

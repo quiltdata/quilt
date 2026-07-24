@@ -44,8 +44,8 @@ class BaseClient:
     def execute(
         self,
         query: str,
-        operation_name: str | None = None,
-        variables: dict[str, Any] | None = None,
+        operation_name: Optional[str] = None,
+        variables: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> requests.Response:
         processed_variables, files, files_map = self._process_variables(variables)
@@ -67,7 +67,7 @@ class BaseClient:
             **kwargs,
         )
 
-    def get_data(self, response: requests.Response) -> dict[str, Any]:
+    def get_data(self, response: requests.Response) -> Dict[str, Any]:
         if not 200 <= response.status_code < 300:
             raise GraphQLClientHttpError(
                 status_code=response.status_code, response=response
@@ -91,12 +91,12 @@ class BaseClient:
                 errors_dicts=errors, data=data
             )
 
-        return cast(dict[str, Any], data)
+        return cast(Dict[str, Any], data)
 
     def _process_variables(
-        self, variables: dict[str, Any] | None
-    ) -> tuple[
-        dict[str, Any], dict[str, tuple[str, IO[bytes], str]], dict[str, list[str]]
+        self, variables: Optional[Dict[str, Any]]
+    ) -> Tuple[
+        Dict[str, Any], Dict[str, Tuple[str, IO[bytes], str]], Dict[str, List[str]]
     ]:
         if not variables:
             return {}, {}, {}
@@ -105,8 +105,8 @@ class BaseClient:
         return self._get_files_from_variables(serializable_variables)
 
     def _convert_dict_to_json_serializable(
-        self, dict_: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, dict_: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return {
             key: self._convert_value(value)
             for key, value in dict_.items()
@@ -121,12 +121,12 @@ class BaseClient:
         return value
 
     def _get_files_from_variables(
-        self, variables: dict[str, Any]
-    ) -> tuple[
-        dict[str, Any], dict[str, tuple[str, IO[bytes], str]], dict[str, list[str]]
+        self, variables: Dict[str, Any]
+    ) -> Tuple[
+        Dict[str, Any], Dict[str, Tuple[str, IO[bytes], str]], Dict[str, List[str]]
     ]:
-        files_map: dict[str, list[str]] = {}
-        files_list: list[Upload] = []
+        files_map: Dict[str, List[str]] = {}
+        files_list: List[Upload] = []
 
         def separate_files(path: str, obj: Any) -> Any:
             if isinstance(obj, list):
@@ -156,7 +156,7 @@ class BaseClient:
             return obj
 
         nulled_variables = separate_files("variables", variables)
-        files: dict[str, tuple[str, IO[bytes], str]] = {
+        files: Dict[str, Tuple[str, IO[bytes], str]] = {
             str(i): (file_.filename, cast(IO[bytes], file_.content), file_.content_type)
             for i, file_ in enumerate(files_list)
         }
@@ -165,10 +165,10 @@ class BaseClient:
     def _execute_multipart(
         self,
         query: str,
-        operation_name: str | None,
-        variables: dict[str, Any],
-        files: dict[str, tuple[str, IO[bytes], str]],
-        files_map: dict[str, list[str]],
+        operation_name: Optional[str],
+        variables: Dict[str, Any],
+        files: Dict[str, Tuple[str, IO[bytes], str]],
+        files_map: Dict[str, List[str]],
         **kwargs: Any,
     ) -> requests.Response:
         data = {
@@ -188,14 +188,14 @@ class BaseClient:
     def _execute_json(
         self,
         query: str,
-        operation_name: str | None,
-        variables: dict[str, Any],
+        operation_name: Optional[str],
+        variables: Dict[str, Any],
         **kwargs: Any,
     ) -> requests.Response:
-        headers: dict[str, str] = {"Content-Type": "application/json"}
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
         headers.update(kwargs.get("headers", {}))
 
-        merged_kwargs: dict[str, Any] = kwargs.copy()
+        merged_kwargs: Dict[str, Any] = kwargs.copy()
         merged_kwargs["headers"] = headers
 
         return self.http_client.post(

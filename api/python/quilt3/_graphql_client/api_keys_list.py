@@ -14,7 +14,7 @@ class ApiKeysList(BaseModel):
 
 
 class ApiKeysListMe(BaseModel):
-    api_keys: list["ApiKeysListMeApiKeys"] = Field(alias="apiKeys")
+    api_keys: List["ApiKeysListMeApiKeys"] = Field(alias="apiKeys")
 
 
 class ApiKeysListMeApiKeys(APIKeySelection):

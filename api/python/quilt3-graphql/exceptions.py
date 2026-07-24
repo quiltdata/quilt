@@ -32,10 +32,10 @@ class GraphQLClientGraphQLError(GraphQLClientError):
     def __init__(
         self,
         message: str,
-        locations: list[dict[str, int]] | None = None,
-        path: list[str] | None = None,
-        extensions: dict[str, object] | None = None,
-        orginal: dict[str, object] | None = None,
+        locations: Optional[List[Dict[str, int]]] = None,
+        path: Optional[List[str]] = None,
+        extensions: Optional[Dict[str, object]] = None,
+        orginal: Optional[Dict[str, object]] = None,
     ):
         self.message = message
         self.locations = locations
@@ -47,7 +47,7 @@ class GraphQLClientGraphQLError(GraphQLClientError):
         return self.message
 
     @classmethod
-    def from_dict(cls, error: dict[str, Any]) -> "GraphQLClientGraphQLError":
+    def from_dict(cls, error: Dict[str, Any]) -> "GraphQLClientGraphQLError":
         return cls(
             message=error["message"],
             locations=error.get("locations"),
@@ -60,8 +60,8 @@ class GraphQLClientGraphQLError(GraphQLClientError):
 class GraphQLClientGraphQLMultiError(GraphQLClientError):
     def __init__(
         self,
-        errors: list[GraphQLClientGraphQLError],
-        data: dict[str, Any] | None = None,
+        errors: List[GraphQLClientGraphQLError],
+        data: Optional[Dict[str, Any]] = None,
     ):
         self.errors = errors
         self.data = data
@@ -71,7 +71,7 @@ class GraphQLClientGraphQLMultiError(GraphQLClientError):
 
     @classmethod
     def from_errors_dicts(
-        cls, errors_dicts: list[dict[str, Any]], data: dict[str, Any] | None = None
+        cls, errors_dicts: List[Dict[str, Any]], data: Optional[Dict[str, Any]] = None
     ) -> "GraphQLClientGraphQLMultiError":
         return cls(
             errors=[GraphQLClientGraphQLError.from_dict(e) for e in errors_dicts],
@@ -80,7 +80,7 @@ class GraphQLClientGraphQLMultiError(GraphQLClientError):
 
 
 class GraphQLClientInvalidMessageFormat(GraphQLClientError):
-    def __init__(self, message: str | bytes) -> None:
+    def __init__(self, message: Union[str, bytes]) -> None:
         self.message = message
 
     def __str__(self) -> str:

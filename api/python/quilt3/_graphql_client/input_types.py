@@ -17,37 +17,37 @@ class APIKeyCreateInput(BaseModel):
 class BucketAddInput(BaseModel):
     name: str
     title: str
-    icon_url: str | None = Field(alias="iconUrl", default=None)
-    description: str | None = None
-    linked_data: Any | None = Field(alias="linkedData", default=None)
-    overview_url: str | None = Field(alias="overviewUrl", default=None)
-    tags: list[str] | None = None
-    relevance_score: int | None = Field(alias="relevanceScore", default=None)
-    sns_notification_arn: str | None = Field(alias="snsNotificationArn", default=None)
-    scanner_parallel_shards_depth: int | None = Field(alias="scannerParallelShardsDepth", default=None)
-    skip_meta_data_indexing: bool | None = Field(alias="skipMetaDataIndexing", default=None)
-    file_extensions_to_index: list[str] | None = Field(alias="fileExtensionsToIndex", default=None)
-    index_content_bytes: int | None = Field(alias="indexContentBytes", default=None)
-    delay_scan: bool | None = Field(alias="delayScan", default=None)
-    browsable: bool | None = None
-    prefixes: list[str] | None = None
+    icon_url: Optional[str] = Field(alias="iconUrl", default=None)
+    description: Optional[str] = None
+    linked_data: Optional[Any] = Field(alias="linkedData", default=None)
+    overview_url: Optional[str] = Field(alias="overviewUrl", default=None)
+    tags: Optional[List[str]] = None
+    relevance_score: Optional[int] = Field(alias="relevanceScore", default=None)
+    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn", default=None)
+    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth", default=None)
+    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing", default=None)
+    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex", default=None)
+    index_content_bytes: Optional[int] = Field(alias="indexContentBytes", default=None)
+    delay_scan: Optional[bool] = Field(alias="delayScan", default=None)
+    browsable: Optional[bool] = None
+    prefixes: Optional[List[str]] = None
 
 
 class BucketUpdateInput(BaseModel):
     title: str
-    icon_url: str | None = Field(alias="iconUrl", default=None)
-    description: str | None = None
-    linked_data: Any | None = Field(alias="linkedData", default=None)
-    overview_url: str | None = Field(alias="overviewUrl", default=None)
-    tags: list[str] | None = None
-    relevance_score: int | None = Field(alias="relevanceScore", default=None)
-    sns_notification_arn: str | None = Field(alias="snsNotificationArn", default=None)
-    scanner_parallel_shards_depth: int | None = Field(alias="scannerParallelShardsDepth", default=None)
-    skip_meta_data_indexing: bool | None = Field(alias="skipMetaDataIndexing", default=None)
-    file_extensions_to_index: list[str] | None = Field(alias="fileExtensionsToIndex", default=None)
-    index_content_bytes: int | None = Field(alias="indexContentBytes", default=None)
-    browsable: bool | None = None
-    prefixes: list[str] | None = None
+    icon_url: Optional[str] = Field(alias="iconUrl", default=None)
+    description: Optional[str] = None
+    linked_data: Optional[Any] = Field(alias="linkedData", default=None)
+    overview_url: Optional[str] = Field(alias="overviewUrl", default=None)
+    tags: Optional[List[str]] = None
+    relevance_score: Optional[int] = Field(alias="relevanceScore", default=None)
+    sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn", default=None)
+    scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth", default=None)
+    skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing", default=None)
+    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex", default=None)
+    index_content_bytes: Optional[int] = Field(alias="indexContentBytes", default=None)
+    browsable: Optional[bool] = None
+    prefixes: Optional[List[str]] = None
 
 
 class PermissionInput(BaseModel):
@@ -62,26 +62,26 @@ class UnmanagedRoleInput(BaseModel):
 
 class ManagedRoleInput(BaseModel):
     name: str
-    policies: list[str]
+    policies: List[str]
 
 
 class ManagedPolicyInput(BaseModel):
     title: str
-    permissions: list["PermissionInput"]
-    roles: list[str]
+    permissions: List["PermissionInput"]
+    roles: List[str]
 
 
 class UnmanagedPolicyInput(BaseModel):
     title: str
     arn: str
-    roles: list[str]
+    roles: List[str]
 
 
 class UserInput(BaseModel):
     name: str
     email: str
     role: str
-    extra_roles: list[str] | None = Field(alias="extraRoles", default=None)
+    extra_roles: Optional[List[str]] = Field(alias="extraRoles", default=None)
 
 
 ManagedPolicyInput.model_rebuild()
