@@ -737,7 +737,7 @@ export function Sidebar() {
             {assistant && (
               <NavRow
                 icon={<OutlinedIcon>assistant</OutlinedIcon>}
-                label="Ask Qurator"
+                label="Qurator"
                 collapsed={isCollapsed}
                 onClick={assistant.show}
               />
