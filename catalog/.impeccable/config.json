@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "app/containers/Sidebar/Sidebar.tsx"
+        ],
+        "createdAt": "2026-07-23T16:12:15.461Z",
+        "reason": "Rail width tween must reflow the main content column as the rail narrows; a transform/opacity substitute would slide the painted rail but leave its layout box full-width, so the content column keeps a gap. One short transition on a single element, user-toggle only, off the hot path. User-confirmed false positive."
+      },
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "app/components/BucketIcon/BucketIcon.tsx"
+        ],
+        "createdAt": "2026-07-24T03:09:42.742Z",
+        "reason": "L16 is the quilt-glyph: scheme string constant; L334 is the legitimate custom-icon <img src={src}> branch rendering a real user-supplied URL. Neither is a placeholder. User-confirmed false positives."
+      }
+    ]
+  }
+}

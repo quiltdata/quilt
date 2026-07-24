@@ -18,6 +18,9 @@ firebase-debug.log
 # impeccable live-mode session state (local, not source)
 .impeccable/live/sessions/
 
+# impeccable critique snapshots — per-session review artifacts, not source
+.impeccable/critique/
+
 # impeccable-live-ignore-start
 .impeccable/hook.cache.json
 .impeccable/hook.pending.json

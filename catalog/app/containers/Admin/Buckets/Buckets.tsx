@@ -9,8 +9,18 @@ import * as RRDom from 'react-router-dom'
 import { useDebounce } from 'use-debounce'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
+import BucketIcon, {
+  GLYPH_GROUPS,
+  SEED_TINTS,
+  isGlyphSrc,
+  parseGlyphSrc,
+  buildGlyphSrc,
+  defaultGlyphSrcForBucket,
+} from 'components/BucketIcon'
+import type { IndexedGlyph } from 'components/BucketIcon'
 import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
@@ -44,7 +54,12 @@ import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
 
 const bucketToPrimaryValues = (bucket: BucketConfig) => ({
   title: bucket.title,
-  iconUrl: bucket.iconUrl || '',
+  // Legacy buckets have no stored icon — the grid/list render a name-hashed
+  // default at view time, but nothing is persisted, so the same bucket can drift
+  // between views. Pre-fill the edit form with that same deterministic default so
+  // it's what the admin sees, and a Save *materializes* it into iconUrl — turning
+  // the icon into a real bucket attribute without a bulk backend migration.
+  iconUrl: bucket.iconUrl || defaultGlyphSrcForBucket(bucket.name),
   description: bucket.description || '',
 })
 
@@ -610,6 +625,606 @@ function CardActions<T>({ action, disabled, form }: CardActionsProps<T>) {
   )
 }
 
+const useGlyphPickerStyles = M.makeStyles((t) => ({
+  row: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    gap: t.spacing(2),
+    marginTop: t.spacing(2),
+  },
+  // The live preview is now the affordance that opens the picker (req: click the
+  // glyph, not a separate button). It's a real <button> so it's keyboard- and
+  // screen-reader-accessible; the focus ring and hover lift signal it's live.
+  previewButton: {
+    background: 'none',
+    border: 'none',
+    borderRadius: '50%',
+    cursor: 'pointer',
+    flexShrink: 0,
+    padding: 0,
+    transition: t.transitions.create('box-shadow', {
+      duration: t.transitions.duration.shortest,
+    }),
+    // Focus ring: a white gap then the amber indicator (the app's sanctioned
+    // focus/selection accent), so the ring holds contrast on BOTH the white
+    // card and the #fafafa canvas — the old primary-at-0.5 ring was a muddy
+    // low-contrast midnight wash that dissolved on the canvas.
+    '&:focus-visible': {
+      boxShadow: `0 0 0 2px ${t.palette.background.paper}, 0 0 0 4px ${t.palette.secondary.main}`,
+      outline: 'none',
+    },
+    // The hover lift is decoration on a task control; gate it behind
+    // no-preference so reduced-motion users get no transform at all (matches
+    // BucketGrid's reduced-motion doctrine). The transition already only
+    // animates box-shadow, so focus stays smooth for everyone.
+    '@media (prefers-reduced-motion: no-preference)': {
+      transition: t.transitions.create(['box-shadow', 'transform'], {
+        duration: t.transitions.duration.shortest,
+      }),
+      '&:hover': {
+        transform: 'scale(1.05)',
+      },
+    },
+  },
+  previewCol: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    gap: t.spacing(0.5),
+    width: 72,
+  },
+  preview: {
+    display: 'block',
+    height: 56,
+    width: 56,
+  },
+  // The chosen glyph's human name, under the preview. Quiet, centered, wraps
+  // for a two-word label; keeps the current pick legible as text, not shape.
+  previewName: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    lineHeight: 1.2,
+    textAlign: 'center',
+  },
+  fields: {
+    flexGrow: 1,
+    minWidth: 0,
+  },
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+    marginTop: t.spacing(1),
+  },
+  popover: {
+    maxWidth: 360,
+    padding: t.spacing(1.5),
+    width: 360,
+  },
+  // The filter is pinned above the scrolling glyph list so it stays reachable
+  // while the ~200-glyph library scrolls beneath it.
+  filter: {
+    marginBottom: t.spacing(1),
+  },
+  // The scroll viewport for the glyph list. Category headings stick to its top
+  // edge (position: sticky) as their run scrolls past, so the user always knows
+  // which group they're in. The scrollbar is forced always-visible (not
+  // overlay/hover-reveal) so the ~200-glyph library reads as scrollable from
+  // rest — the critique found users stopped at the first screenful because a
+  // hidden overlay scrollbar gave no "more below" cue.
+  scroll: {
+    maxHeight: 280,
+    overflowY: 'scroll',
+    scrollbarWidth: 'thin',
+    // a hair of right padding so the scrollbar doesn't crowd the last column
+    paddingRight: t.spacing(0.5),
+    '&::-webkit-scrollbar': {
+      width: 8,
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: t.palette.divider,
+      borderRadius: 4,
+    },
+  },
+  // A quiet, non-accent section label (Recognition scaffolding, not an
+  // indicator). Sticky within the scroll viewport; the paper background keeps
+  // the glyphs from bleeding through as it pins.
+  categoryHeading: {
+    ...t.typography.overline,
+    backgroundColor: t.palette.background.paper,
+    color: t.palette.text.secondary,
+    margin: 0,
+    padding: t.spacing(0.75, 0, 0.25),
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
+  },
+  grid: {
+    display: 'grid',
+    gap: t.spacing(0.5),
+    gridTemplateColumns: 'repeat(6, 1fr)',
+  },
+  empty: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    padding: t.spacing(2, 0.5),
+    textAlign: 'center',
+  },
+  swatch: {
+    background: 'none',
+    border: 'none',
+    borderRadius: t.shape.borderRadius,
+    cursor: 'pointer',
+    display: 'block',
+    padding: t.spacing(0.5),
+    transition: t.transitions.create('background-color', {
+      duration: t.transitions.duration.shortest,
+    }),
+    '&:hover': {
+      backgroundColor: t.palette.action.hover,
+    },
+  },
+  swatchSelected: {
+    backgroundColor: t.palette.action.selected,
+  },
+  swatchIcon: {
+    height: 40,
+    width: 40,
+  },
+  // Color section below the glyph grid: the on-palette family swatches, then an
+  // in-app Roboto Mono hex field for a free pick (no native OS color dialog).
+  colorSection: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    marginTop: t.spacing(1),
+    paddingTop: t.spacing(1),
+  },
+  colorLabel: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    display: 'block',
+    marginBottom: t.spacing(0.5),
+  },
+  colorRow: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+  },
+  colorDot: {
+    alignItems: 'center',
+    border: `2px solid transparent`,
+    borderRadius: '50%',
+    cursor: 'pointer',
+    display: 'flex',
+    height: 24,
+    justifyContent: 'center',
+    padding: 0,
+    width: 24,
+    '&:hover': {
+      opacity: 0.8,
+    },
+  },
+  colorDotSelected: {
+    borderColor: t.palette.text.primary,
+  },
+  // A white check over the swatch's own color — a non-color selection cue so
+  // the choice reads for colorblind/low-vision users, not hue + ring alone.
+  colorCheck: {
+    color: t.palette.common.white,
+    fontSize: 16,
+    // a hairline shadow so the check holds on a light swatch (e.g. amber)
+    filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.5))',
+  },
+  // "Auto" = no explicit color, tint hashes from the name (the default).
+  colorAuto: {
+    alignItems: 'center',
+    background: t.palette.background.paper,
+    border: `1px dashed ${t.palette.divider}`,
+    borderRadius: '50%',
+    color: t.palette.text.secondary,
+    cursor: 'pointer',
+    display: 'flex',
+    height: 24,
+    justifyContent: 'center',
+    padding: 0,
+    width: 24,
+  },
+  colorAutoSelected: {
+    borderColor: t.palette.text.primary,
+    borderStyle: 'solid',
+  },
+  hexField: {
+    marginTop: t.spacing(1),
+  },
+  // The hex value is machine-exact identity → Roboto Mono (the Mono Identity
+  // Rule), so the field reads like the s3:// URIs and version ids elsewhere.
+  hexInput: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
+  // A small solid chip inside the field showing the live color, or empty when
+  // the draft isn't yet a valid hex.
+  hexPreview: {
+    borderRadius: '50%',
+    boxShadow: `inset 0 0 0 1px ${t.palette.divider}`,
+    display: 'block',
+    height: 18,
+    width: 18,
+  },
+}))
+
+interface GlyphPickerProps {
+  input: RF.FieldRenderProps<string>['input']
+  seed?: string
+}
+
+// The bucket-icon control: a live preview that IS the picker trigger (click it),
+// the custom-URL text field (unchanged behavior), and a popover to pick one of
+// the predefined life-sciences glyphs plus an optional disc color. A predefined
+// pick is stored in the same `iconUrl` value as `quilt-glyph:<name>` — with an
+// optional `?c=RRGGBB` color param; a pasted URL is stored verbatim. Glyph and
+// URL are mutually exclusive by construction — writing one overwrites the other
+// — so no extra form state is needed. Color only applies to a glyph pick.
+// One glyph cell — shared by the grouped (resting) and flat (filtered) grids so
+// selection state, tooltip, and the color-preview stay identical in both.
+interface GlyphCellProps {
+  glyph: IndexedGlyph
+  seed?: string
+  selected: boolean
+  color?: string
+  onPick: (name: string) => void
+  swatchClass: string
+  swatchSelectedClass: string
+  iconClass: string
+}
+
+function GlyphCell({
+  glyph,
+  seed,
+  selected,
+  color,
+  onPick,
+  swatchClass,
+  swatchSelectedClass,
+  iconClass,
+}: GlyphCellProps) {
+  return (
+    <M.Tooltip title={glyph.label}>
+      <button
+        type="button"
+        aria-label={glyph.label}
+        aria-pressed={selected}
+        className={cx(swatchClass, selected && swatchSelectedClass)}
+        onClick={() => onPick(glyph.name)}
+      >
+        <BucketIcon
+          alt=""
+          className={iconClass}
+          seed={seed}
+          src={buildGlyphSrc(glyph.name, color)}
+        />
+      </button>
+    </M.Tooltip>
+  )
+}
+
+// Human names for the on-palette swatches, keyed by hex, so a tooltip reads
+// "Cobalt" instead of "#5471f1" (a hex is machine identity, not a color name a
+// person picks by). Order/values mirror SEED_TINTS in BucketIcon.
+const SWATCH_NAMES: Record<string, string> = {
+  '#5471f1': 'Cobalt',
+  '#f38681': 'Coral',
+  '#fb8c00': 'Amber',
+  '#039be5': 'Info blue',
+  '#6a93ff': 'Sky',
+  '#26a69a': 'Teal',
+}
+
+// name → human label, so the picker can show the chosen glyph's label as text
+// (the disc alone doesn't say "Erlenmeyer flask"). Built once from the library.
+const GLYPH_LABEL_BY_NAME: Record<string, string> = GLYPH_GROUPS.reduce(
+  (acc, group) => {
+    group.glyphs.forEach((g) => {
+      acc[g.name] = g.label
+    })
+    return acc
+  },
+  {} as Record<string, string>,
+)
+
+// A #RRGGBB the color controls can validate against before committing a pick.
+const HEX_INPUT_RE = /^#[0-9a-fA-F]{6}$/
+
+function GlyphPicker({ input, seed }: GlyphPickerProps) {
+  const classes = useGlyphPickerStyles()
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
+  const [filter, setFilter] = React.useState('')
+
+  const value = input.value || ''
+  const glyphPick = isGlyphSrc(value)
+  const parsed = glyphPick ? parseGlyphSrc(value) : undefined
+  const selectedGlyph = parsed?.name
+  const selectedColor = parsed?.color
+  const selectedGlyphLabel = selectedGlyph
+    ? GLYPH_LABEL_BY_NAME[selectedGlyph]
+    : undefined
+
+  // Local draft for the free-hex field so a user can type a partial value
+  // (`#5`, `#54`) without it committing until it's a valid #RRGGBB. Seeded from
+  // the committed color and kept in sync when the color changes elsewhere
+  // (swatch click, Auto). This replaces the native <input type=color>, whose OS
+  // dialog broke the app's own light-theme surface.
+  const [hexDraft, setHexDraft] = React.useState(selectedColor || '')
+  React.useEffect(() => {
+    setHexDraft(selectedColor || '')
+  }, [selectedColor])
+
+  // Flat, ranked matches for the active filter: prefix hits (on label or name)
+  // rank above interior substring hits, each run kept in library order so the
+  // result is stable. Empty filter → no flat list; the grouped view renders.
+  const query = filter.trim().toLowerCase()
+  const matches = React.useMemo<IndexedGlyph[]>(() => {
+    if (!query) return []
+    const prefix: IndexedGlyph[] = []
+    const substr: IndexedGlyph[] = []
+    GLYPH_GROUPS.forEach((group) =>
+      group.glyphs.forEach((g) => {
+        const label = g.label.toLowerCase()
+        const name = g.name.toLowerCase()
+        if (label.startsWith(query) || name.startsWith(query)) prefix.push(g)
+        else if (label.includes(query) || name.includes(query)) substr.push(g)
+      }),
+    )
+    return [...prefix, ...substr]
+  }, [query])
+
+  // Choose a glyph, preserving any color already chosen. Keeps the popover open
+  // so glyph and color can be tuned together.
+  const pickGlyph = React.useCallback(
+    (name: string) => input.onChange(buildGlyphSrc(name, selectedColor)),
+    [input, selectedColor],
+  )
+
+  // Choose a color for the current glyph (undefined = back to hashed/auto).
+  const pickColor = React.useCallback(
+    (color?: string) => {
+      if (!selectedGlyph) return
+      input.onChange(buildGlyphSrc(selectedGlyph, color))
+    },
+    [input, selectedGlyph],
+  )
+
+  // Commit the free-hex draft only when it's a full #RRGGBB; otherwise leave the
+  // committed color as-is so a mid-typing value never paints a wrong color.
+  const commitHex = React.useCallback(
+    (raw: string) => {
+      const v = raw.trim()
+      const hex = v && !v.startsWith('#') ? `#${v}` : v
+      setHexDraft(hex)
+      if (HEX_INPUT_RE.test(hex)) pickColor(hex)
+    },
+    [pickColor],
+  )
+  const hexInvalid = hexDraft !== '' && !HEX_INPUT_RE.test(hexDraft)
+
+  const clear = React.useCallback(() => input.onChange(''), [input])
+
+  // Reset the filter whenever the popover closes so it always reopens showing
+  // the grouped library, not a stale search.
+  const closePopover = React.useCallback(() => {
+    setAnchor(null)
+    setFilter('')
+  }, [])
+
+  const triggerLabel = selectedGlyphLabel
+    ? `Change icon — ${selectedGlyphLabel}`
+    : glyphPick
+      ? 'Change icon'
+      : 'Choose an icon'
+
+  return (
+    <div className={classes.row}>
+      <div className={classes.previewCol}>
+        <M.Tooltip title={triggerLabel}>
+          <button
+            type="button"
+            aria-label={triggerLabel}
+            aria-haspopup="dialog"
+            className={classes.previewButton}
+            onClick={(e) => setAnchor(e.currentTarget)}
+          >
+            <BucketIcon
+              alt=""
+              className={classes.preview}
+              seed={seed}
+              src={value || null}
+            />
+          </button>
+        </M.Tooltip>
+        {/* Name the current pick in text, not just the disc — a low-vision or
+            unfamiliar admin shouldn't have to recognize a glyph by shape. */}
+        {selectedGlyphLabel && (
+          <span className={classes.previewName}>{selectedGlyphLabel}</span>
+        )}
+      </div>
+      <div className={classes.fields}>
+        <M.TextField
+          fullWidth
+          label="Icon URL (optional)"
+          placeholder="e.g. https://some-cdn.com/icon.png"
+          helperText={
+            glyphPick
+              ? 'Using a predefined glyph — click the icon to change it, or paste a URL to override with a custom image'
+              : 'Click the icon to pick a glyph and color, or paste a custom image URL'
+          }
+          value={glyphPick ? '' : value}
+          onChange={(e) =>
+            input.onChange(
+              R.pipe(R.trim, R.take(1024) as (s: string) => string)(e.target.value),
+            )
+          }
+          onBlur={() => input.onBlur()}
+          onFocus={() => input.onFocus()}
+        />
+        {!!value && (
+          <div className={classes.actions}>
+            <M.Button size="small" onClick={clear}>
+              Clear
+            </M.Button>
+          </div>
+        )}
+      </div>
+      <M.Popover
+        open={!!anchor}
+        anchorEl={anchor}
+        onClose={closePopover}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        classes={{ paper: classes.popover }}
+      >
+        <M.TextField
+          autoFocus
+          className={classes.filter}
+          fullWidth
+          size="small"
+          variant="outlined"
+          placeholder="Search glyphs…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <M.InputAdornment position="start">
+                <M.Icon fontSize="small" color="disabled">
+                  search
+                </M.Icon>
+              </M.InputAdornment>
+            ),
+          }}
+        />
+        <div className={classes.scroll}>
+          {query ? (
+            matches.length ? (
+              <div className={classes.grid}>
+                {matches.map((g) => (
+                  <GlyphCell
+                    key={g.name}
+                    glyph={g}
+                    seed={seed}
+                    selected={selectedGlyph === g.name}
+                    color={selectedColor}
+                    onPick={pickGlyph}
+                    swatchClass={classes.swatch}
+                    swatchSelectedClass={classes.swatchSelected}
+                    iconClass={classes.swatchIcon}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={classes.empty}>No glyphs match “{filter.trim()}”</p>
+            )
+          ) : (
+            GLYPH_GROUPS.map((group) => (
+              <React.Fragment key={group.category}>
+                <h4 className={classes.categoryHeading}>{group.category}</h4>
+                <div className={classes.grid}>
+                  {group.glyphs.map((g) => (
+                    <GlyphCell
+                      key={g.name}
+                      glyph={g}
+                      seed={seed}
+                      selected={selectedGlyph === g.name}
+                      color={selectedColor}
+                      onPick={pickGlyph}
+                      swatchClass={classes.swatch}
+                      swatchSelectedClass={classes.swatchSelected}
+                      iconClass={classes.swatchIcon}
+                    />
+                  ))}
+                </div>
+              </React.Fragment>
+            ))
+          )}
+        </div>
+        {glyphPick && (
+          <div className={classes.colorSection}>
+            <span className={classes.colorLabel}>Color</span>
+            <div className={classes.colorRow}>
+              <M.Tooltip title="Auto — tint from the bucket name">
+                <button
+                  type="button"
+                  aria-label="Auto color, from the bucket name"
+                  aria-pressed={!selectedColor}
+                  className={cx(
+                    classes.colorAuto,
+                    !selectedColor && classes.colorAutoSelected,
+                  )}
+                  onClick={() => pickColor(undefined)}
+                >
+                  {!selectedColor ? (
+                    <M.Icon fontSize="small">check</M.Icon>
+                  ) : (
+                    <M.Icon fontSize="small">auto_awesome</M.Icon>
+                  )}
+                </button>
+              </M.Tooltip>
+              {SEED_TINTS.map((c: string) => {
+                const isSel = selectedColor?.toLowerCase() === c.toLowerCase()
+                return (
+                  <M.Tooltip key={c} title={SWATCH_NAMES[c.toLowerCase()] || c}>
+                    <button
+                      type="button"
+                      aria-label={SWATCH_NAMES[c.toLowerCase()] || c}
+                      aria-pressed={isSel}
+                      className={cx(classes.colorDot, isSel && classes.colorDotSelected)}
+                      style={{ backgroundColor: c }}
+                      onClick={() => pickColor(c)}
+                    >
+                      {isSel && (
+                        <M.Icon className={classes.colorCheck} fontSize="small">
+                          check
+                        </M.Icon>
+                      )}
+                    </button>
+                  </M.Tooltip>
+                )
+              })}
+            </div>
+            {/* Free hex re-housed from the native OS color dialog into an
+                in-app Roboto Mono field — a hex is machine-exact identity, so
+                it wears the mono face, and it stays keyboard-reachable. */}
+            <M.TextField
+              className={classes.hexField}
+              size="small"
+              variant="outlined"
+              label="Custom hex"
+              placeholder="#5471f1"
+              value={hexDraft}
+              error={hexInvalid}
+              helperText={hexInvalid ? 'Enter a 6-digit hex like #5471f1' : undefined}
+              onChange={(e) => commitHex(e.target.value)}
+              InputProps={{
+                className: classes.hexInput,
+                startAdornment: (
+                  <M.InputAdornment position="start">
+                    <span
+                      className={classes.hexPreview}
+                      style={{
+                        backgroundColor: HEX_INPUT_RE.test(hexDraft)
+                          ? hexDraft
+                          : 'transparent',
+                      }}
+                    />
+                  </M.InputAdornment>
+                ),
+              }}
+            />
+          </div>
+        )}
+      </M.Popover>
+    </div>
+  )
+}
+
 interface PrimaryFormProps {
   bucket?: BucketConfig
 }
@@ -650,16 +1265,9 @@ function PrimaryForm({ bucket }: PrimaryFormProps) {
         fullWidth
         margin={bucket ? 'none' : 'normal'}
       />
-      <RF.Field
-        component={Form.Field}
-        name="iconUrl"
-        label="Icon URL (optional)"
-        placeholder="e.g. https://some-cdn.com/icon.png"
-        helperText="Recommended size: 80x80px"
-        parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
-        fullWidth
-        margin="normal"
-      />
+      <RF.Field<string> name="iconUrl">
+        {({ input }) => <GlyphPicker input={input} seed={bucket?.name} />}
+      </RF.Field>
       <RF.Field
         component={Form.Field}
         name="description"
@@ -1267,7 +1875,14 @@ function Add({ back, settings, submit }: AddProps) {
   const onSubmit = React.useCallback(
     async (values, form) => {
       try {
-        const input = R.applySpec(addFormSpec)(values)
+        // Every new bucket gets an icon stuck to it. If the admin didn't choose
+        // one, apply the deterministic per-bucket default (random-looking across
+        // the set, stable for this name) so the bucket persists a glyph from
+        // creation rather than relying on a view-time fallback.
+        const withIcon = values.iconUrl
+          ? values
+          : { ...values, iconUrl: defaultGlyphSrcForBucket(values.name) }
+        const input = R.applySpec(addFormSpec)(withIcon)
         const error = await submit(input)
         if (!error) {
           form.reset(values)
