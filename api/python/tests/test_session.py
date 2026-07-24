@@ -21,9 +21,9 @@ def format_date(date):
 
 class TestSession(QuiltTestCase):
     @patch('quilt3.session.open_url')
-    @patch('quilt3.session.input', return_value='123456')
+    @patch('quilt3.session.getpass.getpass', return_value='123456')
     @patch('quilt3.session.login_with_token')
-    def test_login(self, mock_login_with_token, mock_input, mock_open_url):
+    def test_login(self, mock_login_with_token, mock_getpass, mock_open_url):
         quilt3.login()
 
         url = quilt3.session.get_registry_url()
