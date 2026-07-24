@@ -13,15 +13,15 @@ import shutil
 import stat
 import threading
 import types
-import typing as T
 import warnings
 from codecs import iterdecode
 from collections import defaultdict, deque
+from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import Any
 
 import jsonlines
 from boto3.s3.transfer import TransferConfig
@@ -249,7 +249,7 @@ UPLOAD_ETAG_OPTIMIZATION_THRESHOLD = 1024
 class WorkerContext:
     s3_client_provider: S3ClientProvider
     progress: Callable[[int], None]
-    done: Callable[[PhysicalKey, Optional[str]], None]
+    done: Callable[[PhysicalKey, str | None], None]
     run: Callable[..., None]
 
 
@@ -337,7 +337,7 @@ def _download_file(
     size: int,
     src_bucket: str,
     src_key: str,
-    src_version: Optional[str],
+    src_version: str | None,
     dest_path: str,
 ):
     dest_file = pathlib.Path(dest_path)
@@ -408,10 +408,10 @@ def _copy_remote_file(
     size: int,
     src_bucket: str,
     src_key: str,
-    src_version: Optional[str],
+    src_version: str | None,
     dest_bucket: str,
     dest_key: str,
-    extra_args: Optional[Iterable[Tuple[str, Any]]] = None,
+    extra_args: Iterable[tuple[str, Any]] | None = None,
 ):
     src_params = dict(Bucket=src_bucket, Key=src_key)
     if src_version is not None:
@@ -420,7 +420,7 @@ def _copy_remote_file(
     s3_client = ctx.s3_client_provider.standard_client
 
     if not checksums.is_mpu(size):
-        params: Dict[str, Any] = dict(
+        params: dict[str, Any] = dict(
             CopySource=src_params,
             Bucket=dest_bucket,
             Key=dest_key,
@@ -936,7 +936,7 @@ def get_bytes(src: PhysicalKey):
     return _s3_query_object(src)['Body'].read()
 
 
-def get_bytes_and_effective_pk(src: PhysicalKey) -> Tuple[bytes, PhysicalKey]:
+def get_bytes_and_effective_pk(src: PhysicalKey) -> tuple[bytes, PhysicalKey]:
     if src.is_local():
         return _local_get_bytes(src), src
 
@@ -1021,7 +1021,7 @@ def _calculate_local_part_checksum(
 )
 def _calculate_checksum_internal(
     tasks: list[FileChecksumTask],
-    results: list[T.Optional[str | Exception]],
+    results: list[str | Exception | None],
 ) -> list[str | Exception]:
     total_size = sum(
         task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception)

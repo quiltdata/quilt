@@ -100,7 +100,7 @@ class PartSourceDef(T.TypedDict):
 
 class PartDef(pydantic.v1.BaseModel):
     part_number: int
-    range: T.Optional[tuple[int, int]]
+    range: tuple[int, int] | None
 
     @property
     def size(self) -> int:

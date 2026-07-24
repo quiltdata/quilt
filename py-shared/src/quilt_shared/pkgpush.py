@@ -31,7 +31,7 @@ class TopHash(pydantic.v1.ConstrainedStr):
 class S3ObjectSource(pydantic.v1.BaseModel):
     bucket: str
     key: str
-    version: T.Optional[str]
+    version: str | None
 
     @classmethod
     def from_pk(cls, pk: PhysicalKey):
@@ -236,7 +236,7 @@ class ChecksumResult(pydantic.v1.BaseModel):
 
 
 class CopyResult(pydantic.v1.BaseModel):
-    version: T.Optional[str]
+    version: str | None
 
 
 class PackagePushParams(pydantic.v1.BaseModel):
@@ -244,9 +244,9 @@ class PackagePushParams(pydantic.v1.BaseModel):
     # XXX: validate package name?
     # e.g. quilt3.util.validate_package_name(name)
     name: NonEmptyStr
-    message: T.Optional[NonEmptyStr] = None
-    user_meta: T.Optional[T.Dict[str, T.Any]] = None
-    workflow: T.Optional[str] = None
+    message: NonEmptyStr | None = None
+    user_meta: dict[str, T.Any] | None = None
+    workflow: str | None = None
 
     @property
     def workflow_normalized(self):
@@ -273,28 +273,28 @@ class PackagePromoteSource(pydantic.v1.BaseModel):
 
 class PackagePromoteParams(PackagePushParams):
     # Used to rewrite the folder prefix for uploaded files when `copy_data: true`
-    dest_prefix: T.Optional[NonEmptyStr] = None
+    dest_prefix: NonEmptyStr | None = None
     src: PackagePromoteSource
 
 
 class PackageConstructParams(PackagePushParams):
-    scratch_buckets: T.Dict[str, str]
+    scratch_buckets: dict[str, str]
 
 
 class PackageConstructEntry(pydantic.v1.BaseModel):
     logical_key: NonEmptyStr
     physical_key: NonEmptyStr
-    size: T.Optional[int] = None
-    hash: T.Optional[Checksum] = None
+    size: int | None = None
+    hash: Checksum | None = None
     # `meta` is the full metadata dict for entry that includes
     # optional `user_meta` property,
     # see PackageEntry._meta vs PackageEntry.meta.
-    meta: T.Optional[T.Dict[str, T.Any]] = None
+    meta: dict[str, T.Any] | None = None
 
 
 class S3HashLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
-    scratch_buckets: T.Dict[str, str]
+    scratch_buckets: dict[str, str]
     location: S3ObjectSource
     checksum_algorithm: ChecksumAlgorithm
 

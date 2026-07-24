@@ -1,6 +1,9 @@
 # Root Ruff configuration for the entire repository
 line-length = 119
 
+# Lowest Python supported across the repo (quilt3 SDK); everything else is newer.
+target-version = "py310"
+
 extend-exclude = [
     # test data and notebooks
     "lambdas/indexer/test/data/**",
@@ -51,16 +54,18 @@ ignore = [
     "S324",  # Probable use of insecure hash functions
     "S606",  # Starting a process without a shell
     "S608",  # Possible SQL injection vector through string-based query construction
-    "UP006", # Use list instead of List for type annotation
-    "UP007", # Use `X | Y` for type annotations (PEP 604)
     "UP031", # Use format specifiers instead of percent format
     "UP032", # Use f-string instead of format call
-    "UP035", # typing.Tuple is deprecated, use tuple instead
-    "UP045", # Use `X | None` for type annotations
+    "UP035", # deprecated typing.List/Dict/Tuple imports; no autofix and ariadne-codegen re-emits them, so not worth enforcing
 ]
 
 [lint.per-file-ignores]
 "docs/**" = ["I001"]
+# ariadne-codegen output and the templates it copies in verbatim. Left as the generator emits it: rewriting
+# `List["Model"]` to `list["Model"]` drops the ForwardRef wrapper, and pydantic then fails to resolve models
+# defined later in the file on Python 3.10 (quilt3's floor).
+"api/python/quilt3/_graphql_client/**" = ["UP006", "UP007", "UP045"]
+"api/python/quilt3-graphql/**" = ["UP006", "UP007", "UP045"]
 
 [lint.isort]
 known-first-party = ["quilt3", "quilt_shared", "t4_lambda_*"]

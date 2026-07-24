@@ -6,7 +6,6 @@ Contains the Bucket class, which provides several useful functions
 """
 
 import pathlib
-import typing as T
 
 from .data_transfer import (
     copy_file,
@@ -38,7 +37,7 @@ class Bucket:
         if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
 
-    def search(self, query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
+    def search(self, query: str | dict, limit: int = 10) -> list[dict]:
         """
         Execute a search against the configured search endpoint.
 

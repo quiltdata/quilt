@@ -1,11 +1,10 @@
 import builtins
-import typing as T
 
 from .. import _graphql_client
 from . import exceptions, types, util
 
 
-def get(name: str) -> T.Optional[types.Bucket]:
+def get(name: str) -> types.Bucket | None:
     """
     Get a specific bucket configuration from the registry.
     Returns `None` if the bucket does not exist.
@@ -30,19 +29,19 @@ def add(
     name: str,
     title: str,
     *,
-    description: T.Optional[str] = None,
-    icon_url: T.Optional[str] = None,
-    overview_url: T.Optional[str] = None,
-    tags: T.Optional[T.List[str]] = None,
-    relevance_score: T.Optional[int] = None,
-    sns_notification_arn: T.Optional[str] = None,
-    scanner_parallel_shards_depth: T.Optional[int] = None,
-    skip_meta_data_indexing: T.Optional[bool] = None,
-    file_extensions_to_index: T.Optional[T.List[str]] = None,
-    index_content_bytes: T.Optional[int] = None,
-    delay_scan: T.Optional[bool] = None,
-    browsable: T.Optional[bool] = None,
-    prefixes: T.Optional[T.List[str]] = None,
+    description: str | None = None,
+    icon_url: str | None = None,
+    overview_url: str | None = None,
+    tags: builtins.list[str] | None = None,
+    relevance_score: int | None = None,
+    sns_notification_arn: str | None = None,
+    scanner_parallel_shards_depth: int | None = None,
+    skip_meta_data_indexing: bool | None = None,
+    file_extensions_to_index: builtins.list[str] | None = None,
+    index_content_bytes: int | None = None,
+    delay_scan: bool | None = None,
+    browsable: bool | None = None,
+    prefixes: builtins.list[str] | None = None,
 ) -> types.Bucket:
     """
     Add a new bucket to the registry.
@@ -116,18 +115,18 @@ def update(
     name: str,
     title: str,
     *,
-    description: T.Optional[str] = None,
-    icon_url: T.Optional[str] = None,
-    overview_url: T.Optional[str] = None,
-    tags: T.Optional[T.List[str]] = None,
-    relevance_score: T.Optional[int] = None,
-    sns_notification_arn: T.Optional[str] = None,
-    scanner_parallel_shards_depth: T.Optional[int] = None,
-    skip_meta_data_indexing: T.Optional[bool] = None,
-    file_extensions_to_index: T.Optional[T.List[str]] = None,
-    index_content_bytes: T.Optional[int] = None,
-    browsable: T.Optional[bool] = None,
-    prefixes: T.Optional[T.List[str]] = None,
+    description: str | None = None,
+    icon_url: str | None = None,
+    overview_url: str | None = None,
+    tags: builtins.list[str] | None = None,
+    relevance_score: int | None = None,
+    sns_notification_arn: str | None = None,
+    scanner_parallel_shards_depth: int | None = None,
+    skip_meta_data_indexing: bool | None = None,
+    file_extensions_to_index: builtins.list[str] | None = None,
+    index_content_bytes: int | None = None,
+    browsable: bool | None = None,
+    prefixes: builtins.list[str] | None = None,
 ) -> types.Bucket:
     """
     Update an existing bucket configuration.
