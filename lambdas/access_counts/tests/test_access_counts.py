@@ -42,7 +42,6 @@ class TestAccessCounts(TestCase):
                     'Database': 'athena-db'
                 },
                 'QueryString': query,
-                'ResultConfiguration': {'OutputLocation': 's3://results-bucket/AthenaQueryResults/'},
                 'WorkGroup': 'test-workgroup',
             },
             service_response={

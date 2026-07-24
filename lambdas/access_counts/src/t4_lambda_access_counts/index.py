@@ -21,6 +21,8 @@ QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 ATHENA_WORKGROUP = os.environ['ATHENA_WORKGROUP']
+# Prefix under QUERY_RESULT_BUCKET where the workgroup writes query results; wiped at the start of each run.
+ATHENA_QUERY_RESULTS_PREFIX = os.environ['ATHENA_QUERY_RESULTS_PREFIX']
 
 MiB = 1024 * 1024
 S3_COPY_CHUNKSIZE = int(os.environ['S3_COPY_CHUNKSIZE_MIB']) * MiB
@@ -29,9 +31,6 @@ S3_COPY_CONFIG = TransferConfig(
     multipart_threshold=S3_COPY_CHUNKSIZE,
     max_concurrency=int(os.environ['S3_COPY_MAX_CONCURRENCY']),
 )
-
-# A temporary directory where Athena query results will be written.
-QUERY_TEMP_DIR = 'AthenaQueryResults'
 
 # Pre-processed CloudTrail logs, persistent across different runs of the lambda.
 OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
@@ -151,7 +150,7 @@ INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
 
 # No external_location: a CTAS that specifies one fails in a workgroup that enforces a query results
 # location; Athena instead writes the table data under the result location ("tables/<query-id>/"),
-# which is inside QUERY_TEMP_DIR and thus cleaned up by delete_dir.
+# which is inside ATHENA_QUERY_RESULTS_PREFIX and thus cleaned up by delete_dir.
 # https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html
 CREATE_PACKAGE_HASHES = textwrap.dedent("""\
     CREATE TABLE package_hashes
@@ -291,12 +290,10 @@ s3 = boto3.client('s3')
 
 
 def start_query(query_string):
-    output = 's3://%s/%s/' % (QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
-
+    # No ResultConfiguration: the workgroup configuration owns the result location.
     response = athena.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext=dict(Database=ATHENA_DATABASE),
-        ResultConfiguration=dict(OutputLocation=output),
         WorkGroup=ATHENA_WORKGROUP,
     )
     print("Started query:", response)
@@ -307,7 +304,7 @@ def start_query(query_string):
 
 
 def get_result_location(execution_id):
-    """Return (bucket, key) of the result file (the workgroup config may override the requested location)."""
+    """Return (bucket, key) of the query's result file, as reported by Athena."""
     response = athena.get_query_execution(QueryExecutionId=execution_id)
     url = response['QueryExecution']['ResultConfiguration']['OutputLocation']
     # Not urllib.parse.urlparse(): '?' and '#' are legal in S3 keys but would be parsed as query/fragment.
@@ -415,8 +412,8 @@ def handler(event, context):
     # and let the next invocation handle the rest.
     end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
 
-    # Delete the temporary directory where Athena query results are written to.
-    delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
+    # Delete query results left by previous runs.
+    delete_dir(QUERY_RESULT_BUCKET, ATHENA_QUERY_RESULTS_PREFIX)
 
     # Find all accounts in the CloudTrail.
     accounts = []
