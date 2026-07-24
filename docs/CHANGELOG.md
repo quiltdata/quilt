@@ -25,7 +25,7 @@ Entries inside each section should be ordered by type:
 
 ### CLI
 
-* [Changed] `quilt3 login` no longer echoes the pasted code to the terminal (it is a long-lived credential) ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
+* [Changed] `quilt3 login` no longer echoes the pasted code to the terminal (it is a long-lived credential) ([#5138](https://github.com/quiltdata/quilt/pull/5138))
 
 ## 7.3.0 - 2026-04-07
 
