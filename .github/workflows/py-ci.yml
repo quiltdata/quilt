@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Run Ruff linter on entire codebase
-        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+        run: uvx ruff@0.16.0 check . --exclude catalog/ --exclude api/python/
 
   # Enable once the rest of the codebase is formatted
   # format-rest:
@@ -46,7 +46,7 @@ jobs:
   #     - uses: actions/checkout@v7
   #     - uses: astral-sh/setup-uv@v7
   #     - name: Check formatting (rest of codebase)
-  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
+  #       run: uvx ruff@0.16.0 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
