@@ -30,6 +30,14 @@ const useStyles = M.makeStyles((t) => ({
   avatar: {
     minWidth: t.spacing(6),
   },
+  // MUI's ListItemText is a flex child with default `min-width: auto`; without
+  // this the stacked title/address can't shrink below their intrinsic width, so
+  // the `nowrap` s3:// address pushes the row wider and slides under the tags /
+  // collaborator readout instead of ellipsizing. `min-width: 0` lets the inner
+  // truncation (heading/title/nameId) actually engage.
+  text: {
+    minWidth: 0,
+  },
   // Title and address stack: the title owns the first line as the scan anchor,
   // the address sits on its own line below. Stacking (not one inline row) is
   // what stops the two from competing for width and cutting each other off when
@@ -134,6 +142,7 @@ function BucketRow({
         </Link>
       </M.ListItemAvatar>
       <M.ListItemText
+        className={classes.text}
         disableTypography
         primary={
           <span className={classes.heading}>
@@ -201,9 +210,14 @@ export default React.forwardRef<HTMLDivElement, BucketListProps>(function Bucket
 ) {
   const { urls } = NamedRoutes.use()
 
-  // Collision-free glyph assignment across the whole list so no two seeded
-  // bucket icons repeat a glyph (recomputed only when the set of names changes).
-  const glyphs = React.useMemo(() => assignGlyphs(buckets.map((b) => b.name)), [buckets])
+  // Stored-first: buckets with an `iconUrl` render it verbatim (stuck to the
+  // bucket). Only legacy buckets with no stored icon get a view-time fallback,
+  // and the collision-free pass runs over just those so a page of unconfigured
+  // buckets doesn't repeat a glyph. See BucketGrid for the full rationale.
+  const glyphs = React.useMemo(
+    () => assignGlyphs(buckets.filter((b) => !b.iconUrl).map((b) => b.name)),
+    [buckets],
+  )
 
   return (
     <M.Paper ref={ref}>

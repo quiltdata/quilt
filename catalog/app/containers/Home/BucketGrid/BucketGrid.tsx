@@ -43,13 +43,32 @@ const useBucketStyles = M.makeStyles((t) => ({
     minHeight: t.spacing(5),
     padding: t.spacing(0, 2),
   },
+  // MUI seats the title/subheader in a flex child (.MuiCardHeader-content) whose
+  // default `min-width: auto` refuses to shrink below its content — so the
+  // `nowrap` s3:// address and a long title push the box wider than the card and
+  // clip under the rounded corner instead of ellipsizing. `min-width: 0` lets the
+  // content box shrink so the ellipsis rules below actually engage. This is the
+  // fix for the "weird cutting" on the cards.
+  header: {
+    // Reserve the intrinsic-width trap fix at the content slot, not the header,
+    // so the avatar keeps its fixed track.
+    '& .MuiCardHeader-content': {
+      minWidth: 0,
+    },
+  },
   // The title is the scan anchor, not a rival link: full-strength text at rest,
   // accent only on hover — matching the list row so the same element reads the
   // same way across both views (it was tertiary-at-rest here, text.primary in
-  // the list, one element in two resting colors).
+  // the list, one element in two resting colors). Truncates to a single line so
+  // a long human name can't wrap and break the uniform card floor; the link's
+  // `title` attr is the escape hatch to the full name.
   title: {
     ...t.typography.h6,
     color: t.palette.text.primary,
+    display: 'block',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
     '&:hover': {
       color: t.palette.tertiary.main,
     },
@@ -132,6 +151,7 @@ function BucketCard({
       data-bucket={bucket.name}
     >
       <M.CardHeader
+        className={classes.header}
         disableTypography
         avatar={
           <Link aria-hidden="true" tabIndex={-1} to={urls.bucketRoot(bucket.name)}>
@@ -139,7 +159,11 @@ function BucketCard({
           </Link>
         }
         title={
-          <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
+          <Link
+            className={classes.title}
+            to={urls.bucketRoot(bucket.name)}
+            title={bucket.title}
+          >
             {bucket.title}
           </Link>
         }
@@ -232,10 +256,17 @@ export default React.forwardRef<HTMLDivElement, BucketGridProps>(function Bucket
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
-  // Collision-free glyph assignment across the whole grid so no two seeded
-  // bucket icons on the page repeat a glyph (recomputed only when the set of
-  // names changes).
-  const glyphs = React.useMemo(() => assignGlyphs(buckets.map((b) => b.name)), [buckets])
+  // Buckets with a stored `iconUrl` (a persisted `quilt-glyph:` pick or a custom
+  // URL) render that verbatim — the icon is stuck to the bucket and looks the
+  // same in every view. Only *legacy* buckets with no stored icon fall back to a
+  // view-time glyph; for those we still run the collision-free assignment so a
+  // page of unconfigured buckets doesn't repeat a glyph. Buckets with a stored
+  // icon are excluded from that pass (BucketIcon ignores glyphIndex when src is a
+  // glyph src anyway) so their glyphs never perturb the fallback assignment.
+  const glyphs = React.useMemo(
+    () => assignGlyphs(buckets.filter((b) => !b.iconUrl).map((b) => b.name)),
+    [buckets],
+  )
 
   return (
     <M.Grid container spacing={2} ref={ref}>
