@@ -59,6 +59,13 @@ const useStyles = M.makeStyles((t) => {
       display: 'flex',
       height: 64,
       padding: t.spacing(0, 2),
+      // The logo row's padding snaps between states rather than tweening: the
+      // perceptual settle of the collapse is carried by the logo crossfade
+      // (opacity) and the label fade/slide (transform) — both compositor-only.
+      // Animating padding here would add a per-frame layout pass on app-bar
+      // chrome for a 12px shift the eye doesn't track behind those; not worth
+      // the thrash. The one deliberately-animated layout property is the rail's
+      // own width (see `root`), which has to reflow the content column.
       '&:focus-visible': {
         outline: `2px solid ${t.palette.navigation.indicator}`,
         outlineOffset: -2,
@@ -74,17 +81,43 @@ const useStyles = M.makeStyles((t) => {
     },
     // The brand link fills the row so the wordmark aligns left and the collapse
     // control can sit at the right edge; collapsed it shrinks to the logomark.
+    // It's the positioning context for the crossfaded logo variants stacked
+    // inside it, and clips (overflow: hidden) so the wordmark wipes out cleanly
+    // as the rail narrows instead of overflowing the 72px column.
     logoLink: {
       alignItems: 'center',
       display: 'flex',
       flexGrow: 1,
+      height: 32,
       minWidth: 0,
       overflow: 'hidden',
+      position: 'relative',
     },
     // Collapsed: don't stretch the link — the logomark shrinks to its 32px so
     // the chevron can sit directly beside it, the pair centered in the rail.
     logoLinkCollapsed: {
       flexGrow: 0,
+      width: 32,
+    },
+    // Both logo variants occupy the same box and crossfade so the swap settles
+    // on the rail's clock rather than hard-cutting at frame 0. The wordmark is
+    // the flow element (sets the row's natural width when expanded); the icon
+    // is overlaid, centered, and fades in only when collapsed. Motion is
+    // decoration on chrome, so reduced-motion users get the instant swap.
+    logoVariant: {
+      '@media (prefers-reduced-motion: no-preference)': {
+        transition: t.transitions.create(['opacity'], {
+          duration: t.transitions.duration.shorter,
+        }),
+      },
+    },
+    logoIcon: {
+      left: 0,
+      position: 'absolute',
+      top: 0,
+    },
+    logoDim: {
+      opacity: 0,
     },
     // The collapse control sits in the logo row next to the brand — right edge
     // when expanded (next to the wordmark), directly beside the "Q" when
@@ -201,6 +234,27 @@ const useStyles = M.makeStyles((t) => {
     navLabel: {
       color: 'inherit',
       fontWeight: 'inherit',
+    },
+    // Labels are conditionally mounted (so they don't reserve width in the
+    // collapsed rail), which means expanding pops them in at full opacity at
+    // frame 0 — ahead of the rail finishing its widen. A one-shot fade+slide on
+    // mount lets the text arrive on the rail's clock instead of snapping. Chrome
+    // decoration, so reduced-motion users get the label with no entrance (the
+    // animation only attaches inside the no-preference media query).
+    '@keyframes labelIn': {
+      '0%': {
+        opacity: 0,
+        transform: `translateX(-${t.spacing(1)}px)`,
+      },
+      '100%': {
+        opacity: 1,
+        transform: 'translateX(0)',
+      },
+    },
+    labelReveal: {
+      '@media (prefers-reduced-motion: no-preference)': {
+        animation: `$labelIn ${t.transitions.duration.shorter}ms ${t.transitions.easing.easeOut}`,
+      },
     },
     // Collapsed rows: square the row to its icon, center it, and drop the label
     // gutter so the icon lands dead-center in the 72px rail. The active amber
@@ -337,7 +391,7 @@ function AccountMenu({
           {!collapsed && (
             <M.ListItemText
               primary={name}
-              className={classes.wsText}
+              className={cx(classes.wsText, classes.labelReveal)}
               primaryTypographyProps={{ noWrap: true }}
             />
           )}
@@ -371,7 +425,7 @@ function AccountMenu({
               <>
                 <M.ListItemText
                   primary={name}
-                  className={classes.wsText}
+                  className={cx(classes.wsText, classes.labelReveal)}
                   primaryTypographyProps={{ noWrap: true }}
                 />
                 <M.Icon className={classes.trailing}>expand_more</M.Icon>
@@ -435,7 +489,11 @@ function NavRow({
     >
       <M.ListItemIcon className={classes.icon}>{icon}</M.ListItemIcon>
       {!collapsed && (
-        <M.ListItemText primary={label} classes={{ primary: classes.navLabel }} />
+        <M.ListItemText
+          primary={label}
+          className={classes.labelReveal}
+          classes={{ primary: classes.navLabel }}
+        />
       )}
     </M.ListItem>
   )
@@ -554,14 +612,30 @@ export function Sidebar() {
             >
               {/* Default branding shows the full quilt.bio wordmark on the dark
                   rail (white text + coral dot reads on the indigo chassis).
-                  Collapsed, it swaps to the square "Q" logomark. A customer's
-                  own logo still renders via src as before. */}
+                  Collapsed, it crossfades to the square "Q" logomark. A
+                  customer's own logo (which can't collapse) still renders via
+                  src as before. */}
               {settings?.logo?.url ? (
                 <Logo height="32px" width="100%" src={settings.logo.url} />
-              ) : isCollapsed ? (
-                <Logo height="32px" width="32px" variant="icon" />
               ) : (
-                <Logo height="32px" width="100%" variant="wordmark" />
+                <>
+                  <Logo
+                    className={cx(classes.logoVariant, isCollapsed && classes.logoDim)}
+                    height="32px"
+                    width="100%"
+                    variant="wordmark"
+                  />
+                  <Logo
+                    className={cx(
+                      classes.logoVariant,
+                      classes.logoIcon,
+                      !isCollapsed && classes.logoDim,
+                    )}
+                    height="32px"
+                    width="32px"
+                    variant="icon"
+                  />
+                </>
               )}
             </Link>
             {canCollapse && (
@@ -587,7 +661,7 @@ export function Sidebar() {
           </div>
 
           {!isCollapsed && (user || cfg.mode !== 'LOCAL') && (
-            <>
+            <div className={classes.labelReveal}>
               <div className={classes.sectionLabel}>Workspace</div>
               <div className={classes.workspaceBox}>
                 <M.List disablePadding>
@@ -621,7 +695,7 @@ export function Sidebar() {
                   )}
                 </M.List>
               </div>
-            </>
+            </div>
           )}
 
           <M.List
@@ -717,7 +791,11 @@ export function Sidebar() {
               />
             </div>
           )}
-          {!isCollapsed && <Version />}
+          {!isCollapsed && (
+            <div className={classes.labelReveal}>
+              <Version />
+            </div>
+          )}
         </Rail>
       </Freeze>
       <Bookmarks.Drawer />

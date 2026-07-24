@@ -116,7 +116,21 @@ function QueryConstructor({ className }: QueryConstructorProps) {
   }
 
   if (!queries.data.list.length && !Model.isError(query.value)) {
-    return <M.Typography className={className}>No saved queries.</M.Typography>
+    // Render an empty, disabled selector rather than bare text so this column
+    // lines up with the workgroup Select beside it (label + input row) instead
+    // of floating at the top of the flex row.
+    return (
+      <div className={className}>
+        <QuerySelect<Model.Query | null>
+          label="Select a query"
+          disabled
+          onChange={query.setValue}
+          queries={[]}
+          value={null}
+        />
+        <M.FormHelperText>No saved queries</M.FormHelperText>
+      </div>
+    )
   }
 
   return (
@@ -325,6 +339,14 @@ const useStyles = M.makeStyles((t) => ({
   section: {
     margin: t.spacing(3, 0, 0),
   },
+  // The query-executions history is its own zone below the editor: a rule and
+  // extra top margin set it apart so "previous searches" has room to breathe
+  // instead of crowding the Run-query row.
+  history: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    margin: t.spacing(5, 0, 0),
+    paddingTop: t.spacing(3),
+  },
   form: {
     margin: t.spacing(3, 0, 0),
   },
@@ -354,23 +376,24 @@ function AthenaContainer() {
 
   const classes = useStyles()
   return (
-    <>
+    // One width-capped, left-aligned column shared by the header, selectors,
+    // editor, results, and history — so every block lines up on the same right
+    // edge instead of the selectors being capped while the rest runs full-width.
+    <M.Container maxWidth="lg" disableGutters className={classes.container}>
       <M.Typography className={classes.header} variant="h6">
         Athena SQL
       </M.Typography>
 
-      <M.Container maxWidth="lg" disableGutters className={classes.container}>
-        <div className={classes.selectors}>
-          <div className={classes.field}>
-            <Workgroups />
-          </div>
-          {Model.hasData(workgroup.data) && (
-            <div className={classes.field}>
-              <QueryConstructor />
-            </div>
-          )}
+      <div className={classes.selectors}>
+        <div className={classes.field}>
+          <Workgroups />
         </div>
-      </M.Container>
+        {Model.hasData(workgroup.data) && (
+          <div className={classes.field}>
+            <QueryConstructor />
+          </div>
+        )}
+      </div>
 
       {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
@@ -381,13 +404,13 @@ function AthenaContainer() {
           {queryExecutionId ? (
             <ResultsContainer className={classes.section} />
           ) : (
-            <Section title="Query executions" className={classes.section}>
+            <Section title="Query executions" className={classes.history}>
               <HistoryContainer />
             </Section>
           )}
         </div>
       )}
-    </>
+    </M.Container>
   )
 }
 

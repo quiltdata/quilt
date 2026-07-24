@@ -36,6 +36,15 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.getContrastText(t.palette.common.white),
     padding: t.spacing(3),
   },
+  // The two consoles are told apart by the active tab's underline colour, which
+  // uses a different register for each: amber (the indicator register) for
+  // Athena, midnight (the chassis register) for ElasticSearch.
+  indicatorAthena: {
+    backgroundColor: t.palette.secondary.main,
+  },
+  indicatorEs: {
+    backgroundColor: t.palette.primary.main,
+  },
 }))
 
 type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
@@ -66,7 +75,14 @@ function QueriesScreen() {
         </div>
         <M.Divider />
         <div className={classes.tabsRow}>
-          <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
+          <M.Tabs
+            value={section}
+            variant="scrollable"
+            scrollButtons="auto"
+            classes={{
+              indicator: section === 'es' ? classes.indicatorEs : classes.indicatorAthena,
+            }}
+          >
             <NavTab label="Athena" value="athena" to={urls.queriesAthena()} />
             <NavTab label="ElasticSearch" value="es" to={urls.queriesEs()} />
           </M.Tabs>

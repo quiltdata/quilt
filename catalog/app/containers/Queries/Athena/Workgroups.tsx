@@ -18,7 +18,19 @@ interface WorkgroupSelectProps {
   workgroups: Model.List<Model.Workgroup>
 }
 
+const useWorkgroupSelectStyles = M.makeStyles({
+  // Workgroup names are raw AWS identifiers that can run long; clip the selected
+  // value with an ellipsis so it can't overflow the field and collide with the
+  // query selector beside it.
+  select: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+})
+
 function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) {
+  const classes = useWorkgroupSelectStyles()
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()
@@ -47,6 +59,7 @@ function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) 
     <M.FormControl fullWidth>
       <M.InputLabel>Select workgroup</M.InputLabel>
       <M.Select
+        classes={{ select: classes.select }}
         disabled={disabled || !workgroups.list.length}
         onChange={handleChange}
         value={value || 'none'}
