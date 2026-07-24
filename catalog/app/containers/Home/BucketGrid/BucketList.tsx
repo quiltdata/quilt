@@ -74,7 +74,7 @@ const useStyles = M.makeStyles((t) => ({
   name: {
     ...t.typography.body2,
     alignSelf: 'flex-start',
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
     display: 'inline-flex',
     fontFamily: t.typography.monospace.fontFamily,
     maxWidth: '100%',
@@ -83,11 +83,13 @@ const useStyles = M.makeStyles((t) => ({
       color: 'var(--bucket-tint, currentColor)',
     },
   },
-  // dimmed, non-truncating scheme prefix — the constant part carries no info
+  // dimmed, non-truncating scheme prefix — the constant part carries no info.
+  // text.secondary at 0.7 opacity keeps it subordinate to the bucket name while
+  // staying legible (text.hint here read as near-invisible chrome).
   nameScheme: {
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
     flexShrink: 0,
-    opacity: 0.65,
+    opacity: 0.7,
   },
   // the identifying part: full-strength, truncates with ellipsis if it must
   nameId: {
@@ -164,7 +166,15 @@ function BucketRow({
             <Link className={classes.title} to={to} title={bucket.title}>
               {bucket.title}
             </Link>
-            <Link className={classes.name} to={to} title={`s3://${bucket.name}`}>
+            {/* Title is the single tab stop per row; the URI links to the same
+                route for mouse users but stays out of the tab order so keyboard
+                /AT users get one stop per row, not a double-stop. */}
+            <Link
+              className={classes.name}
+              to={to}
+              title={`s3://${bucket.name}`}
+              tabIndex={-1}
+            >
               <span className={classes.nameScheme}>s3://</span>
               <span className={classes.nameId}>{bucket.name}</span>
             </Link>

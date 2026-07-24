@@ -25,15 +25,23 @@ const useBucketStyles = M.makeStyles((t) => ({
     height: '100%',
     minHeight: t.spacing(26),
     overflow: 'hidden', // clip the tint band to the rounded corners
-    // Hover is a state on a link target, not decoration: the edge takes the
-    // bucket tint and the card lifts a hair. One transition, reduced-motion-
-    // gated; the resting card has no motion declared at all.
-    transition: t.transitions.create(['border-color', 'box-shadow'], {
+    // Hover is a state on a link target, not decoration. Per the Elevation
+    // doctrine (border-first; shadows for overlays only) the hover signal is the
+    // edge taking the bucket tint — no drop shadow, so the card stays flat at
+    // rest AND on hover. One border-color transition, and it's still legible for
+    // reduced-motion users (a colour change, not movement).
+    transition: t.transitions.create('border-color', {
       duration: t.transitions.duration.shortest,
     }),
     '&:hover': {
       borderColor: 'var(--bucket-tint, currentColor)',
-      boxShadow: t.shadows[2],
+    },
+    // A visible focus ring for keyboard users when focus lands inside the card
+    // (WCAG 2.4.7): the whole card takes the tint edge + a soft outer ring so it
+    // reads on both the white surface and the tinted identity band.
+    '&:focus-within': {
+      borderColor: 'var(--bucket-tint, currentColor)',
+      boxShadow: `0 0 0 2px var(--bucket-tint-ring, ${fade(t.palette.primary.main, 0.4)})`,
     },
     '@media (prefers-reduced-motion: no-preference)': {
       animation: '$slideUp 0.3s ease',
@@ -83,10 +91,12 @@ const useBucketStyles = M.makeStyles((t) => ({
     },
   },
   // The s3:// address is machine-exact identity → Roboto Mono (the Mono Identity
-  // Rule), subordinate to the title.
+  // Rule), subordinate to the title. It's copy-paste identity (users feed it to
+  // `aws s3 cp`), so it sits at text.secondary (~4.6:1 on white, AA) rather than
+  // text.hint (~2.9:1, below the floor) — legible identity beats faint chrome.
   name: {
     ...t.typography.caption,
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
     display: 'block',
     fontFamily: t.typography.monospace.fontFamily,
     overflow: 'hidden',
@@ -179,6 +189,7 @@ function BucketCard({
     ? ({
         ['--bucket-tint' as any]: tint,
         '--bucket-tint-wash': fade(tint, 0.1),
+        '--bucket-tint-ring': fade(tint, 0.4),
       } as React.CSSProperties)
     : undefined
 
@@ -206,10 +217,15 @@ function BucketCard({
           >
             {bucket.title}
           </Link>
+          {/* The title is the single keyboard tab stop to the route; the URI
+              links to the same place for mouse users but stays out of the tab
+              order (tabIndex -1) so keyboard/AT users get one stop per card, not
+              a confusing double-stop to the same destination. */}
           <Link
             className={classes.name}
             to={urls.bucketRoot(bucket.name)}
             title={`s3://${bucket.name}`}
+            tabIndex={-1}
           >
             s3://{bucket.name}
           </Link>
