@@ -8,7 +8,6 @@ import random
 import typing as T
 
 import pydantic.v1
-import typing_extensions as TX
 
 from .aws import AWSCredentials
 from .crc64 import combine_crc64nvme
@@ -83,7 +82,7 @@ class ChecksumAlgorithm(str, enum.Enum):
             return "SHA256"
         if self is self.CRC64NVME:
             return "CRC64NVME"
-        TX.assert_never(self)
+        T.assert_never(self)
 
     @property
     def s3_checksum_field(self):
@@ -91,7 +90,7 @@ class ChecksumAlgorithm(str, enum.Enum):
             return "ChecksumSHA256"
         if self is self.CRC64NVME:
             return "ChecksumCRC64NVME"
-        TX.assert_never(self)
+        T.assert_never(self)
 
 
 class ChecksumType(str, enum.Enum):
