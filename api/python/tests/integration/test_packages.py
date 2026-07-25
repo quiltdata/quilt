@@ -1923,7 +1923,8 @@ class PackageTest(QuiltTestCase):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         copy_file_list_mock.side_effect = _mock_copy_file_list
-        calculate_checksum_mock.side_effect = lambda tasks: ['dummy_hash'] * len(tasks)
+        copied_hash = "a" * 64
+        calculate_checksum_mock.side_effect = lambda tasks: [copied_hash] * len(tasks)
         copied_physical_key = PhysicalKey.from_url('s3://test-bucket/test/pkg/foo')
 
         for method in (Package.build, partial(Package.push, force=True)):
@@ -1944,8 +1945,9 @@ class PackageTest(QuiltTestCase):
                     if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
-                        pushed_pkg = push_manifest_mock.call_args[0][0]
-                        assert pushed_pkg['foo'].physical_key == copied_physical_key
+                        pushed_entry = push_manifest_mock.call_args[0][0]['foo']
+                        assert pushed_entry.physical_key == copied_physical_key
+                        assert pushed_entry.hash == {'type': checksums.DEFAULT_HASH, 'value': copied_hash}
 
             with self.subTest(method=method):
                 with patch('quilt3.Package._push_manifest', autospec=True) as push_manifest_mock:
@@ -1970,8 +1972,9 @@ class PackageTest(QuiltTestCase):
                     if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
-                        pushed_pkg = push_manifest_mock.call_args[0][0]
-                        assert pushed_pkg['foo'].physical_key == copied_physical_key
+                        pushed_entry = push_manifest_mock.call_args[0][0]['foo']
+                        assert pushed_entry.physical_key == copied_physical_key
+                        assert pushed_entry.hash == {'type': checksums.DEFAULT_HASH, 'value': copied_hash}
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_dest_fn_non_string(self):
