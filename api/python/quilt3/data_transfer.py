@@ -65,6 +65,7 @@ class S3Api(Enum):
 class S3NoValidClientError(Exception):
     def __init__(self, message):
         super().__init__(message)
+        # Read from outside this package: the pkgpush lambda surfaces it as error detail.
         self.message = message
 
 

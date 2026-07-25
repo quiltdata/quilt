@@ -102,7 +102,8 @@ def get_pos_int_from_env(var_name):
 
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
-        # Pass only the message to `super`: with more args, `str()` renders the args tuple.
+        # `str(e)` is user-facing (printed to stderr, embedded in other messages), so pass only the
+        # message to `super` — with more args it renders the args tuple instead.
         super().__init__(message)
         self.message = message
         for k, v in kwargs.items():

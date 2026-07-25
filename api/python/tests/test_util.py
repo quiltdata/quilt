@@ -105,3 +105,21 @@ def test_get_pos_int_from_env_error(env_val):
         with pytest.raises(ValueError) as e:
             util.get_pos_int_from_env(var_name)
         assert f'{var_name} must be a positive integer' == str(e.value)
+
+
+def test_quilt_exception_renders_message():
+    msg = 'something went wrong'
+    err = util.QuiltException(msg)
+
+    assert str(err) == msg
+    assert err.args == (msg,)
+    assert err.message == msg
+
+
+def test_quilt_exception_kwargs_become_attributes():
+    inner = ValueError('inner')
+    err = util.QuiltException('boom', original_error=inner)
+
+    assert err.original_error is inner
+    assert str(err) == 'boom'
+    assert err.args == ('boom',)

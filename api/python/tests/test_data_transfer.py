@@ -1148,6 +1148,16 @@ class S3HashingTest(QuiltTestCase):
         assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='
 
 
+def test_s3_no_valid_client_error_renders_message():
+    msg = 'S3 AccessDenied for S3Api.LIST_OBJECTS_V2 on bucket: some-bucket'
+    err = data_transfer.S3NoValidClientError(msg)
+
+    assert str(err) == msg
+    assert err.args == (msg,)
+    # Consumed outside this package, so part of the error's contract rather than an implementation detail.
+    assert err.message == msg
+
+
 def test_crc64nvme_local_file(tmp_path):
     """Test CRC64NVME checksum calculation via calculate_multipart_checksum with local file."""
     data = b'Hello, World!'
