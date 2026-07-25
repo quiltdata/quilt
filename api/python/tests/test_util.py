@@ -117,9 +117,22 @@ def test_quilt_exception_renders_message():
 
 
 def test_quilt_exception_kwargs_become_attributes():
-    inner = ValueError('inner')
-    err = util.QuiltException('boom', original_error=inner)
+    err = util.QuiltException('boom', context='extra detail')
 
-    assert err.original_error is inner
+    assert err.context == 'extra detail'
     assert str(err) == 'boom'
     assert err.args == ('boom',)
+
+
+def test_quilt_exception_subclass_renders_message_not_own_args():
+    class Subclass(util.QuiltException):
+        def __init__(self, value):
+            self.value = value
+            super().__init__(f'bad value: {value}')
+
+    err = Subclass(42)
+
+    # Without QuiltException handing `super()` the message, `args` would keep Subclass's own
+    # positional and `str(err)` would be '42'.
+    assert str(err) == 'bad value: 42'
+    assert err.args == ('bad value: 42',)
