@@ -105,3 +105,34 @@ def test_get_pos_int_from_env_error(env_val):
         with pytest.raises(ValueError) as e:
             util.get_pos_int_from_env(var_name)
         assert f'{var_name} must be a positive integer' == str(e.value)
+
+
+def test_quilt_exception_renders_message():
+    msg = 'something went wrong'
+    err = util.QuiltException(msg)
+
+    assert str(err) == msg
+    assert err.args == (msg,)
+    assert err.message == msg
+
+
+def test_quilt_exception_kwargs_become_attributes():
+    err = util.QuiltException('boom', context='extra detail')
+
+    assert err.context == 'extra detail'
+    assert str(err) == 'boom'
+    assert err.args == ('boom',)
+
+
+def test_quilt_exception_subclass_renders_message_not_own_args():
+    class Subclass(util.QuiltException):
+        def __init__(self, value):
+            self.value = value
+            super().__init__(f'bad value: {value}')
+
+    err = Subclass(42)
+
+    # Without QuiltException handing `super()` the message, `args` would keep Subclass's own
+    # positional and `str(err)` would be '42'.
+    assert str(err) == 'bad value: 42'
+    assert err.args == ('bad value: 42',)

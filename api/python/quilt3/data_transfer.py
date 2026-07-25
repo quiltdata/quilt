@@ -63,15 +63,10 @@ class S3Api(Enum):
 
 
 class S3NoValidClientError(Exception):
-    def __init__(self, message, **kwargs):
-        # We use NewError("Prefix: " + str(error)) a lot.
-        # To be consistent across Python 2.7 and 3.x:
-        # 1) This `super` call must exist, or 2.7 will have no text for str(error)
-        # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
+    def __init__(self, message):
         super().__init__(message)
+        # Read from outside this package: the pkgpush lambda surfaces it as error detail.
         self.message = message
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
 
 class S3ClientProvider:
