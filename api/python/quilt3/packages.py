@@ -85,8 +85,7 @@ class CopyFileListFn(T.Protocol):
         file_list: list[tuple[PhysicalKey, PhysicalKey, int]],
         message: str | None = None,
         callback: T.Callable | None = None,
-    ) -> list[tuple[PhysicalKey, str | None]]:
-        """Returns one result per `file_list` entry, in the same order."""
+    ) -> list[tuple[PhysicalKey, str | None]]: ...
 
 
 def _fix_docstring(**kwargs):
