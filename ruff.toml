@@ -44,7 +44,6 @@ ignore = [
     "B011",  # Do not assert False
     "B018",  # Found useless expression
     "B028",  # No explicit stacklevel keyword argument found
-    "B905",  # zip() without an explicit strict= (behavioral; clean up separately)
     "C408",  # Unnecessary dict() call (rewrite as a literal)
     "E402",  # Module level import not at top of file
     "F401",  # Imported but unused

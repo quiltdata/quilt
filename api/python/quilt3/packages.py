@@ -85,7 +85,8 @@ class CopyFileListFn(T.Protocol):
         file_list: list[tuple[PhysicalKey, PhysicalKey, int]],
         message: str | None = None,
         callback: T.Callable | None = None,
-    ) -> list[tuple[PhysicalKey, str | None]]: ...
+    ) -> list[tuple[PhysicalKey, str | None]]:
+        """Returns one result per `file_list` entry, in the same order."""
 
 
 def _fix_docstring(**kwargs):
@@ -1005,11 +1006,11 @@ class Package:
         results = calculate_multipart_checksum(
             [
                 FileChecksumTask.create(physical_key, size, hash_type)
-                for physical_key, size in zip(physical_keys, sizes)
+                for physical_key, size in zip(physical_keys, sizes, strict=True)
             ]
         )
         exc = None
-        for entry, result in zip(self._incomplete_entries, results):
+        for entry, result in zip(self._incomplete_entries, results, strict=True):
             if isinstance(result, Exception):
                 exc = result
             else:
@@ -1617,7 +1618,7 @@ class Package:
 
         results = copy_file_list_fn(file_list, message="Copying objects")
 
-        for (logical_key, entry), (versioned_key, checksum) in zip(entries, results):
+        for (logical_key, entry), (versioned_key, checksum) in zip(entries, results, strict=True):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
@@ -1838,14 +1839,14 @@ class Package:
             return False
 
         hash_list = calculate_multipart_checksum(checksum_tasks)
-        for expected_hash, url_hash in zip(expected_hash_list, hash_list):
+        for expected_hash, url_hash in zip(expected_hash_list, hash_list, strict=True):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:
                 return False
 
         legacy_hash_list = legacy_calculate_checksum(legacy_url_list, legacy_size_list)
-        for expected_hash, url_hash in zip(legacy_expected_hash_list, legacy_hash_list):
+        for expected_hash, url_hash in zip(legacy_expected_hash_list, legacy_hash_list, strict=True):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:

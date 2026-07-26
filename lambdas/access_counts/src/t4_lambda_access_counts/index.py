@@ -466,7 +466,7 @@ def handler(event, context):
 
     execution_ids = run_multiple_queries([query for _, query in queries])
 
-    for (filename, _), execution_id in zip(queries, execution_ids):
+    for (filename, _), execution_id in zip(queries, execution_ids, strict=True):
         src_bucket, src_key = get_result_location(execution_id)
         dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
 
