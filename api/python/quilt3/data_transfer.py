@@ -604,7 +604,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
 
     assert len(file_list) == len(results)
 
-    total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
+    total_size = sum(size for (_, _, size), result in zip(file_list, results, strict=True) if result is None)
 
     lock = Lock()
     futures = deque()
@@ -669,7 +669,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                     _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id, dest.bucket, dest.path)
 
         try:
-            for idx, (args, result) in enumerate(zip(file_list, results)):
+            for idx, (args, result) in enumerate(zip(file_list, results, strict=True)):
                 if result is not None:
                     continue
                 run_task(idx, worker, idx, *args)
@@ -1019,7 +1019,9 @@ def _calculate_checksum_internal(
     results: list[str | Exception | None],
 ) -> list[str | Exception]:
     total_size = sum(
-        task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception)
+        task.size
+        for task, result in zip(tasks, results, strict=True)
+        if result is None or isinstance(result, Exception)
     )
     stopped = False
 
@@ -1070,7 +1072,7 @@ def _calculate_checksum_internal(
 
         futures: list[tuple[int, type[checksums.MultiPartChecksumCalculator], list[Future]]] = []
 
-        for idx, (task, result) in enumerate(zip(tasks, results)):
+        for idx, (task, result) in enumerate(zip(tasks, results, strict=True)):
             if result is None or isinstance(result, Exception):
                 chunksize = checksums.get_checksum_chunksize(task.size)
 
@@ -1184,7 +1186,9 @@ def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
     retry_error_callback=lambda retry_state: retry_state.outcome.result(),
 )
 def _legacy_calculate_checksum_internal(src_list, sizes, results) -> list[str | Exception]:
-    total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
+    total_size = sum(
+        size for size, result in zip(sizes, results, strict=True) if result is None or isinstance(result, Exception)
+    )
     # This controls how many parts can be stored in the memory.
     # This includes the ones that are being downloaded or hashed.
     # The number was chosen empirically.
@@ -1247,7 +1251,7 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> list[str | 
         progress_update = with_lock(progress.update)
         future_to_idx = {
             executor.submit(_process_url, src, size): i
-            for i, (src, size, result) in enumerate(zip(src_list, sizes, results))
+            for i, (src, size, result) in enumerate(zip(src_list, sizes, results, strict=True))
             if result is None or isinstance(result, Exception)
         }
         try:
