@@ -28,7 +28,6 @@ from .data_transfer import (
     calculate_multipart_checksum,
     copy_file,
     copy_file_list,
-    delete_url,
     get_bytes,
     get_size_and_version,
     legacy_calculate_checksum,
@@ -1648,7 +1647,9 @@ class Package:
             # leaked scratch file, not a reason to fail the push.
             temp_pk = self[lk].physical_key
             try:
-                delete_url(temp_pk)
+                # Not delete_url(): it falls back to an S3 delete for a non-local key, which is
+                # more power than removing a local scratch file needs.
+                pathlib.Path(temp_pk.path).unlink(missing_ok=True)
             except OSError as e:
                 # Not warnings.warn(): a caller running with -W error would turn best-effort
                 # cleanup back into a push that fails after the data is already uploaded.
