@@ -859,6 +859,8 @@ class PackageTest(QuiltTestCase):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
         assert any(f"Failed to remove temporary file {temp_path}" in line for line in logs.output)
+        assert temp_path.exists(), "a cleanup failure leaves the temp file behind"
+        temp_path.unlink()
 
     @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
     def test_set_package_entry_unversioned_flag(self):
