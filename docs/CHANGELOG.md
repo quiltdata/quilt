@@ -23,7 +23,8 @@ Entries inside each section should be ordered by type:
 * [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
 * [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
 * [Fixed] `quilt3.delete_package()` on a local registry no longer deletes other packages sharing the same namespace ([#5140](https://github.com/quiltdata/quilt/pull/5140))
-* [Fixed] `Package.push()` no longer fails after a successful upload when a temporary file created by `Package.set()` cannot be removed; cleanup now logs a warning instead ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Package.push()` no longer fails after the data is uploaded when a temporary file created by `Package.set()` cannot be removed, or when two logical keys share one serialized object and its temporary file is deleted twice; cleanup now logs a warning instead ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Package.push()` no longer uses a process pool to delete temporary files, so it works from a daemonic process (e.g. a prefork worker) and no longer requires callers to guard their entry point with `if __name__ == "__main__":` ([#5156](https://github.com/quiltdata/quilt/pull/5156))
 
 ### CLI
 

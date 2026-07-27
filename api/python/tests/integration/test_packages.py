@@ -826,6 +826,8 @@ class PackageTest(QuiltTestCase):
         with (
             patch('quilt3.Package._push_manifest'),
             patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            # An already-gone temp file is not worth telling the user about.
+            self.assertNoLogs('quilt3.packages', level='WARNING'),
         ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
@@ -837,16 +839,25 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         pkg.set("mydataframe1.parquet", pd.DataFrame({'col_num': [11, 22, 33]}))
         pkg._calculate_missing_hashes()
+        temp_path = pathlib.Path(pkg["mydataframe1.parquet"].physical_key.path)
+        real_unlink = pathlib.Path.unlink
+
+        # Fail only for the temp file, so cleanup aimed at the wrong path fails this test
+        # instead of logging about whatever it did hit.
+        def unlink(self, *args, **kwargs):
+            if self == temp_path:
+                raise PermissionError("file is in use")
+            return real_unlink(self, *args, **kwargs)
 
         with (
             patch('quilt3.Package._push_manifest'),
             patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
-            patch('pathlib.Path.unlink', side_effect=PermissionError("file is in use")),
+            patch('pathlib.Path.unlink', unlink),
             self.assertLogs('quilt3.packages', level='WARNING') as logs,
         ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
-        assert any("Failed to remove temporary file" in line for line in logs.output)
+        assert any(f"Failed to remove temporary file {temp_path}" in line for line in logs.output)
 
     @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
     def test_set_package_entry_unversioned_flag(self):
