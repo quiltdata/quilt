@@ -4,14 +4,17 @@ query ($buckets: [String!], $order: SearchResultOrder) {
     ... on PackagesSearchResultSet {
       total
       firstPage(order: $order) {
-        hits {
-          id
-          bucket
-          name
-          pointer
-          hash
-          size
-          modified
+        __typename
+        ... on PackagesSearchResultSetPage {
+          hits {
+            id
+            bucket
+            name
+            pointer
+            hash
+            size
+            modified
+          }
         }
       }
     }

@@ -370,11 +370,22 @@ enum PackageSystemField {
   ENTRIES
 }
 
+# Resolver-validated (the SDL type system cannot express "exactly one of"),
+# consistent with PackageUserMetaPredicate. Exactly one of `system` or
+# `userMeta` must be set. `userMeta` is a JSON pointer whose facet type is
+# resolved server-side; a text-typed pointer is rejected (see PackageSortInput).
 input PackageSortField {
   system: PackageSystemField
   userMeta: String
 }
 
+# Resolver-validated (not expressible in the SDL):
+#  - exactly one of `preset` or `field`;
+#  - `direction` is required with `field` and forbidden with `preset`.
+# Not every field/mode combination is honored: a `field` sort in all-revisions
+# (rev=all) mode, the COMMENT system field, and a text-typed `userMeta` pointer
+# are rejected as InvalidInput on firstPage (unsupported under the current
+# sort-locus). When `sort` is given it supersedes the legacy `order` arg.
 input PackageSortInput {
   preset: SearchResultOrder
   field: PackageSortField
@@ -525,7 +536,17 @@ type PackagesSearchResultSet {
   total: Int!
   stats: PackagesSearchStats!
   filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
-  firstPage(size: Int = 30, order: SearchResultOrder, sort: PackageSortInput): PackagesSearchResultSetPage!
+  # `order` is deprecated in favor of `sort` (retained indefinitely for
+  # backward compatibility, no removal clock). When `sort` is present `order`
+  # is ignored; when neither is present the result is BEST_MATCH.
+  #
+  # Returns a union rather than the bare page: a `sort` the current sort-locus
+  # cannot honor (all-revisions field sort, COMMENT, a text-typed userMeta
+  # pointer) is rejected as InvalidInput, and a backend timeout as
+  # OperationError. A concrete non-null page has no error arm — returning an
+  # error object down it renders an empty page and 500s on `hits`
+  # (d-unsupported-error / qhq-obs.217).
+  firstPage(size: Int = 30, order: SearchResultOrder, sort: PackageSortInput): PackagesFirstPageResult!
 }
 
 type EmptySearchResultSet {
@@ -535,6 +556,8 @@ type EmptySearchResultSet {
 union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
 
 union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
+
+union PackagesFirstPageResult = PackagesSearchResultSetPage | InvalidInput | OperationError
 
 union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput | OperationError
 
