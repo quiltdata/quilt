@@ -809,6 +809,28 @@ class PackageTest(QuiltTestCase):
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_survives_missing_temp_file(self):
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+        df = pd.DataFrame({'col_num': [11, 22, 33]})
+        pkg.set("mydataframe1.parquet", df)
+        pkg.set("mydataframe2.parquet", df)
+        pkg._calculate_missing_hashes()
+
+        # Something else removed one temp file already: a tempdir sweep, a retried push, another process.
+        gone = pathlib.Path(pkg["mydataframe1.parquet"].physical_key.path)
+        remaining = pathlib.Path(pkg["mydataframe2.parquet"].physical_key.path)
+        gone.unlink()
+
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+        ):
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
+
+        assert not remaining.exists(), "Cleanup should continue past a temp file that is already gone"
+
     @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
     def test_set_package_entry_unversioned_flag(self):
         for flag_value, version_id in {

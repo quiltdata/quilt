@@ -16,7 +16,6 @@ import typing as T
 import uuid
 import warnings
 from collections import deque
-from multiprocessing import Pool
 
 import botocore.exceptions
 import jsonlines
@@ -102,11 +101,6 @@ _WORKFLOW_PARAM_DOCSTRING = (
     '        If not specified, the default workflow will be used.\n'
     '        For details see: https://docs.quilt.bio/advanced-usage/workflows\n'
 )
-
-
-def _delete_local_physical_key(pk):
-    assert pk.is_local(), "This function only works on files that live on a local disk"
-    pathlib.Path(pk.path).unlink()
 
 
 def _filesystem_safe_encode(key):
@@ -1647,11 +1641,15 @@ class Package:
 
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
         if temp_file_logical_keys:
-            temp_file_physical_keys = [self[lk].physical_key for lk in temp_file_logical_keys]
-
-            # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
-            with Pool(10) as p:
-                p.map(_delete_local_physical_key, temp_file_physical_keys)
+            # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj).
+            # The data is already uploaded at this point, so a file we cannot remove is a leaked
+            # scratch file, not a reason to fail the push.
+            for lk in temp_file_logical_keys:
+                temp_path = pathlib.Path(self[lk].physical_key.path)
+                try:
+                    temp_path.unlink(missing_ok=True)
+                except OSError as e:
+                    warnings.warn(f"Failed to remove temporary file {temp_path}: {e}")
 
             # Update old package to point to the materialized location of the file since the tempfile no longest exists
             for lk in temp_file_logical_keys:
