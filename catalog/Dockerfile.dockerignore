@@ -1,0 +1,17 @@
+# Scoped to catalog/Dockerfile (BuildKit reads <dockerfile>.dockerignore), so
+# other images' build contexts are unaffected.
+#
+# The context is the repo root, but the build only needs catalog/ and shared/.
+# Allow-list rather than deny-list: a new top-level directory stays out by
+# default instead of silently bloating the context.
+*
+!catalog
+!shared
+
+# Local artifacts that would otherwise leak in from a dirty working tree.
+# catalog/build especially: a stale one must not shadow the in-image build.
+catalog/node_modules
+catalog/build
+catalog/coverage
+catalog/stats.json
+**/.DS_Store

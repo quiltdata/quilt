@@ -8,26 +8,53 @@ on:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
       - 'shared/**'
+  pull_request:
+    paths:
+      - '.github/workflows/deploy-catalog.yaml'
+      - 'catalog/**'
+      - 'shared/**'
 
 jobs:
-  deploy-catalog-ecr:
+  build-check:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: catalog
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: catalog/Dockerfile
+          push: false
+          # Scope shared with deploy-catalog-ecr so master builds warm the cache
+          # PRs read. ignore-error: fork PRs have no cache write access.
+          cache-from: type=gha,scope=catalog
+          cache-to: type=gha,mode=max,scope=catalog,ignore-error=true
+
+  deploy-catalog-ecr:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
       id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
         with:
-          node-version-file: 'catalog/package.json'
-          cache: 'npm'
-          cache-dependency-path: 'catalog/package-lock.json'
-      - run: npm ci
-      - run: npm run build
+          context: .
+          file: catalog/Dockerfile
+          tags: catalog:${{ github.sha }}
+          push: false
+          # Load into the local docker store for the per-registry tag/push below.
+          load: true
+          cache-from: type=gha,scope=catalog
+          cache-to: type=gha,mode=max,scope=catalog
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -49,7 +76,7 @@ jobs:
       - name: Login to GovCloud ECR
         id: login-govcloud-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push Docker image to Prod, MP and GovCloud ECR
+      - name: Push Docker image to Prod, MP and GovCloud ECR
         env:
           ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
           ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
@@ -58,11 +85,11 @@ jobs:
           ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker buildx build \
-            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
-            .
+          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
           docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          # push to MP last because it can't be re-pushed using the same tag,
+          # so the job can be re-run if something failed
           docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
