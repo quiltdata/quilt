@@ -10,16 +10,26 @@ import Buckets from './Buckets'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+interface MockBucket {
+  name: string
+  title: string
+  description: string | null
+  tags: ReadonlyArray<string> | null
+  relevanceScore: number
+}
+
+let mockBuckets: MockBucket[] = [
+  {
+    name: 'bucket-one',
+    title: 'Bucket One',
+    description: null,
+    tags: null,
+    relevanceScore: 1,
+  },
+]
+
 vi.mock('utils/Buckets', () => ({
-  useRelevantBuckets: () => [
-    {
-      name: 'bucket-one',
-      title: 'Bucket One',
-      description: null,
-      tags: null,
-      relevanceScore: 1,
-    },
-  ],
+  useRelevantBuckets: () => mockBuckets,
 }))
 
 vi.mock('utils/NamedRoutes', async () => ({
@@ -86,9 +96,6 @@ const Rows = ({ buckets }: RowsProps) => (
 
 // NB: `(props) => <Rows ... />` (not `default: Rows`) so the hoisted factories
 // only touch `Rows` at render time, after the module body has run.
-vi.mock('containers/Home/BucketGrid', () => ({
-  default: (props: RowsProps) => <Rows {...props} />,
-}))
 vi.mock('containers/Home/BucketGrid/BucketList', () => ({
   default: (props: RowsProps) => <Rows {...props} />,
 }))
@@ -108,6 +115,15 @@ describe('website/pages/Landing/Buckets', () => {
   afterEach(() => {
     useQueryMock.mockClear()
     meIsAdminData = { isAdmin: false }
+    mockBuckets = [
+      {
+        name: 'bucket-one',
+        title: 'Bucket One',
+        description: null,
+        tags: null,
+        relevanceScore: 1,
+      },
+    ]
   })
 
   it('renders the volume rows', () => {
@@ -121,6 +137,31 @@ describe('website/pages/Landing/Buckets', () => {
     meIsAdminData = null
     const { queryByText } = renderBuckets()
     expect(queryByText('bucket:bucket-one')).toBeTruthy()
+    expect(queryByText('Add Bucket')).toBeFalsy()
+  })
+
+  it('renders a sort control defaulting to Relevance, with no `sort` param', () => {
+    const { getAllByText, getByText } = renderBuckets()
+    // The shared SelectDropdown (as on /search) renders "Sort by:" + the value.
+    expect(getAllByText('Sort by:').length).toBeGreaterThan(0)
+    expect(getByText('Relevance')).toBeTruthy()
+  })
+
+  it('shows a teaching empty state with the add path for admins when there are no buckets', () => {
+    mockBuckets = []
+    meIsAdminData = { isAdmin: true }
+    const { queryByText } = renderBuckets()
+    expect(queryByText('No buckets yet')).toBeTruthy()
+    expect(
+      queryByText('Add a bucket to make it searchable and browsable here.'),
+    ).toBeTruthy()
+    expect(queryByText('Add Bucket')).toBeTruthy()
+  })
+
+  it('shows a plain line (no add path) for non-admins when there are no buckets', () => {
+    mockBuckets = []
+    const { queryByText } = renderBuckets()
+    expect(queryByText('No buckets yet')).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeFalsy()
   })
 })

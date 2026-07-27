@@ -177,6 +177,33 @@ white at fixed alphas, not theme grays:
 - **Info Blue** (#039be5, wash #e1f5fe) and **Warning Amber** (#fff59d, deep
   #f57f17): semantic states, used with their standard Material meanings.
 
+### Identity Tints (categorical)
+
+A closed set of six muted pairs used to tell *objects apart* on a browse
+surface — the ground and ink of an identity avatar when an object has no
+image of its own. Each pair is a pale ground with its own dark ink, so the
+initials clear AA on the disc:
+
+| Tint | Ground | Ink |
+| --- | --- | --- |
+| Indigo | #e8eaf6 | #283593 |
+| Teal | #e0f2f1 | #00695c |
+| Green | #e8f5e9 | #2e7d32 |
+| Purple | #f3e5f5 | #6a1b9a |
+| Pink | #fce4ec | #ad1457 |
+| Brown | #efebe9 | #4e342e |
+
+The tint is chosen by hashing the object's stable identifier (the bucket
+name), so an object wears the same tint in every view and every session,
+independent of what else is on screen.
+
+**The Identity Tint Rule.** Identity tints encode *which object*, never *what
+state*. They are categorical — never semantic, never an accent, never
+emphasis, and never a page or panel surface. They appear only as the ground of
+an identity avatar, and they never carry meaning a label could not. The set is
+closed: it deliberately excludes the Amber Indicator's hue (an identity must
+never read as a selection) and the semantic Info/Warning pairs.
+
 ### Retired
 
 The website register's palette — coral (#f38681), cobalt (#5471f1, #2d306d,
@@ -233,8 +260,12 @@ signal, not a style.
 ### Named Rules
 
 **The Mono Identity Rule.** Anything content-addressed or machine-exact —
-hashes, `s3://` URIs, package handles, version ids — renders in Roboto Mono.
-Prose never does.
+hashes, `s3://` URIs, package handles, version ids — renders in Roboto Mono
+where it's read as identity: detail views, breadcrumbs, copy-affordance
+rows. A repeated scanning label in a dense list (e.g. the `s3://` name on
+every row of the bucket list) is a carve-out — it renders in body type,
+secondary ink; a wall of mono there reads heavy, not exact. Prose never
+does.
 
 **The No-Display-Font Rule.** Display sizes and the 300 weight have no home in
 the app; nothing outranks a Headline. They linger only on legacy landing
