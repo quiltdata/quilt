@@ -809,6 +809,59 @@ class PackageTest(QuiltTestCase):
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_survives_missing_temp_file(self):
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+        df = pd.DataFrame({'col_num': [11, 22, 33]})
+        pkg.set("mydataframe1.parquet", df)
+        pkg.set("mydataframe2.parquet", df)
+        pkg._calculate_missing_hashes()
+
+        # Something else removed one temp file already: a tempdir sweep, a retried push, another process.
+        gone = pathlib.Path(pkg["mydataframe1.parquet"].physical_key.path)
+        remaining = pathlib.Path(pkg["mydataframe2.parquet"].physical_key.path)
+        gone.unlink()
+        assert remaining.exists(), "the two entries must not share a temp file, or this test proves nothing"
+
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            self.assertNoLogs('quilt3.packages', level='WARNING'),
+        ):
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
+
+        assert not remaining.exists(), "Cleanup should continue past a temp file that is already gone"
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_logs_when_temp_file_cannot_be_removed(self):
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+        pkg.set("mydataframe1.parquet", pd.DataFrame({'col_num': [11, 22, 33]}))
+        pkg._calculate_missing_hashes()
+        # temp_key, not str(temp_path): the log formats the physical key, whose separators differ
+        # from pathlib's on Windows.
+        temp_key = pkg["mydataframe1.parquet"].physical_key.path
+        temp_path = pathlib.Path(temp_key)
+        real_unlink = pathlib.Path.unlink
+
+        def unlink(self, *args, **kwargs):
+            if self == temp_path:
+                raise PermissionError("file is in use")
+            return real_unlink(self, *args, **kwargs)
+
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            patch('pathlib.Path.unlink', unlink),
+            self.assertLogs('quilt3.packages', level='WARNING') as logs,
+        ):
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
+
+        assert any(f"Failed to remove temporary file {temp_key}" in line for line in logs.output)
+        assert temp_path.exists(), "a cleanup failure leaves the temp file behind"
+        temp_path.unlink()
+
     @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
     def test_set_package_entry_unversioned_flag(self):
         for flag_value, version_id in {
