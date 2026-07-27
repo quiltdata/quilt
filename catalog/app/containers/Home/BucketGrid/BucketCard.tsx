@@ -35,6 +35,10 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: t.shape.borderRadius,
     display: 'flex',
     flexDirection: 'column',
+    // Cards in a row equalize height. With no footer rule the slack simply
+    // reads as body padding above the bottom row — the hollow look came from
+    // bounding that slack with a second rule, not from the equal heights.
+    height: '100%',
     // The header wash bleeds to the card's edges, so the regions carry their
     // own insets rather than the card carrying one padding for all of them.
     overflow: 'hidden',
@@ -65,10 +69,24 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
-  // The content region: only rendered when there is content, so a sparse card
-  // is header + footer with no hollow padded box between them.
+  // The second and last band. It grows to fill the card, so its bottom row
+  // (tags + access readout) settles at the foot without a dividing rule.
   body: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
     padding: t.spacing(2),
+  },
+  bodySpacer: {
+    flexGrow: 1,
+  },
+  // Tags and the access readout share one line at the card's foot: the tags
+  // run from the left, the readout closes the row on the right.
+  bottomRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+    justifyContent: 'space-between',
   },
   // The icon is a fixed-size disc: without this it inherits `flex-shrink: 1`
   // and a long title squashes the circle into an ellipse.
@@ -105,9 +123,6 @@ const useStyles = M.makeStyles((t) => ({
     flexWrap: 'wrap',
     gap: t.spacing(0.5),
   },
-  tagsAfterDescription: {
-    marginTop: t.spacing(1.5),
-  },
   // ButtonBase (Chip's root when `clickable`) always stamps the global
   // `Mui-focusVisible` class alongside its own hashed one, so this is a
   // stable hook even though `.MuiChip-*` selectors are off-limits.
@@ -130,13 +145,10 @@ const useStyles = M.makeStyles((t) => ({
     alignSelf: 'center',
     color: t.palette.text.secondary,
   },
-  // The access readout gets a baseline of its own: a divider turns it from a
-  // stray line trailing the content into a defined footer region.
-  footer: {
+  access: {
     alignItems: 'center',
-    borderTop: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    padding: t.spacing(1.5, 2),
+    flexShrink: 0,
   },
 }))
 
@@ -194,45 +206,40 @@ export default function BucketCard({
           </M.Typography>
         </div>
       </Link>
-      {(!!bucket.description || !!visibleTags.length) && (
-        <div className={classes.body}>
-          {!!bucket.description && (
-            <M.Typography className={classes.description} component="p" variant="caption">
-              {bucket.description}
-            </M.Typography>
-          )}
-          {!!visibleTags.length && (
-            <div
-              className={cx(classes.tags, {
-                [classes.tagsAfterDescription]: !!bucket.description,
-              })}
-            >
-              {visibleTags.map((tg) => (
-                <M.Chip
-                  key={tg}
-                  className={cx(classes.tag, { [classes.matching]: tagIsMatching(tg) })}
-                  label={tg}
-                  size="small"
-                  clickable
-                  color="default"
-                  onClick={handleTagClick(tg)}
-                />
-              ))}
-              {hiddenTagCount > 0 && (
-                <span className={classes.moreTags}>+{hiddenTagCount} more</span>
-              )}
+      <div className={classes.body}>
+        {!!bucket.description && (
+          <M.Typography className={classes.description} component="p" variant="caption">
+            {bucket.description}
+          </M.Typography>
+        )}
+        <div className={classes.bodySpacer} />
+        <div className={classes.bottomRow}>
+          <div className={classes.tags}>
+            {visibleTags.map((tg) => (
+              <M.Chip
+                key={tg}
+                className={cx(classes.tag, { [classes.matching]: tagIsMatching(tg) })}
+                label={tg}
+                size="small"
+                clickable
+                color="default"
+                onClick={handleTagClick(tg)}
+              />
+            ))}
+            {hiddenTagCount > 0 && (
+              <span className={classes.moreTags}>+{hiddenTagCount} more</span>
+            )}
+          </div>
+          {cfg.mode === 'PRODUCT' && (
+            <div className={classes.access}>
+              <Collaborators
+                bucket={bucket.name}
+                collaborators={bucket.collaborators ?? null}
+              />
             </div>
           )}
         </div>
-      )}
-      {cfg.mode === 'PRODUCT' && (
-        <div className={classes.footer}>
-          <Collaborators
-            bucket={bucket.name}
-            collaborators={bucket.collaborators ?? null}
-          />
-        </div>
-      )}
+      </div>
     </div>
   )
 }

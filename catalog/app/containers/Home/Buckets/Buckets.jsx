@@ -100,16 +100,23 @@ const useStyles = M.makeStyles((t) => ({
       flexDirection: 'column',
     },
   },
-  // One input vocabulary with the top-bar search band: white ground, the same
-  // faint leading glyph, and the 14px body step (the MUI default here is a
-  // transparent ground, a near-black icon, and 16px — all three off-pattern).
+  // One input vocabulary with the top-bar search band (components/Layout/
+  // ContentBar): white ground, a 0.38 resting outline, a 24px leading glyph
+  // that warms to 0.54 while the field has focus, and the 14px body step.
   filterInput: {
     background: t.palette.common.white,
     fontSize: t.typography.body2.fontSize,
+    '& $filterOutline': {
+      borderColor: fade(t.palette.common.black, 0.38),
+    },
+    '&:focus-within $filterIcon': {
+      color: t.palette.text.secondary,
+    },
   },
+  filterOutline: {},
   filterIcon: {
     color: fade(t.palette.common.black, 0.38),
-    fontSize: '20px',
+    transition: t.transitions.create('color', { duration: 150 }),
   },
   filter: {
     flexShrink: 0,
@@ -508,6 +515,7 @@ export default function Buckets() {
             fullWidth
             InputProps={{
               className: classes.filterInput,
+              classes: { notchedOutline: classes.filterOutline },
               startAdornment: (
                 <M.InputAdornment position="start">
                   <Icons.FilterList className={classes.filterIcon} />
