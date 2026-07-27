@@ -1639,24 +1639,18 @@ class Package:
                 return False
             return pathlib.Path(pk.path).parent.resolve() == APP_DIR_TEMPFILE_DIR.resolve()
 
-        # Materialized before the loop, because _set() below mutates what walk() iterates.
+        # Materialized first: _set() below mutates what walk() iterates.
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
         for lk in temp_file_logical_keys:
-            # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj).
-            # The data is already uploaded at this point, so a file we cannot remove is a
-            # leaked scratch file, not a reason to fail the push.
+            # Delete tmp files created by pkg.set('KEY', obj). The data is already uploaded, so a
+            # file we cannot remove is a leaked scratch file, not a reason to fail the push.
             temp_pk = self[lk].physical_key
             try:
-                # Not delete_url(): it falls back to an S3 delete for a non-local key, which is
-                # more power than removing a local scratch file needs.
                 pathlib.Path(temp_pk.path).unlink(missing_ok=True)
             except OSError as e:
-                # Not warnings.warn(): a caller running with -W error would turn best-effort
-                # cleanup back into a push that fails after the data is already uploaded.
                 logger.warning("Failed to remove temporary file %s: %s", temp_pk.path, e)
 
-            # Point the entry at the materialized location; the tempfile is no longer the copy to
-            # read from, whether or not removing it succeeded.
+            # Point the entry at the materialized location.
             self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.

@@ -827,7 +827,6 @@ class PackageTest(QuiltTestCase):
         with (
             patch('quilt3.Package._push_manifest'),
             patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
-            # An already-gone temp file is not worth telling the user about.
             self.assertNoLogs('quilt3.packages', level='WARNING'),
         ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
@@ -840,14 +839,12 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         pkg.set("mydataframe1.parquet", pd.DataFrame({'col_num': [11, 22, 33]}))
         pkg._calculate_missing_hashes()
-        # The logged path comes straight from the physical key, so compare against that string
-        # rather than str(Path(...)), which differs on Windows.
+        # temp_key, not str(temp_path): the log formats the physical key, whose separators differ
+        # from pathlib's on Windows.
         temp_key = pkg["mydataframe1.parquet"].physical_key.path
         temp_path = pathlib.Path(temp_key)
         real_unlink = pathlib.Path.unlink
 
-        # Fail only for the temp file, so cleanup aimed at the wrong path fails this test
-        # instead of logging about whatever it did hit.
         def unlink(self, *args, **kwargs):
             if self == temp_path:
                 raise PermissionError("file is in use")
