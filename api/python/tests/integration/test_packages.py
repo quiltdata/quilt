@@ -822,6 +822,7 @@ class PackageTest(QuiltTestCase):
         gone = pathlib.Path(pkg["mydataframe1.parquet"].physical_key.path)
         remaining = pathlib.Path(pkg["mydataframe2.parquet"].physical_key.path)
         gone.unlink()
+        assert remaining.exists(), "the two entries must not share a temp file, or this test proves nothing"
 
         with (
             patch('quilt3.Package._push_manifest'),
