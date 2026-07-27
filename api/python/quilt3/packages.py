@@ -28,6 +28,7 @@ from .data_transfer import (
     calculate_multipart_checksum,
     copy_file,
     copy_file_list,
+    delete_url,
     get_bytes,
     get_size_and_version,
     legacy_calculate_checksum,
@@ -1639,23 +1640,22 @@ class Package:
                 return False
             return pathlib.Path(pk.path).parent.resolve() == APP_DIR_TEMPFILE_DIR.resolve()
 
+        # Materialized before the loop, because _set() below mutates what walk() iterates.
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
-        if temp_file_logical_keys:
+        for lk in temp_file_logical_keys:
             # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj).
-            # The data is already uploaded at this point, so a file we cannot remove is a leaked
-            # scratch file, not a reason to fail the push.
-            for lk in temp_file_logical_keys:
-                temp_path = pathlib.Path(self[lk].physical_key.path)
-                try:
-                    temp_path.unlink(missing_ok=True)
-                except OSError as e:
-                    # Not warnings.warn(): a caller running with -W error would turn best-effort
-                    # cleanup back into a push that fails after the data is already uploaded.
-                    logger.warning("Failed to remove temporary file %s: %s", temp_path, e)
+            # The data is already uploaded at this point, so a file we cannot remove is a
+            # leaked scratch file, not a reason to fail the push.
+            temp_pk = self[lk].physical_key
+            try:
+                delete_url(temp_pk)
+            except OSError as e:
+                # Not warnings.warn(): a caller running with -W error would turn best-effort
+                # cleanup back into a push that fails after the data is already uploaded.
+                logger.warning("Failed to remove temporary file %s: %s", temp_pk.path, e)
 
-            # Update old package to point to the materialized location of the file since the tempfile no longer exists
-            for lk in temp_file_logical_keys:
-                self._set(lk, pkg[lk])
+            # Point the entry at the materialized location, since the tempfile no longer exists.
+            self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.
         if not force:

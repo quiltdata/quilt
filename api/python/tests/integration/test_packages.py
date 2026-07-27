@@ -840,7 +840,10 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         pkg.set("mydataframe1.parquet", pd.DataFrame({'col_num': [11, 22, 33]}))
         pkg._calculate_missing_hashes()
-        temp_path = pathlib.Path(pkg["mydataframe1.parquet"].physical_key.path)
+        # The logged path comes straight from the physical key, so compare against that string
+        # rather than str(Path(...)), which differs on Windows.
+        temp_key = pkg["mydataframe1.parquet"].physical_key.path
+        temp_path = pathlib.Path(temp_key)
         real_unlink = pathlib.Path.unlink
 
         # Fail only for the temp file, so cleanup aimed at the wrong path fails this test
@@ -858,7 +861,7 @@ class PackageTest(QuiltTestCase):
         ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
-        assert any(f"Failed to remove temporary file {temp_path}" in line for line in logs.output)
+        assert any(f"Failed to remove temporary file {temp_key}" in line for line in logs.output)
         assert temp_path.exists(), "a cleanup failure leaves the temp file behind"
         temp_path.unlink()
 
