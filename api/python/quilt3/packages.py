@@ -1642,8 +1642,8 @@ class Package:
         # Materialized first: _set() below mutates what walk() iterates.
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
         for lk in temp_file_logical_keys:
-            # Delete tmp files created by pkg.set('KEY', obj). The data is already uploaded, so a
-            # file we cannot remove is a leaked scratch file, not a reason to fail the push.
+            # Delete tmp files created by pkg.set('KEY', obj). Cleanup is best-effort: a file we
+            # cannot remove is a leaked scratch file, not a reason to fail a completed push.
             temp_pk = self[lk].physical_key
             try:
                 pathlib.Path(temp_pk.path).unlink(missing_ok=True)
