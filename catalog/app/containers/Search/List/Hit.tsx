@@ -189,7 +189,13 @@ export function Package({
   return (
     <Card {...props}>
       <Section grow>
-        <Link to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
+        <Link
+          to={urls.bucketPackageTree(
+            hit.bucket,
+            hit.name,
+            hit.pointer === 'latest' ? hit.pointer : hit.hash,
+          )}
+        >
           {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
           <Heading>{hit.name}</Heading>
         </Link>
@@ -237,7 +243,7 @@ interface ObjectProps {
   showBucket?: boolean
 }
 
-export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
+function HitObject({ hit, showBucket = false, ...props }: ObjectProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -271,6 +277,8 @@ export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
     </Card>
   )
 }
+
+export { HitObject as Object }
 
 interface PreviewDisplayProps {
   handle: S3ObjectLocation

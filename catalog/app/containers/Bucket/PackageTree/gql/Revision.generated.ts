@@ -1,33 +1,40 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageTree_gql_RevisionQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
-  name: Types.Scalars['String']
-  hashOrTag: Types.Scalars['String']
+export type containers_Bucket_PackageTree_gql_RevisionQueryVariables = Exact<{
+  bucket: string
+  name: string
+  hashOrTag: string
 }>
 
-export type containers_Bucket_PackageTree_gql_RevisionQuery = {
+export interface containers_Bucket_PackageTree_gql_RevisionQuery {
   readonly __typename: 'Query'
-} & {
-  readonly package: Types.Maybe<
-    { readonly __typename: 'Package' } & Pick<Types.Package, 'bucket' | 'name'> & {
-        readonly revision: Types.Maybe<
-          { readonly __typename: 'PackageRevision' } & Pick<
-            Types.PackageRevision,
-            'hash' | 'modified' | 'totalBytes' | 'message' | 'userMeta' | 'totalEntries'
-          > & {
-              readonly workflow: Types.Maybe<
-                { readonly __typename: 'PackageWorkflow' } & Pick<
-                  Types.PackageWorkflow,
-                  'id' | 'config'
-                >
-              >
-            }
-        >
-      }
-  >
+  readonly package: {
+    readonly __typename: 'Package'
+    readonly bucket: string
+    readonly name: string
+    readonly revision: {
+      readonly __typename: 'PackageRevision'
+      readonly hash: string
+      readonly modified: Date
+      readonly totalBytes: number | null
+      readonly message: string | null
+      readonly userMeta: JsonRecord | null
+      readonly totalEntries: number | null
+      readonly workflow: {
+        readonly __typename: 'PackageWorkflow'
+        readonly id: string | null
+        readonly config: string
+      } | null
+    } | null
+  } | null
 }
 
 export const containers_Bucket_PackageTree_gql_RevisionDocument = {

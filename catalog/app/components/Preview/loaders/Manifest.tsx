@@ -1,11 +1,12 @@
 import { extname } from 'path'
 
-import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
+import HljsBoundary from 'utils/HljsBoundary'
+import hljs, { ensureLanguages } from 'utils/hljs'
 
 import { PreviewData, PreviewError } from '../types'
 
@@ -36,7 +37,11 @@ interface LoaderProps {
   handle: Model.S3.S3ObjectLocation
 }
 
-export const Loader = function ManifestLoader({ gated, handle, children }: LoaderProps) {
+const ManifestLoaderInner = function ManifestLoader({
+  gated,
+  handle,
+  children,
+}: LoaderProps) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
@@ -58,12 +63,13 @@ export const Loader = function ManifestLoader({ gated, handle, children }: Loade
           })),
           entries,
         )
-        return PreviewData.Perspective({ packageMeta, data: packageEntries })
+        return PreviewData.Perspective({ meta: packageMeta, data: packageEntries })
       } catch (e) {
         if (e instanceof SyntaxError) {
           const head = data.head.join('\n')
           const tail = data.tail.join('\n')
           const lang = 'json'
+          ensureLanguages([lang])
           // @ts-expect-error ts can't find appropriate type declaration
           const highlighted = R.map(hl(lang), { head, tail })
           return PreviewData.Text({
@@ -79,9 +85,21 @@ export const Loader = function ManifestLoader({ gated, handle, children }: Loade
     [],
   )
   const handled = utils.useErrorHandling(processed, { handle, retry: fetch })
-  return children(
-    gated && AsyncResult.Init.is(handled)
-      ? AsyncResult.Err(PreviewError.Gated({ handle, load: fetch }))
-      : handled,
+  return (
+    <>
+      {children(
+        gated && AsyncResult.Init.is(handled)
+          ? AsyncResult.Err(PreviewError.Gated({ handle, load: fetch }))
+          : handled,
+      )}
+    </>
+  )
+}
+
+export const Loader = function GatedManifestLoader(props: LoaderProps) {
+  return (
+    <HljsBoundary fallback={props.children(AsyncResult.Pending())}>
+      <ManifestLoaderInner {...props} />
+    </HljsBoundary>
   )
 }

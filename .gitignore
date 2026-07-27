@@ -44,3 +44,4 @@ _build
 .env
 
 .aider*
+/.codex

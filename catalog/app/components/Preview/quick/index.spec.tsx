@@ -1,16 +1,19 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import type * as FileEditor from 'components/FileEditor'
 
 import { QuickPreview, isQuickPreviewAvailable } from './index'
 
-jest.mock('./Markdown', () => ({
-  ...jest.requireActual('./Markdown'),
+vi.mock('./Markdown', async () => ({
+  ...(await vi.importActual('./Markdown')),
   Render: () => <h1>This is Markdown quick preview</h1>,
 }))
 
 describe('app/components/Preview/quick/index.spec.tsx', () => {
+  afterEach(cleanup)
+
   describe('isQuickPreviewAvailable', () => {
     it('should say if quick preview is available', () => {
       const types: FileEditor.EditorInputType[] = [
@@ -29,26 +32,26 @@ describe('app/components/Preview/quick/index.spec.tsx', () => {
     }
 
     it('renders no value', () => {
-      const { container } = render(
+      const { getByText } = render(
         <QuickPreview {...{ handle, type: { brace: 'markdown' as const }, value: '' }} />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByText('There is no content for quick preview')).toBeTruthy()
     })
 
     it('renders no preview if unsupported file type', () => {
-      const { container } = render(
+      const { getByText } = render(
         <QuickPreview {...{ handle, type: { brace: 'json' as const }, value: '' }} />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByText('There is no content for quick preview')).toBeTruthy()
     })
 
     it('renders Markdown', () => {
-      const { container } = render(
+      const { getByText } = render(
         <QuickPreview
           {...{ handle, type: { brace: 'markdown' as const }, value: '=== Title' }}
         />,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(getByText('This is Markdown quick preview')).toBeTruthy()
     })
   })
 })

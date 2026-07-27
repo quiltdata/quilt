@@ -6,6 +6,7 @@ import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageUri from 'utils/PackageUri'
 import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
@@ -22,11 +23,12 @@ export function useEditFileInPackage(
   return React.useCallback(
     (logicalKey: string) =>
       urls.bucketFile(fileHandle.bucket, fileHandle.key, {
-        add: logicalKey,
-        edit: true,
-        next: urls.bucketPackageDetail(packageHandle.bucket, packageHandle.name, {
-          action: 'revisePackage',
+        add: PackageUri.stringify({
+          bucket: packageHandle.bucket,
+          name: packageHandle.name,
+          path: logicalKey,
         }),
+        edit: true,
       }),
     [fileHandle, packageHandle, urls],
   )
@@ -40,15 +42,16 @@ export function useAddFileInPackage(
     (logicalKey: string) => {
       const { bucket, name } = packageHandle
       invariant(logicalKey, '`logicalKey` can not be empty')
-      return urls.bucketFile(
-        bucket,
-        s3paths.canonicalKey(name, logicalKey, cfg.packageRoot),
-        {
-          add: logicalKey,
-          edit: true,
-          next: urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' }),
-        },
-      )
+
+      const key = s3paths.canonicalKey(name, logicalKey, cfg.packageRoot)
+      return urls.bucketFile(bucket, key, {
+        add: PackageUri.stringify({
+          bucket,
+          name,
+          path: logicalKey,
+        }),
+        edit: true,
+      })
     },
     [packageHandle, urls],
   )

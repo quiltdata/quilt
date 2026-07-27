@@ -1,29 +1,61 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { Json } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-import {
-  BucketConfigSelectionFragment,
-  BucketConfigSelectionFragmentDoc,
-} from './BucketConfigSelection.generated'
+export interface BucketUpdateInput {
+  readonly browsable: boolean | null | undefined
+  readonly description: string | null | undefined
+  readonly fileExtensionsToIndex: Array<string> | null | undefined
+  readonly iconUrl: string | null | undefined
+  readonly indexContentBytes: number | null | undefined
+  readonly linkedData: Json | null | undefined
+  readonly overviewUrl: string | null | undefined
+  readonly prefixes: Array<string> | null | undefined
+  readonly relevanceScore: number | null | undefined
+  readonly scannerParallelShardsDepth: number | null | undefined
+  readonly skipMetaDataIndexing: boolean | null | undefined
+  readonly snsNotificationArn: string | null | undefined
+  readonly tags: Array<string> | null | undefined
+  readonly title: string
+}
 
-export type containers_Admin_Buckets_gql_BucketsUpdateMutationVariables = Types.Exact<{
-  name: Types.Scalars['String']
+export type containers_Admin_Buckets_gql_BucketsUpdateMutationVariables = Exact<{
+  name: string
   input: Types.BucketUpdateInput
 }>
 
-export type containers_Admin_Buckets_gql_BucketsUpdateMutation = {
+export interface containers_Admin_Buckets_gql_BucketsUpdateMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly bucketUpdate:
-    | ({ readonly __typename: 'BucketUpdateSuccess' } & {
-        readonly bucketConfig: {
-          readonly __typename: 'BucketConfig'
-        } & BucketConfigSelectionFragment
-      })
     | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
     | { readonly __typename: 'BucketIndexContentBytesInvalid' }
     | { readonly __typename: 'BucketNotFound' }
+    | {
+        readonly __typename: 'BucketUpdateSuccess'
+        readonly bucketConfig: {
+          readonly __typename: 'BucketConfig'
+          readonly name: string
+          readonly title: string
+          readonly iconUrl: string | null
+          readonly description: string | null
+          readonly relevanceScore: number
+          readonly tags: ReadonlyArray<string> | null
+          readonly fileExtensionsToIndex: ReadonlyArray<string> | null
+          readonly indexContentBytes: number | null
+          readonly scannerParallelShardsDepth: number | null
+          readonly snsNotificationArn: string | null
+          readonly skipMetaDataIndexing: boolean | null
+          readonly lastIndexed: Date | null
+          readonly browsable: boolean
+        }
+      }
+    | { readonly __typename: 'InsufficientPermissions'; readonly message: string }
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }
     | { readonly __typename: 'SnsInvalid' }
@@ -103,13 +135,48 @@ export const containers_Admin_Buckets_gql_BucketsUpdateDocument = {
                     ],
                   },
                 },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'InsufficientPermissions' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                    ],
+                  },
+                },
               ],
             },
           },
         ],
       },
     },
-    ...BucketConfigSelectionFragmentDoc.definitions,
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'BucketConfigSelection' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'BucketConfig' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'iconUrl' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'relevanceScore' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'fileExtensionsToIndex' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'indexContentBytes' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'scannerParallelShardsDepth' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'snsNotificationArn' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
+        ],
+      },
+    },
   ],
 } as unknown as DocumentNode<
   containers_Admin_Buckets_gql_BucketsUpdateMutation,

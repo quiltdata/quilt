@@ -21,6 +21,25 @@ are enabled on the stack). These limits do not apply to the `quilt3` Python API.
  Maximum number of files per push (soft limit)              | 1,000
  Maximum number of files per push (hard limit)              | 5,000
 
+#### Important note about S3 prefix enumeration
+
+When creating a package from an S3 prefix (folder) using the Catalog GUI, the
+interface will display a warning if the prefix contains more than 1,000 files
+(the soft limit): "Total number of files exceeds recommended maximum of 1000."
+You can proceed past this warning, but the number of files the Catalog
+enumerates from S3 may vary, and browser performance may degrade with large
+file counts. The hard limit is 5,000 files per push (see table above).
+Additionally, S3 does not guarantee a stable ordering of listed objects, so
+the exact set of files included may differ between attempts.
+
+**Workarounds for large directories:**
+
+- Use the `quilt3` Python API's `Package.set_dir()` method, which has no such
+  limitation
+- Use the [Packaging Engine](../Catalog/Packaging.md) to automate package
+  creation from S3 prefixes
+- Split your data into multiple packages, each under the 1,000 file limit
+
 ### API
 
 As of this writing, with sufficient client-side memory, you can comfortable scale

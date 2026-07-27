@@ -1,12 +1,11 @@
+import { describe, expect, it, vi } from 'vitest'
+
 import Log from 'utils/Logging'
 
 import type * as Model from './requests'
 import { doQueryResultsContainManifestEntries, parseQueryResults } from './createPackage'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('containers/Bucket/Queries/Athena/model/createPackage', () => {
   describe('parseQueryResults', () => {

@@ -1,30 +1,36 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../../model/graphql/types.generated'
 
 export type components_Preview_loaders_Html_gql_RefreshBrowsingSessionMutationVariables =
-  Types.Exact<{
-    id: Types.Scalars['ID']
-    ttl: Types.Maybe<Types.Scalars['Int']>
+  Exact<{
+    id: string | number
+    ttl: number | null | undefined
   }>
 
-export type components_Preview_loaders_Html_gql_RefreshBrowsingSessionMutation = {
+export interface components_Preview_loaders_Html_gql_RefreshBrowsingSessionMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly browsingSessionRefresh:
-    | ({ readonly __typename: 'BrowsingSession' } & Pick<Types.BrowsingSession, 'id'>)
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'name' | 'path' | 'message'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message'
-      >)
+    | { readonly __typename: 'BrowsingSession'; readonly id: string }
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly name: string
+          readonly path: string | null
+          readonly message: string
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+      }
 }
 
 export const components_Preview_loaders_Html_gql_RefreshBrowsingSessionDocument = {

@@ -6,7 +6,7 @@ import cfg from 'constants/config'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { useIsInStack } from 'utils/BucketConfig'
+import { useIsInStack } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
@@ -22,7 +22,7 @@ import * as Text from '../Text'
 import FileType from '../fileType'
 import * as utils from '../utils'
 
-import BUCKET_CONFIG_QUERY from './gql/BrowsableBucketConfig.generated'
+import BROWSABLE_BUCKET_QUERY from './gql/BrowsableBucket.generated'
 import CREATE_BROWSING_SESSION from './gql/CreateBrowsingSession.generated'
 import DISPOSE_BROWSING_SESSION from './gql/DisposeBrowsingSession.generated'
 import REFRESH_BROWSING_SESSION from './gql/RefreshBrowsingSession.generated'
@@ -166,13 +166,13 @@ function useSession(handle: FileHandle) {
   React.useEffect(() => {
     let disposed = false
     let sessionId: SessionId | null = null
-    let timer: NodeJS.Timer
+    let timer: number
 
     const handleError = (e: unknown) => {
       if (disposed) return
       log.error(e)
       Sentry.captureException(e)
-      clearInterval(timer)
+      window.clearInterval(timer)
       setResult(AsyncResult.Err(mapPreviewError(retry, e)))
     }
 
@@ -180,7 +180,7 @@ function useSession(handle: FileHandle) {
       if (disposed) return
       sessionId = id
       setResult(AsyncResult.Ok(sessionId))
-      timer = setInterval(
+      timer = window.setInterval(
         () => refreshSession(sessionId).catch(handleError),
         REFRESH_INTERVAL,
       )
@@ -188,7 +188,7 @@ function useSession(handle: FileHandle) {
 
     return () => {
       disposed = true
-      clearInterval(timer)
+      window.clearInterval(timer)
       disposeSession(sessionId)
     }
   }, [key, createSession, disposeSession, refreshSession, retry, scope])
@@ -257,19 +257,16 @@ interface IFrameLoaderProps {
 }
 
 function IFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const bucketData = GQL.useQuery(BUCKET_CONFIG_QUERY, { bucket: handle.bucket })
+  const bucketData = GQL.useQuery(BROWSABLE_BUCKET_QUERY, { bucket: handle.bucket })
   const inPackage = !!handle.packageHandle
   return GQL.fold(bucketData, {
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
-    data: ({ bucketConfig }) =>
-      bucketConfig?.browsable && inPackage ? (
+    data: ({ bucket }) =>
+      bucket?.browsable && inPackage ? (
         <IFrameLoaderBrowsable {...{ handle, children }} />
       ) : (
-        <IFrameLoaderSigned
-          {...{ handle, children }}
-          browsable={!!bucketConfig?.browsable}
-        />
+        <IFrameLoaderSigned {...{ handle, children }} browsable={!!bucket?.browsable} />
       ),
   })
 }

@@ -3,18 +3,23 @@ extensions:
   codegen:
     hooks:
       afterAllFileWrite:
-        - eslint --fix
-        - prettier --write
+        - oxfmt --write
     generates:
       ./app/:
         documents: './app/**/*.graphql'
-        preset: ./internals/graphql-codegen/quilt-graphql
+        preset: ./internals/graphql-codegen/quilt-graphql.js
         presetConfig:
           baseTypesPath: model/graphql/types.generated.ts
           schemaIntrospectionPath: model/graphql/schema.generated.ts
         plugins:
-          - ./internals/graphql-codegen/quilt-graphql
+          - ./internals/graphql-codegen/quilt-graphql.js
         config:
+          # Operations are anonymous one-per-file and named by the preset from their
+          # path; v7 validates the merged document set, so ignore the cross-file
+          # LoneAnonymousOperation rule (each file still has exactly one operation).
+          skipDocumentsValidation:
+            ignoreRules:
+              - LoneAnonymousOperation
           scalars:
             Datetime: Date
             Json: utils/types#Json

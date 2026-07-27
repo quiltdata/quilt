@@ -6,7 +6,6 @@ Contains the Bucket class, which provides several useful functions
 """
 
 import pathlib
-import typing as T
 
 from .data_transfer import (
     copy_file,
@@ -38,7 +37,7 @@ class Bucket:
         if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
 
-    def search(self, query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
+    def search(self, query: str | dict, limit: int = 10) -> list[dict]:
         """
         Execute a search against the configured search endpoint.
 
@@ -48,8 +47,8 @@ class Bucket:
 
         Query Syntax:
             [Query String Query](
-                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
-            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
+                https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html)
+            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl.html)
 
         Index schemas and search examples can be found in the
         [Quilt Search documentation](https://docs.quilt.bio/quilt-platform-catalog-user/search).

@@ -1,22 +1,26 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutationVariables =
-  Types.Exact<{
-    id: Types.Scalars['ID']
-  }>
+export type containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutationVariables = Exact<{
+  id: string | number
+}>
 
-export type containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutation = {
+export interface containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly roleSetDefault:
-    | ({ readonly __typename: 'RoleSetDefaultSuccess' } & {
-        readonly role:
-          | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
-          | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
-      })
     | { readonly __typename: 'RoleDoesNotExist' }
+    | {
+        readonly __typename: 'RoleSetDefaultSuccess'
+        readonly role:
+          | { readonly __typename: 'ManagedRole'; readonly id: string }
+          | { readonly __typename: 'UnmanagedRole'; readonly id: string }
+      }
     | { readonly __typename: 'SsoConfigConflict' }
 }
 

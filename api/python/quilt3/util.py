@@ -102,10 +102,8 @@ def get_pos_int_from_env(var_name):
 
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
-        # We use NewError("Prefix: " + str(error)) a lot.
-        # To be consistent across Python 2.7 and 3.x:
-        # 1) This `super` call must exist, or 2.7 will have no text for str(error)
-        # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
+        # Overwrites the `args` that `BaseException.__new__` seeded from a subclass's own positional
+        # args, so `str(e)` is the message; passing more than the message makes it an args repr.
         super().__init__(message)
         self.message = message
         for k, v in kwargs.items():
@@ -487,10 +485,10 @@ def quiltignore_filter(paths, ignore, url_scheme):
                 # e.g. both foo and foo/ will match the ignore rule "foo"
                 # but only foo/ will match the ignore rule "foo/"
                 if fnmatch(pkg_dir.as_posix() + "/", ignore_rule) or fnmatch(pkg_dir.as_posix(), ignore_rule):
-                    files = set(n for n in files if pkg_dir not in n.parents)
+                    files = {n for n in files if pkg_dir not in n.parents}
                     dirs = dirs - {pkg_dir}
 
-            files = set(n for n in files if not fnmatch(n, ignore_rule))
+            files = {n for n in files if not fnmatch(n, ignore_rule)}
 
         return files.union(dirs)
     else:

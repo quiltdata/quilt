@@ -6,14 +6,35 @@ that displays all files in the bucket.
 
 > If desired, [this tab can be hidden](./Preferences.md).
 
+## Uploading and deleting files
+
+You can upload files directly to a bucket by dragging them onto the file
+listing or using the **Add Files** button (including into a new
+subfolder). One or more files can also be deleted from the listing or via
+the **Organize** menu without leaving the Catalog. On
+versioning-enabled buckets, deletion adds a delete marker so prior
+versions remain available from packages; on unversioned buckets the
+object is permanently removed.
+
+File and directory delete buttons are hidden by default. Administrators
+can enable them by setting `ui.actions.deleteObject` in the
+[Catalog configuration](./Preferences.md).
+
 ## Creating packages from bucket files
 
 You can create packages directly from files already stored in S3 buckets
-without downloading and re-uploading them.
+without downloading and re-uploading them. Even without a workflow
+configuration file, users can create packages from files in the current
+bucket, either by selecting them directly or by using **Add Files from
+Bucket** when revising a package. To disable adding files from any
+bucket (including the current one), set `ui.sourceBuckets` to an empty
+dictionary `{}` in the [Catalog configuration](./Preferences.md).
 
-By default, this functionality is available for all files in the current bucket.
-To restrict package creation from files, administrators can configure
-an empty `successors: {}` in the bucket's [workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog).
+Package creation uses the current bucket by default.
+With workflow configuration,
+only explicit `successors` are available as destinations. See
+[workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog)
+for details.
 
 ![Create package](../imgs/catalog-filesbrowser-create-package.png)
 
@@ -55,6 +76,12 @@ format (the default is README.md), enter your content, and click save.
 
 ![Edit file](../imgs/catalog-texteditor-main.png)
 
+## Copy URI button
+
+Files and directories include a copy-URI action on the download button,
+making it easy to copy an `s3://` URI for use in scripts, notebooks, and
+CLI workflows.
+
 ## Working with Amazon S3 Glacier storage classes
 
 Glacier storage classes are built for data archiving. Quilt is
@@ -75,12 +102,35 @@ not immediately available and appear "grayed out" in the Catalog.
 ![Glacier S3 objects list
 view](../imgs/catalog-filesbrowser-glacier-listview.png)
 
-Previewing a specific "glacierized" S3 object returns an "Object
-Archived: Preview not available" message. To successfully preview
-the S3 object, you need to restore it first.
+Previewing a specific "glacierized" S3 object shows an "Object Archived"
+message explaining that the preview is unavailable until the object is
+rehydrated, along with a **Rehydrate** button.
 
-![Glacier S3 objects object
-view](../imgs/catalog-filesbrowser-glacier-objectview.png)
+![Glacier S3 object preview with Rehydrate
+button](../imgs/catalog-filesbrowser-glacier-rehydrate.png)
+
+### Restoring archived objects from the Catalog
+
+> New in Quilt Platform version 1.70
+
+You can restore (rehydrate) archived Glacier and Deep Archive objects
+directly from the file preview in the Quilt Catalog — no AWS Console or CLI
+required. Click **Rehydrate** on the archived object's page, then choose a
+retrieval **tier** (Standard, Bulk, or Expedited) and a **duration** (1–90
+days) for how long the restored copy stays downloadable:
+
+![Rehydrate from Glacier dialog with retrieval tier and
+duration](../imgs/catalog-filesbrowser-glacier-rehydrate-dialog.png)
+
+Quilt issues the `s3:RestoreObject` request on your behalf and reads restore
+state back from the object's S3 metadata, so the page reflects whether a
+restore is in progress, complete, or expired. Rehydration is temporary — the
+object returns to archived storage after the chosen duration, and the
+archived object itself is never lost.
+
+Managed read/write roles automatically include `s3:RestoreObject`. Admins
+can hide the **Rehydrate** control via the `ui.actions.restore` preference
+(see [Preferences](Preferences.md)).
 
 > The AWS Glacier service is rapidly evolving and may impact the
 functionality of the Quilt Catalog and/or API.

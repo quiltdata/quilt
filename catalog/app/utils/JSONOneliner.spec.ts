@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 import { Json } from 'utils/types'
 
 import * as JSONOneliner from './JSONOneliner'

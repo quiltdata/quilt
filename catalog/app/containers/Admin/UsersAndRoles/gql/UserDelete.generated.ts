@@ -1,34 +1,44 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_UserDeleteMutationVariables = Types.Exact<{
-  name: Types.Scalars['String']
+export type containers_Admin_UsersAndRoles_gql_UserDeleteMutationVariables = Exact<{
+  name: string
 }>
 
-export type containers_Admin_UsersAndRoles_gql_UserDeleteMutation = {
+export interface containers_Admin_UsersAndRoles_gql_UserDeleteMutation {
   readonly __typename: 'Mutation'
-} & {
-  readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly user: { readonly __typename: 'UserAdminMutations' } & {
-      readonly mutate: Types.Maybe<
-        { readonly __typename: 'MutateUserAdminMutations' } & {
-          readonly delete:
-            | { readonly __typename: 'Ok' }
-            | ({ readonly __typename: 'InvalidInput' } & {
-                readonly errors: ReadonlyArray<
-                  { readonly __typename: 'InputError' } & Pick<
-                    Types.InputError,
-                    'path' | 'message' | 'name' | 'context'
-                  >
-                >
-              })
-            | ({ readonly __typename: 'OperationError' } & Pick<
-                Types.OperationError,
-                'message' | 'name' | 'context'
-              >)
-        }
-      >
+  readonly admin: {
+    readonly __typename: 'AdminMutations'
+    readonly user: {
+      readonly __typename: 'UserAdminMutations'
+      readonly mutate: {
+        readonly __typename: 'MutateUserAdminMutations'
+        readonly delete:
+          | {
+              readonly __typename: 'InvalidInput'
+              readonly errors: ReadonlyArray<{
+                readonly __typename: 'InputError'
+                readonly path: string | null
+                readonly message: string
+                readonly name: string
+                readonly context: JsonRecord | null
+              }>
+            }
+          | { readonly __typename: 'Ok' }
+          | {
+              readonly __typename: 'OperationError'
+              readonly message: string
+              readonly name: string
+              readonly context: JsonRecord | null
+            }
+      } | null
     }
   }
 }

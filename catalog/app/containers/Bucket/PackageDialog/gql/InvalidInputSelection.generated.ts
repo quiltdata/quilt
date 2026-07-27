@@ -1,11 +1,17 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type InvalidInputSelectionFragment = { readonly __typename: 'InvalidInput' } & {
-  readonly errors: ReadonlyArray<
-    { readonly __typename: 'InputError' } & Pick<Types.InputError, 'path' | 'message'>
-  >
+export type InvalidInputSelectionFragment = {
+  readonly __typename: 'InvalidInput'
+  readonly errors: ReadonlyArray<{
+    readonly __typename: 'InputError'
+    readonly path: string | null
+    readonly message: string
+  }>
 }
 
 export const InvalidInputSelectionFragmentDoc = {

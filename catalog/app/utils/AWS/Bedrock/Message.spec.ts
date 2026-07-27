@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 import * as Message from './Message'
 
 describe('utils/AWS/Bedrock/Message', () => {
@@ -18,30 +20,29 @@ describe('utils/AWS/Bedrock/Message', () => {
   })
 
   describe('bedrockBodyToMessage', () => {
-    it('Support application/json only', async () => {
+    it('Support application/json only', () =>
       expect(Message.bedrockBodyToMessage('foo', 'text/html')).rejects.toThrow(
         'Unsupported content type',
-      )
-    })
+      ))
 
     it('Throws on invalid formats', async () => {
-      expect(Message.bedrockBodyToMessage('foo', 'application/json')).rejects.toThrow(
-        'is not valid JSON',
-      )
+      await expect(
+        Message.bedrockBodyToMessage('foo', 'application/json'),
+      ).rejects.toThrow('is not valid JSON')
 
-      expect(
+      await expect(
         Message.bedrockBodyToMessage('{"foo": "bar"}', 'application/json'),
       ).rejects.toThrow('`content` is empty')
 
-      expect(
+      await expect(
         Message.bedrockBodyToMessage('{"content": {"foo": "bar"}}', 'application/json'),
       ).rejects.toThrow('Unsupported `content` type')
 
-      expect(
+      await expect(
         Message.bedrockBodyToMessage('{"content": []}', 'application/json'),
       ).rejects.toThrow('`content` list is empty')
 
-      expect(
+      await expect(
         Message.bedrockBodyToMessage(
           '{"content": [{"type": "foo"}]}',
           'application/json',

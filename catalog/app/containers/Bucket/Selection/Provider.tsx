@@ -41,7 +41,8 @@ export function Provider({ children }: ProviderProps) {
     [selection],
   )
   const handleMerge = React.useCallback(
-    (ids, bucket, path, filter) => setSelection(merge(ids, bucket, path, filter)),
+    (ids: SelectionItem[], bucket: string, path: string, filter?: string) =>
+      setSelection(merge(ids, bucket, path, filter)),
     [],
   )
   const clear = React.useCallback(() => setSelection(EMPTY_MAP), [])

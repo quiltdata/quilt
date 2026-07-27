@@ -1,17 +1,21 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Buckets_gql_BucketsRemoveMutationVariables = Types.Exact<{
-  name: Types.Scalars['String']
+export type containers_Admin_Buckets_gql_BucketsRemoveMutationVariables = Exact<{
+  name: string
 }>
 
-export type containers_Admin_Buckets_gql_BucketsRemoveMutation = {
+export interface containers_Admin_Buckets_gql_BucketsRemoveMutation {
   readonly __typename: 'Mutation'
-} & {
   readonly bucketRemove:
-    | { readonly __typename: 'BucketRemoveSuccess' }
     | { readonly __typename: 'BucketNotFound' }
+    | { readonly __typename: 'BucketRemoveSuccess' }
     | { readonly __typename: 'IndexingInProgress' }
 }
 

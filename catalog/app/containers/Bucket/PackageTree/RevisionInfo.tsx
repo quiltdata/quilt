@@ -89,7 +89,7 @@ export default function RevisionInfo({
     (e: React.MouseEvent) => {
       e.preventDefault()
       copyToClipboard(getHttpsUri(h), { container: containerRef?.current || undefined })
-      push('Canonical URI copied to clipboard')
+      push('Catalog URL copied to clipboard')
     }
 
   const comparePair: [string, string] | null = React.useMemo(() => {
@@ -122,7 +122,7 @@ export default function RevisionInfo({
       {!!hash && (
         <M.IconButton
           size="small"
-          title="Copy package revision's canonical catalog URI to the clipboard"
+          title="Copy package revision's catalog URL to the clipboard"
           href={getHttpsUri(hash)}
           onClick={copyHttpsUri(hash)}
           className={classes.shortcut}
@@ -165,7 +165,7 @@ export default function RevisionInfo({
                     />
                     <M.ListItemSecondaryAction>
                       <M.IconButton
-                        title="Copy package revision's canonical catalog URI to the clipboard"
+                        title="Copy package revision's catalog URL to the clipboard"
                         href={getHttpsUri(r.hash)}
                         onClick={copyHttpsUri(r.hash, listRef)}
                       >

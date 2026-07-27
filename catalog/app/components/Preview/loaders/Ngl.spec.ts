@@ -1,11 +1,11 @@
+import { describe, expect, it, vi } from 'vitest'
 import { parseResponse } from './Ngl'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
+vi.mock('constants/config', () => ({
+  default: {
     apiGatewayEndpoint: '',
-  })),
-)
+  },
+}))
 
 const fileA = `fileA.sdf
 Molecule A description

@@ -1,25 +1,28 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_File_gql_ObjectAccessCountsQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
-  key: Types.Scalars['String']
+export type containers_Bucket_File_gql_ObjectAccessCountsQueryVariables = Exact<{
+  bucket: string
+  key: string
 }>
 
-export type containers_Bucket_File_gql_ObjectAccessCountsQuery = {
+export interface containers_Bucket_File_gql_ObjectAccessCountsQuery {
   readonly __typename: 'Query'
-} & {
-  readonly objectAccessCounts: Types.Maybe<
-    { readonly __typename: 'AccessCounts' } & Pick<Types.AccessCounts, 'total'> & {
-        readonly counts: ReadonlyArray<
-          { readonly __typename: 'AccessCountForDate' } & Pick<
-            Types.AccessCountForDate,
-            'date' | 'value'
-          >
-        >
-      }
-  >
+  readonly objectAccessCounts: {
+    readonly __typename: 'AccessCounts'
+    readonly total: number
+    readonly counts: ReadonlyArray<{
+      readonly __typename: 'AccessCountForDate'
+      readonly date: Date
+      readonly value: number
+    }>
+  } | null
 }
 
 export const containers_Bucket_File_gql_ObjectAccessCountsDocument = {

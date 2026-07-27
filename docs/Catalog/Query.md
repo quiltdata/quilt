@@ -7,7 +7,7 @@ queries that you run.
 The Catalog's Queries tab allows you to run Athena queries against your S3
 buckets, and any other data sources your users have access to. There are
 prebuilt tables for packages and objects, and you can create your own tables and
-views. See, for example, [Tabulator](advanced-features/tabulator.md).
+views. See, for example, [Tabulator](../advanced-features/tabulator.md).
 
 NOTE: This page describes how to use Athena for precise querying of specific
 tables and fields. For full-text searching using Elasticsearch, see the
@@ -26,28 +26,34 @@ tables and fields. For full-text searching using Elasticsearch, see the
 ## Example: query package-level metadata
 
 Suppose we wish to find all packages produced by algorithm version 1.3 with a
-cell index of 5.
+cell index of 5. As of Quilt Platform version 1.70, package-level metadata
+lives in the per-bucket [Iceberg `package_manifest`
+table](../advanced-features/iceberg-tables.md), which replaced the old
+`*_packages-view` Athena view:
 
 ```sql
-SELECT * FROM "YOUR-BUCKET_packages-view"
+SELECT * FROM "YOUR-BUCKET_package_manifest"
 -- extract and query package-level metadata
-WHERE json_extract_scalar(meta, 
+WHERE json_extract_scalar(metadata,
   '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
-AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
+AND json_array_contains(json_extract(metadata, '$.user_meta.cellindex'), '5');
 ```
 
 ## Example: query object-level metadata
 
 Suppose we wish to find all .tiff files produced by algorithm version 1.3
-with a cell index of 5.
+with a cell index of 5. Object-level (file entry) metadata is now in the
+per-bucket [Iceberg `package_entry`
+table](../advanced-features/iceberg-tables.md), which replaced the old
+`*_objects-view` Athena view:
 
 ```sql
-SELECT * FROM "YOUR-BUCKET_objects-view"
+SELECT * FROM "YOUR-BUCKET_package_entry"
 WHERE substr(logical_key, -5) = '.tiff'
 -- extract and query object-level metadata
-AND json_extract_scalar(meta, 
+AND json_extract_scalar(metadata,
   '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
-AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
+AND json_array_contains(json_extract(metadata, '$.user_meta.cellindex'), '5');
 ```
 
 ## Configuration

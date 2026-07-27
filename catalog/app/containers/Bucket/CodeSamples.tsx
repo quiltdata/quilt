@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import { docs } from 'constants/urls'
 import Code from 'containers/Bucket/Download/Code'
+import * as s3paths from 'utils/s3paths'
 
 interface SampleProps {
   className: string
@@ -53,7 +54,9 @@ export function CliFetch({ className, bucket, path, dest }: FetchSampleProps) {
       label="Download using AWS CLI"
       hl="bash"
       help="https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html"
-      lines={[`aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"`]}
+      lines={[
+        `aws s3 cp${s3paths.isDir(path) ? ' --recursive ' : ' '}"s3://${bucket}/${path}" "./${dest}"`,
+      ]}
     />
   )
 }

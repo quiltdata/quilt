@@ -452,7 +452,9 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
+  const src = React.useMemo(() => ({ bucket, name }), [bucket, name])
+  const dst = React.useMemo(() => ({ bucket }), [bucket])
+  const updateDialog = PD.useCreateDialog({ dst, src })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -555,28 +557,3 @@ export default function PackageRevisionsWrapper() {
     </>
   )
 }
-
-// TODO: restore linked data
-/*
-{!!bucketCfg &&
-  AsyncResult.case(
-    {
-      _: () => null,
-      Ok: ({ hash, modified, header }) => (
-        <React.Suspense fallback={null}>
-          <LinkedData.PackageData
-            {...{
-              bucket: bucketCfg,
-              name,
-              revision: r,
-              hash,
-              modified,
-              header,
-            }}
-          />
-        </React.Suspense>
-      ),
-    },
-    res,
-  )}
-*/

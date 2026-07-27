@@ -1,5 +1,3 @@
-import { join as pathJoin } from 'path'
-
 import * as Eff from 'effect'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
@@ -13,16 +11,10 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
+import { getArchiveState } from 'utils/glacier'
 import { decodeS3Key } from './utils'
 
-const promiseProps = (obj) =>
-  Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
-
 const parseDate = (d) => d && new Date(d)
-
-const getOverviewBucket = (url) => s3paths.parseS3Url(url).bucket
-const getOverviewPrefix = (url) => s3paths.parseS3Url(url).key
-const getOverviewKey = (url, path) => pathJoin(getOverviewPrefix(url), path)
 
 const processStats = R.applySpec({
   exts: R.pipe(
@@ -38,24 +30,7 @@ const processStats = R.applySpec({
   totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
 })
 
-export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
-  if (overviewUrl) {
-    try {
-      const r = await s3
-        .getObject({
-          Bucket: getOverviewBucket(overviewUrl),
-          Key: getOverviewKey(overviewUrl, 'stats.json'),
-        })
-        .promise()
-      return processStats(JSON.parse(r.Body.toString('utf-8')))
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-
+export const bucketStats = async ({ req, bucket }) => {
   try {
     const qs = mkSearch({ index: bucket, action: 'stats' })
     const result = await req(`/search${qs}`)
@@ -103,13 +78,16 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
+    const { restoring, archived } = getArchiveState(h.StorageClass, h.Restore)
     return ObjectExistence.Exists({
       bucket,
       key,
       version: h.VersionId,
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
-      archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
+      // `archived` carries the storage class (or `false`) — no separate field.
+      archived,
+      restoring,
       lastModified: parseDate(h.LastModified),
     })
   } catch (e) {
@@ -142,7 +120,8 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
 export const ensureObjectIsPresent = (...args) =>
   getObjectExistence(...args).then(
     ObjectExistence.case({
-      Exists: ({ deleted, archived, ...h }) => (deleted || archived ? null : h),
+      Exists: ({ deleted, archived, restoring, ...h }) =>
+        deleted || archived ? null : h,
       _: () => null,
     }),
   )
@@ -150,53 +129,10 @@ export const ensureObjectIsPresent = (...args) =>
 export const ensureQuiltSummarizeIsPresent = ({ s3, bucket }) =>
   ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
 
-export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
-  const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
-  if (handle) {
-    try {
-      return await summarize({ s3, handle })
-    } catch (e) {
-      const display = `${handle.bucket}/${handle.key}`
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch configured summary from '${display}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-  if (overviewUrl) {
-    try {
-      const r = await s3
-        .getObject({
-          Bucket: getOverviewBucket(overviewUrl),
-          Key: getOverviewKey(overviewUrl, 'summary.json'),
-        })
-        .promise()
-      return Eff.pipe(
-        JSON.parse(r.Body.toString('utf-8')),
-        R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          // eslint-disable-next-line no-underscore-dangle
-          version: b.latestVersion.hits.hits[0]._source.version_id,
-          lastModified: parseDate(b.lastModified),
-          // eslint-disable-next-line no-underscore-dangle
-          ext: b.latestVersion.hits.hits[0]._source.ext,
-        })),
-        R.sortWith([
-          R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
-          R.descend(R.prop('lastModified')),
-        ]),
-        R.take(SAMPLE_SIZE),
-        R.map(R.objOf('handle')),
-      )
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
+// Auto-discovered summary entries (no quilt_summarize.json): an Elasticsearch
+// sample when the bucket is in-stack, otherwise an S3 listing filtered by
+// extension. Each discovered file is its own single-file entry.
+const bucketSummaryFallback = async ({ s3, req, bucket, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
@@ -252,46 +188,36 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   return []
 }
 
-export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
-  promiseProps({
-    forced:
-      overviewUrl &&
-      ensureObjectIsPresent({
-        s3,
-        bucket: getOverviewBucket(overviewUrl),
-        key: getOverviewKey(overviewUrl, 'README.md'),
-      }),
-    discovered: Promise.all(
-      README_KEYS.map((key) => ensureObjectIsPresent({ s3, bucket, key })),
-    ).then(R.filter(Boolean)),
-  })
+// When `withSource` is false (the default, used by the legacy Overview), the
+// return value is the flat entries array. When
+// `withSource` is true, returns `{ entries, fromQuiltSummarize }` so callers
+// can tell whether the layout was user-authored (quilt_summarize.json) or
+// auto-discovered, and skip the auto-discovered case if they choose.
+export const bucketSummary = async ({ s3, req, bucket, inStack, withSource = false }) => {
+  const wrap = (entries, fromQuiltSummarize) =>
+    withSource ? { entries, fromQuiltSummarize } : entries
 
-export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
-  if (overviewUrl) {
+  const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
+  if (handle) {
     try {
-      const r = await s3
-        .getObject({
-          Bucket: getOverviewBucket(overviewUrl),
-          Key: getOverviewKey(overviewUrl, 'summary.json'),
-        })
-        .promise()
-      return Eff.pipe(
-        JSON.parse(r.Body.toString('utf-8')),
-        R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          // eslint-disable-next-line no-underscore-dangle
-          version: b.latestVersion.hits.hits[0]._source.version_id,
-        })),
-      )
+      return wrap(await summarize({ s3, handle }), true)
     } catch (e) {
+      const display = `${handle.bucket}/${handle.key}`
       // eslint-disable-next-line no-console
-      console.log(`Unable to fetch images sample from '${overviewUrl}':`)
+      console.log(`Unable to fetch configured summary from '${display}':`)
       // eslint-disable-next-line no-console
       console.error(e)
     }
   }
+  return wrap(await bucketSummaryFallback({ s3, req, bucket, inStack }), false)
+}
+
+export const bucketReadmes = ({ s3, bucket }) =>
+  Promise.all(README_KEYS.map((key) => ensureObjectIsPresent({ s3, bucket, key }))).then(
+    R.filter(Boolean),
+  )
+
+export const bucketImgs = async ({ req, s3, bucket, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })

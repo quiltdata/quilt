@@ -156,7 +156,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   split: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: `calc(50% - ${t.spacing(1)}px) calc(50% - ${t.spacing(1)}px)`,
     gap: t.spacing(2),
     width: '100%',
   },

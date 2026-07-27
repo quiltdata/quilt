@@ -705,7 +705,7 @@ function addMagicWildcardsQS(s: string | null): string | null {
   // - grouping: ( ) [ ] { }
   // - fuzzy search: ~
   // - negaion: -
-  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\+|\||\(|\)|\[|\]|\{|\}|\~|-/.test(s)) return s
+  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\+|\||\(|\)|\[|\]|\{|\}|~|-/.test(s)) return s
   // Append trailing wildcard for substring matching
   return `${s}*`
 }

@@ -1,4 +1,0 @@
--c requirements.txt
-pytest ~= 8.0
-pytest-cov ~= 6.0
-responses ~= 0.25.3

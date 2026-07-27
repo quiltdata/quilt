@@ -7,23 +7,23 @@ from unittest.mock import patch
 from botocore.session import Session
 from botocore.stub import Stubber
 
+from t4_lambda_access_counts import index
+
+
+def test_no_ctas_external_location():
+    # A CTAS specifying external_location fails outright in a workgroup that
+    # enforces a query results location — keep it out.
+    # https://docs.aws.amazon.com/athena/latest/ug/create-table-as.html
+    assert 'external_location' not in index.CREATE_PACKAGE_HASHES
+
 
 class TestAccessCounts(TestCase):
-    """Tests S3 Select"""
+    # Effective result location reported by Athena; the redirect subclass simulates
+    # a workgroup configuration overriding the requested location.
+    result_bucket = 'results-bucket'
+    result_prefix = 'AthenaQueryResults'
+
     def setUp(self):
-        self.env_patcher = patch.dict(os.environ, {
-            'AWS_ACCESS_KEY_ID': 'test_key',
-            'AWS_SECRET_ACCESS_KEY': 'test_secret',
-            'AWS_DEFAULT_REGION': 'ng-north-1',
-            'ATHENA_DATABASE': 'athena-db',
-            'CLOUDTRAIL_BUCKET': 'cloudtrail-bucket',
-            'QUERY_RESULT_BUCKET': 'results-bucket',
-            'ACCESS_COUNTS_OUTPUT_DIR': 'AccessCounts',
-        })
-        self.env_patcher.start()
-
-        import index
-
         self.s3_stubber = Stubber(index.s3)
         self.s3_stubber.activate()
 
@@ -33,7 +33,6 @@ class TestAccessCounts(TestCase):
     def tearDown(self):
         self.athena_stubber.deactivate()
         self.s3_stubber.deactivate()
-        self.env_patcher.stop()
 
     def _start_query(self, query, execution_id):
         self.athena_stubber.add_response(
@@ -43,7 +42,7 @@ class TestAccessCounts(TestCase):
                     'Database': 'athena-db'
                 },
                 'QueryString': query,
-                'ResultConfiguration': {'OutputLocation': 's3://results-bucket/AthenaQueryResults/'}
+                'WorkGroup': 'test-workgroup',
             },
             service_response={
                 'QueryExecutionId': execution_id
@@ -73,8 +72,6 @@ class TestAccessCounts(TestCase):
             self._end_query()
 
     def test_access_counts(self):
-        import index
-
         now = datetime.fromtimestamp(1234567890, timezone.utc)
         end_ts = now - timedelta(minutes=15)
         start_ts = now - timedelta(days=1)
@@ -160,11 +157,24 @@ class TestAccessCounts(TestCase):
         ])
 
         for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
+            self.athena_stubber.add_response(
+                method='get_query_execution',
+                expected_params={
+                    'QueryExecutionId': str(idx),
+                },
+                service_response={
+                    'QueryExecution': {
+                        'ResultConfiguration': {
+                            'OutputLocation': f's3://{self.result_bucket}/{self.result_prefix}/{idx}.csv',
+                        },
+                    },
+                },
+            )
             self.s3_stubber.add_response(
                 method='head_object',
                 expected_params={
-                    'Bucket': 'results-bucket',
-                    'Key': f'AthenaQueryResults/{idx}.csv',
+                    'Bucket': self.result_bucket,
+                    'Key': f'{self.result_prefix}/{idx}.csv',
                 },
                 service_response={
                     'ContentLength': 123
@@ -174,8 +184,8 @@ class TestAccessCounts(TestCase):
                 method='copy_object',
                 expected_params={
                     'CopySource': {
-                        'Bucket': 'results-bucket',
-                        'Key': f'AthenaQueryResults/{idx}.csv',
+                        'Bucket': self.result_bucket,
+                        'Key': f'{self.result_prefix}/{idx}.csv',
                     },
                     'Bucket': 'results-bucket',
                     'Key': f'AccessCounts/{name}.csv',
@@ -183,6 +193,12 @@ class TestAccessCounts(TestCase):
                 service_response={}
             )
 
-        with patch('index.now', return_value=now), \
+        with patch('t4_lambda_access_counts.index.now', return_value=now), \
              patch('time.sleep', return_value=None):
             index.handler(None, None)
+
+
+class TestAccessCountsResultLocationOverride(TestAccessCounts):
+    """Workgroup config redirects results away from the requested location; the copy must follow it."""
+    result_bucket = 'workgroup-results-bucket'
+    result_prefix = 'EnforcedResults'

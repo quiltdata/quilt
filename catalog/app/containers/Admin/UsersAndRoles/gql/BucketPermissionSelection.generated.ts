@@ -1,24 +1,33 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
+export type BucketPermissionLevel = 'READ' | 'READ_WRITE'
+
 export type BucketPermissionSelection_PolicyBucketPermission_Fragment = {
   readonly __typename: 'PolicyBucketPermission'
-} & Pick<Types.PolicyBucketPermission, 'level'> & {
-    readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'title' | 'iconUrl'
-    >
+  readonly level: Types.BucketPermissionLevel
+  readonly bucket: {
+    readonly __typename: 'BucketConfig'
+    readonly name: string
+    readonly title: string
+    readonly iconUrl: string | null
   }
+}
 
 export type BucketPermissionSelection_RoleBucketPermission_Fragment = {
   readonly __typename: 'RoleBucketPermission'
-} & Pick<Types.RoleBucketPermission, 'level'> & {
-    readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
-      Types.BucketConfig,
-      'name' | 'title' | 'iconUrl'
-    >
+  readonly level: Types.BucketPermissionLevel
+  readonly bucket: {
+    readonly __typename: 'BucketConfig'
+    readonly name: string
+    readonly title: string
+    readonly iconUrl: string | null
   }
+}
 
 export type BucketPermissionSelectionFragment =
   | BucketPermissionSelection_PolicyBucketPermission_Fragment

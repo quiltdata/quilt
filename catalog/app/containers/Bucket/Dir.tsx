@@ -17,7 +17,7 @@ import * as s3paths from 'utils/s3paths'
 import * as AssistantContext from './DirAssistantContext'
 import DndWrapper from './DndWrapper'
 import * as Listing from './Listing'
-import * as FI from './PackageDialog/FilesInput'
+import * as FI from './PackageDialog/Inputs/Files/State'
 import * as Selection from './Selection'
 import Summary from './Summary'
 import * as DirToolbar from './Dir/Toolbar'
@@ -243,6 +243,7 @@ export default function Dir() {
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <AssistantContext.ListingContext data={data} />
+      <AssistantContext.DirContextFiles bucket={bucket} path={path} />
 
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 

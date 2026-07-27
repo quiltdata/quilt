@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-20T00:00:00Z",
+  "title": "Design System: Quilt Catalog",
+  "extensions": {
+    "colorMeta": {
+      "indigo-chassis": { "role": "primary", "displayName": "Deep Indigo Chassis", "canonical": "#282b50", "tonalRamp": ["#0b0d1e", "#1d2146", "#282b50", "#3c4070", "#555a90", "#767bae", "#9da1c9", "#c9cce4"] },
+      "amber-indicator": { "role": "secondary", "displayName": "Amber Indicator", "canonical": "#fb8c00", "tonalRamp": ["#4a2900", "#7a4400", "#b06200", "#fb8c00", "#ffa733", "#ffc066", "#ffd699", "#ffeacc"] },
+      "coral-signal": { "role": "tertiary", "displayName": "Coral Signal (website register)", "canonical": "#f38681", "tonalRamp": ["#5f1f1c", "#8f342f", "#c05149", "#f38681", "#f6a09b", "#fabdb3", "#fcd4cd", "#fdeae6"] },
+      "cobalt-trace": { "role": "tertiary", "displayName": "Cobalt Trace (website register)", "canonical": "#5471f1", "tonalRamp": ["#151d4d", "#2d306d", "#3f4fae", "#5471f1", "#7690f4", "#9baff7", "#c0cdfa", "#e3e9fd"] },
+      "web-midnight": { "role": "tertiary", "displayName": "Web Midnight (website register)", "canonical": "#19163b", "tonalRamp": ["#0a0918", "#19163b", "#2a265c", "#3f3a80", "#5a55a3", "#7d79bd", "#a5a2d4", "#d0cfea"] },
+      "canvas": { "role": "neutral", "displayName": "Canvas", "canonical": "#fafafa" },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ffffff" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "rgba(0,0,0,0.87)" },
+      "ink-secondary": { "role": "neutral", "displayName": "Ink Secondary", "canonical": "rgba(0,0,0,0.54)" },
+      "divider": { "role": "neutral", "displayName": "Divider", "canonical": "rgba(0,0,0,0.12)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Website-register hero headings only; never inside the app." },
+      "headline": { "displayName": "Headline", "purpose": "Page-level headings in the app (Material h5)." },
+      "title": { "displayName": "Title", "purpose": "Section and card headings (Material h6)." },
+      "body": { "displayName": "Body", "purpose": "The workhorse: tables, descriptions, prose (Material body2)." },
+      "label": { "displayName": "Label", "purpose": "Buttons and control labels — uppercase Material button treatment." },
+      "mono": { "displayName": "Mono", "purpose": "Machine-exact identity: hashes, s3:// URIs, package handles, versions." }
+    },
+    "shadows": [
+      { "name": "overlay", "value": "0px 5px 5px -3px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.14), 0px 3px 14px 2px rgba(0,0,0,0.12)", "purpose": "Floating controls that will leave: menus, popovers (Material elevation 8)." },
+      { "name": "modal", "value": "0px 11px 15px -7px rgba(0,0,0,0.2), 0px 24px 38px 3px rgba(0,0,0,0.14), 0px 9px 46px 8px rgba(0,0,0,0.12)", "purpose": "Dialogs — the strongest depth in the system (Material elevation 24)." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for state transitions." },
+      { "name": "duration-short", "value": "150ms", "purpose": "Hover/press feedback." },
+      { "name": "duration-standard", "value": "250ms", "purpose": "Panel and overlay transitions; motion conveys state, never decoration." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "600px" },
+      { "name": "md", "value": "960px" },
+      { "name": "lg", "value": "1280px" },
+      { "name": "xl", "value": "1920px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one strong action on a surface — indigo fill, uppercase label.",
+      "html": "<button class=\"ds-btn-primary\">Create package</button>",
+      "css": ".ds-btn-primary { background: #282b50; color: #fff; font: 500 0.875rem/1.75 Roboto, Helvetica, Arial, sans-serif; letter-spacing: 0.02857em; text-transform: uppercase; padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #1d2146; } .ds-btn-primary:focus-visible { outline: 2px solid #5471f1; outline-offset: 2px; }"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "Secondary actions — indigo label, hairline border, transparent ground.",
+      "html": "<button class=\"ds-btn-outlined\">Download</button>",
+      "css": ".ds-btn-outlined { background: transparent; color: #282b50; font: 500 0.875rem/1.75 Roboto, Helvetica, Arial, sans-serif; letter-spacing: 0.02857em; text-transform: uppercase; padding: 5px 15px; border: 1px solid rgba(40,43,80,0.5); border-radius: 4px; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms; } .ds-btn-outlined:hover { background: rgba(40,43,80,0.06); border-color: #282b50; } .ds-btn-outlined:focus-visible { outline: 2px solid #5471f1; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Standard Material text input — quiet at rest, primary-colored on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Package name</span><input class=\"ds-field-input\" type=\"text\" placeholder=\"prefix/suffix\"></label>",
+      "css": ".ds-field { display: inline-flex; flex-direction: column; gap: 4px; font-family: Roboto, Helvetica, Arial, sans-serif; } .ds-field-label { font-size: 0.75rem; color: rgba(0,0,0,0.54); } .ds-field-input { font: 400 0.875rem/1.43 Roboto, Helvetica, Arial, sans-serif; color: rgba(0,0,0,0.87); background: #fff; border: none; border-bottom: 1px solid rgba(0,0,0,0.42); padding: 6px 0; transition: border-color 150ms; } .ds-field-input:hover { border-bottom-color: rgba(0,0,0,0.87); } .ds-field-input:focus { outline: none; border-bottom: 2px solid #282b50; margin-bottom: -1px; } .ds-field-input::placeholder { color: rgba(0,0,0,0.54); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Metadata tags and filter tokens — standard Material chip.",
+      "html": "<span class=\"ds-chip\">workflow: passing</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; background: #e0e0e0; color: rgba(0,0,0,0.87); font: 400 0.8125rem/1 Roboto, Helvetica, Arial, sans-serif; border-radius: 16px; } .ds-chip:hover { background: #d5d5d5; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The working surface — white, border-delineated, 4px corners.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Quilt Example</div><div class=\"ds-card-body\">s3://quilt-example · 80 packages · 356.9 GB</div></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; padding: 16px; font-family: Roboto, Helvetica, Arial, sans-serif; } .ds-card-title { font: 500 1.25rem/1.6 Roboto, Helvetica, Arial, sans-serif; color: rgba(0,0,0,0.87); } .ds-card-body { font: 400 0.875rem/1.43 Roboto, Helvetica, Arial, sans-serif; color: rgba(0,0,0,0.54); margin-top: 4px; }"
+    },
+    {
+      "name": "App Bar",
+      "kind": "nav",
+      "refersTo": "app-bar",
+      "description": "The indigo chrome band — brand, context, and global controls.",
+      "html": "<nav class=\"ds-appbar\"><span class=\"ds-appbar-brand\">Quilt</span><span class=\"ds-appbar-ctx\">s3://quilt-example</span></nav>",
+      "css": ".ds-appbar { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 16px; background: #282b50; color: #fff; font-family: Roboto, Helvetica, Arial, sans-serif; } .ds-appbar-brand { font-weight: 500; font-size: 1rem; } .ds-appbar-ctx { font: 400 0.875rem/1 'Roboto Mono', monospace; color: #b2bddb; }"
+    },
+    {
+      "name": "Data Identity",
+      "kind": "custom",
+      "refersTo": "mono",
+      "description": "Machine-exact identity: mono face, exact value, copy affordance.",
+      "html": "<span class=\"ds-identity\"><code class=\"ds-identity-hash\">3f7a9c…e41b</code><button class=\"ds-identity-copy\" aria-label=\"Copy hash\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z\"/></svg></button></span>",
+      "css": ".ds-identity { display: inline-flex; align-items: center; gap: 6px; font-family: 'Roboto Mono', monospace; } .ds-identity-hash { font-size: 0.875rem; color: rgba(0,0,0,0.87); background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; } .ds-identity-copy { background: none; border: none; padding: 2px; color: rgba(0,0,0,0.54); cursor: pointer; border-radius: 4px; } .ds-identity-copy:hover { color: rgba(0,0,0,0.87); background: rgba(0,0,0,0.06); } .ds-identity-copy:focus-visible { outline: 2px solid #5471f1; outline-offset: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lab Instrument",
+    "overview": "The catalog is a well-calibrated instrument: quiet chrome, exact readouts, dense where precision demands it, and nothing on screen performs. Users are scientists and data engineers in the middle of a task — the interface earns trust the way an instrument does, through consistency, legibility, and exact values, never through decoration. The system has two registers in one codebase: the authenticated app (the instrument, light theme) and the marketing/website register (dark theme, coral and cobalt accents) — that energy is quarantined there and never enters the authenticated app.",
+    "keyCharacteristics": [
+      "Single-family typography (Roboto), with Roboto Mono reserved for machine-exact identity.",
+      "Deep indigo chrome around white working surfaces; one amber accent as the indicator.",
+      "Flat-leaning depth: borders and tonal separation first, shadows for true overlays only.",
+      "Standard Material affordances; density serves the task, calm serves everything else."
+    ],
+    "rules": [
+      { "name": "The Indicator Rule", "body": "Accents indicate — actions, selection, state. An accent on ≤10% of any app screen; an accent used as decoration is a defect.", "section": "colors" },
+      { "name": "The Two-Registers Rule", "body": "The dark coral/cobalt marketing palette belongs to the website register exclusively. No gradient, coral, or midnight ground ever appears inside the authenticated app; no bare canvas-gray utilitarianism leaks onto marketing pages.", "section": "colors" },
+      { "name": "The Mono Identity Rule", "body": "Anything content-addressed or machine-exact — hashes, s3:// URIs, package handles, version ids — renders in Roboto Mono. Prose never does.", "section": "typography" },
+      { "name": "The No-Display-Font Rule", "body": "Display sizes and the 300 weight exist for the website register. Inside the app, nothing outranks a Headline.", "section": "typography" },
+      { "name": "The Overlay-Only Rule", "body": "A shadow means 'this floats above the plane and will leave.' If it doesn't leave, it doesn't get a shadow — it gets a border.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the instrument quiet: white surfaces, indigo chrome, one accent indicating — the data is the loudest thing on screen.",
+      "Do use Roboto Mono for every hash, URI, handle, and version (the Mono Identity Rule).",
+      "Do delineate resting surfaces with borders and tone; save shadows for things that float (the Overlay-Only Rule).",
+      "Do use the same control vocabulary everywhere — a control means one thing on every screen.",
+      "Do show exact values: real counts, real timestamps, real sizes, with copy affordances."
+    ],
+    "donts": [
+      "Don't let consumer-SaaS gloss into the authenticated app: no gradient CTAs, no hero metrics, no marketing chrome.",
+      "Don't drift toward cloud-console density: no wall-of-controls, no every-option-visible screens without hierarchy.",
+      "Don't regress toward legacy lab software: no beige chrome, no modal mazes, no dead affordances — anything styled as interactive must act.",
+      "Don't use the coral/cobalt/midnight website palette inside the app (the Two-Registers Rule).",
+      "Don't signal state with color alone; pair color with text or iconography.",
+      "Don't use display sizes or the 300 weight inside the app."
+    ]
+  }
+}

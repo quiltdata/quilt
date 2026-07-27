@@ -1,70 +1,70 @@
 import * as React from 'react'
-import { render } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
 
 import type { Successor } from 'utils/workflows'
+import noop from 'utils/noop'
 
 import { SuccessorsSelect } from './Successors'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock('@material-ui/core', () => ({
-  ...jest.requireActual('@material-ui/core'),
-  Menu: jest.fn(({ children }: React.PropsWithChildren<{}>) => (
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Menu: ({ children }: React.PropsWithChildren<{}>) => (
     <ul data-testid="menu">{children}</ul>
-  )),
-  MenuItem: jest.fn(({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>),
-  ListItemText: jest.fn(
-    ({ primary, secondary }: { primary: string; secondary?: string }) => (
-      <span title={secondary}>{primary}</span>
-    ),
   ),
-  ListSubheader: jest.fn(({ children }: React.PropsWithChildren<{}>) => (
-    <h1>{children}</h1>
-  )),
-  Popover: jest.fn(({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>),
+  MenuItem: ({ children }: React.PropsWithChildren<{}>) => <li>{children}</li>,
+  ListItemText: ({ primary, secondary }: { primary: string; secondary?: string }) => (
+    <span title={secondary}>{primary}</span>
+  ),
+  ListSubheader: ({ children }: React.PropsWithChildren<{}>) => <h1>{children}</h1>,
+  Popover: ({ children }: React.PropsWithChildren<{}>) => <div>{children}</div>,
 }))
 
-jest.mock('@material-ui/lab', () => ({
-  Skeleton: jest.fn(() => <div>Loading…</div>),
+vi.mock('@material-ui/lab', () => ({
+  Skeleton: () => <div>Loading…</div>,
 }))
 
-jest.mock('components/FileEditor/HelpLinks', () => ({
-  WorkflowsConfigLink: jest.fn(({ children }: React.PropsWithChildren<{}>) => (
-    <a>{children}</a>
-  )),
+vi.mock('components/FileEditor/HelpLinks', () => ({
+  WorkflowsConfigLink: ({ children }: React.PropsWithChildren<{}>) => <a>{children}</a>,
 }))
 
-jest.mock('utils/StyledLink', () =>
-  jest.fn(({ children, ...props }: React.PropsWithChildren<any>) => (
+vi.mock('utils/StyledLink', () => ({
+  default: ({ children, ...props }: React.PropsWithChildren<any>) => (
     <a {...props}>{children}</a>
-  )),
-)
+  ),
+}))
 
 const props = {
   anchorEl: document.createElement('div'),
-  onChange: jest.fn(),
-  onClose: jest.fn(),
+  onChange: noop,
+  onClose: noop,
 }
 
 describe('containers/Bucket/Successors/SuccessorsSelect', () => {
+  afterEach(cleanup)
+
   it('should render loading state', () => {
-    const { container } = render(<SuccessorsSelect {...props} successors={undefined} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getAllByText } = render(
+      <SuccessorsSelect {...props} successors={undefined} />,
+    )
+    const loadingTexts = getAllByText('Loading…')
+    expect(loadingTexts.length).toBeGreaterThan(0)
   })
 
   it('should render error state', () => {
-    const { container } = render(
+    const { getByText } = render(
       <SuccessorsSelect {...props} successors={new Error('Test error')} />,
     )
-    expect(container.firstChild).toMatchSnapshot()
+    expect(getByText('Test error')).toBeTruthy()
   })
 
   it('should render empty state', () => {
-    const { container } = render(<SuccessorsSelect {...props} successors={[]} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<SuccessorsSelect {...props} successors={[]} />)
+    expect(getByText('Learn more').getAttribute('href')).toBe(
+      'https://docs.quilt.bio/workflows#cross-bucket-package-push-quilt-catalog',
+    )
   })
 
   it('should render populated state', () => {
@@ -73,7 +73,8 @@ describe('containers/Bucket/Successors/SuccessorsSelect', () => {
       { slug: 'bucket2', name: 'bucket2', url: 's3://bucket2', copyData: false },
     ]
 
-    const { container } = render(<SuccessorsSelect {...props} successors={successors} />)
-    expect(container.firstChild).toMatchSnapshot()
+    const { getByText } = render(<SuccessorsSelect {...props} successors={successors} />)
+    expect(getByText('Bucket One').getAttribute('title')).toBe('s3://bucket1')
+    expect(getByText('s3://bucket2')).toBeTruthy()
   })
 })

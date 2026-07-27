@@ -1,34 +1,36 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutationVariables =
-  Types.Exact<{
-    config: Types.Maybe<Types.Scalars['String']>
-  }>
+export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutationVariables = Exact<{
+  config: string | null | undefined
+}>
 
-export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
+export interface containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation {
   readonly __typename: 'Mutation'
-} & {
-  readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly setSsoConfig: Types.Maybe<
-      | ({ readonly __typename: 'SsoConfig' } & Pick<
-          Types.SsoConfig,
-          'timestamp' | 'text'
-        >)
-      | ({ readonly __typename: 'InvalidInput' } & {
-          readonly errors: ReadonlyArray<
-            { readonly __typename: 'InputError' } & Pick<
-              Types.InputError,
-              'path' | 'message'
-            >
-          >
-        })
-      | ({ readonly __typename: 'OperationError' } & Pick<
-          Types.OperationError,
-          'message'
-        >)
-    >
+  readonly admin: {
+    readonly __typename: 'AdminMutations'
+    readonly setSsoConfig:
+      | {
+          readonly __typename: 'InvalidInput'
+          readonly errors: ReadonlyArray<{
+            readonly __typename: 'InputError'
+            readonly path: string | null
+            readonly message: string
+          }>
+        }
+      | { readonly __typename: 'OperationError'; readonly message: string }
+      | {
+          readonly __typename: 'SsoConfig'
+          readonly timestamp: Date
+          readonly text: string
+        }
+      | null
   }
 }
 

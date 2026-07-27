@@ -235,12 +235,12 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
             }
         ),
     ]
-    assert mock_es.delete_by_query.not_called()
+    mock_es.delete_by_query.assert_not_called()
 
 
 def test_index_manifest_invalid_hash(mock_s3_client, mock_es, mock_batcher):
     bucket = "test-bucket"
-    key = ".quilt/manifests/INVALID_HASH"
+    key = ".quilt/packages/INVALID_HASH"
 
     with patch("t4_lambda_manifest_indexer.s3_client", mock_s3_client):
         with patch("t4_lambda_manifest_indexer.es", mock_es):
@@ -251,7 +251,7 @@ def test_index_manifest_invalid_hash(mock_s3_client, mock_es, mock_batcher):
 
 def test_index_manifest_no_entries(mock_s3_client, mock_es, mock_batcher):
     bucket = "test-bucket"
-    key = ".quilt/manifests/" + "a" * 64
+    key = ".quilt/packages/" + "a" * 64
 
     mock_s3_client.get_object.return_value = {"Body": MagicMock(iter_lines=lambda: [])}
 
@@ -259,7 +259,7 @@ def test_index_manifest_no_entries(mock_s3_client, mock_es, mock_batcher):
         with patch("t4_lambda_manifest_indexer.es", mock_es):
             index_manifest(mock_batcher, bucket=bucket, key=key)
 
-    mock_es.delete_by_query.called_once_with(
+    mock_es.delete_by_query.assert_called_once_with(
         index="test-bucket_packages",
         body={
             "query": {

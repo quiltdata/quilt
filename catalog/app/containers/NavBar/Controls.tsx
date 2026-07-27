@@ -4,7 +4,7 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BucketSelect from './BucketSelect'
@@ -142,6 +142,6 @@ function BucketControls({ bucket }: BucketControlsProps) {
 }
 
 export default function Controls() {
-  const bucket = BucketConfig.useCurrentBucket()
+  const bucket = Buckets.useCurrentBucket()
   return bucket ? <BucketControls {...{ bucket }} /> : <GlobalControls />
 }

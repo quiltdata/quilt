@@ -14,10 +14,12 @@ import * as YAML from 'utils/yaml'
 export type ActionPreferences = Record<
   | 'copyPackage'
   | 'createPackage'
+  | 'deleteObject'
   | 'deleteRevision'
   | 'downloadObject'
   | 'downloadPackage'
   | 'openInDesktop'
+  | 'restore'
   | 'revisePackage'
   | 'writeFile',
   boolean
@@ -143,15 +145,20 @@ const defaultGallery: GalleryPreferences = {
 }
 
 function getDefaultPreferences(bucket?: string): BucketPreferences {
+  // NOTE: if you add values here,
+  //       also update UI values for editor
+  //       in app/components/FileEditor/QuiltConfigEditor/BucketPreferences/State.tsx
   return {
     ui: {
       actions: {
         copyPackage: true,
         createPackage: true,
+        deleteObject: false,
         deleteRevision: false,
         downloadObject: true,
         downloadPackage: true,
         openInDesktop: true,
+        restore: true,
         revisePackage: true,
         writeFile: true,
       },

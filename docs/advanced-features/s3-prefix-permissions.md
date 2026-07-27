@@ -76,6 +76,7 @@ similar to the following:
                 "s3:GetObjectVersionTagging",
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
+                "s3:RestoreObject",
                 "s3:DeleteObject",
                 "s3:DeleteObjectVersion",
                 "s3:PutObject",

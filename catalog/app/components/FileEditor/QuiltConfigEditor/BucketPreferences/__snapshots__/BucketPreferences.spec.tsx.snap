@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form config where every value is custom 1`] = `
+exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences > render form config where every value is custom 1`] = `
 <div
   class="root root"
 >
@@ -78,6 +78,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <div
             id="checkbox"
           >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Buttons to delete files and directories under the "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
             true
           </div>
           <span
@@ -120,6 +138,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             Download buttons under the "PACKAGES" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "REHYDRATE" button for archived S3 Glacier / Deep Archive objects
           </span>
         </label>
       </div>
@@ -699,7 +735,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
 </div>
 `;
 
-exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form with default values 1`] = `
+exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences > render form with default values 1`] = `
 <div
   class="root root"
 >
@@ -782,6 +818,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
+            Buttons to delete files and directories under the "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
             "DELETE REVISION" menu item on the package page
           </span>
         </label>
@@ -819,6 +873,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             Download buttons under the "PACKAGES" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "REHYDRATE" button for archived S3 Glacier / Deep Archive objects
           </span>
         </label>
       </div>

@@ -1,7 +1,8 @@
 import path from 'path'
+import { describe, expect, it } from 'vitest'
 
 import dedent from 'dedent'
-import xlsx from 'xlsx'
+import * as xlsx from 'xlsx'
 
 import * as spreadsheets from './spreadsheets'
 
@@ -388,21 +389,23 @@ describe('utils/spreadsheets', () => {
   })
 
   describe('postProcess', () => {
-    const obj = {
-      a: 'b',
-      d: 'e,i,j,k',
-      g: 'h',
-    }
-    const schema = {
-      type: 'object',
-      properties: {
-        d: { type: 'array' },
-      },
-    }
-    expect(spreadsheets.postProcess(obj, schema)).toEqual({
-      a: 'b',
-      d: ['e', 'i', 'j', 'k'],
-      g: 'h',
+    it('should convert string to array based on schema', () => {
+      const obj = {
+        a: 'b',
+        d: 'e,i,j,k',
+        g: 'h',
+      }
+      const schema = {
+        type: 'object',
+        properties: {
+          d: { type: 'array' },
+        },
+      }
+      expect(spreadsheets.postProcess(obj, schema)).toEqual({
+        a: 'b',
+        d: ['e', 'i', 'j', 'k'],
+        g: 'h',
+      })
     })
   })
 })

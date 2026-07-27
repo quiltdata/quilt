@@ -12,23 +12,14 @@ import { Alert } from './Components'
 import * as Model from './model'
 import * as storage from './model/storage'
 
-const LOAD_MORE = 'load-more'
-
 interface WorkgroupSelectProps {
   bucket: string
   disabled?: boolean
-  onLoadMore: (workgroups: Model.List<Model.Workgroup>) => void
   value: Model.Workgroup | null
   workgroups: Model.List<Model.Workgroup>
 }
 
-function WorkgroupSelect({
-  bucket,
-  disabled,
-  onLoadMore,
-  value,
-  workgroups,
-}: WorkgroupSelectProps) {
+function WorkgroupSelect({ bucket, disabled, value, workgroups }: WorkgroupSelectProps) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
@@ -41,14 +32,10 @@ function WorkgroupSelect({
 
   const handleChange = React.useCallback(
     (event) => {
-      if (event.target.value === LOAD_MORE) {
-        onLoadMore(workgroups)
-      } else {
-        storage.setWorkgroup(event.target.value)
-        goToWorkgroup(event.target.value)
-      }
+      storage.setWorkgroup(event.target.value)
+      goToWorkgroup(event.target.value)
     },
-    [goToWorkgroup, onLoadMore, workgroups],
+    [goToWorkgroup],
   )
 
   return (
@@ -64,13 +51,6 @@ function WorkgroupSelect({
             <M.ListItemText>{name}</M.ListItemText>
           </M.MenuItem>
         ))}
-        {workgroups.next && (
-          <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
-            <M.ListItemText>
-              <em>Load more</em>
-            </M.ListItemText>
-          </M.MenuItem>
-        )}
       </M.Select>
     </M.FormControl>
   )
@@ -131,7 +111,6 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
     <WorkgroupSelect
       disabled={Model.isLoading(queryRun)}
       bucket={bucket}
-      onLoadMore={workgroups.loadMore}
       value={workgroup.data}
       workgroups={workgroups.data}
     />

@@ -13,6 +13,10 @@
       "type": "string",
       "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
     },
+    "hubspotId": {
+      "type": "string",
+      "description": "HubSpot tracking ID for marketing analytics. If absent or empty, tracking is disabled."
+    },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
@@ -25,18 +29,6 @@
     "legacyPackagesRedirect": {
       "type": "string",
       "description": "Requests to /package/$owner/[$package/] will be redirected there (must not end in slash)."
-    },
-    "linkedData": {
-      "description": "If present, expose structured data (JSON-LD) about the catalog and the datasets it contains",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        }
-      }
     },
     "mixpanelToken": {
       "type": "string",
@@ -85,9 +77,9 @@
     "desktop": {
       "type": "boolean"
     },
-    "chunkedChecksums": {
+    "crc64Checksums": {
       "type": "boolean",
-      "description": "Whether to use chunked checksums when creating / modifying packages via the Catalog UI."
+      "description": "Whether to use CRC64/NVME checksums when creating / modifying packages via the Catalog UI."
     },
     "build_version": {
       "type": "string",
@@ -96,6 +88,10 @@
     "qurator": {
       "type": "boolean",
       "description": "Enable Qurator AI Assistant (powered by Amazon Bedrock)"
+    },
+    "quratorDefaultModel": {
+      "type": "string",
+      "description": "Bedrock model ID for Qurator AI Assistant (overrides built-in default)"
     },
     "stackVersion": {
       "type": "string",

@@ -1,4 +1,5 @@
 import dedent from 'dedent'
+import { describe, expect, it } from 'vitest'
 
 import { extendDefaults, parse } from './BucketPreferences'
 
@@ -7,10 +8,12 @@ const expectedDefaults = {
     actions: {
       copyPackage: true,
       createPackage: true,
+      deleteObject: false,
       deleteRevision: false,
       downloadObject: true,
       downloadPackage: true,
       openInDesktop: true,
+      restore: true,
       revisePackage: true,
       writeFile: true,
     },
@@ -124,7 +127,18 @@ describe('utils/BucketPreferences', () => {
             ui:
                 actions: False
       `
-      expect(parse(config, 'test-bucket').ui.actions).toMatchSnapshot()
+      expect(parse(config, 'test-bucket').ui.actions).toEqual({
+        copyPackage: false,
+        createPackage: false,
+        deleteObject: false,
+        deleteRevision: false,
+        downloadObject: false,
+        downloadPackage: false,
+        openInDesktop: false,
+        restore: false,
+        revisePackage: false,
+        writeFile: false,
+      })
     })
 
     it('Empty sourceBuckets object returns empty list', () => {
@@ -135,6 +149,19 @@ describe('utils/BucketPreferences', () => {
       const result = parse(config, 'test-bucket')
       expect(result.ui.sourceBuckets.list).toEqual([])
       expect(result.ui.sourceBuckets.getDefault()).toBe('')
+    })
+
+    it('sourceBuckets treats "bucket" and "s3://bucket" equally', () => {
+      const config = dedent`
+            ui:
+                sourceBuckets:
+                    s3://bucket-a: {}
+                    bucket-b: {}
+                defaultSourceBucket: s3://bucket-b
+      `
+      const result = parse(config, 'test-bucket')
+      expect(result.ui.sourceBuckets.list).toEqual(['bucket-a', 'bucket-b'])
+      expect(result.ui.sourceBuckets.getDefault()).toBe('bucket-b')
     })
   })
 

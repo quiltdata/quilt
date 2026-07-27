@@ -1,13 +1,12 @@
+import { describe, expect, it, vi } from 'vitest'
+
 import * as KTree from 'utils/KeyedTree'
 
 import * as model from './model'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
-    registryUrl: '',
-  })),
-)
+vi.mock('constants/config', () => ({
+  registryUrl: '',
+}))
 
 describe('containers/Search/model', () => {
   describe('groupFacets', () => {

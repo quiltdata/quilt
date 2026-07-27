@@ -1,18 +1,14 @@
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
+import { describe, expect, it, vi } from 'vitest'
 
 import computeFileChecksumLimit from './checksums'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
-    chunkedChecksums: true,
-  })),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 describe('utils/checksums', () => {
-  describe('computeFileChecksumLimit, chunked', () => {
+  describe('computeFileChecksumLimit', () => {
     it('produces a correct checksum given an empty file', async () => {
       const file = new File([], 'empty')
       await expect(computeFileChecksumLimit(file)).resolves.toEqual({

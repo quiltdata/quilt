@@ -1017,7 +1017,7 @@ export default function Users() {
   })
   const pagination = Pagination.use(ordering.ordered, {
     getItemId: (u: User) => u.name,
-  } as $TSFixMe)
+  })
 
   const toolbarActions = [
     {

@@ -70,6 +70,7 @@ interface ProviderProps {
 
 export function Provider({ preferences, children }: ProviderProps) {
   const { urls } = NamedRoutes.use()
+  const location = RRDom.useLocation()
 
   const {
     bucket,
@@ -133,7 +134,15 @@ export function Provider({ preferences, children }: ProviderProps) {
   }
 
   if (Model.hasData(workgroup.data) && !workgroupId) {
-    return <RRDom.Redirect to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)} />
+    // Preserve the query string (e.g. ?table=) across the workgroup redirect.
+    return (
+      <RRDom.Redirect
+        to={{
+          pathname: urls.bucketAthenaWorkgroup(bucket, workgroup.data),
+          search: location.search,
+        }}
+      />
+    )
   }
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

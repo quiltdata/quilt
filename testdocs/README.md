@@ -1,6 +1,7 @@
 # Test Documentation
 
-Uses [pytest_codeblocks](https://github.com/nschloe/pytest-codeblocks) to verify documentation code is valid and correct.
+Uses [pytest_codeblocks](https://github.com/nschloe/pytest-codeblocks) to verify
+documentation code is valid and correct.
 
 ## Usage
 

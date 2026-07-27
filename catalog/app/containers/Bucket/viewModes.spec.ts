@@ -1,8 +1,5 @@
-/**
- * @jest-environment jsdom
- */
-
 import { renderHook, act } from '@testing-library/react-hooks'
+import { describe, expect, it } from 'vitest'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
 import { PreviewData } from 'components/Preview/types'

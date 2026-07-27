@@ -1,51 +1,49 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type RoleSelection_UnmanagedRole_Fragment = {
-  readonly __typename: 'UnmanagedRole'
-} & Pick<Types.UnmanagedRole, 'id' | 'name' | 'arn'>
+export type BucketPermissionLevel = 'READ' | 'READ_WRITE'
 
 export type RoleSelection_ManagedRole_Fragment = {
   readonly __typename: 'ManagedRole'
-} & Pick<Types.ManagedRole, 'id' | 'name' | 'arn'> & {
-    readonly permissions: ReadonlyArray<
-      { readonly __typename: 'RoleBucketPermission' } & Pick<
-        Types.RoleBucketPermission,
-        'level'
-      > & {
-          readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
-            Types.BucketConfig,
-            'name'
-          >
-        }
-    >
-    readonly policies: ReadonlyArray<
-      { readonly __typename: 'Policy' } & Pick<
-        Types.Policy,
-        'id' | 'title' | 'managed'
-      > & {
-          readonly permissions: ReadonlyArray<
-            { readonly __typename: 'PolicyBucketPermission' } & Pick<
-              Types.PolicyBucketPermission,
-              'level'
-            > & {
-                readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
-                  Types.BucketConfig,
-                  'name'
-                >
-              }
-          >
-          readonly roles: ReadonlyArray<
-            { readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>
-          >
-        }
-    >
-  }
+  readonly id: string
+  readonly name: string
+  readonly arn: string
+  readonly permissions: ReadonlyArray<{
+    readonly __typename: 'RoleBucketPermission'
+    readonly level: Types.BucketPermissionLevel
+    readonly bucket: { readonly __typename: 'BucketConfig'; readonly name: string }
+  }>
+  readonly policies: ReadonlyArray<{
+    readonly __typename: 'Policy'
+    readonly id: string
+    readonly title: string
+    readonly managed: boolean
+    readonly permissions: ReadonlyArray<{
+      readonly __typename: 'PolicyBucketPermission'
+      readonly level: Types.BucketPermissionLevel
+      readonly bucket: { readonly __typename: 'BucketConfig'; readonly name: string }
+    }>
+    readonly roles: ReadonlyArray<{
+      readonly __typename: 'ManagedRole'
+      readonly id: string
+    }>
+  }>
+}
+
+export type RoleSelection_UnmanagedRole_Fragment = {
+  readonly __typename: 'UnmanagedRole'
+  readonly id: string
+  readonly name: string
+  readonly arn: string
+}
 
 export type RoleSelectionFragment =
-  | RoleSelection_UnmanagedRole_Fragment
   | RoleSelection_ManagedRole_Fragment
+  | RoleSelection_UnmanagedRole_Fragment
 
 export const RoleSelectionFragmentDoc = {
   kind: 'Document',

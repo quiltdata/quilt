@@ -1,118 +1,136 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_Search_gql_BaseSearchQueryVariables = Types.Exact<{
-  buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
-  searchString: Types.Maybe<Types.Scalars['String']>
+export type containers_Search_gql_BaseSearchQueryVariables = Exact<{
+  buckets: ReadonlyArray<string> | null | undefined
+  searchString: string | null | undefined
 }>
 
-export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Query' } & {
+export interface containers_Search_gql_BaseSearchQuery {
+  readonly __typename: 'Query'
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
-        Types.PackagesSearchResultSet,
-        'total'
-      > & {
-          readonly stats: { readonly __typename: 'PackagesSearchStats' } & {
-            readonly modified: { readonly __typename: 'DatetimeExtents' } & Pick<
-              Types.DatetimeExtents,
-              'min' | 'max'
-            >
-            readonly size: { readonly __typename: 'NumberExtents' } & Pick<
-              Types.NumberExtents,
-              'min' | 'max'
-            >
-            readonly entries: { readonly __typename: 'NumberExtents' } & Pick<
-              Types.NumberExtents,
-              'min' | 'max'
-            >
-            readonly workflow: { readonly __typename: 'KeywordExtents' } & Pick<
-              Types.KeywordExtents,
-              'values'
-            >
-            readonly userMeta: ReadonlyArray<
-              | ({ readonly __typename: 'NumberPackageUserMetaFacet' } & Pick<
-                  Types.NumberPackageUserMetaFacet,
-                  'path'
-                > & {
-                    readonly numberExtents: {
-                      readonly __typename: 'NumberExtents'
-                    } & Pick<Types.NumberExtents, 'min' | 'max'>
-                  })
-              | ({ readonly __typename: 'DatetimePackageUserMetaFacet' } & Pick<
-                  Types.DatetimePackageUserMetaFacet,
-                  'path'
-                > & {
-                    readonly datetimeExtents: {
-                      readonly __typename: 'DatetimeExtents'
-                    } & Pick<Types.DatetimeExtents, 'min' | 'max'>
-                  })
-              | ({ readonly __typename: 'KeywordPackageUserMetaFacet' } & Pick<
-                  Types.KeywordPackageUserMetaFacet,
-                  'path'
-                > & {
-                    readonly extents: { readonly __typename: 'KeywordExtents' } & Pick<
-                      Types.KeywordExtents,
-                      'values'
-                    >
-                  })
-              | ({ readonly __typename: 'TextPackageUserMetaFacet' } & Pick<
-                  Types.TextPackageUserMetaFacet,
-                  'path'
-                >)
-              | ({ readonly __typename: 'BooleanPackageUserMetaFacet' } & Pick<
-                  Types.BooleanPackageUserMetaFacet,
-                  'path'
-                >)
-            >
-          }
-        })
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
+    | {
+        readonly __typename: 'PackagesSearchResultSet'
+        readonly total: number
+        readonly stats: {
+          readonly __typename: 'PackagesSearchStats'
+          readonly modified: {
+            readonly __typename: 'DatetimeExtents'
+            readonly min: Date
+            readonly max: Date
+          }
+          readonly size: {
+            readonly __typename: 'NumberExtents'
+            readonly min: number
+            readonly max: number
+          }
+          readonly entries: {
+            readonly __typename: 'NumberExtents'
+            readonly min: number
+            readonly max: number
+          }
+          readonly workflow: {
+            readonly __typename: 'KeywordExtents'
+            readonly values: ReadonlyArray<string>
+          }
+          readonly userMeta: ReadonlyArray<
+            | {
+                readonly __typename: 'BooleanPackageUserMetaFacet'
+                readonly path: string
+              }
+            | {
+                readonly __typename: 'DatetimePackageUserMetaFacet'
+                readonly path: string
+                readonly datetimeExtents: {
+                  readonly __typename: 'DatetimeExtents'
+                  readonly min: Date
+                  readonly max: Date
+                }
+              }
+            | {
+                readonly __typename: 'KeywordPackageUserMetaFacet'
+                readonly path: string
+                readonly extents: {
+                  readonly __typename: 'KeywordExtents'
+                  readonly values: ReadonlyArray<string>
+                }
+              }
+            | {
+                readonly __typename: 'NumberPackageUserMetaFacet'
+                readonly path: string
+                readonly numberExtents: {
+                  readonly __typename: 'NumberExtents'
+                  readonly min: number
+                  readonly max: number
+                }
+              }
+            | { readonly __typename: 'TextPackageUserMetaFacet'; readonly path: string }
           >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message' | 'context'
-      >)
+        }
+      }
   readonly searchObjects:
-    | ({ readonly __typename: 'ObjectsSearchResultSet' } & Pick<
-        Types.ObjectsSearchResultSet,
-        'total'
-      > & {
-          readonly stats: { readonly __typename: 'ObjectsSearchStats' } & {
-            readonly modified: { readonly __typename: 'DatetimeExtents' } & Pick<
-              Types.DatetimeExtents,
-              'min' | 'max'
-            >
-            readonly size: { readonly __typename: 'NumberExtents' } & Pick<
-              Types.NumberExtents,
-              'min' | 'max'
-            >
-            readonly ext: { readonly __typename: 'KeywordExtents' } & Pick<
-              Types.KeywordExtents,
-              'values'
-            >
-          }
-        })
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message' | 'context'
-      >)
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'ObjectsSearchResultSet'
+        readonly total: number
+        readonly stats: {
+          readonly __typename: 'ObjectsSearchStats'
+          readonly modified: {
+            readonly __typename: 'DatetimeExtents'
+            readonly min: Date
+            readonly max: Date
+          }
+          readonly size: {
+            readonly __typename: 'NumberExtents'
+            readonly min: number
+            readonly max: number
+          }
+          readonly ext: {
+            readonly __typename: 'KeywordExtents'
+            readonly values: ReadonlyArray<string>
+          }
+        }
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
 }
 
 export const containers_Search_gql_BaseSearchDocument = {

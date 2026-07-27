@@ -16,7 +16,7 @@ class BuildClientHook(T.Protocol):
 _build_client_hook = None
 
 
-def get_build_s3_client_hook() -> T.Optional[BuildClientHook]:
+def get_build_s3_client_hook() -> BuildClientHook | None:
     """
     Return build S3 client hook.
     """
@@ -24,7 +24,7 @@ def get_build_s3_client_hook() -> T.Optional[BuildClientHook]:
     return _build_client_hook
 
 
-def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[BuildClientHook]:
+def set_build_s3_client_hook(hook: BuildClientHook | None) -> BuildClientHook | None:
     """
     Set build S3 client hook.
 

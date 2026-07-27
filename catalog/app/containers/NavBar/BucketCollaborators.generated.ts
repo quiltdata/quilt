@@ -1,29 +1,33 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../model/graphql/types.generated'
 
-export type containers_NavBar_BucketCollaboratorsQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
+export type BucketPermissionLevel = 'READ' | 'READ_WRITE'
+
+export type containers_NavBar_BucketCollaboratorsQueryVariables = Exact<{
+  bucket: string
 }>
 
-export type containers_NavBar_BucketCollaboratorsQuery = {
+export interface containers_NavBar_BucketCollaboratorsQuery {
   readonly __typename: 'Query'
-} & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
-        readonly collaborators: ReadonlyArray<
-          { readonly __typename: 'CollaboratorBucketConnection' } & Pick<
-            Types.CollaboratorBucketConnection,
-            'permissionLevel'
-          > & {
-              readonly collaborator: { readonly __typename: 'Collaborator' } & Pick<
-                Types.Collaborator,
-                'email' | 'username'
-              >
-            }
-        >
+  readonly bucket: {
+    readonly __typename: 'Bucket'
+    readonly name: string
+    readonly collaborators: ReadonlyArray<{
+      readonly __typename: 'CollaboratorBucketConnection'
+      readonly permissionLevel: Types.BucketPermissionLevel
+      readonly collaborator: {
+        readonly __typename: 'Collaborator'
+        readonly email: string
+        readonly username: string
       }
-  >
+    }>
+  } | null
 }
 
 export const containers_NavBar_BucketCollaboratorsDocument = {
@@ -48,7 +52,7 @@ export const containers_NavBar_BucketCollaboratorsDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'bucketConfig' },
+            name: { kind: 'Name', value: 'bucket' },
             arguments: [
               {
                 kind: 'Argument',

@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`components/FileEditor/HelpLinks WorkflowsConfigLink should render 1`] = `
-<a
-  href="/b/buck/tree/k/.quilt/workflows/config.yml?edit=true&next=%2Fa%2Fb%2Fc%3Ffoo%3Dbar"
->
-  Test
-</a>
-`;

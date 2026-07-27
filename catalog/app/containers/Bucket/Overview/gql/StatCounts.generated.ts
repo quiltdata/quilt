@@ -1,50 +1,57 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_Overview_gql_StatCountsQueryVariables = Types.Exact<{
-  buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
+export type containers_Bucket_Overview_gql_StatCountsQueryVariables = Exact<{
+  buckets: ReadonlyArray<string> | null | undefined
 }>
 
-export type containers_Bucket_Overview_gql_StatCountsQuery = {
+export interface containers_Bucket_Overview_gql_StatCountsQuery {
   readonly __typename: 'Query'
-} & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
-        Types.PackagesSearchResultSet,
-        'total'
-      >)
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message' | 'context'
-      >)
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
+    | { readonly __typename: 'PackagesSearchResultSet'; readonly total: number }
   readonly searchObjects:
-    | ({ readonly __typename: 'ObjectsSearchResultSet' } & Pick<
-        Types.ObjectsSearchResultSet,
-        'total'
-      >)
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
-    | ({ readonly __typename: 'OperationError' } & Pick<
-        Types.OperationError,
-        'name' | 'message' | 'context'
-      >)
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | { readonly __typename: 'ObjectsSearchResultSet'; readonly total: number }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
 }
 
 export const containers_Bucket_Overview_gql_StatCountsDocument = {
@@ -78,6 +85,11 @@ export const containers_Bucket_Overview_gql_StatCountsDocument = {
                 kind: 'Argument',
                 name: { kind: 'Name', value: 'buckets' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'buckets' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'latestOnly' },
+                value: { kind: 'BooleanValue', value: true },
               },
             ],
             selectionSet: {
