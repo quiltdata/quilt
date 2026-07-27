@@ -1654,7 +1654,8 @@ class Package:
                 # cleanup back into a push that fails after the data is already uploaded.
                 logger.warning("Failed to remove temporary file %s: %s", temp_pk.path, e)
 
-            # Point the entry at the materialized location, since the tempfile no longer exists.
+            # Point the entry at the materialized location; the tempfile is no longer the copy to
+            # read from, whether or not removing it succeeded.
             self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.
