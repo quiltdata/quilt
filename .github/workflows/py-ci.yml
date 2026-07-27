@@ -181,6 +181,14 @@ jobs:
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
+      - name: Check the packaged lambda is importable
+        # Collection imports the lambda from deps/, the way the deployed
+        # artifact does, so that files left out of the package are caught.
+        # Pytest runs the coverage step below against the sources instead,
+        # where such omissions are invisible.
+        env:
+          PYTHONPATH: deps
+        run: python -m pytest --collect-only -q lambdas/${{ matrix.path }}
       - name: Pytest
         run: |
           python -m pytest --cov=lambdas/${{ matrix.path }}/src --cov-report=term-missing --cov-report=xml lambdas/${{ matrix.path }}
