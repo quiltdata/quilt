@@ -156,7 +156,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
-      PYTHONPATH: deps
+      # The lambda's own sources come first so that they, rather than the copy
+      # installed into deps/, are what gets imported and measured by coverage.
+      PYTHONPATH: lambdas/${{ matrix.path }}/src:deps
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
       - uses: actions/checkout@v7
@@ -181,7 +183,7 @@ jobs:
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
         run: |
-          python -m pytest --cov=lambdas lambdas/${{ matrix.path }}
+          python -m pytest --cov=lambdas/${{ matrix.path }}/src --cov-report=term-missing --cov-report=xml lambdas/${{ matrix.path }}
       - uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
