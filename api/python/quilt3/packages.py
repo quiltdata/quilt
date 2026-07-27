@@ -1649,9 +1649,11 @@ class Package:
                 try:
                     temp_path.unlink(missing_ok=True)
                 except OSError as e:
-                    warnings.warn(f"Failed to remove temporary file {temp_path}: {e}")
+                    # Not warnings.warn(): a caller running with -W error would turn best-effort
+                    # cleanup back into a push that fails after the data is already uploaded.
+                    logger.warning("Failed to remove temporary file %s: %s", temp_path, e)
 
-            # Update old package to point to the materialized location of the file since the tempfile no longest exists
+            # Update old package to point to the materialized location of the file since the tempfile no longer exists
             for lk in temp_file_logical_keys:
                 self._set(lk, pkg[lk])
 

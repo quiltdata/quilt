@@ -832,7 +832,7 @@ class PackageTest(QuiltTestCase):
         assert not remaining.exists(), "Cleanup should continue past a temp file that is already gone"
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
-    def test_push_warns_when_temp_file_cannot_be_removed(self):
+    def test_push_logs_when_temp_file_cannot_be_removed(self):
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         pkg = Package()
         pkg.set("mydataframe1.parquet", pd.DataFrame({'col_num': [11, 22, 33]}))
@@ -842,9 +842,11 @@ class PackageTest(QuiltTestCase):
             patch('quilt3.Package._push_manifest'),
             patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
             patch('pathlib.Path.unlink', side_effect=PermissionError("file is in use")),
-            pytest.warns(UserWarning, match="Failed to remove temporary file"),
+            self.assertLogs('quilt3.packages', level='WARNING') as logs,
         ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
+
+        assert any("Failed to remove temporary file" in line for line in logs.output)
 
     @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
     def test_set_package_entry_unversioned_flag(self):
