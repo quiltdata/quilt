@@ -58,11 +58,11 @@ export const DEFAULT_ORDER = ResultOrder.BEST_MATCH
 // 1:1 (see change package-metadata-sort, d-contract-shape). Distinct from the
 // flat `order` preset above: `order` is retained indefinitely for backward
 // compatibility and still drives the global "Sort by" dropdown, while `sort`
-// carries a per-column field sort. Backend precedence (d-order-precedence):
+// carries a per-column field sort, set by the table column headers (see
+// Table/Table.tsx, w-fe-columns). Backend precedence (d-order-precedence):
 // when `sort` is present it supersedes `order`; when null, `order` applies.
-// No UI produces a non-null `sort` yet — the column-header affordance that
-// sets it lands in w-fe-columns; this node only wires the state, URL codec,
-// and query variable so that leg has a model to bind to.
+// The two producers stay reconciled in `setOrder`/`setSort`: picking a preset
+// clears `sort`, and a column sort wins over `order` without clearing it.
 export const PackageSystemField = Model.GQLTypes.PackageSystemField
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type PackageSystemField = Model.GQLTypes.PackageSystemField
@@ -1504,14 +1504,24 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
 
   const setOrder = React.useCallback(
     (order: ResultOrder) => {
-      updateUrlState((s) => ({ ...s, order }))
+      // Picking a global preset supersedes any active per-column field sort:
+      // the two are one logical "sort by", surfaced in two places. Clearing
+      // `sort` here keeps the dropdown live (backend precedence would otherwise
+      // ignore `order` while `sort` is set — a dead affordance). The column
+      // header, conversely, wins via that same precedence without touching
+      // `order`, so clearing the column sort falls back to the last preset.
+      updateUrlState((s) =>
+        s.resultType === ResultType.QuiltPackage
+          ? { ...s, order, sort: null }
+          : { ...s, order },
+      )
     },
     [updateUrlState],
   )
 
   // Set the structured package sort (null clears it, falling back to `order`).
-  // No-op for object search, which has no `sort` field. The producer (column
-  // headers) lands in w-fe-columns; exposed here so that leg has an action.
+  // No-op for object search, which has no `sort` field. Driven by the table
+  // column headers (Table/Table.tsx).
   const setSort = React.useCallback(
     (sort: PackageSort | null) => {
       updateUrlState((s) =>

@@ -31,6 +31,16 @@ const sortOptions = [
   },
 ]
 
+// Shown when a per-column field sort is active (see Table/Table.tsx). The two
+// sort producers are reconciled in the model: a column sort supersedes the
+// preset `order` (d-order-precedence), so the dropdown must not keep advertising
+// a preset that is no longer in effect. Picking any preset here clears the
+// column sort and takes over again.
+const columnSortOption = {
+  toString: () => 'Column',
+  valueOf: () => null,
+}
+
 const useButtonStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
@@ -55,11 +65,18 @@ export default function Sort({ className }: SortProps) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const model = SearchUIModel.use()
   const { setOrder } = model.actions
+  // A package field sort supersedes the preset; reflect that instead of
+  // falling back to a preset label that is not actually in effect.
+  const fieldSortActive =
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage &&
+    !!model.state.sort?.field
   const value = React.useMemo(
     () =>
-      sortOptions.find(({ valueOf }) => valueOf() === model.state.order) ||
-      sortOptions[0],
-    [model.state.order],
+      fieldSortActive
+        ? columnSortOption
+        : sortOptions.find(({ valueOf }) => valueOf() === model.state.order) ||
+          sortOptions[0],
+    [fieldSortActive, model.state.order],
   )
   const handleChange = React.useCallback(
     (v: (typeof sortOptions)[number]) => {

@@ -22,6 +22,7 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
+import { getColumnSortField, isColumnSorted } from './sort'
 import { ColumnTag, useColumns, ColumnUserMetaCreate } from './useColumns'
 import type {
   Column,
@@ -1155,6 +1156,56 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ColumnHeadTitleProps {
+  column: Column
+}
+
+// The column title, wrapped in a click-to-sort affordance when the column maps
+// to a supported sort field and the table is in latest-only mode. Field sort is
+// unsupported in all-revisions mode (d-sort-locus / d-unsupported-error), so the
+// affordance is hidden there rather than relying on the backend's typed-error
+// backstop. Clicking cycles ASC → DESC → cleared; clearing falls back to the
+// global preset (`order`) via the model's setSort/setOrder reconciliation.
+function ColumnHeadTitle({ column }: ColumnHeadTitleProps) {
+  const {
+    state: { sort, latestOnly },
+    actions: { setSort },
+  } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const label = (
+    <M.Tooltip arrow title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}>
+      <span>{column.title}</span>
+    </M.Tooltip>
+  )
+
+  const field = getColumnSortField(column)
+  const sortable = !!field && latestOnly
+
+  const active = isColumnSorted(field, sort)
+  const direction =
+    active && sort?.direction === SearchUIModel.SortDirection.DESC ? 'desc' : 'asc'
+
+  const handleSort = React.useCallback(() => {
+    if (!field) return
+    // ASC → DESC → cleared. Cleared restores the global preset ordering.
+    if (!active) {
+      setSort({ preset: null, field, direction: SearchUIModel.SortDirection.ASC })
+    } else if (sort?.direction === SearchUIModel.SortDirection.ASC) {
+      setSort({ preset: null, field, direction: SearchUIModel.SortDirection.DESC })
+    } else {
+      setSort(null)
+    }
+  }, [active, field, setSort, sort])
+
+  if (!sortable) return label
+
+  return (
+    <M.TableSortLabel active={active} direction={direction} onClick={handleSort}>
+      {label}
+    </M.TableSortLabel>
+  )
+}
+
 interface ColumnHeadProps {
   column: Column
   single: boolean
@@ -1165,12 +1216,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   return (
     <div className={cx(classes.root, classes[getColumnAlign(column)])}>
       <p className={classes.title}>
-        <M.Tooltip
-          arrow
-          title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}
-        >
-          <span>{column.title}</span>
-        </M.Tooltip>
+        <ColumnHeadTitle column={column} />
       </p>
       <div className={classes.actions}>
         <ColumnHeadOpen column={column} className={classes.button} />
