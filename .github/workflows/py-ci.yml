@@ -156,32 +156,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
-      PYTHONPATH: deps
-      JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
+    defaults:
+      run:
+        working-directory: lambdas/${{ matrix.path }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version-file: lambdas/${{ matrix.path }}/.python-version
       - uses: astral-sh/setup-uv@v7
-      - name: Export requirements.txt from uv.lock
-        run: |
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt --no-default-groups
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o test-requirements.txt --only-group test
-      - name: Install dependencies
-        run: |
-          # Try to simulate the lambda .zip file:
-          # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
-          # - Remove "tests" directories
-          # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
-          find deps -name tests -type d -exec rm -r \{} \+
-          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
-
-          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
-        run: |
-          python -m pytest --cov=lambdas lambdas/${{ matrix.path }}
+        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml
+      - name: Check the built package is importable
+        # The run above imports the sources, so it cannot catch files missing
+        # from the distribution. --no-editable installs the built wheel, which
+        # is how build_zip.sh and the Dockerfiles install the lambda, so
+        # collection fails if the wheel is incomplete.
+        run: uv run --no-editable pytest --collect-only -q
       - uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
