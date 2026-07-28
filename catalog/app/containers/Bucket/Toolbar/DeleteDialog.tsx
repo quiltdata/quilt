@@ -105,6 +105,13 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
       <M.DialogContent>
+        {!isComplete && (
+          <M.DialogContentText>
+            Adds a delete marker, so these objects stop appearing in listings and
+            search. Prior versions are retained and stay available in each object's
+            version history.
+          </M.DialogContentText>
+        )}
         {resolvedObjects ? (
           <M.List dense disablePadding>
             {resolvedObjects.map(

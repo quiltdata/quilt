@@ -113,7 +113,6 @@ Grant Quilt infrastructure in Control Account the necessary permissions to manag
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
                 "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
                 "s3:PutObject",
                 "s3:PutObjectTagging",
                 "s3:GetBucketNotification",
@@ -127,6 +126,10 @@ Grant Quilt infrastructure in Control Account the necessary permissions to manag
     ]
 }
 ```
+
+`s3:DeleteObject` writes a delete marker rather than destroying a version. To
+allow permanent erasure of a specific object version, add
+`s3:DeleteObjectVersion` to the policy's `Action` list.
 
 **Apply the Policy:**
 
@@ -159,7 +162,6 @@ cat > bucket-policy.json << 'EOF'
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
                 "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
                 "s3:PutObject",
                 "s3:PutObjectTagging",
                 "s3:GetBucketNotification",
