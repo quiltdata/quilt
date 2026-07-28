@@ -107,9 +107,9 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
       <M.DialogContent>
         {!isComplete && (
           <M.DialogContentText>
-            Adds a delete marker, so these objects stop appearing in listings and
-            search. Prior versions are retained and stay available in each object's
-            version history.
+            Adds a delete marker, so these objects stop appearing in listings and search.
+            Prior versions are retained and stay available in each object's version
+            history.
           </M.DialogContentText>
         )}
         {resolvedObjects ? (
