@@ -1,4 +1,4 @@
-name: Deploy catalog to ECR
+name: "Catalog: build & push"
 
 on:
   push:
@@ -15,31 +15,9 @@ on:
       - 'shared/**'
 
 jobs:
-  build-check:
-    if: github.event_name == 'pull_request'
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
-      - name: Build image (no push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: catalog/Dockerfile
-          push: false
-          # Scope shared with deploy-catalog-ecr so master builds warm the cache
-          # PRs read. ignore-error: fork PRs have no cache write access.
-          cache-from: type=gha,scope=catalog
-          cache-to: type=gha,mode=max,scope=catalog,ignore-error=true
-
-  deploy-catalog-ecr:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-    permissions:
-      id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v7
@@ -51,45 +29,66 @@ jobs:
           file: catalog/Dockerfile
           tags: catalog:${{ github.sha }}
           push: false
-          # Load into the local docker store for the per-registry tag/push below.
-          load: true
+          # On master, export a tarball for the push jobs below; on pull
+          # requests the build itself is the check and nothing consumes it.
+          outputs: ${{ github.event_name == 'push' && 'type=docker,dest=/tmp/catalog-image.tar' || '' }}
+          # One cache scope for both events: master builds warm the cache PRs
+          # read (the reverse is impossible — PR caches are isolated).
+          # ignore-error: fork PRs can't write the cache; worst case anywhere
+          # is a colder next build.
           cache-from: type=gha,scope=catalog
-          cache-to: type=gha,mode=max,scope=catalog
-      - name: Configure AWS credentials from Prod account
-        uses: aws-actions/configure-aws-credentials@v6
+          cache-to: type=gha,mode=max,scope=catalog,ignore-error=true
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'push'
         with:
-          role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
-          aws-region: us-east-1
-      - name: Login to Prod ECR
-        id: login-prod-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Login to MP ECR
-        id: login-mp-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+          name: catalog-image
+          path: /tmp/catalog-image.tar
+          retention-days: 1
+
+  push:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+    strategy:
+      # Targets are independent, so a failed one is retried alone via "Re-run
+      # failed jobs" — necessary for mp, which can't be re-pushed under the
+      # same tag, so any re-run replaying its successful push would fail.
+      fail-fast: false
+      matrix:
+        include:
+          - target: prod
+            role: arn:aws:iam::730278974607:role/github/GitHub-Quilt
+            region: us-east-1
+            repository: quiltdata/catalog
+          - target: mp
+            role: arn:aws:iam::730278974607:role/github/GitHub-Quilt
+            region: us-east-1
+            registry_id: "709825985650"
+            repository: quilt-data/quilt-payg-catalog
+          - target: govcloud
+            role: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
+            region: us-gov-east-1
+            repository: quiltdata/catalog
+    steps:
+      - uses: actions/download-artifact@v8
         with:
-          registries: 709825985650
-      - name: Configure AWS credentials from GovCloud account
-        uses: aws-actions/configure-aws-credentials@v6
+          name: catalog-image
+          path: /tmp
+      - run: docker load -i /tmp/catalog-image.tar
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
-          aws-region: us-gov-east-1
-      - name: Login to GovCloud ECR
-        id: login-govcloud-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Push Docker image to Prod, MP and GovCloud ECR
+          role-to-assume: ${{ matrix.role }}
+          aws-region: ${{ matrix.region }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+        with:
+          registries: ${{ matrix.registry_id }}
+      - name: Tag and push
         env:
-          ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
-          ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
-          ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
-          ECR_REPOSITORY: quiltdata/catalog
-          ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ matrix.repository }}:${{ github.sha }}
         run: |
-          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag catalog:$IMAGE_TAG $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
-          docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
-          # push to MP last because it can't be re-pushed using the same tag,
-          # so the job can be re-run if something failed
-          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
+          docker tag catalog:${{ github.sha }} "$IMAGE"
+          docker push "$IMAGE"
