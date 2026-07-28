@@ -140,7 +140,7 @@ class Bucket:
         """
         results = list_objects(self._pk.bucket, path)
         for result in results:
-            self.delete(result['Key'])
+            delete_object(self._pk.bucket, result['Key'])
 
     def ls(self, path=None, recursive=False):
         """List data from the specified path.

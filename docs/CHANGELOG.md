@@ -25,6 +25,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] `quilt3.delete_package()` on a local registry no longer deletes other packages sharing the same namespace ([#5140](https://github.com/quiltdata/quilt/pull/5140))
 * [Fixed] `Package.push()` no longer fails after the data is uploaded when cleaning up a temporary file created by `Package.set()`: a file that is already gone is ignored, which is also what happens when two logical keys share one serialized object and its temporary file is deleted twice, and any other removal error is logged instead of raised ([#5156](https://github.com/quiltdata/quilt/pull/5156))
 * [Fixed] `Package.push()` no longer uses a process pool to delete temporary files, so it works from a daemonic process (e.g. a prefork worker) and no longer requires callers to guard their entry point with `if __name__ == "__main__":` ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Bucket.delete_dir()` no longer stops partway through on zero-byte directory markers, leaving the directory half deleted ([#5158](https://github.com/quiltdata/quilt/pull/5158))
 
 ### CLI
 
