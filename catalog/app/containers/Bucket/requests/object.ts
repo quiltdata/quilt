@@ -104,13 +104,12 @@ interface DeleteObjectArgs {
 
 export const deleteObject = async ({
   s3,
-  handle: { bucket, key, version },
+  handle: { bucket, key },
 }: DeleteObjectArgs): Promise<void> => {
   await s3
     .deleteObject({
       Bucket: bucket,
       Key: key,
-      VersionId: version,
     })
     .promise()
 }
