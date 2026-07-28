@@ -285,8 +285,7 @@ class TestBucket(QuiltTestCase):
             bucket.delete_dir('dir')
 
     def test_remote_delete_dir_with_directory_marker(self):
-        # Zero-byte "folder" placeholders are part of the directory's contents; they must not
-        # abort the loop partway through.
+        # 'dir/sub/' is a zero-byte placeholder object, listed like any other key.
         self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={

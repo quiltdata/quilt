@@ -140,8 +140,6 @@ class Bucket:
         """
         results = list_objects(self._pk.bucket, path)
         for result in results:
-            # Not self.delete(): it rejects keys ending in '/' to steer callers here, but
-            # directory markers (zero-byte placeholder objects) are contents to delete.
             delete_object(self._pk.bucket, result['Key'])
 
     def ls(self, path=None, recursive=False):
