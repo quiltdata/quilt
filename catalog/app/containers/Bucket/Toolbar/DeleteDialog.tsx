@@ -30,9 +30,15 @@ export type DeleteResult = {
 export interface DeleteDialogProps {
   close: (result: DeleteResult) => void
   handles: Model.S3.S3ObjectLocation[]
+  /** The caller's view is pinned to a single version (`?version=`). */
+  versionPinned?: boolean
 }
 
-export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
+export default function DeleteDialog({
+  close,
+  handles,
+  versionPinned,
+}: DeleteDialogProps) {
   const classes = useDeleteDialogStyles()
   const [submitting, setSubmitting] = React.useState(false)
   const [resolvedObjects, setResolvedObjects] = React.useState<ResolvedObject[] | null>(
@@ -105,11 +111,18 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
       <M.DialogContent>
+        {!isComplete && versionPinned && (
+          <M.DialogContentText color="textPrimary">
+            <strong>You are viewing a specific version of this file.</strong>
+          </M.DialogContentText>
+        )}
         {!isComplete && (
           <M.DialogContentText>
-            Adds a delete marker, so these objects stop appearing in listings and search.
-            Prior versions are retained and stay available in each object's version
-            history.
+            {resolvedObjects?.length === 1
+              ? 'Deletes the file, not one of its versions. '
+              : 'Deletes the files listed below, not individual versions. '}
+            Where the bucket keeps versions, a delete marker hides the file and earlier
+            versions stay available; where it does not, the deletion is permanent.
           </M.DialogContentText>
         )}
         {resolvedObjects ? (
@@ -130,7 +143,6 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
                         s3://{bucket}/{key}
                       </Code>
                     }
-                    secondary={version}
                   />
                 </M.ListItem>
               ),
