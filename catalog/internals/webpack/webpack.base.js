@@ -148,5 +148,3 @@ module.exports = (options) => ({
   target: 'web', // Make web variables accessible to webpack, e.g. window
   performance: options.performance || {},
 })
-
-// cache-measurement probe — reverted in the next commit
