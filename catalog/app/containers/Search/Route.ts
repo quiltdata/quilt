@@ -9,6 +9,32 @@ import * as Nav from 'utils/Navigation'
 import * as Filter from './Filter'
 import * as UserMetaFilters from './UserMetaFilters'
 
+// Structured package sort for the Assistant's JSON API, mirroring the GraphQL
+// `PackageSortInput` (see change package-metadata-sort, d-contract-shape).
+// Exactly one of `preset` or `field` is expected (resolver-validated
+// server-side); the UI codec in model.ts (parseSort/serializeSort) is the
+// single source of truth for the compact `s` querystring form.
+const PackageSortFieldSchema = S.Struct({
+  system: S.optional(S.NullOr(S.Enums(Model.GQLTypes.PackageSystemField))).annotations({
+    title: 'System field',
+  }),
+  userMeta: S.optional(S.NullOr(S.String)).annotations({
+    title: 'User-metadata JSON pointer',
+  }),
+})
+
+const PackageSortSchema = S.Struct({
+  preset: S.optional(S.NullOr(S.Enums(Model.GQLTypes.SearchResultOrder))).annotations({
+    title: 'Preset order',
+  }),
+  field: S.optional(S.NullOr(PackageSortFieldSchema)).annotations({
+    title: 'Sort field',
+  }),
+  direction: S.optional(S.NullOr(S.Enums(Model.GQLTypes.SortDirection))).annotations({
+    title: 'Sort direction',
+  }),
+})
+
 const PackageSearchParamsSchema = S.Struct({
   resultType: S.tag(SearchModel.ResultType.QuiltPackage).annotations({
     title: 'Result type: Quilt Package',
@@ -25,6 +51,11 @@ const PackageSearchParamsSchema = S.Struct({
     title: 'Latest only',
     description: 'Search only latest revisions',
   }),
+  sort: S.optional(PackageSortSchema).annotations({
+    title: 'Sort',
+    description:
+      'Structured sort by a package field (system field or user-metadata JSON pointer) with a direction, or a preset order. When set, supersedes the top-level `order`.',
+  }),
 }).annotations({
   title: 'Package-specific search parameters',
 })
@@ -39,13 +70,18 @@ const PackageSearchParamsFromSearchParams = S.transform(
       filter: S.decodeSync(Filter.PackageFilter.fromSearchParams)(params),
       userMetaFilters: S.decodeSync(UserMetaFilters.fromSearchParams)(params),
       latestOnly: params.rev?.[0] !== 'all',
+      sort: SearchModel.parseSort(params.s?.[0] ?? null) ?? undefined,
     }),
     // json api to qs
-    encode: (toI) => ({
-      ...S.encodeSync(Filter.PackageFilter.fromSearchParams)(toI.filter || []),
-      ...S.encodeSync(UserMetaFilters.fromSearchParams)(toI.userMetaFilters || []),
-      ...((toI.latestOnly ?? true) ? {} : { rev: ['all'] }),
-    }),
+    encode: (toI) => {
+      const s = SearchModel.serializeSort(toI.sort ?? null)
+      return {
+        ...S.encodeSync(Filter.PackageFilter.fromSearchParams)(toI.filter || []),
+        ...S.encodeSync(UserMetaFilters.fromSearchParams)(toI.userMetaFilters || []),
+        ...((toI.latestOnly ?? true) ? {} : { rev: ['all'] }),
+        ...(s ? { s: [s] } : {}),
+      }
+    },
   },
 )
 

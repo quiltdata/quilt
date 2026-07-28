@@ -54,6 +54,27 @@ export type ResultOrder = Model.GQLTypes.SearchResultOrder
 
 export const DEFAULT_ORDER = ResultOrder.BEST_MATCH
 
+// Structured, field-level package sort mirroring the GraphQL `PackageSortInput`
+// 1:1 (see change package-metadata-sort, d-contract-shape). Distinct from the
+// flat `order` preset above: `order` is retained indefinitely for backward
+// compatibility and still drives the global "Sort by" dropdown, while `sort`
+// carries a per-column field sort. Backend precedence (d-order-precedence):
+// when `sort` is present it supersedes `order`; when null, `order` applies.
+// No UI produces a non-null `sort` yet — the column-header affordance that
+// sets it lands in w-fe-columns; this node only wires the state, URL codec,
+// and query variable so that leg has a model to bind to.
+export const PackageSystemField = Model.GQLTypes.PackageSystemField
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type PackageSystemField = Model.GQLTypes.PackageSystemField
+
+export const SortDirection = Model.GQLTypes.SortDirection
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type SortDirection = Model.GQLTypes.SortDirection
+
+export type PackageSort = Model.GQLTypes.PackageSortInput
+
+export const DEFAULT_SORT: PackageSort | null = null
+
 const FACETS_VISIBLE = 5
 // don't show facet filter if under this threshold
 const FACETS_FILTER_THRESHOLD = 10
@@ -96,6 +117,10 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
   filter: FilterStateForResultType<ResultType.QuiltPackage>
   userMetaFilters: UserMetaFilters
   latestOnly: boolean
+  // Structured field sort; null means "use the flat `order` preset" (the
+  // default today, until w-fe-columns wires a producer). Package-only: object
+  // search has no metadata columns to sort by.
+  sort: PackageSort | null
 }
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
@@ -104,6 +129,85 @@ function parseOrder(input: string | null, fallback: ResultOrder): ResultOrder {
   return Object.values(ResultOrder).includes(input as any)
     ? (input as ResultOrder)
     : fallback
+}
+
+// URL codec for the structured package sort (the `s` param). Compact,
+// human-legible forms, mutually exclusive by the `PackageSortInput` "exactly
+// one of preset|field" rule (resolver-validated server-side):
+//   s=<PRESET>                     preset sort (e.g. `s=NEWEST`)
+//   s=<DIR><SYSTEM>                system-field sort (e.g. `s=-MODIFIED`)
+//   s=<DIR>meta:<json-pointer>     user-meta field sort (e.g. `s=+meta:/x/y`)
+// where <DIR> is `+` (ASC) or `-` (DESC). Anything unrecognized parses to
+// null, falling back to the flat `order` preset.
+const SORT_META_PREFIX = 'meta:'
+
+function parseDirection(c: string): SortDirection | null {
+  if (c === '+') return SortDirection.ASC
+  if (c === '-') return SortDirection.DESC
+  return null
+}
+
+export function parseSort(input: string | null): PackageSort | null {
+  if (!input) return null
+
+  // preset: bare SearchResultOrder value, no direction prefix
+  if (Object.values(ResultOrder).includes(input as any)) {
+    return { preset: input as ResultOrder, field: null, direction: null }
+  }
+
+  const direction = parseDirection(input.slice(0, 1))
+  if (direction === null) return null
+  const rest = input.slice(1)
+
+  // user-meta field: `meta:<json-pointer>`
+  if (rest.startsWith(SORT_META_PREFIX)) {
+    const pointer = rest.slice(SORT_META_PREFIX.length)
+    if (!pointer) return null
+    return {
+      preset: null,
+      field: { system: null, userMeta: pointer },
+      direction,
+    }
+  }
+
+  // system field: bare PackageSystemField value
+  if (Object.values(PackageSystemField).includes(rest as any)) {
+    return {
+      preset: null,
+      field: { system: rest as PackageSystemField, userMeta: null },
+      direction,
+    }
+  }
+
+  return null
+}
+
+// Structural supertype of `PackageSortInput` accepting both the strict
+// graphql-codegen shape (`InputMaybe<T>` = `T | null`) and the Assistant's
+// effect-Schema decode output (`S.optional` = `T | null | undefined`).
+// serializeSort only reads these fields, so it tolerates either.
+export interface PackageSortLike {
+  readonly preset?: ResultOrder | null
+  readonly field?: {
+    readonly system?: PackageSystemField | null
+    readonly userMeta?: string | null
+  } | null
+  readonly direction?: SortDirection | null
+}
+
+export function serializeSort(sort: PackageSortLike | null): string | null {
+  if (!sort) return null
+
+  if (sort.preset != null) return sort.preset
+
+  const field = sort.field
+  if (!field) return null
+  const dir = sort.direction === SortDirection.ASC ? '+' : '-'
+
+  if (field.userMeta != null) return `${dir}${SORT_META_PREFIX}${field.userMeta}`
+  if (field.system != null) return `${dir}${field.system}`
+
+  return null
 }
 
 type Tagged<Tag extends string, T> = T & { _tag: Tag }
@@ -609,6 +713,7 @@ export function parseSearchParams(
         filter: PackagesSearchFilterIO.fromURLSearchParams(params),
         userMetaFilters: UserMetaFilters.fromURLSearchParams(params, META_PREFIX),
         latestOnly: params.get('rev') !== 'all',
+        sort: parseSort(params.get('s')),
       }
     default:
       assertNever(resultType)
@@ -659,6 +764,10 @@ function serializeSearchUrlState(
       appendParams(PackagesSearchFilterIO.toURLSearchParams(state.filter))
       appendParams(state.userMetaFilters.toURLSearchParams(META_PREFIX))
       if (!state.latestOnly) params.set('rev', 'all')
+      {
+        const s = serializeSort(state.sort)
+        if (s) params.set('s', s)
+      }
       break
     default:
       assertNever(state)
@@ -756,6 +865,7 @@ function useFirstPagePackagesQuery(state: SearchUrlState) {
           ? state.userMetaFilters.toGQL()
           : null,
       latestOnly: state.resultType === ResultType.QuiltPackage ? state.latestOnly : true,
+      sort: state.resultType === ResultType.QuiltPackage ? state.sort : null,
     },
     {
       pause: state.resultType !== ResultType.QuiltPackage,
@@ -1146,10 +1256,16 @@ export type SearchHitObject = Extract<
   { __typename: 'ObjectsSearchResultSet' }
 >['firstPage']['hits'][number]
 
+// `firstPage` is a union now (PackagesFirstPageResult): extract the success
+// page arm before reaching for `hits` (see change package-metadata-sort,
+// d-unsupported-error / d-typed-value).
 export type SearchHitPackage = Extract<
-  GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
-  { __typename: 'PackagesSearchResultSet' }
->['firstPage']['hits'][number]
+  Extract<
+    GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
+    { __typename: 'PackagesSearchResultSet' }
+  >['firstPage'],
+  { __typename: 'PackagesSearchResultSetPage' }
+>['hits'][number]
 
 export type SearchHit = SearchHitObject | SearchHitPackage
 
@@ -1393,6 +1509,18 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
     [updateUrlState],
   )
 
+  // Set the structured package sort (null clears it, falling back to `order`).
+  // No-op for object search, which has no `sort` field. The producer (column
+  // headers) lands in w-fe-columns; exposed here so that leg has an action.
+  const setSort = React.useCallback(
+    (sort: PackageSort | null) => {
+      updateUrlState((s) =>
+        s.resultType === ResultType.QuiltPackage ? { ...s, sort } : s,
+      )
+    },
+    [updateUrlState],
+  )
+
   const setResultType = React.useCallback(
     (resultType: ResultType) => {
       updateUrlState((s) => {
@@ -1405,6 +1533,7 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
               filter: PackagesSearchFilterIO.initialState,
               userMetaFilters: new UserMetaFilters(),
               latestOnly: true,
+              sort: DEFAULT_SORT,
             }
           case ResultType.S3Object:
             return {
@@ -1577,6 +1706,7 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
             filter: PackagesSearchFilterIO.initialState,
             userMetaFilters: new UserMetaFilters(),
             latestOnly: true,
+            sort: DEFAULT_SORT,
           }
         case ResultType.S3Object:
           return {
@@ -1598,6 +1728,7 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
       actions: {
         setSearchString,
         setOrder,
+        setSort,
         setResultType,
         setBuckets,
         setView,

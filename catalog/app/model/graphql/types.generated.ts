@@ -1,7 +1,7 @@
-import type { Json, JsonRecord } from 'utils/types'
+import type { Json } from 'utils/types'
+import type { JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
-
 export type Maybe<T> = T | null
 export type InputMaybe<T> = Maybe<T>
 /** All built-in and custom scalars, mapped to their actual values */
@@ -898,6 +898,27 @@ export interface PackageRevisionListpageArgs {
   perPage?: InputMaybe<Scalars['Int']['input']>
 }
 
+export interface PackageSortField {
+  readonly system: InputMaybe<PackageSystemField>
+  readonly userMeta: InputMaybe<Scalars['String']['input']>
+}
+
+export interface PackageSortInput {
+  readonly direction: InputMaybe<SortDirection>
+  readonly field: InputMaybe<PackageSortField>
+  readonly preset: InputMaybe<SearchResultOrder>
+}
+
+export enum PackageSystemField {
+  COMMENT = 'COMMENT',
+  ENTRIES = 'ENTRIES',
+  HASH = 'HASH',
+  MODIFIED = 'MODIFIED',
+  NAME = 'NAME',
+  SIZE = 'SIZE',
+  WORKFLOW = 'WORKFLOW',
+}
+
 export type PackageUserMetaFacet =
   | BooleanPackageUserMetaFacet
   | DatetimePackageUserMetaFacet
@@ -959,6 +980,11 @@ export type PackagerEventRuleToggleResult =
   | OperationError
   | PackagerEventRule
 
+export type PackagesFirstPageResult =
+  | InvalidInput
+  | OperationError
+  | PackagesSearchResultSetPage
+
 export interface PackagesSearchFilter {
   readonly comment: InputMaybe<TextSearchPredicate>
   readonly entries: InputMaybe<NumberSearchPredicate>
@@ -983,7 +1009,7 @@ export type PackagesSearchResult =
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
   readonly filteredUserMetaFacets: ReadonlyArray<PackageUserMetaFacet>
-  readonly firstPage: PackagesSearchResultSetPage
+  readonly firstPage: PackagesFirstPageResult
   readonly stats: PackagesSearchStats
   readonly total: Scalars['Int']['output']
 }
@@ -996,6 +1022,7 @@ export interface PackagesSearchResultSetfilteredUserMetaFacetsArgs {
 export interface PackagesSearchResultSetfirstPageArgs {
   order: InputMaybe<SearchResultOrder>
   size?: InputMaybe<Scalars['Int']['input']>
+  sort: InputMaybe<PackageSortInput>
 }
 
 export interface PackagesSearchResultSetPage {

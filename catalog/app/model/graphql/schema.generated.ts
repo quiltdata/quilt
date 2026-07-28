@@ -1,5 +1,4 @@
 import type { IntrospectionQuery } from 'graphql'
-
 export default {
   __schema: {
     queryType: {
@@ -4411,6 +4410,24 @@ export default {
       },
       {
         kind: 'UNION',
+        name: 'PackagesFirstPageResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSetPage',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
         name: 'PackagesSearchMoreResult',
         possibleTypes: [
           {
@@ -4495,8 +4512,8 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'PackagesSearchResultSetPage',
+                kind: 'UNION',
+                name: 'PackagesFirstPageResult',
                 ofType: null,
               },
             },
@@ -4514,6 +4531,13 @@ export default {
                   kind: 'SCALAR',
                   name: 'Int',
                   ofType: null,
+                },
+              },
+              {
+                name: 'sort',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
                 },
               },
             ],

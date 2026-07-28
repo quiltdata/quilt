@@ -4,10 +4,10 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../model/graphql/types.generated'
 
+import type { JsonRecord } from 'utils/types'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export interface BooleanSearchPredicate {
   readonly false: boolean | null | undefined
   readonly true: boolean | null | undefined
@@ -27,6 +27,26 @@ export interface NumberSearchPredicate {
   readonly gte: number | null | undefined
   readonly lte: number | null | undefined
 }
+
+export interface PackageSortField {
+  readonly system: PackageSystemField | null | undefined
+  readonly userMeta: string | null | undefined
+}
+
+export interface PackageSortInput {
+  readonly direction: SortDirection | null | undefined
+  readonly field: PackageSortField | null | undefined
+  readonly preset: SearchResultOrder | null | undefined
+}
+
+export type PackageSystemField =
+  | 'COMMENT'
+  | 'ENTRIES'
+  | 'HASH'
+  | 'MODIFIED'
+  | 'NAME'
+  | 'SIZE'
+  | 'WORKFLOW'
 
 export interface PackageUserMetaPredicate {
   readonly boolean: BooleanSearchPredicate | null | undefined
@@ -54,6 +74,8 @@ export type SearchResultOrder =
   | 'NEWEST'
   | 'OLDEST'
 
+export type SortDirection = 'ASC' | 'DESC'
+
 export interface TextSearchPredicate {
   readonly queryString: string
 }
@@ -65,6 +87,7 @@ export type containers_Search_gql_FirstPagePackagesQueryVariables = Exact<{
   userMetaFilters: ReadonlyArray<Types.PackageUserMetaPredicate> | null | undefined
   latestOnly: boolean
   order: Types.SearchResultOrder | null | undefined
+  sort: Types.PackageSortInput | null | undefined
 }>
 
 export interface containers_Search_gql_FirstPagePackagesQuery {
@@ -90,46 +113,63 @@ export interface containers_Search_gql_FirstPagePackagesQuery {
     | {
         readonly __typename: 'PackagesSearchResultSet'
         readonly total: number
-        readonly firstPage: {
-          readonly __typename: 'PackagesSearchResultSetPage'
-          readonly cursor: string | null
-          readonly hits: ReadonlyArray<{
-            readonly __typename: 'SearchHitPackage'
-            readonly id: string
-            readonly bucket: string
-            readonly name: string
-            readonly pointer: string
-            readonly hash: string
-            readonly score: number
-            readonly size: number
-            readonly modified: Date
-            readonly totalEntriesCount: number
-            readonly comment: string | null
-            readonly meta: string | null
-            readonly workflow: JsonRecord | null
-            readonly matchLocations: {
-              readonly __typename: 'SearchHitPackageMatchLocations'
-              readonly comment: boolean
-              readonly meta: boolean
-              readonly name: boolean
-              readonly workflow: boolean
+        readonly firstPage:
+          | {
+              readonly __typename: 'InvalidInput'
+              readonly errors: ReadonlyArray<{
+                readonly __typename: 'InputError'
+                readonly path: string | null
+                readonly message: string
+                readonly name: string
+                readonly context: JsonRecord | null
+              }>
             }
-            readonly matchingEntries: ReadonlyArray<{
-              readonly __typename: 'SearchHitPackageMatchingEntry'
-              readonly logicalKey: string
-              readonly physicalKey: string
-              readonly size: number
-              readonly meta: string | null
-              readonly matchLocations: {
-                readonly __typename: 'SearchHitPackageEntryMatchLocations'
-                readonly contents: boolean
-                readonly logicalKey: boolean
-                readonly meta: boolean
-                readonly physicalKey: boolean
-              }
-            }>
-          }>
-        }
+          | {
+              readonly __typename: 'OperationError'
+              readonly name: string
+              readonly message: string
+              readonly context: JsonRecord | null
+            }
+          | {
+              readonly __typename: 'PackagesSearchResultSetPage'
+              readonly cursor: string | null
+              readonly hits: ReadonlyArray<{
+                readonly __typename: 'SearchHitPackage'
+                readonly id: string
+                readonly bucket: string
+                readonly name: string
+                readonly pointer: string
+                readonly hash: string
+                readonly score: number
+                readonly size: number
+                readonly modified: Date
+                readonly totalEntriesCount: number
+                readonly comment: string | null
+                readonly meta: string | null
+                readonly workflow: JsonRecord | null
+                readonly matchLocations: {
+                  readonly __typename: 'SearchHitPackageMatchLocations'
+                  readonly comment: boolean
+                  readonly meta: boolean
+                  readonly name: boolean
+                  readonly workflow: boolean
+                }
+                readonly matchingEntries: ReadonlyArray<{
+                  readonly __typename: 'SearchHitPackageMatchingEntry'
+                  readonly logicalKey: string
+                  readonly physicalKey: string
+                  readonly size: number
+                  readonly meta: string | null
+                  readonly matchLocations: {
+                    readonly __typename: 'SearchHitPackageEntryMatchLocations'
+                    readonly contents: boolean
+                    readonly logicalKey: boolean
+                    readonly meta: boolean
+                    readonly physicalKey: boolean
+                  }
+                }>
+              }>
+            }
       }
 }
 
@@ -194,6 +234,11 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
           kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
           type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'sort' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'PackageSortInput' } },
         },
       ],
       selectionSet: {
@@ -261,72 +306,87 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                               name: { kind: 'Name', value: 'order' },
                             },
                           },
+                          {
+                            kind: 'Argument',
+                            name: { kind: 'Name', value: 'sort' },
+                            value: {
+                              kind: 'Variable',
+                              name: { kind: 'Name', value: 'sort' },
+                            },
+                          },
                         ],
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'cursor' } },
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'hits' },
+                              name: { kind: 'Name', value: '__typename' },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: {
+                                  kind: 'Name',
+                                  value: 'PackagesSearchResultSetPage',
+                                },
+                              },
                               selectionSet: {
                                 kind: 'SelectionSet',
                                 selections: [
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: '__typename' },
-                                  },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'bucket' },
+                                    name: { kind: 'Name', value: 'cursor' },
                                   },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'name' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'pointer' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'hash' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'score' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'size' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'modified' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'totalEntriesCount' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'comment' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'meta' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'workflow' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'matchLocations' },
+                                    name: { kind: 'Name', value: 'hits' },
                                     selectionSet: {
                                       kind: 'SelectionSet',
                                       selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: '__typename' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'id' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'bucket' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'pointer' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'hash' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'score' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'size' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'modified' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: {
+                                            kind: 'Name',
+                                            value: 'totalEntriesCount',
+                                          },
+                                        },
                                         {
                                           kind: 'Field',
                                           name: { kind: 'Name', value: 'comment' },
@@ -337,36 +397,7 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                         },
                                         {
                                           kind: 'Field',
-                                          name: { kind: 'Name', value: 'name' },
-                                        },
-                                        {
-                                          kind: 'Field',
                                           name: { kind: 'Name', value: 'workflow' },
-                                        },
-                                      ],
-                                    },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'matchingEntries' },
-                                    selectionSet: {
-                                      kind: 'SelectionSet',
-                                      selections: [
-                                        {
-                                          kind: 'Field',
-                                          name: { kind: 'Name', value: 'logicalKey' },
-                                        },
-                                        {
-                                          kind: 'Field',
-                                          name: { kind: 'Name', value: 'physicalKey' },
-                                        },
-                                        {
-                                          kind: 'Field',
-                                          name: { kind: 'Name', value: 'size' },
-                                        },
-                                        {
-                                          kind: 'Field',
-                                          name: { kind: 'Name', value: 'meta' },
                                         },
                                         {
                                           kind: 'Field',
@@ -376,8 +407,32 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                             selections: [
                                               {
                                                 kind: 'Field',
-                                                name: { kind: 'Name', value: 'contents' },
+                                                name: { kind: 'Name', value: 'comment' },
                                               },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'meta' },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'name' },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'workflow' },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: {
+                                            kind: 'Name',
+                                            value: 'matchingEntries',
+                                          },
+                                          selectionSet: {
+                                            kind: 'SelectionSet',
+                                            selections: [
                                               {
                                                 kind: 'Field',
                                                 name: {
@@ -387,13 +442,57 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                               },
                                               {
                                                 kind: 'Field',
+                                                name: {
+                                                  kind: 'Name',
+                                                  value: 'physicalKey',
+                                                },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'size' },
+                                              },
+                                              {
+                                                kind: 'Field',
                                                 name: { kind: 'Name', value: 'meta' },
                                               },
                                               {
                                                 kind: 'Field',
                                                 name: {
                                                   kind: 'Name',
-                                                  value: 'physicalKey',
+                                                  value: 'matchLocations',
+                                                },
+                                                selectionSet: {
+                                                  kind: 'SelectionSet',
+                                                  selections: [
+                                                    {
+                                                      kind: 'Field',
+                                                      name: {
+                                                        kind: 'Name',
+                                                        value: 'contents',
+                                                      },
+                                                    },
+                                                    {
+                                                      kind: 'Field',
+                                                      name: {
+                                                        kind: 'Name',
+                                                        value: 'logicalKey',
+                                                      },
+                                                    },
+                                                    {
+                                                      kind: 'Field',
+                                                      name: {
+                                                        kind: 'Name',
+                                                        value: 'meta',
+                                                      },
+                                                    },
+                                                    {
+                                                      kind: 'Field',
+                                                      name: {
+                                                        kind: 'Name',
+                                                        value: 'physicalKey',
+                                                      },
+                                                    },
+                                                  ],
                                                 },
                                               },
                                             ],
@@ -401,6 +500,67 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                         },
                                       ],
                                     },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'InvalidInput' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'errors' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'path' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'message' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'context' },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'OperationError' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'message' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'context' },
                                   },
                                 ],
                               },

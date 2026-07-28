@@ -18,9 +18,12 @@ import SectionHeader from './SectionHeader'
 const MAX_PACKAGES = 2
 
 type PackageHit = Extract<
-  GQL.DataForDoc<typeof RECENT_PACKAGES_QUERY>['searchPackages'],
-  { __typename: 'PackagesSearchResultSet' }
->['firstPage']['hits'][number]
+  Extract<
+    GQL.DataForDoc<typeof RECENT_PACKAGES_QUERY>['searchPackages'],
+    { __typename: 'PackagesSearchResultSet' }
+  >['firstPage'],
+  { __typename: 'PackagesSearchResultSetPage' }
+>['hits'][number]
 
 function PackageSecondary({ hit }: { hit: PackageHit }) {
   return (
@@ -153,7 +156,10 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
         case 'EmptySearchResultSet':
           return null
         case 'PackagesSearchResultSet': {
-          const hits = r.firstPage.hits.slice(0, MAX_PACKAGES)
+          const hits =
+            r.firstPage.__typename === 'PackagesSearchResultSetPage'
+              ? r.firstPage.hits.slice(0, MAX_PACKAGES)
+              : []
           return hits.length ? (
             <PackageList bucket={bucket} hits={hits} total={r.total} />
           ) : null
