@@ -26,10 +26,12 @@ const systemColumn = (
 const userMetaColumn = (
   filter: string,
   predicateType: SearchUIModel.KnownPredicate['_tag'],
+  sortable: boolean,
 ): Column => ({
   tag: ColumnTag.UserMeta,
   filter,
   predicateType,
+  sortable,
   state,
   title: filter,
 })
@@ -62,15 +64,24 @@ describe('containers/Search/Table getColumnSortField', () => {
     expect(getColumnSortField(systemColumn('comment'))).toBeNull()
   })
 
-  it('maps a typed user-meta column to its JSON pointer', () => {
-    expect(getColumnSortField(userMetaColumn('/cell_count', 'Number'))).toEqual({
+  it('maps a sortable user-meta column to its JSON pointer', () => {
+    expect(getColumnSortField(userMetaColumn('/cell_count', 'Number', true))).toEqual({
       system: null,
       userMeta: '/cell_count',
     })
   })
 
-  it('rejects a text-typed user-meta column (analyzed, unsortable)', () => {
-    expect(getColumnSortField(userMetaColumn('/notes', 'Text'))).toBeNull()
+  it('rejects an unsortable user-meta column (analyzed text, unsortable)', () => {
+    expect(getColumnSortField(userMetaColumn('/notes', 'Text', false))).toBeNull()
+  })
+
+  it('maps a Text-rendered but sortable user-meta column (demoted high-cardinality keyword)', () => {
+    // A high-cardinality keyword renders as a Text facet (predicateType 'Text')
+    // yet sorts natively — the gate keys on `sortable`, not the render type.
+    expect(getColumnSortField(userMetaColumn('/lineage', 'Text', true))).toEqual({
+      system: null,
+      userMeta: '/lineage',
+    })
   })
 
   it('rejects the bucket column (non-field)', () => {

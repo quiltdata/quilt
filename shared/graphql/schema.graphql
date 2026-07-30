@@ -408,29 +408,40 @@ type KeywordExtents {
 
 interface IPackageUserMetaFacet {
   path: String!
+  """
+  Whether ES can sort on this pointer's stored subfield. Independent of the
+  concrete facet type: a high-cardinality keyword is rendered as a
+  TextPackageUserMetaFacet (no bounded value picker) yet is `sortable: true`.
+  """
+  sortable: Boolean!
 }
 
 type NumberPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: NumberExtents!
 }
 
 type DatetimePackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: DatetimeExtents!
 }
 
 type KeywordPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: KeywordExtents!
 }
 
 type TextPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
 }
 
 type BooleanPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
 }
 
 union PackageUserMetaFacet =

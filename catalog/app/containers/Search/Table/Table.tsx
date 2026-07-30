@@ -699,6 +699,7 @@ function AvailableUserMetaColumnsTree({
                     ColumnUserMetaCreate(
                       node.value.path,
                       SearchUIModel.PackageUserMetaFacetMap[node.value.__typename],
+                      node.value.sortable,
                     )
                   }
                   {...getLabel(p)}
@@ -761,6 +762,10 @@ function useAvailableUserMetaFacets(
           .map(([path, f]) => ({
             __typename: ReversPackageUserMetaTypename[f._tag],
             path,
+            // Selected filters carry a predicate, not a facet — derive sortability
+            // from the predicate type (only 'Text' is unsortable), matching the
+            // policy in useColumns for selected user-meta columns.
+            sortable: f._tag !== 'Text',
           })),
       )[0].children,
     [model.state.userMetaFilters.filters, filterValue],

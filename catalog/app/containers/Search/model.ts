@@ -1274,7 +1274,10 @@ type PackageUserMetaFacetFull = Extract<
   { __typename: 'PackagesSearchResultSet' }
 >['stats']['userMeta'][number]
 
-export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
+export type PackageUserMetaFacet = Pick<
+  PackageUserMetaFacetFull,
+  'path' | '__typename' | 'sortable'
+>
 
 const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,

@@ -143,6 +143,7 @@ export interface AdminQueries {
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'BooleanPackageUserMetaFacet'
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface BooleanSearchPredicate {
@@ -366,6 +367,7 @@ export interface DatetimePackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'DatetimePackageUserMetaFacet'
   readonly extents: DatetimeExtents
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface DatetimeSearchPredicate {
@@ -386,6 +388,12 @@ export enum GlacierRestoreTier {
 
 export interface IPackageUserMetaFacet {
   readonly path: Scalars['String']['output']
+  /**
+   * Whether ES can sort on this pointer's stored subfield. Independent of the
+   * concrete facet type: a high-cardinality keyword is rendered as a
+   * TextPackageUserMetaFacet (no bounded value picker) yet is `sortable: true`.
+   */
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface IndexingInProgress {
@@ -420,6 +428,7 @@ export interface KeywordPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'KeywordPackageUserMetaFacet'
   readonly extents: KeywordExtents
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface KeywordSearchPredicate {
@@ -688,6 +697,7 @@ export interface NumberPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'NumberPackageUserMetaFacet'
   readonly extents: NumberExtents
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface NumberSearchPredicate {
@@ -1441,6 +1451,7 @@ export interface TestStatsTimeSeries {
 export interface TextPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'TextPackageUserMetaFacet'
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface TextSearchPredicate {

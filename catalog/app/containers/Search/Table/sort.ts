@@ -23,9 +23,13 @@ const SYSTEM_SORT_FIELDS: Partial<
 
 // The `PackageSortField` a column maps to, or null when the column is not
 // sortable: buckets are non-field, COMMENT/unlisted system fields are
-// unsupported, and `text`-typed user-meta pointers are analyzed and cannot be
-// sorted (d-unsupported-error). The all-revisions mode gate lives at the call
-// site — it depends on model state, not the column alone.
+// unsupported, and user-meta pointers whose stored ES subfield can't be sorted
+// (analyzed text) are excluded via the facet's `sortable` signal. Gating on
+// `sortable` — not on the render type — is deliberate: a high-cardinality
+// keyword renders as a Text facet (predicateType 'Text') but sorts natively,
+// so predicateType would wrongly hide the affordance (see qhq-spls.2). The
+// all-revisions mode gate lives at the call site — it depends on model state,
+// not the column alone.
 export function getColumnSortField(
   column: Column,
 ): SearchUIModel.PackageSort['field'] | null {
@@ -37,7 +41,7 @@ export function getColumnSortField(
       return system ? { system, userMeta: null } : null
     }
     case ColumnTag.UserMeta:
-      if (column.predicateType === 'Text') return null
+      if (!column.sortable) return null
       return { system: null, userMeta: column.filter }
     default:
       return assertNever(column)
