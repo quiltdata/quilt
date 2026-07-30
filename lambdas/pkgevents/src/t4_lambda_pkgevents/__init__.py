@@ -8,13 +8,13 @@ from t4_lambda_shared.utils import get_quilt_logger
 
 EXPECTED_POINTER_SIZE = 64
 
+# S3 sends this to the notification queue when a bucket's notification
+# configuration is created; it carries no 'Records'.
+TEST_EVENT = 's3:TestEvent'
+
 event_bridge = boto3.client('events')
 s3 = boto3.client('s3')
 logger = get_quilt_logger()
-
-
-class PutEventsException(Exception):
-    pass
 
 
 class EventsQueue:
@@ -22,22 +22,33 @@ class EventsQueue:
 
     def __init__(self):
         self._events = []
+        self._message_ids = []
+        self._failed_message_ids = set()
 
-    def append(self, event):
+    def append(self, event, message_id):
         self._events.append(event)
+        self._message_ids.append(message_id)
         if len(self) >= self.MAX_SIZE:
             self._flush()
 
     def _flush(self):
         events = self._events
+        message_ids = self._message_ids
         self._events = []
+        self._message_ids = []
         resp = event_bridge.put_events(Entries=events)
         if resp['FailedEntryCount']:
-            raise PutEventsException(resp)
+            # response entries are in the same order as the request entries
+            for message_id, entry in zip(message_ids, resp['Entries'], strict=True):
+                if 'ErrorCode' in entry:
+                    logger.warning('failed to publish event from message %s: %s', message_id, entry)
+                    self._failed_message_ids.add(message_id)
 
     def flush(self):
+        """Flush pending events and return ids of the messages whose events failed to publish."""
         if self:
             self._flush()
+        return self._failed_message_ids
 
     def __len__(self):
         return len(self._events)
@@ -93,22 +104,47 @@ def pkg_created_event(s3_event):
     }
 
 
-def iter_s3_events(sqs_records):
+def iter_s3_events(sqs_records, failed_message_ids):
+    """Yield (message id, S3 event) pairs, dropping S3 test events and
+    reporting messages of unexpected shape as failed."""
     for record in sqs_records:
         body = json.loads(record['body'])
-        if 'Records' not in body:
-            # `s3:TestEvent` (sent when a bucket's notification configuration is
-            # created) or another unexpected message: skip it instead of failing
-            # the whole batch, which would dead-letter the real events in it too.
-            logger.warning('skipping message without S3 records: %s', record['body'])
+        if body.get('Event') == TEST_EVENT:
+            # arrives on every bucket add, not worth logging
             continue
-        yield from body['Records']
+        if 'Records' not in body:
+            # report it as failed so it ends up in the DLQ
+            # instead of being deleted without a trace
+            logger.warning('no S3 records in message %s', record['messageId'])
+            failed_message_ids.add(record['messageId'])
+            continue
+        for s3_event in body['Records']:
+            yield record['messageId'], s3_event
 
 
 def handler(event, context):
-    s3_events = iter_s3_events(event['Records'])
+    failed_message_ids = set()
     queue = EventsQueue()
-    for pkg_event in filter(None, map(pkg_created_event, s3_events)):
-        queue.append(pkg_event)
+    for message_id, s3_event in iter_s3_events(event['Records'], failed_message_ids):
+        if message_id in failed_message_ids:
+            # the whole message will be retried, so don't publish the rest
+            # of its events now -- that'd make even more duplicates
+            continue
+        try:
+            pkg_event = pkg_created_event(s3_event)
+        except Exception:
+            logger.exception('failed to process S3 event from message %s', message_id)
+            failed_message_ids.add(message_id)
+            continue
+        if pkg_event is not None:
+            queue.append(pkg_event, message_id)
 
-    queue.flush()
+    failed_message_ids |= queue.flush()
+    # Messages not listed here are considered processed and get deleted from
+    # the queue, so on an error that can't be attributed to specific messages
+    # (e.g. a failed put_events call) we must raise, failing the whole batch.
+    return {
+        'batchItemFailures': [
+            {'itemIdentifier': message_id} for message_id in failed_message_ids
+        ],
+    }

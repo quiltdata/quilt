@@ -8,7 +8,6 @@ from botocore.stub import Stubber
 
 from t4_lambda_pkgevents import (
     EventsQueue,
-    PutEventsException,
     handler,
     pkg_created_event,
     s3,
@@ -146,37 +145,43 @@ def test_pkg_created_event(pointer_file):
         stubber.assert_no_pending_responses()
 
 
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush")
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
     event = {
         'Records': [
             {
+                'messageId': f'message-{idx}',
                 'body': json.dumps(
                     {
                         'Records': records
                     }
                 )
             }
-            for records in (
-                (0, 1),
-                (2, 3, 4),
-                (5,)
+            for idx, records in enumerate(
+                (
+                    (0, 1),
+                    (2, 3, 4),
+                    (5,)
+                )
             )
         ]
     }
-    handler(event, None)
+    assert handler(event, None) == {'batchItemFailures': []}
     assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(6)]
-    assert queue_append_mock.call_args_list == [((str(x),),) for x in range(6)]
+    assert queue_append_mock.call_args_list == [
+        ((str(x), f'message-{idx}'),)
+        for x, idx in zip(range(6), (0, 0, 1, 1, 1, 2), strict=True)
+    ]
     queue_flush_mock.assert_called_once_with()
 
 
 @mock.patch("t4_lambda_pkgevents.logger")
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush")
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
-def test_handler_skips_messages_without_records(
+def test_handler_drops_test_events_silently(
     pkg_created_event_mock, queue_append_mock, queue_flush_mock, logger_mock
 ):
     test_event_body = json.dumps(
@@ -191,33 +196,104 @@ def test_handler_skips_messages_without_records(
     )
     event = {
         'Records': [
-            {'body': json.dumps({'Records': (0, 1)})},
-            {'body': test_event_body},
-            {'body': json.dumps({'Records': (2,)})},
+            {'messageId': 'message-0', 'body': json.dumps({'Records': (0, 1)})},
+            {'messageId': 'message-1', 'body': test_event_body},
+            {'messageId': 'message-2', 'body': json.dumps({'Records': (2,)})},
         ]
     }
-    handler(event, None)
+    assert handler(event, None) == {'batchItemFailures': []}
     assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(3)]
-    assert queue_append_mock.call_args_list == [((str(x),),) for x in range(3)]
+    assert queue_append_mock.call_args_list == [
+        ((str(x), message_id),)
+        for x, message_id in zip(range(3), ('message-0', 'message-0', 'message-2'), strict=True)
+    ]
     queue_flush_mock.assert_called_once_with()
-    # the skipped message is the only thing an operator can see, so pin that it's
-    # logged as-received -- not the parsed dict, whose repr isn't JSON
-    assert logger_mock.warning.call_count == 1
-    assert test_event_body in logger_mock.warning.call_args.args
+    # a test event arrives on every bucket add, it must not be logged
+    logger_mock.warning.assert_not_called()
+    logger_mock.exception.assert_not_called()
 
 
-@pytest.mark.parametrize('failed_count', (0, 1))
-def test_queue(failed_count):
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
+@mock.patch("t4_lambda_pkgevents.EventsQueue.append")
+@mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
+def test_handler_reports_messages_without_records_as_failed(
+    pkg_created_event_mock, queue_append_mock, queue_flush_mock
+):
+    event = {
+        'Records': [
+            {'messageId': 'message-0', 'body': json.dumps({'Records': (0,)})},
+            {'messageId': 'message-1', 'body': json.dumps({'Event': 'unexpected'})},
+        ]
+    }
+    assert handler(event, None) == {'batchItemFailures': [{'itemIdentifier': 'message-1'}]}
+    assert pkg_created_event_mock.call_args_list == [((0,),)]
+    assert queue_append_mock.call_args_list == [(('0', 'message-0'),)]
+    queue_flush_mock.assert_called_once_with()
+
+
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
+@mock.patch("t4_lambda_pkgevents.EventsQueue.append")
+@mock.patch("t4_lambda_pkgevents.pkg_created_event")
+def test_handler_reports_message_with_failing_event(
+    pkg_created_event_mock, queue_append_mock, queue_flush_mock
+):
+    pkg_created_event_mock.side_effect = (None, Exception('boom'), None)
+    event = {
+        'Records': [
+            # the event after the failing one must not be processed
+            {'messageId': 'message-0', 'body': json.dumps({'Records': (0, 1, 2)})},
+            {'messageId': 'message-1', 'body': json.dumps({'Records': (3,)})},
+        ]
+    }
+    assert handler(event, None) == {'batchItemFailures': [{'itemIdentifier': 'message-0'}]}
+    assert pkg_created_event_mock.call_args_list == [((x,),) for x in (0, 1, 3)]
+    queue_append_mock.assert_not_called()
+    queue_flush_mock.assert_called_once_with()
+
+
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value={'message-0'})
+@mock.patch("t4_lambda_pkgevents.EventsQueue.append")
+@mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
+def test_handler_reports_publish_failures(
+    pkg_created_event_mock, queue_append_mock, queue_flush_mock
+):
+    event = {
+        'Records': [
+            {'messageId': 'message-0', 'body': json.dumps({'Records': (0,)})},
+        ]
+    }
+    assert handler(event, None) == {'batchItemFailures': [{'itemIdentifier': 'message-0'}]}
+
+
+def test_queue_success():
     with mock.patch("t4_lambda_pkgevents.event_bridge.put_events") as put_events_mock:
-        put_events_mock.return_value = {'FailedEntryCount': failed_count}
+        put_events_mock.return_value = {'FailedEntryCount': 0}
         q = EventsQueue()
         for x in range(EventsQueue.MAX_SIZE - 1):
-            q.append(x)
+            q.append(x, f'message-{x}')
             put_events_mock.assert_not_called()
 
-        if failed_count:
-            with pytest.raises(PutEventsException):
-                q.append(EventsQueue.MAX_SIZE - 1)
-        else:
-            q.append(EventsQueue.MAX_SIZE - 1)
-            put_events_mock.assert_called_once_with(Entries=list(range(EventsQueue.MAX_SIZE)))
+        q.append(EventsQueue.MAX_SIZE - 1, 'message-9')
+        put_events_mock.assert_called_once_with(Entries=list(range(EventsQueue.MAX_SIZE)))
+        assert q.flush() == set()
+        put_events_mock.assert_called_once()
+
+
+def test_queue_failed_entries():
+    with mock.patch("t4_lambda_pkgevents.event_bridge.put_events") as put_events_mock:
+        first_entries = [{'EventId': str(x)} for x in range(EventsQueue.MAX_SIZE)]
+        first_entries[3] = {'ErrorCode': 'ThrottlingException', 'ErrorMessage': 'try later'}
+        put_events_mock.side_effect = (
+            {'FailedEntryCount': 1, 'Entries': first_entries},
+            {
+                'FailedEntryCount': 1,
+                'Entries': [{'ErrorCode': 'InternalFailure', 'ErrorMessage': 'oops'}],
+            },
+        )
+        q = EventsQueue()
+        for x in range(EventsQueue.MAX_SIZE + 1):
+            q.append(x, f'message-{x}')
+
+        # failures accumulate across flushes
+        assert q.flush() == {'message-3', f'message-{EventsQueue.MAX_SIZE}'}
+        assert put_events_mock.call_count == 2
