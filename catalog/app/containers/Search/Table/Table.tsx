@@ -1165,34 +1165,35 @@ interface ColumnHeadTitleProps {
   column: Column
 }
 
-// The column title, wrapped in a click-to-sort affordance when the column maps
-// to a supported sort field and the table is in latest-only mode. Field sort is
-// unsupported in all-revisions mode (d-sort-locus / d-unsupported-error), so the
-// affordance is hidden there rather than relying on the backend's typed-error
-// backstop. Clicking cycles ASC → DESC → cleared; clearing falls back to the
-// global preset (`order`) via the model's setSort/setOrder reconciliation.
+// The column title. Sorting is driven by the always-visible ColumnHeadSort icon
+// in the actions cluster (below), not by the title, so this is plain text.
 function ColumnHeadTitle({ column }: ColumnHeadTitleProps) {
+  return (
+    <M.Tooltip arrow title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}>
+      <span>{column.title}</span>
+    </M.Tooltip>
+  )
+}
+
+// Sort state + cycle logic for a column. Field sort is unsupported in
+// all-revisions mode (d-sort-locus / d-unsupported-error), so `sortable` is
+// false there rather than relying on the backend's typed-error backstop.
+function useColumnSort(column: Column) {
   const {
     state: { sort, latestOnly },
     actions: { setSort },
   } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const label = (
-    <M.Tooltip arrow title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}>
-      <span>{column.title}</span>
-    </M.Tooltip>
-  )
-
   const field = getColumnSortField(column)
   const sortable = !!field && latestOnly
 
   const active = isColumnSorted(field, sort)
-  const direction =
-    active && sort?.direction === SearchUIModel.SortDirection.DESC ? 'desc' : 'asc'
+  const descending = active && sort?.direction === SearchUIModel.SortDirection.DESC
 
   const handleSort = React.useCallback(() => {
     if (!field) return
-    // ASC → DESC → cleared. Cleared restores the global preset ordering.
+    // ASC → DESC → cleared. Cleared restores the global preset ordering via the
+    // model's setSort/setOrder reconciliation.
     if (!active) {
       setSort({ preset: null, field, direction: SearchUIModel.SortDirection.ASC })
     } else if (sort?.direction === SearchUIModel.SortDirection.ASC) {
@@ -1202,12 +1203,64 @@ function ColumnHeadTitle({ column }: ColumnHeadTitleProps) {
     }
   }, [active, field, setSort, sort])
 
-  if (!sortable) return label
+  return { sortable, active, descending, handleSort }
+}
+
+const useColumnHeadSortStyles = M.makeStyles({
+  // Rest: dim bidirectional arrow signals "sortable" without a hover. Hover:
+  // swap to the unidirectional ASC-preview arrow (what the first click applies),
+  // matching the directional arrow shown while actively sorted. When active, the
+  // directional icon is rendered directly (in primary), so this swap is only
+  // wired for the inactive state.
+  button: {
+    '&:hover $rest': { display: 'none' },
+    '&:hover $hover': { display: 'inline-flex' },
+  },
+  rest: {},
+  hover: { display: 'none' },
+})
+
+interface ColumnHeadSortProps {
+  className: string
+  column: Column
+}
+
+function ColumnHeadSort({ className, column }: ColumnHeadSortProps) {
+  const classes = useColumnHeadSortStyles()
+  const { sortable, active, descending, handleSort } = useColumnSort(column)
+
+  if (!sortable) return null
+
+  const title = active
+    ? `Sorted ${descending ? 'descending' : 'ascending'} — click to ${
+        descending ? 'clear sort' : 'sort descending'
+      }`
+    : 'Sort ascending'
 
   return (
-    <M.TableSortLabel active={active} direction={direction} onClick={handleSort}>
-      {label}
-    </M.TableSortLabel>
+    <M.Tooltip arrow title={title}>
+      <M.IconButton
+        className={cx(className, classes.button)}
+        size="small"
+        color={active ? 'primary' : 'inherit'}
+        onClick={handleSort}
+      >
+        {active ? (
+          <M.Icon color="inherit" fontSize="inherit">
+            {descending ? 'arrow_downward' : 'arrow_upward'}
+          </M.Icon>
+        ) : (
+          <>
+            <M.Icon className={classes.rest} color="inherit" fontSize="inherit">
+              unfold_more
+            </M.Icon>
+            <M.Icon className={classes.hover} color="inherit" fontSize="inherit">
+              arrow_upward
+            </M.Icon>
+          </>
+        )}
+      </M.IconButton>
+    </M.Tooltip>
   )
 }
 
@@ -1224,6 +1277,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
         <ColumnHeadTitle column={column} />
       </p>
       <div className={classes.actions}>
+        <ColumnHeadSort column={column} className={classes.button} />
         <ColumnHeadOpen column={column} className={classes.button} />
         {!single && <ColumnHeadHide column={column} className={classes.button} />}
       </div>
