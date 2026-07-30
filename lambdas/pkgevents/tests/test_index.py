@@ -172,25 +172,27 @@ def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
     queue_flush_mock.assert_called_once_with()
 
 
+@mock.patch("t4_lambda_pkgevents.logger")
 @mock.patch("t4_lambda_pkgevents.EventsQueue.flush")
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
-def test_handler_skips_messages_without_records(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
+def test_handler_skips_messages_without_records(
+    pkg_created_event_mock, queue_append_mock, queue_flush_mock, logger_mock
+):
+    test_event_body = json.dumps(
+        {
+            'Service': 'Amazon S3',
+            'Event': 's3:TestEvent',
+            'Time': '2026-07-30T00:38:18.000Z',
+            'Bucket': 'test-bucket',
+            'RequestId': 'AAAAAAAAAAAAAAAA',
+            'HostId': 'aaaaaaaaaaaaaaaa',
+        }
+    )
     event = {
         'Records': [
             {'body': json.dumps({'Records': (0, 1)})},
-            {
-                'body': json.dumps(
-                    {
-                        'Service': 'Amazon S3',
-                        'Event': 's3:TestEvent',
-                        'Time': '2026-07-30T00:38:18.000Z',
-                        'Bucket': 'test-bucket',
-                        'RequestId': 'AAAAAAAAAAAAAAAA',
-                        'HostId': 'aaaaaaaaaaaaaaaa',
-                    }
-                )
-            },
+            {'body': test_event_body},
             {'body': json.dumps({'Records': (2,)})},
         ]
     }
@@ -198,6 +200,10 @@ def test_handler_skips_messages_without_records(pkg_created_event_mock, queue_ap
     assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(3)]
     assert queue_append_mock.call_args_list == [((str(x),),) for x in range(3)]
     queue_flush_mock.assert_called_once_with()
+    # the skipped message is the only thing an operator can see, so pin that it's
+    # logged as-received -- not the parsed dict, whose repr isn't JSON
+    assert logger_mock.warning.call_count == 1
+    assert test_event_body in logger_mock.warning.call_args.args
 
 
 @pytest.mark.parametrize('failed_count', (0, 1))

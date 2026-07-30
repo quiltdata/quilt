@@ -100,7 +100,7 @@ def iter_s3_events(sqs_records):
             # `s3:TestEvent` (sent when a bucket's notification configuration is
             # created) or another unexpected message: skip it instead of failing
             # the whole batch, which would dead-letter the real events in it too.
-            logger.warning('skipping message without S3 records: %s', body)
+            logger.warning('skipping message without S3 records: %s', record['body'])
             continue
         yield from body['Records']
 
@@ -108,7 +108,7 @@ def iter_s3_events(sqs_records):
 def handler(event, context):
     s3_events = iter_s3_events(event['Records'])
     queue = EventsQueue()
-    for event in filter(None, map(pkg_created_event, s3_events)):
-        queue.append(event)
+    for pkg_event in filter(None, map(pkg_created_event, s3_events)):
+        queue.append(pkg_event)
 
     queue.flush()
