@@ -1,3 +1,4 @@
+import itertools
 import json
 import re
 import time
@@ -12,49 +13,11 @@ EXPECTED_POINTER_SIZE = 64
 # configuration is created; it carries no 'Records'.
 TEST_EVENT = 's3:TestEvent'
 
+PUT_EVENTS_MAX_ENTRIES = 10  # PutEvents API limit
+
 event_bridge = boto3.client('events')
 s3 = boto3.client('s3')
 logger = get_quilt_logger()
-
-
-class EventsQueue:
-    MAX_SIZE = 10
-
-    def __init__(self):
-        self._events = []
-        self._message_ids = []
-        self._failed_message_ids = set()
-
-    def append(self, event, message_id):
-        self._events.append(event)
-        self._message_ids.append(message_id)
-        if len(self) >= self.MAX_SIZE:
-            self._flush()
-
-    def _flush(self):
-        events = self._events
-        message_ids = self._message_ids
-        self._events = []
-        self._message_ids = []
-        resp = event_bridge.put_events(Entries=events)
-        if resp['FailedEntryCount']:
-            # response entries are in the same order as the request entries
-            for message_id, entry in zip(message_ids, resp['Entries'], strict=True):
-                if 'ErrorCode' in entry:
-                    logger.warning('failed to publish event from message %s: %s', message_id, entry)
-                    self._failed_message_ids.add(message_id)
-
-    def flush(self):
-        """Flush pending events and return ids of the messages whose events failed to publish."""
-        if self:
-            self._flush()
-        return self._failed_message_ids
-
-    def __len__(self):
-        return len(self._events)
-
-    def __bool__(self):
-        return bool(self._events)
 
 
 PKG_POINTER_REGEX = re.compile(r'\.quilt/named_packages/([\w-]+/[\w-]+)/([0-9]{10})')
@@ -104,49 +67,54 @@ def pkg_created_event(s3_event):
     }
 
 
-def iter_s3_events(sqs_records, failed_message_ids):
-    """Yield (message id, S3 event) pairs, dropping S3 test events and
-    reporting messages of unexpected shape as failed."""
-    for record in sqs_records:
-        try:
-            body = json.loads(record['body'])
-        except json.JSONDecodeError:
-            body = None
-        if isinstance(body, dict) and body.get('Event') == TEST_EVENT:
-            # arrives on every bucket add, not worth logging
-            continue
-        if not isinstance(body, dict) or 'Records' not in body:
-            # S3 is the expected producer, not the only possible one: report
-            # whatever else lands here as failed so it ends up in the DLQ
-            # instead of being deleted without a trace
-            logger.warning('no S3 records in message %s', record['messageId'])
-            failed_message_ids.add(record['messageId'])
-            continue
-        for s3_event in body['Records']:
-            yield record['messageId'], s3_event
+def get_s3_events(body):
+    """Return the S3 events from an SQS message body ([] for S3 test events);
+    raise for any other unexpected shape."""
+    body = json.loads(body)
+    if body.get('Event') == TEST_EVENT:
+        # arrives on every bucket add, not worth logging
+        return []
+    return body['Records']
+
+
+def publish(entries):
+    """Publish (message id, event) pairs to EventBridge and return the ids of
+    the messages whose events failed to publish."""
+    failed_message_ids = set()
+    for chunk in itertools.batched(entries, PUT_EVENTS_MAX_ENTRIES):
+        resp = event_bridge.put_events(Entries=[event for _, event in chunk])
+        if resp['FailedEntryCount']:
+            # response entries are in the same order as the request entries
+            for (message_id, _), resp_entry in zip(chunk, resp['Entries'], strict=True):
+                if 'ErrorCode' in resp_entry:
+                    logger.warning('failed to publish event from message %s: %s', message_id, resp_entry)
+                    failed_message_ids.add(message_id)
+    return failed_message_ids
 
 
 def handler(event, context):
     failed_message_ids = set()
-    queue = EventsQueue()
-    for message_id, s3_event in iter_s3_events(event['Records'], failed_message_ids):
-        if message_id in failed_message_ids:
-            # the whole message will be retried, so don't publish the rest
-            # of its events now -- that'd make even more duplicates
-            continue
+    entries = []
+    for record in event['Records']:
+        message_id = record['messageId']
         try:
-            pkg_event = pkg_created_event(s3_event)
+            entries += [
+                (message_id, pkg_event)
+                for pkg_event in map(pkg_created_event, get_s3_events(record['body']))
+                if pkg_event is not None
+            ]
         except Exception:
-            logger.exception('failed to process S3 event from message %s', message_id)
+            # unexpected message shape (S3 is the expected producer, not the only
+            # possible one) or a failure while processing one of its events: fail
+            # the message alone so it's retried and dead-lettered by itself,
+            # ending up in the DLQ instead of being deleted without a trace
+            logger.exception('failed to process message %s', message_id)
             failed_message_ids.add(message_id)
-            continue
-        if pkg_event is not None:
-            queue.append(pkg_event, message_id)
 
-    failed_message_ids |= queue.flush()
-    # Messages not listed here are considered processed and get deleted from
-    # the queue, so on an error that can't be attributed to specific messages
-    # (e.g. a failed put_events call) we must raise, failing the whole batch.
+    failed_message_ids |= publish(entries)
+    # Messages not listed here are considered processed and get deleted from the
+    # queue, so an error that can't be attributed to specific messages (a failed
+    # put_events call) must raise, failing the whole batch.
     return {
         'batchItemFailures': [
             {'itemIdentifier': message_id} for message_id in failed_message_ids
