@@ -213,16 +213,26 @@ def test_handler_drops_test_events_silently(
     logger_mock.exception.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    'bad_body',
+    (
+        json.dumps({'Event': 'unexpected'}),
+        'not JSON',
+        'null',
+        '[]',
+        '"s3:TestEvent"',
+    ),
+)
 @mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=frozenset())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler_reports_messages_without_records_as_failed(
-    pkg_created_event_mock, queue_append_mock, queue_flush_mock
+    pkg_created_event_mock, queue_append_mock, queue_flush_mock, bad_body
 ):
     event = {
         'Records': [
             {'messageId': 'message-0', 'body': json.dumps({'Records': (0,)})},
-            {'messageId': 'message-1', 'body': json.dumps({'Event': 'unexpected'})},
+            {'messageId': 'message-1', 'body': bad_body},
         ]
     }
     assert handler(event, None) == {'batchItemFailures': [{'itemIdentifier': 'message-1'}]}

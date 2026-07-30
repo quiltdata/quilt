@@ -108,12 +108,16 @@ def iter_s3_events(sqs_records, failed_message_ids):
     """Yield (message id, S3 event) pairs, dropping S3 test events and
     reporting messages of unexpected shape as failed."""
     for record in sqs_records:
-        body = json.loads(record['body'])
-        if body.get('Event') == TEST_EVENT:
+        try:
+            body = json.loads(record['body'])
+        except json.JSONDecodeError:
+            body = None
+        if isinstance(body, dict) and body.get('Event') == TEST_EVENT:
             # arrives on every bucket add, not worth logging
             continue
-        if 'Records' not in body:
-            # report it as failed so it ends up in the DLQ
+        if not isinstance(body, dict) or 'Records' not in body:
+            # S3 is the expected producer, not the only possible one: report
+            # whatever else lands here as failed so it ends up in the DLQ
             # instead of being deleted without a trace
             logger.warning('no S3 records in message %s', record['messageId'])
             failed_message_ids.add(record['messageId'])
