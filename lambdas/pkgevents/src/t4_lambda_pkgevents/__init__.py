@@ -1,4 +1,3 @@
-import itertools
 import json
 import re
 import time
@@ -94,11 +93,20 @@ def pkg_created_event(s3_event):
     }
 
 
+def iter_s3_events(sqs_records):
+    for record in sqs_records:
+        body = json.loads(record['body'])
+        if 'Records' not in body:
+            # `s3:TestEvent` (sent when a bucket's notification configuration is
+            # created) or another unexpected message: skip it instead of failing
+            # the whole batch, which would dead-letter the real events in it too.
+            logger.warning('skipping message without S3 records: %s', body)
+            continue
+        yield from body['Records']
+
+
 def handler(event, context):
-    s3_events = itertools.chain.from_iterable(
-        json.loads(record['body'])['Records']
-        for record in event['Records']
-    )
+    s3_events = iter_s3_events(event['Records'])
     queue = EventsQueue()
     for event in filter(None, map(pkg_created_event, s3_events)):
         queue.append(event)

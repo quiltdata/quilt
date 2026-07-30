@@ -172,6 +172,34 @@ def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
     queue_flush_mock.assert_called_once_with()
 
 
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush")
+@mock.patch("t4_lambda_pkgevents.EventsQueue.append")
+@mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
+def test_handler_skips_messages_without_records(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
+    event = {
+        'Records': [
+            {'body': json.dumps({'Records': (0, 1)})},
+            {
+                'body': json.dumps(
+                    {
+                        'Service': 'Amazon S3',
+                        'Event': 's3:TestEvent',
+                        'Time': '2026-07-30T00:38:18.000Z',
+                        'Bucket': 'test-bucket',
+                        'RequestId': 'AAAAAAAAAAAAAAAA',
+                        'HostId': 'aaaaaaaaaaaaaaaa',
+                    }
+                )
+            },
+            {'body': json.dumps({'Records': (2,)})},
+        ]
+    }
+    handler(event, None)
+    assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(3)]
+    assert queue_append_mock.call_args_list == [((str(x),),) for x in range(3)]
+    queue_flush_mock.assert_called_once_with()
+
+
 @pytest.mark.parametrize('failed_count', (0, 1))
 def test_queue(failed_count):
     with mock.patch("t4_lambda_pkgevents.event_bridge.put_events") as put_events_mock:
