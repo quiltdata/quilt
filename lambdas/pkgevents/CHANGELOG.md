@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Skip SQS messages without S3 records, e.g. `s3:TestEvent`, instead of failing the whole batch and dead-lettering the real package events in it ([#5162](https://github.com/quiltdata/quilt/pull/5162))
 - [Fixed] Process package pointers from year 2026+ ([#4683](https://github.com/quiltdata/quilt/pull/4683))
 - [Changed] Migrate to proper package structure ([#4647](https://github.com/quiltdata/quilt/pull/4647))
 - [Changed] Switch to uv ([#4647](https://github.com/quiltdata/quilt/pull/4647))
