@@ -145,7 +145,7 @@ def test_pkg_created_event(pointer_file):
         stubber.assert_no_pending_responses()
 
 
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=frozenset())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
@@ -178,7 +178,7 @@ def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
 
 
 @mock.patch("t4_lambda_pkgevents.logger")
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=frozenset())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler_drops_test_events_silently(
@@ -213,7 +213,7 @@ def test_handler_drops_test_events_silently(
     logger_mock.exception.assert_not_called()
 
 
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=frozenset())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler_reports_messages_without_records_as_failed(
@@ -231,7 +231,7 @@ def test_handler_reports_messages_without_records_as_failed(
     queue_flush_mock.assert_called_once_with()
 
 
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=set())
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=frozenset())
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event")
 def test_handler_reports_message_with_failing_event(
@@ -251,7 +251,7 @@ def test_handler_reports_message_with_failing_event(
     queue_flush_mock.assert_called_once_with()
 
 
-@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value={'message-0'})
+@mock.patch("t4_lambda_pkgevents.EventsQueue.flush", return_value=frozenset({'message-0'}))
 @mock.patch("t4_lambda_pkgevents.EventsQueue.append")
 @mock.patch("t4_lambda_pkgevents.pkg_created_event", wraps=str)
 def test_handler_reports_publish_failures(
