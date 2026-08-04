@@ -1,4 +1,4 @@
-import type { ViewConfig } from '@finos/perspective'
+import type { ViewerConfigUpdate } from '@finos/perspective-viewer'
 
 import FileType from './fileType'
 
@@ -21,7 +21,7 @@ export interface StyleOptions {
 }
 
 export interface PerspectiveOptions {
-  config?: ViewConfig
+  config?: ViewerConfigUpdate
   settings?: boolean
 }
 
