@@ -420,18 +420,17 @@ export function useCreateDialog({
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
-  const dialogStatus: PDModel.DialogStatus = React.useMemo(() => {
-    if (resolveError) return { _tag: 'error', error: resolveError }
-    if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
-    if (waitingListing) return { _tag: 'loading', waitListing: true }
-    if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
-      return { _tag: 'loading', waitListing: false }
-    }
-    if (workflowsConfig._tag === 'error') {
-      return { _tag: 'error', error: workflowsConfig.error }
-    }
-    return { _tag: 'ready' }
-  }, [waitingListing, workflowsConfig, formStatus, manifest, resolveError])
+  const dialogStatus: PDModel.DialogStatus = React.useMemo(
+    () =>
+      PDModel.computeDialogStatus({
+        formStatus,
+        manifest,
+        resolveError,
+        waitingListing,
+        workflowsConfig,
+      }),
+    [waitingListing, workflowsConfig, formStatus, manifest, resolveError],
+  )
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <DialogWrapper
