@@ -24,6 +24,9 @@ export function computeDialogStatus({
   if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
     return { _tag: 'loading', waitListing: false }
   }
+  if (manifest._tag === 'error') {
+    return { _tag: 'error', error: manifest.error }
+  }
   if (workflowsConfig._tag === 'error') {
     return { _tag: 'error', error: workflowsConfig.error }
   }
