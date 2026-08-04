@@ -1,0 +1,21 @@
+# Turning off blank issues forces everything through a structured form, which is
+# what enforces the feature-request-first intake model. Questions and "is this a
+# bug?" conversations are routed to Slack instead of becoming issues.
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & community support
+    url: https://slack.quilt.bio
+    about: >-
+      Have a question, need help, or not sure whether something is a bug? Join
+      the Quilt Slack community — that's the fastest way to get an answer.
+      Please don't open an issue for general support.
+  - name: Documentation
+    url: https://docs.quilt.bio
+    about: >-
+      Product, platform, and API documentation. Check here before filing a
+      docs issue.
+  - name: Security vulnerabilities
+    url: mailto:dev@quiltdata.io
+    about: >-
+      Please report security issues privately by email — do NOT open a public
+      issue for a suspected vulnerability.
