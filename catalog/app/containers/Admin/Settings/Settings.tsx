@@ -13,6 +13,7 @@ import * as validators from 'utils/validators'
 import * as Form from '../Form'
 import PackagerSettings from './PackagerSettings'
 import SearchSettings from './SearchSettings'
+import SupportDiagnostics from './SupportDiagnostics'
 import TabulatorSettings from './TabulatorSettings'
 import ThemeEditor from './ThemeEditor'
 
@@ -343,6 +344,13 @@ export default function Settings() {
       </M.Typography>
       <M.Paper className={classes.group}>
         <TabulatorSettings />
+      </M.Paper>
+
+      <M.Typography variant="h5" className={classes.title}>
+        Support Diagnostics
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <SupportDiagnostics />
       </M.Paper>
     </div>
   )
