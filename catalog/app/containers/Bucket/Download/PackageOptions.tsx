@@ -73,7 +73,8 @@ function DownloadFile({ fileHandle }: { fileHandle: Model.S3.S3ObjectLocation })
     <M.Button
       className={classes.root}
       download
-      href={url}
+      href={url ?? ''}
+      disabled={!url}
       startIcon={<Icons.ArrowDownwardOutlined />}
     >
       Download file

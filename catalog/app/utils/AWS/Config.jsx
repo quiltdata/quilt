@@ -1,5 +1,3 @@
-import AWS from 'aws-sdk/lib/core'
-import 'aws-sdk/lib/config'
 import * as React from 'react'
 
 import useMemoEq from 'utils/useMemoEq'
@@ -8,10 +6,12 @@ import * as Credentials from './Credentials'
 
 const Ctx = React.createContext()
 
+// aws-sdk v3 has no `AWS.Config` aggregate object; each client takes a plain
+// config object in its constructor. We build that object here: the credentials
+// provider (an `AwsCredentialIdentityProvider`) plus any caller-supplied props.
 const useConfig = (props) => {
   const credentials = Credentials.use()
-  // TODO: use cache?
-  return useMemoEq({ credentials, ...props }, (input) => new AWS.Config(input))
+  return useMemoEq({ credentials: credentials.provider, ...props }, (input) => input)
 }
 
 export function Provider({ children, ...props }) {

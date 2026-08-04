@@ -16,18 +16,23 @@ interface AudioLoaderProps {
   handle: Model.S3.S3ObjectLocation
 }
 
-function useAudioSrc(handle: Model.S3.S3ObjectLocation): string {
-  const sign = AWS.Signer.useS3Signer()
-  const url = React.useMemo(() => sign(handle), [handle, sign])
-  const query = new URLSearchParams({
-    duration: '30',
-    format: 'audio/mpeg',
-    url,
-  })
-  return `${cfg.apiGatewayEndpoint}/transcode?${query.toString()}`
+function useAudioSrc(handle: Model.S3.S3ObjectLocation): string | undefined {
+  // sign is async in v3 (presigner); useSignedUrl resolves it into state.
+  const url = AWS.Signer.useSignedUrl(handle)
+  return React.useMemo(() => {
+    if (!url) return undefined
+    const query = new URLSearchParams({
+      duration: '30',
+      format: 'audio/mpeg',
+      url,
+    })
+    return `${cfg.apiGatewayEndpoint}/transcode?${query.toString()}`
+  }, [url])
 }
 
 export const Loader = function AudioLoader({ handle, children }: AudioLoaderProps) {
   const src = useAudioSrc(handle)
-  return children(AsyncResult.Ok(PreviewData.Audio({ src })))
+  return children(
+    src ? AsyncResult.Ok(PreviewData.Audio({ src })) : AsyncResult.Pending(),
+  )
 }
