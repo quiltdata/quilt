@@ -294,7 +294,7 @@ export default function Settings() {
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
             <M.Typography variant="h6" className={classes.sectionHeading}>
-              Navbar link
+              Navigation link
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
               <NavLinkEditor />

@@ -57,6 +57,31 @@ describe('components/BucketIcon', () => {
     expect(getByTitle('Default icon').closest('svg')).not.toBeNull()
   })
 
+  describe('initials-avatar fallback', () => {
+    it('renders initials derived from `label` when there is no src', () => {
+      const { getByText } = render(<BucketIcon src={null} label="Genomics Data" />)
+      expect(getByText('GD')).toBeTruthy()
+    })
+
+    it('takes the first two letters of a single-word label', () => {
+      const { getByText } = render(<BucketIcon src={null} label="genomics" />)
+      expect(getByText('GE')).toBeTruthy()
+    })
+
+    it('falls back to the generic glyph stub when there is no label', () => {
+      const { container } = render(<BucketIcon src={null} />)
+      expect(container.querySelector('svg')).not.toBeNull()
+    })
+
+    it('prefers the custom src image over the label', () => {
+      const { getByAltText, container } = render(
+        <BucketIcon alt="Custom" src="https://custom-src" label="Genomics Data" />,
+      )
+      expect(getByAltText('Custom')).toBeTruthy()
+      expect(container.querySelector('svg')).toBeNull()
+    })
+  })
+
   describe('class names', () => {
     const className = 'PRIMARY'
     const classes = {

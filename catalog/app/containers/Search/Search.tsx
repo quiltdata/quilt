@@ -58,7 +58,9 @@ function SearchLayout() {
   return (
     <Container>
       <MetaTitle>{searchString || 'Search'}</MetaTitle>
-      <Main inputRef={setInputEl}>
+      {/* The query input is the persistent header search bar (ContentBar),
+          bound to this screen's model -- no in-body field. */}
+      <Main inputRef={setInputEl} hideSearch>
         {tableView ? (
           <TableResults
             emptySlot={<NoResults.Empty onRefine={handleRefine} />}

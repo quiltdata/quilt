@@ -1,26 +1,18 @@
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import Buckets from 'containers/Home/Buckets'
 import MetaTitle from 'utils/MetaTitle'
 
-import Dots from 'website/components/Backgrounds/Dots'
 import Layout from 'website/components/Layout'
 
-import Buckets from './Buckets'
 import LocalMode from './LocalMode'
 
 export default function Landing() {
   return (
-    <Layout>
+    <Layout flush={false}>
       <MetaTitle />
-      {cfg.mode === 'LOCAL' ? (
-        <LocalMode />
-      ) : (
-        <>
-          <Dots style={{ bottom: 0 }} />
-          <Buckets />
-        </>
-      )}
+      {cfg.mode === 'LOCAL' ? <LocalMode /> : <Buckets />}
     </Layout>
   )
 }

@@ -1,12 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Suggestions from 'components/SearchBar/Suggestions'
+import useState from 'components/SearchBar/State'
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
-
-import Suggestions from './Suggestions'
-import useState from './State'
 
 import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'

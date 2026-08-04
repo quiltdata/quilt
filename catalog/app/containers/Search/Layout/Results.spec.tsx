@@ -130,7 +130,7 @@ describe('containers/Search/Layout/Results', () => {
     expect(getByText('Loading…')).toBeTruthy()
   })
 
-  it('renders with data and shows number of results', () => {
+  it('renders with data and shows number of packages', () => {
     model.firstPageQuery = {
       _tag: 'data',
       data: {
@@ -144,7 +144,7 @@ describe('containers/Search/Layout/Results', () => {
         <Results />
       </MemoryRouter>,
     )
-    expect(getByText('Column Title: 5 results')).toBeTruthy()
+    expect(getByText('Column Title: 5 packages')).toBeTruthy()
   })
 
   it('renders with FiltersButton when onFilters prop is provided', () => {
@@ -164,7 +164,7 @@ describe('containers/Search/Layout/Results', () => {
     expect(getByText('Filters')).toBeTruthy()
   })
 
-  it('does not show ToggleResultsView for S3Object result type', () => {
+  it('shows number of objects and no ToggleResultsView for S3Object result type', () => {
     model.state.resultType = 'o' // S3Object
     model.firstPageQuery = {
       _tag: 'data',
@@ -174,11 +174,12 @@ describe('containers/Search/Layout/Results', () => {
       },
     }
 
-    const { queryByRole } = render(
+    const { queryByRole, getByText } = render(
       <MemoryRouter>
         <Results />
       </MemoryRouter>,
     )
+    expect(getByText('Column Title: 5 objects')).toBeTruthy()
     expect(queryByRole('group', { name: 'toggle results view' })).toBeFalsy()
   })
 

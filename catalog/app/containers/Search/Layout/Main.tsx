@@ -195,9 +195,11 @@ const useStyles = M.makeStyles((t) => ({
 interface MainProps {
   children: React.ReactNode
   inputRef: React.Ref<HTMLInputElement>
+  // The package list hides its own search field and uses the header search bar.
+  hideSearch?: boolean
 }
 
-export default function Main({ inputRef, children }: MainProps) {
+export default function Main({ inputRef, children, hideSearch = false }: MainProps) {
   const model = SearchUIModel.use()
 
   const classes = useStyles()
@@ -214,7 +216,7 @@ export default function Main({ inputRef, children }: MainProps) {
 
   return (
     <div className={classes.root}>
-      <SearchField className={classes.search} ref={inputRef} />
+      {!hideSearch && <SearchField className={classes.search} ref={inputRef} />}
       <div className={cx(!toggleFilters && classes.withSidebar)}>
         {toggleFilters ? (
           <MobileFilters open={showFilters} onClose={toggleFilters} />

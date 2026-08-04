@@ -68,6 +68,41 @@ export const search = route(
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 )
 
+// Queries (workspace-global query consoles; the bucket is a parameter of the
+// console, never part of the mount point)
+export const queries = route('/queries')
+
+export type QueriesArgs = Parameters<typeof queries.url>
+
+export const queriesAthena = route(
+  '/queries/athena',
+  // `table` (together with the `bucket` hosting it) deep-links a Tabulator
+  // table to autofill the query editor.
+  ({ bucket, table }: { bucket?: string; table?: string } = {}) =>
+    `/queries/athena${mkSearch({ bucket, table })}`,
+)
+
+export type QueriesAthenaArgs = Parameters<typeof queriesAthena.url>
+
+export const queriesAthenaWorkgroup = route(
+  '/queries/athena/:workgroup',
+  (workgroup: string) => `/queries/athena/${workgroup}`,
+)
+
+export type QueriesAthenaWorkgroupArgs = Parameters<typeof queriesAthenaWorkgroup.url>
+
+export const queriesAthenaExecution = route(
+  '/queries/athena/:workgroup/:queryExecutionId',
+  (workgroup: string, queryExecutionId: string) =>
+    `/queries/athena/${workgroup}/${queryExecutionId}`,
+)
+
+export type QueriesAthenaExecutionArgs = Parameters<typeof queriesAthenaExecution.url>
+
+export const queriesEs = route('/queries/es')
+
+export type QueriesEsArgs = Parameters<typeof queriesEs.url>
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',
@@ -194,6 +229,9 @@ export const bucketPackageCompare = route(
 
 export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
 
+// Legacy bucket-scoped query console routes — the console now lives at the
+// workspace-global `queries*` routes above; these paths are kept only so old
+// links redirect there (see App.jsx). Don't link to them.
 export const bucketQueries = route(
   '/b/:bucket/queries',
   (bucket: string) => `/b/${bucket}/queries`,
@@ -210,7 +248,6 @@ export type BucketESQueriesArgs = Parameters<typeof bucketESQueries.url>
 
 export const bucketAthena = route(
   '/b/:bucket/queries/athena',
-  // `table` deep-links a Tabulator table to autofill the query editor.
   (bucket: string, { table }: { table?: string } = {}) =>
     `/b/${bucket}/queries/athena${mkSearch({ table })}`,
 )
