@@ -114,8 +114,8 @@ export default function SupportDiagnostics() {
           <>
             <M.CircularProgress size={20} className={classes.progress} />
             <M.Typography variant="body2" className={classes.progressText}>
-              Collecting&hellip; A large or unhealthy cluster takes longer; leaving this
-              page cancels it.
+              Collecting&hellip; A large or unhealthy cluster takes longer; closing this
+              tab loses the download.
             </M.Typography>
           </>
         )}
