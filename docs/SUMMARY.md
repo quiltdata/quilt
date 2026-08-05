@@ -32,7 +32,6 @@
 * [Quilt Connect Server](Catalog/Connect.md)
 * [Cross-Account Access](CrossAccount.md)
 * [Enterprise Installs](technical-reference.md)
-* [quilt3.admin Python API](api-reference/Admin.md)
 * **Advanced**
   * [Package Events](advanced-features/package-events.md)
   * [Private Endpoints](advanced-features/private-endpoint-access.md)
