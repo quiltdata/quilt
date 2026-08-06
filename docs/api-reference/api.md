@@ -225,7 +225,7 @@ does not wrap yet. It reuses the same authenticated transport as the rest of
 setup needed.
 
 
-## execute(query: str, variables: Dict[str, Any] | None = None, operation\_name: str | None = None) -> Dict[str, Any]  {#execute}
+## execute(query: str, variables: dict[str, Any] | None = None, operation\_name: str | None = None) -> dict[str, typing.Any]  {#execute}
 
 Execute a GraphQL query or mutation against the Quilt registry.
 

@@ -17,9 +17,7 @@ QUERY = "query { config { region } }"
 @contextlib.contextmanager
 def mock_client(data=None, exc=None):
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
-        with mock.patch(
-            "quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE
-        ) as execute_mock:
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
             with mock.patch(
                 "quilt3._graphql_client.Client.get_data",
                 **({"side_effect": exc} if exc is not None else {"return_value": data}),

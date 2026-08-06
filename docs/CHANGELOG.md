@@ -16,12 +16,21 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Added] `quilt3.graphql.execute()` for running arbitrary GraphQL queries and mutations against the registry
+
+### CLI
+
+* [Added] `quilt3 graphql` for running arbitrary GraphQL queries and mutations against the registry
+
 ## 8.0.0 - 2026-08-04
 
 ### Python API
 
 * [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
-* [Added] `quilt3.graphql.execute()` for running arbitrary GraphQL queries and mutations against the registry
 * [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
 * [Fixed] `quilt3.delete_package()` on a local registry no longer deletes other packages sharing the same namespace ([#5140](https://github.com/quiltdata/quilt/pull/5140))
 * [Fixed] `Package.push()` no longer fails after the data is uploaded when cleaning up a temporary file created by `Package.set()`: a file that is already gone is ignored, which is also what happens when two logical keys share one serialized object and its temporary file is deleted twice, and any other removal error is logged instead of raised ([#5156](https://github.com/quiltdata/quilt/pull/5156))
@@ -31,10 +40,6 @@ Entries inside each section should be ordered by type:
 ### CLI
 
 * [Changed] `quilt3 login` no longer echoes the pasted code to the terminal (it is a long-lived credential) ([#5138](https://github.com/quiltdata/quilt/pull/5138))
-
-### CLI
-
-* [Added] `quilt3 graphql` for running arbitrary GraphQL queries and mutations against the registry
 
 ## 7.3.0 - 2026-04-07
 

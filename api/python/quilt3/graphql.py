@@ -31,9 +31,9 @@ __all__ = [
 
 def execute(
     query: str,
-    variables: T.Optional[T.Dict[str, T.Any]] = None,
-    operation_name: T.Optional[str] = None,
-) -> T.Dict[str, T.Any]:
+    variables: dict[str, T.Any] | None = None,
+    operation_name: str | None = None,
+) -> dict[str, T.Any]:
     """
     Execute a GraphQL query or mutation against the Quilt registry.
 
