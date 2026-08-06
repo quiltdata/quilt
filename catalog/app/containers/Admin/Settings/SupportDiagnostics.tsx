@@ -25,7 +25,9 @@ function saveAs(blob: Blob, filename: string) {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  // Not synchronously: clicking only queues the download, and revoking the URL
+  // before the browser reads the blob cancels it in some of them.
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
 interface Failure {
@@ -33,12 +35,29 @@ interface Failure {
   message: string
 }
 
-// 503 means the stack's CloudFormation template predates the collector and 409
-// that a collection is already running -- neither is a malfunction, so neither
-// gets the red alert that would send an admin to file a bug.
-const SEVERITIES: Record<number, Failure['severity']> = {
-  503: 'info',
-  409: 'warning',
+// Keyed on the registry's error_code, not on the HTTP status: this stack having
+// no collector answers 503 and so does a registry that is merely cycling, and
+// only the code tells them apart. Anything unrecognised -- including every error
+// raised before the endpoint is reached, by the ALB or the nginx sidecar -- keeps
+// the red alert, which is the right reading for an infrastructure failure.
+const SEVERITIES: Record<string, Failure['severity']> = {
+  NotAvailable: 'info',
+  AlreadyRunning: 'warning',
+}
+
+// An error from anything other than the endpoint carries whatever body that thing
+// serves, usually an HTML page. APIConnector puts the raw text in `message` when
+// it will not parse as JSON, so showing it would paste a document into the alert.
+const GENERIC_FAILURE =
+  'Could not collect diagnostics. The registry may be restarting or unreachable; try again in a few minutes.'
+
+function describe(e: APIConnector.HTTPError): Failure {
+  const code = e.json?.error_code
+  if (!code) return { severity: 'error', message: GENERIC_FAILURE }
+  return {
+    severity: SEVERITIES[code] || 'error',
+    message: e.json?.message || GENERIC_FAILURE,
+  }
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -79,13 +98,10 @@ export default function SupportDiagnostics() {
       saveAs(await response.blob(), getFilename(response))
     } catch (e) {
       if (e instanceof APIConnector.HTTPError) {
-        setFailure({
-          severity: SEVERITIES[e.status] || 'error',
-          message: e.json?.message || e.message,
-        })
+        setFailure(describe(e))
       } else {
         Sentry.captureException(e)
-        setFailure({ severity: 'error', message: `Could not collect diagnostics: ${e}` })
+        setFailure({ severity: 'error', message: GENERIC_FAILURE })
       }
     } finally {
       setCollecting(false)

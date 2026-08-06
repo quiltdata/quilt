@@ -7,12 +7,15 @@ const mocks = vi.hoisted(() => {
   class HTTPError extends Error {
     status: number
 
-    json: { message: string }
+    json: { message: string; error_code?: string }
 
-    constructor(status: number, message: string) {
+    // `json` is whatever the body parsed to; APIConnector falls back to
+    // `{ message: <the raw text> }` for a body that is not JSON at all, which is
+    // what an ALB or nginx error page arrives as.
+    constructor(status: number, message: string, errorCode?: string) {
       super(message)
       this.status = status
-      this.json = { message }
+      this.json = errorCode ? { message, error_code: errorCode } : { message }
     }
   }
   return { HTTPError, req: vi.fn() }
@@ -96,6 +99,7 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
       new mocks.HTTPError(
         503,
         'Support diagnostics collection is not available on this stack.',
+        'NotAvailable',
       ),
     )
     const { container, getByText } = renderComponent()
@@ -109,7 +113,7 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
 
   it('surfaces an unexpected failure as an error', async () => {
     mocks.req.mockRejectedValue(
-      new mocks.HTTPError(502, 'The diagnostics collector failed.'),
+      new mocks.HTTPError(502, 'The diagnostics collector failed.', 'CollectorFailed'),
     )
     const { container, getByText } = renderComponent()
 
@@ -117,5 +121,41 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
 
     await waitFor(() => expect(getByText(/collector failed/)).toBeTruthy())
     expect(container.querySelector('.MuiAlert-standardError')).not.toBeNull()
+  })
+
+  it('does not dress an infrastructure failure up as an expected one', async () => {
+    // The registry cycling, or an ALB with no healthy target, answers 503 too --
+    // with an HTML body and no error_code. Keying severity on the status alone
+    // would paint that the same calm blue as "this stack has no collector".
+    mocks.req.mockRejectedValue(
+      new mocks.HTTPError(
+        503,
+        '<html><body><h1>503 Service Unavailable</h1></body></html>',
+      ),
+    )
+    const { container, getByText } = renderComponent()
+
+    fireEvent.click(getByText('Collect diagnostics'))
+
+    await waitFor(() =>
+      expect(container.querySelector('.MuiAlert-standardError')).not.toBeNull(),
+    )
+    expect(container.querySelector('.MuiAlert-standardInfo')).toBeNull()
+    // And the page itself never reaches the admin.
+    expect(getByText(/registry may be restarting/)).toBeTruthy()
+    expect(container.textContent).not.toContain('<html>')
+  })
+
+  it('reports a registry that predates the endpoint as information', async () => {
+    // The catalog and the registry are separate containers in one template, so a
+    // stack mid-update can serve this button from a registry with no such route.
+    // Flask answers 404 with an HTML body, which is the same shape as above.
+    mocks.req.mockRejectedValue(new mocks.HTTPError(404, '<html>404 Not Found</html>'))
+    const { container, getByText } = renderComponent()
+
+    fireEvent.click(getByText('Collect diagnostics'))
+
+    await waitFor(() => expect(getByText(/Could not collect diagnostics/)).toBeTruthy())
+    expect(container.textContent).not.toContain('<html>')
   })
 })
