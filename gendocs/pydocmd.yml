@@ -23,6 +23,7 @@ generate:
     - quilt3.logout
     - quilt3.search
   - quilt3.api_keys+
+  - quilt3.graphql+
 # Uncomment the following two lines in include these classes directly in api.md
 #    - Bucket+
 #    - Package+

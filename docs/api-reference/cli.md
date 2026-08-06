@@ -81,6 +81,22 @@ Disable anonymous usage metrics
 options:
   -h, --help  show this help message and exit
 ```
+## `graphql`
+```
+usage: quilt3 graphql [-h] [--variables VARIABLES] query
+
+Execute a GraphQL query or mutation against the registry
+
+positional arguments:
+  query                 GraphQL document to execute, or - to read it from
+                        stdin
+
+options:
+  -h, --help            show this help message and exit
+  --variables VARIABLES
+                        Variables for the query. Format: A json string with
+                        keys in double quotes '{"key": "value"}'
+```
 ## `install`
 ```
 usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
