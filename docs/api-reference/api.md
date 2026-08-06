@@ -215,3 +215,44 @@ __Raises__
 * `ValueError`:  If neither id nor secret is provided.
 * `APIKeyError`:  If the operation fails.
 
+
+# quilt3.graphql
+Run arbitrary GraphQL operations against the Quilt registry.
+
+This is an escape hatch for registry capabilities that the typed `quilt3` API
+does not wrap yet. It reuses the same authenticated transport as the rest of
+`quilt3`, so `quilt3.login()` (or `quilt3.login_with_api_key()`) is the only
+setup needed.
+
+
+## execute(query: str, variables: Dict[str, Any] | None = None, operation\_name: str | None = None) -> Dict[str, Any]  {#execute}
+
+Execute a GraphQL query or mutation against the Quilt registry.
+
+Mutations are allowed: whatever your credentials are permitted to do, this
+will do. The registry enforces authorization; this function does not
+second-guess it.
+
+File uploads (the GraphQL multipart request spec / `Upload` scalar) are
+not supported: pass only JSON-serializable values in `variables`.
+
+__Arguments__
+
+* __query__:  The GraphQL document to execute.
+* __variables__:  Variable values for the document.
+* __operation_name__:  Which operation to run, if the document defines more
+    than one.
+
+__Returns__
+
+The unwrapped `data` object from the GraphQL response.
+
+__Raises__
+
+* `GraphQLOperationError`:  The registry returned GraphQL `errors`.
+* `GraphQLInvalidResponseError`:  The response body was not a valid GraphQL
+    response.
+* `QuiltException`:  The request failed at the HTTP level (e.g. bad
+    credentials, server error) — raised by the shared session before
+    the GraphQL response is parsed.
+

@@ -1,9 +1,12 @@
+import io
+import json
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
 
 from quilt3 import main
+from quilt3._graphql_client import exceptions as gql_exceptions
 
 from .utils import QuiltTestCase
 
@@ -227,3 +230,104 @@ def test_push_no_copy_local_dir(capsys):
     assert main.main(('push', '--dir', dir_path, '--no-copy', name)) == 1
     captured = capsys.readouterr()
     assert "--no-copy flag can be specified only for remote data." in captured.err
+
+
+GRAPHQL_QUERY = 'query { config { region } }'
+
+
+def test_graphql_parse_args():
+    parser = create_parser()
+    args = parser.parse_args(('graphql', GRAPHQL_QUERY, '--variables', '{"name": "foo/bar"}'))
+    assert args.query == GRAPHQL_QUERY
+    assert args.variables == {'name': 'foo/bar'}
+
+
+def test_graphql(capsys):
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        execute_mock.return_value = {'config': {'region': 'us-east-1'}}
+        main.main(('graphql', GRAPHQL_QUERY))
+
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None)
+        captured = capsys.readouterr()
+        assert json.loads(captured.out) == {'config': {'region': 'us-east-1'}}
+
+
+def test_graphql_with_variables(capsys):
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        execute_mock.return_value = {'package': None}
+        main.main(('graphql', GRAPHQL_QUERY, '--variables', '{"name": "foo/bar"}'))
+
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables={'name': 'foo/bar'})
+
+
+def test_graphql_stdin(capsys, monkeypatch):
+    monkeypatch.setattr('sys.stdin', io.StringIO(GRAPHQL_QUERY))
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        execute_mock.return_value = {}
+        main.main(('graphql', '-'))
+
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None)
+
+
+def test_graphql_invalid_variables(capsys):
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        with pytest.raises(SystemExit):
+            main.main(('graphql', GRAPHQL_QUERY, '--variables', '{"test": "meta", }'))
+
+        captured = capsys.readouterr()
+        assert 'is not a valid json string' in captured.err
+        execute_mock.assert_not_called()
+
+
+def test_graphql_operation_error(capsys):
+    exc = gql_exceptions.GraphQLClientGraphQLMultiError.from_errors_dicts(
+        errors_dicts=[{'message': 'Unauthorized'}, {'message': 'boom'}],
+    )
+    with patch('quilt3.main.graphql.execute', side_effect=exc):
+        assert main.main(('graphql', GRAPHQL_QUERY)) == 1
+
+        captured = capsys.readouterr()
+        assert 'GraphQL error: Unauthorized' in captured.err
+        assert 'GraphQL error: boom' in captured.err
+        assert captured.out == ''
+
+
+def test_graphql_operation_error_with_partial_data(capsys):
+    exc = gql_exceptions.GraphQLClientGraphQLMultiError.from_errors_dicts(
+        errors_dicts=[{'message': 'boom', 'path': ['config']}],
+        data={'config': None},
+    )
+    with patch('quilt3.main.graphql.execute', side_effect=exc):
+        assert main.main(('graphql', GRAPHQL_QUERY)) == 1
+
+        captured = capsys.readouterr()
+        assert 'GraphQL error: boom' in captured.err
+        assert json.loads(captured.out) == {'config': None}
+
+
+def test_graphql_transport_error(capsys):
+    exc = gql_exceptions.GraphQLClientInvalidResponseError(response=mock.sentinel.RESPONSE)
+    with patch('quilt3.main.graphql.execute', side_effect=exc):
+        assert main.main(('graphql', GRAPHQL_QUERY)) == 1
+
+        captured = capsys.readouterr()
+        assert 'GraphQL request failed: Invalid response format.' in captured.err
+
+
+def test_graphql_empty_query(capsys):
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        assert main.main(('graphql', '  \n ')) == 1
+
+        captured = capsys.readouterr()
+        assert 'Empty GraphQL document.' in captured.err
+        execute_mock.assert_not_called()
+
+
+def test_graphql_empty_stdin(capsys, monkeypatch):
+    monkeypatch.setattr('sys.stdin', io.StringIO(''))
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        assert main.main(('graphql', '-')) == 1
+
+        captured = capsys.readouterr()
+        assert 'Empty GraphQL document.' in captured.err
+        execute_mock.assert_not_called()
