@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => {
       this.json = errorCode ? { message, error_code: errorCode } : { message }
     }
   }
-  return { HTTPError, req: vi.fn() }
+  return { HTTPError, req: vi.fn(), captureException: vi.fn() }
 })
 
 vi.mock('utils/APIConnector', () => ({
@@ -26,7 +26,7 @@ vi.mock('utils/APIConnector', () => ({
   HTTPError: mocks.HTTPError,
 }))
 
-vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
+vi.mock('@sentry/react', () => ({ captureException: mocks.captureException }))
 
 import SupportDiagnostics from './SupportDiagnostics'
 
@@ -62,6 +62,7 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
     cleanup()
     vi.restoreAllMocks()
     mocks.req.mockReset()
+    mocks.captureException.mockReset()
   })
 
   it('downloads the bundle under the name the registry gave it', async () => {
@@ -109,6 +110,9 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
     await waitFor(() => expect(getByText(/not available on this stack/)).toBeTruthy())
     expect(container.querySelector('.MuiAlert-standardInfo')).not.toBeNull()
     expect(container.querySelector('.MuiAlert-standardError')).toBeNull()
+    // Every stack is in this state until the template ships, so paging us on it
+    // would bury the failures worth looking at.
+    expect(mocks.captureException).not.toHaveBeenCalled()
   })
 
   it('surfaces an unexpected failure as an error', async () => {
@@ -127,6 +131,8 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
     // The registry cycling, or an ALB with no healthy target, answers 503 too --
     // with an HTML body and no error_code. Keying severity on the status alone
     // would paint that the same calm blue as "this stack has no collector".
+    // Severity reads the code and never the status, so this covers every
+    // code-less failure alike, 404 from a registry predating the route included.
     mocks.req.mockRejectedValue(
       new mocks.HTTPError(
         503,
@@ -146,16 +152,17 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
     expect(container.textContent).not.toContain('<html>')
   })
 
-  it('reports a registry that predates the endpoint as information', async () => {
-    // The catalog and the registry are separate containers in one template, so a
-    // stack mid-update can serve this button from a registry with no such route.
-    // Flask answers 404 with an HTML body, which is the same shape as above.
-    mocks.req.mockRejectedValue(new mocks.HTTPError(404, '<html>404 Not Found</html>'))
+  it('reports a failure that is not an HTTP error at all, and tells Sentry', async () => {
+    // A download that dies mid-body rejects in response.blob(), not in the request,
+    // so it never becomes an HTTPError. The button has to stop spinning and say
+    // something, and this is the only failure Sentry ever hears about.
+    mocks.req.mockRejectedValue(new TypeError('Failed to fetch'))
     const { container, getByText } = renderComponent()
 
     fireEvent.click(getByText('Collect diagnostics'))
 
     await waitFor(() => expect(getByText(/Could not collect diagnostics/)).toBeTruthy())
-    expect(container.textContent).not.toContain('<html>')
+    expect(container.querySelector('.MuiAlert-standardError')).not.toBeNull()
+    expect(mocks.captureException).toHaveBeenCalled()
   })
 })

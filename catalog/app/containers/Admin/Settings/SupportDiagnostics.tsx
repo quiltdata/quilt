@@ -5,9 +5,8 @@ import * as Sentry from '@sentry/react'
 
 import * as APIConnector from 'utils/APIConnector'
 
-// The registry names the archive after the collection run, and support asks for
-// that name when several bundles are in flight. Readable cross-origin only
-// because the endpoint's CORS config exposes Content-Disposition.
+// Carries the run id, which support asks for when several bundles are in flight.
+// Readable cross-origin only because the endpoint's CORS config exposes the header.
 const FILENAME_RE = /filename="([^"]+)"/
 
 const FALLBACK_FILENAME = 'quilt-support-diagnostics.zip'
@@ -35,19 +34,17 @@ interface Failure {
   message: string
 }
 
-// Keyed on the registry's error_code, not on the HTTP status: this stack having
-// no collector answers 503 and so does a registry that is merely cycling, and
-// only the code tells them apart. Anything unrecognised -- including every error
-// raised before the endpoint is reached, by the ALB or the nginx sidecar -- keeps
-// the red alert, which is the right reading for an infrastructure failure.
+// Keyed on the registry's error_code, never the HTTP status: this stack having no
+// collector answers 503 and so does a registry that is merely cycling. Anything
+// unrecognised -- including everything raised before the endpoint is reached, by the
+// ALB or the nginx sidecar -- keeps the red alert.
 const SEVERITIES: Record<string, Failure['severity']> = {
   NotAvailable: 'info',
   AlreadyRunning: 'warning',
 }
 
-// An error from anything other than the endpoint carries whatever body that thing
-// serves, usually an HTML page. APIConnector puts the raw text in `message` when
-// it will not parse as JSON, so showing it would paste a document into the alert.
+// APIConnector puts raw text in `message` for a body that will not parse as JSON, so
+// showing it would paste an ALB or nginx error page into the alert.
 const GENERIC_FAILURE =
   'Could not collect diagnostics. The registry may be restarting or unreachable; try again in a few minutes.'
 
