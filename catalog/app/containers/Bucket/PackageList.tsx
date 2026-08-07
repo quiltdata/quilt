@@ -25,7 +25,7 @@ function useGoToGlobalSearchUrl() {
         globalSearch({
           ...state,
           buckets: [],
-          order: SearchUIModel.DEFAULT_ORDER,
+          ordering: SearchUIModel.DEFAULT_ORDERING,
           view: SearchUIModel.DEFAULT_VIEW,
         }),
       ),
@@ -107,7 +107,7 @@ export default function PackageListWrapper() {
   const defaults = React.useMemo(
     () => ({
       buckets: [bucket],
-      order: SearchUIModel.ResultOrder.NEWEST,
+      ordering: 'sys:modified:desc',
       view: SearchUIModel.View.Table,
     }),
     [bucket],

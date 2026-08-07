@@ -1,5 +1,4 @@
 import type { IntrospectionQuery } from 'graphql'
-
 export default {
   __schema: {
     queryType: {
@@ -641,6 +640,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -1720,6 +1731,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [
           {
@@ -1763,6 +1786,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -1962,6 +1997,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -3363,6 +3410,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [
           {
@@ -3920,6 +3979,10 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'SCALAR',
+        name: 'PackageOrdering',
+      },
+      {
         kind: 'UNION',
         name: 'PackagePromoteResult',
         possibleTypes: [
@@ -4411,6 +4474,24 @@ export default {
       },
       {
         kind: 'UNION',
+        name: 'PackagesFirstPageResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSetPage',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
         name: 'PackagesSearchMoreResult',
         possibleTypes: [
           {
@@ -4495,17 +4576,18 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'PackagesSearchResultSetPage',
+                kind: 'UNION',
+                name: 'PackagesFirstPageResult',
                 ofType: null,
               },
             },
             args: [
               {
-                name: 'order',
+                name: 'ordering',
                 type: {
                   kind: 'SCALAR',
-                  name: 'Any',
+                  name: 'PackageOrdering',
+                  ofType: null,
                 },
               },
               {
@@ -6810,6 +6892,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },

@@ -22,6 +22,7 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
+import { columnSortState, getColumnOrderingBase, orderingForColumn } from './sort'
 import { ColumnTag, useColumns, ColumnUserMetaCreate } from './useColumns'
 import type {
   Column,
@@ -698,6 +699,7 @@ function AvailableUserMetaColumnsTree({
                     ColumnUserMetaCreate(
                       node.value.path,
                       SearchUIModel.PackageUserMetaFacetMap[node.value.__typename],
+                      node.value.sortable,
                     )
                   }
                   {...getLabel(p)}
@@ -760,6 +762,10 @@ function useAvailableUserMetaFacets(
           .map(([path, f]) => ({
             __typename: ReversPackageUserMetaTypename[f._tag],
             path,
+            // Selected filters carry a predicate, not a facet — derive sortability
+            // from the predicate type (only 'Text' is unsortable), matching the
+            // policy in useColumns for selected user-meta columns.
+            sortable: f._tag !== 'Text',
           })),
       )[0].children,
     [model.state.userMetaFilters.filters, filterValue],
@@ -1155,6 +1161,109 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ColumnHeadTitleProps {
+  column: Column
+}
+
+// The column title. Sorting is driven by the always-visible ColumnHeadSort icon
+// in the actions cluster (below), not by the title, so this is plain text.
+function ColumnHeadTitle({ column }: ColumnHeadTitleProps) {
+  return (
+    <M.Tooltip arrow title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}>
+      <span>{column.title}</span>
+    </M.Tooltip>
+  )
+}
+
+// Sort state + cycle logic for a column. Wave 2's MNFST sort-locus honors field
+// sort in all-revisions mode too, so there is no longer a `latestOnly` gate —
+// sortability is purely a property of the column (see Table/sort.ts).
+function useColumnSort(column: Column) {
+  const {
+    state: { ordering },
+    actions: { setOrdering },
+  } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const base = getColumnOrderingBase(column)
+  const sortable = !!base
+
+  const { active, descending } = columnSortState(base, ordering)
+
+  const handleSort = React.useCallback(() => {
+    if (!base) return
+    // ASC → DESC → cleared. Cleared sets relevance (null); the global dropdown
+    // and the column headers share the one `ordering`, so whichever acts last
+    // wins with no reconciliation.
+    if (!active) {
+      setOrdering(orderingForColumn(base, 'asc'))
+    } else if (!descending) {
+      setOrdering(orderingForColumn(base, 'desc'))
+    } else {
+      setOrdering(null)
+    }
+  }, [active, base, descending, setOrdering])
+
+  return { sortable, active, descending, handleSort }
+}
+
+const useColumnHeadSortStyles = M.makeStyles({
+  // Rest: dim bidirectional arrow signals "sortable" without a hover. Hover:
+  // swap to the unidirectional ASC-preview arrow (what the first click applies),
+  // matching the directional arrow shown while actively sorted. When active, the
+  // directional icon is rendered directly (in primary), so this swap is only
+  // wired for the inactive state.
+  button: {
+    '&:hover $rest': { display: 'none' },
+    '&:hover $hover': { display: 'inline-flex' },
+  },
+  rest: {},
+  hover: { display: 'none' },
+})
+
+interface ColumnHeadSortProps {
+  className: string
+  column: Column
+}
+
+function ColumnHeadSort({ className, column }: ColumnHeadSortProps) {
+  const classes = useColumnHeadSortStyles()
+  const { sortable, active, descending, handleSort } = useColumnSort(column)
+
+  if (!sortable) return null
+
+  const title = active
+    ? `Sorted ${descending ? 'descending' : 'ascending'} — click to ${
+        descending ? 'clear sort' : 'sort descending'
+      }`
+    : 'Sort ascending'
+
+  return (
+    <M.Tooltip arrow title={title}>
+      <M.IconButton
+        className={cx(className, classes.button)}
+        size="small"
+        color={active ? 'primary' : 'inherit'}
+        onClick={handleSort}
+      >
+        {active ? (
+          <M.Icon color="inherit" fontSize="inherit">
+            {descending ? 'arrow_downward' : 'arrow_upward'}
+          </M.Icon>
+        ) : (
+          <>
+            <M.Icon className={classes.rest} color="inherit" fontSize="inherit">
+              unfold_more
+            </M.Icon>
+            <M.Icon className={classes.hover} color="inherit" fontSize="inherit">
+              arrow_upward
+            </M.Icon>
+          </>
+        )}
+      </M.IconButton>
+    </M.Tooltip>
+  )
+}
+
 interface ColumnHeadProps {
   column: Column
   single: boolean
@@ -1165,14 +1274,10 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   return (
     <div className={cx(classes.root, classes[getColumnAlign(column)])}>
       <p className={classes.title}>
-        <M.Tooltip
-          arrow
-          title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}
-        >
-          <span>{column.title}</span>
-        </M.Tooltip>
+        <ColumnHeadTitle column={column} />
       </p>
       <div className={classes.actions}>
+        <ColumnHeadSort column={column} className={classes.button} />
         <ColumnHeadOpen column={column} className={classes.button} />
         {!single && <ColumnHeadHide column={column} className={classes.button} />}
       </div>
