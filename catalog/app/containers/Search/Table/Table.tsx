@@ -22,7 +22,7 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
-import { getColumnSortField, isColumnSorted } from './sort'
+import { columnSortState, getColumnOrderingBase, orderingForColumn } from './sort'
 import { ColumnTag, useColumns, ColumnUserMetaCreate } from './useColumns'
 import type {
   Column,
@@ -1175,33 +1175,33 @@ function ColumnHeadTitle({ column }: ColumnHeadTitleProps) {
   )
 }
 
-// Sort state + cycle logic for a column. Field sort is unsupported in
-// all-revisions mode (d-sort-locus / d-unsupported-error), so `sortable` is
-// false there rather than relying on the backend's typed-error backstop.
+// Sort state + cycle logic for a column. Wave 2's MNFST sort-locus honors field
+// sort in all-revisions mode too, so there is no longer a `latestOnly` gate —
+// sortability is purely a property of the column (see Table/sort.ts).
 function useColumnSort(column: Column) {
   const {
-    state: { sort, latestOnly },
-    actions: { setSort },
+    state: { ordering },
+    actions: { setOrdering },
   } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const field = getColumnSortField(column)
-  const sortable = !!field && latestOnly
+  const base = getColumnOrderingBase(column)
+  const sortable = !!base
 
-  const active = isColumnSorted(field, sort)
-  const descending = active && sort?.direction === SearchUIModel.SortDirection.DESC
+  const { active, descending } = columnSortState(base, ordering)
 
   const handleSort = React.useCallback(() => {
-    if (!field) return
-    // ASC → DESC → cleared. Cleared restores the global preset ordering via the
-    // model's setSort/setOrder reconciliation.
+    if (!base) return
+    // ASC → DESC → cleared. Cleared sets relevance (null); the global dropdown
+    // and the column headers share the one `ordering`, so whichever acts last
+    // wins with no reconciliation.
     if (!active) {
-      setSort({ preset: null, field, direction: SearchUIModel.SortDirection.ASC })
-    } else if (sort?.direction === SearchUIModel.SortDirection.ASC) {
-      setSort({ preset: null, field, direction: SearchUIModel.SortDirection.DESC })
+      setOrdering(orderingForColumn(base, 'asc'))
+    } else if (!descending) {
+      setOrdering(orderingForColumn(base, 'desc'))
     } else {
-      setSort(null)
+      setOrdering(null)
     }
-  }, [active, field, setSort, sort])
+  }, [active, base, descending, setOrdering])
 
   return { sortable, active, descending, handleSort }
 }

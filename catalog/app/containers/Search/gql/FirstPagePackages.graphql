@@ -4,8 +4,7 @@ query (
   $filter: PackagesSearchFilter
   $userMetaFilters: [PackageUserMetaPredicate!]
   $latestOnly: Boolean!
-  $order: SearchResultOrder
-  $sort: PackageSortInput
+  $ordering: PackageOrdering
 ) {
   searchPackages(
     buckets: $buckets
@@ -17,7 +16,7 @@ query (
     __typename
     ... on PackagesSearchResultSet {
       total
-      firstPage(order: $order, sort: $sort) {
+      firstPage(ordering: $ordering) {
         __typename
         ... on PackagesSearchResultSetPage {
           cursor

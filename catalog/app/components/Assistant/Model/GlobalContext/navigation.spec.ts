@@ -24,7 +24,7 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
           params: {
             searchString: '',
             buckets: [],
-            order: 'NEWEST',
+            ordering: 'sys:modified:desc',
             params: {
               resultType: 'p',
               filter: [],
@@ -45,7 +45,7 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
         },
         loc: {
           pathname: '/search',
-          search: 'o=NEWEST&meta.e%2Fauthor=%22Aneesh%22%2C%22Maksim%22',
+          search: 's=sys%3Amodified%3Adesc&meta.e%2Fauthor=%22Aneesh%22%2C%22Maksim%22',
           hash: '',
         },
       },

@@ -18,6 +18,47 @@ export interface Scalars {
     input: PackageContentsFlatMap
     output: PackageContentsFlatMap
   }
+  /**
+   * A package ordering expression (packages `firstPage(ordering:)`). Nullable: null
+   * or absent = relevance (_score). Otherwise one expression, no combinations:
+   *
+   *     expression := system | usermeta
+   *     system     := "sys:" field ":" dir
+   *     usermeta   := "usr:" pointer ":" type ":" dir
+   *
+   *     field      := "name" | "modified" | "size" | "entries" | "hash"
+   *                 | "workflow" | "comment"
+   *     pointer    := a JSON pointer (RFC 6901), e.g. /experiment/date
+   *     type       := "number" | "datetime" | "keyword" | "text" | "boolean"
+   *     dir        := "asc" | "desc"
+   *
+   * `type` names a FACET type, not a raw storage type — the registry maps it to the
+   * stored subfield privately. `text` is contingent best-effort: it sorts a pointer's
+   * keyword-backed storage and is rejected (as unsupported) when only analyzed text
+   * is stored.
+   *
+   * The prefix is `usr:` (not `user:`). `usr:` is parsed RIGHT-anchored — a JSON
+   * pointer may itself contain `:`, so the last two `:`-segments are the type and
+   * dir, and everything between `usr:` and `:<type>:<dir>` is the pointer, verbatim.
+   * `sys:` is a closed field set, parsed left-to-right. All tokens are lowercase and
+   * exact: no trimming, no aliases, no case-folding. A non-string wire value (a
+   * mistyped variable or inline literal) is unparseable.
+   *
+   * Examples: `sys:modified:desc` · `sys:name:asc` · `usr:/experiment/date:datetime:asc`
+   * · null (relevance).
+   *
+   * Two rejection classes, both surfaced as the typed InvalidInput arm of
+   * PackagesFirstPageResult (never a GraphQLError, never a silent _score fallback):
+   *   - unparseable — fails the grammar (bad prefix, wrong arity, unknown
+   *     field/type/dir, non-lowercase, non-string); name `ordering`, message quotes
+   *     the grammar;
+   *   - unsupported — well-formed but unhonorable: `comment` (no keyword subfield
+   *     yet), a `text` pointer with no keyword-backed storage, or a TYPE MISMATCH
+   *     where the type's mapped storage type is not among the pointer's indexed
+   *     stored types (membership-validated against the facet mapping, never
+   *     inferred); name `UnsupportedSort`, message states the reason.
+   */
+  PackageOrdering: { input: string; output: string }
   S3ObjectLocation: { input: S3ObjectLocation; output: S3ObjectLocation }
 }
 
@@ -908,27 +949,6 @@ export interface PackageRevisionListpageArgs {
   perPage?: InputMaybe<Scalars['Int']['input']>
 }
 
-export interface PackageSortField {
-  readonly system: InputMaybe<PackageSystemField>
-  readonly userMeta: InputMaybe<Scalars['String']['input']>
-}
-
-export interface PackageSortInput {
-  readonly direction: InputMaybe<SortDirection>
-  readonly field: InputMaybe<PackageSortField>
-  readonly preset: InputMaybe<SearchResultOrder>
-}
-
-export enum PackageSystemField {
-  COMMENT = 'COMMENT',
-  ENTRIES = 'ENTRIES',
-  HASH = 'HASH',
-  MODIFIED = 'MODIFIED',
-  NAME = 'NAME',
-  SIZE = 'SIZE',
-  WORKFLOW = 'WORKFLOW',
-}
-
 export type PackageUserMetaFacet =
   | BooleanPackageUserMetaFacet
   | DatetimePackageUserMetaFacet
@@ -1030,9 +1050,8 @@ export interface PackagesSearchResultSetfilteredUserMetaFacetsArgs {
 }
 
 export interface PackagesSearchResultSetfirstPageArgs {
-  order: InputMaybe<SearchResultOrder>
+  ordering: InputMaybe<Scalars['PackageOrdering']['input']>
   size?: InputMaybe<Scalars['Int']['input']>
-  sort: InputMaybe<PackageSortInput>
 }
 
 export interface PackagesSearchResultSetPage {
@@ -1344,11 +1363,6 @@ export type SetSsoConfigResult = InvalidInput | OperationError | SsoConfig
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
   readonly _: Maybe<Scalars['Boolean']['output']>
-}
-
-export enum SortDirection {
-  ASC = 'ASC',
-  DESC = 'DESC',
 }
 
 export interface SsoConfig {

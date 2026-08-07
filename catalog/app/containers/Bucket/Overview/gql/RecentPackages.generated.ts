@@ -7,16 +7,9 @@ export type Incremental<T> =
 import * as Types from '../../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-export type SearchResultOrder =
-  | 'BEST_MATCH'
-  | 'LEX_ASC'
-  | 'LEX_DESC'
-  | 'NEWEST'
-  | 'OLDEST'
-
 export type containers_Bucket_Overview_gql_RecentPackagesQueryVariables = Exact<{
   buckets: ReadonlyArray<string> | null | undefined
-  order: Types.SearchResultOrder | null | undefined
+  ordering: string | null | undefined
 }>
 
 export interface containers_Bucket_Overview_gql_RecentPackagesQuery {
@@ -74,8 +67,8 @@ export const containers_Bucket_Overview_gql_RecentPackagesDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'ordering' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'PackageOrdering' } },
         },
       ],
       selectionSet: {
@@ -116,10 +109,10 @@ export const containers_Bucket_Overview_gql_RecentPackagesDocument = {
                         arguments: [
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
+                            name: { kind: 'Name', value: 'ordering' },
                             value: {
                               kind: 'Variable',
-                              name: { kind: 'Name', value: 'order' },
+                              name: { kind: 'Name', value: 'ordering' },
                             },
                           },
                         ],

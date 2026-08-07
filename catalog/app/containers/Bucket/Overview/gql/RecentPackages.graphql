@@ -1,9 +1,9 @@
-query ($buckets: [String!], $order: SearchResultOrder) {
+query ($buckets: [String!], $ordering: PackageOrdering) {
   searchPackages(buckets: $buckets, latestOnly: true) {
     __typename
     ... on PackagesSearchResultSet {
       total
-      firstPage(order: $order) {
+      firstPage(ordering: $ordering) {
         __typename
         ... on PackagesSearchResultSetPage {
           hits {

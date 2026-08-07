@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import * as SearchUIModel from '../model'
 
-import { getColumnSortField } from './sort'
+import { columnSortState, getColumnOrderingBase, orderingForColumn } from './sort'
 import { ColumnTag } from './useColumns'
 import type { Column } from './useColumns'
 
@@ -44,47 +44,70 @@ const bucketColumn: Column = {
   title: 'Bucket',
 }
 
-describe('containers/Search/Table getColumnSortField', () => {
-  it('maps system columns to their PackageSystemField', () => {
-    expect(getColumnSortField(systemColumn('name'))).toEqual({
-      system: SearchUIModel.PackageSystemField.NAME,
-      userMeta: null,
-    })
-    expect(getColumnSortField(systemColumn('modified'))).toEqual({
-      system: SearchUIModel.PackageSystemField.MODIFIED,
-      userMeta: null,
-    })
-    expect(getColumnSortField(systemColumn('workflow'))).toEqual({
-      system: SearchUIModel.PackageSystemField.WORKFLOW,
-      userMeta: null,
-    })
+describe('containers/Search/Table getColumnOrderingBase', () => {
+  it('maps system columns to their `sys:<field>` base', () => {
+    expect(getColumnOrderingBase(systemColumn('name'))).toBe('sys:name')
+    expect(getColumnOrderingBase(systemColumn('modified'))).toBe('sys:modified')
+    expect(getColumnOrderingBase(systemColumn('workflow'))).toBe('sys:workflow')
   })
 
   it('rejects the COMMENT system column (text, unsortable)', () => {
-    expect(getColumnSortField(systemColumn('comment'))).toBeNull()
+    expect(getColumnOrderingBase(systemColumn('comment'))).toBeNull()
   })
 
-  it('maps a sortable user-meta column to its JSON pointer', () => {
-    expect(getColumnSortField(userMetaColumn('/cell_count', 'Number', true))).toEqual({
-      system: null,
-      userMeta: '/cell_count',
-    })
+  it('maps a sortable user-meta column to its `usr:<pointer>:<type>` base', () => {
+    // Number facet → `number` token.
+    expect(getColumnOrderingBase(userMetaColumn('/cell_count', 'Number', true))).toBe(
+      'usr:/cell_count:number',
+    )
+    // Datetime facet → `datetime` token.
+    expect(getColumnOrderingBase(userMetaColumn('/date', 'Datetime', true))).toBe(
+      'usr:/date:datetime',
+    )
   })
 
   it('rejects an unsortable user-meta column (analyzed text, unsortable)', () => {
-    expect(getColumnSortField(userMetaColumn('/notes', 'Text', false))).toBeNull()
+    expect(getColumnOrderingBase(userMetaColumn('/notes', 'Text', false))).toBeNull()
   })
 
-  it('maps a Text-rendered but sortable user-meta column (demoted high-cardinality keyword)', () => {
+  it('maps a Text-rendered but sortable user-meta column (demoted high-cardinality keyword) to a `text` token', () => {
     // A high-cardinality keyword renders as a Text facet (predicateType 'Text')
-    // yet sorts natively — the gate keys on `sortable`, not the render type.
-    expect(getColumnSortField(userMetaColumn('/lineage', 'Text', true))).toEqual({
-      system: null,
-      userMeta: '/lineage',
-    })
+    // yet sorts natively — the gate keys on `sortable`, not the render type. Its
+    // token is `text`, which the server resolves against keyword-backed storage.
+    expect(getColumnOrderingBase(userMetaColumn('/lineage', 'Text', true))).toBe(
+      'usr:/lineage:text',
+    )
   })
 
   it('rejects the bucket column (non-field)', () => {
-    expect(getColumnSortField(bucketColumn)).toBeNull()
+    expect(getColumnOrderingBase(bucketColumn)).toBeNull()
+  })
+})
+
+describe('containers/Search/Table columnSortState', () => {
+  it('is inactive for a null base or a relevance/preset ordering', () => {
+    expect(columnSortState(null, 'sys:name:asc')).toEqual({
+      active: false,
+      descending: false,
+    })
+    expect(columnSortState('sys:name', null)).toEqual({
+      active: false,
+      descending: false,
+    })
+    expect(columnSortState('sys:name', 'sys:modified:desc')).toEqual({
+      active: false,
+      descending: false,
+    })
+  })
+
+  it('detects the active direction when the ordering targets the column', () => {
+    expect(columnSortState('sys:name', orderingForColumn('sys:name', 'asc'))).toEqual({
+      active: true,
+      descending: false,
+    })
+    expect(columnSortState('sys:name', orderingForColumn('sys:name', 'desc'))).toEqual({
+      active: true,
+      descending: true,
+    })
   })
 })

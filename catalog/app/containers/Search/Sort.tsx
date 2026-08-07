@@ -2,40 +2,23 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import SelectDropdown from 'components/SelectDropdown'
-import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 
 import * as SearchUIModel from './model'
 
-const sortOptions = [
-  {
-    toString: () => 'Best match',
-    valueOf: () => Model.GQLTypes.SearchResultOrder.BEST_MATCH,
-  },
-  {
-    toString: () => 'Most recent first',
-    valueOf: () => Model.GQLTypes.SearchResultOrder.NEWEST,
-  },
-  {
-    toString: () => 'Least recent first',
-    valueOf: () => Model.GQLTypes.SearchResultOrder.OLDEST,
-  },
-  {
-    toString: () => 'A → Z',
-    valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_ASC,
-  },
-  {
-    toString: () => 'Z → A',
-    valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_DESC,
-  },
-]
+// The preset "Sort by" options, as ordering expressions (model.PRESET_ORDERINGS).
+// `valueOf` returns the ordering expression (or null for relevance); the
+// SelectDropdown matches options by strict `valueOf()` equality.
+const sortOptions = SearchUIModel.PRESET_ORDERINGS.map((preset) => ({
+  toString: () => preset.label,
+  valueOf: () => preset.ordering,
+}))
 
-// Shown when a per-column field sort is active (see Table/Table.tsx). The two
-// sort producers are reconciled in the model: a column sort supersedes the
-// preset `order` (d-order-precedence), so the dropdown must not keep advertising
-// a preset that is no longer in effect. Picking any preset here clears the
-// column sort and takes over again.
+// Shown when the active ordering is not one of the presets — i.e. a per-column
+// field sort or a user-metadata pointer sort set from a table column header (see
+// Table/Table.tsx). The dropdown must not advertise a preset that is not in
+// effect; picking any preset here overwrites the ordering and takes over again.
 const columnSortOption = {
   toString: () => 'Column',
   valueOf: () => null,
@@ -64,25 +47,20 @@ export default function Sort({ className }: SortProps) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const model = SearchUIModel.use()
-  const { setOrder } = model.actions
-  // A package field sort supersedes the preset; reflect that instead of
-  // falling back to a preset label that is not actually in effect.
-  const fieldSortActive =
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage &&
-    !!model.state.sort?.field
+  const { setOrdering } = model.actions
+  // A non-preset ordering (a column/pointer field sort) has no dropdown label;
+  // surface it as "Column" rather than falling back to a preset not in effect.
   const value = React.useMemo(
     () =>
-      fieldSortActive
-        ? columnSortOption
-        : sortOptions.find(({ valueOf }) => valueOf() === model.state.order) ||
-          sortOptions[0],
-    [fieldSortActive, model.state.order],
+      sortOptions.find(({ valueOf }) => valueOf() === model.state.ordering) ||
+      (model.state.ordering ? columnSortOption : sortOptions[0]),
+    [model.state.ordering],
   )
   const handleChange = React.useCallback(
-    (v: (typeof sortOptions)[number]) => {
-      setOrder(v.valueOf())
+    (v: { valueOf: () => SearchUIModel.Ordering }) => {
+      setOrdering(v.valueOf())
     },
-    [setOrder],
+    [setOrdering],
   )
 
   const visible = GQL.fold(model.baseSearchQuery, {

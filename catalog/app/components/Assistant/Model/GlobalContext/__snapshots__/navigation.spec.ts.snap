@@ -286,47 +286,17 @@ exports[`components/Assistant/Model/GlobalTools/navigation > NavigateSchema > pr
                   "title": "Search buckets",
                   "type": "array",
                 },
-                "order": {
-                  "$comment": "/schemas/enums",
+                "ordering": {
                   "anyOf": [
                     {
-                      "enum": [
-                        "BEST_MATCH",
-                      ],
-                      "title": "BEST_MATCH",
                       "type": "string",
                     },
                     {
-                      "enum": [
-                        "LEX_ASC",
-                      ],
-                      "title": "LEX_ASC",
-                      "type": "string",
-                    },
-                    {
-                      "enum": [
-                        "LEX_DESC",
-                      ],
-                      "title": "LEX_DESC",
-                      "type": "string",
-                    },
-                    {
-                      "enum": [
-                        "NEWEST",
-                      ],
-                      "title": "NEWEST",
-                      "type": "string",
-                    },
-                    {
-                      "enum": [
-                        "OLDEST",
-                      ],
-                      "title": "OLDEST",
-                      "type": "string",
+                      "type": "null",
                     },
                   ],
-                  "description": "Order of search results",
-                  "title": "Search result order",
+                  "description": "Ordering expression for results. One of: a system-field sort \`sys:<field>:<dir>\` where field is name|modified|size|entries|hash|workflow and dir is asc|desc (e.g. \`sys:modified:desc\`); a user-metadata sort \`usr:<json-pointer>:<type>:<dir>\` where type is number|datetime|keyword|text|boolean (e.g. \`usr:/experiment/date:datetime:asc\`); or omit for relevance (best match). For object search only the system-field presets on name/modified are honored; anything else falls back to relevance.",
+                  "title": "Result ordering",
                 },
                 "params": {
                   "anyOf": [
@@ -493,178 +463,6 @@ exports[`components/Assistant/Model/GlobalTools/navigation > NavigateSchema > pr
                           ],
                           "title": "Result type: Quilt Package",
                           "type": "string",
-                        },
-                        "sort": {
-                          "additionalProperties": false,
-                          "description": "Structured sort by a package field (system field or user-metadata JSON pointer) with a direction, or a preset order. When set, supersedes the top-level \`order\`.",
-                          "properties": {
-                            "direction": {
-                              "anyOf": [
-                                {
-                                  "$comment": "/schemas/enums",
-                                  "anyOf": [
-                                    {
-                                      "enum": [
-                                        "ASC",
-                                      ],
-                                      "title": "ASC",
-                                      "type": "string",
-                                    },
-                                    {
-                                      "enum": [
-                                        "DESC",
-                                      ],
-                                      "title": "DESC",
-                                      "type": "string",
-                                    },
-                                  ],
-                                },
-                                {
-                                  "type": "null",
-                                },
-                              ],
-                              "title": "Sort direction",
-                            },
-                            "field": {
-                              "anyOf": [
-                                {
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "system": {
-                                      "anyOf": [
-                                        {
-                                          "$comment": "/schemas/enums",
-                                          "anyOf": [
-                                            {
-                                              "enum": [
-                                                "COMMENT",
-                                              ],
-                                              "title": "COMMENT",
-                                              "type": "string",
-                                            },
-                                            {
-                                              "enum": [
-                                                "ENTRIES",
-                                              ],
-                                              "title": "ENTRIES",
-                                              "type": "string",
-                                            },
-                                            {
-                                              "enum": [
-                                                "HASH",
-                                              ],
-                                              "title": "HASH",
-                                              "type": "string",
-                                            },
-                                            {
-                                              "enum": [
-                                                "MODIFIED",
-                                              ],
-                                              "title": "MODIFIED",
-                                              "type": "string",
-                                            },
-                                            {
-                                              "enum": [
-                                                "NAME",
-                                              ],
-                                              "title": "NAME",
-                                              "type": "string",
-                                            },
-                                            {
-                                              "enum": [
-                                                "SIZE",
-                                              ],
-                                              "title": "SIZE",
-                                              "type": "string",
-                                            },
-                                            {
-                                              "enum": [
-                                                "WORKFLOW",
-                                              ],
-                                              "title": "WORKFLOW",
-                                              "type": "string",
-                                            },
-                                          ],
-                                        },
-                                        {
-                                          "type": "null",
-                                        },
-                                      ],
-                                      "title": "System field",
-                                    },
-                                    "userMeta": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                        },
-                                        {
-                                          "type": "null",
-                                        },
-                                      ],
-                                      "title": "User-metadata JSON pointer",
-                                    },
-                                  },
-                                  "required": [],
-                                  "type": "object",
-                                },
-                                {
-                                  "type": "null",
-                                },
-                              ],
-                              "title": "Sort field",
-                            },
-                            "preset": {
-                              "anyOf": [
-                                {
-                                  "$comment": "/schemas/enums",
-                                  "anyOf": [
-                                    {
-                                      "enum": [
-                                        "BEST_MATCH",
-                                      ],
-                                      "title": "BEST_MATCH",
-                                      "type": "string",
-                                    },
-                                    {
-                                      "enum": [
-                                        "LEX_ASC",
-                                      ],
-                                      "title": "LEX_ASC",
-                                      "type": "string",
-                                    },
-                                    {
-                                      "enum": [
-                                        "LEX_DESC",
-                                      ],
-                                      "title": "LEX_DESC",
-                                      "type": "string",
-                                    },
-                                    {
-                                      "enum": [
-                                        "NEWEST",
-                                      ],
-                                      "title": "NEWEST",
-                                      "type": "string",
-                                    },
-                                    {
-                                      "enum": [
-                                        "OLDEST",
-                                      ],
-                                      "title": "OLDEST",
-                                      "type": "string",
-                                    },
-                                  ],
-                                },
-                                {
-                                  "type": "null",
-                                },
-                              ],
-                              "title": "Preset order",
-                            },
-                          },
-                          "required": [],
-                          "title": "Sort",
-                          "type": "object",
                         },
                         "userMetaFilters": {
                           "description": "Filter results by user metadata",

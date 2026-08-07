@@ -168,8 +168,12 @@ export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
                           },
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
-                            value: { kind: 'EnumValue', value: 'NEWEST' },
+                            name: { kind: 'Name', value: 'ordering' },
+                            value: {
+                              kind: 'StringValue',
+                              value: 'sys:modified:desc',
+                              block: false,
+                            },
                           },
                         ],
                         selectionSet: {

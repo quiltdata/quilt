@@ -3979,6 +3979,10 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'SCALAR',
+        name: 'PackageOrdering',
+      },
+      {
         kind: 'UNION',
         name: 'PackagePromoteResult',
         possibleTypes: [
@@ -4579,10 +4583,11 @@ export default {
             },
             args: [
               {
-                name: 'order',
+                name: 'ordering',
                 type: {
                   kind: 'SCALAR',
-                  name: 'Any',
+                  name: 'PackageOrdering',
+                  ofType: null,
                 },
               },
               {
@@ -4591,13 +4596,6 @@ export default {
                   kind: 'SCALAR',
                   name: 'Int',
                   ofType: null,
-                },
-              },
-              {
-                name: 'sort',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Any',
                 },
               },
             ],

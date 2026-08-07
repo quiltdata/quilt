@@ -31,80 +31,84 @@ describe('containers/Search/model', () => {
     })
   })
 
-  describe('parseSort / serializeSort', () => {
-    const PRESET: model.PackageSort = {
-      preset: model.ResultOrder.NEWEST,
-      field: null,
-      direction: null,
-    }
-    const SYSTEM_DESC: model.PackageSort = {
-      preset: null,
-      field: { system: model.PackageSystemField.MODIFIED, userMeta: null },
-      direction: model.SortDirection.DESC,
-    }
-    const META_ASC: model.PackageSort = {
-      preset: null,
-      field: { system: null, userMeta: '/cell_count' },
-      direction: model.SortDirection.ASC,
-    }
-
-    describe('parseSort', () => {
-      it('returns null for null/empty/garbage input', () => {
-        expect(model.parseSort(null)).toBeNull()
-        expect(model.parseSort('')).toBeNull()
-        expect(model.parseSort('nonsense')).toBeNull()
+  describe('parseOrdering / serializeOrdering', () => {
+    describe('parseOrdering (precedence: new-`s` → legacy-`s` → legacy-`o` → fallback)', () => {
+      it('returns the fallback when neither param is set', () => {
+        expect(model.parseOrdering(null, null, null)).toBeNull()
+        expect(model.parseOrdering(null, null, 'sys:modified:desc')).toBe(
+          'sys:modified:desc',
+        )
       })
 
-      it('parses a bare preset', () => {
-        expect(model.parseSort('NEWEST')).toEqual(PRESET)
+      it('passes a Wave-2 `s` expression through verbatim (highest precedence)', () => {
+        expect(model.parseOrdering('sys:name:asc', 'NEWEST', null)).toBe('sys:name:asc')
+        expect(
+          model.parseOrdering('usr:/experiment/date:datetime:desc', null, null),
+        ).toBe('usr:/experiment/date:datetime:desc')
       })
 
-      it('parses a directioned system field', () => {
-        expect(model.parseSort('-MODIFIED')).toEqual(SYSTEM_DESC)
+      it('decodes the explicit-relevance sentinel to null even against a non-null fallback', () => {
+        expect(model.parseOrdering('relevance', null, 'sys:modified:desc')).toBeNull()
       })
 
-      it('parses a directioned user-meta pointer', () => {
-        expect(model.parseSort('+meta:/cell_count')).toEqual(META_ASC)
+      it('maps a legacy preset `s` form', () => {
+        expect(model.parseOrdering('NEWEST', null, null)).toBe('sys:modified:desc')
+        expect(model.parseOrdering('BEST_MATCH', null, null)).toBeNull()
       })
 
-      it('rejects a field without a direction prefix', () => {
-        expect(model.parseSort('MODIFIED')).toBeNull()
+      it('maps a legacy directioned system-field `s` form', () => {
+        expect(model.parseOrdering('-MODIFIED', null, null)).toBe('sys:modified:desc')
+        expect(model.parseOrdering('+NAME', null, null)).toBe('sys:name:asc')
       })
 
-      it('rejects an unknown system field', () => {
-        expect(model.parseSort('-NOPE')).toBeNull()
+      it('maps a legacy user-meta `s` pointer form to a keyword expression', () => {
+        expect(model.parseOrdering('+meta:/cell_count', null, null)).toBe(
+          'usr:/cell_count:keyword:asc',
+        )
       })
 
-      it('rejects an empty meta pointer', () => {
-        expect(model.parseSort('+meta:')).toBeNull()
-      })
-    })
-
-    describe('serializeSort', () => {
-      it('returns null for null', () => {
-        expect(model.serializeSort(null)).toBeNull()
+      it('falls back to a legacy `o` preset only when `s` is absent/unrecognized', () => {
+        expect(model.parseOrdering(null, 'OLDEST', null)).toBe('sys:modified:asc')
+        // an unrecognized `s` does NOT block the `o` fallback
+        expect(model.parseOrdering('garbage', 'LEX_ASC', null)).toBe('sys:name:asc')
       })
 
-      it('serializes a preset', () => {
-        expect(model.serializeSort(PRESET)).toBe('NEWEST')
-      })
-
-      it('serializes a system field with direction', () => {
-        expect(model.serializeSort(SYSTEM_DESC)).toBe('-MODIFIED')
-      })
-
-      it('serializes a user-meta pointer with direction', () => {
-        expect(model.serializeSort(META_ASC)).toBe('+meta:/cell_count')
+      it('returns the fallback for a fully unrecognized input', () => {
+        expect(model.parseOrdering('garbage', 'garbage', 'sys:size:asc')).toBe(
+          'sys:size:asc',
+        )
       })
     })
 
-    describe('round-trip', () => {
-      it.each([PRESET, SYSTEM_DESC, META_ASC])(
-        'parse(serialize(x)) === x for %o',
-        (sort) => {
-          expect(model.parseSort(model.serializeSort(sort))).toEqual(sort)
-        },
-      )
+    describe('serializeOrdering', () => {
+      it('serializes an expression verbatim', () => {
+        expect(model.serializeOrdering('sys:modified:desc')).toBe('sys:modified:desc')
+      })
+
+      it('serializes null (explicit relevance) to the sentinel', () => {
+        expect(model.serializeOrdering(null)).toBe('relevance')
+      })
+    })
+
+    describe('orderingToResultOrder (objects boundary, lossy)', () => {
+      it('maps the presets to their enum', () => {
+        expect(model.orderingToResultOrder(null)).toBe(model.GQLResultOrder.BEST_MATCH)
+        expect(model.orderingToResultOrder('sys:modified:desc')).toBe(
+          model.GQLResultOrder.NEWEST,
+        )
+        expect(model.orderingToResultOrder('sys:name:asc')).toBe(
+          model.GQLResultOrder.LEX_ASC,
+        )
+      })
+
+      it('falls back to BEST_MATCH for a non-preset (pointer) ordering', () => {
+        expect(model.orderingToResultOrder('usr:/x:number:asc')).toBe(
+          model.GQLResultOrder.BEST_MATCH,
+        )
+        expect(model.orderingToResultOrder('sys:size:asc')).toBe(
+          model.GQLResultOrder.BEST_MATCH,
+        )
+      })
     })
   })
 })

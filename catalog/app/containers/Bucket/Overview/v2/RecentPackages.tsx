@@ -9,7 +9,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import { Plural, Relative } from 'utils/format'
 import { formatQuantity, readableBytes } from 'utils/string'
-import * as Model from 'model'
 
 import RECENT_PACKAGES_QUERY from '../gql/RecentPackages.generated'
 
@@ -146,7 +145,7 @@ interface RecentPackagesProps {
 export default function RecentPackages({ bucket }: RecentPackagesProps) {
   const query = GQL.useQuery(RECENT_PACKAGES_QUERY, {
     buckets: [bucket],
-    order: Model.GQLTypes.SearchResultOrder.NEWEST,
+    ordering: 'sys:modified:desc',
   })
   return GQL.fold(query, {
     fetching: () => <Skeletons />,

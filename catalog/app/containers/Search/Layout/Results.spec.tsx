@@ -48,7 +48,7 @@ const model = {
     view: 'l', // List
     searchString: 'test',
     buckets: ['test-bucket'],
-    order: 'BEST_MATCH',
+    ordering: null,
     filter: {
       predicates: {},
       order: [],
@@ -60,7 +60,7 @@ const model = {
   },
   actions: {
     setView: vi.fn(),
-    setOrder: vi.fn(),
+    setOrdering: vi.fn(),
   },
   firstPageQuery: {
     _tag: 'fetching',

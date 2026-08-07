@@ -28,26 +28,6 @@ export interface NumberSearchPredicate {
   readonly lte: number | null | undefined
 }
 
-export interface PackageSortField {
-  readonly system: PackageSystemField | null | undefined
-  readonly userMeta: string | null | undefined
-}
-
-export interface PackageSortInput {
-  readonly direction: SortDirection | null | undefined
-  readonly field: PackageSortField | null | undefined
-  readonly preset: SearchResultOrder | null | undefined
-}
-
-export type PackageSystemField =
-  | 'COMMENT'
-  | 'ENTRIES'
-  | 'HASH'
-  | 'MODIFIED'
-  | 'NAME'
-  | 'SIZE'
-  | 'WORKFLOW'
-
 export interface PackageUserMetaPredicate {
   readonly boolean: BooleanSearchPredicate | null | undefined
   readonly datetime: DatetimeSearchPredicate | null | undefined
@@ -67,15 +47,6 @@ export interface PackagesSearchFilter {
   readonly workflow: KeywordSearchPredicate | null | undefined
 }
 
-export type SearchResultOrder =
-  | 'BEST_MATCH'
-  | 'LEX_ASC'
-  | 'LEX_DESC'
-  | 'NEWEST'
-  | 'OLDEST'
-
-export type SortDirection = 'ASC' | 'DESC'
-
 export interface TextSearchPredicate {
   readonly queryString: string
 }
@@ -86,8 +57,7 @@ export type containers_Search_gql_FirstPagePackagesQueryVariables = Exact<{
   filter: Types.PackagesSearchFilter | null | undefined
   userMetaFilters: ReadonlyArray<Types.PackageUserMetaPredicate> | null | undefined
   latestOnly: boolean
-  order: Types.SearchResultOrder | null | undefined
-  sort: Types.PackageSortInput | null | undefined
+  ordering: string | null | undefined
 }>
 
 export interface containers_Search_gql_FirstPagePackagesQuery {
@@ -232,13 +202,8 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
-        },
-        {
-          kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'sort' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'PackageSortInput' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'ordering' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'PackageOrdering' } },
         },
       ],
       selectionSet: {
@@ -300,18 +265,10 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                         arguments: [
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
+                            name: { kind: 'Name', value: 'ordering' },
                             value: {
                               kind: 'Variable',
-                              name: { kind: 'Name', value: 'order' },
-                            },
-                          },
-                          {
-                            kind: 'Argument',
-                            name: { kind: 'Name', value: 'sort' },
-                            value: {
-                              kind: 'Variable',
-                              name: { kind: 'Name', value: 'sort' },
+                              name: { kind: 'Name', value: 'ordering' },
                             },
                           },
                         ],
