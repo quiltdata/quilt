@@ -2,6 +2,7 @@
 Helper functions for connecting to the Quilt Registry.
 """
 
+import getpass
 import json
 import os
 import platform
@@ -9,7 +10,6 @@ import stat
 import subprocess
 import sys
 import time
-import typing as T
 from importlib import metadata
 
 import boto3
@@ -247,7 +247,7 @@ def login():
     open_url(login_url)
 
     print()
-    refresh_token = input("Enter the code from the webpage: ")
+    refresh_token = getpass.getpass("Enter the code from the webpage: ")
 
     login_with_token(refresh_token)
 
@@ -325,7 +325,7 @@ class QuiltProvider(CredentialProvider):
         return creds
 
 
-def create_botocore_session(*, credentials: T.Optional[dict] = None) -> botocore.session.Session:
+def create_botocore_session(*, credentials: dict | None = None) -> botocore.session.Session:
     botocore_session = botocore.session.get_session()
 
     # If we have saved credentials, use them. Otherwise, create a normal Boto session.

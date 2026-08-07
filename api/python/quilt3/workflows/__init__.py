@@ -30,7 +30,7 @@ class ConfigDataVersion(typing.NamedTuple):
         return '%s.%s.%s' % self
 
 
-JSONSchemaError = typing.Union[jsonschema.ValidationError, jsonschema.SchemaError]
+JSONSchemaError = jsonschema.ValidationError | jsonschema.SchemaError
 
 
 class WorkflowErrorBase(util.QuiltException):
@@ -230,7 +230,7 @@ class WorkflowConfig:
 class WorkflowValidator(typing.NamedTuple):
     data_to_store: dict
     is_message_required: bool
-    pkg_name_pattern: typing.Optional[typing.Pattern[str]]
+    pkg_name_pattern: typing.Pattern[str] | None
     metadata_validator: typing.Any
     entries_validator: typing.Any
 

@@ -328,6 +328,16 @@ function File() {
     }),
   })
 
+  // Taken from the version-less head, so it reports the object's current state even
+  // while a pinned older version is on screen.
+  const objectDeleted = objExistsData.case({
+    _: () => false,
+    Ok: requests.ObjectExistence.case({
+      Exists: ({ deleted }) => !!deleted,
+      _: () => false,
+    }),
+  })
+
   const { notAvailable, fileVersionId } = versionExistsData.case({
     _: () => ({}),
     Err: () => ({ notAvailable: true }),
@@ -346,7 +356,7 @@ function File() {
     () => FileToolbar.CreateHandle(bucket, path, fileVersionId),
     [bucket, path, fileVersionId],
   )
-  const toolbarFeatures = FileToolbar.useFeatures(notAvailable)
+  const toolbarFeatures = FileToolbar.useFeatures(notAvailable, objectDeleted)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave

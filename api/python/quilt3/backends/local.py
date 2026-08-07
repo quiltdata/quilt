@@ -29,7 +29,8 @@ class LocalPackageRegistryV1(PackageRegistryV1):
                 yield path, f.read()
 
     def delete_package(self, pkg_name: str):
-        shutil.rmtree(self._pointers_usr_dir(pkg_name).path)
+        shutil.rmtree(self.pointers_dir(pkg_name).path)
+        delete_url(self._pointers_usr_dir(pkg_name))
 
     def delete_package_version(self, pkg_name: str, top_hash: str):
         super().delete_package_version(pkg_name, top_hash)

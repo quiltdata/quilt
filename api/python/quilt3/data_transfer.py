@@ -13,15 +13,15 @@ import shutil
 import stat
 import threading
 import types
-import typing as T
 import warnings
 from codecs import iterdecode
 from collections import defaultdict, deque
+from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import Any
 
 import jsonlines
 from boto3.s3.transfer import TransferConfig
@@ -63,15 +63,10 @@ class S3Api(Enum):
 
 
 class S3NoValidClientError(Exception):
-    def __init__(self, message, **kwargs):
-        # We use NewError("Prefix: " + str(error)) a lot.
-        # To be consistent across Python 2.7 and 3.x:
-        # 1) This `super` call must exist, or 2.7 will have no text for str(error)
-        # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
+    def __init__(self, message):
         super().__init__(message)
+        # Read from outside this package: the pkgpush lambda surfaces it as error detail.
         self.message = message
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
 
 class S3ClientProvider:
@@ -249,7 +244,7 @@ UPLOAD_ETAG_OPTIMIZATION_THRESHOLD = 1024
 class WorkerContext:
     s3_client_provider: S3ClientProvider
     progress: Callable[[int], None]
-    done: Callable[[PhysicalKey, Optional[str]], None]
+    done: Callable[[PhysicalKey, str | None], None]
     run: Callable[..., None]
 
 
@@ -337,7 +332,7 @@ def _download_file(
     size: int,
     src_bucket: str,
     src_key: str,
-    src_version: Optional[str],
+    src_version: str | None,
     dest_path: str,
 ):
     dest_file = pathlib.Path(dest_path)
@@ -408,10 +403,10 @@ def _copy_remote_file(
     size: int,
     src_bucket: str,
     src_key: str,
-    src_version: Optional[str],
+    src_version: str | None,
     dest_bucket: str,
     dest_key: str,
-    extra_args: Optional[Iterable[Tuple[str, Any]]] = None,
+    extra_args: Iterable[tuple[str, Any]] | None = None,
 ):
     src_params = dict(Bucket=src_bucket, Key=src_key)
     if src_version is not None:
@@ -420,7 +415,7 @@ def _copy_remote_file(
     s3_client = ctx.s3_client_provider.standard_client
 
     if not checksums.is_mpu(size):
-        params: Dict[str, Any] = dict(
+        params: dict[str, Any] = dict(
             CopySource=src_params,
             Bucket=dest_bucket,
             Key=dest_key,
@@ -609,7 +604,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
 
     assert len(file_list) == len(results)
 
-    total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
+    total_size = sum(size for (_, _, size), result in zip(file_list, results, strict=True) if result is None)
 
     lock = Lock()
     futures = deque()
@@ -674,7 +669,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                     _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id, dest.bucket, dest.path)
 
         try:
-            for idx, (args, result) in enumerate(zip(file_list, results)):
+            for idx, (args, result) in enumerate(zip(file_list, results, strict=True)):
                 if result is not None:
                     continue
                 run_task(idx, worker, idx, *args)
@@ -936,7 +931,7 @@ def get_bytes(src: PhysicalKey):
     return _s3_query_object(src)['Body'].read()
 
 
-def get_bytes_and_effective_pk(src: PhysicalKey) -> Tuple[bytes, PhysicalKey]:
+def get_bytes_and_effective_pk(src: PhysicalKey) -> tuple[bytes, PhysicalKey]:
     if src.is_local():
         return _local_get_bytes(src), src
 
@@ -1021,10 +1016,12 @@ def _calculate_local_part_checksum(
 )
 def _calculate_checksum_internal(
     tasks: list[FileChecksumTask],
-    results: list[T.Optional[str | Exception]],
+    results: list[str | Exception | None],
 ) -> list[str | Exception]:
     total_size = sum(
-        task.size for task, result in zip(tasks, results) if result is None or isinstance(result, Exception)
+        task.size
+        for task, result in zip(tasks, results, strict=True)
+        if result is None or isinstance(result, Exception)
     )
     stopped = False
 
@@ -1075,7 +1072,7 @@ def _calculate_checksum_internal(
 
         futures: list[tuple[int, type[checksums.MultiPartChecksumCalculator], list[Future]]] = []
 
-        for idx, (task, result) in enumerate(zip(tasks, results)):
+        for idx, (task, result) in enumerate(zip(tasks, results, strict=True)):
             if result is None or isinstance(result, Exception):
                 chunksize = checksums.get_checksum_chunksize(task.size)
 
@@ -1189,7 +1186,9 @@ def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
     retry_error_callback=lambda retry_state: retry_state.outcome.result(),
 )
 def _legacy_calculate_checksum_internal(src_list, sizes, results) -> list[str | Exception]:
-    total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
+    total_size = sum(
+        size for size, result in zip(sizes, results, strict=True) if result is None or isinstance(result, Exception)
+    )
     # This controls how many parts can be stored in the memory.
     # This includes the ones that are being downloaded or hashed.
     # The number was chosen empirically.
@@ -1252,7 +1251,7 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> list[str | 
         progress_update = with_lock(progress.update)
         future_to_idx = {
             executor.submit(_process_url, src, size): i
-            for i, (src, size, result) in enumerate(zip(src_list, sizes, results))
+            for i, (src, size, result) in enumerate(zip(src_list, sizes, results, strict=True))
             if result is None or isinstance(result, Exception)
         }
         try:

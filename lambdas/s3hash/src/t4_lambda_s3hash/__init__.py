@@ -14,7 +14,6 @@ import aiobotocore.response
 import aiobotocore.session
 import botocore.exceptions
 import pydantic.v1
-import typing_extensions as TX
 
 from quilt3.data_transfer import get_checksum_chunksize, is_mpu
 from quilt_shared.aws import AWSCredentials
@@ -100,7 +99,7 @@ class PartSourceDef(T.TypedDict):
 
 class PartDef(pydantic.v1.BaseModel):
     part_number: int
-    range: T.Optional[tuple[int, int]]
+    range: tuple[int, int] | None
 
     @property
     def size(self) -> int:
@@ -351,7 +350,7 @@ async def compute_checksum(
     elif algorithm is ChecksumAlgorithm.SHA256_CHUNKED:
         checksum = Checksum.sha256_chunked_from_parts(part_checksums)
     else:
-        TX.assert_never(algorithm)
+        T.assert_never(algorithm)
 
     logger.info(f"[PERF] compute_checksum END: {location} -> {checksum.type}")
     return ChecksumResult(checksum=checksum)
