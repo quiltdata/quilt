@@ -108,10 +108,10 @@ export default function PreviewDisplay({
                 renderAction({ label: 'Download and view in Browser', href }),
               ),
           }),
-        Unsupported: ({ handle }) =>
+        Unsupported: ({ handle, message }) =>
           renderMessage({
             heading: 'Preview Not Supported',
-            body: 'Previewing this data type is not supported',
+            body: message || 'Previewing this data type is not supported',
             action:
               !noDl &&
               AWS.Signer.withDownloadUrl(handle, (href) =>
