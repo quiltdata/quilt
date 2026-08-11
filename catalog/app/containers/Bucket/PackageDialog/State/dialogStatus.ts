@@ -24,11 +24,12 @@ export function computeDialogStatus({
   if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
     return { _tag: 'loading', waitListing: false }
   }
-  if (manifest._tag === 'error') {
-    return { _tag: 'error', error: manifest.error }
-  }
   if (workflowsConfig._tag === 'error') {
     return { _tag: 'error', error: workflowsConfig.error }
   }
+  // A failed manifest deliberately keeps rendering the form: it is reachable
+  // mid-session (see the "load and revise it" link in Inputs/Name), where replacing
+  // the form would discard staged files, and permanently for oversized manifests.
+  // Publishing is blocked in useParams instead, so the staged work survives.
   return { _tag: 'ready' }
 }

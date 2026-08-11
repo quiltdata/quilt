@@ -106,6 +106,33 @@ function FormError({ error }: FormErrorProps) {
   )
 }
 
+interface ManifestWarningProps {
+  canPush: boolean
+  error: Error
+}
+
+/** Explains why the form opened without the package's existing contents. */
+function ManifestWarning({ canPush, error }: ManifestWarningProps) {
+  const message = React.useMemo(() => {
+    if (error instanceof ERRORS.ManifestTooLarge) {
+      return 'This package has too many entries to edit here. Use Quilt CLI, or enter a name that does not exist yet to create a new package.'
+    }
+    if (canPush) {
+      return 'Existing package contents could not be loaded. Pushing creates a new package containing only the files listed.'
+    }
+    return 'Existing package contents could not be loaded, so pushing is disabled to keep them from being replaced. Enter a name that does not exist yet to create a new package, or cancel and try again.'
+  }, [canPush, error])
+  return (
+    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+      <M.Icon color={canPush ? 'inherit' : 'error'}>warning_outlined</M.Icon>
+      <M.Box pl={1} />
+      <M.Typography variant="body2" color={canPush ? 'textSecondary' : 'error'}>
+        {message}
+      </M.Typography>
+    </M.Box>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
@@ -151,6 +178,7 @@ function PackageCreationForm({
     entriesSchema,
     files,
     formStatus,
+    manifest,
     message,
     meta,
     metadataSchema,
@@ -242,6 +270,10 @@ function PackageCreationForm({
 
         {formStatus._tag === 'error' && !!formStatus.error && (
           <FormError error={formStatus.error} />
+        )}
+
+        {formStatus._tag !== 'error' && manifest._tag === 'error' && (
+          <ManifestWarning error={manifest.error} canPush={name.status._tag === 'new'} />
         )}
 
         <M.Button onClick={close} disabled={formStatus._tag === 'submitting'}>

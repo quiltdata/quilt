@@ -6,6 +6,7 @@ import * as workflows from 'utils/workflows'
 import { getMetaValue } from '../../requests'
 
 import { WorkflowState } from './workflow'
+import { ManifestStatus } from './manifest'
 import { NameState } from './name'
 import { MessageState } from './message'
 import { MetaState } from './meta'
@@ -52,6 +53,7 @@ export function useParams(
   message: MessageState,
   metadataSchema: SchemaStatus,
   meta: MetaState,
+  manifest: ManifestStatus,
 ): FormParams {
   return React.useMemo(() => {
     if (!workflow.value || workflow.status._tag === 'error') {
@@ -59,6 +61,18 @@ export function useParams(
     }
     if (!name.value || name.status._tag === 'error') {
       return Invalid(new Error('Valid name required'))
+    }
+    // Entries are sent as a complete replacement list, and an unloaded manifest
+    // yields no existing entries, no metadata and no workflow — so pushing to a
+    // destination that already exists would silently drop whatever failed to load.
+    // Only a name confirmed absent is safe; every other status, including the ones
+    // meaning "don't know yet", blocks.
+    if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
+      return Invalid(
+        new Error(
+          'Existing package data failed to load — rename to create a new package, or cancel',
+        ),
+      )
     }
     if (!message.value || message.status._tag === 'error') {
       return Invalid(new Error('Valid message required'))
@@ -78,5 +92,5 @@ export function useParams(
       userMeta: getMetaValue(meta.value, metadataSchema.schema) ?? null,
       workflow: workflowSelectionToWorkflow(workflow.value),
     })
-  }, [dst, workflow, name, message, metadataSchema, meta])
+  }, [dst, workflow, name, message, metadataSchema, meta, manifest])
 }

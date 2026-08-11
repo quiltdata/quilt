@@ -81,7 +81,10 @@ function useNameExistence(
   const packageExistsQuery = GQL.useQuery(
     PACKAGE_EXISTS_QUERY,
     dst as Required<PackageDst>,
-    { pause },
+    // A cached "no such package" answer is what permits publishing while the source
+    // manifest is unavailable (see useParams), so it is revalidated rather than
+    // trusted for the lifetime of the session.
+    { pause, requestPolicy: 'cache-and-network' },
   )
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }

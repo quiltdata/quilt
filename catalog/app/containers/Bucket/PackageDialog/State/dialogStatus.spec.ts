@@ -51,11 +51,13 @@ describe('containers/Bucket/PackageDialog/State/dialogStatus', () => {
     })
   })
 
-  it('returns error when the manifest failed to load', () => {
+  it('keeps rendering the form when the manifest failed to load', () => {
+    // Deliberate: replacing the form would discard files staged before the fetch
+    // started, and an oversized manifest fails permanently. Publishing is blocked in
+    // useParams instead — see its "unloaded source manifest" cases.
     const error = new Error('manifest')
     expect(computeDialogStatus({ ...base, manifest: { _tag: 'error', error } })).toEqual({
-      _tag: 'error',
-      error,
+      _tag: 'ready',
     })
   })
 
