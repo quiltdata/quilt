@@ -92,13 +92,13 @@ export function useNameExistence(
       return { _tag: 'new-revision' }
     }
     return GQL.fold(packageExistsQuery, {
-      data: ({ package: r }, { error }) => {
-        // "new" is what permits publishing while a source manifest is unavailable, so
-        // an absence that was never confirmed must not pass for a confirmed one: a
-        // partial response, or a failed revalidation of cached data, nulls the field
-        // and reports the error beside it.
+      data: ({ package: r }, { error, fetching, stale }) => {
+        // "new" is what permits publishing while a source manifest is unavailable, so an
+        // absence that was never confirmed must not pass for a confirmed one. A partial
+        // response nulls the field and reports the error beside it, and a revalidating
+        // cache hit answers from data that is not known to be current yet.
         if (error) return { _tag: 'error', error }
-        if (!r) return { _tag: 'new' }
+        if (!r) return fetching || stale ? { _tag: 'loading' } : { _tag: 'new' }
         switch (r.__typename) {
           default:
             return disableRestore

@@ -7,6 +7,7 @@ interface QueryState {
   data?: unknown
   error?: Error
   fetching?: boolean
+  stale?: boolean
 }
 
 let queryState: QueryState = {}
@@ -61,6 +62,13 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
       // unconfirmed absence must not pass for a confirmed one.
       queryState = { data: { package: null }, error: new Error('resolver failed') }
       expect(run()._tag).toBe('error')
+    })
+
+    it('withholds absence until a cached answer has been revalidated', () => {
+      // cache-and-network delivers the cached answer first, flagged stale; treating that
+      // as confirmed would open the gate on an answer that may already be out of date.
+      queryState = { data: { package: null }, stale: true }
+      expect(run()._tag).toBe('loading')
     })
   })
 })

@@ -271,6 +271,24 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
+    it('reports the manifest as the blocker even before a workflow is chosen', () => {
+      // A failed manifest also blocks the workflow prefill, so this is the state the user
+      // is actually in. Reporting a missing workflow instead would let the dialog tell
+      // them the destination is safe to push over.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          manifest: manifestError,
+          name: existingName,
+          workflow: { value: undefined, status: { _tag: 'ok' as const }, onChange },
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.SourceManifestNotLoaded)
+      }
+    })
+
     it('stays valid for a destination that does not exist yet', () => {
       // Nothing to overwrite, so the staged files can still be pushed as a new package.
       const { result } = renderHook(() => useParamsWith({ manifest: manifestError }))

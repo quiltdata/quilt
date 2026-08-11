@@ -67,19 +67,23 @@ export function useParams({
   workflow,
 }: FormInputs): FormParams {
   return React.useMemo(() => {
-    if (!workflow.value || workflow.status._tag === 'error') {
-      return Invalid(new Error('Valid workflow required'))
-    }
-    if (!name.value || name.status._tag === 'error') {
-      return Invalid(new Error('Valid name required'))
-    }
     // Entries are sent as a complete replacement list, and an unloaded manifest yields
     // no existing entries, no metadata and no workflow — so pushing to a destination
     // that already exists would silently drop whatever failed to load. Only a name
     // confirmed absent is safe, which is why the existence check behind it must fail
     // closed (see useNameExistence).
+    //
+    // This comes first because the same unloaded manifest also blocks the workflow
+    // prefill: reported later, a missing workflow would mask it, and the dialog would
+    // describe an existing destination as safe to push over.
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
       return Invalid(new ERRORS.SourceManifestNotLoaded())
+    }
+    if (!workflow.value || workflow.status._tag === 'error') {
+      return Invalid(new Error('Valid workflow required'))
+    }
+    if (!name.value || name.status._tag === 'error') {
+      return Invalid(new Error('Valid name required'))
     }
     if (!message.value || message.status._tag === 'error') {
       return Invalid(new Error('Valid message required'))
