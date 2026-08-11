@@ -3,12 +3,16 @@ import { describe, it, expect, vi } from 'vitest'
 
 import * as workflows from 'utils/workflows'
 
-import { useParams, Invalid, Ok, SourceManifestNotLoaded } from './params'
+import * as ERRORS from '../../errors'
+
+import { useParams, FormInputs, Invalid, Ok } from './params'
 import * as Schema from './schema'
 import * as Meta from './meta'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+// A ready manifest is also what a dialog with no source package to load reports, so the
+// defaults below describe plain package creation.
 const MANIFEST_READY = { _tag: 'ready' as const }
 
 describe('containers/Bucket/PackageDialog/State/params', () => {
@@ -42,11 +46,21 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     onChange,
   }
 
+  const useParamsWith = (overrides: Partial<FormInputs> = {}) =>
+    useParams({
+      dst,
+      manifest: MANIFEST_READY,
+      message,
+      meta,
+      metadataSchema: Schema.Ready({}),
+      name,
+      workflow,
+      ...overrides,
+    })
+
   describe('valid params', () => {
     it('should return valid params when all inputs are valid', () => {
-      const { result } = renderHook(() =>
-        useParams(dst, workflow, name, message, Schema.Ready({}), meta, MANIFEST_READY),
-      )
+      const { result } = renderHook(() => useParamsWith())
 
       expect(result.current).toEqual(
         Ok({
@@ -66,17 +80,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          name,
-          message,
-          Schema.Ready({}),
-          emptyMeta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ meta: emptyMeta }))
 
       expect(result.current._tag).toBe('ok')
       if (result.current._tag === 'ok') {
@@ -100,15 +104,10 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
 
       const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          name,
-          message,
-          Schema.Ready(schemaWithDefaults),
-          partialMeta,
-          MANIFEST_READY,
-        ),
+        useParamsWith({
+          metadataSchema: Schema.Ready(schemaWithDefaults),
+          meta: partialMeta,
+        }),
       )
 
       expect(result.current._tag).toBe('ok')
@@ -128,15 +127,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
 
       const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflowNotAvailable,
-          name,
-          message,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
+        useParamsWith({ workflow: workflowNotAvailable }),
       )
 
       expect(result.current._tag).toBe('ok')
@@ -153,15 +144,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
 
       const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflowNotSelected,
-          name,
-          message,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
+        useParamsWith({ workflow: workflowNotSelected }),
       )
 
       expect(result.current._tag).toBe('ok')
@@ -179,17 +162,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          invalidWorkflow,
-          name,
-          message,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ workflow: invalidWorkflow }))
 
       expect(result.current).toEqual(Invalid(new Error('Valid workflow required')))
     })
@@ -201,17 +174,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflowError,
-          name,
-          message,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ workflow: workflowError }))
 
       expect(result.current).toEqual(Invalid(new Error('Valid workflow required')))
     })
@@ -224,17 +187,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         resetDirty,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          invalidName,
-          message,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ name: invalidName }))
 
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
@@ -247,17 +200,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         resetDirty,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          nameError,
-          message,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ name: nameError }))
 
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
@@ -269,17 +212,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          name,
-          invalidMessage,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ message: invalidMessage }))
 
       expect(result.current).toEqual(Invalid(new Error('Valid message required')))
     })
@@ -291,25 +224,13 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          name,
-          messageError,
-          Schema.Ready({}),
-          meta,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ message: messageError }))
 
       expect(result.current).toEqual(Invalid(new Error('Valid message required')))
     })
 
     it('should return invalid when metadataSchema is not ready', () => {
-      const { result } = renderHook(() =>
-        useParams(dst, workflow, name, message, Schema.Idle, meta, MANIFEST_READY),
-      )
+      const { result } = renderHook(() => useParamsWith({ metadataSchema: Schema.Idle }))
 
       expect(result.current).toEqual(
         Invalid(new Error('Metadata JSON Schema is not ready')),
@@ -323,74 +244,36 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
       }
 
-      const { result } = renderHook(() =>
-        useParams(
-          dst,
-          workflow,
-          name,
-          message,
-          Schema.Ready({}),
-          metaError,
-          MANIFEST_READY,
-        ),
-      )
+      const { result } = renderHook(() => useParamsWith({ meta: metaError }))
 
       expect(result.current).toEqual(Invalid(new Error('Metadata must be valid')))
     })
   })
 
   describe('unloaded source manifest', () => {
-    // Entries are a full replacement list, so publishing while the source manifest
-    // is unavailable drops every pre-existing file and the package metadata.
+    const manifestError = { _tag: 'error' as const, error: new Error('failed to fetch') }
+    // A workflow is set throughout, which matters: its prefill needs a ready manifest,
+    // and that incidentally disabled submission — choosing one by hand is what defeated
+    // the accidental guard and reached the destructive push.
     const existingName = { ...name, status: { _tag: 'new-revision' as const } }
 
     it.each([
-      ['error', { _tag: 'error' as const, error: new Error('failed to fetch') }],
+      ['error', manifestError],
       ['loading', { _tag: 'loading' as const }],
       ['idle', { _tag: 'idle' as const }],
     ])('is invalid when the manifest is %s and the package exists', (_tag, manifest) => {
-      const { result } = renderHook(() =>
-        useParams(dst, workflow, existingName, message, Schema.Ready({}), meta, manifest),
-      )
-
-      expect(result.current._tag).toBe('invalid')
-    })
-
-    it('is invalid even once a workflow has been selected manually', () => {
-      // The workflow prefill needs a ready manifest, which incidentally disabled
-      // submission; selecting a workflow by hand defeats that and was the way to
-      // reach the destructive push.
-      const { result } = renderHook(() =>
-        useParams(dst, workflow, existingName, message, Schema.Ready({}), meta, {
-          _tag: 'error',
-          error: new Error('failed to fetch'),
-        }),
-      )
+      const { result } = renderHook(() => useParamsWith({ name: existingName, manifest }))
 
       expect(result.current._tag).toBe('invalid')
       if (result.current._tag === 'invalid') {
         // Typed so the dialog can tell this apart from a stale submission error.
-        expect(result.current.error).toBeInstanceOf(SourceManifestNotLoaded)
+        expect(result.current.error).toBeInstanceOf(ERRORS.SourceManifestNotLoaded)
       }
     })
 
     it('stays valid for a destination that does not exist yet', () => {
       // Nothing to overwrite, so the staged files can still be pushed as a new package.
-      const { result } = renderHook(() =>
-        useParams(dst, workflow, name, message, Schema.Ready({}), meta, {
-          _tag: 'error',
-          error: new Error('failed to fetch'),
-        }),
-      )
-
-      expect(result.current._tag).toBe('ok')
-    })
-
-    it('stays valid when there is no source to load', () => {
-      // Guards against over-blocking: plain package creation must keep working.
-      const { result } = renderHook(() =>
-        useParams(dst, workflow, name, message, Schema.Ready({}), meta, MANIFEST_READY),
-      )
+      const { result } = renderHook(() => useParamsWith({ manifest: manifestError }))
 
       expect(result.current._tag).toBe('ok')
     })
@@ -399,16 +282,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
   describe('memoization', () => {
     it('should recompute when dependencies change', () => {
       const { result, rerender } = renderHook(
-        (params) =>
-          useParams(
-            dst,
-            workflow,
-            { ...name, value: params.name },
-            message,
-            Schema.Ready({}),
-            meta,
-            MANIFEST_READY,
-          ),
+        (params) => useParamsWith({ name: { ...name, value: params.name } }),
         { initialProps: { name: 'name1' } },
       )
 
@@ -429,9 +303,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
 
     it('should return consistent results when dependencies stay the same', () => {
-      const { result, rerender } = renderHook(() =>
-        useParams(dst, workflow, name, message, Schema.Ready({}), meta, MANIFEST_READY),
-      )
+      const { result, rerender } = renderHook(() => useParamsWith())
 
       const firstResult = result.current
       rerender()

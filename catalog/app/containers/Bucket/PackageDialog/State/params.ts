@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as Types from 'utils/types'
 import * as workflows from 'utils/workflows'
 
+import * as ERRORS from '../../errors'
 import { getMetaValue } from '../../requests'
 
 import { WorkflowState } from './workflow'
@@ -26,15 +27,6 @@ export type FormParams =
       }
     }
 
-/** Publishing is blocked because the source package's contents never loaded. */
-export class SourceManifestNotLoaded extends Error {
-  constructor() {
-    super(
-      'Existing package data failed to load — rename to create a new package, or cancel',
-    )
-  }
-}
-
 export const Invalid = (error: Error) => ({ _tag: 'invalid' as const, error })
 export const Ok = (params: {
   bucket: string
@@ -55,15 +47,25 @@ function workflowSelectionToWorkflow(workflow: workflows.Workflow): string | nul
   return workflow.slug
 }
 
-export function useParams(
-  dst: PackageDst,
-  workflow: WorkflowState,
-  name: NameState,
-  message: MessageState,
-  metadataSchema: SchemaStatus,
-  meta: MetaState,
-  manifest: ManifestStatus,
-): FormParams {
+export interface FormInputs {
+  dst: PackageDst
+  manifest: ManifestStatus
+  message: MessageState
+  meta: MetaState
+  metadataSchema: SchemaStatus
+  name: NameState
+  workflow: WorkflowState
+}
+
+export function useParams({
+  dst,
+  manifest,
+  message,
+  meta,
+  metadataSchema,
+  name,
+  workflow,
+}: FormInputs): FormParams {
   return React.useMemo(() => {
     if (!workflow.value || workflow.status._tag === 'error') {
       return Invalid(new Error('Valid workflow required'))
@@ -71,13 +73,13 @@ export function useParams(
     if (!name.value || name.status._tag === 'error') {
       return Invalid(new Error('Valid name required'))
     }
-    // Entries are sent as a complete replacement list, and an unloaded manifest
-    // yields no existing entries, no metadata and no workflow — so pushing to a
-    // destination that already exists would silently drop whatever failed to load.
-    // Only a name confirmed absent is safe; every other status, including the ones
-    // meaning "don't know yet", blocks.
+    // Entries are sent as a complete replacement list, and an unloaded manifest yields
+    // no existing entries, no metadata and no workflow — so pushing to a destination
+    // that already exists would silently drop whatever failed to load. Only a name
+    // confirmed absent is safe, which is why the existence check behind it must fail
+    // closed (see useNameExistence).
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
-      return Invalid(new SourceManifestNotLoaded())
+      return Invalid(new ERRORS.SourceManifestNotLoaded())
     }
     if (!message.value || message.status._tag === 'error') {
       return Invalid(new Error('Valid message required'))

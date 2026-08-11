@@ -112,7 +112,15 @@ export function useState(
   const meta = useMeta(formStatus, metadataSchema, manifest)
   const files = useFiles(formStatus, entriesSchema, manifest, open)
 
-  const params = useParams(dst, workflow, name, message, metadataSchema, meta, manifest)
+  const params = useParams({
+    dst,
+    manifest,
+    message,
+    meta,
+    metadataSchema,
+    name,
+    workflow,
+  })
 
   const { create, progress, onAddReadme } = useCreateHandler(params, files, setFormStatus)
   const copy = useCopyHandler(params, setFormStatus)

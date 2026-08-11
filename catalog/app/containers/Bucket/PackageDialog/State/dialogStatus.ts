@@ -31,5 +31,7 @@ export function computeDialogStatus({
   // mid-session (see the "load and revise it" link in Inputs/Name), where replacing
   // the form would discard staged files, and permanently for oversized manifests.
   // Publishing is blocked in useParams instead, so the staged work survives.
+  // Copy.tsx keeps its own ladder and does block there, because promote copies the
+  // whole source and has nothing to offer once the manifest is gone.
   return { _tag: 'ready' }
 }

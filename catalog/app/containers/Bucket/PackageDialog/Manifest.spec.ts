@@ -15,24 +15,12 @@ let queryState: QueryState = {}
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-// Mirrors the real fold's precedence: data wins over error when both are present
-// (see utils/GraphQL/wrappers.ts), which is what makes a partial response look
-// like success unless it is explicitly detected.
-vi.mock('utils/GraphQL', () => ({
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
+
+// The real fold decides what a partial response means, so only the query is faked.
+vi.mock('utils/GraphQL', async () => ({
+  ...(await vi.importActual('utils/GraphQL')),
   useQuery: () => queryState,
-  fold: (
-    result: QueryState,
-    handlers: {
-      data: (d: unknown, r: QueryState) => unknown
-      fetching: (r: QueryState) => unknown
-      error: (e: Error, r: QueryState) => unknown
-    },
-  ) => {
-    if (result.fetching) return handlers.fetching(result)
-    if (result.data) return handlers.data(result.data, result)
-    if (result.error) return handlers.error(result.error, result)
-    return handlers.fetching(result)
-  },
 }))
 
 const params = { bucket: 'b', name: 'p', hashOrTag: 'latest' }
@@ -49,47 +37,33 @@ const revision = (over: Record<string, unknown> = {}) => ({
   },
 })
 
-function run() {
-  return renderHook(() => useManifest(params)).result.current
-}
+const run = () => renderHook(() => useManifest(params)).result.current
 
 describe('containers/Bucket/PackageDialog/Manifest', () => {
   it('resolves a complete response', () => {
     queryState = { data: revision() }
-    const res = run()
-    expect(res.case({ Ok: () => 'ok', _: () => 'other' })).toBe('ok')
+    expect(run().case({ Ok: () => 'ok', _: () => 'other' })).toBe('ok')
   })
 
   it('fails a response that carries field errors alongside data', () => {
-    // A partial response (HTTP 200 with GraphQL field errors) nulls some fields and
-    // resolves others. Accepting it publishes a revision built from the survivors:
-    // dropped entries, metadata, or a substituted workflow.
+    // Such a response nulls some fields and resolves others, so accepting it publishes a
+    // revision built from the survivors — whichever field was lost. Any of them: entries,
+    // metadata, or the workflow that would otherwise fall back to the bucket default.
     queryState = {
-      data: revision({ contentsFlatMap: null }),
+      data: revision({ contentsFlatMap: null, userMeta: null }),
       error: new Error('resolver failed'),
     }
-    const res = run()
-    expect(res.case({ Err: (e: Error) => e.message, _: () => 'not an error' })).toBe(
+    expect(run().case({ Err: (e: Error) => e.message, _: () => 'not an error' })).toBe(
       'resolver failed',
     )
   })
 
-  it('fails a partial response that only lost the metadata', () => {
-    queryState = {
-      data: revision({ userMeta: null }),
-      error: new Error('resolver failed'),
-    }
-    const res = run()
-    expect(res.case({ Err: () => 'err', _: () => 'not an error' })).toBe('err')
-  })
-
   it('reports a genuinely oversized manifest as too large', () => {
-    // No field error: the registry nulls contentsFlatMap when the manifest exceeds
-    // the entry cap, which is permanent and needs different advice than a failure.
+    // No field error: the registry nulls contentsFlatMap when the manifest exceeds the
+    // entry cap, which is permanent and needs different advice than a failure.
     queryState = { data: revision({ contentsFlatMap: null }) }
-    const res = run()
     expect(
-      res.case({
+      run().case({
         Err: (e: Error) => e instanceof errors.ManifestTooLarge,
         _: () => false,
       }),

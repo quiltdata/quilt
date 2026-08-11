@@ -90,47 +90,57 @@ function ConfirmReadme({ close }: ConfirmReadmeProps) {
   )
 }
 
-interface FormErrorProps {
-  error: Error
+interface FormMessageProps {
+  children: React.ReactNode
+  icon: string
+  muted?: boolean
 }
 
-function FormError({ error }: FormErrorProps) {
+function FormMessage({ children, icon, muted }: FormMessageProps) {
   return (
     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-      <M.Icon color="error">error_outline</M.Icon>
+      <M.Icon color={muted ? 'inherit' : 'error'}>{icon}</M.Icon>
       <M.Box pl={1} />
-      <M.Typography variant="body2" color="error">
-        {error.message}
+      <M.Typography variant="body2" color={muted ? 'textSecondary' : 'error'}>
+        {children}
       </M.Typography>
     </M.Box>
   )
 }
 
-interface ManifestWarningProps {
-  canPush: boolean
-  error: Error
+interface StatusMessageProps {
+  formStatus: PDModel.FormStatus
+  manifest: PDModel.ManifestStatus
+  params: PDModel.FormParams
 }
 
-/** Explains why the form opened without the package's existing contents. */
-function ManifestWarning({ canPush, error }: ManifestWarningProps) {
-  const message = React.useMemo(() => {
-    if (error instanceof ERRORS.ManifestTooLarge) {
-      return 'This package has too many entries to edit here. Use Quilt CLI, or enter a name that does not exist yet to create a new package.'
+/**
+ * Explains a form that cannot be submitted. While the manifest is the blocker its own
+ * state owns the message, because a submission error from before the name changed would
+ * contradict the button beside it.
+ */
+function StatusMessage({ formStatus, manifest, params }: StatusMessageProps) {
+  if (manifest._tag === 'error') {
+    const blocked =
+      params._tag === 'invalid' && params.error instanceof ERRORS.SourceManifestNotLoaded
+    if (!blocked) {
+      return (
+        <FormMessage icon="warning_outline" muted>
+          Existing package contents could not be loaded. Pushing creates a new package
+          containing only the files listed.
+        </FormMessage>
+      )
     }
-    if (canPush) {
-      return 'Existing package contents could not be loaded. Pushing creates a new package containing only the files listed.'
-    }
-    return 'Existing package contents could not be loaded, so pushing is disabled to keep them from being replaced. Enter a name that does not exist yet to create a new package, or cancel and try again.'
-  }, [canPush, error])
-  return (
-    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-      <M.Icon color={canPush ? 'inherit' : 'error'}>warning_outlined</M.Icon>
-      <M.Box pl={1} />
-      <M.Typography variant="body2" color={canPush ? 'textSecondary' : 'error'}>
-        {message}
-      </M.Typography>
-    </M.Box>
-  )
+    return (
+      <FormMessage icon="warning_outline">
+        {manifest.error instanceof ERRORS.ManifestTooLarge
+          ? `This package has more than ${manifest.error.max} entries, which is too many to edit here. Use Quilt CLI, or enter a name that does not exist yet to create a new package.`
+          : params.error.message}
+      </FormMessage>
+    )
+  }
+  if (formStatus._tag !== 'error' || !formStatus.error) return null
+  return <FormMessage icon="error_outline">{formStatus.error.message}</FormMessage>
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -268,18 +278,7 @@ function PackageCreationForm({
           </SubmitSpinner>
         )}
 
-        {/* While the manifest is the blocker, its own state owns the message: a
-            submission error left over from before the name changed would contradict
-            the button beside it. */}
-        {manifest._tag === 'error' ? (
-          <ManifestWarning error={manifest.error} canPush={name.status._tag === 'new'} />
-        ) : (
-          formStatus._tag === 'error' &&
-          !!formStatus.error &&
-          !(formStatus.error instanceof PDModel.SourceManifestNotLoaded) && (
-            <FormError error={formStatus.error} />
-          )
-        )}
+        <StatusMessage formStatus={formStatus} manifest={manifest} params={params} />
 
         <M.Button onClick={close} disabled={formStatus._tag === 'submitting'}>
           Cancel
@@ -457,17 +456,13 @@ export function useCreateDialog({
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
-  const dialogStatus: PDModel.DialogStatus = React.useMemo(
-    () =>
-      PDModel.computeDialogStatus({
-        formStatus,
-        manifest,
-        resolveError,
-        waitingListing,
-        workflowsConfig,
-      }),
-    [waitingListing, workflowsConfig, formStatus, manifest, resolveError],
-  )
+  const dialogStatus = PDModel.computeDialogStatus({
+    formStatus,
+    manifest,
+    resolveError,
+    waitingListing,
+    workflowsConfig,
+  })
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <DialogWrapper
