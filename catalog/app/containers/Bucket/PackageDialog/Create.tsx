@@ -268,12 +268,17 @@ function PackageCreationForm({
           </SubmitSpinner>
         )}
 
-        {formStatus._tag === 'error' && !!formStatus.error && (
-          <FormError error={formStatus.error} />
-        )}
-
-        {formStatus._tag !== 'error' && manifest._tag === 'error' && (
+        {/* While the manifest is the blocker, its own state owns the message: a
+            submission error left over from before the name changed would contradict
+            the button beside it. */}
+        {manifest._tag === 'error' ? (
           <ManifestWarning error={manifest.error} canPush={name.status._tag === 'new'} />
+        ) : (
+          formStatus._tag === 'error' &&
+          !!formStatus.error &&
+          !(formStatus.error instanceof PDModel.SourceManifestNotLoaded) && (
+            <FormError error={formStatus.error} />
+          )
         )}
 
         <M.Button onClick={close} disabled={formStatus._tag === 'submitting'}>

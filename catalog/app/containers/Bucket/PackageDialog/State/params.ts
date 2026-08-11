@@ -26,6 +26,15 @@ export type FormParams =
       }
     }
 
+/** Publishing is blocked because the source package's contents never loaded. */
+export class SourceManifestNotLoaded extends Error {
+  constructor() {
+    super(
+      'Existing package data failed to load — rename to create a new package, or cancel',
+    )
+  }
+}
+
 export const Invalid = (error: Error) => ({ _tag: 'invalid' as const, error })
 export const Ok = (params: {
   bucket: string
@@ -68,11 +77,7 @@ export function useParams(
     // Only a name confirmed absent is safe; every other status, including the ones
     // meaning "don't know yet", blocks.
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
-      return Invalid(
-        new Error(
-          'Existing package data failed to load — rename to create a new package, or cancel',
-        ),
-      )
+      return Invalid(new SourceManifestNotLoaded())
     }
     if (!message.value || message.status._tag === 'error') {
       return Invalid(new Error('Valid message required'))

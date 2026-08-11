@@ -1,4 +1,5 @@
 export * from './State'
 export * from './dialogStatus'
+export { SourceManifestNotLoaded } from './params'
 export type { PackageSrc } from './manifest'
 export type { FilesState } from './files'

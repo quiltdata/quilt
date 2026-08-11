@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import * as workflows from 'utils/workflows'
 
-import { useParams, Invalid, Ok } from './params'
+import { useParams, Invalid, Ok, SourceManifestNotLoaded } from './params'
 import * as Schema from './schema'
 import * as Meta from './meta'
 
@@ -367,13 +367,11 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         }),
       )
 
-      expect(result.current).toEqual(
-        Invalid(
-          new Error(
-            'Existing package data failed to load — rename to create a new package, or cancel',
-          ),
-        ),
-      )
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        // Typed so the dialog can tell this apart from a stale submission error.
+        expect(result.current.error).toBeInstanceOf(SourceManifestNotLoaded)
+      }
     })
 
     it('stays valid for a destination that does not exist yet', () => {
