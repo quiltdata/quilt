@@ -274,7 +274,7 @@ function useGetAuthItems() {
           <ItemContents
             icon={
               <M.Badge invisible={!bookmarks?.hasUpdates} color="secondary" variant="dot">
-                <M.Icon>bookmarks_outline</M.Icon>
+                <M.Icon>bookmarks</M.Icon>
               </M.Badge>
             }
             primary="Bookmarks"
