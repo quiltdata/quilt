@@ -57,17 +57,11 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
       expect(run()._tag).toBe('exists')
     })
 
-    it('reports an error rather than absence when the check itself failed', () => {
+    it('withholds absence when the check itself failed', () => {
       // "new" is what permits publishing while a source manifest is unavailable, so an
-      // unconfirmed absence must not pass for a confirmed one.
+      // unconfirmed absence must not pass for a confirmed one. Reported as still-loading
+      // rather than as a name error, so a blip cannot block a flow with nothing at risk.
       queryState = { data: { package: null }, error: new Error('resolver failed') }
-      expect(run()._tag).toBe('error')
-    })
-
-    it('withholds absence until a cached answer has been revalidated', () => {
-      // cache-and-network delivers the cached answer first, flagged stale; treating that
-      // as confirmed would open the gate on an answer that may already be out of date.
-      queryState = { data: { package: null }, stale: true }
       expect(run()._tag).toBe('loading')
     })
   })

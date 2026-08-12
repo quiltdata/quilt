@@ -81,10 +81,7 @@ export function useNameExistence(
   const packageExistsQuery = GQL.useQuery(
     PACKAGE_EXISTS_QUERY,
     dst as Required<PackageDst>,
-    // A cached "no such package" answer is what permits publishing while the source
-    // manifest is unavailable (see useParams), so it is revalidated rather than
-    // trusted for the lifetime of the session.
-    { pause, requestPolicy: 'cache-and-network' },
+    { pause },
   )
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }
@@ -92,13 +89,13 @@ export function useNameExistence(
       return { _tag: 'new-revision' }
     }
     return GQL.fold(packageExistsQuery, {
-      data: ({ package: r }, { error, fetching, stale }) => {
+      data: ({ package: r }, { error }) => {
         // "new" is what permits publishing while a source manifest is unavailable, so an
-        // absence that was never confirmed must not pass for a confirmed one. A partial
-        // response nulls the field and reports the error beside it, and a revalidating
-        // cache hit answers from data that is not known to be current yet.
-        if (error) return { _tag: 'error', error }
-        if (!r) return fetching || stale ? { _tag: 'loading' } : { _tag: 'new' }
+        // absence reported alongside an error was never confirmed and must not pass for
+        // a confirmed one. Reported as still-loading rather than as a name error: the
+        // name may well be fine, and only the gate in useParams needs to care.
+        if (!r && error) return { _tag: 'loading' }
+        if (!r) return { _tag: 'new' }
         switch (r.__typename) {
           default:
             return disableRestore

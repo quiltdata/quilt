@@ -114,33 +114,51 @@ interface StatusMessageProps {
   params: PDModel.FormParams
 }
 
-/**
- * Explains a form that cannot be submitted. While the manifest is the blocker its own
- * state owns the message, because a submission error from before the name changed would
- * contradict the button beside it.
- */
+/** Explains a form that cannot be submitted, or that will not submit what it looks like. */
 function StatusMessage({ formStatus, manifest, params }: StatusMessageProps) {
-  if (manifest._tag === 'error') {
-    const blocked =
-      params._tag === 'invalid' && params.error instanceof ERRORS.SourceManifestNotLoaded
-    if (!blocked) {
-      return (
-        <FormMessage icon="warning_outline" muted>
-          Existing package contents could not be loaded. Pushing creates a new package
-          containing only the files listed.
-        </FormMessage>
-      )
-    }
+  // A failed submission is the most specific thing that can be said, and it outranks the
+  // manifest note — except for the gate's own error, which the manifest branch words
+  // better and which goes stale as soon as the name changes.
+  if (
+    formStatus._tag === 'error' &&
+    formStatus.error &&
+    !(formStatus.error instanceof ERRORS.SourceManifestNotLoaded)
+  ) {
+    return <FormMessage icon="error_outline">{formStatus.error.message}</FormMessage>
+  }
+
+  if (manifest._tag !== 'error') return null
+
+  if (
+    params._tag === 'invalid' &&
+    params.error instanceof ERRORS.SourceManifestNotLoaded
+  ) {
     return (
-      <FormMessage icon="warning_outline">
+      <FormMessage icon="warning">
         {manifest.error instanceof ERRORS.ManifestTooLarge
           ? `This package has more than ${manifest.error.max} entries, which is too many to edit here. Use Quilt CLI, or enter a name that does not exist yet to create a new package.`
           : params.error.message}
       </FormMessage>
     )
   }
-  if (formStatus._tag !== 'error' || !formStatus.error) return null
-  return <FormMessage icon="error_outline">{formStatus.error.message}</FormMessage>
+
+  // Only promise a push when the form would actually submit: the same failure that left
+  // the manifest unloaded also leaves the workflow unprefilled, and saying "pushing
+  // creates a new package" beside a button disabled for that reason is a dead end.
+  if (params._tag === 'ok') {
+    return (
+      <FormMessage icon="warning" muted>
+        Existing package contents could not be loaded. Pushing creates a new package
+        containing only the files listed.
+      </FormMessage>
+    )
+  }
+
+  return (
+    <FormMessage icon="warning" muted>
+      Existing package contents could not be loaded.
+    </FormMessage>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({

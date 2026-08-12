@@ -295,6 +295,20 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
 
       expect(result.current._tag).toBe('ok')
     })
+
+    it.each([
+      ['new-revision', { _tag: 'new-revision' as const }],
+      ['exists', { _tag: 'exists' as const, dst: { bucket: 'b', name: 'n' } }],
+    ])('stays valid for an existing destination once loaded (%s)', (_tag, status) => {
+      // The path the gate exists to protect, and the one it must not block: revising a
+      // package whose manifest did load. Without this, a gate that refuses every
+      // destination except brand-new names passes the whole suite.
+      const { result } = renderHook(() =>
+        useParamsWith({ manifest: MANIFEST_READY, name: { ...name, status } }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
   })
 
   describe('memoization', () => {

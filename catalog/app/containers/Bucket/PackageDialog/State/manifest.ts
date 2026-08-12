@@ -23,7 +23,13 @@ export function isPackageHandle(h: PackageSrc): h is Required<PackageSrc> {
   return !!h.hash
 }
 
-export function useManifestRequest(open: boolean, src?: PackageSrc): ManifestStatus {
+export function useManifestRequest(
+  open: boolean,
+  src?: PackageSrc,
+  // The copy dialog never reads the entries — promote copies them server-side by hash —
+  // so requesting them only exposes it to failures it has no use for.
+  skipEntries: boolean = false,
+): ManifestStatus {
   const notOpened = !open
   const noSrc = !src
 
@@ -32,6 +38,7 @@ export function useManifestRequest(open: boolean, src?: PackageSrc): ManifestSta
     name: src?.name || '',
     hashOrTag: src?.hash,
     pause: notOpened || noSrc,
+    skipEntries,
   })
 
   return React.useMemo(() => {
