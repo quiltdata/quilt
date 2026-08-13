@@ -3,11 +3,17 @@ import * as M from '@material-ui/core'
 
 import { extractCriteria } from './extractCriteria'
 
-// The "interpreted plan" panel shown when the bar routes to Qurator. It mirrors
-// the prototype's interaction shape (criteria preview, then a primary action
-// that opens the REAL Assistant rather than rendering a simulated answer), but
-// not its skin: the prototype drew a dark panel with cobalt gradients on a dark
-// hero, and this is a working surface on a light page.
+// The panel shown when the bar routes to Qurator: a preview of what the query
+// looks like from here, then a primary action that opens the REAL Assistant
+// rather than rendering a simulated answer. It mirrors the prototype's
+// interaction shape (frontdoor/v3-eval) but not its skin -- the prototype drew a
+// dark panel with cobalt gradients on a dark hero, and this is a working surface
+// on a light page.
+//
+// The criteria come from extractCriteria, a local keyword match: no backend is
+// called and Qurator has not seen the query yet, so the label says so. Claiming
+// these were "interpreted" (or editable) would spend trust the code hasn't
+// earned, and the moment a readout is caught fabricating, every readout pays.
 //
 // Qurator's identity is carried by the Amber Indicator, which is a stroke and a
 // mark -- the badge takes an amber border and amber glyph on the paper ground,
@@ -45,13 +51,9 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.body1.fontSize,
     fontWeight: t.typography.fontWeightMedium,
   },
-  tag: {
-    background: t.palette.action.selected,
-    borderRadius: t.shape.borderRadius,
-    color: t.palette.text.secondary,
-    fontSize: t.typography.caption.fontSize,
-    padding: t.spacing(0.5, 1),
-  },
+  // One quiet provenance line, right-aligned against the title: who answers and
+  // under whose permissions. Caption weight, secondary color -- it reports, it
+  // does not reassure.
   right: {
     alignItems: 'center',
     color: t.palette.text.secondary,
@@ -59,9 +61,6 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.caption.fontSize,
     gap: t.spacing(0.5),
     marginLeft: 'auto',
-  },
-  rightIcon: {
-    fontSize: t.typography.caption.fontSize,
   },
   interp: {
     padding: t.spacing(2),
@@ -109,21 +108,21 @@ export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPane
   const criteria = React.useMemo(() => extractCriteria(query), [query])
 
   return (
-    <M.Paper className={classes.root} elevation={0} aria-label="Qurator plan">
+    <M.Paper className={classes.root} elevation={0} aria-label="Qurator">
       <div className={classes.top}>
         <span className={classes.qicon}>
           <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
         </span>
         <M.Typography className={classes.title}>Qurator</M.Typography>
-        <span className={classes.tag}>Claude · Bedrock · your permissions</span>
-        <span className={classes.right}>
-          <M.Icon className={classes.rightIcon}>bolt</M.Icon>auto-routed
-        </span>
+        <span className={classes.right}>Claude on Bedrock, with your permissions</span>
       </div>
       <div className={classes.interp}>
         <div className={classes.lbl}>
           <M.Icon className={classes.lblIcon}>tips_and_updates</M.Icon>
-          Interpreted as — edit before running
+          Preview — not Qurator&apos;s plan
+          <M.Tooltip title="Guessed from your wording here in the browser, before anything is sent. Qurator does its own planning when you run it.">
+            <M.Icon className={classes.lblIcon}>help_outline</M.Icon>
+          </M.Tooltip>
         </div>
         <div className={classes.crit}>
           {criteria.map((c) => (

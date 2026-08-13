@@ -1,6 +1,7 @@
 // FrontDoor v3-eval: lightweight, heuristic criteria extraction for the Qurator
-// interpreted-plan panel. This mirrors the prototype's "Interpreted as…" preview;
-// it is a client-side hint only and does not call any backend.
+// panel's preview chips. Keyword matching in the browser -- no backend call, and
+// Qurator has not seen the query at this point, so the panel labels these as a
+// preview rather than as an interpretation (see QuratorPanel).
 
 export interface Criterion {
   key: string
