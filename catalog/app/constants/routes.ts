@@ -20,6 +20,12 @@ export const home = route(
   (params?: { q?: string }) => `/${mkSearch({ q: params?.q })}`,
 )
 
+// The volume list. It lives at its own path rather than at `/` because `/` is
+// the front door, which is a different page whenever `frontDoorV2` is on; with
+// the flag off the two render the same thing. Link here -- not to `home()` --
+// for anything that means "the list of buckets".
+export const buckets = route('/buckets', () => '/buckets')
+
 export const install = route('/install', () => '/install')
 
 // Auth
@@ -64,8 +70,10 @@ interface SearchOpts {
 export const search = route(
   '/search',
   // TODO: these params are outdated -- sync with actual search params
-  ({ q, buckets, p, mode, retry }: SearchOpts) =>
-    `/search${mkSearch({ q, buckets, p, mode, retry })}`,
+  // (`buckets` is aliased here only to keep the search param distinct from the
+  // `buckets` route above.)
+  ({ q, buckets: bucketsParam, p, mode, retry }: SearchOpts) =>
+    `/search${mkSearch({ q, buckets: bucketsParam, p, mode, retry })}`,
 )
 
 // Queries (workspace-global query consoles; the bucket is a parameter of the

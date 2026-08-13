@@ -327,10 +327,12 @@ export function Sidebar() {
   const switchRole = useRoleSwitcher()
 
   // Buckets also owns bucket-browsing routes (`/b/*`), since that's where
-  // clicking into a bucket from the home list leads.
+  // clicking into a bucket from the list leads. `/` counts too: with
+  // `frontDoorV2` off it renders the same list this item points at.
   const isHome = !!useRouteMatch({ path: paths.home, exact: true })
+  const isBucketList = !!useRouteMatch({ path: paths.buckets, exact: true })
   const isBucket = !!useRouteMatch(paths.bucketRoot)
-  const bucketsActive = isHome || isBucket
+  const bucketsActive = isHome || isBucketList || isBucket
   const searchActive = !!useRouteMatch(paths.search)
   const queriesActive = !!useRouteMatch(paths.queries)
   const adminActive = !!useRouteMatch(paths.admin)
@@ -418,7 +420,7 @@ export function Sidebar() {
             <M.ListItem
               button
               component={Link}
-              to={urls.home()}
+              to={urls.buckets()}
               selected={bucketsActive}
               className={classes.navItem}
             >

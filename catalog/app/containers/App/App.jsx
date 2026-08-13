@@ -86,6 +86,10 @@ const OpenProfile = requireAuth()(
   RT.mkLazy(() => import('website/pages/OpenProfile'), Placeholder),
 )
 
+const BucketList = protect(
+  RT.mkLazy(() => import('website/pages/Landing/BucketList'), Placeholder),
+)
+
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
@@ -95,6 +99,10 @@ export default function App() {
     <Switch>
       <Route path={paths.home} exact>
         <Home />
+      </Route>
+
+      <Route path={paths.buckets} exact>
+        <BucketList />
       </Route>
 
       <Route path={paths.install} exact>
