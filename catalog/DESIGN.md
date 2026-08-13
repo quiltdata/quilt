@@ -347,7 +347,13 @@ Every control uses the same vocabulary on every screen.
   white with a visible 1px border, faint leading search icon that warms on
   focus, a `/` keycap hint that hides while typing; `/` and Cmd/Ctrl+K focus it
   from anywhere. Its suggestions dropdown is a true overlay (elevation 8) with
-  `s3://` scopes in Mono.
+  `s3://` scopes in Mono. The dropdown is also the field's routing contract:
+  every destination the query can reach is a row, and Enter commits the row
+  shown as selected — never a destination the list doesn't name. When the query
+  reads as natural language, an **Ask Qurator** row leads the list (amber glyph
+  as a mark, a Divider rule below it, `natural language` as its trailing
+  scope-note), with the search destinations one arrow-press beneath; keyword
+  queries show search rows only.
 - **Bare pages:** sign-in and terminal errors wear the bare header — a static
   64px Midnight Chassis band carrying only the mark as a home link — with the
   page content centered beneath. No nav, no search, no marketing (One-Register

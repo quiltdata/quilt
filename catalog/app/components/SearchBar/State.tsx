@@ -5,7 +5,6 @@ import { useDebouncedCallback } from 'use-debounce'
 
 import { Model as AssistantModel } from 'components/Assistant'
 
-import { classifyQuery } from './classify'
 import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
@@ -18,6 +17,10 @@ interface SearchState {
   helpOpen: boolean
   input: Pick<M.InputBaseProps, 'onChange' | 'onFocus' | 'onKeyDown' | 'value'>
   onClickAway: () => void
+  // Clicking the Qurator row runs the same commit path as pressing Enter on it;
+  // null when the assistant can't take the query, in which case the row is never
+  // offered either.
+  onAsk: ((query: string) => void) | null
   suggestions: ReturnType<typeof Suggestions.use>
 }
 
@@ -45,7 +48,11 @@ export default function useState(context: SearchContext = null): SearchState {
   const [value, setValue] = React.useState<string>(modelSearchString ?? '')
   const [helpOpen, setHelpOpen] = React.useState(false)
 
-  const suggestions = Suggestions.use(value, context)
+  // The list decides where the query goes: when the classifier says this looks
+  // like a question, the list leads with the Qurator row, and Enter commits the
+  // selected row like any other. Qurator has to be both enabled for the stack
+  // and have a live `assist` entrypoint before that row is offered at all.
+  const suggestions = Suggestions.use(value, context, quratorEnabled && !!assist)
 
   // Reflect external changes of the URL-held search string (history
   // navigation, suggestion links, reset) into the input.
@@ -79,38 +86,27 @@ export default function useState(context: SearchContext = null): SearchState {
   const handleSubmit = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       event.preventDefault()
-      // the chosen suggestion URL wins over a pending debounced model update
+      // the chosen suggestion wins over a pending debounced model update
       commitToModel.cancel()
-      // Route natural-language queries to Qurator, keyword queries to search.
-      // Only the default suggestion (index 0 -- "search for this text") may be
-      // superseded this way: once the user has arrowed to a specific
-      // destination, Enter means that destination, never the assistant.
-      // Falls back to search whenever Qurator can't take it (disabled, or no
-      // `assist` entrypoint available).
-      if (
-        assist &&
-        suggestions.selected === 0 &&
-        classifyQuery(value, quratorEnabled) === 'Qurator'
-      ) {
-        assist(value.trim())
+      // Enter commits whatever the dropdown shows as selected -- nothing else.
+      // The classifier's opinion is already baked into the list (it decides
+      // whether the Qurator row exists and leads), so the highlighted row and
+      // the destination can never disagree.
+      const item = suggestions.item
+      if (!item) return
+      if (item.kind === 'qurator') {
+        // `assist` is what gated the row's existence, so it is present here;
+        // the guard keeps the narrowing honest rather than asserting.
+        if (assist) assist(item.query)
       } else {
-        history.push(suggestions.url)
+        history.push(item.url)
       }
       handleCollapse()
       // when bound, the bar is the search page's query input -- keep focus
       // so the user can carry on typing in place
       if (!bound) event.currentTarget.blur()
     },
-    [
-      assist,
-      bound,
-      commitToModel,
-      handleCollapse,
-      history,
-      quratorEnabled,
-      suggestions,
-      value,
-    ],
+    [assist, bound, commitToModel, handleCollapse, history, suggestions],
   )
 
   const handleEscape = React.useCallback(
@@ -156,6 +152,18 @@ export default function useState(context: SearchContext = null): SearchState {
     if (helpOpen) handleCollapse()
   }, [helpOpen, handleCollapse])
 
+  // Clicking the Qurator row is the mouse path to the same commit Enter makes:
+  // hand the query to the assistant and close the dropdown. The search rows are
+  // real links, so they need no equivalent.
+  const handleAsk = React.useCallback(
+    (query: string) => {
+      commitToModel.cancel()
+      assist?.(query)
+      handleCollapse()
+    },
+    [assist, commitToModel, handleCollapse],
+  )
+
   return {
     input: {
       onChange,
@@ -166,6 +174,7 @@ export default function useState(context: SearchContext = null): SearchState {
       value,
     },
     helpOpen,
+    onAsk: assist ? handleAsk : null,
     onClickAway,
     suggestions,
   }

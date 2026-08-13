@@ -182,6 +182,7 @@ export function ContentBar() {
               <div onMouseDown={(e) => e.preventDefault()}>
                 <Suggestions
                   classes={{ paper: classes.paper }}
+                  onAsk={search.onAsk}
                   open={search.helpOpen}
                   suggestions={search.suggestions}
                 />
