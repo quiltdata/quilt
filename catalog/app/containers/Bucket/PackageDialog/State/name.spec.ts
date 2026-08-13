@@ -57,8 +57,7 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
     })
 
     it('withholds absence when the check itself failed', () => {
-      // Still-loading rather than a name error, so a blip cannot block a flow with
-      // nothing at risk. See the note in name.ts for why "new" is load-bearing.
+      // Loading, not an error — see name.ts for why.
       queryState = { data: { package: null }, error: new Error('resolver failed') }
       expect(run()._tag).toBe('loading')
     })

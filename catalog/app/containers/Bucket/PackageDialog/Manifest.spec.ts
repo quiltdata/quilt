@@ -46,8 +46,6 @@ describe('containers/Bucket/PackageDialog/Manifest', () => {
   })
 
   it('fails a response that carries field errors alongside data', () => {
-    // Such a response nulls some fields and resolves others, so accepting it publishes a
-    // revision built from whichever survived — entries, metadata or the workflow.
     queryState = {
       data: revision({ contentsFlatMap: null, userMeta: null }),
       error: new Error('resolver failed'),
@@ -58,8 +56,6 @@ describe('containers/Bucket/PackageDialog/Manifest', () => {
   })
 
   it('reports a genuinely oversized manifest as too large', () => {
-    // No field error: the registry nulls contentsFlatMap when the manifest exceeds the
-    // entry cap, which is permanent and needs different advice than a failure.
     queryState = { data: revision({ contentsFlatMap: null }) }
     expect(
       run().case({

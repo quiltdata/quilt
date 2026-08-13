@@ -271,8 +271,6 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
 
     it('reports the manifest as the blocker even before a workflow is chosen', () => {
-      // A failed manifest also blocks the workflow prefill, so reporting a missing
-      // workflow instead would let the dialog call the destination safe to push over.
       const { result } = renderHook(() =>
         useParamsWith({
           manifest: manifestError,
@@ -288,7 +286,6 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
 
     it('stays valid for a destination that does not exist yet', () => {
-      // Nothing to overwrite, so the staged files can still be pushed as a new package.
       const { result } = renderHook(() => useParamsWith({ manifest: manifestError }))
 
       expect(result.current._tag).toBe('ok')

@@ -52,8 +52,7 @@ describe('containers/Bucket/PackageDialog/State/dialogStatus', () => {
   })
 
   it('keeps rendering the form when the manifest failed to load', () => {
-    // Publishing is blocked in useParams instead — see its "unloaded source manifest"
-    // cases, and the reasoning in computeDialogStatus.
+    // Publishing is blocked in useParams instead — see its "unloaded source manifest" cases.
     const error = new Error('manifest')
     expect(computeDialogStatus({ ...base, manifest: { _tag: 'error', error } })).toEqual({
       _tag: 'ready',
