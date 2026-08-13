@@ -111,4 +111,67 @@ describe('containers/Search/model', () => {
       })
     })
   })
+
+  // The URL is the contract catalog, registry and MCP share: a search link
+  // pasted into chat, a bookmark, or an MCP-built URL must reconstruct the
+  // exact state that produced it.
+  describe('parseSearchParams / serializeSearchUrlState (URL round-trip)', () => {
+    const roundTrip = (qs: string) =>
+      model.serializeSearchUrlState(model.parseSearchParams(qs)).toString()
+
+    it('round-trips the full meta-sort state: q, ordering (s), view, buckets', () => {
+      const qs = 'q=drugbank&s=usr%3A%2Fstudy%2Fphase%3Akeyword%3Aasc&v=t&b=bkt-a%2Cbkt-b'
+      const state = model.parseSearchParams(qs)
+      expect(state.searchString).toBe('drugbank')
+      expect(state.ordering).toBe('usr:/study/phase:keyword:asc')
+      expect(state.view).toBe(model.View.Table)
+      expect(state.buckets).toEqual(['bkt-a', 'bkt-b'])
+      expect(state.resultType).toBe(model.ResultType.QuiltPackage)
+      // parse(serialize(parse(qs))) is a fixed point
+      expect(model.parseSearchParams(roundTrip(qs))).toEqual(state)
+    })
+
+    it('round-trips a system-field ordering', () => {
+      const params = model.serializeSearchUrlState(
+        model.parseSearchParams('q=x&s=sys:modified:desc'),
+      )
+      expect(params.get('s')).toBe('sys:modified:desc')
+      expect(params.get('q')).toBe('x')
+    })
+
+    it('omits `s` when the ordering equals the mount default', () => {
+      // DEFAULT_ORDERING is null (relevance): no explicit choice, no param.
+      const params = model.serializeSearchUrlState(model.parseSearchParams('q=x'))
+      expect(params.get('s')).toBeNull()
+    })
+
+    it('round-trips explicit relevance against a non-null default via the sentinel', () => {
+      // With a non-null default ordering, choosing relevance IS a choice and
+      // must survive the URL (otherwise the link re-applies the default).
+      const defaults = { ordering: 'sys:modified:desc' }
+      const params = model.serializeSearchUrlState(
+        { ...model.parseSearchParams('q=x'), ordering: null },
+        defaults,
+      )
+      expect(params.get('s')).toBe('relevance')
+      expect(model.parseSearchParams(`q=x&${params.toString()}`, defaults).ordering).toBe(
+        null,
+      )
+    })
+
+    it('parses legacy `o` and legacy `s` forms but serializes the one vocabulary', () => {
+      // Old links keep working; new links only ever carry Wave-2 expressions.
+      const fromLegacyO = model.parseSearchParams('q=x&o=NEWEST')
+      expect(fromLegacyO.ordering).toBe('sys:modified:desc')
+      expect(model.serializeSearchUrlState(fromLegacyO).get('s')).toBe(
+        'sys:modified:desc',
+      )
+
+      const fromLegacyS = model.parseSearchParams('q=x&s=-MODIFIED')
+      expect(fromLegacyS.ordering).toBe('sys:modified:desc')
+      expect(model.serializeSearchUrlState(fromLegacyS).get('s')).toBe(
+        'sys:modified:desc',
+      )
+    })
+  })
 })

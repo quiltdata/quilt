@@ -758,7 +758,9 @@ function areBucketsEqual(left: readonly string[], right: readonly string[]) {
 }
 
 // XXX: return string?
-function serializeSearchUrlState(
+// Exported for the round-trip spec: parse/serialize is the URL contract that
+// catalog, registry and MCP all share, so it's guarded directly.
+export function serializeSearchUrlState(
   state: SearchUrlState,
   defaults?: Partial<Defaults>,
 ): URLSearchParams {
