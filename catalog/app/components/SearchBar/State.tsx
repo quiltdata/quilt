@@ -3,6 +3,9 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { useDebouncedCallback } from 'use-debounce'
 
+import { Model as AssistantModel } from 'components/Assistant'
+
+import { classifyQuery } from './classify'
 import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
@@ -24,6 +27,12 @@ const MODEL_UPDATE_DEBOUNCE = 500
 
 export default function useState(context: SearchContext = null): SearchState {
   const history = RRDom.useHistory()
+
+  // Qurator availability + entrypoint. When the assistant is disabled for this
+  // stack/user, `assist` is null and `classifyQuery` is told Qurator is off --
+  // the bar then behaves exactly as it did before.
+  const quratorEnabled = !!AssistantModel.useIsEnabled()
+  const assist = AssistantModel.useAssistant()
 
   // Given a live Search UI model (the search page provides one above its
   // Layout) the bar is bound to it: the value follows the model's URL-held
@@ -72,13 +81,36 @@ export default function useState(context: SearchContext = null): SearchState {
       event.preventDefault()
       // the chosen suggestion URL wins over a pending debounced model update
       commitToModel.cancel()
-      history.push(suggestions.url)
+      // Route natural-language queries to Qurator, keyword queries to search.
+      // Only the default suggestion (index 0 -- "search for this text") may be
+      // superseded this way: once the user has arrowed to a specific
+      // destination, Enter means that destination, never the assistant.
+      // Falls back to search whenever Qurator can't take it (disabled, or no
+      // `assist` entrypoint available).
+      if (
+        assist &&
+        suggestions.selected === 0 &&
+        classifyQuery(value, quratorEnabled) === 'Qurator'
+      ) {
+        assist(value.trim())
+      } else {
+        history.push(suggestions.url)
+      }
       handleCollapse()
       // when bound, the bar is the search page's query input -- keep focus
       // so the user can carry on typing in place
       if (!bound) event.currentTarget.blur()
     },
-    [bound, commitToModel, handleCollapse, history, suggestions],
+    [
+      assist,
+      bound,
+      commitToModel,
+      handleCollapse,
+      history,
+      quratorEnabled,
+      suggestions,
+      value,
+    ],
   )
 
   const handleEscape = React.useCallback(

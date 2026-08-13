@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import useSearchState from './State'
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }))
+const { push, assist, suggestionState, quratorState } = vi.hoisted(() => ({
+  push: vi.fn(),
+  assist: vi.fn(),
+  // mutable so a test can put the user on a non-default suggestion
+  suggestionState: { selected: 0 },
+  // mutable so a test can turn the assistant off for the stack
+  quratorState: { enabled: true, available: true },
+}))
 
 vi.mock('react-router-dom', () => ({
   useHistory: () => ({ push }),
@@ -13,10 +20,19 @@ vi.mock('./Suggestions/model', () => ({
   use: (value: string) => ({
     cycleSelected: () => {},
     items: [],
-    selected: 0,
+    selected: suggestionState.selected,
     setSelected: () => {},
     url: `/search?q=${encodeURIComponent(value)}`,
   }),
+}))
+
+// The real module graph reaches config/Athena at import time; the bar only
+// needs the two hooks.
+vi.mock('components/Assistant', () => ({
+  Model: {
+    useIsEnabled: () => quratorState.enabled,
+    useAssistant: () => (quratorState.available ? assist : null),
+  },
 }))
 
 type Context = Parameters<typeof useSearchState>[0]
@@ -50,6 +66,10 @@ describe('components/SearchBar/State', () => {
   afterEach(() => {
     vi.useRealTimers()
     push.mockClear()
+    assist.mockClear()
+    suggestionState.selected = 0
+    quratorState.enabled = true
+    quratorState.available = true
   })
 
   describe('without a search model (seed & navigate mode)', () => {
@@ -122,6 +142,53 @@ describe('components/SearchBar/State', () => {
     it('does not open help on focus (the input is autofocused on mount)', () => {
       const { result } = setup(makeModel(null))
       expect(result.current.input.onFocus).toBeUndefined()
+    })
+  })
+
+  describe('Qurator routing on submit', () => {
+    const submit = (query: string, context: Context = null) => {
+      const { result } = setup(context)
+      act(() => result.current.input.onChange!(changeEvent(query)))
+      act(() => result.current.input.onKeyDown!(enterEvent()))
+    }
+
+    it('sends a natural-language query to Qurator instead of search', () => {
+      submit('what is in this bucket')
+      expect(assist).toHaveBeenCalledWith('what is in this bucket')
+      expect(push).not.toHaveBeenCalled()
+    })
+
+    it('sends a keyword query to search', () => {
+      submit('drugbank')
+      expect(push).toHaveBeenCalledWith('/search?q=drugbank')
+      expect(assist).not.toHaveBeenCalled()
+    })
+
+    it('routes to Qurator on the search page too', () => {
+      submit('what is in this bucket', makeModel(null))
+      expect(assist).toHaveBeenCalledWith('what is in this bucket')
+      expect(push).not.toHaveBeenCalled()
+    })
+
+    it('honours a deliberately selected suggestion over the classifier', () => {
+      suggestionState.selected = 2
+      submit('what is in this bucket')
+      expect(push).toHaveBeenCalledWith('/search?q=what%20is%20in%20this%20bucket')
+      expect(assist).not.toHaveBeenCalled()
+    })
+
+    it('falls back to search when Qurator is disabled for the stack', () => {
+      quratorState.enabled = false
+      submit('what is in this bucket')
+      expect(push).toHaveBeenCalled()
+      expect(assist).not.toHaveBeenCalled()
+    })
+
+    it('falls back to search when there is no assistant entrypoint', () => {
+      quratorState.available = false
+      submit('what is in this bucket')
+      expect(push).toHaveBeenCalled()
+      expect(assist).not.toHaveBeenCalled()
     })
   })
 })
