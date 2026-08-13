@@ -140,7 +140,7 @@ const useToolMessageStyles = M.makeStyles((t) => ({
     },
   },
   icon: {
-    fontSize: '1rem',
+    fontSize: t.typography.body1.fontSize,
     color: 'inherit',
   },
   toolName: {

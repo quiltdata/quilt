@@ -46,11 +46,13 @@ const useRowStyles = M.makeStyles((t) => ({
     marginLeft: 'auto',
     minWidth: 0,
   },
+  // A compact mono readout in a dense row: Caption is the ramp's step for this,
+  // and it keeps the mono face from crowding the row it annotates.
   source: {
     color: t.palette.text.secondary,
     cursor: 'help',
     fontFamily: t.typography.monospace.fontFamily,
-    fontSize: '0.8rem',
+    fontSize: t.typography.caption.fontSize,
     textDecoration: 'underline dotted',
     whiteSpace: 'nowrap',
   },
