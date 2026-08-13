@@ -1,6 +1,6 @@
 import * as React from 'react'
 import cx from 'classnames'
-import { Link, useRouteMatch } from 'react-router-dom'
+import { Link, useLocation, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -337,6 +337,14 @@ export function Sidebar() {
   const queriesActive = !!useRouteMatch(paths.queries)
   const adminActive = !!useRouteMatch(paths.admin)
 
+  // When already on the search page, "Search" keeps the live query string
+  // (q, filters, ordering) instead of resetting to bare /search -- the query
+  // field lives in the header now, and a rail click that silently wiped an
+  // in-progress search would have no undo. From anywhere else it's the plain
+  // entry point.
+  const location = useLocation()
+  const searchTo = searchActive ? location.pathname + location.search : urls.search({})
+
   const user = NavMenu.AuthState.match(
     { Ready: ({ user: u }) => u, Loading: () => null, Error: () => null },
     auth,
@@ -432,7 +440,7 @@ export function Sidebar() {
             <M.ListItem
               button
               component={Link}
-              to={urls.search({})}
+              to={searchTo}
               selected={searchActive}
               className={classes.navItem}
             >
