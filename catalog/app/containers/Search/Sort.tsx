@@ -19,10 +19,14 @@ const sortOptions = SearchUIModel.PRESET_ORDERINGS.map((preset) => ({
 // field sort or a user-metadata pointer sort set from a table column header (see
 // Table/Table.tsx). The dropdown must not advertise a preset that is not in
 // effect; picking any preset here overwrites the ordering and takes over again.
-const columnSortOption = {
+// `valueOf` reports the live ordering rather than null: the dropdown matches by
+// `valueOf()` equality, so a null here would tie with the "Best match" preset
+// (also null) and highlight it in the open menu while the button read "Column".
+// A column ordering expression matches no preset, so nothing is highlighted.
+const columnSortOption = (ordering: SearchUIModel.Ordering) => ({
   toString: () => 'Column',
-  valueOf: () => null,
-}
+  valueOf: () => ordering,
+})
 
 const useButtonStyles = M.makeStyles((t) => ({
   root: {
@@ -53,7 +57,7 @@ export default function Sort({ className }: SortProps) {
   const value = React.useMemo(
     () =>
       sortOptions.find(({ valueOf }) => valueOf() === model.state.ordering) ||
-      (model.state.ordering ? columnSortOption : sortOptions[0]),
+      (model.state.ordering ? columnSortOption(model.state.ordering) : sortOptions[0]),
     [model.state.ordering],
   )
   const handleChange = React.useCallback(
