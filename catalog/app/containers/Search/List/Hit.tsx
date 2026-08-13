@@ -9,6 +9,7 @@ import Skeleton from 'components/Skeleton'
 import { S3ObjectLocation } from 'model/S3'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
@@ -141,11 +142,125 @@ const useSecondaryStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     marginTop: t.spacing(1),
   },
+  // The card's title is a link whose click area is an absolute overlay across
+  // the whole card (see useLinkStyles). Anything inside that needs its own
+  // pointer -- a tooltip target, a copy button -- has to sit above that overlay,
+  // which is what this raises them out of.
+  raised: {
+    position: 'relative',
+  },
 }))
 
 function Secondary({ children }: React.PropsWithChildren<{}>) {
   const classes = useSecondaryStyles()
   return <div className={classes.secondary}>{children}</div>
+}
+
+// A span lifted above the card-wide click overlay, so its tooltip and any
+// controls inside it remain reachable. forwardRef because M.Tooltip attaches a
+// ref to its child to anchor and trigger itself: a plain function component here
+// silently loses the tooltip.
+const Raised = React.forwardRef<HTMLSpanElement, React.PropsWithChildren<{}>>(
+  function Raised({ children, ...props }, ref) {
+    const classes = useSecondaryStyles()
+    return (
+      <span className={classes.raised} ref={ref} {...props}>
+        {children}
+      </span>
+    )
+  },
+)
+
+const useCopyableIdStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'inline-flex',
+    gap: t.spacing(0.5),
+    // above the card-wide click overlay, so the copy button is clickable
+    position: 'relative',
+  },
+  // Mono Identity Rule: a value read as identity renders in Roboto Mono. The
+  // rule's dense-list carve-out doesn't apply once the value carries a copy
+  // affordance -- that makes this a copy row, which the rule names explicitly.
+  // (The package handle above stays in body type: it IS the repeated scanning
+  // label the carve-out is about.)
+  value: {
+    ...t.typography.monospace,
+    fontSize: 'inherit',
+  },
+  button: {
+    padding: 2,
+    // Quiet for the mouse, never hidden from the keyboard.
+    visibility: 'hidden',
+    '$root:hover &, &:focus-visible': {
+      visibility: 'visible',
+    },
+  },
+  icon: {
+    fontSize: t.typography.body2.fontSize,
+  },
+}))
+
+const COPIED_FEEDBACK_MS = 1500
+
+interface CopyableIdProps {
+  children: string
+  display: string
+  label: string
+}
+
+// The verification moment: a scientist citing a package needs the exact value,
+// not a truncated readout they have to screenshot. Full value in the tooltip,
+// full value on the clipboard, confirmation in place (this row can appear many
+// times per screen, so it confirms locally rather than raising a global toast).
+function CopyableId({ children, display, label }: CopyableIdProps) {
+  const classes = useCopyableIdStyles()
+  const [copied, setCopied] = React.useState(false)
+
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(children)
+    setCopied(true)
+  }, [children])
+
+  React.useEffect(() => {
+    if (!copied) return undefined
+    const timer = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
+    return () => clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <span className={classes.root}>
+      <M.Tooltip arrow title={children}>
+        <span className={classes.value}>{display}</span>
+      </M.Tooltip>
+      <M.Tooltip arrow title={copied ? 'Copied' : `Copy ${label}`}>
+        <M.IconButton
+          aria-label={`Copy ${label}`}
+          className={classes.button}
+          onClick={handleCopy}
+          size="small"
+        >
+          <M.Icon className={classes.icon}>{copied ? 'check' : 'content_copy'}</M.Icon>
+        </M.IconButton>
+      </M.Tooltip>
+    </span>
+  )
+}
+
+function RevisionHash({ children }: { children: string }) {
+  return (
+    <CopyableId display={children.slice(0, 8)} label="revision hash">
+      {children}
+    </CopyableId>
+  )
+}
+
+function VersionId({ children }: { children: string }) {
+  return (
+    <CopyableId display={`v.${children.slice(0, 4)}`} label="version ID">
+      {children}
+    </CopyableId>
+  )
 }
 
 const useDividerStyles = M.makeStyles((t) => ({
@@ -203,9 +318,9 @@ export function Package({
           {readableBytes(hit.size)}
           <Divider />
           <M.Tooltip arrow title={hit.modified.toLocaleString()}>
-            <span style={{ position: 'relative' }}>
+            <Raised>
               Updated <Format.Relative value={hit.modified} />
-            </span>
+            </Raised>
           </M.Tooltip>
           {!!hit.workflow?.id && (
             <>
@@ -215,16 +330,15 @@ export function Package({
           )}
           {showRevision && (
             <>
-              <Divider />{' '}
-              <M.Tooltip arrow title={hit.hash}>
-                <span style={{ position: 'relative' }}>{hit.hash.slice(0, 8)}</span>
-              </M.Tooltip>
+              <Divider /> <RevisionHash>{hit.hash}</RevisionHash>
             </>
           )}
         </Secondary>
         {showRevision && !!comment && (
           <Secondary>
-            <span style={{ position: 'relative', fontWeight: 300 }}>{comment}</span>
+            {/* Regular weight: the 300 weight has no home in the app
+                (No-Display-Font Rule). Secondary ink already recedes this. */}
+            <Raised>{comment}</Raised>
           </Secondary>
         )}
       </Section>
@@ -258,14 +372,14 @@ function HitObject({ hit, showBucket = false, ...props }: ObjectProps) {
           <Divider />
           {hit.deleted ? 'Deleted' : 'Updated'}{' '}
           <M.Tooltip arrow title={hit.modified.toLocaleString()}>
-            <span style={{ position: 'relative' }}>
+            <Raised>
               <Format.Relative value={hit.modified} />
-            </span>
+            </Raised>
           </M.Tooltip>
           <Divider />
-          <M.Tooltip arrow title={`VersionID: ${hit.version}`}>
-            <span style={{ position: 'relative' }}>v.{hit.version.slice(0, 4)}</span>
-          </M.Tooltip>
+          {/* A version id is machine-exact identity, and it's what someone
+              pins a reference to -- same treatment as a package hash. */}
+          <VersionId>{hit.version}</VersionId>
         </Secondary>
       </Section>
 
