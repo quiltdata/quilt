@@ -1,9 +1,12 @@
 name: Deploy catalog to ECR
 
+# `dev` builds Prod+GovCloud images (not Marketplace) so the deployment
+# `dev` branch can pin bleeding-edge SHAs onto https://dev.quilttest.com.
 on:
   push:
     branches:
       - master
+      - dev
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
@@ -37,6 +40,7 @@ jobs:
         id: login-prod-ecr
         uses: aws-actions/amazon-ecr-login@v2
       - name: Login to MP ECR
+        if: github.ref == 'refs/heads/master'
         id: login-mp-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
@@ -57,12 +61,20 @@ jobs:
           ECR_REPOSITORY: quiltdata/catalog
           ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
           IMAGE_TAG: ${{ github.sha }}
+          PUSH_MP: ${{ github.ref == 'refs/heads/master' }}
         run: |
-          docker buildx build \
-            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
-            .
+          tags=(
+            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
+            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          )
+          if [[ "$PUSH_MP" == "true" ]]; then
+            tags+=(-t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG)
+          fi
+          docker buildx build "${tags[@]}" .
           docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
+          # Marketplace tags are immutable; skip on `dev` so a SHA already
+          # published from master does not fail the job.
+          if [[ "$PUSH_MP" == "true" ]]; then
+            docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
+          fi
