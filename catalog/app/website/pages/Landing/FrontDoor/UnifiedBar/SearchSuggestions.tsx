@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 
 import { queriesAthena, search } from 'constants/routes'
 import { useRelevantBuckets } from 'utils/Buckets'
@@ -13,7 +12,7 @@ const useStyles = M.makeStyles((t) => ({
     background: t.palette.background.paper,
     border: `1px solid ${t.palette.divider}`,
     borderRadius: t.shape.borderRadius,
-    marginTop: t.spacing(1.75),
+    marginTop: t.spacing(2),
     overflow: 'hidden',
   },
   meta: {
@@ -21,9 +20,9 @@ const useStyles = M.makeStyles((t) => ({
     borderBottom: `1px solid ${t.palette.divider}`,
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: 12.5,
+    fontSize: t.typography.caption.fontSize,
     gap: t.spacing(2),
-    padding: t.spacing(1.25, 2.5),
+    padding: t.spacing(1, 2),
     '& b': {
       color: t.palette.text.primary,
     },
@@ -33,13 +32,14 @@ const useStyles = M.makeStyles((t) => ({
   },
   where: {
     color: t.palette.text.secondary,
-    fontSize: 13,
+    fontSize: t.typography.caption.fontSize,
     marginLeft: 'auto',
   },
-  // The one row that changes destination rather than scope, so it's the one row
-  // that carries the Indicator.
+  // The one row that changes destination rather than scope. Its separation is
+  // carried by the rule above it and a neutral ground; the Indicator is the
+  // amber glyph, which is a mark, not a wash.
   askRow: {
-    background: fade(t.palette.secondary.main, 0.08),
+    background: t.palette.action.hover,
     borderTop: `1px solid ${t.palette.divider}`,
   },
   askIcon: {
@@ -47,7 +47,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   askWhere: {
     color: t.palette.text.secondary,
-    fontSize: 13,
+    fontSize: t.typography.caption.fontSize,
     fontWeight: t.typography.fontWeightMedium,
     marginLeft: 'auto',
   },

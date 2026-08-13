@@ -10,14 +10,14 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: t.spacing(1.25),
+    gap: t.spacing(1),
     justifyContent: 'center',
-    marginTop: t.spacing(2.5),
+    marginTop: t.spacing(3),
   },
+  // The chip's ground, border and radius are the outlined variant's own; only
+  // the resting ink and the hover/focus states are set here.
   chip: {
     background: t.palette.background.paper,
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: 20,
     color: t.palette.text.secondary,
     transition: t.transitions.create(['background-color', 'border-color', 'color'], {
       duration: 150,
@@ -50,6 +50,7 @@ export default function ExampleQueries({ onSelect }: ExampleQueriesProps) {
         <M.Chip
           key={label}
           className={classes.chip}
+          variant="outlined"
           icon={<M.Icon className={classes.chipIcon}>{icon}</M.Icon>}
           label={label}
           clickable

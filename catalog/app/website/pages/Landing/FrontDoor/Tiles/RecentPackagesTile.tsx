@@ -13,33 +13,37 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'baseline',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: 13,
+    fontSize: t.typography.body2.fontSize,
     gap: t.spacing(1),
     padding: t.spacing(0.5, 0),
     textDecoration: 'none',
     '&:hover': {
       color: t.palette.text.primary,
     },
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 2,
+    },
   },
   icon: {
-    fontSize: 15,
-    opacity: 0.6,
+    color: t.palette.text.hint,
+    fontSize: t.typography.body1.fontSize,
     position: 'relative',
     top: 2,
   },
   body: {
     minWidth: 0,
   },
+  // A package handle is an identifier, so it's set in the mono face.
   name: {
-    fontFamily: ['Roboto Mono', 'monospace'].join(','),
-    fontSize: 12,
+    fontFamily: t.typography.monospace.fontFamily,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   meta: {
-    fontSize: 11,
-    opacity: 0.7,
+    color: t.palette.text.hint,
+    fontSize: t.typography.caption.fontSize,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -80,12 +84,15 @@ export default function RecentPackagesTile() {
             className={classes.item}
           >
             <M.Icon className={classes.icon}>inventory_2</M.Icon>
-            <span className={classes.body}>
-              <div className={classes.name}>{pkg.name}</div>
-              <div className={classes.meta}>
-                {pkg.bucket} · <Format.Relative value={pkg.modified} />
-              </div>
-            </span>
+            {/* The handle clips, so the tooltip carries the full one. */}
+            <M.Tooltip title={`${pkg.bucket}/${pkg.name}`}>
+              <span className={classes.body}>
+                <div className={classes.name}>{pkg.name}</div>
+                <div className={classes.meta}>
+                  {pkg.bucket} · <Format.Relative value={pkg.modified} />
+                </div>
+              </span>
+            </M.Tooltip>
           </Link>
         ))}
     </TileCard>

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import { search } from 'constants/routes'
 import { Model as AssistantModel } from 'components/Assistant'
@@ -21,10 +22,10 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: 13,
-    gap: t.spacing(0.875),
+    fontSize: t.typography.body2.fontSize,
+    gap: t.spacing(0.5),
     justifyContent: 'center',
-    marginTop: t.spacing(1.375),
+    marginTop: t.spacing(1),
     minHeight: 20,
     '& b': {
       color: t.palette.text.primary,
@@ -32,15 +33,16 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   hintIcon: {
-    fontSize: 15,
+    fontSize: t.typography.body1.fontSize,
   },
+  // The same keycap idiom as the header bar's '/' hint (ContentBar): a hairline
+  // outline on the page ground, mono face, no fill.
   kbd: {
-    background: t.palette.action.selected,
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: 4,
-    fontFamily: ['Roboto Mono', 'monospace'].join(','),
-    fontSize: 11,
-    padding: t.spacing(0.125, 0.75),
+    border: `1px solid ${fade(t.palette.common.black, 0.23)}`,
+    borderRadius: 2,
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.caption.fontSize,
+    padding: t.spacing(0, 0.5),
   },
   helper: {
     marginTop: t.spacing(1),

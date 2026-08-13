@@ -1,7 +1,10 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
+import * as M from '@material-ui/core'
 import { render, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import * as style from 'constants/style'
 
 import type { RecentlyRevisedState } from '../useRecentlyRevisedPackages'
 
@@ -21,11 +24,15 @@ vi.mock('utils/format', () => ({ Relative: () => <span>recently</span> }))
 
 import RecentPackagesTile from './RecentPackagesTile'
 
+// The tile styles read app-theme extensions (typography.monospace), so render
+// under the same theme the app provides.
 const renderTile = () =>
   render(
-    <MemoryRouter>
-      <RecentPackagesTile />
-    </MemoryRouter>,
+    <M.MuiThemeProvider theme={style.appTheme}>
+      <MemoryRouter>
+        <RecentPackagesTile />
+      </MemoryRouter>
+    </M.MuiThemeProvider>,
   )
 
 describe('website/pages/Landing/FrontDoor/Tiles/RecentPackagesTile', () => {

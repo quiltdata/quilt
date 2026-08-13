@@ -23,7 +23,7 @@ const useStyles = M.makeStyles((t) => ({
   container: {
     maxWidth: 1040,
     paddingBottom: t.spacing(8),
-    paddingTop: t.spacing(7),
+    paddingTop: t.spacing(8),
   },
   greeting: {
     margin: '0 auto',
@@ -32,7 +32,6 @@ const useStyles = M.makeStyles((t) => ({
     textAlign: 'center',
   },
   greetingTitle: {
-    ...t.typography.h5,
     marginBottom: t.spacing(1),
     '& b': {
       fontWeight: t.typography.fontWeightMedium,
@@ -44,7 +43,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   sectionHead: {
     color: t.palette.text.secondary,
-    fontSize: 12,
+    fontSize: t.typography.caption.fontSize,
     fontWeight: t.typography.fontWeightMedium,
     letterSpacing: '.06em',
     margin: t.spacing(6, 0, 2),
@@ -53,7 +52,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   grid: {
     display: 'grid',
-    gap: t.spacing(1.75),
+    gap: t.spacing(2),
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
     [t.breakpoints.down('xs')]: {
       gridTemplateColumns: '1fr',
@@ -110,8 +109,11 @@ export function FrontDoorContent() {
           collapses so the suggestions/plan have room. */}
       <M.Collapse in={!active}>
         <div className={classes.greeting}>
+          {/* The page's h1, sized as an h5: a working page heading, not a
+              marketing hero. */}
           <M.Typography
-            variant="h1"
+            variant="h5"
+            component="h1"
             color="textPrimary"
             className={classes.greetingTitle}
           >

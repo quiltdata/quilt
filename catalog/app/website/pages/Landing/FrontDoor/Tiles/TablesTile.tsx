@@ -19,17 +19,21 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'baseline',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: 13,
+    fontSize: t.typography.body2.fontSize,
     gap: t.spacing(1),
     padding: t.spacing(0.5, 0),
     textDecoration: 'none',
     '&:hover': {
       color: t.palette.text.primary,
     },
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 2,
+    },
   },
   icon: {
-    fontSize: 15,
-    opacity: 0.6,
+    color: t.palette.text.hint,
+    fontSize: t.typography.body1.fontSize,
     position: 'relative',
     top: 2,
   },
@@ -42,8 +46,8 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
   meta: {
-    fontSize: 11,
-    opacity: 0.7,
+    color: t.palette.text.hint,
+    fontSize: t.typography.caption.fontSize,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -143,10 +147,13 @@ export default function TablesTile() {
           className={classes.item}
         >
           <M.Icon className={classes.icon}>table_chart</M.Icon>
-          <span className={classes.body}>
-            <div className={classes.name}>{row.table}</div>
-            <div className={classes.meta}>{row.bucket}</div>
-          </span>
+          {/* Both lines clip, so the tooltip carries the qualified name. */}
+          <M.Tooltip title={`${row.bucket} · ${row.table}`}>
+            <span className={classes.body}>
+              <div className={classes.name}>{row.table}</div>
+              <div className={classes.meta}>{row.bucket}</div>
+            </span>
+          </M.Tooltip>
         </Link>
       ))}
     </TileCard>

@@ -1,6 +1,5 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 
 import { extractCriteria } from './extractCriteria'
 
@@ -8,65 +7,73 @@ import { extractCriteria } from './extractCriteria'
 // the prototype's interaction shape (criteria preview, then a primary action
 // that opens the REAL Assistant rather than rendering a simulated answer), but
 // not its skin: the prototype drew a dark panel with cobalt gradients on a dark
-// hero, and this is a working surface on a light page. Qurator's identity is
-// carried by the Amber Indicator; the criteria are readouts, so they take the
-// Info wash.
+// hero, and this is a working surface on a light page.
+//
+// Qurator's identity is carried by the Amber Indicator, which is a stroke and a
+// mark -- the badge takes an amber border and amber glyph on the paper ground,
+// never an amber wash. The criteria are neutral readouts, not status, so they
+// are ordinary outlined chips rather than Info-blue.
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
     border: `1px solid ${t.palette.divider}`,
     borderRadius: t.shape.borderRadius,
-    marginTop: t.spacing(1.75),
+    marginTop: t.spacing(2),
     overflow: 'hidden',
   },
   top: {
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    gap: t.spacing(1.5),
-    padding: t.spacing(1.875, 2.25),
+    gap: t.spacing(1),
+    padding: t.spacing(2),
   },
   qicon: {
     alignItems: 'center',
-    background: fade(t.palette.secondary.main, 0.15),
     border: `1px solid ${t.palette.secondary.main}`,
-    borderRadius: 8,
+    borderRadius: t.shape.borderRadius,
     color: t.palette.secondary.main,
     display: 'grid',
-    height: 30,
+    height: t.spacing(4),
     placeItems: 'center',
-    width: 30,
+    width: t.spacing(4),
+  },
+  qiconGlyph: {
+    fontSize: t.typography.body1.fontSize,
   },
   title: {
-    fontSize: 14.5,
+    fontSize: t.typography.body1.fontSize,
     fontWeight: t.typography.fontWeightMedium,
   },
   tag: {
     background: t.palette.action.selected,
-    borderRadius: 10,
+    borderRadius: t.shape.borderRadius,
     color: t.palette.text.secondary,
-    fontSize: 11,
-    padding: t.spacing(0.375, 1.125),
+    fontSize: t.typography.caption.fontSize,
+    padding: t.spacing(0.5, 1),
   },
   right: {
     alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: 12,
-    gap: t.spacing(0.75),
+    fontSize: t.typography.caption.fontSize,
+    gap: t.spacing(0.5),
     marginLeft: 'auto',
   },
+  rightIcon: {
+    fontSize: t.typography.caption.fontSize,
+  },
   interp: {
-    padding: t.spacing(2, 2.25),
+    padding: t.spacing(2),
   },
   lbl: {
     alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: 11,
-    gap: t.spacing(0.875),
+    fontSize: t.typography.caption.fontSize,
+    gap: t.spacing(0.5),
     letterSpacing: '.07em',
-    marginBottom: t.spacing(1.25),
+    marginBottom: t.spacing(1),
     textTransform: 'uppercase',
   },
   crit: {
@@ -74,36 +81,20 @@ const useStyles = M.makeStyles((t) => ({
     flexWrap: 'wrap',
     gap: t.spacing(1),
   },
-  pill: {
-    alignItems: 'center',
-    background: t.palette.info.light,
-    border: `1px solid ${t.palette.info.main}`,
-    borderRadius: 18,
-    color: t.palette.text.primary,
-    display: 'inline-flex',
-    fontSize: 13,
-    gap: t.spacing(0.75),
-    padding: t.spacing(0.75, 1.375),
-  },
   pillKey: {
-    color: t.palette.info.main,
+    color: t.palette.text.secondary,
     fontWeight: t.typography.fontWeightMedium,
+    marginRight: t.spacing(0.5),
   },
   lblIcon: {
     color: t.palette.text.secondary,
+    fontSize: t.typography.caption.fontSize,
   },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: t.spacing(1.25),
-    padding: t.spacing(0, 2.25, 2),
-  },
-  btn: {
-    borderRadius: 22,
-    fontSize: 13.5,
-    fontWeight: t.typography.fontWeightMedium,
-    padding: t.spacing(1.25, 2.25),
-    textTransform: 'none',
+    gap: t.spacing(1),
+    padding: t.spacing(0, 2, 2),
   },
 }))
 
@@ -121,33 +112,36 @@ export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPane
     <M.Paper className={classes.root} elevation={0} aria-label="Qurator plan">
       <div className={classes.top}>
         <span className={classes.qicon}>
-          <M.Icon style={{ fontSize: 18 }}>auto_awesome</M.Icon>
+          <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
         </span>
         <M.Typography className={classes.title}>Qurator</M.Typography>
         <span className={classes.tag}>Claude · Bedrock · your permissions</span>
         <span className={classes.right}>
-          <M.Icon style={{ fontSize: 14 }}>bolt</M.Icon>auto-routed
+          <M.Icon className={classes.rightIcon}>bolt</M.Icon>auto-routed
         </span>
       </div>
       <div className={classes.interp}>
         <div className={classes.lbl}>
-          <M.Icon className={classes.lblIcon} style={{ fontSize: 14 }}>
-            tips_and_updates
-          </M.Icon>
+          <M.Icon className={classes.lblIcon}>tips_and_updates</M.Icon>
           Interpreted as — edit before running
         </div>
         <div className={classes.crit}>
           {criteria.map((c) => (
-            <span className={classes.pill} key={`${c.key}-${c.value}`}>
-              <span className={classes.pillKey}>{c.key}:</span>
-              {c.value}
-            </span>
+            <M.Chip
+              key={`${c.key}-${c.value}`}
+              variant="outlined"
+              label={
+                <>
+                  <span className={classes.pillKey}>{c.key}:</span>
+                  {c.value}
+                </>
+              }
+            />
           ))}
         </div>
       </div>
       <div className={classes.actions}>
         <M.Button
-          className={classes.btn}
           color="primary"
           variant="contained"
           startIcon={<M.Icon>auto_awesome</M.Icon>}
@@ -156,7 +150,6 @@ export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPane
           Run with Qurator
         </M.Button>
         <M.Button
-          className={classes.btn}
           variant="outlined"
           startIcon={<M.Icon>search</M.Icon>}
           onClick={onJustSearch}

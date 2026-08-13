@@ -2,8 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { fade } from '@material-ui/core/styles'
-
 import type { RouteKind } from 'components/SearchBar/classify'
 
 // The one bar. The prototype this came from (frontdoor/v3-eval) drew it as a
@@ -19,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: 34,
     display: 'flex',
     position: 'relative',
-    transition: t.transitions.create('border-color', { duration: 250 }),
+    transition: t.transitions.create('border-color', { duration: 150 }),
     '&:focus-within': {
       borderColor: t.palette.primary.main,
     },
@@ -32,8 +30,8 @@ const useStyles = M.makeStyles((t) => ({
   lead: {
     color: t.palette.text.secondary,
     flex: 'none',
-    marginLeft: t.spacing(3.5),
-    transition: t.transitions.create('color', { duration: 300 }),
+    marginLeft: t.spacing(3),
+    transition: t.transitions.create('color', { duration: 150 }),
   },
   leadQurator: {
     color: t.palette.secondary.main,
@@ -44,16 +42,15 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.primary,
     flex: 1,
     font: 'inherit',
-    fontSize: 20,
+    fontSize: t.typography.h6.fontSize,
     minWidth: 0,
     outline: 0,
-    padding: t.spacing(2.5, 1.75, 2.5, 2.25),
+    padding: t.spacing(2, 2, 2, 2),
     '&::placeholder': {
       color: t.palette.text.hint,
     },
   },
   badge: {
-    borderRadius: 20,
     fontWeight: t.typography.fontWeightMedium,
     marginRight: t.spacing(1),
   },
@@ -61,10 +58,18 @@ const useStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
     color: t.palette.text.primary,
   },
+  // Amber is a stroke and a mark, never a wash: border and glyph carry the
+  // Indicator on the paper ground.
   badgeQurator: {
-    background: fade(t.palette.secondary.main, 0.15),
+    background: t.palette.background.paper,
     border: `1px solid ${t.palette.secondary.main}`,
     color: t.palette.text.primary,
+  },
+  badgeIcon: {
+    fontSize: t.typography.body1.fontSize,
+  },
+  sendIcon: {
+    fontSize: t.typography.h6.fontSize,
   },
   send: {
     alignItems: 'center',
@@ -135,7 +140,7 @@ export default function Input({
           )}
           size="small"
           icon={
-            <M.Icon style={{ fontSize: 15 }}>
+            <M.Icon className={classes.badgeIcon}>
               {isQurator ? 'auto_awesome' : 'search'}
             </M.Icon>
           }
@@ -143,7 +148,7 @@ export default function Input({
         />
       )}
       <M.IconButton aria-label="Run" className={classes.send} onClick={onSubmit}>
-        <M.Icon style={{ fontSize: 22 }}>
+        <M.Icon className={classes.sendIcon}>
           {isQurator ? 'arrow_upward' : 'arrow_forward'}
         </M.Icon>
       </M.IconButton>
