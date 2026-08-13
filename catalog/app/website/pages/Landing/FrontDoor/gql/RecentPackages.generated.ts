@@ -1,23 +1,16 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars */
 /** Internal type. DO NOT USE DIRECTLY. */
 type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../../model/graphql/types.generated'
 
-export type SearchResultOrder =
-  | 'BEST_MATCH'
-  | 'LEX_ASC'
-  | 'LEX_DESC'
-  | 'NEWEST'
-  | 'OLDEST'
-
+import type { JsonRecord } from 'utils/types'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type website_pages_Landing_FrontDoor_gql_RecentPackagesQueryVariables = Exact<{
   buckets: ReadonlyArray<string> | null | undefined
-  order: Types.SearchResultOrder | null | undefined
+  ordering: string | null | undefined
 }>
 
 export interface website_pages_Landing_FrontDoor_gql_RecentPackagesQuery {
@@ -41,18 +34,35 @@ export interface website_pages_Landing_FrontDoor_gql_RecentPackagesQuery {
     | {
         readonly __typename: 'PackagesSearchResultSet'
         readonly total: number
-        readonly firstPage: {
-          readonly __typename: 'PackagesSearchResultSetPage'
-          readonly hits: ReadonlyArray<{
-            readonly __typename: 'SearchHitPackage'
-            readonly id: string
-            readonly bucket: string
-            readonly name: string
-            readonly hash: string
-            readonly pointer: string
-            readonly modified: Date
-          }>
-        }
+        readonly firstPage:
+          | {
+              readonly __typename: 'InvalidInput'
+              readonly errors: ReadonlyArray<{
+                readonly __typename: 'InputError'
+                readonly path: string | null
+                readonly message: string
+                readonly name: string
+                readonly context: JsonRecord | null
+              }>
+            }
+          | {
+              readonly __typename: 'OperationError'
+              readonly name: string
+              readonly message: string
+              readonly context: JsonRecord | null
+            }
+          | {
+              readonly __typename: 'PackagesSearchResultSetPage'
+              readonly hits: ReadonlyArray<{
+                readonly __typename: 'SearchHitPackage'
+                readonly id: string
+                readonly bucket: string
+                readonly name: string
+                readonly hash: string
+                readonly pointer: string
+                readonly modified: Date
+              }>
+            }
       }
 }
 
@@ -77,8 +87,8 @@ export const website_pages_Landing_FrontDoor_gql_RecentPackagesDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'ordering' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'PackageOrdering' } },
         },
       ],
       selectionSet: {
@@ -124,10 +134,10 @@ export const website_pages_Landing_FrontDoor_gql_RecentPackagesDocument = {
                         arguments: [
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
+                            name: { kind: 'Name', value: 'ordering' },
                             value: {
                               kind: 'Variable',
-                              name: { kind: 'Name', value: 'order' },
+                              name: { kind: 'Name', value: 'ordering' },
                             },
                           },
                         ],
@@ -136,34 +146,117 @@ export const website_pages_Landing_FrontDoor_gql_RecentPackagesDocument = {
                           selections: [
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'hits' },
+                              name: { kind: 'Name', value: '__typename' },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: {
+                                  kind: 'Name',
+                                  value: 'PackagesSearchResultSetPage',
+                                },
+                              },
                               selectionSet: {
                                 kind: 'SelectionSet',
                                 selections: [
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: '__typename' },
+                                    name: { kind: 'Name', value: 'hits' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: '__typename' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'id' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'bucket' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'hash' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'pointer' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'modified' },
+                                        },
+                                      ],
+                                    },
                                   },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'InvalidInput' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'bucket' },
+                                    name: { kind: 'Name', value: 'errors' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'path' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'message' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'context' },
+                                        },
+                                      ],
+                                    },
                                   },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'OperationError' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'name' },
                                   },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'hash' },
+                                    name: { kind: 'Name', value: 'message' },
                                   },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'pointer' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'modified' },
+                                    name: { kind: 'Name', value: 'context' },
                                   },
                                 ],
                               },

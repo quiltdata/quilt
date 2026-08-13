@@ -19,11 +19,11 @@ describe('website/pages/Landing/FrontDoor/useRecentlyRevisedPackages', () => {
     fold.mockClear()
   })
 
-  it('queries with NEWEST order, latestOnly and no specific buckets', () => {
+  it('queries newest-first, latestOnly and no specific buckets', () => {
     useQuery.mockReturnValue({ fetching: true })
     renderHook(() => useRecentlyRevisedPackages())
     const [, variables] = useQuery.mock.calls[0]
-    expect(variables).toEqual({ buckets: null, order: 'NEWEST' })
+    expect(variables).toEqual({ buckets: null, ordering: 'sys:modified:desc' })
   })
 
   it('maps and bounds package hits from the server response', () => {
@@ -34,6 +34,7 @@ describe('website/pages/Landing/FrontDoor/useRecentlyRevisedPackages', () => {
           __typename: 'PackagesSearchResultSet',
           total: 2,
           firstPage: {
+            __typename: 'PackagesSearchResultSetPage',
             hits: [
               {
                 id: 'h1',
@@ -69,6 +70,29 @@ describe('website/pages/Landing/FrontDoor/useRecentlyRevisedPackages', () => {
         modified: new Date('2024-01-02T00:00:00Z'),
       },
     ])
+  })
+
+  it('reports an error when firstPage rejects the ordering', () => {
+    // A bad `ordering` expression comes back as a typed union arm on
+    // `firstPage`, not as a GraphQLError, so the hook has to catch it here.
+    useQuery.mockReturnValue({
+      fetching: false,
+      data: {
+        searchPackages: {
+          __typename: 'PackagesSearchResultSet',
+          total: 0,
+          firstPage: {
+            __typename: 'InvalidInput',
+            errors: [
+              { path: 'ordering', message: 'bad', name: 'InputError', context: null },
+            ],
+          },
+        },
+      },
+    })
+    const { result } = renderHook(() => useRecentlyRevisedPackages())
+    expect(result.current.error).toBe(true)
+    expect(result.current.packages).toEqual([])
   })
 
   it('reports an error for OperationError results', () => {

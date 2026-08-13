@@ -1,6 +1,5 @@
 import * as React from 'react'
 
-import { SearchResultOrder } from 'model/graphql/types.generated'
 import * as GQL from 'utils/GraphQL'
 
 import RECENT_PACKAGES_QUERY from './gql/RecentPackages.generated'
@@ -24,6 +23,11 @@ export interface RecentlyRevisedState {
 // landing tile compact regardless of how many results the server returns.
 export const RECENT_PACKAGES_LIMIT = 5
 
+// `PackageOrdering` wire expression. Same value the search UI uses for its
+// "Most recent first" option (see LEGACY_ORDER_TO_ORDERING in
+// containers/Search/model.ts) — this is the string DSL, not an enum.
+const NEWEST_FIRST = 'sys:modified:desc'
+
 /**
  * Server-backed "recently revised" packages, ordered newest-first across all
  * accessible buckets. Unlike the legacy `useRecentPackages` hook (which reads
@@ -34,7 +38,7 @@ export default function useRecentlyRevisedPackages(
 ): RecentlyRevisedState {
   const result = GQL.useQuery(RECENT_PACKAGES_QUERY, {
     buckets: null,
-    order: SearchResultOrder.NEWEST,
+    ordering: NEWEST_FIRST,
   })
 
   return React.useMemo(
@@ -49,7 +53,14 @@ export default function useRecentlyRevisedPackages(
               packages: [],
             }
           }
-          const packages = r.firstPage.hits.slice(0, limit).map((hit) => ({
+          // `firstPage` is a union: a rejected `ordering` comes back as the
+          // typed InvalidInput arm rather than a GraphQLError, so it has to be
+          // narrowed before reading hits.
+          const page = r.firstPage
+          if (page.__typename !== 'PackagesSearchResultSetPage') {
+            return { fetching, error: true, packages: [] }
+          }
+          const packages = page.hits.slice(0, limit).map((hit) => ({
             id: hit.id,
             bucket: hit.bucket,
             name: hit.name,
