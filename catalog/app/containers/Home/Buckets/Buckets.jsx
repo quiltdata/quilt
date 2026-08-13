@@ -17,10 +17,17 @@ import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import BucketList, { useGridStyles } from 'containers/Home/BucketGrid/BucketList'
+import BucketRows from 'containers/Home/BucketGrid/BucketRows'
 
 import IS_ADMIN_QUERY from 'website/pages/Landing/gql/IsAdmin.generated'
 
 const PER_PAGE = 15
+
+// `view` rides beside `q` and `sort` in the URL. Absent means the card grid,
+// so an existing link keeps landing on the view it always did; `list` is the
+// dense-rows alternative.
+const VIEW_CARDS = 'cards'
+const VIEW_LIST = 'list'
 
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
@@ -74,6 +81,16 @@ const useSortStyles = M.makeStyles((t) => ({
   },
 }))
 
+// Same fix /search applies to its results-view toggle: MUI v4's Lab
+// ToggleButton doesn't inherit the outlined-button border colour, so it reads
+// lighter than the filter field and sort control it sits beside.
+const useViewToggleButtonStyles = M.makeStyles({
+  root: {
+    borderColor: `rgba(0, 0, 0, 0.23)`,
+    padding: '5px',
+  },
+})
+
 const useStyles = M.makeStyles((t) => ({
   container: {
     paddingBottom: t.spacing(5),
@@ -125,6 +142,11 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+  },
+  // Closes the filter row on the right, after the sort control (which carries
+  // the `margin-left: auto` that pushes the pair over).
+  viewToggle: {
+    flexShrink: 0,
   },
   sort: {
     flexShrink: 0,
@@ -231,6 +253,21 @@ const useStyles = M.makeStyles((t) => ({
   skeletonTag: {
     borderRadius: 16, // the chip token (DESIGN.md components.chip.rounded)
   },
+  // The list-view placeholder: one outlined block of rows, matching the
+  // Paper + divided List that BucketRows resolves into.
+  skeletonRows: {
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+  },
+  skeletonRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    padding: t.spacing(1.5, 2),
+    '& + &': {
+      borderTop: `1px solid ${t.palette.divider}`,
+    },
+  },
   // Universal reduced-motion escape hatch: kills any animation on the
   // skeleton (Lab.Skeleton's pulse included) without reaching for its
   // hashed dev class name, which JSS can't target directly.
@@ -274,18 +311,40 @@ function CardSkeleton({ classes }) {
   )
 }
 
+function RowSkeleton({ classes }) {
+  return (
+    <div className={classes.skeletonRow}>
+      <Lab.Skeleton variant="circle" width={32} height={32} />
+      <Lab.Skeleton variant="text" width="30%" height={20} />
+      <Lab.Skeleton variant="text" width="45%" height={16} />
+    </div>
+  )
+}
+
 // `useRelevantBuckets` always suspends (it wraps a suspense-enabled GraphQL
 // query with no non-suspending escape hatch), so this is the mount point a
 // real loading state can reach: the Suspense fallback below BucketsBody.
-// Six cards is a plausible first paint at any grid width (1-, 2-, or 3-up).
-function BucketsSkeleton() {
+// Six placeholders is a plausible first paint at any grid width (1-, 2-, or
+// 3-up) and a reasonable first screen of rows; each view gets the shape it
+// will actually resolve into, so nothing changes silhouette on load.
+function BucketsSkeleton({ view }) {
   const classes = useStyles()
   const gridClasses = useGridStyles()
+  const cards = view !== VIEW_LIST
   return (
-    <div className={cx(gridClasses.grid, classes.skeletonGrid)}>
-      {R.range(0, 6).map((i) => (
-        <CardSkeleton key={i} classes={classes} />
-      ))}
+    <div
+      className={cx(
+        cards ? gridClasses.grid : classes.skeletonRows,
+        classes.skeletonGrid,
+      )}
+    >
+      {R.range(0, 6).map((i) =>
+        cards ? (
+          <CardSkeleton key={i} classes={classes} />
+        ) : (
+          <RowSkeleton key={i} classes={classes} />
+        ),
+      )}
     </div>
   )
 }
@@ -362,7 +421,7 @@ function TagShortcuts({ filter, onTagClick }) {
 
 // Everything that needs bucket data lives below this line, inside the
 // Suspense boundary — filter text and sort order (owned by the parent) don't.
-function BucketsBody({ filter, sort, isAdmin, onTagClick, scrollRef }) {
+function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
@@ -410,6 +469,10 @@ function BucketsBody({ filter, sort, isAdmin, onTagClick, scrollRef }) {
   const noBuckets = !buckets.length
   const noMatch = !noBuckets && !sorted.length
 
+  // Both views take the same props over the same page of buckets: the toggle
+  // swaps the renderer and nothing else.
+  const View = view === VIEW_LIST ? BucketRows : BucketList
+
   return (
     <>
       {noBuckets ? (
@@ -417,11 +480,7 @@ function BucketsBody({ filter, sort, isAdmin, onTagClick, scrollRef }) {
       ) : noMatch ? (
         <NoMatch filter={filter} />
       ) : (
-        <BucketList
-          buckets={paginated}
-          tagIsMatching={tagIsMatching}
-          onTagClick={onTagClick}
-        />
+        <View buckets={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
       )}
       <div className={classes.controls}>
         <M.Box>
@@ -460,21 +519,34 @@ export default function Buckets() {
   const location = useLocation()
   const scrollRef = React.useRef(null)
 
-  const { q: filter = '', sort: sortParam } = parseSearch(location.search, true)
+  const {
+    q: filter = '',
+    sort: sortParam,
+    view: viewParam,
+  } = parseSearch(location.search, true)
   const sort = SORT_VALUES.includes(sortParam) ? sortParam : DEFAULT_SORT
+  const view = viewParam === VIEW_LIST ? VIEW_LIST : VIEW_CARDS
+
+  // Every control pushes the whole query string, so each one has to carry the
+  // other two forward or switching a view would silently drop the filter.
+  const search = React.useCallback(
+    (next) =>
+      NamedRoutes.mkSearch({
+        q: filter || undefined,
+        sort: sort === DEFAULT_SORT ? undefined : sort,
+        view: view === VIEW_CARDS ? undefined : view,
+        ...next,
+      }),
+    [filter, sort, view],
+  )
 
   const filtering = useDebouncedInput(filter, 500)
 
   React.useEffect(() => {
     if (filtering.value !== filter) {
-      history.push({
-        search: NamedRoutes.mkSearch({
-          q: filtering.value || undefined,
-          sort: sort === DEFAULT_SORT ? undefined : sort,
-        }),
-      })
+      history.push({ search: search({ q: filtering.value || undefined }) })
     }
-  }, [history, filtering.value, filter, sort])
+  }, [history, search, filtering.value, filter])
 
   const clearFilter = React.useCallback(() => {
     filtering.set()
@@ -492,13 +564,22 @@ export default function Buckets() {
     (selected) => {
       const value = selected.valueOf()
       history.push({
-        search: NamedRoutes.mkSearch({
-          q: filter || undefined,
-          sort: value === DEFAULT_SORT ? undefined : value,
-        }),
+        search: search({ sort: value === DEFAULT_SORT ? undefined : value }),
       })
     },
-    [history, filter],
+    [history, search],
+  )
+
+  const viewToggleButtonClasses = useViewToggleButtonStyles()
+
+  const changeView = React.useCallback(
+    (_e, value) => {
+      // An exclusive ToggleButtonGroup emits null when the active button is
+      // clicked again; there's no "neither view", so ignore it.
+      if (!value) return
+      history.push({ search: search({ view: value === VIEW_CARDS ? undefined : value }) })
+    },
+    [history, search],
   )
 
   const isAdmin = useIsAdmin()
@@ -544,11 +625,34 @@ export default function Buckets() {
           >
             Sort by:
           </SelectDropdown>
+          <Lab.ToggleButtonGroup
+            className={classes.viewToggle}
+            value={view}
+            exclusive
+            size="small"
+            onChange={changeView}
+          >
+            <Lab.ToggleButton
+              value={VIEW_CARDS}
+              classes={viewToggleButtonClasses}
+              aria-label="Card view"
+            >
+              <Icons.GridOn />
+            </Lab.ToggleButton>
+            <Lab.ToggleButton
+              value={VIEW_LIST}
+              classes={viewToggleButtonClasses}
+              aria-label="List view"
+            >
+              <Icons.List />
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
         </div>
-        <React.Suspense fallback={<BucketsSkeleton />}>
+        <React.Suspense fallback={<BucketsSkeleton view={view} />}>
           <BucketsBody
             filter={filter}
             sort={sort}
+            view={view}
             isAdmin={isAdmin}
             onTagClick={filtering.set}
             scrollRef={scrollRef}

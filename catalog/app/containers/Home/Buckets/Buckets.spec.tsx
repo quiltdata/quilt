@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
+import { MemoryRouter, useLocation } from 'react-router-dom'
+import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import * as M from '@material-ui/core'
 
@@ -100,11 +100,31 @@ vi.mock('containers/Home/BucketGrid/BucketList', () => ({
   default: (props: RowsProps) => <Rows {...props} />,
 }))
 
-function renderBuckets() {
+// Distinguishable from the card view's stand-in so a test can tell which
+// renderer the `view` param selected.
+vi.mock('containers/Home/BucketGrid/BucketRows', () => ({
+  default: ({ buckets }: RowsProps) => (
+    <div>
+      {buckets.map((b) => (
+        <div key={b.name}>{`row:${b.name}`}</div>
+      ))}
+    </div>
+  ),
+}))
+
+// Surfaces the current query string so a test can assert on what a control
+// pushed, without reaching into router internals.
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="search">{location.search}</div>
+}
+
+function renderBuckets(search = '') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/', search }]}>
       <M.MuiThemeProvider theme={style.appTheme}>
         <Buckets />
+        <LocationProbe />
       </M.MuiThemeProvider>
     </MemoryRouter>,
   )
@@ -163,5 +183,40 @@ describe('website/pages/Landing/Buckets', () => {
     const { queryByText } = renderBuckets()
     expect(queryByText('No buckets yet')).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeFalsy()
+  })
+
+  describe('the card/list view toggle', () => {
+    it('defaults to the card grid, with no `view` param', () => {
+      const { queryByText, getByTestId } = renderBuckets()
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+      expect(queryByText('row:bucket-one')).toBeFalsy()
+      expect(getByTestId('search').textContent).toBe('')
+    })
+
+    it('renders dense rows for `view=list`', () => {
+      const { queryByText } = renderBuckets('?view=list')
+      expect(queryByText('row:bucket-one')).toBeTruthy()
+      expect(queryByText('bucket:bucket-one')).toBeFalsy()
+    })
+
+    it('falls back to the card grid for an unrecognized `view`', () => {
+      const { queryByText } = renderBuckets('?view=nonsense')
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+    })
+
+    it('switching view keeps the filter and sort in the URL', () => {
+      const { getByLabelText, getByTestId } = renderBuckets('?q=one&sort=name-asc')
+      fireEvent.click(getByLabelText('List view'))
+      const search = getByTestId('search').textContent
+      expect(search).toContain('view=list')
+      expect(search).toContain('q=one')
+      expect(search).toContain('sort=name-asc')
+    })
+
+    it('switching back to cards drops the `view` param rather than pinning it', () => {
+      const { getByLabelText, getByTestId } = renderBuckets('?view=list')
+      fireEvent.click(getByLabelText('Card view'))
+      expect(getByTestId('search').textContent).toBe('')
+    })
   })
 })
