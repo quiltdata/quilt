@@ -9,7 +9,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import { Plural, Relative } from 'utils/format'
 import { formatQuantity, readableBytes } from 'utils/string'
-import * as Model from 'model'
 
 import RECENT_PACKAGES_QUERY from '../gql/RecentPackages.generated'
 
@@ -18,9 +17,12 @@ import SectionHeader from './SectionHeader'
 const MAX_PACKAGES = 2
 
 type PackageHit = Extract<
-  GQL.DataForDoc<typeof RECENT_PACKAGES_QUERY>['searchPackages'],
-  { __typename: 'PackagesSearchResultSet' }
->['firstPage']['hits'][number]
+  Extract<
+    GQL.DataForDoc<typeof RECENT_PACKAGES_QUERY>['searchPackages'],
+    { __typename: 'PackagesSearchResultSet' }
+  >['firstPage'],
+  { __typename: 'PackagesSearchResultSetPage' }
+>['hits'][number]
 
 function PackageSecondary({ hit }: { hit: PackageHit }) {
   return (
@@ -143,7 +145,7 @@ interface RecentPackagesProps {
 export default function RecentPackages({ bucket }: RecentPackagesProps) {
   const query = GQL.useQuery(RECENT_PACKAGES_QUERY, {
     buckets: [bucket],
-    order: Model.GQLTypes.SearchResultOrder.NEWEST,
+    ordering: 'sys:modified:desc',
   })
   return GQL.fold(query, {
     fetching: () => <Skeletons />,
@@ -153,7 +155,10 @@ export default function RecentPackages({ bucket }: RecentPackagesProps) {
         case 'EmptySearchResultSet':
           return null
         case 'PackagesSearchResultSet': {
-          const hits = r.firstPage.hits.slice(0, MAX_PACKAGES)
+          const hits =
+            r.firstPage.__typename === 'PackagesSearchResultSetPage'
+              ? r.firstPage.hits.slice(0, MAX_PACKAGES)
+              : []
           return hits.length ? (
             <PackageList bucket={bucket} hits={hits} total={r.total} />
           ) : null

@@ -86,7 +86,7 @@ def test_run_multiple_queries(query_runner, stubbed_athena_client):
     execution_ids = ["exec_id_1", "exec_id_2"]
 
     # Stub start_query_execution responses
-    for query, execution_id in zip(queries, execution_ids):
+    for query, execution_id in zip(queries, execution_ids, strict=True):
         stubbed_athena_client.add_response(
             "start_query_execution",
             {"QueryExecutionId": execution_id},

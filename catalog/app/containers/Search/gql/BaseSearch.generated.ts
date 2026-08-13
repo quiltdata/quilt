@@ -4,10 +4,10 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../model/graphql/types.generated'
 
+import type { JsonRecord } from 'utils/types'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type containers_Search_gql_BaseSearchQueryVariables = Exact<{
   buckets: ReadonlyArray<string> | null | undefined
   searchString: string | null | undefined
@@ -61,10 +61,12 @@ export interface containers_Search_gql_BaseSearchQuery {
             | {
                 readonly __typename: 'BooleanPackageUserMetaFacet'
                 readonly path: string
+                readonly sortable: boolean
               }
             | {
                 readonly __typename: 'DatetimePackageUserMetaFacet'
                 readonly path: string
+                readonly sortable: boolean
                 readonly datetimeExtents: {
                   readonly __typename: 'DatetimeExtents'
                   readonly min: Date
@@ -74,6 +76,7 @@ export interface containers_Search_gql_BaseSearchQuery {
             | {
                 readonly __typename: 'KeywordPackageUserMetaFacet'
                 readonly path: string
+                readonly sortable: boolean
                 readonly extents: {
                   readonly __typename: 'KeywordExtents'
                   readonly values: ReadonlyArray<string>
@@ -82,13 +85,18 @@ export interface containers_Search_gql_BaseSearchQuery {
             | {
                 readonly __typename: 'NumberPackageUserMetaFacet'
                 readonly path: string
+                readonly sortable: boolean
                 readonly numberExtents: {
                   readonly __typename: 'NumberExtents'
                   readonly min: number
                   readonly max: number
                 }
               }
-            | { readonly __typename: 'TextPackageUserMetaFacet'; readonly path: string }
+            | {
+                readonly __typename: 'TextPackageUserMetaFacet'
+                readonly path: string
+                readonly sortable: boolean
+              }
           >
         }
       }
@@ -275,6 +283,10 @@ export const containers_Search_gql_BaseSearchDocument = {
                                         {
                                           kind: 'Field',
                                           name: { kind: 'Name', value: 'path' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'sortable' },
                                         },
                                       ],
                                     },

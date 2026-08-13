@@ -3,7 +3,6 @@ import datetime
 import functools
 import itertools
 import os
-import typing as T
 
 import aiobotocore.session
 import jinja2
@@ -25,7 +24,7 @@ def create_syn():
     return session.create_client("synthetics")
 
 
-async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
+async def list_stack_canaries(cfn, stack_name: str) -> list[str]:
     result = []
     async for page in cfn.get_paginator("list_stack_resources").paginate(
         StackName=stack_name
@@ -36,7 +35,7 @@ async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
     return result
 
 
-async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
+async def drain(syn, method: str, key: str, names: list[str]) -> list[dict]:
     chunks = [
         names[i:i + CANARIES_PER_REQUEST]
         for i in range(0, len(names), CANARIES_PER_REQUEST)
@@ -47,7 +46,7 @@ async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
     return list(itertools.chain.from_iterable(p[key] for p in pages))
 
 
-async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
+async def get_canaries(syn, cfn, stack_name: str) -> list[dict]:
     names = await list_stack_canaries(cfn, stack_name)
     describe_result, describe_last_run_result = await asyncio.gather(
         drain(syn, "describe_canaries", "Canaries", names),
@@ -101,7 +100,7 @@ async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
     return canaries
 
 
-async def get_resources(cfn, stack_name: str) -> T.List[dict]:
+async def get_resources(cfn, stack_name: str) -> list[dict]:
     result = []
     async for page in cfn.get_paginator("list_stack_resources").paginate(
         StackName=stack_name

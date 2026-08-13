@@ -16,7 +16,6 @@ import typing as T
 import uuid
 import warnings
 from collections import deque
-from multiprocessing import Pool
 
 import botocore.exceptions
 import jsonlines
@@ -82,10 +81,10 @@ SUPPORTED_HASH_TYPES = (
 class CopyFileListFn(T.Protocol):
     def __call__(
         self,
-        file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
-        message: T.Optional[str] = None,
-        callback: T.Optional[T.Callable] = None,
-    ) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]: ...
+        file_list: list[tuple[PhysicalKey, PhysicalKey, int]],
+        message: str | None = None,
+        callback: T.Callable | None = None,
+    ) -> list[tuple[PhysicalKey, str | None]]: ...
 
 
 def _fix_docstring(**kwargs):
@@ -102,11 +101,6 @@ _WORKFLOW_PARAM_DOCSTRING = (
     '        If not specified, the default workflow will be used.\n'
     '        For details see: https://docs.quilt.bio/advanced-usage/workflows\n'
 )
-
-
-def _delete_local_physical_key(pk):
-    assert pk.is_local(), "This function only works on files that live on a local disk"
-    pathlib.Path(pk.path).unlink()
 
 
 def _filesystem_safe_encode(key):
@@ -1005,11 +999,11 @@ class Package:
         results = calculate_multipart_checksum(
             [
                 FileChecksumTask.create(physical_key, size, hash_type)
-                for physical_key, size in zip(physical_keys, sizes)
+                for physical_key, size in zip(physical_keys, sizes, strict=True)
             ]
         )
         exc = None
-        for entry, result in zip(self._incomplete_entries, results):
+        for entry, result in zip(self._incomplete_entries, results, strict=True):
             if isinstance(result, Exception):
                 exc = result
             else:
@@ -1491,7 +1485,7 @@ class Package:
         print_info,
         force: bool,
         dedupe: bool,
-        copy_file_list_fn: T.Optional[CopyFileListFn] = None,
+        copy_file_list_fn: CopyFileListFn | None = None,
     ):
         if copy_file_list_fn is None:
             copy_file_list_fn = copy_file_list
@@ -1617,7 +1611,7 @@ class Package:
 
         results = copy_file_list_fn(file_list, message="Copying objects")
 
-        for (logical_key, entry), (versioned_key, checksum) in zip(entries, results):
+        for (logical_key, entry), (versioned_key, checksum) in zip(entries, results, strict=True):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
@@ -1645,17 +1639,19 @@ class Package:
                 return False
             return pathlib.Path(pk.path).parent.resolve() == APP_DIR_TEMPFILE_DIR.resolve()
 
+        # Materialized first: _set() below mutates what walk() iterates.
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
-        if temp_file_logical_keys:
-            temp_file_physical_keys = [self[lk].physical_key for lk in temp_file_logical_keys]
+        for lk in temp_file_logical_keys:
+            # Delete tmp files created by pkg.set('KEY', obj). Cleanup is best-effort: a file we
+            # cannot remove is a leaked scratch file, not a reason to fail a completed push.
+            temp_pk = self[lk].physical_key
+            try:
+                pathlib.Path(temp_pk.path).unlink(missing_ok=True)
+            except OSError as e:
+                logger.warning("Failed to remove temporary file %s: %s", temp_pk.path, e)
 
-            # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
-            with Pool(10) as p:
-                p.map(_delete_local_physical_key, temp_file_physical_keys)
-
-            # Update old package to point to the materialized location of the file since the tempfile no longest exists
-            for lk in temp_file_logical_keys:
-                self._set(lk, pkg[lk])
+            # Point the entry at the materialized location.
+            self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.
         if not force:
@@ -1838,14 +1834,14 @@ class Package:
             return False
 
         hash_list = calculate_multipart_checksum(checksum_tasks)
-        for expected_hash, url_hash in zip(expected_hash_list, hash_list):
+        for expected_hash, url_hash in zip(expected_hash_list, hash_list, strict=True):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:
                 return False
 
         legacy_hash_list = legacy_calculate_checksum(legacy_url_list, legacy_size_list)
-        for expected_hash, url_hash in zip(legacy_expected_hash_list, legacy_hash_list):
+        for expected_hash, url_hash in zip(legacy_expected_hash_list, legacy_hash_list, strict=True):
             if isinstance(url_hash, Exception):
                 raise url_hash
             if expected_hash != url_hash:

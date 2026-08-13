@@ -809,6 +809,59 @@ class PackageTest(QuiltTestCase):
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_survives_missing_temp_file(self):
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+        df = pd.DataFrame({'col_num': [11, 22, 33]})
+        pkg.set("mydataframe1.parquet", df)
+        pkg.set("mydataframe2.parquet", df)
+        pkg._calculate_missing_hashes()
+
+        # Something else removed one temp file already: a tempdir sweep, a retried push, another process.
+        gone = pathlib.Path(pkg["mydataframe1.parquet"].physical_key.path)
+        remaining = pathlib.Path(pkg["mydataframe2.parquet"].physical_key.path)
+        gone.unlink()
+        assert remaining.exists(), "the two entries must not share a temp file, or this test proves nothing"
+
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            self.assertNoLogs('quilt3.packages', level='WARNING'),
+        ):
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
+
+        assert not remaining.exists(), "Cleanup should continue past a temp file that is already gone"
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_logs_when_temp_file_cannot_be_removed(self):
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+        pkg.set("mydataframe1.parquet", pd.DataFrame({'col_num': [11, 22, 33]}))
+        pkg._calculate_missing_hashes()
+        # temp_key, not str(temp_path): the log formats the physical key, whose separators differ
+        # from pathlib's on Windows.
+        temp_key = pkg["mydataframe1.parquet"].physical_key.path
+        temp_path = pathlib.Path(temp_key)
+        real_unlink = pathlib.Path.unlink
+
+        def unlink(self, *args, **kwargs):
+            if self == temp_path:
+                raise PermissionError("file is in use")
+            return real_unlink(self, *args, **kwargs)
+
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            patch('pathlib.Path.unlink', unlink),
+            self.assertLogs('quilt3.packages', level='WARNING') as logs,
+        ):
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
+
+        assert any(f"Failed to remove temporary file {temp_key}" in line for line in logs.output)
+        assert temp_path.exists(), "a cleanup failure leaves the temp file behind"
+        temp_path.unlink()
+
     @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
     def test_set_package_entry_unversioned_flag(self):
         for flag_value, version_id in {
@@ -1033,6 +1086,18 @@ class PackageTest(QuiltTestCase):
 
         quilt3.delete_package('Quilt/Test')
         assert 'Quilt/Test' not in quilt3.list_packages()
+
+    def test_local_package_delete_keeps_sibling_packages(self):
+        """delete_package must remove only the named package, not the whole user namespace."""
+        Package().build("Quilt/Test1")
+        Package().build("Quilt/Test2")
+        assert {"Quilt/Test1", "Quilt/Test2"} <= set(quilt3.list_packages())
+
+        quilt3.delete_package("Quilt/Test1")
+
+        packages = set(quilt3.list_packages())
+        assert "Quilt/Test1" not in packages
+        assert "Quilt/Test2" in packages
 
     def test_local_delete_package_revision(self):
         pkg_name = 'Quilt/Test'
@@ -1901,18 +1966,23 @@ class PackageTest(QuiltTestCase):
                     assert not calculate_missing_hashes.mock_calls
                     assert pkg._workflow is None
 
+    @patch('quilt3.packages.calculate_multipart_checksum')
     @patch('quilt3.packages.copy_file_list')
     @patch('quilt3.workflows.validate', return_value=mock.sentinel.returned_workflow)
     @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
     @patch('quilt3.Package._set_commit_message', mock.MagicMock())
-    def test_workflow_validation(self, workflow_validate_mock, copy_file_list_mock):
+    def test_workflow_validation(self, workflow_validate_mock, copy_file_list_mock, calculate_checksum_mock):
         registry = 's3://test-bucket'
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        copy_file_list_mock.side_effect = _mock_copy_file_list
+        copied_hash = "a" * 64
+        calculate_checksum_mock.side_effect = lambda tasks: [copied_hash] * len(tasks)
+        copied_physical_key = PhysicalKey.from_url('s3://test-bucket/test/pkg/foo')
 
         for method in (Package.build, partial(Package.push, force=True)):
             with self.subTest(method=method):
-                with patch('quilt3.Package._push_manifest') as push_manifest_mock:
+                with patch('quilt3.Package._push_manifest', autospec=True) as push_manifest_mock:
                     pkg = Package().set('foo', DATA_DIR / 'foo.txt')
                     method(pkg, 'test/pkg', registry)
                     workflow_validate_mock.assert_called_once_with(
@@ -1928,9 +1998,12 @@ class PackageTest(QuiltTestCase):
                     if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
+                        pushed_entry = push_manifest_mock.call_args[0][0]['foo']
+                        assert pushed_entry.physical_key == copied_physical_key
+                        assert pushed_entry.hash == {'type': checksums.DEFAULT_HASH, 'value': copied_hash}
 
             with self.subTest(method=method):
-                with patch('quilt3.Package._push_manifest') as push_manifest_mock:
+                with patch('quilt3.Package._push_manifest', autospec=True) as push_manifest_mock:
                     pkg = Package().set('foo', DATA_DIR / 'foo.txt').set_meta(mock.sentinel.pkg_meta)
                     method(
                         pkg,
@@ -1952,6 +2025,9 @@ class PackageTest(QuiltTestCase):
                     if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
+                        pushed_entry = push_manifest_mock.call_args[0][0]['foo']
+                        assert pushed_entry.physical_key == copied_physical_key
+                        assert pushed_entry.hash == {'type': checksums.DEFAULT_HASH, 'value': copied_hash}
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_dest_fn_non_string(self):

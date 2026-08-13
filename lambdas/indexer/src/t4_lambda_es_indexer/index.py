@@ -53,7 +53,6 @@ import pathlib
 import re
 import time
 from os.path import split
-from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
 import boto3
@@ -196,7 +195,7 @@ def get_compression(ext: str):
     return "gz" if ext == ".gz" else None
 
 
-def get_normalized_extensions(key) -> Tuple[str, str]:
+def get_normalized_extensions(key) -> tuple[str, str]:
     """standard function turning keys into a list of (possibly empty) extensions"""
     path = pathlib.PurePosixPath(key)
     try:
@@ -209,7 +208,7 @@ def get_normalized_extensions(key) -> Tuple[str, str]:
     return (ext_next_last, ext_last)
 
 
-def infer_extensions(key, exts: Tuple[str, str], compression):
+def infer_extensions(key, exts: tuple[str, str], compression):
     """guess extensions if possible"""
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
@@ -248,8 +247,8 @@ def do_index(
         last_modified: str,
         text: str = '',
         size: int = 0,
-        version_id: Optional[str] = None,
-        s3_tags: Optional[dict] = None,
+        version_id: str | None = None,
+        s3_tags: dict | None = None,
 ):
     """wrap dual indexing of packages and objects"""
     logger_ = get_quilt_logger()
@@ -841,7 +840,7 @@ def retry_s3(
     return call()
 
 
-def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional[str]) -> Optional[dict]:
+def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: str | None) -> dict | None:
     params = {
         "Bucket": bucket,
         "Key": key,
