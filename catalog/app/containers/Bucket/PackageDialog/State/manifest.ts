@@ -26,8 +26,8 @@ export function isPackageHandle(h: PackageSrc): h is Required<PackageSrc> {
 export function useManifestRequest(
   open: boolean,
   src?: PackageSrc,
-  // The copy dialog never reads the entries — promote copies them server-side by hash —
-  // so requesting them only exposes it to failures it has no use for.
+  // Promote copies entries server-side by hash, so fetching them here would only expose
+  // the copy dialog to a failure it has no use for.
   skipEntries: boolean = false,
 ): ManifestStatus {
   const notOpened = !open

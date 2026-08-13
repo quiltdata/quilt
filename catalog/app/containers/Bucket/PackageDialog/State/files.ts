@@ -127,10 +127,9 @@ function filesStateToEntries(files: FI.FilesState): readonly ValidationEntry[] {
   )
 }
 
-// XXX: "entries unknown" and "no entries" collapse into the same value here, and the
-// entry list this produces is sent as a complete replacement — so publishing while the
-// manifest is unloaded would drop everything it could not report. Nothing in this
-// module can tell the two apart; useParams refuses to publish in that state.
+// XXX: "entries unknown" and "no entries" collapse into the same value here, and this
+// list is sent as a complete replacement — so useParams refuses to publish while the
+// manifest is unloaded.
 function mergeFiles(manifest: ManifestStatus, files?: Partial<FI.FilesState>) {
   const existing =
     manifest._tag === 'ready' ? manifest.manifest?.entries || EMPTY_FILES : EMPTY_FILES

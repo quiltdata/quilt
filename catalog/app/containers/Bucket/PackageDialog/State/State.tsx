@@ -99,8 +99,7 @@ export function useState(
   const [src, setSrc] = React.useState(initialSrc)
   const [dst, setDst] = React.useState(initialDst)
 
-  // disableRestore marks the copy dialog, which renders no file panel and promotes by
-  // hash, so it has no use for the entries.
+  // disableRestore marks the copy dialog, which has no use for the entries.
   const manifest = useManifestRequest(!!open, src, disableRestore)
   const workflowsConfig = useWorkflowsConfig(!!open, dst)
 

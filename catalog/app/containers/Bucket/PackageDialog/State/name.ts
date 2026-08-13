@@ -90,10 +90,9 @@ export function useNameExistence(
     }
     return GQL.fold(packageExistsQuery, {
       data: ({ package: r }, { error }) => {
-        // "new" is what permits publishing while a source manifest is unavailable, so an
-        // absence reported alongside an error was never confirmed and must not pass for
-        // a confirmed one. Reported as still-loading rather than as a name error: the
-        // name may well be fine, and only the gate in useParams needs to care.
+        // "new" is what permits publishing while the manifest is unavailable, so an
+        // absence reported alongside an error must not pass for a confirmed one. Reported
+        // as still-loading, not a name error: only the gate in useParams needs to care.
         if (!r && error) return { _tag: 'loading' }
         if (!r) return { _tag: 'new' }
         switch (r.__typename) {

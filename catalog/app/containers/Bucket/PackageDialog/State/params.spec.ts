@@ -252,9 +252,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
 
   describe('unloaded source manifest', () => {
     const manifestError = { _tag: 'error' as const, error: new Error('failed to fetch') }
-    // A workflow is set throughout, which matters: its prefill needs a ready manifest,
-    // and that incidentally disabled submission — choosing one by hand is what defeated
-    // the accidental guard and reached the destructive push.
+    // A workflow is set throughout: its prefill needs a ready manifest, and choosing one
+    // by hand is what defeated that accidental guard and reached the destructive push.
     const existingName = { ...name, status: { _tag: 'new-revision' as const } }
 
     it.each([
@@ -272,9 +271,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
 
     it('reports the manifest as the blocker even before a workflow is chosen', () => {
-      // A failed manifest also blocks the workflow prefill, so this is the state the user
-      // is actually in. Reporting a missing workflow instead would let the dialog tell
-      // them the destination is safe to push over.
+      // A failed manifest also blocks the workflow prefill, so reporting a missing
+      // workflow instead would let the dialog call the destination safe to push over.
       const { result } = renderHook(() =>
         useParamsWith({
           manifest: manifestError,
@@ -300,9 +298,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       ['new-revision', { _tag: 'new-revision' as const }],
       ['exists', { _tag: 'exists' as const, dst: { bucket: 'b', name: 'n' } }],
     ])('stays valid for an existing destination once loaded (%s)', (_tag, status) => {
-      // The path the gate exists to protect, and the one it must not block: revising a
-      // package whose manifest did load. Without this, a gate that refuses every
-      // destination except brand-new names passes the whole suite.
+      // The path the gate must not block: revising a package whose manifest did load.
+      // Without it, a gate that refuses everything but brand-new names passes the suite.
       const { result } = renderHook(() =>
         useParamsWith({ manifest: MANIFEST_READY, name: { ...name, status } }),
       )

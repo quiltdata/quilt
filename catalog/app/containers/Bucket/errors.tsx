@@ -72,10 +72,7 @@ export class ManifestTooLarge extends BucketError {
   }
 }
 
-/**
- * Publishing is blocked because the package being revised never loaded, so a revision
- * built now would replace its contents with only what the form holds.
- */
+/** The revised package never loaded, so publishing would replace its contents. */
 export class SourceManifestNotLoaded extends BucketError {
   static displayName = 'SourceManifestNotLoaded'
 

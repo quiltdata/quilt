@@ -7,7 +7,6 @@ interface QueryState {
   data?: unknown
   error?: Error
   fetching?: boolean
-  stale?: boolean
 }
 
 let queryState: QueryState = {}
@@ -58,9 +57,8 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
     })
 
     it('withholds absence when the check itself failed', () => {
-      // "new" is what permits publishing while a source manifest is unavailable, so an
-      // unconfirmed absence must not pass for a confirmed one. Reported as still-loading
-      // rather than as a name error, so a blip cannot block a flow with nothing at risk.
+      // Still-loading rather than a name error, so a blip cannot block a flow with
+      // nothing at risk. See the note in name.ts for why "new" is load-bearing.
       queryState = { data: { package: null }, error: new Error('resolver failed') }
       expect(run()._tag).toBe('loading')
     })

@@ -116,9 +116,8 @@ interface StatusMessageProps {
 
 /** Explains a form that cannot be submitted, or that will not submit what it looks like. */
 function StatusMessage({ formStatus, manifest, params }: StatusMessageProps) {
-  // A failed submission is the most specific thing that can be said, and it outranks the
-  // manifest note — except for the gate's own error, which the manifest branch words
-  // better and which goes stale as soon as the name changes.
+  // A submission failure is more specific than the manifest note, except for the gate's
+  // own error, which the manifest branch words better and which goes stale on rename.
   if (
     formStatus._tag === 'error' &&
     formStatus.error &&
@@ -142,9 +141,8 @@ function StatusMessage({ formStatus, manifest, params }: StatusMessageProps) {
     )
   }
 
-  // Only promise a push when the form would actually submit: the same failure that left
-  // the manifest unloaded also leaves the workflow unprefilled, and saying "pushing
-  // creates a new package" beside a button disabled for that reason is a dead end.
+  // Only promise a push when the form would actually submit: the same failure leaves the
+  // workflow unprefilled, so the button beside this can still be disabled.
   if (params._tag === 'ok') {
     return (
       <FormMessage icon="warning" muted>

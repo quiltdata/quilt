@@ -27,11 +27,9 @@ export function computeDialogStatus({
   if (workflowsConfig._tag === 'error') {
     return { _tag: 'error', error: workflowsConfig.error }
   }
-  // A failed manifest deliberately keeps rendering the form: it is reachable
-  // mid-session (see the "load and revise it" link in Inputs/Name), where replacing
-  // the form would discard staged files, and permanently for oversized manifests.
-  // Publishing is blocked in useParams instead, so the staged work survives.
-  // Copy.tsx keeps its own ladder and does block there, because promote copies the
-  // whole source and has nothing to offer once the manifest is gone.
+  // A failed manifest deliberately keeps the form: replacing it would discard files
+  // staged before the failure (reachable via "load and revise it" in Inputs/Name), and
+  // oversized manifests fail every time. useParams blocks publishing instead; Copy.tsx
+  // does block, since promote has nothing to offer without the manifest.
   return { _tag: 'ready' }
 }

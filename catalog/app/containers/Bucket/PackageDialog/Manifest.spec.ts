@@ -47,8 +47,7 @@ describe('containers/Bucket/PackageDialog/Manifest', () => {
 
   it('fails a response that carries field errors alongside data', () => {
     // Such a response nulls some fields and resolves others, so accepting it publishes a
-    // revision built from the survivors — whichever field was lost. Any of them: entries,
-    // metadata, or the workflow that would otherwise fall back to the bucket default.
+    // revision built from whichever survived — entries, metadata or the workflow.
     queryState = {
       data: revision({ contentsFlatMap: null, userMeta: null }),
       error: new Error('resolver failed'),

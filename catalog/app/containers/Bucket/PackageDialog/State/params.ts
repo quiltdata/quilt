@@ -67,15 +67,11 @@ export function useParams({
   workflow,
 }: FormInputs): FormParams {
   return React.useMemo(() => {
-    // Entries are sent as a complete replacement list, and an unloaded manifest yields
-    // no existing entries, no metadata and no workflow — so pushing to a destination
-    // that already exists would silently drop whatever failed to load. Only a name
-    // confirmed absent is safe, which is why the existence check behind it must fail
-    // closed (see useNameExistence).
-    //
-    // This comes first because the same unloaded manifest also blocks the workflow
-    // prefill: reported later, a missing workflow would mask it, and the dialog would
-    // describe an existing destination as safe to push over.
+    // Entries are sent as a complete replacement list, so publishing while the manifest
+    // is unloaded would drop everything it could not report. Only a name confirmed
+    // absent is safe, so the existence check behind it fails closed (see
+    // useNameExistence). Checked first because the same failure also blocks the workflow
+    // prefill, and reporting that instead would call an existing destination safe.
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
       return Invalid(new ERRORS.SourceManifestNotLoaded())
     }
