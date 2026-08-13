@@ -180,7 +180,9 @@ const usePrefixFilterStyles = M.makeStyles((t) => ({
     paddingTop: 2,
   },
   clearIcon: {
-    fontSize: '16px !important',
+    // `!important` beats MUI's own `.MuiSvgIcon-fontSizeSmall` rule on the
+    // adornment icon, which would otherwise win on specificity.
+    fontSize: `${t.typography.body1.fontSize} !important`,
     lineHeight: '15px',
     marginLeft: -6,
   },

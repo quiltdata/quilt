@@ -10,12 +10,6 @@ import type { Suggestion } from './model'
 
 const ES_V = '6.8'
 
-const displaySuggestion = (s: Suggestion) => (
-  <>
-    Search {s.what} {s.where}
-  </>
-)
-
 const useSuggestionsStyles = M.makeStyles((t) => ({
   item: {
     paddingLeft: t.spacing(5.5),
@@ -27,6 +21,27 @@ const useSuggestionsStyles = M.makeStyles((t) => ({
       fontFamily: t.typography.monospace.fontFamily,
       fontSize: 'inherit',
     },
+  },
+  // The one row that changes destination rather than scope, matching the front
+  // door's idiom: separated by a rule, on a neutral ground, with the amber
+  // Indicator carried by the glyph -- a mark, never a wash.
+  ask: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    paddingLeft: t.spacing(2),
+  },
+  askIcon: {
+    color: t.palette.secondary.main,
+    minWidth: t.spacing(3.5),
+  },
+  askGlyph: {
+    fontSize: t.typography.body1.fontSize,
+  },
+  askWhere: {
+    color: t.palette.text.secondary,
+    fontSize: t.typography.caption.fontSize,
+    fontWeight: t.typography.fontWeightMedium,
+    marginLeft: t.spacing(2),
+    whiteSpace: 'nowrap',
   },
   help: {
     ...t.typography.caption,
@@ -44,27 +59,55 @@ const useSuggestionsStyles = M.makeStyles((t) => ({
 interface SuggestionsProps {
   items: Suggestion[]
   selected: number
+  onAsk: ((query: string) => void) | null
 }
 
-function SuggestionsList({ items, selected }: SuggestionsProps) {
+function SuggestionsList({ items, selected, onAsk }: SuggestionsProps) {
   const classes = useSuggestionsStyles()
   return (
     <M.List>
-      {items.map((item, index) => (
-        <M.MenuItem
-          button
-          className={classes.item}
-          component={Link}
-          key={item.key}
-          selected={selected === index}
-          to={item.url}
-        >
-          <M.ListItemText
-            primary={displaySuggestion(item)}
-            primaryTypographyProps={{ variant: 'body2' }}
-          />
-        </M.MenuItem>
-      ))}
+      {items.map((item, index) =>
+        item.kind === 'qurator' ? (
+          <M.MenuItem
+            button
+            className={classes.ask}
+            key={item.key}
+            onClick={() => onAsk?.(item.query)}
+            selected={selected === index}
+          >
+            <M.ListItemIcon className={classes.askIcon}>
+              <M.Icon className={classes.askGlyph}>auto_awesome</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary={
+                <>
+                  Ask <b>Qurator</b> &laquo;<b>{item.query}</b>&raquo;
+                </>
+              }
+              primaryTypographyProps={{ variant: 'body2' }}
+            />
+            <span className={classes.askWhere}>natural language</span>
+          </M.MenuItem>
+        ) : (
+          <M.MenuItem
+            button
+            className={classes.item}
+            component={Link}
+            key={item.key}
+            selected={selected === index}
+            to={item.url}
+          >
+            <M.ListItemText
+              primary={
+                <>
+                  Search {item.what} {item.where}
+                </>
+              }
+              primaryTypographyProps={{ variant: 'body2' }}
+            />
+          </M.MenuItem>
+        ),
+      )}
       <div className={classes.help}>
         Learn the{' '}
         <StyledLink
@@ -105,19 +148,21 @@ interface SuggestionsContainerProps {
     paper?: string
     contents?: string
   }
+  onAsk?: ((query: string) => void) | null
   open: boolean
   suggestions: { items: Suggestion[]; selected: number }
 }
 
 export default function SuggestionsContainer({
   classes,
+  onAsk = null,
   open,
   suggestions: { items, selected },
 }: SuggestionsContainerProps) {
   if (!Array.isArray(items) || !items.length) return null
   return (
     <PaperWrapper classes={classes} open={open}>
-      {open && <SuggestionsList items={items} selected={selected} />}
+      {open && <SuggestionsList items={items} selected={selected} onAsk={onAsk} />}
     </PaperWrapper>
   )
 }

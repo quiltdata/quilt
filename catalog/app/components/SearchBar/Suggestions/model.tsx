@@ -2,14 +2,29 @@ import * as React from 'react'
 
 import * as SearchUIModel from 'containers/Search/model'
 
+import { classifyQuery } from '../classify'
+
 const { QuiltPackage, S3Object } = SearchUIModel.ResultType
 
-export interface Suggestion {
+// A destination the bar can commit to. Search suggestions are links; the Qurator
+// suggestion is an action (the assistant is not a route). Enter always commits
+// the *selected* item -- the list is the single source of truth about where the
+// query is going, so what the user sees highlighted is what happens.
+export interface SearchSuggestion {
+  kind: 'search'
   key: string
   what: React.ReactNode
   where: React.ReactNode
   url: string
 }
+
+export interface QuratorSuggestion {
+  kind: 'qurator'
+  key: string
+  query: string
+}
+
+export type Suggestion = SearchSuggestion | QuratorSuggestion
 
 function useMakeUrl() {
   const makeUrl = SearchUIModel.useMakeUrl()
@@ -55,8 +70,9 @@ const inSelectedBuckets = (buckets: readonly string[]) => {
 const global = (
   searchString: string,
   makeUrl: ReturnType<typeof useMakeUrl>,
-): Suggestion[] => [
+): SearchSuggestion[] => [
   {
+    kind: 'search',
     key: 'global-packages',
     what: what(searchString, QuiltPackage),
     where: inAllBuckets,
@@ -66,6 +82,7 @@ const global = (
     }),
   },
   {
+    kind: 'search',
     key: 'global-objects',
     what: what(searchString, S3Object),
     where: inAllBuckets,
@@ -80,8 +97,9 @@ const inBucket = (
   searchString: string,
   makeUrl: ReturnType<typeof useMakeUrl>,
   bucket: string,
-): Suggestion[] => [
+): SearchSuggestion[] => [
   {
+    kind: 'search',
     key: 'bucket-packages',
     what: what(searchString, QuiltPackage),
     where: inSelectedBuckets([bucket]),
@@ -92,6 +110,7 @@ const inBucket = (
     }),
   },
   {
+    kind: 'search',
     key: 'bucket-objects',
     what: what(searchString, S3Object),
     where: inSelectedBuckets([bucket]),
@@ -108,10 +127,11 @@ const inSearch = (
   searchString: string,
   makeUrl: ReturnType<typeof useMakeUrl>,
   model: SearchUIModel.SearchUIModel,
-): Suggestion[] => {
+): SearchSuggestion[] => {
   const otherType = model.state.resultType === QuiltPackage ? S3Object : QuiltPackage
-  const items = [
+  const items: SearchSuggestion[] = [
     {
+      kind: 'search',
       key: 'current-settings',
       what: what(searchString, model.state.resultType),
       where: (
@@ -124,6 +144,7 @@ const inSearch = (
   ]
   if (model.state.buckets.length)
     items.push({
+      kind: 'search',
       key: 'same-type-selected-buckets',
       what: what(searchString, model.state.resultType),
       where: inSelectedBuckets(model.state.buckets),
@@ -134,6 +155,7 @@ const inSearch = (
       }),
     })
   items.push({
+    kind: 'search',
     key: 'same-type-all-buckets',
     what: what(searchString, model.state.resultType),
     where: inAllBuckets,
@@ -141,6 +163,7 @@ const inSearch = (
   })
   if (model.state.buckets.length)
     items.push({
+      kind: 'search',
       key: 'other-type-selected-buckets',
       what: what(searchString, otherType),
       where: inSelectedBuckets(model.state.buckets),
@@ -151,6 +174,7 @@ const inSearch = (
       }),
     })
   items.push({
+    kind: 'search',
     key: 'other-type-all-buckets',
     what: what(searchString, otherType),
     where: inAllBuckets,
@@ -162,21 +186,37 @@ const inSearch = (
 function useItems(
   searchString: string,
   context: null | string | SearchUIModel.SearchUIModel,
-) {
+  quratorEnabled: boolean,
+): Suggestion[] {
   const makeUrl = useMakeUrl()
   return React.useMemo(() => {
-    if (!context) return global(searchString, makeUrl)
-    if (typeof context === 'string') return inBucket(searchString, makeUrl, context)
-    return inSearch(searchString, makeUrl, context)
-  }, [context, makeUrl, searchString])
+    const searchItems = (() => {
+      if (!context) return global(searchString, makeUrl)
+      if (typeof context === 'string') return inBucket(searchString, makeUrl, context)
+      return inSearch(searchString, makeUrl, context)
+    })()
+    // A natural-language query leads with the assistant, because that is where
+    // Enter goes. Putting it first (rather than routing around a search row that
+    // says "Search ...") is what keeps the highlighted row honest; the search
+    // destinations stay below it, one arrow-press away.
+    if (classifyQuery(searchString, quratorEnabled) !== 'Qurator') return searchItems
+    return [
+      { kind: 'qurator', key: 'qurator', query: searchString.trim() } as const,
+      ...searchItems,
+    ]
+  }, [context, makeUrl, quratorEnabled, searchString])
 }
 
 function useSuggestions(
   searchString: string,
   context: null | string | SearchUIModel.SearchUIModel,
+  quratorEnabled = false,
 ) {
-  const [selected, setSelected] = React.useState(0)
-  const items = useItems(searchString, context)
+  const [rawSelected, setSelected] = React.useState(0)
+  const items = useItems(searchString, context, quratorEnabled)
+  // Typing changes the list's length (the Qurator row appears and disappears);
+  // clamp so the highlight -- and therefore Enter -- always lands on a real row.
+  const selected = Math.min(Math.max(rawSelected, 0), items.length - 1)
   const cycleSelected = React.useCallback(
     (reverse: boolean) => {
       setSelected((s) => {
@@ -194,13 +234,10 @@ function useSuggestions(
     },
     [items],
   )
-  const url = React.useMemo(() => {
-    const selectedItem = items[selected]
-    return typeof selectedItem === 'string' ? selectedItem : selectedItem.url
-  }, [items, selected])
+  const item = items[selected] as Suggestion | undefined
   return React.useMemo(
-    () => ({ cycleSelected, items, selected, setSelected, url }),
-    [cycleSelected, items, selected, setSelected, url],
+    () => ({ cycleSelected, item, items, selected, setSelected }),
+    [cycleSelected, item, items, selected, setSelected],
   )
 }
 

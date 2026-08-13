@@ -112,7 +112,7 @@ export default function Search() {
   const helpClasses = useHelpStyles()
   const inputClasses = useInputStyles()
 
-  const { helpOpen, input, onClickAway, suggestions } = useState()
+  const { helpOpen, input, onAsk, onClickAway, suggestions } = useState()
   const ref = React.useRef<HTMLInputElement>(null)
   const focus = React.useCallback(() => ref.current?.focus(), [])
 
@@ -138,6 +138,7 @@ export default function Search() {
               />
               <Suggestions
                 classes={helpClasses}
+                onAsk={onAsk}
                 open={helpOpen}
                 suggestions={suggestions}
               />
