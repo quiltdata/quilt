@@ -99,7 +99,8 @@ export function useState(
   const [src, setSrc] = React.useState(initialSrc)
   const [dst, setDst] = React.useState(initialDst)
 
-  const manifest = useManifestRequest(!!open, src)
+  // disableRestore marks the copy dialog, which has no use for the entries.
+  const manifest = useManifestRequest(!!open, src, disableRestore)
   const workflowsConfig = useWorkflowsConfig(!!open, dst)
 
   const workflow = useWorkflow(manifest, workflowsConfig)
@@ -112,7 +113,15 @@ export function useState(
   const meta = useMeta(formStatus, metadataSchema, manifest)
   const files = useFiles(formStatus, entriesSchema, manifest, open)
 
-  const params = useParams(dst, workflow, name, message, metadataSchema, meta)
+  const params = useParams({
+    dst,
+    manifest,
+    message,
+    meta,
+    metadataSchema,
+    name,
+    workflow,
+  })
 
   const { create, progress, onAddReadme } = useCreateHandler(params, files, setFormStatus)
   const copy = useCopyHandler(params, setFormStatus)
