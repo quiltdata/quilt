@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import Layout, { Container } from 'components/Layout'
+import Layout, { Container, useSearchInput } from 'components/Layout'
 import assertNever from 'utils/assertNever'
 import MetaTitle from 'utils/MetaTitle'
 
@@ -19,7 +19,8 @@ function SearchLayout() {
   const tableView =
     view === SearchUIModel.View.Table &&
     resultType === SearchUIModel.ResultType.QuiltPackage
-  const [inputEl, setInputEl] = React.useState<HTMLInputElement | null>(null)
+  // The query field is the header bar's, not this screen's.
+  const searchInput = useSearchInput()
 
   const handleRefine = React.useCallback(
     (action: NoResults.Refine) => {
@@ -38,11 +39,11 @@ function SearchLayout() {
           clearFilters()
           break
         case NoResults.Refine.Search:
-          inputEl?.select()
+          searchInput.select()
           break
         case NoResults.Refine.New:
           reset()
-          inputEl?.focus()
+          searchInput.focus()
           break
         case NoResults.Refine.Network:
           // TODO: retry GQL request
@@ -52,7 +53,7 @@ function SearchLayout() {
           assertNever(action)
       }
     },
-    [inputEl, resultType, setBuckets, clearFilters, setResultType, reset],
+    [searchInput, resultType, setBuckets, clearFilters, setResultType, reset],
   )
 
   return (
@@ -60,7 +61,7 @@ function SearchLayout() {
       <MetaTitle>{searchString || 'Search'}</MetaTitle>
       {/* The query input is the persistent header search bar (ContentBar),
           bound to this screen's model -- no in-body field. */}
-      <Main inputRef={setInputEl} hideSearch>
+      <Main>
         {tableView ? (
           <TableResults
             emptySlot={<NoResults.Empty onRefine={handleRefine} />}

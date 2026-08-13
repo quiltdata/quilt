@@ -7,6 +7,7 @@ import { Sidebar } from 'containers/Sidebar'
 import BareHeader from './BareHeader'
 import * as Container from './Container'
 import { ContentBar } from './ContentBar'
+import { SearchInputProvider } from './SearchInput'
 
 const useRootStyles = M.makeStyles({
   root: {
@@ -98,24 +99,28 @@ export function Layout({
   }
 
   // The sidebar rails run full height on the left; the main column has a search
-  // bar (ContentBar) on top and the scrolling page content beneath.
+  // bar (ContentBar) on top and the scrolling page content beneath. The provider
+  // spans both so page content can reach the bar's query field, which is the
+  // only one on the page.
   return (
-    <M.Box
-      className={classes.shell}
-      bgcolor={dark ? 'primary.main' : 'background.default'}
-    >
-      <Sidebar />
-      <M.Box component="main" className={classes.main}>
-        <ContentBar />
-        <div className={cx(classes.content, !flush && classes.padded)}>
-          <Container.FullWidthProvider>
-            {!!pre && pre}
-            {!!children && <M.Box py={4}>{children}</M.Box>}
-            <M.Box flexGrow={1} />
-          </Container.FullWidthProvider>
-        </div>
+    <SearchInputProvider>
+      <M.Box
+        className={classes.shell}
+        bgcolor={dark ? 'primary.main' : 'background.default'}
+      >
+        <Sidebar />
+        <M.Box component="main" className={classes.main}>
+          <ContentBar />
+          <div className={cx(classes.content, !flush && classes.padded)}>
+            <Container.FullWidthProvider>
+              {!!pre && pre}
+              {!!children && <M.Box py={4}>{children}</M.Box>}
+              <M.Box flexGrow={1} />
+            </Container.FullWidthProvider>
+          </div>
+        </M.Box>
       </M.Box>
-    </M.Box>
+    </SearchInputProvider>
   )
 }
 

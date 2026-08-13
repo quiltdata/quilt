@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 
+import { useSearchInput } from 'components/Layout'
 import * as SearchUIModel from 'containers/Search/model'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -51,7 +52,8 @@ function PackageList({ bucket }: PackageListProps) {
   }, [bucket, searchString])
 
   const goToGlobalSearchUrl = useGoToGlobalSearchUrl()
-  const [inputEl, setInputEl] = React.useState<HTMLInputElement | null>(null)
+  // The query field is the header bar's, not this screen's.
+  const searchInput = useSearchInput()
   const handleRefine = React.useCallback(
     (action: Refine) => {
       switch (action) {
@@ -69,11 +71,11 @@ function PackageList({ bucket }: PackageListProps) {
           clearFilters()
           break
         case Refine.Search:
-          inputEl?.select()
+          searchInput.select()
           break
         case Refine.New:
           reset()
-          inputEl?.focus()
+          searchInput.focus()
           break
         case Refine.Network:
           // TODO: retry GQL request
@@ -83,14 +85,14 @@ function PackageList({ bucket }: PackageListProps) {
           assertNever(action)
       }
     },
-    [inputEl, goToGlobalSearchUrl, resultType, clearFilters, setResultType, reset],
+    [searchInput, goToGlobalSearchUrl, resultType, clearFilters, setResultType, reset],
   )
 
   const emptySlot = <NoPackages bucket={bucket} onRefine={handleRefine} />
   return (
     <>
       <MetaTitle>{titleSegments}</MetaTitle>
-      <Main inputRef={setInputEl} hideSearch>
+      <Main>
         {tableView ? (
           <TableResults bucket={bucket} emptySlot={emptySlot} onRefine={handleRefine} />
         ) : (

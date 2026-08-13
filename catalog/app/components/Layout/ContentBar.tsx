@@ -11,6 +11,8 @@ import * as SearchUIModel from 'containers/Search/model'
 import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import { useSearchInputRef } from './SearchInput'
+
 const useStyles = M.makeStyles((t) => ({
   // The band is chrome, not a card: flat (no resting shadow), square, full-bleed
   // to the rail edge, delineated by a bottom hairline, and height-registered
@@ -101,7 +103,11 @@ export function ContentBar() {
   const searchModel = SearchUIModel.useUnsafe()
   const search = useSearchState(searchModel ?? bucket ?? null)
   const anchorRef = React.useRef<HTMLDivElement>(null)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  // Shared with the page below via the Layout, which is how the search screen's
+  // refine affordances reach this field. Falls back to a local ref so the bar
+  // still works when rendered outside a Layout.
+  const localInputRef = React.useRef<HTMLInputElement | null>(null)
+  const inputRef = useSearchInputRef() ?? localInputRef
 
   // '/' (and Cmd/Ctrl+K) focuses the bar from anywhere, except while typing
   // in another input.
@@ -123,7 +129,7 @@ export function ContentBar() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [inputRef])
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
