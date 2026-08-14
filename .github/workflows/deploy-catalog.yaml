@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - master
-      # >>> TEMPORARY — REVERT BEFORE MERGING #5168 <<<
-      # There is no branch build of the catalog, so a dev stack can only ever run a
-      # master-built image and cannot exercise UI changes before they land. This
-      # branch entry, and the deploy-catalog-ecr-dev job below, build a dev-tagged
-      # image for tf-dev-support-diag. Both must go before merge.
-      - support-diagnostics-ui
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
@@ -17,7 +11,6 @@ on:
 
 jobs:
   deploy-catalog-ecr:
-    if: github.ref_name == 'master'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -73,42 +66,3 @@ jobs:
           docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
-
-  # >>> TEMPORARY — REVERT BEFORE MERGING #5168 <<<
-  # Prod ECR only, and a dev- tag, so nothing reaches the GovCloud or Marketplace
-  # registries and no master-built tag can be overwritten.
-  deploy-catalog-ecr-dev:
-    if: github.ref_name != 'master'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: catalog
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: 'catalog/package.json'
-          cache: 'npm'
-          cache-dependency-path: 'catalog/package-lock.json'
-      - run: npm ci
-      - run: npm run build
-      - name: Configure AWS credentials from Prod account
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
-          aws-region: us-east-1
-      - name: Login to Prod ECR
-        id: login-prod-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push a dev-tagged image to Prod ECR
-        env:
-          ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
-          ECR_REPOSITORY: quiltdata/catalog
-          IMAGE_TAG: dev-${{ github.sha }}
-        run: |
-          docker buildx build -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "pushed $ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"
