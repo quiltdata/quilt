@@ -152,6 +152,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           DataProductObjectMember: () => null,
           DataProductPackageEntry: () => null,
           DataProductPackageMember: () => null,
+          PredicateRule: () => null,
           DatetimeExtents: () => null,
           DatetimePackageUserMetaFacet: () => null,
           EmptySearchResultSet: () => null,

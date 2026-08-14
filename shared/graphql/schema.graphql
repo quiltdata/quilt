@@ -716,10 +716,27 @@ type DataProductPackageEntry {
   hashOrTag: String
 }
 
-# The stored fixed manifest: the two namespaces that define a data product.
+# A predicate membership rule: selects members live at read time instead of
+# enumerating them. `userMetaFilters` carries the stored [PackageUserMetaPredicate!]
+# as Json -- that vocabulary is input-only, and GraphQL forbids an input type in
+# an output position, so the readout side echoes the stored value rather than
+# mirroring five predicate types that would then have to be kept in sync.
+type PredicateRule {
+  packageNamePattern: String
+  entryPathPattern: String
+  userMetaFilters: Json
+}
+
+# The stored definition. Exactly one of the fixed manifest (objects/packages) or
+# `predicate` is populated. GraphQL has no input unions, so that constraint is
+# enforced server-side and reported as InvalidInput rather than expressed in the
+# type -- the same shape PackageUserMetaPredicate itself uses for its own
+# "one of the following" fields.
 type DataProductDefinition {
   objects: [DataProductObjectEntry!]!
   packages: [DataProductPackageEntry!]!
+  # Null for a fixed-manifest data product.
+  predicate: PredicateRule
 }
 
 # A dereferenced object entry (echoes the pinned versionId, or null = latest).
@@ -773,9 +790,22 @@ input DataProductPackageEntryInput {
   hashOrTag: String
 }
 
+# The authoring side of PredicateRule. `userMetaFilters` takes the real
+# [PackageUserMetaPredicate!] vocabulary here -- input position, so the search
+# UI's existing predicate shape is reused verbatim rather than restated.
+input PredicateRuleInput {
+  packageNamePattern: String
+  entryPathPattern: String
+  userMetaFilters: [PackageUserMetaPredicate!]
+}
+
+# Exactly one of the fixed manifest (objects/packages) or `predicate` may be
+# given. objects/packages are nullable so a predicate definition need not send
+# empty lists; server-side validation rejects both-or-neither as InvalidInput.
 input DataProductDefinitionInput {
-  objects: [DataProductObjectEntryInput!]!
-  packages: [DataProductPackageEntryInput!]!
+  objects: [DataProductObjectEntryInput!]
+  packages: [DataProductPackageEntryInput!]
+  predicate: PredicateRuleInput
 }
 
 input DataProductCreateInput {

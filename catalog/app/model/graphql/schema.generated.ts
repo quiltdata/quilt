@@ -1823,6 +1823,15 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'predicate',
+            type: {
+              kind: 'OBJECT',
+              name: 'PredicateRule',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -5464,6 +5473,40 @@ export default {
             name: 'Policy',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PredicateRule',
+        fields: [
+          {
+            name: 'entryPathPattern',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'packageNamePattern',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'userMetaFilters',
+            type: {
+              kind: 'SCALAR',
+              name: 'Json',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',

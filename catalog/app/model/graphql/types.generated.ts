@@ -424,11 +424,13 @@ export interface DataProductDefinition {
   readonly __typename: 'DataProductDefinition'
   readonly objects: ReadonlyArray<DataProductObjectEntry>
   readonly packages: ReadonlyArray<DataProductPackageEntry>
+  readonly predicate: Maybe<PredicateRule>
 }
 
 export interface DataProductDefinitionInput {
-  readonly objects: ReadonlyArray<DataProductObjectEntryInput>
-  readonly packages: ReadonlyArray<DataProductPackageEntryInput>
+  readonly objects: InputMaybe<ReadonlyArray<DataProductObjectEntryInput>>
+  readonly packages: InputMaybe<ReadonlyArray<DataProductPackageEntryInput>>
+  readonly predicate: InputMaybe<PredicateRuleInput>
 }
 
 export interface DataProductMembers {
@@ -1207,6 +1209,19 @@ export interface PolicyBucketPermission extends BucketPermission {
 export type PolicyDeleteResult = InvalidInput | Ok | OperationError
 
 export type PolicyResult = InvalidInput | OperationError | Policy
+
+export interface PredicateRule {
+  readonly __typename: 'PredicateRule'
+  readonly entryPathPattern: Maybe<Scalars['String']['output']>
+  readonly packageNamePattern: Maybe<Scalars['String']['output']>
+  readonly userMetaFilters: Maybe<Scalars['Json']['output']>
+}
+
+export interface PredicateRuleInput {
+  readonly entryPathPattern: InputMaybe<Scalars['String']['input']>
+  readonly packageNamePattern: InputMaybe<Scalars['String']['input']>
+  readonly userMetaFilters: InputMaybe<ReadonlyArray<PackageUserMetaPredicate>>
+}
 
 export interface Query {
   readonly __typename: 'Query'
