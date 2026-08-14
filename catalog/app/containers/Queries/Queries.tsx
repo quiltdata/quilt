@@ -11,7 +11,7 @@ import ElasticSearch from './ElasticSearch'
 
 const useStyles = M.makeStyles((t) => ({
   // Spaces the header card away from the search bar above it, mirroring the
-  // bucket pages.
+  // bucket and data-product pages.
   content: {
     marginTop: t.spacing(3),
   },
@@ -30,7 +30,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   // The active tab's content (Athena form/editor, ES editor) lives in its own
   // elevated white card so the header above doesn't read as an orphaned float —
-  // same padding idiom as the bucket screen's section cards.
+  // same padding idiom as the DP screen's section cards.
   section: {
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),

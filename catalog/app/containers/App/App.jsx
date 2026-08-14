@@ -9,6 +9,7 @@ import * as URLS from 'constants/urls'
 import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { NotFoundPage } from 'containers/NotFound'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
@@ -71,6 +72,9 @@ const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+const DataProduct = protect(
+  RT.mkLazy(() => import('containers/DataProduct'), Placeholder),
+)
 // The query consoles always required an authenticated actor, so gate on auth
 // regardless of the app-level protect mode.
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
@@ -94,6 +98,10 @@ const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
   const { paths, urls } = NamedRoutes.use()
+  // Admin-configured feature flag (Admin > Settings > Data Products). Reading it
+  // suspends until the catalog settings load, so the routes mount with the final
+  // value — no flash of (or transient 404 for) data-product pages.
+  const dataProducts = !!CatalogSettings.use()?.dataProducts
 
   return (
     <Switch>
@@ -183,6 +191,27 @@ export default function App() {
       <Route path={paths.bucketQueries}>
         <BucketQueriesRedirect />
       </Route>
+
+      {dataProducts && (
+        <Route path={paths.dataProductObjects}>
+          <DataProduct />
+        </Route>
+      )}
+      {dataProducts && (
+        <Route path={paths.dataProductPackage}>
+          <DataProduct />
+        </Route>
+      )}
+      {dataProducts && (
+        <Route path={paths.dataProductPackages}>
+          <DataProduct />
+        </Route>
+      )}
+      {dataProducts && (
+        <Route path={paths.dataProduct} exact>
+          <DataProduct />
+        </Route>
+      )}
 
       <Route path={paths.bucketRoot}>
         <Bucket />

@@ -6,9 +6,7 @@ import * as Icons from '@material-ui/icons'
 
 import { CONTEXT, Display, Load } from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
-import type { RouteMap } from 'containers/Bucket/Routes'
 import * as Model from 'model'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
@@ -16,6 +14,8 @@ import { readableBytes } from 'utils/string'
 import type { JsonRecord } from 'utils/types'
 
 import { Match } from './CellValue'
+import { useBucketLinks } from './links'
+import type { PackageLinkBuilder } from './links'
 
 const usePreviewStyles = M.makeStyles((t) => ({
   preview: {
@@ -130,25 +130,25 @@ interface EntryProps {
   entry: Model.GQLTypes.SearchHitPackageMatchingEntry
   onPreview: (x: PreviewEntry) => void
   packageHandle: PackageHandle
+  links: PackageLinkBuilder
 }
 
-function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
+function Entry({ className, entry, onPreview, packageHandle, links }: EntryProps) {
   const classes = useEntryStyles()
-  const { urls } = NamedRoutes.use<RouteMap>()
-  const inBucket = React.useMemo(() => {
-    const { bucket, key, version } = s3paths.parseS3Url(entry.physicalKey)
-    return {
+  const inBucket = React.useMemo(
+    () => ({
       title: decodeURI(entry.physicalKey),
-      to: urls.bucketFile(bucket, key, { version }),
-    }
-  }, [entry.physicalKey, urls])
-  const inPackage = React.useMemo(() => {
-    const { bucket, name, hash } = packageHandle
-    return {
+      to: links.physicalObject(s3paths.parseS3Url(entry.physicalKey)),
+    }),
+    [entry.physicalKey, links],
+  )
+  const inPackage = React.useMemo(
+    () => ({
       title: decodeURIComponent(entry.logicalKey),
-      to: urls.bucketPackageTree(bucket, name, hash, entry.logicalKey),
-    }
-  }, [entry.logicalKey, packageHandle, urls])
+      to: links.packageEntry(packageHandle, entry.logicalKey),
+    }),
+    [entry.logicalKey, packageHandle, links],
+  )
   const handlePreview = React.useCallback(
     () => onPreview({ type: 'content', entry, to: inPackage.to }),
     [entry, onPreview, inPackage],
@@ -264,10 +264,20 @@ interface EntriesProps {
   entries: readonly Model.GQLTypes.SearchHitPackageMatchingEntry[]
   packageHandle: PackageHandle
   totalCount: number
+  links?: PackageLinkBuilder
 }
 
-export default function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
-  const { urls } = NamedRoutes.use<RouteMap>()
+export default function Entries({
+  entries,
+  packageHandle,
+  totalCount,
+  links: linksProp,
+}: EntriesProps) {
+  const bucketLinks = useBucketLinks()
+  // INVARIANT: DP call sites (containers/DataProduct PackagesTab) MUST pass
+  // `links`; omitting it falls back to /b/<bucket>/ routes, breaking the DP
+  // no-/b/ invariant (guarded by a DP regression test).
+  const links = linksProp ?? bucketLinks
 
   const classes = useStyles()
   const ref = React.useRef<HTMLDivElement>(null)
@@ -309,6 +319,7 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
                 entry={entry}
                 onPreview={setPreview}
                 packageHandle={packageHandle}
+                links={links}
               />
             ))}
             {!!hiddenEntriesCount && (
@@ -318,12 +329,7 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
                   className={cx(classes.cell, classes.totalCount)}
                 >
                   <M.Typography variant="caption" component="p">
-                    <StyledLink
-                      to={urls.bucketPackageDetail(
-                        packageHandle.bucket,
-                        packageHandle.name,
-                      )}
-                    >
+                    <StyledLink to={links.packageDetail(packageHandle)}>
                       Package contains{' '}
                       {hiddenEntriesCount === 1
                         ? 'one more entry'

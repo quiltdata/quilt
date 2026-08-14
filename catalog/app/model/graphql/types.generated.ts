@@ -398,6 +398,101 @@ export interface ContentIndexingSettings {
   readonly extensions: ReadonlyArray<Scalars['String']['output']>
 }
 
+export interface DataProduct {
+  readonly __typename: 'DataProduct'
+  readonly createdAt: Scalars['Datetime']['output']
+  readonly definition: DataProductDefinition
+  readonly description: Maybe<Scalars['String']['output']>
+  readonly id: Scalars['ID']['output']
+  readonly members: DataProductMembers
+  readonly name: Scalars['String']['output']
+  readonly ownerRole: Role
+  readonly title: Maybe<Scalars['String']['output']>
+}
+
+export interface DataProductCreateInput {
+  readonly definition: InputMaybe<DataProductDefinitionInput>
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly name: Scalars['String']['input']
+  readonly ownerRole: InputMaybe<Scalars['ID']['input']>
+  readonly title: InputMaybe<Scalars['String']['input']>
+}
+
+export type DataProductCreateResult = DataProduct | InvalidInput | OperationError
+
+export interface DataProductDefinition {
+  readonly __typename: 'DataProductDefinition'
+  readonly objects: ReadonlyArray<DataProductObjectEntry>
+  readonly packages: ReadonlyArray<DataProductPackageEntry>
+}
+
+export interface DataProductDefinitionInput {
+  readonly objects: ReadonlyArray<DataProductObjectEntryInput>
+  readonly packages: ReadonlyArray<DataProductPackageEntryInput>
+}
+
+export interface DataProductMembers {
+  readonly __typename: 'DataProductMembers'
+  readonly objects: ReadonlyArray<DataProductObjectMember>
+  readonly packages: ReadonlyArray<DataProductPackageMember>
+}
+
+export interface DataProductObjectEntry {
+  readonly __typename: 'DataProductObjectEntry'
+  readonly bucket: Scalars['String']['output']
+  readonly key: Scalars['String']['output']
+  readonly logicalKey: Scalars['String']['output']
+  readonly versionId: Maybe<Scalars['String']['output']>
+}
+
+export interface DataProductObjectEntryInput {
+  readonly bucket: Scalars['String']['input']
+  readonly key: Scalars['String']['input']
+  readonly logicalKey: Scalars['String']['input']
+  readonly versionId: InputMaybe<Scalars['String']['input']>
+}
+
+export interface DataProductObjectMember {
+  readonly __typename: 'DataProductObjectMember'
+  readonly bucket: Scalars['String']['output']
+  readonly key: Scalars['String']['output']
+  readonly logicalKey: Scalars['String']['output']
+  readonly versionId: Maybe<Scalars['String']['output']>
+}
+
+export interface DataProductPackageEntry {
+  readonly __typename: 'DataProductPackageEntry'
+  readonly bucket: Scalars['String']['output']
+  readonly hashOrTag: Maybe<Scalars['String']['output']>
+  readonly name: Scalars['String']['output']
+  readonly virtualName: Scalars['String']['output']
+}
+
+export interface DataProductPackageEntryInput {
+  readonly bucket: Scalars['String']['input']
+  readonly hashOrTag: InputMaybe<Scalars['String']['input']>
+  readonly name: Scalars['String']['input']
+  readonly virtualName: Scalars['String']['input']
+}
+
+export interface DataProductPackageMember {
+  readonly __typename: 'DataProductPackageMember'
+  readonly bucket: Scalars['String']['output']
+  readonly hashOrTag: Maybe<Scalars['String']['output']>
+  readonly name: Scalars['String']['output']
+  readonly package: Maybe<Package>
+  readonly virtualName: Scalars['String']['output']
+}
+
+export type DataProductSetDefinitionResult = DataProduct | InvalidInput | OperationError
+
+export interface DataProductSetOwnContentInput {
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly title: InputMaybe<Scalars['String']['input']>
+}
+
+export type DataProductSetOwnContentResult = DataProduct | InvalidInput | OperationError
+
 export interface DatetimeExtents {
   readonly __typename: 'DatetimeExtents'
   readonly max: Scalars['Datetime']['output']
@@ -570,6 +665,9 @@ export interface Mutation {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketUpdate: BucketUpdateResult
+  readonly dataProductCreate: DataProductCreateResult
+  readonly dataProductSetDefinition: DataProductSetDefinitionResult
+  readonly dataProductSetOwnContent: DataProductSetOwnContentResult
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
@@ -634,6 +732,20 @@ export interface MutationbucketSetTabulatorTableArgs {
 export interface MutationbucketUpdateArgs {
   input: BucketUpdateInput
   name: Scalars['String']['input']
+}
+
+export interface MutationdataProductCreateArgs {
+  input: DataProductCreateInput
+}
+
+export interface MutationdataProductSetDefinitionArgs {
+  definition: DataProductDefinitionInput
+  id: Scalars['ID']['input']
+}
+
+export interface MutationdataProductSetOwnContentArgs {
+  id: Scalars['ID']['input']
+  input: DataProductSetOwnContentInput
 }
 
 export interface MutationpackageConstructArgs {
@@ -1105,6 +1217,8 @@ export interface Query {
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly buckets: ReadonlyArray<Bucket>
   readonly config: Config
+  readonly dataProduct: Maybe<DataProduct>
+  readonly dataProducts: ReadonlyArray<DataProduct>
   readonly defaultRole: Maybe<Role>
   readonly me: Maybe<Me>
   readonly objectAccessCounts: Maybe<AccessCounts>
@@ -1134,6 +1248,10 @@ export interface QuerybucketAccessCountsArgs {
 
 export interface QuerybucketConfigArgs {
   name: Scalars['String']['input']
+}
+
+export interface QuerydataProductArgs {
+  id: Scalars['ID']['input']
 }
 
 export interface QueryobjectAccessCountsArgs {

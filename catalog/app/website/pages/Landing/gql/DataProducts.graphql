@@ -1,0 +1,16 @@
+query {
+  dataProducts {
+    id
+    name
+    title
+    description
+    definition {
+      objects {
+        logicalKey
+      }
+      packages {
+        virtualName
+      }
+    }
+  }
+}
