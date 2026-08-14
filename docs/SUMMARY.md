@@ -60,6 +60,7 @@
   * [quilt3.Package](api-reference/Package.md)
   * [quilt3.Bucket](api-reference/Bucket.md)
   * [quilt3.hooks](api-reference/Hooks.md)
+  * [quilt3.admin](api-reference/Admin.md)
   * [Local Catalog](Catalog/LocalMode.md)
   * [CLI, Environment](api-reference/cli.md)
   * [Known Limitations](api-reference/limitations.md)

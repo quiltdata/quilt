@@ -3,9 +3,11 @@ import * as React from 'react'
 import * as Types from 'utils/types'
 import * as workflows from 'utils/workflows'
 
+import * as ERRORS from '../../errors'
 import { getMetaValue } from '../../requests'
 
 import { WorkflowState } from './workflow'
+import { ManifestStatus } from './manifest'
 import { NameState } from './name'
 import { MessageState } from './message'
 import { MetaState } from './meta'
@@ -45,15 +47,34 @@ function workflowSelectionToWorkflow(workflow: workflows.Workflow): string | nul
   return workflow.slug
 }
 
-export function useParams(
-  dst: PackageDst,
-  workflow: WorkflowState,
-  name: NameState,
-  message: MessageState,
-  metadataSchema: SchemaStatus,
-  meta: MetaState,
-): FormParams {
+export interface FormInputs {
+  dst: PackageDst
+  manifest: ManifestStatus
+  message: MessageState
+  meta: MetaState
+  metadataSchema: SchemaStatus
+  name: NameState
+  workflow: WorkflowState
+}
+
+export function useParams({
+  dst,
+  manifest,
+  message,
+  meta,
+  metadataSchema,
+  name,
+  workflow,
+}: FormInputs): FormParams {
   return React.useMemo(() => {
+    // Entries are sent as a complete replacement list, so publishing while the manifest
+    // is unloaded would drop everything it could not report. Only a name confirmed
+    // absent is safe, so the existence check behind it fails closed (see
+    // useNameExistence). Checked first because the same failure also blocks the workflow
+    // prefill, and reporting that instead would call an existing destination safe.
+    if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
+      return Invalid(new ERRORS.SourceManifestNotLoaded())
+    }
     if (!workflow.value || workflow.status._tag === 'error') {
       return Invalid(new Error('Valid workflow required'))
     }
@@ -78,5 +99,5 @@ export function useParams(
       userMeta: getMetaValue(meta.value, metadataSchema.schema) ?? null,
       workflow: workflowSelectionToWorkflow(workflow.value),
     })
-  }, [dst, workflow, name, message, metadataSchema, meta])
+  }, [dst, workflow, name, message, metadataSchema, meta, manifest])
 }
