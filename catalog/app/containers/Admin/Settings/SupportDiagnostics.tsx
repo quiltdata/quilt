@@ -82,6 +82,14 @@ export default function SupportDiagnostics() {
   const [collecting, setCollecting] = React.useState(false)
   const [failure, setFailure] = React.useState<Failure | null>(null)
 
+  // Leaving Settings does not cancel the request -- the saga owns it, not this
+  // component -- so the download still lands, which is the behaviour we want: the
+  // collection has already run against a cluster that may be struggling, and throwing
+  // the bundle away would make the admin pay for it twice. Only the state updates are
+  // skipped, since React 17 warns on setState after unmount.
+  const mounted = React.useRef(true)
+  React.useEffect(() => () => void (mounted.current = false), [])
+
   const collect = React.useCallback(async () => {
     setCollecting(true)
     setFailure(null)
@@ -95,13 +103,13 @@ export default function SupportDiagnostics() {
       saveAs(await response.blob(), getFilename(response))
     } catch (e) {
       if (e instanceof APIConnector.HTTPError) {
-        setFailure(describe(e))
+        if (mounted.current) setFailure(describe(e))
       } else {
         Sentry.captureException(e)
-        setFailure({ severity: 'error', message: GENERIC_FAILURE })
+        if (mounted.current) setFailure({ severity: 'error', message: GENERIC_FAILURE })
       }
     } finally {
-      setCollecting(false)
+      if (mounted.current) setCollecting(false)
     }
   }, [req])
 
@@ -127,8 +135,8 @@ export default function SupportDiagnostics() {
           <>
             <M.CircularProgress size={20} className={classes.progress} />
             <M.Typography variant="body2" className={classes.progressText}>
-              Collecting&hellip; A large or unhealthy cluster takes longer; closing this
-              tab loses the download.
+              Collecting&hellip; A large or unhealthy cluster takes longer. You can leave
+              this page — the download still arrives — but closing the tab loses it.
             </M.Typography>
           </>
         )}

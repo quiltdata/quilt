@@ -152,6 +152,24 @@ describe('containers/Admin/Settings/SupportDiagnostics', () => {
     expect(container.textContent).not.toContain('<html>')
   })
 
+  it('still downloads after the admin leaves the page, without touching state', async () => {
+    // The saga owns the request, so navigating away does not cancel it: the bundle has
+    // already cost a collection against a possibly-struggling cluster, and discarding
+    // it would make the admin pay twice. State updates are the only thing skipped —
+    // React 17 warns on setState after unmount.
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let settle: (r: Response) => void = () => {}
+    mocks.req.mockReturnValue(new Promise<Response>((r) => (settle = r)))
+    const { getByText, unmount } = renderComponent()
+
+    fireEvent.click(getByText('Collect diagnostics'))
+    unmount()
+    settle(archive({}))
+
+    await waitFor(() => expect(downloaded).not.toBeNull())
+    expect(consoleError).not.toHaveBeenCalled()
+  })
+
   it('reports a failure that is not an HTTP error at all, and tells Sentry', async () => {
     // A download that dies mid-body rejects in response.blob(), not in the request,
     // so it never becomes an HTTPError. The button has to stop spinning and say
