@@ -10,6 +10,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
 import type { Bucket } from './BucketCard'
+import type { DataProductItem } from './DataProductCard'
 
 // The dense counterpart to the card grid: same buckets, same fields, one line
 // each. It exists so a long volume list can be scanned vertically without a
@@ -89,6 +90,20 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: fade(t.palette.secondary.main, 0.15),
     border: `1px solid ${t.palette.secondary.main}`,
     color: t.palette.text.primary,
+  },
+  // The right-hand column of a data product row: type chip over member counts,
+  // occupying the slot where a bucket row runs its tags and access readout.
+  dpMeta: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    gap: t.spacing(0.5),
+    marginLeft: t.spacing(2),
+  },
+  dpCounts: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
   },
 }))
 
@@ -195,20 +210,100 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
   )
 }
 
+interface DataProductRowProps {
+  dp: DataProductItem
+  divider: boolean
+}
+
+// A data product row wearing BucketRow's markup: links go to the DP's
+// virtual-bucket browse, never to a physical bucket. With no authored title the
+// name carries the title slot rather than repeating itself on both lines.
+function DataProductRow({ dp, divider }: DataProductRowProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const to = urls.dataProduct(dp.id)
+
+  const heading = dp.title || dp.name
+
+  return (
+    <M.ListItem
+      className={classes.row}
+      divider={divider}
+      data-testid="bucket-grid--data-product"
+      data-data-product={dp.name}
+    >
+      <M.ListItemAvatar className={classes.avatar}>
+        <Link aria-hidden="true" tabIndex={-1} to={to}>
+          <M.Avatar>
+            <M.Icon>view_module</M.Icon>
+          </M.Avatar>
+        </Link>
+      </M.ListItemAvatar>
+      <M.ListItemText
+        className={classes.text}
+        disableTypography
+        primary={
+          <span className={classes.heading}>
+            <Link className={classes.title} to={to} title={heading}>
+              {heading}
+            </Link>
+            {!!dp.title && (
+              <Link className={classes.name} to={to} title={dp.name} tabIndex={-1}>
+                {dp.name}
+              </Link>
+            )}
+          </span>
+        }
+        secondary={
+          dp.description ? (
+            <M.Typography
+              className={classes.description}
+              variant="body2"
+              color="textSecondary"
+              component="span"
+            >
+              {dp.description}
+            </M.Typography>
+          ) : null
+        }
+      />
+      <div className={classes.dpMeta}>
+        <M.Chip label="Data product" size="small" />
+        <span className={classes.dpCounts}>
+          {dp.packageCount} packages &middot; {dp.objectCount} objects
+        </span>
+      </div>
+    </M.ListItem>
+  )
+}
+
 interface BucketRowsProps {
   buckets: ReadonlyArray<Bucket>
+  // Data products lead the list, for the same reason they lead the grid: the
+  // sort options key off bucket-only fields. See `Buckets.jsx`.
+  dataProducts?: ReadonlyArray<DataProductItem>
   tagIsMatching?: (tag: string) => boolean
   onTagClick?: (tag: string) => void
 }
 
 export default function BucketRows({
   buckets,
+  dataProducts = [],
   tagIsMatching = () => false,
   onTagClick = () => {},
 }: BucketRowsProps) {
   return (
     <M.Paper elevation={0} variant="outlined">
       <M.List disablePadding>
+        {dataProducts.map((dp, i) => (
+          <DataProductRow
+            key={dp.id}
+            dp={dp}
+            // A divider unless this is the last row overall: DP rows precede
+            // bucket rows, so the final DP still needs one when buckets follow.
+            divider={!!buckets.length || i < dataProducts.length - 1}
+          />
+        ))}
         {buckets.map((b, i) => (
           <BucketRow
             key={b.name}

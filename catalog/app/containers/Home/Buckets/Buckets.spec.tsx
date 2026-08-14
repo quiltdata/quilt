@@ -41,10 +41,32 @@ vi.mock('utils/NamedRoutes', async () => ({
   }),
 }))
 
-// Sentinel standing in for the generated query document, so the mocked
+// Sentinels standing in for the generated query documents, so the mocked
 // `useQuery` below can dispatch on query identity.
 vi.mock('website/pages/Landing/gql/IsAdmin.generated', () => ({
   default: 'IS_ADMIN_QUERY',
+}))
+
+vi.mock('website/pages/Landing/gql/DataProducts.generated', () => ({
+  default: 'DATA_PRODUCTS_QUERY',
+}))
+
+interface MockDataProduct {
+  id: string
+  name: string
+  title: string | null
+  description: string | null
+  definition: { objects: unknown[]; packages: unknown[] }
+}
+
+let mockDataProducts: MockDataProduct[] = []
+
+// The real hook reaches S3 for catalog settings (CatalogSettings -> useS3 ->
+// useCredentials), which throws in jsdom; the flag is all this component wants.
+let mockDataProductsEnabled = false
+
+vi.mock('utils/CatalogSettings', () => ({
+  use: () => ({ dataProducts: mockDataProductsEnabled }),
 }))
 
 interface QueryState {
@@ -61,6 +83,8 @@ const useQueryMock = vi.fn((query: string): QueryState => {
   switch (query) {
     case 'IS_ADMIN_QUERY':
       return { data: { me: meIsAdminData }, fetching: false }
+    case 'DATA_PRODUCTS_QUERY':
+      return { data: { dataProducts: mockDataProducts }, fetching: false }
     default:
       throw new Error(`unexpected query: ${query}`)
   }

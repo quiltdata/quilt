@@ -10,6 +10,7 @@ import * as Lab from '@material-ui/lab'
 import Pagination from 'components/Pagination2'
 import SelectDropdown from 'components/SelectDropdown'
 import { useRelevantBuckets } from 'utils/Buckets'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -19,6 +20,7 @@ import usePrevious from 'utils/usePrevious'
 import BucketList, { useGridStyles } from 'containers/Home/BucketGrid/BucketList'
 import BucketRows from 'containers/Home/BucketGrid/BucketRows'
 
+import DATA_PRODUCTS_QUERY from 'website/pages/Landing/gql/DataProducts.generated'
 import IS_ADMIN_QUERY from 'website/pages/Landing/gql/IsAdmin.generated'
 
 const PER_PAGE = 15
@@ -38,6 +40,34 @@ function useIsAdmin() {
     fetching: R.F,
     error: R.F,
   })
+}
+
+// Data products the active role owns, sorted among themselves by displayed
+// label. With the admin-configured Data Products flag off the query is paused
+// (never fired) and this resolves to an empty list, so nothing about the
+// volume list changes for a catalog that does not use them.
+function useDataProducts(enabled) {
+  const data = GQL.useQuery(DATA_PRODUCTS_QUERY, undefined, { pause: !enabled })
+  const dataProducts = GQL.fold(data, {
+    data: (d) => d.dataProducts,
+    fetching: () => [],
+    error: () => [],
+  })
+  return React.useMemo(
+    () =>
+      R.sortBy(
+        (dp) => (dp.title || dp.name).toLowerCase(),
+        dataProducts.map((dp) => ({
+          id: dp.id,
+          name: dp.name,
+          title: dp.title,
+          description: dp.description,
+          objectCount: dp.definition.objects.length,
+          packageCount: dp.definition.packages.length,
+        })),
+      ),
+    [dataProducts],
+  )
 }
 
 // Order mirrors the visible Menu; 'relevance' is the default and rides with
@@ -425,6 +455,8 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
+  const dataProductsEnabled = !!CatalogSettings.use()?.dataProducts
+  const dataProducts = useDataProducts(dataProductsEnabled)
   const [page, setPage] = React.useState(1)
 
   const terms = React.useMemo(
@@ -436,27 +468,60 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   // bucket data) — kept local so each component's dependency is obvious.
   const tagIsMatching = React.useCallback((tg) => filter.includes(tg), [filter])
 
+  const anyFieldMatches = React.useMemo(() => {
+    const matches = R.allPass(R.map(R.includes, terms))
+    return R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
+  }, [terms])
+
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
-    const matches = R.allPass(R.map(R.includes, terms))
-    const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
     return buckets.filter((b) =>
       anyFieldMatches([b.title, b.name, b.description, ...(b.tags || [])]),
     )
-  }, [terms, buckets])
+  }, [terms, anyFieldMatches, buckets])
+
+  // Data products have no tags and no relevanceScore, so they take the same
+  // free-text filter over the fields they do have.
+  const filteredDps = React.useMemo(() => {
+    if (!terms.length) return dataProducts
+    return dataProducts.filter((dp) =>
+      anyFieldMatches([dp.title, dp.name, dp.description]),
+    )
+  }, [terms, anyFieldMatches, dataProducts])
 
   const sorted = React.useMemo(() => sortBuckets(filtered, sort), [filtered, sort])
 
-  const pages = Math.ceil(sorted.length / PER_PAGE)
+  // Data products lead, already sorted by label in useDataProducts. The sort
+  // options key off bucket-only fields (title, relevanceScore), so there is no
+  // defensible interleaving — a DP run followed by a bucket run keeps each
+  // group's order meaningful. Consequence: picking a sort does not reorder the
+  // data products.
+  const total = filteredDps.length + sorted.length
+  const pages = Math.ceil(total / PER_PAGE)
 
-  const paginated = React.useMemo(
-    () => (pages <= 1 ? sorted : sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE)),
-    [sorted, pages, page],
-  )
+  // One page slices the concatenation, so a page can hold the tail of the DP
+  // run and the head of the bucket run.
+  const paginated = React.useMemo(() => {
+    if (pages <= 1) return { dataProducts: filteredDps, buckets: sorted }
+    const start = (page - 1) * PER_PAGE
+    const end = page * PER_PAGE
+    const dpTotal = filteredDps.length
+    return {
+      dataProducts: filteredDps.slice(Math.min(start, dpTotal), Math.min(end, dpTotal)),
+      buckets: sorted.slice(Math.max(0, start - dpTotal), Math.max(0, end - dpTotal)),
+    }
+  }, [filteredDps, sorted, pages, page])
 
   usePrevious(page, (prev) => {
     if (prev && page !== prev && scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  })
+
+  // Reset to page 1 whenever the rendered set changes shape, from either side.
+  usePrevious(total, (prev) => {
+    if (prev != null && total !== prev) {
+      setPage(1)
     }
   })
 
@@ -466,11 +531,12 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     }
   })
 
-  const noBuckets = !buckets.length
-  const noMatch = !noBuckets && !sorted.length
+  // A catalog with no buckets but some data products is not empty.
+  const noBuckets = !buckets.length && !dataProducts.length
+  const noMatch = !noBuckets && !total
 
-  // Both views take the same props over the same page of buckets: the toggle
-  // swaps the renderer and nothing else.
+  // Both views take the same props over the same page: the toggle swaps the
+  // renderer and nothing else.
   const View = view === VIEW_LIST ? BucketRows : BucketList
 
   return (
@@ -480,7 +546,12 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
       ) : noMatch ? (
         <NoMatch filter={filter} />
       ) : (
-        <View buckets={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
+        <View
+          buckets={paginated.buckets}
+          dataProducts={paginated.dataProducts}
+          tagIsMatching={tagIsMatching}
+          onTagClick={onTagClick}
+        />
       )}
       <div className={classes.controls}>
         <M.Box>
