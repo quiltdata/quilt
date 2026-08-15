@@ -39,10 +39,19 @@ Ten commits on `dx-dp-compose`, working tree clean.
 separately at the top, a selector to enable/disable each group, and the two
 groups sorting independently. It is real code, not a spec.
 
-**Verification, re-run just now:** 28/28 tests pass across the four
-`DataProduct` spec files. `tsc --noEmit` clean for the touched modules. `oxlint`
-clean apart from two pre-existing errors in `internals/webpack/webpack.{prod,dev}.js`
-that predate this branch and are not mine to fix.
+**Verification, re-run just now:**
+
+- **Full catalog suite: 1324 passed, 8 failed, 1 skipped across 150 files.** All 8
+  failures are in `app/utils/spreadsheets/spreadsheets.spec.ts` and none are mine.
+  They are a timezone artifact: the expected dates come back off by exactly one
+  day (`1990-09-22` → `1990-09-21`). Re-running that file as
+  `TZ=UTC npx vitest run app/utils/spreadsheets` gives **25/25 green**. So the
+  suite requires `TZ=UTC` — the same requirement `gql:generate` already has.
+  Nothing is broken; the invocation is.
+- 28/28 across the four `DataProduct` spec files.
+- `tsc --noEmit` clean for the touched modules.
+- `oxlint` clean apart from two errors in `internals/webpack/webpack.{prod,dev}.js`
+  (`'path' is declared but never used`) that predate this branch.
 
 ## Convoy status
 
