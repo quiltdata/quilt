@@ -149,10 +149,25 @@ here. The split:
 
 ## What I need from you
 
-1. **`qu-ii4`** — confirm the operational constraint, or approve weakening the
-   contract? This unblocks three beads including the last Phase 5 item.
-2. **Registry access** — add `quiltdata/enterprise` as a rig so the resolver work
-   can proceed, or park it for a different run?
+1. **Registry access** — add `quiltdata/enterprise` as a rig so the resolver work
+   can proceed, or park it for a different run? **This is the only decision that
+   unblocks anything**; see the note below.
+2. **`qu-ii4`** — confirm the operational constraint, or approve weakening the
+   contract? Needed, but not urgent, and not sufficient on its own.
 3. **Bead writes** — authorize `gc bd close` so status stops lying about progress.
 4. **`qu-nnw`** — overwrite the prepare artifact, write the schema'd summary to a
    new path, or leave it as it stands here?
+
+**Correction, made after this section was first written.** I originally listed
+`qu-ii4` first and said it "unblocks three beads." That was wrong, and I found it by
+tracing the convoy's dependency edges instead of trusting my own earlier summary.
+
+All four `qu-ii4`-affected beads sit behind `qu-0h4`, and `qu-0h4` depends on `qu-46w`
+and `qu-ncy` — both resolver work in `quiltdata/enterprise`. So a `qu-ii4` decision
+opens no work by itself; it is a second gate on `qu-lkj`, which is behind the registry
+anyway. The registry is the single binding constraint on everything that remains.
+
+The practical consequence: the cheaper `qu-ii4` route asks someone to go run a
+deployed-build check. Worth knowing before they spend that time that it buys no
+unblocked work until the registry is also in hand. Full edge list in
+`version-pinning.md`.

@@ -103,10 +103,35 @@ Convoy 4 (`c4-pins`) is blocked, and with it:
   resolution across both."* For a member with no version id the captured resolution
   names a mutable location, so what survives an edit or a delete is a reference, not
   the bytes. The edit/delete mechanics and the deleted-view-resolves-to-not-found
-  clause are independent of pinning and stay implementable; only the retention
-  guarantee inherits the refutation.
+  clause are independent of pinning and stay implementable in principle — but see the
+  next section: nothing here can start early regardless.
 
 Phases 1–3 and the rest of Phase 5 stand.
+
+## This refutation is not the binding constraint
+
+Written after tracing the convoy's actual dependency edges, which I had not done when
+the section above was first written. It corrects an implication of that section.
+
+Every bead listed above sits behind `qu-0h4`, and `qu-0h4` itself depends on `qu-46w`
+(resolve a predicate rule via packages-search) and `qu-ncy` (authorize the consuming
+principal per member and revision). Both are resolver work in `quiltdata/enterprise`.
+The edges:
+
+- `qu-0h4` → `qu-46w`, `qu-ncy` — both registry-side
+- `qu-lkj` → `qu-ii4`, `qu-0h4`
+- `qu-nre` → `qu-0h4`, `qu-o02` (`qu-o02` is landed)
+- `qu-ekh` → `qu-0h4`
+
+So resolving `qu-ii4` — by either route — **unblocks nothing on its own.** It is a
+second gate on `qu-lkj` alone, and `qu-lkj` is behind the registry either way. The
+registry is the single binding constraint on the whole remainder of the plan.
+
+This matters most for the cheaper of the two routes out. "Confirm the operational
+constraint" asks for a deployed-build check, which costs someone real time; it is
+worth knowing in advance that paying that cost opens no work until the registry is
+also available. The finding still needs recording and the decision still needs making
+— but it is not on the critical path, and should not be treated as urgent.
 
 ## What would unblock it
 
