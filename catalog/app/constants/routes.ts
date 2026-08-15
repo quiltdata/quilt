@@ -21,9 +21,9 @@ export const home = route(
 )
 
 // The volume list. It lives at its own path rather than at `/` because `/` is
-// the front door, which is a different page whenever `frontDoorV2` is on; with
-// the flag off the two render the same thing. Link here -- not to `home()` --
-// for anything that means "the list of buckets".
+// the front door, which is a different page whenever the `front-door` preview
+// feature is on; with it off the two render the same thing. Link here -- not to
+// `home()` -- for anything that means "the list of buckets".
 export const buckets = route('/buckets', () => '/buckets')
 
 export const install = route('/install', () => '/install')

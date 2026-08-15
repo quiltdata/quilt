@@ -34,6 +34,15 @@ export interface CatalogSettings {
     url: string
     label: string
   }
+  // Per-capability preview switches, one key per entry in the `utils/features`
+  // registry. Typed as an open record rather than the registry's `FeatureId`
+  // union on purpose: this module must not import `utils/features`, which
+  // imports this one. The registry owns the narrowing and the reads.
+  //
+  // Keys for capabilities that no longer exist are inert, so retiring a flag is
+  // deleting its registry entry -- no settings migration.
+  features?: Record<string, boolean>
+
   logo?: {
     url: string
   }

@@ -11,8 +11,9 @@ import BucketsTile from './Tiles/BucketsTile'
 import RecentPackagesTile from './Tiles/RecentPackagesTile'
 import TablesTile from './Tiles/TablesTile'
 
-// The front door: one bar over a few "jump back in" tiles, shown at `/` when
-// `frontDoorV2` is on (otherwise `/` is the volume list, same as before).
+// The front door: one bar over a few "jump back in" tiles, shown at `/` when an
+// admin turns on the `front-door` preview feature (otherwise `/` is the volume
+// list, same as before).
 //
 // The prototype this came from (frontdoor/v3-eval) staged it as a marketing
 // hero -- gradient ground, masked cobalt dot grid, 40px/300 display type over

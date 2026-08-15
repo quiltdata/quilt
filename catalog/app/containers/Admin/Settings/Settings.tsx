@@ -11,6 +11,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
+import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
 import SearchSettings from './SearchSettings'
 import TabulatorSettings from './TabulatorSettings'
@@ -329,6 +330,20 @@ export default function Settings() {
             <BetaSwitch />
           </M.Paper>
         </M.Grid>
+        {/* Absent entirely when this build declares no preview capabilities,
+            rather than rendering an empty card. */}
+        {HAS_PREVIEW_FEATURES && (
+          <M.Grid item xs={6}>
+            <M.Paper className={classes.group}>
+              <M.Typography variant="h6" className={classes.sectionHeading}>
+                Preview features
+              </M.Typography>
+              <React.Suspense fallback={<M.CircularProgress />}>
+                <FeatureSettings />
+              </React.Suspense>
+            </M.Paper>
+          </M.Grid>
+        )}
       </M.Grid>
 
       <M.Typography variant="h5" className={classes.title}>

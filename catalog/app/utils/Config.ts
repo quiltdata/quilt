@@ -46,11 +46,6 @@ export interface ConfigJson {
   qurator?: boolean
   quratorDefaultModel?: string
 
-  // Renders the front door at `/` instead of the volume list. Absent means off;
-  // there is no `${FRONT_DOOR_V2}` in config.json.tmpl yet, so enabling it takes
-  // a hand-edited config until the stack learns to emit the key.
-  frontDoorV2?: boolean
-
   build_version?: string // not sure where this comes from
   stackVersion: string
   packageRoot?: string

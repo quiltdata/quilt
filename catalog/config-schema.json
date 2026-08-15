@@ -93,10 +93,6 @@
       "type": "string",
       "description": "Bedrock model ID for Qurator AI Assistant (overrides built-in default)"
     },
-    "frontDoorV2": {
-      "type": "boolean",
-      "description": "Show the front door at / instead of the bucket list. Off when absent."
-    },
     "stackVersion": {
       "type": "string",
       "description": "Stack release version"
