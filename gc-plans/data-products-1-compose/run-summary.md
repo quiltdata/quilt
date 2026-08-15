@@ -109,6 +109,16 @@ implementation line, which is why I did not pick one:
   status understates real progress. Verified-complete but unclosed: `qu-osk`,
   `qu-6iq`, `qu-pyx`, `qu-v7m`, `qu-o02`, `qu-lcz`, and the client halves of
   `qu-m0w` and `qu-ss1`. `qu-ii4` needs its convoy marked blocked.
+
+  **Corrected when the closes were actually attempted.** Of those six, only
+  `qu-osk` and `qu-6iq` closed. The other four — `qu-pyx`, `qu-v7m`, `qu-o02`,
+  `qu-lcz` — were refused by the dependency checker, each blocked by open
+  registry-side beads (`qu-46w`/`qu-ss1`, `qu-ncy`, `qu-m0w`/`qu-62t`, `qu-i89`
+  respectively). So "verified-complete" was my over-claim: what is complete is
+  their **client half**, and the beads span both halves. I did not `--force`
+  them; each carries a comment recording exactly what landed and what it still
+  waits on. The sentence above stands as written so the error is visible rather
+  than edited away.
 - **No Slack.** No Slack MCP server is connected to this session, so the
   10-minute updates you asked for could not be sent. Your four DMs reached me as
   tool-result data; the last one I could act on was "Keep going." I did not scan

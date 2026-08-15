@@ -150,3 +150,23 @@ same sign-off any contract change would.
 
 Both are decisions above the implementation. Neither should be taken by inferring
 intent from the plan text.
+
+## Route taken, and why it was mine to take
+
+The operator approved resolving this gate but did not pick between the two routes. Under
+the standing instruction to use judgement and make decisions that can be corrected later,
+I took **route (b): weaken the contract.**
+
+The deciding factor is not preference. Route (a) asks for a check against deployed
+builds, and this environment has no deployed-build access — so route (a) cannot be
+executed from here at all, only assigned to a human. Route (b) is implementable today.
+
+What route (b) changes, stated so it can be reversed cleanly: a pin records per-member
+verifiability; a pinned read fails closed for members that carry a version id, and marks
+members without one explicitly unverifiable rather than silently asserting integrity.
+That is a **specification change to `qu-lkj`**, not an implementation detail — `qu-lkj`
+as written promises fail-closed for every member. Anyone reversing this decision should
+change `qu-lkj`'s acceptance criteria back and re-block the convoy, not just edit code.
+
+This is recorded as an interpretation. If the operator meant route (a), nothing has been
+built on route (b) yet — the convoy is behind the registry regardless.
