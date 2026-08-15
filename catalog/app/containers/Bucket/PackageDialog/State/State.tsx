@@ -102,7 +102,7 @@ export function useState(
   const manifest = useManifestRequest(!!open, src)
   const workflowsConfig = useWorkflowsConfig(!!open, dst)
 
-  const workflow = useWorkflow(manifest, workflowsConfig)
+  const workflow = useWorkflow(formStatus, manifest, workflowsConfig)
 
   const metadataSchema = useMetadataSchema(workflow.value)
   const entriesSchema = useEntriesSchema(workflow.value)
