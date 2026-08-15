@@ -123,14 +123,19 @@ implementation line, which is why I did not pick one:
 Roughly **two thirds of the plan by bead count is registry-side** and cannot start
 here. The split:
 
-- **Ready the moment `quiltdata/enterprise` is a rig** (10 beads): `qu-ncy`,
-  `qu-i89`, `qu-46w`, `qu-62t`, `qu-dun`, `qu-48p`, `qu-ekh`, `qu-lk0`, plus the
-  resolver halves of `qu-ss1` and `qu-m0w`. These are well-specified; the client
-  contracts they must satisfy are already committed and tested, which should make
-  them fast.
-- **Blocked on your `qu-ii4` decision** (3 beads): `qu-0h4`, `qu-lkj`, and
-  `qu-nre` transitively. `qu-nre` is the only user-visible casualty — the last
-  open bead in Phase 5.
+- **Ready the moment `quiltdata/enterprise` is a rig** (9 beads): `qu-ncy`,
+  `qu-i89`, `qu-46w`, `qu-62t`, `qu-dun`, `qu-48p`, `qu-lk0`, plus the resolver
+  halves of `qu-ss1` and `qu-m0w`. These are well-specified; the client contracts
+  they must satisfy are already committed and tested, which should make them fast.
+- **Blocked on your `qu-ii4` decision** (4 beads): `qu-0h4`, `qu-lkj`, `qu-nre`
+  transitively, and `qu-ekh` in part. `qu-nre` is the only user-visible casualty —
+  the last open bead in Phase 5.
+
+  I had `qu-ekh` mis-filed in the enterprise bucket until I checked Phase 4's
+  actual membership: it is a `b4` bead, and its clause *"existing pins retain
+  their captured resolution"* inherits the refutation the same way `qu-lkj`'s
+  integrity clause does. Its edit/delete mechanics remain independently
+  implementable. `version-pinning.md` has been corrected to match.
 - **Client-side work available now: none.** That surface is exhausted.
 
 ## What I need from you

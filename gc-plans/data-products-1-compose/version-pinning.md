@@ -98,8 +98,15 @@ Convoy 4 (`c4-pins`) is blocked, and with it:
 - `qu-nre` — pin capture, listing, and pinned-vs-live distinction. Blocked
   transitively through `qu-0h4`. This is the one user-visible casualty: it is the last
   open bead in Phase 5, whose other four are landed.
+- `qu-ekh` — edit and delete semantics for view definitions. Partially affected, and
+  the affected part is the middle clause: *"existing pins retain their captured
+  resolution across both."* For a member with no version id the captured resolution
+  names a mutable location, so what survives an edit or a delete is a reference, not
+  the bytes. The edit/delete mechanics and the deleted-view-resolves-to-not-found
+  clause are independent of pinning and stay implementable; only the retention
+  guarantee inherits the refutation.
 
-Nothing else in the plan depends on this. Phases 1–3 and the rest of Phase 5 stand.
+Phases 1–3 and the rest of Phase 5 stand.
 
 ## What would unblock it
 
