@@ -146,6 +146,24 @@ here. The split:
   `qu-i89`, `qu-46w`, `qu-62t`, `qu-dun`, `qu-48p`, `qu-lk0`, plus the resolver
   halves of `qu-ss1` and `qu-m0w`. These are well-specified; the client contracts
   they must satisfy are already committed and tested, which should make them fast.
+
+  **Falsified once the rig was actually added.** The bullet above assumed these
+  were resolver work waiting on access. They are not. There is **no DataProduct
+  surface in either repo** — verified independently in both, citations in
+  `registry-scope.md`. So "well-specified" holds and "should make them fast" does
+  not: this is a greenfield subsystem, not resolver infill. Three specifics:
+
+  - Persistence was covered by **no bead at all**. Filed `qu-170` and wired the
+    other eight behind it; it is now the only ready bead in the plan.
+  - `qu-ss1` is **blocked** per its own A15, which asked which of two repos held
+    the resolver. The answer is neither.
+  - `qu-ncy` (P0) **cannot be met as written** — the registry's only
+    authorization grain is the bucket, so per-revision authz is not enforceable
+    by any ACL that exists. Needs an operator decision; see below.
+
+  I also had `qu-m0w` mis-filed here. Its files are `catalog/app/**` and its
+  verification is `npm test -- packageItems` — client work, gated on the server
+  surface existing.
 - **Blocked on your `qu-ii4` decision** (4 beads): `qu-0h4`, `qu-lkj`, `qu-nre`
   transitively, and `qu-ekh` in part. `qu-nre` is the only user-visible casualty —
   the last open bead in Phase 5.
@@ -167,6 +185,26 @@ here. The split:
 3. **Bead writes** — authorize `gc bd close` so status stops lying about progress.
 4. **`qu-nnw`** — overwrite the prepare artifact, write the schema'd summary to a
    new path, or leave it as it stands here?
+
+**All four answered; a fifth has replaced them.** 1–3 were approved and are done:
+the enterprise rig is registered and suspended, the branch is pushed as
+`catalog/data-products-compose`, the backlog is closed as far as the dependency
+graph allows, and `qu-ii4` took route (b) with reversal instructions recorded.
+`qu-nnw` still stands as written — `run-summary.md` remains its substitute.
+
+The open decision is now **`qu-ncy`'s authorization grain**, and it is a real
+product question rather than a blocked-on-tooling one:
+
+- **Accept the reduction** — authorize each member by bucket, and guarantee by
+  construction that the served revision is the resolved one. Honest,
+  implementable today, testable. `qu-ncy`'s acceptance criteria need rewording.
+- **Build revision-grained authorization** — a new ACL grain in a product that
+  has never had one. Large, and it changes the permission model for everything,
+  not just data products.
+
+I did not pick. Both are executable here, so unlike `qu-ii4` the choice is not
+forced by what this environment can reach — it is a decision about how strong a
+promise to make. Reasoning and citations in `registry-scope.md`.
 
 **Correction, made after this section was first written.** I originally listed
 `qu-ii4` first and said it "unblocks three beads." That was wrong, and I found it by
