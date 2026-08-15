@@ -354,11 +354,11 @@ function ZeroState({ isAdmin }) {
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
-        No buckets yet
+        No volumes yet
       </M.Typography>
       <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
         {isAdmin
-          ? 'Add a bucket to make it searchable and browsable here.'
+          ? 'Add a volume to make it searchable and browsable here.'
           : "Your workspace admin hasn't connected one yet."}
       </M.Typography>
     </M.Paper>
@@ -370,7 +370,7 @@ function NoMatch({ filter }) {
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
-        No buckets matching <b>&quot;{filter}&quot;</b>
+        No volumes matching <b>&quot;{filter}&quot;</b>
       </M.Typography>
     </M.Paper>
   )
@@ -590,7 +590,7 @@ export default function Buckets() {
         <div className={classes.filterRow}>
           <M.TextField
             className={classes.filter}
-            placeholder="Filter buckets"
+            placeholder="Filter volumes"
             variant="outlined"
             margin="dense"
             fullWidth

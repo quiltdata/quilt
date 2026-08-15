@@ -46,8 +46,8 @@ describe('website/pages/Landing/FrontDoor/Tiles/BucketsTile', () => {
 
   it('renders an empty state when there are no buckets', () => {
     const { getByText } = renderTile()
-    expect(getByText('Buckets')).toBeTruthy()
-    expect(getByText('No buckets yet')).toBeTruthy()
+    expect(getByText('Volumes')).toBeTruthy()
+    expect(getByText('No volumes yet')).toBeTruthy()
   })
 
   it('bounds the collapsed list to four buckets with a view-all affordance', () => {
@@ -56,20 +56,20 @@ describe('website/pages/Landing/FrontDoor/Tiles/BucketsTile', () => {
     expect(getByText('bucket-00')).toBeTruthy()
     expect(getByText('bucket-03')).toBeTruthy()
     expect(queryByText('bucket-04')).toBeNull()
-    expect(getByText('View all 7 buckets')).toBeTruthy()
+    expect(getByText('View all 7 volumes')).toBeTruthy()
   })
 
   it('links the view-all affordance to the /buckets page', () => {
     useRelevantBuckets.mockReturnValue(mkBuckets(7))
     const { getByText } = renderTile()
-    const link = getByText('View all 7 buckets').closest('a')
+    const link = getByText('View all 7 volumes').closest('a')
     expect(link?.getAttribute('href')).toBe('/buckets')
   })
 
   it('shows a browse-all affordance even when nothing is truncated', () => {
     useRelevantBuckets.mockReturnValue(mkBuckets(2))
     const { getByText } = renderTile()
-    const link = getByText('Browse all buckets').closest('a')
+    const link = getByText('Browse all volumes').closest('a')
     expect(link?.getAttribute('href')).toBe('/buckets')
   })
 })

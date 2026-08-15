@@ -171,9 +171,9 @@ describe('website/pages/Landing/Buckets', () => {
     mockBuckets = []
     meIsAdminData = { isAdmin: true }
     const { queryByText } = renderBuckets()
-    expect(queryByText('No buckets yet')).toBeTruthy()
+    expect(queryByText('No volumes yet')).toBeTruthy()
     expect(
-      queryByText('Add a bucket to make it searchable and browsable here.'),
+      queryByText('Add a volume to make it searchable and browsable here.'),
     ).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeTruthy()
   })
@@ -181,7 +181,7 @@ describe('website/pages/Landing/Buckets', () => {
   it('shows a plain line (no add path) for non-admins when there are no buckets', () => {
     mockBuckets = []
     const { queryByText } = renderBuckets()
-    expect(queryByText('No buckets yet')).toBeTruthy()
+    expect(queryByText('No volumes yet')).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeFalsy()
   })
 
