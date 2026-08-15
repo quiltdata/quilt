@@ -100,6 +100,18 @@ interface InputProps {
   value: string
   onChange: (value: string) => void
   onSubmit: () => void
+  // Combobox wiring. The field owns the suggestions list below it, so it has to
+  // say so: which list, whether it's showing, and which row is highlighted.
+  // Omitted (the Qurator route shows a panel, not a list) collapses this back to
+  // a plain labelled text field.
+  listId?: string
+  expanded?: boolean
+  activeOptionId?: string | null
+  onArrow?: (reverse: boolean) => void
+  // Escape means "back out one step" -- the parent decides whether that step is
+  // dropping the highlight or clearing the query, because only it knows if a row
+  // is highlighted.
+  onEscape?: () => void
 }
 
 export default function Input({
@@ -108,6 +120,11 @@ export default function Input({
   value,
   onChange,
   onSubmit,
+  listId,
+  expanded = false,
+  activeOptionId = null,
+  onArrow,
+  onEscape,
 }: InputProps) {
   const classes = useStyles()
   const isQurator = route === 'Qurator'
@@ -121,6 +138,18 @@ export default function Input({
         className={classes.input}
         placeholder="Search or ask anything about your data…"
         value={value}
+        // The arrow-key highlight below is a CSS class unless it's announced
+        // here. `aria-controls` is required on a combobox and names the list
+        // whether or not it's currently drawn -- an unresolvable IDREF is
+        // ignored by AT. `aria-activedescendant` is the opposite: it moves the
+        // AT cursor, so naming a row that isn't there strands it.
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={expanded}
+        aria-controls={listId}
+        {...(expanded && activeOptionId
+          ? { 'aria-activedescendant': activeOptionId }
+          : null)}
         onChange={(event) => onChange(event.currentTarget.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
@@ -128,7 +157,14 @@ export default function Input({
             onSubmit()
           } else if (event.key === 'Escape') {
             event.preventDefault()
-            onChange('')
+            if (onEscape) onEscape()
+            else onChange('')
+          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            if (!onArrow) return
+            // Stop the caret from jumping to either end of the value while the
+            // same keypress is moving the highlight.
+            event.preventDefault()
+            onArrow(event.key === 'ArrowUp')
           }
         }}
       />
