@@ -33,6 +33,11 @@ export const FEATURES = {
     description:
       'Replace the volume list at / with the unified search bar and tiles. Off, / is the volume list, unchanged.',
   },
+  'elasticsearch-queries': {
+    label: 'ElasticSearch query console',
+    description:
+      'Show the ElasticSearch tab on Queries. Off, Queries is Athena only and /queries/es redirects to it.',
+  },
 } satisfies Record<string, Feature>
 
 export type FeatureId = keyof typeof FEATURES

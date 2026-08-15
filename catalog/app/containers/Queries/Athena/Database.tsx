@@ -59,6 +59,13 @@ const useSelectStyles = M.makeStyles({
   root: {
     width: '100%',
   },
+  // Catalog/database names are AWS identifiers; ellipsize rather than let them
+  // overflow, and keep the exact value reachable on hover.
+  select: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
 })
 
 interface SelectProps {
@@ -83,7 +90,9 @@ function Select({ className, data, disabled, label, onChange, value }: SelectPro
     <M.FormControl className={cx(classes.root, className)} disabled={disabled}>
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select
+        classes={{ select: classes.select }}
         onChange={handleChange}
+        SelectDisplayProps={value ? { title: value } : undefined}
         value={data.list.length ? value?.toLowerCase() || '' : EMPTY}
         disabled={disabled || !data.list.length}
       >
@@ -167,6 +176,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
 
   return (
     <Select
+      className={className}
       data={databases.data}
       disabled={!Model.hasValue(catalogName) || Model.isLoading(queryRun)}
       label="Database"
@@ -181,9 +191,14 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
   },
+  // Two equal halves. `minWidth: 0` lets a long identifier ellipsize instead of
+  // forcing the field wider than its share and squeezing its neighbour.
   field: {
-    flexBasis: '50%',
-    marginRight: t.spacing(2),
+    flex: '1 1 0',
+    minWidth: 0,
+    '&:not(:last-child)': {
+      marginRight: t.spacing(2),
+    },
   },
   button: {
     marginLeft: t.spacing(1),

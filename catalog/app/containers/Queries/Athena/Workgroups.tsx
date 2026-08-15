@@ -18,7 +18,19 @@ interface WorkgroupSelectProps {
   workgroups: Model.List<Model.Workgroup>
 }
 
+const useWorkgroupSelectStyles = M.makeStyles({
+  // Workgroup names are raw AWS identifiers that can run long; clip the selected
+  // value with an ellipsis so it can't overflow the field and collide with the
+  // query selector beside it.
+  select: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+})
+
 function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) {
+  const classes = useWorkgroupSelectStyles()
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()
@@ -47,13 +59,21 @@ function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) 
     <M.FormControl fullWidth>
       <M.InputLabel>Select workgroup</M.InputLabel>
       <M.Select
+        classes={{ select: classes.select }}
         disabled={disabled || !workgroups.list.length}
         onChange={handleChange}
+        // The truncated name keeps an escape hatch: hovering the field reveals
+        // the exact identifier.
+        SelectDisplayProps={value ? { title: value } : undefined}
         value={value || 'none'}
       >
         {workgroups.list.map((name) => (
+          // Plain text, not a `ListItemText`: the selected item's children are
+          // what `Select` renders as the field's display value, and a block-level
+          // child there defeats `text-overflow: ellipsis` — the name got clipped
+          // mid-word with no ellipsis at all.
           <M.MenuItem key={name} value={name}>
-            <M.ListItemText>{name}</M.ListItemText>
+            {name}
           </M.MenuItem>
         ))}
       </M.Select>
