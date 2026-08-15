@@ -404,7 +404,7 @@ export interface DataProduct {
   readonly definition: DataProductDefinition
   readonly description: Maybe<Scalars['String']['output']>
   readonly id: Scalars['ID']['output']
-  readonly members: DataProductMembers
+  readonly members: DataProductMembersResult
   readonly name: Scalars['String']['output']
   readonly ownerRole: Role
   readonly title: Maybe<Scalars['String']['output']>
@@ -433,11 +433,21 @@ export interface DataProductDefinitionInput {
   readonly predicate: InputMaybe<PredicateRuleInput>
 }
 
+export interface DataProductMemberSource {
+  readonly __typename: 'DataProductMemberSource'
+  readonly bucket: Scalars['String']['output']
+  readonly hash: Scalars['String']['output']
+  readonly logicalKey: Scalars['String']['output']
+  readonly packageName: Scalars['String']['output']
+}
+
 export interface DataProductMembers {
   readonly __typename: 'DataProductMembers'
   readonly objects: ReadonlyArray<DataProductObjectMember>
   readonly packages: ReadonlyArray<DataProductPackageMember>
 }
+
+export type DataProductMembersResult = DataProductMembers | SourceDenied
 
 export interface DataProductObjectEntry {
   readonly __typename: 'DataProductObjectEntry'
@@ -459,6 +469,7 @@ export interface DataProductObjectMember {
   readonly bucket: Scalars['String']['output']
   readonly key: Scalars['String']['output']
   readonly logicalKey: Scalars['String']['output']
+  readonly source: Maybe<DataProductMemberSource>
   readonly versionId: Maybe<Scalars['String']['output']>
 }
 
@@ -483,6 +494,7 @@ export interface DataProductPackageMember {
   readonly hashOrTag: Maybe<Scalars['String']['output']>
   readonly name: Scalars['String']['output']
   readonly package: Maybe<Package>
+  readonly resolvedRevision: Maybe<PackageRevision>
   readonly virtualName: Scalars['String']['output']
 }
 
@@ -1496,6 +1508,11 @@ export type SetSsoConfigResult = InvalidInput | OperationError | SsoConfig
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
   readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
+export interface SourceDenied {
+  readonly __typename: 'SourceDenied'
+  readonly rejectionClass: Scalars['String']['output']
 }
 
 export interface SsoConfig {

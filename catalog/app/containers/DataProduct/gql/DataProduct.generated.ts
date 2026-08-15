@@ -28,44 +28,53 @@ export interface containers_DataProduct_gql_DataProductQuery {
           readonly id: string
           readonly name: string
         }
-    readonly members: {
-      readonly __typename: 'DataProductMembers'
-      readonly objects: ReadonlyArray<{
-        readonly __typename: 'DataProductObjectMember'
-        readonly logicalKey: string
-        readonly bucket: string
-        readonly key: string
-        readonly versionId: string | null
-      }>
-      readonly packages: ReadonlyArray<{
-        readonly __typename: 'DataProductPackageMember'
-        readonly virtualName: string
-        readonly bucket: string
-        readonly name: string
-        readonly hashOrTag: string | null
-        readonly package: {
-          readonly __typename: 'Package'
-          readonly modified: Date
-          readonly revisions: {
-            readonly __typename: 'PackageRevisionList'
-            readonly total: number
-          }
-          readonly revision: {
-            readonly __typename: 'PackageRevision'
-            readonly hash: string
-            readonly modified: Date
-            readonly message: string | null
-            readonly totalEntries: number | null
-            readonly totalBytes: number | null
-            readonly userMeta: JsonRecord | null
-            readonly workflow: {
-              readonly __typename: 'PackageWorkflow'
-              readonly id: string | null
+    readonly members:
+      | {
+          readonly __typename: 'DataProductMembers'
+          readonly objects: ReadonlyArray<{
+            readonly __typename: 'DataProductObjectMember'
+            readonly logicalKey: string
+            readonly bucket: string
+            readonly key: string
+            readonly versionId: string | null
+            readonly source: {
+              readonly __typename: 'DataProductMemberSource'
+              readonly bucket: string
+              readonly packageName: string
+              readonly hash: string
+              readonly logicalKey: string
             } | null
-          } | null
-        } | null
-      }>
-    }
+          }>
+          readonly packages: ReadonlyArray<{
+            readonly __typename: 'DataProductPackageMember'
+            readonly virtualName: string
+            readonly bucket: string
+            readonly name: string
+            readonly hashOrTag: string | null
+            readonly resolvedRevision: {
+              readonly __typename: 'PackageRevision'
+              readonly hash: string
+              readonly modified: Date
+              readonly message: string | null
+              readonly totalEntries: number | null
+              readonly totalBytes: number | null
+              readonly userMeta: JsonRecord | null
+              readonly workflow: {
+                readonly __typename: 'PackageWorkflow'
+                readonly id: string | null
+              } | null
+            } | null
+            readonly package: {
+              readonly __typename: 'Package'
+              readonly modified: Date
+              readonly revisions: {
+                readonly __typename: 'PackageRevisionList'
+                readonly total: number
+              }
+            } | null
+          }>
+        }
+      | { readonly __typename: 'SourceDenied'; readonly rejectionClass: string }
   } | null
 }
 
@@ -151,61 +160,104 @@ export const containers_DataProduct_gql_DataProductDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
                       {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'objects' },
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'SourceDenied' },
+                        },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'logicalKey' },
+                              name: { kind: 'Name', value: 'rejectionClass' },
                             },
-                            { kind: 'Field', name: { kind: 'Name', value: 'bucket' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'key' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'versionId' } },
                           ],
                         },
                       },
                       {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'packages' },
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'DataProductMembers' },
+                        },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'virtualName' },
-                            },
-                            { kind: 'Field', name: { kind: 'Name', value: 'bucket' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'hashOrTag' } },
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'package' },
+                              name: { kind: 'Name', value: 'objects' },
                               selectionSet: {
                                 kind: 'SelectionSet',
                                 selections: [
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'modified' },
+                                    name: { kind: 'Name', value: 'logicalKey' },
                                   },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'revisions' },
+                                    name: { kind: 'Name', value: 'bucket' },
+                                  },
+                                  { kind: 'Field', name: { kind: 'Name', value: 'key' } },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'versionId' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'source' },
                                     selectionSet: {
                                       kind: 'SelectionSet',
                                       selections: [
                                         {
                                           kind: 'Field',
-                                          name: { kind: 'Name', value: 'total' },
+                                          name: { kind: 'Name', value: 'bucket' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'packageName' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'hash' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'logicalKey' },
                                         },
                                       ],
                                     },
                                   },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'packages' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'revision' },
+                                    name: { kind: 'Name', value: 'virtualName' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'bucket' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'hashOrTag' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'resolvedRevision' },
                                     selectionSet: {
                                       kind: 'SelectionSet',
                                       selections: [
@@ -242,6 +294,32 @@ export const containers_DataProduct_gql_DataProductDocument = {
                                               {
                                                 kind: 'Field',
                                                 name: { kind: 'Name', value: 'id' },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'package' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'modified' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'revisions' },
+                                          selectionSet: {
+                                            kind: 'SelectionSet',
+                                            selections: [
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'total' },
                                               },
                                             ],
                                           },

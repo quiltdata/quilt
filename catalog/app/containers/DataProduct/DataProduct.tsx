@@ -16,6 +16,7 @@ import * as Icons from '@material-ui/icons'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import Empty from 'components/Empty'
+import * as Hash from 'components/Hash'
 import Layout, { Container } from 'components/Layout'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
@@ -45,11 +46,21 @@ import * as s3paths from 'utils/s3paths'
 
 import DP_QUERY from './gql/DataProduct.generated'
 import type { containers_DataProduct_gql_DataProductQuery as DataProductQuery } from './gql/DataProduct.generated'
-import { toPackageItem } from './packageItems'
+import { effectiveRevision, toPackageItem } from './packageItems'
 import type { PackageItem, PackageMember } from './packageItems'
 
-type DataProduct = NonNullable<DataProductQuery['dataProduct']>
-type ObjectMember = DataProduct['members']['objects'][number]
+type DataProductRaw = NonNullable<DataProductQuery['dataProduct']>
+type MembersResult = DataProductRaw['members']
+type Members = Extract<MembersResult, { __typename: 'DataProductMembers' }>
+
+// The DP as everything below the screen sees it: membership resolved, never
+// denied. Narrowing happens once, in DataProductScreen -- if any resolved member
+// is unreadable the registry refuses the whole membership, so there is no state
+// in which a tab holds a partial list and needs to say so itself.
+type DataProduct = Omit<DataProductRaw, 'members'> & { members: Members }
+
+type ObjectMember = Members['objects'][number]
+type MemberSource = NonNullable<ObjectMember['source']>
 
 // The Listing rows are plain navigation links; nothing here mutates, so reload
 // is a no-op.
@@ -219,6 +230,21 @@ const useStyles = M.makeStyles((t) => ({
   readme: {
     marginBottom: t.spacing(3),
   },
+  // The Sources table: provenance for every object member under the folder
+  // currently open. Monospace on the identity columns, because what
+  // distinguishes two rows is often a few characters deep inside a path or a
+  // hash, and a proportional face hides exactly that.
+  sources: {
+    marginTop: t.spacing(3),
+  },
+  sourceCell: {
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.body2.fontSize,
+    whiteSpace: 'nowrap',
+  },
+  sourceMuted: {
+    color: t.palette.text.secondary,
+  },
 }))
 
 type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
@@ -266,6 +292,53 @@ function Header({ dp }: HeaderProps) {
         {summary}
       </M.Typography>
     </div>
+  )
+}
+
+// The all-or-nothing refusal (`source-denied`). A data product resolves to a set
+// of members; if the consuming principal cannot read every one of them, the
+// registry returns no membership at all rather than the subset they can read.
+//
+// A filtered list would be the more comfortable design and the wrong one: it
+// reads exactly like a complete answer, so a reader would draw conclusions from
+// a data product silently missing the rows they lack access to.
+//
+// This surface therefore shows the product's own authored identity -- which the
+// caller could already see to have got here -- and nothing derived from a
+// member. No count, no name, no path, no revision, not even "some of N".
+export function SourceDeniedScreen({ name }: { name: string }) {
+  const classes = useStyles()
+  return (
+    <Container className={classes.content}>
+      <MetaTitle>{name}</MetaTitle>
+      <M.Paper className={classes.headerCard}>
+        <div className={classes.headerTop}>
+          <M.Typography
+            variant="overline"
+            color="textSecondary"
+            className={classes.overline}
+          >
+            Data product
+          </M.Typography>
+          <M.Typography variant="h5">{name}</M.Typography>
+        </div>
+      </M.Paper>
+      <M.Box mt={2} data-testid="dp-source-denied">
+        <Lab.Alert severity="warning">
+          <Lab.AlertTitle>You don&apos;t have access to this data product</Lab.AlertTitle>
+          <M.Typography variant="body2">
+            Viewing a data product requires access to every source it draws from, and your
+            role is missing access to at least one. Nothing is shown rather than a partial
+            view, because a partial view would look like the whole thing.
+          </M.Typography>
+          <M.Box mt={1}>
+            <M.Typography variant="body2">
+              Ask the owner of this data product for access to its sources.
+            </M.Typography>
+          </M.Box>
+        </Lab.Alert>
+      </M.Box>
+    </Container>
   )
 }
 
@@ -381,6 +454,96 @@ function Provenance({ children }: React.PropsWithChildren<{}>) {
     >
       Provenance: {children}
     </M.Typography>
+  )
+}
+
+// Where a predicate-selected member came from, as one line: the source package
+// at the revision it was drawn from, then the entry path inside that package.
+//
+// The revision is the identity here. Two members can carry the same entry path
+// from two different packages -- or from two revisions of one package -- and the
+// path alone cannot tell them apart, so `pkg@hash` always travels with it.
+function SourceLine({ source }: { source: MemberSource }) {
+  return (
+    <>
+      {`${source.bucket} / ${source.packageName}`} @{' '}
+      <Hash.Trimmed>{source.hash}</Hash.Trimmed> → {source.logicalKey}
+    </>
+  )
+}
+
+// The revision a package member resolved to, and whether that was its own doing.
+//
+// A pinned member shows the revision it is pinned to; an unpinned one shows the
+// revision it resolved to *now*, tagged "latest" so the reader knows the hash
+// will move under them. Before the registry resolved pins server-side this could
+// only ever say the literal word "latest", which was the same text whether the
+// member was floating or nailed to a hash.
+export function PackageMemberRevision({ member }: { member: PackageMember }) {
+  const rev = effectiveRevision(member)
+  if (!rev) return <>{member.hashOrTag ?? 'latest'}</>
+  return (
+    <>
+      <Hash.Trimmed>{rev.hash}</Hash.Trimmed>
+      {member.hashOrTag ? '' : ' (latest)'}
+    </>
+  )
+}
+
+// The Sources table: one row per object member under the folder currently open,
+// disclosing where each came from. The listing above it shows the data product's
+// own virtual tree; this shows what that tree is made of.
+//
+// It is a separate table rather than extra columns on the listing because the
+// listing is the shared bucket component -- widening its row contract for one
+// caller would push DP-only concepts into every bucket page.
+export function SourcesTable({ members }: { members: ObjectMember[] }) {
+  const classes = useStyles()
+  // Nothing to trace for a data product whose members were all enumerated by
+  // hand: every row would read "added directly", which is not provenance.
+  if (!members.some((m) => m.source)) return null
+  return (
+    <Section className={classes.sources} heading="Sources" defaultExpanded>
+      <div className={classes.tableRoot}>
+        <M.Table size="small" data-testid="dp-sources-table">
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell className={classes.tableHeadCell}>Path</M.TableCell>
+              <M.TableCell className={classes.tableHeadCell}>Source package</M.TableCell>
+              <M.TableCell className={classes.tableHeadCell}>Revision</M.TableCell>
+              <M.TableCell className={classes.tableHeadCell}>Source path</M.TableCell>
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {members.map((m) => (
+              <M.TableRow key={m.logicalKey}>
+                <M.TableCell className={classes.sourceCell}>{m.logicalKey}</M.TableCell>
+                {m.source ? (
+                  <>
+                    <M.TableCell className={classes.sourceCell}>
+                      {`${m.source.bucket} / ${m.source.packageName}`}
+                    </M.TableCell>
+                    <M.TableCell className={classes.sourceCell}>
+                      <Hash.Trimmed>{m.source.hash}</Hash.Trimmed>
+                    </M.TableCell>
+                    <M.TableCell className={classes.sourceCell}>
+                      {m.source.logicalKey}
+                    </M.TableCell>
+                  </>
+                ) : (
+                  // An author enumerated this object by hand, so it came from no
+                  // package. Saying so is the honest cell; blanks would read as
+                  // missing data.
+                  <M.TableCell colSpan={3} className={classes.sourceMuted}>
+                    Added directly
+                  </M.TableCell>
+                )}
+              </M.TableRow>
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </div>
+    </Section>
   )
 }
 
@@ -535,6 +698,14 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
     return result
   }, [dp.members.objects, id, prefix, urls])
 
+  // Every object member at or below the folder currently open -- not just its
+  // immediate children. Provenance is about what the subtree is assembled from,
+  // and a member three folders down is as much a part of that as one alongside.
+  const membersUnderPrefix = React.useMemo(
+    () => dp.members.objects.filter((o) => o.logicalKey.startsWith(prefix)),
+    [dp.members.objects, prefix],
+  )
+
   return (
     <>
       <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
@@ -543,6 +714,12 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
       {fileMember ? (
         <>
           <Provenance>
+            {fileMember.source ? (
+              <>
+                <SourceLine source={fileMember.source} />
+                {' · '}
+              </>
+            ) : null}
             {`s3://${fileMember.bucket}/${fileMember.key}`}
             {fileMember.versionId ? ` (version ${fileMember.versionId})` : ''}
           </Provenance>
@@ -557,11 +734,14 @@ function ObjectsTab({ id, dp }: { id: string; dp: DataProduct }) {
           />
         </>
       ) : items.length ? (
-        // Object members carry no size on the registry today (only the package
-        // tree does), so the shared listing would total them to a misleading
-        // "0 B". Hide the size affordance until a registry size increment lands
-        // (deferred) rather than showing zeros.
-        <Listing.Listing items={items} onReload={noop} hideSize />
+        <>
+          {/* Object members carry no size on the registry today (only the
+              package tree does), so the shared listing would total them to a
+              misleading "0 B". Hide the size affordance until a registry size
+              increment lands (deferred) rather than showing zeros. */}
+          <Listing.Listing items={items} onReload={noop} hideSize />
+          <SourcesTable members={membersUnderPrefix} />
+        </>
       ) : (
         <M.Typography color="textSecondary">No readable objects</M.Typography>
       )}
@@ -1182,8 +1362,7 @@ function PackageFile({ id, member, path, crumbs }: PackageBrowseProps) {
           {renderCrumbs()}
           <Provenance>
             {`${member.bucket} / ${member.name}`} @{' '}
-            {member.hashOrTag ? member.hashOrTag.slice(0, 10) : 'latest'} →{' '}
-            {`s3://${loc.bucket}/${loc.key}`}
+            <PackageMemberRevision member={member} /> → {`s3://${loc.bucket}/${loc.key}`}
           </Provenance>
           <FilePreview
             handle={{
@@ -1277,8 +1456,8 @@ function DataProductScreen({ id }: DataProductScreenProps) {
       </Container>
     ),
     data: (data) => {
-      const dp = data.dataProduct
-      if (!dp) {
+      const raw = data.dataProduct
+      if (!raw) {
         return (
           <Container className={classes.content}>
             <M.Typography variant="h4" gutterBottom>
@@ -1288,6 +1467,15 @@ function DataProductScreen({ id }: DataProductScreenProps) {
           </Container>
         )
       }
+
+      const { members } = raw
+      if (members.__typename === 'SourceDenied') {
+        // Everything below this point is member-derived -- counts, tabs, rows,
+        // previews. Rendering the shell without them is the whole point: the
+        // refusal must not leak the membership it is withholding.
+        return <SourceDeniedScreen name={raw.title || raw.name} />
+      }
+      const dp: DataProduct = { ...raw, members }
 
       return (
         <Container className={classes.content}>

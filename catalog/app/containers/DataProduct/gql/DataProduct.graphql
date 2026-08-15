@@ -17,27 +17,36 @@ query ($id: ID!) {
       }
     }
     members {
-      objects {
-        logicalKey
-        bucket
-        key
-        versionId
+      __typename
+      # All-or-nothing: a caller who cannot read every resolved member gets this
+      # instead of the membership, and it carries nothing to disclose.
+      ... on SourceDenied {
+        rejectionClass
       }
-      packages {
-        virtualName
-        bucket
-        name
-        hashOrTag
-        # Revision-level stats for the listing. `revision` cannot take the
-        # member's own pin (no per-list-item arguments in GraphQL), so it
-        # dereferences the default "latest" — the client only trusts it when
-        # the member is unpinned or its pin matches this revision's hash.
-        package {
-          modified
-          revisions {
-            total
+      ... on DataProductMembers {
+        objects {
+          logicalKey
+          bucket
+          key
+          versionId
+          # Where a predicate-selected object came from. Null for an object an
+          # author enumerated by hand.
+          source {
+            bucket
+            packageName
+            hash
+            logicalKey
           }
-          revision {
+        }
+        packages {
+          virtualName
+          bucket
+          name
+          hashOrTag
+          # The revision the server resolved this member at, honouring its pin.
+          # `package.revision` below cannot take the member's own pin (no
+          # per-list-item arguments in GraphQL) and so is always latest.
+          resolvedRevision {
             hash
             modified
             message
@@ -46,6 +55,12 @@ query ($id: ID!) {
             userMeta
             workflow {
               id
+            }
+          }
+          package {
+            modified
+            revisions {
+              total
             }
           }
         }

@@ -1722,8 +1722,8 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'DataProductMembers',
+                kind: 'UNION',
+                name: 'DataProductMembersResult',
                 ofType: null,
               },
             },
@@ -1837,6 +1837,61 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'DataProductMemberSource',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'hash',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'logicalKey',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'packageName',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'DataProductMembers',
         fields: [
           {
@@ -1877,6 +1932,20 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'DataProductMembersResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'DataProductMembers',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'SourceDenied',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
@@ -1967,6 +2036,15 @@ export default {
                 name: 'String',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+          {
+            name: 'source',
+            type: {
+              kind: 'OBJECT',
+              name: 'DataProductMemberSource',
+              ofType: null,
             },
             args: [],
           },
@@ -2076,6 +2154,15 @@ export default {
             type: {
               kind: 'OBJECT',
               name: 'Package',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'resolvedRevision',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageRevision',
               ofType: null,
             },
             args: [],
@@ -7015,6 +7102,25 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SourceDenied',
+        fields: [
+          {
+            name: 'rejectionClass',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },

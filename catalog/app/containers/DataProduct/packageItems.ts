@@ -8,28 +8,24 @@ import type { containers_DataProduct_gql_DataProductQuery as DataProductQuery } 
 // the component tree so their pin-matching / fallback semantics are unit
 // testable.
 
-type DataProduct = NonNullable<DataProductQuery['dataProduct']>
-export type PackageMember = DataProduct['members']['packages'][number]
+type DataProductRaw = NonNullable<DataProductQuery['dataProduct']>
+type Members = Extract<DataProductRaw['members'], { __typename: 'DataProductMembers' }>
+export type PackageMember = Members['packages'][number]
 
-export type MemberRevision = NonNullable<
-  NonNullable<PackageMember['package']>['revision']
->
+export type MemberRevision = NonNullable<PackageMember['resolvedRevision']>
 
-// The members query dereferences `package.revision` at the default "latest" —
-// GraphQL cannot pass a per-member pin inside one list selection. That latest
-// revision stands in as the member's effective revision only when the member
-// is unpinned, or its pin names that same revision (a full hash, or a >= 6
-// char short-hash prefix); otherwise the stats in hand describe a different
-// revision and must not be shown.
-export function effectiveRevision(member: PackageMember): MemberRevision | null {
-  const latest = member.package?.revision
-  if (!latest) return null
-  const pin = member.hashOrTag
-  if (!pin) return latest
-  return latest.hash === pin || (pin.length >= 6 && latest.hash.startsWith(pin))
-    ? latest
-    : null
-}
+// The revision this member resolved to, straight from the registry: the pin
+// when the member is pinned, latest-at-resolution when it is not.
+//
+// This used to be a client-side guess. The query could only dereference
+// `package.revision` at "latest" (GraphQL has no per-list-item arguments), so
+// the client compared that hash against the member's pin and discarded the
+// stats when they disagreed — which meant a pinned member showed blank size,
+// entries, comment and meta whenever it was not also the latest revision.
+// `resolvedRevision` is the server answering the question directly, so those
+// cells are now populated for pinned members too.
+export const effectiveRevision = (member: PackageMember): MemberRevision | null =>
+  member.resolvedRevision ?? null
 
 // Members are a fixed list, not search results, so nothing ever highlights.
 const NO_MATCH_LOCATIONS: SearchHitPackage['matchLocations'] = {
@@ -43,10 +39,10 @@ const NO_MATCH_LOCATIONS: SearchHitPackage['matchLocations'] = {
 // A member shaped as a search hit for the shared package-listing leaves, plus
 // what the tab itself needs. `hit.name` stays the physical package name (the
 // link builder alone keeps navigation DP-local); the virtual name rides in
-// `id` and is rendered via `displayName`. When the effective revision is not
-// in hand (see effectiveRevision), `modified` falls back to the package-level
-// date and the revision-sourced cells (size, entries, comment, workflow,
-// meta) render as unknown/empty.
+// `id` and is rendered via `displayName`. When the member did not resolve to a
+// revision at all, `modified` falls back to the package-level date and the
+// revision-sourced cells (size, entries, comment, workflow, meta) render as
+// unknown/empty.
 export interface PackageItem {
   member: PackageMember
   modified: Date | null

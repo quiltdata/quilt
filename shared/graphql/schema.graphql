@@ -739,12 +739,26 @@ type DataProductDefinition {
   predicate: PredicateRule
 }
 
+# Where a member came from, for a member the resolver derived rather than one an
+# author typed. `hash` is the package revision the member was drawn from, not a
+# location: bytes can be relocated, so a bucket/key pair does not identify the
+# provenance on its own.
+type DataProductMemberSource {
+  bucket: String!
+  packageName: String!
+  hash: String!
+  logicalKey: String!
+}
+
 # A dereferenced object entry (echoes the pinned versionId, or null = latest).
 type DataProductObjectMember {
   logicalKey: String!
   bucket: String!
   key: String!
   versionId: String
+  # Null for an object an author enumerated by hand -- it came from no package.
+  # Non-null for a predicate-selected member (br-member-provenance).
+  source: DataProductMemberSource
 }
 
 # A dereferenced package entry (echoes the pin it dereferenced through).
@@ -754,13 +768,29 @@ type DataProductPackageMember {
   name: String!
   hashOrTag: String
   package: Package
+  # The revision this member actually resolved to: the pin when `hashOrTag` is
+  # set, latest-at-resolution when it is null. `package.revision` cannot answer
+  # this -- GraphQL has no per-list-item arguments, so it always dereferences
+  # latest and the client had to guess whether that matched the pin.
+  resolvedRevision: PackageRevision
 }
 
-# The two namespaces, dereferenced and scoped to the caller's readable buckets.
+# The two namespaces, dereferenced.
 type DataProductMembers {
   objects: [DataProductObjectMember!]!
   packages: [DataProductPackageMember!]!
 }
+
+# Returned in place of the membership when the consuming principal cannot read
+# every resolved member. Deliberately carries nothing: a count, a name, or a path
+# would disclose the membership the refusal exists to withhold. GraphQL object
+# types require at least one field, so `rejectionClass` is a constant tag and is
+# the only thing this type will ever carry.
+type SourceDenied {
+  rejectionClass: String!
+}
+
+union DataProductMembersResult = DataProductMembers | SourceDenied
 
 type DataProduct {
   id: ID!
@@ -772,8 +802,11 @@ type DataProduct {
   description: String
   # The stored fixed manifest, echoed back for the browse/edit UI.
   definition: DataProductDefinition!
-  # The DP's own read field: dereferences the manifest, readable-scoped.
-  members: DataProductMembers!
+  # The DP's own read field: dereferences the manifest. All-or-nothing -- if the
+  # caller cannot read every resolved member, this is SourceDenied, not a
+  # filtered DataProductMembers. Partial membership would be a silent, wrong
+  # answer that reads as a complete one.
+  members: DataProductMembersResult!
 }
 
 input DataProductObjectEntryInput {

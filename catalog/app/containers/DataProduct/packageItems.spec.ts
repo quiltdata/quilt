@@ -14,11 +14,22 @@ const REV: MemberRevision = {
   workflow: { __typename: 'PackageWorkflow', id: 'wf-1' },
 }
 
+// A different revision, to show that a pinned member reports the revision it was
+// pinned to and not whatever is latest.
+const PINNED_REV: MemberRevision = {
+  ...REV,
+  hash: '999999aaaabbbbcc',
+  modified: new Date('2019-03-01T00:00:00Z'),
+  message: 'the pinned message',
+  totalEntries: 2,
+  totalBytes: 64,
+}
+
 const PKG_MODIFIED = new Date('2020-01-01T00:00:00Z')
 
 const mkMember = (
   hashOrTag: string | null,
-  revision: MemberRevision | null = REV,
+  resolvedRevision: MemberRevision | null = REV,
 ): PackageMember =>
   ({
     __typename: 'DataProductPackageMember',
@@ -26,11 +37,11 @@ const mkMember = (
     bucket: 'phys-bucket',
     name: 'phys/pkg',
     hashOrTag,
+    resolvedRevision,
     package: {
       __typename: 'Package',
       modified: PKG_MODIFIED,
       revisions: { __typename: 'PackageRevisionList', total: 3 },
-      revision,
     },
   }) as unknown as PackageMember
 
@@ -42,39 +53,25 @@ const mkMemberNoPackage = (): PackageMember =>
     bucket: 'phys-bucket',
     name: 'phys/pkg',
     hashOrTag: 'abcdef',
+    resolvedRevision: null,
     package: null,
   }) as unknown as PackageMember
 
 describe('containers/DataProduct/packageItems', () => {
   describe('effectiveRevision', () => {
-    it('returns the latest revision for an unpinned member', () => {
+    it('is whatever revision the registry resolved the member at', () => {
       expect(effectiveRevision(mkMember(null))).toBe(REV)
+      expect(effectiveRevision(mkMember('999999aaaabbbbcc', PINNED_REV))).toBe(PINNED_REV)
     })
 
-    it('returns the latest revision when the pin is the full latest hash', () => {
-      expect(effectiveRevision(mkMember('abcdef1234567890'))).toBe(REV)
-    })
-
-    it('returns the latest revision when a >=6-char pin prefix-matches the hash', () => {
-      expect(effectiveRevision(mkMember('abcdef'))).toBe(REV)
-    })
-
-    it('returns null for a <6-char pin even if it prefixes the hash', () => {
-      expect(effectiveRevision(mkMember('abcde'))).toBeNull()
-    })
-
-    it('returns null when the pin does not match the latest hash', () => {
-      expect(effectiveRevision(mkMember('999999'))).toBeNull()
-    })
-
-    it('returns null when no revision is in hand', () => {
+    it('is null when the member resolved to no revision', () => {
       expect(effectiveRevision(mkMember('abcdef', null))).toBeNull()
       expect(effectiveRevision(mkMemberNoPackage())).toBeNull()
     })
   })
 
   describe('toPackageItem', () => {
-    it('maps an unpinned member to a hit carrying the latest revision stats', () => {
+    it('maps an unpinned member to a hit carrying its resolved revision stats', () => {
       const item = toPackageItem(mkMember(null))
       expect(item.hit).toBeTruthy()
       expect(item.hit!.pointer).toBe('latest')
@@ -90,18 +87,23 @@ describe('containers/DataProduct/packageItems', () => {
       expect(item.modified).toEqual(new Date('2021-06-01T00:00:00Z'))
     })
 
-    it('maps a pinned prefix-matching member to the revision stats', () => {
-      const item = toPackageItem(mkMember('abcdef'))
-      expect(item.hit!.pointer).toBe('abcdef')
-      expect(item.hit!.hash).toBe('abcdef1234567890')
-      expect(item.hit!.size).toBe(1024)
-      expect(item.modified).toEqual(new Date('2021-06-01T00:00:00Z'))
+    // The point of resolving pins server-side. The client used to only have the
+    // latest revision, so a member pinned to anything else showed blank stats;
+    // now the pinned revision's own numbers are in hand.
+    it('shows a pinned member the revision it is pinned to, not the latest', () => {
+      const item = toPackageItem(mkMember('999999aaaabbbbcc', PINNED_REV))
+      expect(item.hit!.pointer).toBe('999999aaaabbbbcc')
+      expect(item.hit!.hash).toBe('999999aaaabbbbcc')
+      expect(item.hit!.size).toBe(64)
+      expect(item.hit!.totalEntriesCount).toBe(2)
+      expect(item.hit!.comment).toBe('the pinned message')
+      expect(item.modified).toEqual(new Date('2019-03-01T00:00:00Z'))
     })
 
-    it('renders unknown stats for a pinned non-matching member', () => {
-      const item = toPackageItem(mkMember('999999'))
+    it('renders unknown stats when the member resolved to no revision', () => {
+      const item = toPackageItem(mkMember('999999', null))
       expect(item.hit).toBeTruthy()
-      // no matching revision in hand -> honest "unknown" cells
+      // no revision in hand -> honest "unknown" cells
       expect(item.hit!.size).toBeNull()
       expect(item.hit!.totalEntriesCount).toBeNull()
       expect(item.hit!.comment).toBeNull()
