@@ -79,6 +79,13 @@ export function useFeature(id: FeatureId): boolean {
  * `writeSettings` replaces the whole settings document, so the spread here is
  * what keeps the logo, nav link, theme and search mode from being dropped on the
  * floor every time somebody toggles a preview.
+ *
+ * That spread is only correct against a document that is still current. `settings`
+ * is whatever `CatalogSettings.use()` returned at render, and nothing invalidates
+ * it when another admin writes -- so it is passed as `expected` to have the write
+ * refuse rather than revert their change. Callers get a
+ * `CatalogSettings.SettingsConflictError` to surface; see `useWriteSettings` for
+ * why this detects the conflict instead of preventing it.
  */
 export function useFeatureSetting(
   id: FeatureId,
@@ -87,10 +94,13 @@ export function useFeatureSetting(
   const writeSettings = CatalogSettings.useWriteSettings()
   const set = React.useCallback(
     (on: boolean) =>
-      writeSettings({
-        ...settings,
-        features: { ...settings?.features, [id]: on },
-      }),
+      writeSettings(
+        {
+          ...settings,
+          features: { ...settings?.features, [id]: on },
+        },
+        settings,
+      ),
     [id, settings, writeSettings],
   )
   return [isEnabled(settings, id), set]
