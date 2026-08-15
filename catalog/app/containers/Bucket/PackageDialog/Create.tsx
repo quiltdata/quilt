@@ -90,19 +90,72 @@ function ConfirmReadme({ close }: ConfirmReadmeProps) {
   )
 }
 
-interface FormErrorProps {
-  error: Error
+interface FormMessageProps {
+  children: React.ReactNode
+  icon: string
+  muted?: boolean
 }
 
-function FormError({ error }: FormErrorProps) {
+function FormMessage({ children, icon, muted }: FormMessageProps) {
   return (
     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-      <M.Icon color="error">error_outline</M.Icon>
+      <M.Icon color={muted ? 'inherit' : 'error'}>{icon}</M.Icon>
       <M.Box pl={1} />
-      <M.Typography variant="body2" color="error">
-        {error.message}
+      <M.Typography variant="body2" color={muted ? 'textSecondary' : 'error'}>
+        {children}
       </M.Typography>
     </M.Box>
+  )
+}
+
+interface StatusMessageProps {
+  formStatus: PDModel.FormStatus
+  manifest: PDModel.ManifestStatus
+  params: PDModel.FormParams
+}
+
+/** Explains a form that cannot be submitted, or that will not submit what it looks like. */
+function StatusMessage({ formStatus, manifest, params }: StatusMessageProps) {
+  // A submission failure is more specific than the manifest note, except for the gate's
+  // own error, which the manifest branch words better and which goes stale on rename.
+  if (
+    formStatus._tag === 'error' &&
+    formStatus.error &&
+    !(formStatus.error instanceof ERRORS.SourceManifestNotLoaded)
+  ) {
+    return <FormMessage icon="error_outline">{formStatus.error.message}</FormMessage>
+  }
+
+  if (manifest._tag !== 'error') return null
+
+  if (
+    params._tag === 'invalid' &&
+    params.error instanceof ERRORS.SourceManifestNotLoaded
+  ) {
+    return (
+      <FormMessage icon="warning">
+        {manifest.error instanceof ERRORS.ManifestTooLarge
+          ? `This package has more than ${manifest.error.max} entries, which is too many to edit here. Use Quilt CLI, or enter a name that does not exist yet to create a new package.`
+          : params.error.message}
+      </FormMessage>
+    )
+  }
+
+  // Only promise a push when the form would actually submit: the same failure leaves the
+  // workflow unprefilled, so the button beside this can still be disabled.
+  if (params._tag === 'ok') {
+    return (
+      <FormMessage icon="warning" muted>
+        Existing package contents could not be loaded. Pushing creates a new package
+        containing only the files listed.
+      </FormMessage>
+    )
+  }
+
+  return (
+    <FormMessage icon="warning" muted>
+      Existing package contents could not be loaded.
+    </FormMessage>
   )
 }
 
@@ -151,6 +204,7 @@ function PackageCreationForm({
     entriesSchema,
     files,
     formStatus,
+    manifest,
     message,
     meta,
     metadataSchema,
@@ -240,9 +294,7 @@ function PackageCreationForm({
           </SubmitSpinner>
         )}
 
-        {formStatus._tag === 'error' && !!formStatus.error && (
-          <FormError error={formStatus.error} />
-        )}
+        <StatusMessage formStatus={formStatus} manifest={manifest} params={params} />
 
         <M.Button onClick={close} disabled={formStatus._tag === 'submitting'}>
           Cancel
@@ -420,18 +472,13 @@ export function useCreateDialog({
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
-  const dialogStatus: PDModel.DialogStatus = React.useMemo(() => {
-    if (resolveError) return { _tag: 'error', error: resolveError }
-    if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
-    if (waitingListing) return { _tag: 'loading', waitListing: true }
-    if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
-      return { _tag: 'loading', waitListing: false }
-    }
-    if (workflowsConfig._tag === 'error') {
-      return { _tag: 'error', error: workflowsConfig.error }
-    }
-    return { _tag: 'ready' }
-  }, [waitingListing, workflowsConfig, formStatus, manifest, resolveError])
+  const dialogStatus = PDModel.computeDialogStatus({
+    formStatus,
+    manifest,
+    resolveError,
+    waitingListing,
+    workflowsConfig,
+  })
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <DialogWrapper
