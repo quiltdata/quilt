@@ -108,10 +108,17 @@ vi.mock('utils/GraphQL', () => ({
 
 interface RowsProps {
   buckets: ReadonlyArray<{ name: string }>
+  dataProducts?: ReadonlyArray<{ id: string; name: string }>
 }
 
-const Rows = ({ buckets }: RowsProps) => (
+// `dp-order` carries the data product run as one joined string, so a test can
+// assert on the group's *order* without walking the DOM.
+const Rows = ({ buckets, dataProducts = [] }: RowsProps) => (
   <div>
+    <div data-testid="dp-order">{dataProducts.map((dp) => dp.name).join(',')}</div>
+    {dataProducts.map((dp) => (
+      <div key={dp.id}>{`dp:${dp.name}`}</div>
+    ))}
     {buckets.map((b) => (
       <div key={b.name}>{`bucket:${b.name}`}</div>
     ))}
@@ -127,8 +134,11 @@ vi.mock('containers/Home/BucketGrid/BucketList', () => ({
 // Distinguishable from the card view's stand-in so a test can tell which
 // renderer the `view` param selected.
 vi.mock('containers/Home/BucketGrid/BucketRows', () => ({
-  default: ({ buckets }: RowsProps) => (
+  default: ({ buckets, dataProducts = [] }: RowsProps) => (
     <div>
+      {dataProducts.map((dp) => (
+        <div key={dp.id}>{`dprow:${dp.name}`}</div>
+      ))}
       {buckets.map((b) => (
         <div key={b.name}>{`row:${b.name}`}</div>
       ))}
@@ -159,6 +169,8 @@ describe('website/pages/Landing/Buckets', () => {
   afterEach(() => {
     useQueryMock.mockClear()
     meIsAdminData = { isAdmin: false }
+    mockDataProducts = []
+    mockDataProductsEnabled = false
     mockBuckets = [
       {
         name: 'bucket-one',
@@ -241,6 +253,121 @@ describe('website/pages/Landing/Buckets', () => {
       const { getByLabelText, getByTestId } = renderBuckets('?view=list')
       fireEvent.click(getByLabelText('Card view'))
       expect(getByTestId('search').textContent).toBe('')
+    })
+  })
+
+  describe('with data products enabled', () => {
+    function enableDataProducts() {
+      mockDataProductsEnabled = true
+      mockDataProducts = [
+        {
+          id: 'dp-z',
+          name: 'zeta-product',
+          title: null,
+          description: null,
+          definition: { objects: [], packages: [] },
+        },
+        {
+          id: 'dp-a',
+          name: 'alpha-product',
+          title: null,
+          description: null,
+          definition: { objects: [], packages: [] },
+        },
+      ]
+      mockBuckets = [
+        {
+          name: 'bucket-one',
+          title: 'Bucket One',
+          description: null,
+          tags: null,
+          relevanceScore: 1,
+        },
+        {
+          name: 'bucket-two',
+          title: 'Bucket Two',
+          description: null,
+          tags: null,
+          relevanceScore: 2,
+        },
+      ]
+    }
+
+    it('renders data products above the buckets', () => {
+      enableDataProducts()
+      const { queryByText } = renderBuckets()
+      expect(queryByText('dp:alpha-product')).toBeTruthy()
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+    })
+
+    it('offers no group toggle when the catalog has data products switched off', () => {
+      const { queryByLabelText } = renderBuckets()
+      expect(queryByLabelText('Show data products')).toBeFalsy()
+      expect(queryByLabelText('Show buckets')).toBeFalsy()
+    })
+
+    it('shows both groups by default, with no `show` param', () => {
+      enableDataProducts()
+      const { queryByText, getByTestId } = renderBuckets()
+      expect(queryByText('dp:alpha-product')).toBeTruthy()
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+      expect(getByTestId('search').textContent).toBe('')
+    })
+
+    it('turning off buckets leaves only the data products, and names it in the URL', () => {
+      enableDataProducts()
+      const { getByLabelText, getByTestId, queryByText } = renderBuckets()
+      fireEvent.click(getByLabelText('Show buckets'))
+      expect(getByTestId('search').textContent).toContain('show=dataproducts')
+      expect(queryByText('dp:alpha-product')).toBeTruthy()
+      expect(queryByText('bucket:bucket-one')).toBeFalsy()
+    })
+
+    it('honors `show=buckets` from the URL', () => {
+      enableDataProducts()
+      const { queryByText } = renderBuckets('?show=buckets')
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+      expect(queryByText('dp:alpha-product')).toBeFalsy()
+    })
+
+    it('falls back to both groups for an unrecognized `show`', () => {
+      enableDataProducts()
+      const { queryByText } = renderBuckets('?show=nonsense')
+      expect(queryByText('dp:alpha-product')).toBeTruthy()
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+    })
+
+    it('refuses to turn off the last group', () => {
+      enableDataProducts()
+      const { getByLabelText, getByTestId, queryByText } = renderBuckets('?show=buckets')
+      fireEvent.click(getByLabelText('Show buckets'))
+      // Nothing pushed, and the group is still on the page.
+      expect(getByTestId('search').textContent).toContain('show=buckets')
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+    })
+
+    it('sorts each group within itself rather than interleaving them', () => {
+      enableDataProducts()
+      const { getByTestId, queryByText } = renderBuckets('?sort=name-desc')
+      // Data products reorder on the same control that reorders buckets...
+      expect(getByTestId('dp-order').textContent).toBe('zeta-product,alpha-product')
+      // ...and both groups are still present, DPs first.
+      expect(queryByText('bucket:bucket-two')).toBeTruthy()
+    })
+
+    it('leaves the data product order alone for the default relevance sort', () => {
+      enableDataProducts()
+      const { getByTestId } = renderBuckets()
+      expect(getByTestId('dp-order').textContent).toBe('alpha-product,zeta-product')
+    })
+
+    it('explains an empty page caused by the toggle rather than quoting an empty filter', () => {
+      // Only buckets exist; hiding them leaves nothing, with no filter to blame.
+      mockDataProductsEnabled = true
+      const { queryByText } = renderBuckets('?show=dataproducts')
+      expect(
+        queryByText('Nothing to show — turn buckets or data products back on above.'),
+      ).toBeTruthy()
     })
   })
 })

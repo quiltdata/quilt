@@ -31,6 +31,14 @@ const PER_PAGE = 15
 const VIEW_CARDS = 'cards'
 const VIEW_LIST = 'list'
 
+// Which of the two groups the list shows. Both is the default and rides with
+// no `show` param, so old links keep working; the param names the *only* group
+// left on, which is the sole reachable non-default state (the toggle refuses
+// to turn both off).
+const SHOW_BUCKETS = 'buckets'
+const SHOW_DATA_PRODUCTS = 'dataproducts'
+const SHOW_BOTH = [SHOW_DATA_PRODUCTS, SHOW_BUCKETS]
+
 function useIsAdmin() {
   const data = GQL.useQuery(IS_ADMIN_QUERY)
   return GQL.fold(data, {
@@ -94,6 +102,25 @@ function sortBuckets(buckets, sort) {
     case 'relevance':
     default:
       return buckets
+  }
+}
+
+// The same sort selection applied within the data product group. The two
+// groups are ordered independently -- one control, two runs, never interleaved
+// -- because a data product has no relevanceScore and nothing to rank against
+// a bucket. 'relevance' has no meaning here, so it keeps the default label
+// order `useDataProducts` hands over.
+function sortDataProducts(dataProducts, sort) {
+  const byLabel = () =>
+    R.sortBy((dp) => (dp.title || dp.name).toLowerCase(), dataProducts)
+  switch (sort) {
+    case 'name-asc':
+      return byLabel()
+    case 'name-desc':
+      return R.reverse(byLabel())
+    case 'relevance':
+    default:
+      return dataProducts
   }
 }
 
@@ -176,6 +203,12 @@ const useStyles = M.makeStyles((t) => ({
   // Closes the filter row on the right, after the sort control (which carries
   // the `margin-left: auto` that pushes the pair over).
   viewToggle: {
+    flexShrink: 0,
+  },
+  // Rides between the sort control and the view toggle, so the right end of
+  // the row reads as one cluster of display controls: what to show, in what
+  // order, in which shape.
+  showToggle: {
     flexShrink: 0,
   },
   sort: {
@@ -395,12 +428,21 @@ function ZeroState({ isAdmin }) {
   )
 }
 
+// Reached two ways: the filter matched nothing, or the group toggle hid the
+// only group that had anything in it. The second has no filter to quote back,
+// so it points at the control that caused it instead.
 function NoMatch({ filter }) {
   const classes = useStyles()
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
-        No buckets matching <b>&quot;{filter}&quot;</b>
+        {filter ? (
+          <>
+            No buckets matching <b>&quot;{filter}&quot;</b>
+          </>
+        ) : (
+          'Nothing to show — turn buckets or data products back on above.'
+        )}
       </M.Typography>
     </M.Paper>
   )
@@ -449,15 +491,60 @@ function TagShortcuts({ filter, onTagClick }) {
   )
 }
 
+// The group selector. Like TagShortcuts it belongs in the toolbar but needs
+// data the toolbar deliberately doesn't wait for — here the catalog settings
+// flag, which suspends — so it renders in its own boundary. With data products
+// off there is only one group and nothing to select between, so it returns
+// null and the toolbar looks exactly as it did before.
+//
+// Non-exclusive, unlike the view toggle beside it: "both" has to be
+// expressible, and SelectDropdown is single-select only.
+function ShowToggle({ show, onChange }) {
+  const classes = useStyles()
+  const buttonClasses = useViewToggleButtonStyles()
+  const dataProductsEnabled = !!CatalogSettings.use()?.dataProducts
+
+  if (!dataProductsEnabled) return null
+
+  return (
+    <Lab.ToggleButtonGroup
+      className={classes.showToggle}
+      value={show}
+      size="small"
+      onChange={onChange}
+    >
+      <Lab.ToggleButton
+        value={SHOW_DATA_PRODUCTS}
+        classes={buttonClasses}
+        aria-label="Show data products"
+        title="Show data products"
+      >
+        <Icons.ViewModule />
+      </Lab.ToggleButton>
+      <Lab.ToggleButton
+        value={SHOW_BUCKETS}
+        classes={buttonClasses}
+        aria-label="Show buckets"
+        title="Show buckets"
+      >
+        <Icons.Storage />
+      </Lab.ToggleButton>
+    </Lab.ToggleButtonGroup>
+  )
+}
+
 // Everything that needs bucket data lives below this line, inside the
 // Suspense boundary — filter text and sort order (owned by the parent) don't.
-function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
+function BucketsBody({ filter, sort, view, show, isAdmin, onTagClick, scrollRef }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
   const dataProductsEnabled = !!CatalogSettings.use()?.dataProducts
   const dataProducts = useDataProducts(dataProductsEnabled)
   const [page, setPage] = React.useState(1)
+
+  const showBuckets = show.includes(SHOW_BUCKETS)
+  const showDataProducts = show.includes(SHOW_DATA_PRODUCTS)
 
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
@@ -473,44 +560,51 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     return R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
   }, [terms])
 
+  // A group the toggle has turned off contributes nothing downstream: no rows,
+  // no page count, no bearing on which page you land on.
   const filtered = React.useMemo(() => {
+    if (!showBuckets) return []
     if (!terms.length) return buckets
     return buckets.filter((b) =>
       anyFieldMatches([b.title, b.name, b.description, ...(b.tags || [])]),
     )
-  }, [terms, anyFieldMatches, buckets])
+  }, [showBuckets, terms, anyFieldMatches, buckets])
 
   // Data products have no tags and no relevanceScore, so they take the same
   // free-text filter over the fields they do have.
   const filteredDps = React.useMemo(() => {
+    if (!showDataProducts) return []
     if (!terms.length) return dataProducts
     return dataProducts.filter((dp) =>
       anyFieldMatches([dp.title, dp.name, dp.description]),
     )
-  }, [terms, anyFieldMatches, dataProducts])
+  }, [showDataProducts, terms, anyFieldMatches, dataProducts])
 
+  // Data products lead, and each group is ordered within itself by the one
+  // sort control — never interleaved, because a data product has no
+  // relevanceScore and nothing to rank against a bucket.
   const sorted = React.useMemo(() => sortBuckets(filtered, sort), [filtered, sort])
 
-  // Data products lead, already sorted by label in useDataProducts. The sort
-  // options key off bucket-only fields (title, relevanceScore), so there is no
-  // defensible interleaving — a DP run followed by a bucket run keeps each
-  // group's order meaningful. Consequence: picking a sort does not reorder the
-  // data products.
-  const total = filteredDps.length + sorted.length
+  const sortedDps = React.useMemo(
+    () => sortDataProducts(filteredDps, sort),
+    [filteredDps, sort],
+  )
+
+  const total = sortedDps.length + sorted.length
   const pages = Math.ceil(total / PER_PAGE)
 
   // One page slices the concatenation, so a page can hold the tail of the DP
   // run and the head of the bucket run.
   const paginated = React.useMemo(() => {
-    if (pages <= 1) return { dataProducts: filteredDps, buckets: sorted }
+    if (pages <= 1) return { dataProducts: sortedDps, buckets: sorted }
     const start = (page - 1) * PER_PAGE
     const end = page * PER_PAGE
-    const dpTotal = filteredDps.length
+    const dpTotal = sortedDps.length
     return {
-      dataProducts: filteredDps.slice(Math.min(start, dpTotal), Math.min(end, dpTotal)),
+      dataProducts: sortedDps.slice(Math.min(start, dpTotal), Math.min(end, dpTotal)),
       buckets: sorted.slice(Math.max(0, start - dpTotal), Math.max(0, end - dpTotal)),
     }
-  }, [filteredDps, sorted, pages, page])
+  }, [sortedDps, sorted, pages, page])
 
   usePrevious(page, (prev) => {
     if (prev && page !== prev && scrollRef.current) {
@@ -531,7 +625,9 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     }
   })
 
-  // A catalog with no buckets but some data products is not empty.
+  // A catalog with no buckets but some data products is not empty. Note this
+  // asks the unfiltered, ungated lists: hiding a group is a display choice,
+  // not evidence that the catalog has nothing in it.
   const noBuckets = !buckets.length && !dataProducts.length
   const noMatch = !noBuckets && !total
 
@@ -594,21 +690,29 @@ export default function Buckets() {
     q: filter = '',
     sort: sortParam,
     view: viewParam,
+    show: showParam,
   } = parseSearch(location.search, true)
   const sort = SORT_VALUES.includes(sortParam) ? sortParam : DEFAULT_SORT
   const view = viewParam === VIEW_LIST ? VIEW_LIST : VIEW_CARDS
+  // Anything but one of the two single-group values means both — an absent
+  // param and a garbled one land on the same safe default.
+  const show = React.useMemo(
+    () => (SHOW_BOTH.includes(showParam) ? [showParam] : SHOW_BOTH),
+    [showParam],
+  )
 
   // Every control pushes the whole query string, so each one has to carry the
-  // other two forward or switching a view would silently drop the filter.
+  // others forward or switching a view would silently drop the filter.
   const search = React.useCallback(
     (next) =>
       NamedRoutes.mkSearch({
         q: filter || undefined,
         sort: sort === DEFAULT_SORT ? undefined : sort,
         view: view === VIEW_CARDS ? undefined : view,
+        show: show.length === 1 ? show[0] : undefined,
         ...next,
       }),
-    [filter, sort, view],
+    [filter, sort, view, show],
   )
 
   const filtering = useDebouncedInput(filter, 500)
@@ -649,6 +753,19 @@ export default function Buckets() {
       // clicked again; there's no "neither view", so ignore it.
       if (!value) return
       history.push({ search: search({ view: value === VIEW_CARDS ? undefined : value }) })
+    },
+    [history, search],
+  )
+
+  const changeShow = React.useCallback(
+    (_e, value) => {
+      // Turning off the last group would leave a page with nothing on it and
+      // no obvious way back, so the group stays on — same refusal as the view
+      // toggle's, for the same reason.
+      if (!value.length) return
+      history.push({
+        search: search({ show: value.length === 1 ? value[0] : undefined }),
+      })
     },
     [history, search],
   )
@@ -696,6 +813,9 @@ export default function Buckets() {
           >
             Sort by:
           </SelectDropdown>
+          <React.Suspense fallback={null}>
+            <ShowToggle show={show} onChange={changeShow} />
+          </React.Suspense>
           <Lab.ToggleButtonGroup
             className={classes.viewToggle}
             value={view}
@@ -724,6 +844,7 @@ export default function Buckets() {
             filter={filter}
             sort={sort}
             view={view}
+            show={show}
             isAdmin={isAdmin}
             onTagClick={filtering.set}
             scrollRef={scrollRef}
