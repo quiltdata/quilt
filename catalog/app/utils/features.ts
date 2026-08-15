@@ -67,6 +67,13 @@ export function isEnabled(
  * caller of that hook (the rail, the bare header, the bucket pages) already
  * relies on an ancestor Suspense boundary, so this is safe in the same places --
  * but it is a suspending read, not a plain one.
+ *
+ * The suspension is the cache's, not the fetch's: ResourceCache creates an entry
+ * in `AsyncResult.Init` and defers its fetch a macrotask, and `suspend` throws
+ * for `Init` as well as `Pending` (utils/ResourceCache.jsx:130, :155). So the
+ * first read suspends even where nothing is fetched -- LOCAL mode returns null
+ * before touching S3 and still suspends. Gate this behind whatever mode check
+ * would have skipped the fetch, or the wait buys a request that never happens.
  */
 export function useFeature(id: FeatureId): boolean {
   const settings = CatalogSettings.use()
