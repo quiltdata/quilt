@@ -35,7 +35,10 @@ export default function BareHeader() {
     <M.AppBar position="static" elevation={0} square className={classes.appBar}>
       <M.Toolbar disableGutters className={classes.toolbar}>
         <Link to={urls.home()} className={classes.link}>
-          <Logo height="29px" width="100%" src={settings?.logo?.url} />
+          {/* Same midnight ground as the rail, so it wears the same quilt.bio
+              wordmark — sign-in is the first thing a user sees and should not
+              show a different lockup than the app behind it. */}
+          <Logo height="32px" width="100%" src={settings?.logo?.url} variant="wordmark" />
         </Link>
       </M.Toolbar>
     </M.AppBar>

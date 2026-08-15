@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import Suggestions from 'components/SearchBar/Suggestions'
+import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
@@ -22,11 +22,21 @@ const useStyles = M.makeStyles((t) => ({
     borderBottom: `1px solid ${t.palette.divider}`,
     color: t.palette.getContrastText(t.palette.common.white),
   },
+  // minHeight only: a hard height clips the row when text scales on its own
+  // (text-only zoom, or a user minimum font size) instead of letting it grow.
   toolbar: {
-    height: 64,
     minHeight: 64,
     paddingLeft: t.spacing(3),
     paddingRight: t.spacing(3),
+  },
+  // Only rendered in the compact shell, where the rail is an overlay: this is
+  // the only way back to navigation, so it leads the bar.
+  menu: {
+    marginLeft: t.spacing(-1),
+    marginRight: t.spacing(1),
+    '&.Mui-focusVisible': {
+      boxShadow: `0 0 0 2px ${t.palette.primary.main}`,
+    },
   },
   search: {
     flexGrow: 1,
@@ -91,11 +101,22 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// The suggestions list's id, shared between the input's `aria-controls` and the
+// listbox itself so assistive tech can tie the two together.
+const SUGGESTIONS_ID = 'header-search-suggestions'
+
 // The pseudo-header: a global search bar with suggestions (scoped to the current
 // bucket when in one). On the search page (which provides a live Search UI model
 // above its Layout) the bar is bound to that model and IS the page's query input
 // -- the page mounts no query field of its own.
-export function ContentBar() {
+export interface ContentBarProps {
+  // Supplied only by the compact shell, where the rail is an overlay and this
+  // button is the way to reach it. Absent on wide viewports, where the rail is
+  // always on screen and a menu button would toggle nothing.
+  onMenu?: () => void
+}
+
+export function ContentBar({ onMenu }: ContentBarProps = {}) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const bucket = Buckets.useCurrentBucket()
@@ -108,6 +129,14 @@ export function ContentBar() {
   // still works when rendered outside a Layout.
   const localInputRef = React.useRef<HTMLInputElement | null>(null)
   const inputRef = useSearchInputRef() ?? localInputRef
+
+  // The row the arrow keys have highlighted, named so the input can point at it
+  // via aria-activedescendant. Must agree with the id Suggestions renders.
+  // Guarded: `suggestions` is null until the state machine has any (and stays
+  // null for consumers that mount the bar without a suggestions source).
+  const activeSuggestionId = search.suggestions?.items?.length
+    ? suggestionOptionId(SUGGESTIONS_ID, search.suggestions.selected)
+    : null
 
   // '/' (and Cmd/Ctrl+K) focuses the bar from anywhere, except while typing
   // in another input.
@@ -141,6 +170,17 @@ export function ContentBar() {
         square
       >
         <M.Toolbar className={classes.toolbar} disableGutters>
+          {!!onMenu && (
+            <M.Tooltip arrow title="Navigation">
+              <M.IconButton
+                aria-label="Open navigation"
+                className={classes.menu}
+                onClick={onMenu}
+              >
+                <M.Icon>menu</M.Icon>
+              </M.IconButton>
+            </M.Tooltip>
+          )}
           <div className={classes.search} ref={anchorRef}>
             <M.OutlinedInput
               {...search.input}
@@ -154,6 +194,22 @@ export function ContentBar() {
               fullWidth
               margin="dense"
               placeholder="Search"
+              // The field IS a combobox: it owns a popup list whose highlighted
+              // row is what Enter commits (see SearchBar/State handleSubmit).
+              // Without this wiring the placeholder is the only name (announced
+              // as "edit text, blank"), and the arrow-key highlight is a CSS
+              // class no assistive tech can see -- so Enter fires a navigation
+              // the user cannot perceive.
+              inputProps={{
+                'aria-label': 'Search packages and objects',
+                role: 'combobox',
+                'aria-expanded': search.helpOpen,
+                'aria-controls': SUGGESTIONS_ID,
+                'aria-autocomplete': 'list',
+                ...(search.helpOpen && activeSuggestionId
+                  ? { 'aria-activedescendant': activeSuggestionId }
+                  : null),
+              }}
               classes={{
                 root: classes.field,
                 notchedOutline: classes.outline,
@@ -182,6 +238,7 @@ export function ContentBar() {
               <div onMouseDown={(e) => e.preventDefault()}>
                 <Suggestions
                   classes={{ paper: classes.paper }}
+                  listId={SUGGESTIONS_ID}
                   onAsk={search.onAsk}
                   open={search.helpOpen}
                   suggestions={search.suggestions}

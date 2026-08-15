@@ -117,6 +117,15 @@ export default function useState(context: SearchContext = null): SearchState {
     [handleCollapse],
   )
 
+  // Tab closes the dropdown but must NOT blur: the browser is already moving
+  // focus, and calling blur() on top of that sent focus to the body instead of
+  // the next control -- so tabbing out of the field dropped a keyboard user out
+  // of the tab order entirely. Escape still blurs, because there Escape IS the
+  // "leave this field" gesture.
+  const handleTab = React.useCallback(() => {
+    handleCollapse()
+  }, [handleCollapse])
+
   const handleArrow = React.useCallback(
     (reverse: boolean) => {
       if (helpOpen) {
@@ -134,6 +143,7 @@ export default function useState(context: SearchContext = null): SearchState {
         case 'Enter':
           return handleSubmit(evt)
         case 'Tab':
+          return handleTab()
         case 'Escape':
           return handleEscape(evt)
         case 'ArrowDown':
@@ -145,7 +155,7 @@ export default function useState(context: SearchContext = null): SearchState {
           break
       }
     },
-    [handleSubmit, handleEscape, handleArrow, handleHelpOpen],
+    [handleSubmit, handleEscape, handleTab, handleArrow, handleHelpOpen],
   )
 
   const onClickAway = React.useCallback(() => {

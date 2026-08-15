@@ -36,20 +36,47 @@ const useStyles = M.makeStyles((t) => {
       backgroundColor: fade(t.palette.common.white, 0.06),
     },
   }
+  // The Focus Ring Rule (DESIGN.md §2), midnight half: this rail's ground IS
+  // midnight, so its ring is the amber Indicator. The theme's default ring is
+  // Midnight Chassis (correct for light surfaces, invisible here).
+  //
+  // `&&` doubles the class for specificity 0,3,0, beating the theme's
+  // `.MuiButtonBase-root.Mui-focusVisible` (0,2,0) outright. At equal
+  // specificity the winner is JSS injection order, which is not a contract
+  // worth betting a focus ring on.
+  const ring = {
+    outline: `2px solid ${t.palette.navigation.indicator}`,
+    outlineOffset: -2,
+  }
+  const focusRing = { '&&:focus-visible': ring }
   return {
+    // Sized identically in both modes on purpose: one nav, one set of styles.
+    // The viewport-dependent width lives on the Drawer's paper instead, and
+    // `maxWidth` lets that paper cap the 256px on a narrow phone.
     root: {
+      height: '100%',
+      maxWidth: '100%',
       width: t.spacing(32),
     },
+    // The overlay copy of the rail. 85vw keeps a strip of the page visible so
+    // the scrim reads as dismissable rather than as a new screen. The paper
+    // carries the rail's own ground so no white sliver shows at its edge.
+    drawerPaper: {
+      background: t.palette.primary.main,
+      border: 0,
+      width: `min(${t.spacing(32)}px, 85vw)`,
+    },
     // Match the 64px pseudo-header height so the logo and search bar align.
+    // minHeight, not height: at 200% zoom the row has to be able to grow rather
+    // than clip the mark. (The bar it aligns with grows too, though not in
+    // lockstep -- the logo is a fixed-px image, so exact registration is a
+    // 100%-zoom property.)
     logo: {
       alignItems: 'center',
       display: 'flex',
-      height: 64,
+      minHeight: 64,
       padding: t.spacing(0, 2),
-      '&:focus-visible': {
-        outline: `2px solid ${t.palette.navigation.indicator}`,
-        outlineOffset: -2,
-      },
+      ...focusRing,
     },
     workspaceBox: {
       ...box,
@@ -76,10 +103,7 @@ const useStyles = M.makeStyles((t) => {
     },
     wsRowClickable: {
       ...rowHover,
-      '&:focus-visible': {
-        outline: `2px solid ${t.palette.navigation.indicator}`,
-        outlineOffset: -2,
-      },
+      ...focusRing,
     },
     wsText: {
       minWidth: 0,
@@ -92,15 +116,15 @@ const useStyles = M.makeStyles((t) => {
       ...box,
       margin: t.spacing(0, 1, 1.5),
     },
+    // minHeight, not height: 44px is the touch-target floor, not a ceiling. A
+    // hard height clips the label when text scales on its own (text-only zoom,
+    // or a user minimum font size) rather than letting the row grow.
     identityRow: {
-      height: 44,
+      minHeight: 44,
       padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
       ...rowHover,
-      '&:focus-visible': {
-        outline: `2px solid ${t.palette.navigation.indicator}`,
-        outlineOffset: -2,
-      },
+      ...focusRing,
     },
     // Accepted via impeccable live (2026-07-21): inset rounded nav rows —
     // 8px side inset, 4px radius, 44px rows, 16px icon-label gap, flush items.
@@ -111,14 +135,12 @@ const useStyles = M.makeStyles((t) => {
     // label, and the amber indicator bracket.
     navItem: {
       borderRadius: 4,
-      height: 44,
+      // See identityRow: 44px is the touch-target floor, not a ceiling.
+      minHeight: 44,
       padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
       ...rowHover,
-      '&:focus-visible': {
-        outline: `2px solid ${t.palette.navigation.indicator}`,
-        outlineOffset: -2,
-      },
+      ...focusRing,
       '&.Mui-selected': {
         backgroundColor: fade(t.palette.common.white, 0.18),
         color: t.palette.common.white,
@@ -168,10 +190,9 @@ const useStyles = M.makeStyles((t) => {
       '&:hover $copyIcon': {
         visibility: 'visible',
       },
-      '&:focus-visible': {
+      '&&:focus-visible': {
+        ...ring,
         opacity: 0.9,
-        outline: `2px solid ${t.palette.navigation.indicator}`,
-        outlineOffset: -2,
       },
     },
     versionText: {
@@ -192,14 +213,34 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
-// impeccable live session: the rail stays frozen during impeccable live design
-// sessions (live.js may take ownership of this DOM at any pick); pairs with
-// the authResolved gate below so the frozen render captures resolved auth.
-// REMOVE before merge — tracked in the fix-pass ledger.
-const Freeze = React.memo(
-  ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  () => true,
-)
+// The rail is a permanent column at `md` and up and a dismissable overlay below
+// it -- there is no room for a 256px column beside the content on a phone. The
+// markup is identical either way, so there is one nav and one set of
+// active-route state rather than two that can disagree.
+//
+// Temporary is the right Drawer variant here beyond the visuals: it unmounts the
+// rail while closed, so the compact layout has no offscreen tab stops, and it
+// brings the scrim, focus trap, and Escape-to-close with it.
+function NavShell({
+  compact,
+  open,
+  onClose,
+  paperClass,
+  children,
+}: {
+  compact: boolean
+  open: boolean
+  onClose?: () => void
+  paperClass: string
+  children: React.ReactNode
+}) {
+  if (!compact) return <>{children}</>
+  return (
+    <M.Drawer anchor="left" open={open} onClose={onClose} classes={{ paper: paperClass }}>
+      {children}
+    </M.Drawer>
+  )
+}
 
 function AccountMenu({
   name,
@@ -316,7 +357,16 @@ function Version() {
   )
 }
 
-export function Sidebar() {
+export interface SidebarProps {
+  // Below `md` the rail becomes an overlay; the Layout owns that decision (and
+  // the open state) because the header's menu button is the thing that toggles
+  // it, and the two must not disagree about which mode they're in.
+  compact?: boolean
+  open?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ compact = false, open = false, onClose }: SidebarProps) {
   const classes = useStyles()
   const { urls, paths } = NamedRoutes.use()
   const settings = CatalogSettings.use()
@@ -326,13 +376,19 @@ export function Sidebar() {
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
 
-  // Buckets also owns bucket-browsing routes (`/b/*`), since that's where
-  // clicking into a bucket from the list leads. `/` counts too: with
-  // `frontDoorV2` off it renders the same list this item points at.
+  // Volumes also owns bucket-browsing routes (`/b/*`), since that's where
+  // clicking into a volume from the list leads. `/` counts too: with
+  // the `front-door` preview feature off it renders the same list this item
+  // points at.
+  //
+  // "Volume" is the user-facing word; "bucket" stays the internal one (routes,
+  // the search model's filter, useCurrentBucket). That split is deliberate --
+  // renaming the plumbing would put Volumes in the chrome while URLs, filters
+  // and error messages still said bucket.
   const isHome = !!useRouteMatch({ path: paths.home, exact: true })
   const isBucketList = !!useRouteMatch({ path: paths.buckets, exact: true })
   const isBucket = !!useRouteMatch(paths.bucketRoot)
-  const bucketsActive = isHome || isBucketList || isBucket
+  const volumesActive = isHome || isBucketList || isBucket
   const searchActive = !!useRouteMatch(paths.search)
   const queriesActive = !!useRouteMatch(paths.queries)
   const adminActive = !!useRouteMatch(paths.admin)
@@ -345,19 +401,18 @@ export function Sidebar() {
   const location = useLocation()
   const searchTo = searchActive ? location.pathname + location.search : urls.search({})
 
+  // The overlay copy of the rail covers the page it just navigated to, so it has
+  // to dismiss itself on arrival. Keyed on the URL rather than on the click so
+  // browser back and programmatic navigation dismiss it too.
+  const locationKey = location.pathname + location.search
+  React.useEffect(() => {
+    if (onClose) onClose()
+  }, [locationKey, onClose])
+
   const user = NavMenu.AuthState.match(
     { Ready: ({ user: u }) => u, Loading: () => null, Error: () => null },
     auth,
   )
-
-  const authResolved = NavMenu.AuthState.match(
-    { Ready: () => true, Error: () => true, Loading: () => false },
-    auth,
-  )
-  // impeccable live session scaffolding: mount (and freeze) the rail only once
-  // auth has resolved, so the frozen render captures the real signed-in state.
-  // REMOVE together with Freeze before merging (see Freeze comment above).
-  if (!authResolved) return null
 
   const workspaceContent = user && (
     <>
@@ -374,16 +429,24 @@ export function Sidebar() {
 
   return (
     <>
-      {/* impeccable live session: the rail stays frozen during impeccable live
-          design sessions (live.js may take ownership of this DOM at any pick);
-          pairs with the authResolved gate above so the frozen render captures
-          resolved auth. */}
-      <Freeze>
+      <NavShell
+        compact={compact}
+        open={open}
+        onClose={onClose}
+        paperClass={classes.drawerPaper}
+      >
         <Rail className={classes.root}>
           <Link to={urls.home()} className={classes.logo}>
-            {/* 29px = exactly half of quilt.png's 58px natural height, so the
-                mark maps 1:1 to device pixels on 2x displays (no resampling blur). */}
-            <Logo height="29px" width="100%" src={settings?.logo?.url} />
+            {/* Default branding is the full quilt.bio wordmark: white text plus
+                the coral dot, which reads on the midnight rail. The rail slot is
+                wide, so the brand should read as a name rather than a dot. A
+                customer's own logo still renders via `src` as before. */}
+            <Logo
+              height="32px"
+              width="100%"
+              src={settings?.logo?.url}
+              variant="wordmark"
+            />
           </Link>
 
           {(user || cfg.mode !== 'LOCAL') && (
@@ -429,13 +492,13 @@ export function Sidebar() {
               button
               component={Link}
               to={urls.buckets()}
-              selected={bucketsActive}
+              selected={volumesActive}
               className={classes.navItem}
             >
               <M.ListItemIcon className={classes.icon}>
                 <OutlinedIcon>storage</OutlinedIcon>
               </M.ListItemIcon>
-              <M.ListItemText primary="Buckets" classes={{ primary: classes.navLabel }} />
+              <M.ListItemText primary="Volumes" classes={{ primary: classes.navLabel }} />
             </M.ListItem>
             <M.ListItem
               button
@@ -531,7 +594,7 @@ export function Sidebar() {
           )}
           <Version />
         </Rail>
-      </Freeze>
+      </NavShell>
       <Bookmarks.Drawer />
     </>
   )

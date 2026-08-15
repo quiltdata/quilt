@@ -35,6 +35,17 @@ export function Root({ dark = false, ...props }: RootProps) {
   )
 }
 
+// Under 960px there is no room for a 256px column beside the content, so the
+// rail becomes an overlay reached from a menu button in the header band. In MUI
+// v4 `down('sm')` is max-width 959.95px -- i.e. everything below the `md`
+// breakpoint, not just the `sm` band. Same call the search page's own mobile
+// switch uses (Search/Layout/Main.tsx), so the two can't disagree about when the
+// viewport is narrow.
+const useCompactShell = () => {
+  const t = M.useTheme()
+  return M.useMediaQuery(t.breakpoints.down('sm'))
+}
+
 const useShellStyles = M.makeStyles((t) => ({
   shell: {
     display: 'flex',
@@ -83,6 +94,10 @@ export function Layout({
   pre,
 }: LayoutProps) {
   const classes = useShellStyles()
+  const compact = useCompactShell()
+  const [navOpen, setNavOpen] = React.useState(false)
+  const closeNav = React.useCallback(() => setNavOpen(false), [])
+  const openNav = React.useCallback(() => setNavOpen(true), [])
 
   // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
   if (bare) {
@@ -108,9 +123,11 @@ export function Layout({
         className={classes.shell}
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
-        <Sidebar />
+        <Sidebar compact={compact} open={navOpen} onClose={closeNav} />
         <M.Box component="main" className={classes.main}>
-          <ContentBar />
+          {/* The menu button exists only in the compact shell: on a wide
+              viewport the rail is always on screen, so it would toggle nothing. */}
+          <ContentBar onMenu={compact ? openNav : undefined} />
           <div className={cx(classes.content, !flush && classes.padded)}>
             <Container.FullWidthProvider>
               {!!pre && pre}

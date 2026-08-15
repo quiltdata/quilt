@@ -56,58 +56,78 @@ const useSuggestionsStyles = M.makeStyles((t) => ({
   },
 }))
 
+// A stable id per row so the input's `aria-activedescendant` can name the
+// highlighted one. Exported so the two stay in lockstep -- if they disagree,
+// the announcement silently points at nothing.
+export const suggestionOptionId = (listId: string, index: number) =>
+  `${listId}-option-${index}`
+
 interface SuggestionsProps {
   items: Suggestion[]
+  listId: string
   selected: number
   onAsk: ((query: string) => void) | null
 }
 
-function SuggestionsList({ items, selected, onAsk }: SuggestionsProps) {
+function SuggestionsList({ items, listId, selected, onAsk }: SuggestionsProps) {
   const classes = useSuggestionsStyles()
   return (
-    <M.List>
-      {items.map((item, index) =>
-        item.kind === 'qurator' ? (
-          <M.MenuItem
-            button
-            className={classes.ask}
-            key={item.key}
-            onClick={() => onAsk?.(item.query)}
-            selected={selected === index}
-          >
-            <M.ListItemIcon className={classes.askIcon}>
-              <M.Icon className={classes.askGlyph}>auto_awesome</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText
-              primary={
-                <>
-                  Ask <b>Qurator</b> &laquo;<b>{item.query}</b>&raquo;
-                </>
-              }
-              primaryTypographyProps={{ variant: 'body2' }}
-            />
-            <span className={classes.askWhere}>natural language</span>
-          </M.MenuItem>
-        ) : (
-          <M.MenuItem
-            button
-            className={classes.item}
-            component={Link}
-            key={item.key}
-            selected={selected === index}
-            to={item.url}
-          >
-            <M.ListItemText
-              primary={
-                <>
-                  Search {item.what} {item.where}
-                </>
-              }
-              primaryTypographyProps={{ variant: 'body2' }}
-            />
-          </M.MenuItem>
-        ),
-      )}
+    // listbox, not a menu: this is a combobox popup, and the arrow-key highlight
+    // has to be exposed as `aria-selected` rather than only as a CSS class.
+    // (M.MenuItem's `selected` prop emits Mui-selected and nothing else, which
+    // is why ArrowDown used to announce nothing at all.) The help text sits
+    // outside the list so the listbox contains only options.
+    <>
+      <M.List aria-label="Search suggestions" id={listId} role="listbox">
+        {items.map((item, index) =>
+          item.kind === 'qurator' ? (
+            <M.MenuItem
+              aria-selected={selected === index}
+              button
+              className={classes.ask}
+              id={suggestionOptionId(listId, index)}
+              key={item.key}
+              onClick={() => onAsk?.(item.query)}
+              role="option"
+              selected={selected === index}
+            >
+              <M.ListItemIcon className={classes.askIcon}>
+                <M.Icon className={classes.askGlyph}>auto_awesome</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText
+                primary={
+                  <>
+                    Ask <b>Qurator</b> &laquo;<b>{item.query}</b>&raquo;
+                  </>
+                }
+                primaryTypographyProps={{ variant: 'body2' }}
+              />
+              <span className={classes.askWhere}>natural language</span>
+            </M.MenuItem>
+          ) : (
+            <M.MenuItem
+              aria-selected={selected === index}
+              button
+              className={classes.item}
+              component={Link}
+              id={suggestionOptionId(listId, index)}
+              key={item.key}
+              role="option"
+              selected={selected === index}
+              to={item.url}
+            >
+              <M.ListItemText
+                primary={
+                  <>
+                    Search {item.what} {item.where}
+                  </>
+                }
+                primaryTypographyProps={{ variant: 'body2' }}
+              />
+            </M.MenuItem>
+          ),
+        )}
+      </M.List>
       <div className={classes.help}>
         Learn the{' '}
         <StyledLink
@@ -118,7 +138,7 @@ function SuggestionsList({ items, selected, onAsk }: SuggestionsProps) {
         </StyledLink>{' '}
         for query string queries in ElasticSearch {ES_V}.
       </div>
-    </M.List>
+    </>
   )
 }
 
@@ -148,6 +168,9 @@ interface SuggestionsContainerProps {
     paper?: string
     contents?: string
   }
+  // The listbox's DOM id. The field that owns this popup points at it with
+  // `aria-controls`, and at one of its rows with `aria-activedescendant`.
+  listId?: string
   onAsk?: ((query: string) => void) | null
   open: boolean
   suggestions: { items: Suggestion[]; selected: number }
@@ -155,6 +178,7 @@ interface SuggestionsContainerProps {
 
 export default function SuggestionsContainer({
   classes,
+  listId = 'search-suggestions',
   onAsk = null,
   open,
   suggestions: { items, selected },
@@ -162,7 +186,14 @@ export default function SuggestionsContainer({
   if (!Array.isArray(items) || !items.length) return null
   return (
     <PaperWrapper classes={classes} open={open}>
-      {open && <SuggestionsList items={items} selected={selected} onAsk={onAsk} />}
+      {open && (
+        <SuggestionsList
+          items={items}
+          listId={listId}
+          selected={selected}
+          onAsk={onAsk}
+        />
+      )}
     </PaperWrapper>
   )
 }
