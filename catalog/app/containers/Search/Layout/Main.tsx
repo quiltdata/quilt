@@ -41,7 +41,11 @@ function MobileFilters({ open, onClose }: MobileFiltersProps) {
   return (
     <M.Drawer anchor="left" open={open} onClose={onClose}>
       <Filters className={classes.filters} />
-      <M.IconButton className={classes.close} onClick={onClose}>
+      <M.IconButton
+        aria-label="Close filters"
+        className={classes.close}
+        onClick={onClose}
+      >
         <M.Icon>close</M.Icon>
       </M.IconButton>
     </M.Drawer>

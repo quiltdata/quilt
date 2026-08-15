@@ -239,8 +239,13 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
     ? 'Hide entries'
     : `Show ${size} matching ${size === 1 ? 'entry' : 'entries'}`
   return (
+    // aria-label as well as the tooltip: MUI v4's Tooltip puts its title in the
+    // native `title` attribute while closed and REMOVES it when it opens, so a
+    // tooltip-only name disappears at the moment a keyboard user focuses the
+    // control. The badge count is inside the button, and M.Icon is aria-hidden,
+    // so without this the accessible name is just the number.
     <M.Tooltip arrow title={title}>
-      <M.IconButton className={className}>
+      <M.IconButton className={className} aria-label={title}>
         <M.Badge badgeContent={size} color="default" classes={{ badge: classes.badge }}>
           <M.Icon className={open ? classes.expanded : classes.collapsed}>
             {open ? 'expand_more' : 'chevron_right'}
@@ -992,7 +997,11 @@ function ConfigureColumns({ open, columns, state, onClose }: ConfigureColumnsPro
       >
         <div className={classes.head}>
           <M.Typography variant="subtitle2">Configure columns:</M.Typography>
-          <M.IconButton onClick={onClose} className={classes.close}>
+          <M.IconButton
+            aria-label="Close column settings"
+            onClick={onClose}
+            className={classes.close}
+          >
             <M.Icon>close</M.Icon>
           </M.IconButton>
         </div>
@@ -1065,7 +1074,10 @@ function ColumnHeadOpen({ className, column }: ColumnHeadOpenProps) {
     open(column)
   }, [column, activatePackagesMetaFilter, activatePackagesFilter, open])
   return (
+    // Names the column, not just the action: one of these sits in every column
+    // head, so a bare "Filter" repeats N times with nothing to distinguish them.
     <M.IconButton
+      aria-label={`Filter ${column.title}`}
       className={className}
       size="small"
       color={column.state.filtered ? 'primary' : 'inherit'}
@@ -1116,7 +1128,14 @@ function ColumnHeadHide({ className, column }: ColumnHeadHideProps) {
     }
   }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter])
   return (
-    <M.IconButton className={className} size="small" color="inherit" onClick={handleHide}>
+    // Names the column: one per column head, so a bare "Hide" is ambiguous.
+    <M.IconButton
+      aria-label={`Hide ${column.title}`}
+      className={className}
+      size="small"
+      color="inherit"
+      onClick={handleHide}
+    >
       <Icons.VisibilityOffOutlined color="inherit" fontSize="inherit" />
     </M.IconButton>
   )
@@ -1238,8 +1257,13 @@ function ColumnHeadSort({ className, column }: ColumnHeadSortProps) {
     : 'Sort ascending'
 
   return (
+    // See UnfoldPackageEntries: the tooltip's name evaporates on focus, so the
+    // label is set explicitly. It names the column too -- every column head
+    // carries one of these, so "Sort ascending" alone repeats N times with
+    // nothing to tell them apart.
     <M.Tooltip arrow title={title}>
       <M.IconButton
+        aria-label={`${title}: ${column.title}`}
         className={cx(className, classes.button)}
         size="small"
         color={active ? 'primary' : 'inherit'}

@@ -9,15 +9,25 @@ import Results from './Results'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+// Mutable so the xs-viewport branch (which drops the button's visible label) can
+// be exercised; jsdom has no matchMedia, so MUI's own hook would report false.
+const { media } = vi.hoisted(() => ({ media: { narrow: false } }))
+
+// These stubs FORWARD aria-label rather than supplying one. An earlier version
+// hardcoded `aria-label="toggle results view"` on the group, which made the
+// name assertions below unfalsifiable -- they passed whatever the real component
+// did (it set no label at all).
 vi.mock('@material-ui/core', async () => ({
   ...(await vi.importActual('@material-ui/core')),
-  Button: ({ children }: React.PropsWithChildren<{}>) => <button>{children}</button>,
+  Button: ({ children, ...props }: React.PropsWithChildren<{}>) => (
+    <button {...props}>{children}</button>
+  ),
   Icon: ({ children }: React.PropsWithChildren<{}>) => <span>{children}</span>,
   useTheme: () => ({
     breakpoints: { down: () => false },
     spacing: (x: number) => x * 8,
   }),
-  useMediaQuery: () => false,
+  useMediaQuery: () => media.narrow,
 }))
 
 vi.mock('@material-ui/icons', () => ({
@@ -30,13 +40,18 @@ vi.mock('@material-ui/lab', () => ({
   ToggleButtonGroup: ({
     value,
     children,
+    ...props
   }: React.PropsWithChildren<{ value: string }>) => (
-    <div role="group" aria-label="toggle results view" data-selected={value}>
+    <div role="group" data-selected={value} {...props}>
       {children}
     </div>
   ),
-  ToggleButton: ({ children, value }: React.PropsWithChildren<{ value: string }>) => (
-    <button role="button" data-value={value}>
+  ToggleButton: ({
+    children,
+    value,
+    ...props
+  }: React.PropsWithChildren<{ value: string }>) => (
+    <button role="button" data-value={value} {...props}>
       {children}
     </button>
   ),
@@ -119,7 +134,48 @@ describe('containers/Search/Layout/Results', () => {
     model.state.resultType = 'p'
   })
 
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    media.narrow = false
+  })
+
+  // Both toggles are icon-only, and MUI's SvgIcon is aria-hidden, so without
+  // explicit labels each one computes an empty accessible name -- and the pair
+  // has nothing saying what it is for.
+  it('names the view toggles and the group they belong to', () => {
+    model.firstPageQuery = {
+      _tag: 'data',
+      data: { __typename: 'PackagesSearchResultSet', total: 5 },
+    }
+    const { getByRole } = render(
+      <MemoryRouter>
+        <Results />
+      </MemoryRouter>,
+    )
+    const group = getByRole('group', { name: 'Results view' })
+    expect(group).toBeTruthy()
+    expect(getByRole('button', { name: 'Table view' })).toBeTruthy()
+    expect(getByRole('button', { name: 'List view' })).toBeTruthy()
+  })
+
+  // At xs the create button drops its visible label to save width, which leaves
+  // an aria-hidden glyph and therefore no name at all.
+  it('keeps the create-package button named when its label is dropped at xs', () => {
+    media.narrow = true
+    model.firstPageQuery = {
+      _tag: 'data',
+      data: { __typename: 'PackagesSearchResultSet', total: 5 },
+    }
+    const { getByRole, queryByText } = render(
+      <MemoryRouter initialEntries={['/b/test-bucket/packages/my-package']}>
+        <Results />
+      </MemoryRouter>,
+    )
+    // Visible text is gone at this width...
+    expect(queryByText('Create new package')).toBeFalsy()
+    // ...but the control is still named.
+    expect(getByRole('button', { name: 'Create new package' })).toBeTruthy()
+  })
 
   it('renders with loading state', () => {
     const { getByText } = render(
@@ -180,7 +236,7 @@ describe('containers/Search/Layout/Results', () => {
       </MemoryRouter>,
     )
     expect(getByText('Column Title: 5 objects')).toBeTruthy()
-    expect(queryByRole('group', { name: 'toggle results view' })).toBeFalsy()
+    expect(queryByRole('group', { name: 'Results view' })).toBeFalsy()
   })
 
   it('renders error state', () => {
@@ -198,7 +254,7 @@ describe('containers/Search/Layout/Results', () => {
     expect(getByText('Column Title:')).toBeTruthy()
     expect(getByText('Sort Selector')).toBeTruthy()
     // Toggle view should still be present for error state (PackageSearchResultSet)
-    expect(getByRole('group', { name: 'toggle results view' })).toBeTruthy()
+    expect(getByRole('group', { name: 'Results view' })).toBeTruthy()
   })
 
   it('shows Create Package button in bucket', () => {

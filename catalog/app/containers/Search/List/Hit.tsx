@@ -575,7 +575,12 @@ function PreviewContents({ children, expanded, onToggle }: PreviewContentsProps)
       <div className={classes.fadeRight} />
       <div className={classes.fadeOver} onClick={onToggle} title="Click to expand" />
 
+      {/* aria-label as well as `title`: this button's own name is the glyph,
+          which is aria-hidden, and a bare "Expand" repeats once per result card
+          with nothing to say what it expands. */}
       <M.IconButton
+        aria-label={expanded ? 'Collapse preview' : 'Expand preview'}
+        aria-expanded={expanded}
         className={classes.expand}
         title={expanded ? 'Collapse' : 'Expand'}
         onClick={onToggle}

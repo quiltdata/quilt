@@ -36,7 +36,10 @@ function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return xs ? (
+    // The label is dropped at xs to save width, which leaves an aria-hidden
+    // glyph and therefore no accessible name at all. Carry the wide label here.
     <M.Button
+      aria-label="Create new package"
       className={className}
       color="primary"
       onClick={onClick}
@@ -189,17 +192,29 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
     [model.actions],
   )
   return (
+    // The group needs its own name: the two buttons announce what each does, but
+    // nothing says what the pair is for. The icons are aria-hidden SvgIcons, so
+    // without these labels both buttons compute an empty accessible name.
     <Lab.ToggleButtonGroup
+      aria-label="Results view"
       value={model.state.view}
       className={className}
       exclusive
       onChange={handleChange}
       size="small"
     >
-      <Lab.ToggleButton value={SearchUIModel.View.Table} classes={classes}>
+      <Lab.ToggleButton
+        aria-label="Table view"
+        value={SearchUIModel.View.Table}
+        classes={classes}
+      >
         <Icons.GridOn />
       </Lab.ToggleButton>
-      <Lab.ToggleButton value={SearchUIModel.View.List} classes={classes}>
+      <Lab.ToggleButton
+        aria-label="List view"
+        value={SearchUIModel.View.List}
+        classes={classes}
+      >
         <Icons.List />
       </Lab.ToggleButton>
     </Lab.ToggleButtonGroup>

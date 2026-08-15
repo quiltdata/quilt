@@ -44,10 +44,33 @@ const appTypography = {
   ...baseTypography,
 }
 
-const tooltipOverrides = {
+const overrides = {
   MuiTooltip: {
     tooltip: {
       ...defaultTheme.typography.body2,
+    },
+  },
+  // The Focus Ring Rule (DESIGN.md §2), applied once at the theme rather than
+  // per surface: MUI sets `outline: 0` on every ButtonBase, so without this a
+  // keyboard user has no ring at all on any button that doesn't hand-roll one --
+  // which was every control on the search results surface.
+  //
+  // Midnight Chassis, which is the rule's light-surface half -- the app ground is
+  // light everywhere except the rail. Not `currentColor`: on a contained primary
+  // button that resolves to white, and the ring draws OUTSIDE the button (offset
+  // 2) on the light page ground, so it would disappear precisely where it is most
+  // needed.
+  //
+  // The rail is the midnight half of the rule and must keep its amber Indicator
+  // ring -- a midnight ring on midnight ground is the very thing this prevents.
+  // Its rules use `&&` to win on specificity outright rather than relying on JSS
+  // injection order, which is not a contract worth betting a focus ring on.
+  MuiButtonBase: {
+    root: {
+      '&.Mui-focusVisible': {
+        outline: `2px solid ${appPalette.primary.main}`,
+        outlineOffset: 2,
+      },
     },
   },
 }
@@ -68,7 +91,7 @@ export const appTheme = createMuiTheme({
   palette: appPalette,
   typography: appTypography,
   mixins,
-  overrides: tooltipOverrides,
+  overrides,
 })
 
 export const createCustomAppTheme = (
