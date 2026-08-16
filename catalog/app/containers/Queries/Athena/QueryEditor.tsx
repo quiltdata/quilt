@@ -20,6 +20,23 @@ const ATHENA_REF_SQL =
 const ATHENA_REF_FUNCTIONS =
   'https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html'
 
+/**
+ * Shown as ghost text in the empty editor, and inserted only when the user asks
+ * for it — never pre-filled into `queryBody`, so it can't be run by accident.
+ *
+ * Queries the per-bucket Iceberg package index Quilt maintains for every
+ * registered bucket (see docs/advanced-features/iceberg-tables.md): the
+ * `{bucket}_package_tag` table, whose `latest` tag names the current revision of
+ * each package. The bucket name has to be substituted, which is the point — it
+ * shows the shape of a real query without pretending to be runnable as-is.
+ */
+const EXAMPLE_QUERY = `-- The latest revision of every package in a bucket.
+-- Replace my-bucket with one of your bucket names.
+SELECT pkg_name, top_hash
+FROM "my-bucket_package_tag"
+WHERE tag_name = 'latest'
+LIMIT 10`
+
 function HelperText() {
   return (
     <M.FormHelperText>
@@ -44,8 +61,18 @@ const useStyles = M.makeStyles((t) => ({
   editor: {
     padding: t.spacing(1),
     position: 'relative',
+    // Ace renders its placeholder as scaled-down Arial with a margin of its
+    // own, which reads as stray UI text rather than as example SQL.
+    '& .ace_placeholder': {
+      fontFamily: t.typography.monospace.fontFamily,
+      margin: 0,
+      transform: 'none',
+    },
   },
   header: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
     margin: t.spacing(2, 0, 1),
   },
 }))
@@ -58,6 +85,9 @@ function EditorField() {
     () => ({ $blockScrolling: true, readonly: Model.isLoading(queryRun) }),
     [queryRun],
   )
+
+  const { setValue } = queryBody
+  const insertExample = React.useCallback(() => setValue(EXAMPLE_QUERY), [setValue])
 
   if (Model.isNone(queryBody.value)) {
     return null
@@ -73,15 +103,29 @@ function EditorField() {
 
   return (
     <div>
-      <M.Typography className={classes.header} variant="body1">
-        Query body
-      </M.Typography>
-      <M.Paper className={classes.editor}>
+      <div className={classes.header}>
+        <M.Typography variant="body1">Query body</M.Typography>
+        {!queryBody.value && (
+          <M.Button
+            color="primary"
+            disabled={Model.isLoading(queryRun)}
+            onClick={insertExample}
+            size="small"
+          >
+            Insert example
+          </M.Button>
+        )}
+      </div>
+      <M.Paper className={classes.editor} variant="outlined">
         <AceEditor
           editorProps={editorProps}
           height="200px"
           mode="sql"
           onChange={queryBody.setValue}
+          placeholder={EXAMPLE_QUERY}
+          // The vertical rule Ace draws at column 80 has no meaning for SQL and
+          // reads as a stray border down the middle of the card.
+          showPrintMargin={false}
           theme="eclipse"
           value={queryBody.value || ''}
           width="100%"
@@ -183,14 +227,35 @@ const useFormStyles = M.makeStyles((t) => ({
       marginBottom: t.spacing(2),
     },
   },
-  // Cap width but keep the block left-aligned (M.Container centers by default).
-  container: {
-    marginLeft: 0,
-  },
   error: {
     margin: t.spacing(1, 0, 0),
   },
+  run: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+  },
+  reason: {
+    margin: t.spacing(0.5, 0, 0),
+  },
 }))
+
+/**
+ * Why `Run query` is disabled, in the same order `useQueryRun` gives up, or
+ * `null` when it is enabled. A button that is dead with no stated cause is the
+ * dead-affordance failure mode DESIGN.md rules out.
+ */
+function useRunDisabledReason(): string | null {
+  const { catalogName, database, queryBody, queryRun, workgroup } = Model.use()
+  if (Model.isReady(queryRun)) return null
+  if (Model.isLoading(queryRun)) return 'Running…'
+  if (!Model.hasData(workgroup.data)) return 'Select a workgroup first'
+  if (!Model.hasValue(catalogName.value) || !Model.hasValue(database.value)) {
+    return 'Loading the data catalog and database'
+  }
+  if (!Model.hasData(queryBody.value)) return 'Write a query, or insert the example'
+  return null
+}
 
 interface FormProps {
   className: string
@@ -200,6 +265,7 @@ export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
   const { submit, queryRun } = Model.use()
+  const disabledReason = useRunDisabledReason()
 
   const openDialog = Dialogs.use()
   const handleSubmit = React.useCallback(async () => {
@@ -219,9 +285,9 @@ export function Form({ className }: FormProps) {
         </Lab.Alert>
       )}
 
-      <M.Container maxWidth="lg" disableGutters className={classes.container}>
-        <div className={classes.actions}>
-          <Database className={classes.database} />
+      <div className={classes.actions}>
+        <Database className={classes.database} />
+        <div className={classes.run}>
           <M.Button
             variant="contained"
             color="primary"
@@ -230,8 +296,13 @@ export function Form({ className }: FormProps) {
           >
             Run query
           </M.Button>
+          {disabledReason && (
+            <M.FormHelperText className={classes.reason}>
+              {disabledReason}
+            </M.FormHelperText>
+          )}
         </div>
-      </M.Container>
+      </div>
     </div>
   )
 }

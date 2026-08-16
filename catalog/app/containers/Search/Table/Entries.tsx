@@ -248,6 +248,12 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(2, 2, 2, 6.5),
     // fullWidth - page container paddings
     width: `calc(100vw - ${t.spacing(3 * 2)}px)`,
+    // Both keyframes below settle at their final state (opacity 1, no
+    // translate), so collapsing the duration lands there instantly instead
+    // of freezing mid-animation -- "no motion", not "stuck half-appeared".
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   totalCount: {
     paddingTop: t.spacing(2),

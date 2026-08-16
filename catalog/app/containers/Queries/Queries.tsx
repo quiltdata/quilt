@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import Layout, { Container } from 'components/Layout'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { useFeature } from 'utils/features'
 
 import Athena from './Athena'
 import ElasticSearch from './ElasticSearch'
@@ -52,10 +53,13 @@ function useSection(): 'athena' | 'es' {
   return matchPath(pathname, { path: paths.queriesEs, exact: true }) ? 'es' : 'athena'
 }
 
-function QueriesScreen() {
+export function QueriesScreen() {
   const classes = useStyles()
   const { paths, urls } = NamedRoutes.use()
   const section = useSection()
+  // Suspending read (CatalogSettings.use()) — safe here because the whole app
+  // tree sits inside the root Suspense boundary in app.tsx.
+  const esEnabled = useFeature('elasticsearch-queries')
   return (
     <Container className={classes.content}>
       <MetaTitle>Queries</MetaTitle>
@@ -64,20 +68,33 @@ function QueriesScreen() {
         <div className={classes.headerTop}>
           <M.Typography variant="h5">Queries</M.Typography>
         </div>
-        <M.Divider />
-        <div className={classes.tabsRow}>
-          <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
-            <NavTab label="Athena" value="athena" to={urls.queriesAthena()} />
-            <NavTab label="ElasticSearch" value="es" to={urls.queriesEs()} />
-          </M.Tabs>
-        </div>
+        {/* With ElasticSearch off there is exactly one console, so the tab strip
+            would be a lone underlined tab that switches to nothing — a dead
+            affordance. The Athena panel below names itself; the strip only
+            earns its place once there is a second destination. */}
+        {esEnabled && (
+          <>
+            <M.Divider />
+            <div className={classes.tabsRow}>
+              <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
+                <NavTab label="Athena" value="athena" to={urls.queriesAthena()} />
+                <NavTab label="ElasticSearch" value="es" to={urls.queriesEs()} />
+              </M.Tabs>
+            </div>
+          </>
+        )}
       </M.Paper>
 
       <M.Paper className={classes.section}>
         <Switch>
-          <Route path={paths.queriesEs} exact>
-            <ElasticSearch />
-          </Route>
+          {/* Unregistered when the flag is off, so /queries/es falls through to
+              the catch-all redirect below rather than rendering a bare console
+              the catalog is not meant to expose. */}
+          {esEnabled && (
+            <Route path={paths.queriesEs} exact>
+              <ElasticSearch />
+            </Route>
+          )}
           <Route path={paths.queriesAthena} exact>
             <Athena />
           </Route>

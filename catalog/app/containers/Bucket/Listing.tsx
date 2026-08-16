@@ -382,7 +382,12 @@ function Pagination({
           ))}
         </M.Select>
       )}
-      <M.IconButton size="small" disabled={page === 1} onClick={() => setPage(page - 1)}>
+      <M.IconButton
+        size="small"
+        disabled={page === 1}
+        onClick={() => setPage(page - 1)}
+        aria-label="Previous page"
+      >
         <M.Icon fontSize="small">chevron_left</M.Icon>
       </M.IconButton>
       {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
@@ -400,6 +405,7 @@ function Pagination({
         size="small"
         disabled={page === pages}
         onClick={() => setPage(page + 1)}
+        aria-label="Next page"
       >
         <M.Icon fontSize="small">chevron_right</M.Icon>
       </M.IconButton>
@@ -407,7 +413,9 @@ function Pagination({
   )
 }
 
-function ActiveFilters() {
+// Exported for testing: this renders as tooltip content in three places, none
+// of which had a boundary above them.
+export function ActiveFilters() {
   const apiRef = React.useContext(DG.GridApiContext)
   const activeFilters = DG.useGridSelector(apiRef, DG.activeGridFilterItemsSelector)
   const lookup = DG.useGridSelector(apiRef, DG.gridColumnLookupSelector)
@@ -417,14 +425,24 @@ function ActiveFilters() {
     <>
       {apiRef!.current.getLocaleText('toolbarFiltersTooltipActive')(counter)}
       <ul>
-        {activeFilters.map((item) => ({
-          ...(lookup[item.columnField!] && (
+        {/* `columnField` is optional on GridFilterItem, so `lookup[...]` can be
+            undefined. This used to spread the conditional into an object
+            literal -- `{...(lookup[f!] && <li/>)}` -- which on the falsy branch
+            produced `{}`: not a valid element, so React threw "Objects are not
+            valid as a React child" from inside a tooltip with no boundary above
+            it, blanking the catalog. (The truthy branch only worked by accident,
+            object-spread copying an element's own enumerable props including
+            `$$typeof`.) Map to elements and drop the unmatched ones instead, so
+            the conditional yields a valid element or nothing. */}
+        {activeFilters.flatMap((item) => {
+          const column = item.columnField ? lookup[item.columnField] : undefined
+          if (!column) return []
+          return [
             <li key={item.id}>
-              {lookup[item.columnField!].headerName || item.columnField}{' '}
-              {item.operatorValue} {item.value}
-            </li>
-          )),
-        }))}
+              {column.headerName || item.columnField} {item.operatorValue} {item.value}
+            </li>,
+          ]
+        })}
       </ul>
     </>
   )

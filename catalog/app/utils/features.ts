@@ -33,6 +33,11 @@ export const FEATURES = {
     description:
       'Replace the volume list at / with the unified search bar and tiles. Off, / is the volume list, unchanged.',
   },
+  'elasticsearch-queries': {
+    label: 'ElasticSearch query console',
+    description:
+      'Show the ElasticSearch tab on Queries. Off, Queries is Athena only and /queries/es redirects to it.',
+  },
 } satisfies Record<string, Feature>
 
 export type FeatureId = keyof typeof FEATURES
@@ -62,6 +67,13 @@ export function isEnabled(
  * caller of that hook (the rail, the bare header, the bucket pages) already
  * relies on an ancestor Suspense boundary, so this is safe in the same places --
  * but it is a suspending read, not a plain one.
+ *
+ * The suspension is the cache's, not the fetch's: ResourceCache creates an entry
+ * in `AsyncResult.Init` and defers its fetch a macrotask, and `suspend` throws
+ * for `Init` as well as `Pending` (utils/ResourceCache.jsx:130, :155). So the
+ * first read suspends even where nothing is fetched -- LOCAL mode returns null
+ * before touching S3 and still suspends. Gate this behind whatever mode check
+ * would have skipped the fetch, or the wait buys a request that never happens.
  */
 export function useFeature(id: FeatureId): boolean {
   const settings = CatalogSettings.use()
@@ -74,6 +86,13 @@ export function useFeature(id: FeatureId): boolean {
  * `writeSettings` replaces the whole settings document, so the spread here is
  * what keeps the logo, nav link, theme and search mode from being dropped on the
  * floor every time somebody toggles a preview.
+ *
+ * That spread is only correct against a document that is still current. `settings`
+ * is whatever `CatalogSettings.use()` returned at render, and nothing invalidates
+ * it when another admin writes -- so it is passed as `expected` to have the write
+ * refuse rather than revert their change. Callers get a
+ * `CatalogSettings.SettingsConflictError` to surface; see `useWriteSettings` for
+ * why this detects the conflict instead of preventing it.
  */
 export function useFeatureSetting(
   id: FeatureId,
@@ -82,10 +101,13 @@ export function useFeatureSetting(
   const writeSettings = CatalogSettings.useWriteSettings()
   const set = React.useCallback(
     (on: boolean) =>
-      writeSettings({
-        ...settings,
-        features: { ...settings?.features, [id]: on },
-      }),
+      writeSettings(
+        {
+          ...settings,
+          features: { ...settings?.features, [id]: on },
+        },
+        settings,
+      ),
     [id, settings, writeSettings],
   )
   return [isEnabled(settings, id), set]

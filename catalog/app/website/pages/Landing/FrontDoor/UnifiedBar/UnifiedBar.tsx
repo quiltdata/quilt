@@ -1,7 +1,9 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
+import * as Lab from '@material-ui/lab'
 
 import { search } from 'constants/routes'
 import { Model as AssistantModel } from 'components/Assistant'
@@ -53,7 +55,53 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
     textAlign: 'center',
   },
+  // The suspended-suggestions placeholder. It carries the same outline, radius
+  // and offset as the resolved list (SearchSuggestions' `root`) and reserves a
+  // plausible height, so the list fades in where the placeholder was instead of
+  // shoving the page around it. A collapsing fallback here would make everything
+  // below the bar jump on every cold read.
+  suggestionsPlaceholder: {
+    background: t.palette.background.paper,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    marginTop: t.spacing(2),
+    overflow: 'hidden',
+    padding: t.spacing(1, 2),
+    // Universal reduced-motion escape hatch (as in containers/Home/Buckets):
+    // kills Lab.Skeleton's pulse without reaching for its hashed class name.
+    '@media (prefers-reduced-motion: reduce)': {
+      '& *': {
+        animationDuration: '0.01ms !important',
+        animationIterationCount: '1 !important',
+      },
+    },
+  },
+  suggestionsPlaceholderRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+    // Matches the dense ListItem rows the real list resolves into.
+    height: 40,
+  },
 }))
+
+// Stands in for the suggestions list while its bucket data is in flight.
+// `aria-hidden`: the field's `aria-expanded` already says the popup is closed
+// while this is on screen, so announcing skeleton rows as options would
+// contradict it.
+function SuggestionsPlaceholder() {
+  const classes = useStyles()
+  return (
+    <div aria-hidden className={classes.suggestionsPlaceholder}>
+      {R.range(0, 3).map((i) => (
+        <div className={classes.suggestionsPlaceholderRow} key={i}>
+          <Lab.Skeleton variant="circle" width={24} height={24} />
+          <Lab.Skeleton variant="text" width="45%" height={16} />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface UnifiedBarProps {
   value: string
@@ -180,15 +228,28 @@ export default function UnifiedBar({ value, onChange }: UnifiedBarProps) {
         </div>
       )}
       {effectiveRoute === 'Search' ? (
-        <SearchSuggestions
-          ref={suggestionsRef}
-          query={value}
-          quratorEnabled={quratorEnabled}
-          onAskQurator={runQurator}
-          listId={SUGGESTIONS_ID}
-          highlight={highlight}
-          onRowCount={handleRowCount}
-        />
+        // SearchSuggestions reads `useRelevantBuckets`, which always suspends
+        // (see utils/Buckets). `classifyQuery('')` is 'Search', so this mounts on
+        // page LOAD, not first on a keystroke -- a cold visit suspends here
+        // immediately. Without a boundary React unwinds to the nearest one above,
+        // and all of those sit above the component holding `query`
+        // (FrontDoorContent): the whole front door would be replaced by the
+        // app-level Placeholder and remounted, taking any typed text with it.
+        //
+        // The boundary sits *below* the Input rather than around the whole bar
+        // on purpose: suspending must not unmount the field, or the caret and
+        // focus would be lost even though the value survived.
+        <React.Suspense fallback={<SuggestionsPlaceholder />}>
+          <SearchSuggestions
+            ref={suggestionsRef}
+            query={value}
+            quratorEnabled={quratorEnabled}
+            onAskQurator={runQurator}
+            listId={SUGGESTIONS_ID}
+            highlight={highlight}
+            onRowCount={handleRowCount}
+          />
+        </React.Suspense>
       ) : (
         <QuratorPanel
           query={trimmed}

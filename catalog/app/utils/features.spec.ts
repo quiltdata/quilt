@@ -5,7 +5,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { CatalogSettings } from 'utils/CatalogSettings'
 
 let settings: CatalogSettings | null = null
-const writeSettings = vi.fn<(s: CatalogSettings) => Promise<void>>(async () => {})
+const writeSettings = vi.fn<
+  (s: CatalogSettings, expected?: CatalogSettings | null) => Promise<void>
+>(async () => {})
 
 vi.mock('utils/CatalogSettings', () => ({
   use: () => settings,
@@ -93,7 +95,9 @@ describe('utils/features', () => {
       await act(async () => {
         await result.current[1](true)
       })
-      expect(writeSettings).toHaveBeenCalledWith({ features: { [ID]: true } })
+      // `null` is a real claim -- "there was no settings file when I read" -- not
+      // an absent one, so it is passed rather than omitted.
+      expect(writeSettings).toHaveBeenCalledWith({ features: { [ID]: true } }, null)
     })
 
     // `useWriteSettings` replaces the whole document, so anything this hook
@@ -111,10 +115,13 @@ describe('utils/features', () => {
       await act(async () => {
         await result.current[1](true)
       })
-      expect(writeSettings).toHaveBeenCalledWith({
-        ...settings,
-        features: { [ID]: true },
-      })
+      expect(writeSettings).toHaveBeenCalledWith(
+        {
+          ...settings,
+          features: { [ID]: true },
+        },
+        settings,
+      )
     })
 
     it('preserves sibling flags', async () => {
@@ -123,9 +130,12 @@ describe('utils/features', () => {
       await act(async () => {
         await result.current[1](true)
       })
-      expect(writeSettings).toHaveBeenCalledWith({
-        features: { [OTHER]: true, [ID]: true },
-      })
+      expect(writeSettings).toHaveBeenCalledWith(
+        {
+          features: { [OTHER]: true, [ID]: true },
+        },
+        settings,
+      )
     })
 
     it('writes `false` rather than deleting the key', async () => {
@@ -134,7 +144,21 @@ describe('utils/features', () => {
       await act(async () => {
         await result.current[1](false)
       })
-      expect(writeSettings).toHaveBeenCalledWith({ features: { [ID]: false } })
+      expect(writeSettings).toHaveBeenCalledWith({ features: { [ID]: false } }, settings)
+    })
+
+    // The spread that carries the rest of the document forward is only correct
+    // against a document that is still current, so the snapshot it spread has to
+    // reach the write as `expected`. Without this argument the conflict check in
+    // `useWriteSettings` has nothing to compare and silently does nothing -- the
+    // switch would be back to reverting whatever another admin just saved.
+    it('passes the snapshot it built the write from', async () => {
+      settings = { theme: { palette: { primary: { main: '#282b50' } } } }
+      const { result } = renderHook(() => useFeatureSetting(asId(ID)))
+      await act(async () => {
+        await result.current[1](true)
+      })
+      expect(writeSettings.mock.calls[0][1]).toBe(settings)
     })
   })
 })

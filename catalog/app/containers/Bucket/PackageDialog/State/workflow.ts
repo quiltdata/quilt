@@ -6,6 +6,7 @@ import * as workflows from 'utils/workflows'
 
 import * as requests from '../../requests'
 
+import type { FormStatus } from './form'
 import { ManifestStatus } from './manifest'
 
 export type WorkflowsConfigStatus =
@@ -71,6 +72,7 @@ function getWorkflowFallback(manifest: ManifestStatus, config: WorkflowsConfigSt
 }
 
 export function useWorkflow(
+  form: FormStatus,
   manifest: ManifestStatus,
   config: WorkflowsConfigStatus,
 ): WorkflowState {
@@ -80,6 +82,9 @@ export function useWorkflow(
     [config, manifest, workflow],
   )
   const status: WorkflowStatus = React.useMemo(() => {
+    if (form._tag === 'error' && form.fields?.workflow) {
+      return { _tag: 'error', error: form.fields.workflow }
+    }
     if (config._tag !== 'ready') return { _tag: 'loading' }
     if (
       config.config.isWorkflowRequired &&
@@ -88,6 +93,6 @@ export function useWorkflow(
       return { _tag: 'error', error: new Error('Workflow is required for this bucket.') }
     }
     return { _tag: 'ok' }
-  }, [config, value])
+  }, [config, form, value])
   return React.useMemo(() => ({ onChange: setWorkflow, status, value }), [status, value])
 }

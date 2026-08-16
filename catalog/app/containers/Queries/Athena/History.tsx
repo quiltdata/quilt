@@ -125,7 +125,11 @@ const useRowStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'grid',
     gridColumnGap: t.spacing(2),
-    gridTemplateColumns: '30px auto 160px 160px 160px',
+    // Toggle · query (elastic) · status · created · completed. The date columns
+    // hold a fixed 132px — enough for "Jul 23rd, 14:05:22" without wrapping —
+    // so the query column absorbs all remaining width instead of being clipped
+    // by three oversized 160px columns.
+    gridTemplateColumns: '30px minmax(0, 1fr) 110px 132px 132px',
     padding: t.spacing(0, 2),
     lineHeight: `${t.spacing(4)}px`,
     borderBottom: `1px solid ${t.palette.divider}`,

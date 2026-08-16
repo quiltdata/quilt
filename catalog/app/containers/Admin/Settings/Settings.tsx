@@ -2,6 +2,7 @@ import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as Sentry from '@sentry/react'
 import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
@@ -14,6 +15,7 @@ import * as Form from '../Form'
 import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
 import SearchSettings from './SearchSettings'
+import SupportDiagnostics from './SupportDiagnostics'
 import TabulatorSettings from './TabulatorSettings'
 import ThemeEditor from './ThemeEditor'
 
@@ -22,29 +24,59 @@ function useBeta(): [boolean, (b: boolean) => Promise<void>] {
   const writeSettings = CatalogSettings.useWriteSettings()
   const onChange = React.useCallback(
     (beta: boolean) =>
-      writeSettings({
-        ...settings,
-        beta,
-      }),
+      writeSettings(
+        {
+          ...settings,
+          beta,
+        },
+        settings,
+      ),
     [settings, writeSettings],
   )
   return [settings?.beta || false, onChange]
 }
 
-function BetaSwitch() {
+/**
+ * The global beta switch.
+ *
+ * `pending` holds the in-flight value and is cleared in `finally`, so a failed
+ * write snaps the switch back to what is actually stored rather than leaving it
+ * displaying a value that never persisted. Same shape as the preview-feature
+ * switches in `FeatureSettings`, deliberately: a toggle is the one control where
+ * showing an unsaved value reads as saved.
+ */
+export function BetaSwitch() {
   const [beta, setBeta] = useBeta()
-  const [value, setValue] = React.useState(beta)
-  const [disabled, setDisabled] = React.useState(false)
+  const { push: notify } = Notifications.use()
+  const [pending, setPending] = React.useState<boolean | null>(null)
   const handleChange = React.useCallback(
-    async (event, checked) => {
-      setDisabled(true)
-      setValue(checked)
-      await setBeta(checked)
-      setDisabled(false)
+    async (_event: React.ChangeEvent<{}>, checked: boolean) => {
+      if (pending !== null) return
+      setPending(checked)
+      try {
+        await setBeta(checked)
+      } catch (e) {
+        Sentry.captureException(e)
+        notify(
+          e instanceof CatalogSettings.SettingsConflictError
+            ? e.message
+            : "Couldn't save settings, see console for details",
+        )
+        // eslint-disable-next-line no-console
+        console.error(e)
+      } finally {
+        setPending(null)
+      }
     },
-    [setBeta],
+    [notify, pending, setBeta],
   )
-  return <M.Switch checked={value} onChange={handleChange} disabled={disabled} />
+  return (
+    <M.Switch
+      checked={pending ?? beta}
+      onChange={handleChange}
+      disabled={pending !== null}
+    />
+  )
 }
 
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
@@ -110,13 +142,17 @@ function NavLinkEditor() {
     if (!window.confirm('You are about to remove custom link')) return
     setRemoving(true)
     try {
-      await writeSettings(R.dissoc('customNavLink', settings))
+      await writeSettings(R.dissoc('customNavLink', settings), settings)
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('Error saving settings:')
       // eslint-disable-next-line no-console
       console.error(e)
-      push("Couldn't save settings, see console for details")
+      push(
+        e instanceof CatalogSettings.SettingsConflictError
+          ? e.message
+          : "Couldn't save settings, see console for details",
+      )
     } finally {
       setRemoving(false)
     }
@@ -125,10 +161,13 @@ function NavLinkEditor() {
   const onSubmit = React.useCallback(
     async (values: { url: string; label: string }) => {
       try {
-        await writeSettings({
-          ...settings,
-          customNavLink: { url: values.url, label: values.label },
-        })
+        await writeSettings(
+          {
+            ...settings,
+            customNavLink: { url: values.url, label: values.label },
+          },
+          settings,
+        )
         setEditing(false)
         return undefined
       } catch (e) {
@@ -136,7 +175,12 @@ function NavLinkEditor() {
         console.warn('Error saving settings:')
         // eslint-disable-next-line no-console
         console.error(e)
-        return { [FF.FORM_ERROR]: "Couldn't save settings, see console for details" }
+        return {
+          [FF.FORM_ERROR]:
+            e instanceof CatalogSettings.SettingsConflictError
+              ? e.message
+              : "Couldn't save settings, see console for details",
+        }
       }
     },
     [settings, writeSettings],
@@ -358,6 +402,13 @@ export default function Settings() {
       </M.Typography>
       <M.Paper className={classes.group}>
         <TabulatorSettings />
+      </M.Paper>
+
+      <M.Typography variant="h5" className={classes.title}>
+        Support Diagnostics
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <SupportDiagnostics />
       </M.Paper>
     </div>
   )
