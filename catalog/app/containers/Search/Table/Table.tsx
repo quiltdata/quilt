@@ -205,9 +205,17 @@ const useUnfoldPackageEntriesStyles = M.makeStyles((t) => ({
   expanded: {
     opacity: 1,
     animation: t.transitions.create('$expanded'),
+    // Both keyframes settle at rotate(0deg), so collapsing the duration
+    // lands the chevron there instantly rather than freezing it mid-turn.
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   collapsed: {
     animation: t.transitions.create('$collapsed'),
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   '@keyframes expanded': {
     '0%': {
@@ -803,6 +811,10 @@ const useAvailableColumnsStyles = M.makeStyles((t) => ({
     background: t.palette.background.paper,
     overflowY: 'auto',
     flexGrow: 1,
+    // Settles at opacity 1, so collapsing the duration lands there instantly.
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   divider: {
     marginTop: t.spacing(1),

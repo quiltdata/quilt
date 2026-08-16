@@ -40,6 +40,10 @@ const useRelieveMessageStyles = M.makeStyles((t) => ({
   },
   text: {
     animation: '$show 0.3s ease-out',
+    // Settles at opacity 1, so collapsing the duration lands there instantly.
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   '@keyframes show': {
     from: {

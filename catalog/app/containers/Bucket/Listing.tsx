@@ -382,7 +382,12 @@ function Pagination({
           ))}
         </M.Select>
       )}
-      <M.IconButton size="small" disabled={page === 1} onClick={() => setPage(page - 1)}>
+      <M.IconButton
+        size="small"
+        disabled={page === 1}
+        onClick={() => setPage(page - 1)}
+        aria-label="Previous page"
+      >
         <M.Icon fontSize="small">chevron_left</M.Icon>
       </M.IconButton>
       {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
@@ -400,6 +405,7 @@ function Pagination({
         size="small"
         disabled={page === pages}
         onClick={() => setPage(page + 1)}
+        aria-label="Next page"
       >
         <M.Icon fontSize="small">chevron_right</M.Icon>
       </M.IconButton>
