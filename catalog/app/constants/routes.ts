@@ -111,6 +111,26 @@ export const queriesEs = route('/queries/es')
 
 export type QueriesEsArgs = Parameters<typeof queriesEs.url>
 
+// Data products are defined in an enterprise catalog (DataZone / Unity /
+// Snowflake), not in Quilt, so the id is a Quilt-side synthetic composed from
+// the platform binding rather than a platform-native identifier.
+export const dataProducts = route('/data-products')
+
+export type DataProductsArgs = Parameters<typeof dataProducts.url>
+
+// NOT `encode` from utils/s3paths: that one splits on `/` and encodes each
+// segment separately, deliberately preserving slashes as path separators for S3
+// keys. Product ids embed the binding and contain slashes of their own
+// (`uc:metastore/catalog/schema`), which would spill into extra path segments
+// and stop this route matching at all. `encodeURIComponent` keeps the whole id
+// in one segment, so `decodeURIComponent` on the way out is its exact inverse.
+export const dataProduct = route(
+  '/data-products/:dataProductId',
+  (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}`,
+)
+
+export type DataProductArgs = Parameters<typeof dataProduct.url>
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

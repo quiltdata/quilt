@@ -73,6 +73,9 @@ const ConnectAuthorize = requireAuth()(
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
 // The query consoles always required an authenticated actor, so gate on auth
 // regardless of the app-level protect mode.
+const DataProducts = requireAuth()(
+  RT.mkLazy(() => import('containers/DataProducts'), Placeholder),
+)
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
@@ -174,6 +177,14 @@ export default function App() {
 
       <Route path={paths.bucketSearch} exact>
         <BucketSearchRedirect />
+      </Route>
+
+      {/* The screen itself reads the `data-products` feature flag and redirects
+          home when it is off, so the route stays registered unconditionally —
+          the gate lives in one place rather than being split between here and
+          the container. */}
+      <Route path={paths.dataProducts}>
+        <DataProducts />
       </Route>
 
       <Route path={paths.queries}>
