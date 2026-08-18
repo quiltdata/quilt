@@ -417,8 +417,9 @@ export default function Detail() {
 
   // A synthesized id is not stable across renames — on Unity a schema rename
   // silently changes it and emits no event — so a miss is expected drift, not
-  // necessarily a bad URL. Back to the list rather than a 404 dead end.
-  if (!product) return <Redirect to={urls.dataProducts()} />
+  // necessarily a bad URL. Back to the volume grid (where products are browsed)
+  // rather than a 404 dead end.
+  if (!product) return <Redirect to={urls.buckets()} />
 
   return (
     <>

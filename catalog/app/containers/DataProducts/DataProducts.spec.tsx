@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  buckets,
   dataProduct,
   dataProductAccess,
   dataProductContents,
@@ -54,6 +55,7 @@ import { DataProductsScreen } from './DataProducts'
 import Requests from './Requests'
 
 const routes = {
+  buckets,
   dataProduct,
   dataProductAccess,
   dataProductContents,
@@ -108,20 +110,17 @@ describe('containers/DataProducts', () => {
       settings = { features: { 'data-products': true } } as CatalogSettings
     })
 
-    it('lists products with the catalog that defines each one', () => {
-      const { getByText, getAllByText } = mount(dataProducts.url())
-      // Products are externally owned, so which catalog defines one is a fact
-      // about the product, not an implementation detail.
-      expect(getByText('AWS DataZone')).toBeTruthy()
-      expect(getAllByText('Databricks Unity').length).toBeGreaterThan(0)
-      expect(getByText('Snowflake')).toBeTruthy()
-    })
-
-    it('says contents are not visible rather than reporting zero members', () => {
-      // Discovery-only access (Unity BROWSE) shows the product and no contents.
-      // "No members" would misreport a permission boundary as an empty dataset.
-      const { getByText } = mount(dataProducts.url())
-      expect(getByText('Contents not visible to you')).toBeTruthy()
+    it('sends the bare path to the volume grid rather than a second list', () => {
+      // A data product is a volume, so the volume grid is the one place they are
+      // browsed. A standalone list at its own URL would be a parallel index of
+      // the same objects, and the two would drift. The path still resolves so an
+      // old link lands somewhere sensible.
+      //
+      // The list-surface assertions that used to live here (platform labels,
+      // "Contents not visible to you") now belong to the grid, and are covered in
+      // containers/Home/Buckets.
+      const { getByTestId } = mount(dataProducts.url())
+      expect(getByTestId('where').textContent).toBe('/buckets')
     })
 
     it('separates catalog-governed contents from files listed off S3', () => {
@@ -163,13 +162,14 @@ describe('containers/DataProducts', () => {
       expect(getByText('Access')).toBeTruthy()
     })
 
-    it('redirects an unknown id back to the list instead of 404ing', () => {
+    it('redirects an unknown id to the volume grid instead of 404ing', () => {
       // A synthesized id is not stable across renames — on Unity a schema rename
-      // silently changes it and emits no event — so a miss is expected drift.
-      const { getByText } = mount(
+      // silently changes it and emits no event — so a miss is expected drift, not
+      // a bad URL. Lands on the grid, which is where products are browsed.
+      const { getByTestId } = mount(
         dataProduct.url('uc:aws-prod-metastore/quilt_demo/gone'),
       )
-      expect(getByText('Data products')).toBeTruthy()
+      expect(getByTestId('where').textContent).toBe('/buckets')
     })
 
     describe('access requests', () => {
