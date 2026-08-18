@@ -32,6 +32,14 @@ vi.mock('utils/Buckets', () => ({
   useRelevantBuckets: () => mockBuckets,
 }))
 
+// `useFeature` reads catalog settings off the service bucket, which needs
+// credentials this spec has no business providing. Off by default so the
+// existing bucket-only expectations hold; a test opts in per case.
+let dataProductsEnabled = false
+vi.mock('utils/features', () => ({
+  useFeature: () => dataProductsEnabled,
+}))
+
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
   use: () => ({
@@ -84,12 +92,18 @@ vi.mock('utils/GraphQL', () => ({
 
 interface RowsProps {
   buckets: ReadonlyArray<{ name: string }>
+  // Both grid renderers take data products alongside buckets; the stand-ins
+  // echo them so a test can assert they reached the renderer at all.
+  dataProducts?: ReadonlyArray<{ id: string }>
 }
 
-const Rows = ({ buckets }: RowsProps) => (
+const Rows = ({ buckets, dataProducts = [] }: RowsProps) => (
   <div>
     {buckets.map((b) => (
       <div key={b.name}>{`bucket:${b.name}`}</div>
+    ))}
+    {dataProducts.map((p) => (
+      <div key={p.id}>{`dp:${p.id}`}</div>
     ))}
   </div>
 )
@@ -103,10 +117,13 @@ vi.mock('containers/Home/BucketGrid/BucketList', () => ({
 // Distinguishable from the card view's stand-in so a test can tell which
 // renderer the `view` param selected.
 vi.mock('containers/Home/BucketGrid/BucketRows', () => ({
-  default: ({ buckets }: RowsProps) => (
+  default: ({ buckets, dataProducts = [] }: RowsProps) => (
     <div>
       {buckets.map((b) => (
         <div key={b.name}>{`row:${b.name}`}</div>
+      ))}
+      {dataProducts.map((p) => (
+        <div key={p.id}>{`row-dp:${p.id}`}</div>
       ))}
     </div>
   ),
@@ -135,6 +152,7 @@ describe('website/pages/Landing/Buckets', () => {
   afterEach(() => {
     useQueryMock.mockClear()
     meIsAdminData = { isAdmin: false }
+    dataProductsEnabled = false
     mockBuckets = [
       {
         name: 'bucket-one',
@@ -149,6 +167,46 @@ describe('website/pages/Landing/Buckets', () => {
   it('renders the volume rows', () => {
     const { queryByText } = renderBuckets()
     expect(queryByText('bucket:bucket-one')).toBeTruthy()
+  })
+
+  describe('data products in the volume list', () => {
+    it('shows none while the feature is off', () => {
+      // The flag is the whole gate: with it off the volume list must look
+      // exactly as it did before data products existed.
+      const { queryByText } = renderBuckets()
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+      expect(queryByText(/^dp:/)).toBeFalsy()
+    })
+
+    it('lists them alongside buckets when the feature is on', () => {
+      // Products share the volume grid rather than getting their own wall:
+      // both are things a user browses into.
+      dataProductsEnabled = true
+      const { queryByText } = renderBuckets()
+      expect(queryByText('bucket:bucket-one')).toBeTruthy()
+      expect(queryByText('dp:datazone:dzd_4xample/lst_9kq2v')).toBeTruthy()
+    })
+
+    it('answers the same filter box as buckets', () => {
+      // A user typing a term means it about everything on the page. Filtering
+      // buckets only would leave a product visible that does not match.
+      dataProductsEnabled = true
+      const { queryByText } = renderBuckets('?q=restricted')
+      expect(queryByText('bucket:bucket-one')).toBeFalsy()
+      expect(
+        queryByText('dp:uc:aws-prod-metastore/quilt_demo/restricted_cohort'),
+      ).toBeTruthy()
+    })
+
+    it('keeps the page non-empty when only products match', () => {
+      // ZeroState teaches "add a bucket", which would be wrong (and would hide
+      // real content) on a catalog whose products are the only things here.
+      dataProductsEnabled = true
+      mockBuckets = []
+      const { queryByText } = renderBuckets()
+      expect(queryByText('Add Bucket')).toBeFalsy()
+      expect(queryByText('dp:datazone:dzd_4xample/lst_9kq2v')).toBeTruthy()
+    })
   })
 
   it('treats a signed-out (null) me as not-admin instead of crashing', () => {

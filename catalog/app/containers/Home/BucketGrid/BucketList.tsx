@@ -1,7 +1,10 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type * as DP from 'model/DataProducts'
+
 import BucketCard, { Bucket } from './BucketCard'
+import DataProductCard from './DataProductCard'
 
 export type { Bucket }
 
@@ -20,12 +23,17 @@ export const useGridStyles = M.makeStyles((t) => ({
 
 interface BucketListProps {
   buckets: ReadonlyArray<Bucket>
+  // Externally-owned data products share the volume grid with buckets: both are
+  // things a user browses into, so splitting them into two walls would make the
+  // page answer "what kind of object is this" before "what is here".
+  dataProducts?: ReadonlyArray<DP.DataProduct>
   tagIsMatching?: (tag: string) => boolean
   onTagClick?: (tag: string) => void
 }
 
 export default function BucketList({
   buckets,
+  dataProducts = [],
   tagIsMatching = () => false,
   onTagClick = () => {},
 }: BucketListProps) {
@@ -39,6 +47,13 @@ export default function BucketList({
           tagIsMatching={tagIsMatching}
           onTagClick={onTagClick}
         />
+      ))}
+      {/* After the buckets rather than interleaved: a product's sort keys
+          (catalog, readability) are not a bucket's (title, relevance), so
+          ordering them together would need a comparator over fields neither
+          shares. */}
+      {dataProducts.map((dp) => (
+        <DataProductCard key={dp.id} product={dp} />
       ))}
     </div>
   )

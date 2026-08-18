@@ -16,6 +16,9 @@ import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
+import * as DP from 'model/DataProducts'
+import { useFeature } from 'utils/features'
+
 import BucketList, { useGridStyles } from 'containers/Home/BucketGrid/BucketList'
 import BucketRows from 'containers/Home/BucketGrid/BucketRows'
 
@@ -426,6 +429,9 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
   const [page, setPage] = React.useState(1)
+  // Suspending read — safe here because this component already renders inside a
+  // Suspense boundary (see the `BucketsSkeleton` fallback below).
+  const dataProductsEnabled = useFeature('data-products')
 
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
@@ -466,11 +472,32 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     }
   })
 
-  const noBuckets = !buckets.length
-  const noMatch = !noBuckets && !sorted.length
+  // Products answer the same filter box as buckets — a user typing "clinical"
+  // means it about everything on the page, not about buckets only. Fixture-backed
+  // until catalog adapters land.
+  const dataProducts = React.useMemo(() => {
+    if (!dataProductsEnabled) return []
+    const all = DP.fixtures.ALL_PRODUCTS
+    if (!terms.length) return all
+    const matches = R.allPass(R.map(R.includes, terms))
+    const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
+    return all.filter((p) =>
+      anyFieldMatches([p.name, p.description, ...(p.labels || [])]),
+    )
+  }, [dataProductsEnabled, terms])
 
-  // Both views take the same props over the same page of buckets: the toggle
-  // swaps the renderer and nothing else.
+  // Products trail the paginated buckets, so they belong to the last page only.
+  // Passing them on every page would render the same product once per page.
+  const onLastPage = pages <= 1 || page === pages
+  const shownDataProducts = onLastPage ? dataProducts : []
+
+  // Emptiness accounts for products: a catalog with products but no buckets is
+  // not empty, and ZeroState's "add a bucket" would hide what is actually there.
+  const noBuckets = !buckets.length && !dataProducts.length
+  const noMatch = !noBuckets && !sorted.length && !dataProducts.length
+
+  // Both views take the same props over the same page: the toggle swaps the
+  // renderer and nothing else.
   const View = view === VIEW_LIST ? BucketRows : BucketList
 
   return (
@@ -480,7 +507,12 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
       ) : noMatch ? (
         <NoMatch filter={filter} />
       ) : (
-        <View buckets={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
+        <View
+          buckets={paginated}
+          dataProducts={shownDataProducts}
+          tagIsMatching={tagIsMatching}
+          onTagClick={onTagClick}
+        />
       )}
       <div className={classes.controls}>
         <M.Box>
