@@ -11,6 +11,7 @@
  */
 
 export * from './types'
+export * from './requests'
 export {
   CAPABILITIES,
   INTERSECTION,

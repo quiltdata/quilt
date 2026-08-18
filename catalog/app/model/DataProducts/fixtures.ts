@@ -17,6 +17,7 @@
  */
 
 import type { Capabilities, DataProduct, Member } from './types'
+import type { AccessRequest } from './requests'
 import { CAPABILITIES } from './capabilities'
 
 const token = (s: string) => ({ token: s })
@@ -316,4 +317,88 @@ export function capabilitiesFor(product: DataProduct): Capabilities {
 /** Members the current user can actually read. */
 export function readableMembers(product: DataProduct): Member[] {
   return product.members.filter((m) => m.readable)
+}
+
+/**
+ * Access requests, one per state the UI has to render honestly.
+ *
+ * Chosen to cover the cases that are easy to get wrong rather than the happy
+ * path: a request the catalog cannot confirm, an approval whose blast radius
+ * exceeds the requester, and a revocation that did not actually revoke.
+ */
+
+/**
+ * Unity: initiated, and permanently unconfirmable.
+ *
+ * Unity can start a request but cannot list pending ones
+ * (`enumerableRequests: false`), so `platformRecord: null` with `SUBMITTED` is
+ * not a transient stage here -- it is the steady state. A UI that treats
+ * "no platform record yet" as "still syncing" would show a spinner forever.
+ */
+export const UNITY_SUBMITTED_REQUEST: AccessRequest = {
+  id: 'dpr_01hq8x',
+  dataProductId: DISCOVERY_ONLY_PRODUCT.id,
+  requestedBy: 'simon@quiltdata.io',
+  beneficiary: { type: 'USER', label: 'simon@quiltdata.io' },
+  reason: 'Cohort reconciliation for the Q3 assay comparison.',
+  createdAt: new Date('2026-08-15T09:20:00.000Z'),
+  status: 'SUBMITTED',
+  platformRecord: null,
+  retainedPermissions: null,
+}
+
+/**
+ * DataZone: pending, and the beneficiary is a project.
+ *
+ * The blast-radius case. A DataZone subscription is held by a project, so
+ * approving this grants every member of Clinical Data Platform -- not the one
+ * person who asked. `grantsBeyondRequester` is true here.
+ */
+export const DATAZONE_PENDING_REQUEST: AccessRequest = {
+  id: 'dpr_01hq9m',
+  dataProductId: DATAZONE_PRODUCT.id,
+  requestedBy: 'rita@quiltdata.io',
+  beneficiary: { type: 'PROJECT', label: 'Clinical Data Platform' },
+  reason: 'Linking assay outputs to enrolment records for the 2024 cohort.',
+  createdAt: new Date('2026-08-16T14:05:00.000Z'),
+  status: 'PENDING',
+  platformRecord: {
+    id: 'subreq_7fk2p',
+    reconciledAt: FETCHED_AT,
+  },
+  retainedPermissions: null,
+}
+
+/**
+ * DataZone: revoked with permissions retained -- the §5.4 trap, made concrete.
+ *
+ * DataZone stopped managing this subscription, but the underlying Lake
+ * Formation permissions are still live. The status field alone says `REVOKED`;
+ * the access is not gone. `accessMayPersistAfterRevoke` is true and `isSettled`
+ * is false, which is the whole point of keeping those two separate.
+ */
+export const DATAZONE_REVOKED_RETAINED_REQUEST: AccessRequest = {
+  id: 'dpr_01hq4c',
+  dataProductId: DATAZONE_PRODUCT.id,
+  requestedBy: 'former-contractor@example.com',
+  beneficiary: { type: 'PROJECT', label: 'Assay Ops' },
+  reason: 'Temporary access for the migration audit.',
+  createdAt: new Date('2026-06-02T11:00:00.000Z'),
+  status: 'REVOKED',
+  platformRecord: {
+    id: 'sub_2mq8t',
+    reconciledAt: FETCHED_AT,
+  },
+  retainedPermissions: true,
+}
+
+export const ALL_REQUESTS: AccessRequest[] = [
+  UNITY_SUBMITTED_REQUEST,
+  DATAZONE_PENDING_REQUEST,
+  DATAZONE_REVOKED_RETAINED_REQUEST,
+]
+
+/** Requests filed against one product. */
+export function requestsFor(product: DataProduct): AccessRequest[] {
+  return ALL_REQUESTS.filter((r) => r.dataProductId === product.id)
 }
