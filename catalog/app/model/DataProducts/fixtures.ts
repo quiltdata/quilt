@@ -17,6 +17,7 @@
  */
 
 import type { Capabilities, DataProduct, Member } from './types'
+import type { Connection } from './connections'
 import type { AccessRequest } from './requests'
 import { CAPABILITIES } from './capabilities'
 
@@ -533,3 +534,66 @@ export const ALL_REQUESTS: AccessRequest[] = [
 export function requestsFor(product: DataProduct): AccessRequest[] {
   return ALL_REQUESTS.filter((r) => r.dataProductId === product.id)
 }
+
+/**
+ * Connections, one per state an admin actually has to act on.
+ *
+ * Chosen so the three `ConnectionState`s are all reachable: a working one, one
+ * that has never been checked, and one that is failing. A fixture set of three
+ * READY connections would leave the two states that need admin attention
+ * untested and unrendered.
+ */
+
+/** DataZone, working. IAM_ROLE because there is no OAuth path on this platform. */
+export const DATAZONE_CONNECTION: Connection = {
+  id: 'dpc_01',
+  title: 'Clinical DataZone (us-east-1)',
+  platform: 'datazone',
+  endpoint: 'dzd_4xample',
+  authMethod: 'IAM_ROLE',
+  secretRef: null, // an assumed role needs no stored secret
+  state: 'READY',
+  statusMessage: null,
+  lastCheckedAt: new Date('2026-08-18T09:30:00.000Z'),
+}
+
+/**
+ * Databricks, configured but never exercised.
+ *
+ * The state most likely to be misread. Products from this catalog will not load,
+ * and an empty list would look like "this catalog has no products" rather than
+ * "nobody has verified this connection" -- which is why `isUsable` refuses to
+ * treat UNVERIFIED as working.
+ */
+export const UNITY_CONNECTION: Connection = {
+  id: 'dpc_02',
+  title: 'Databricks (acme-prod)',
+  platform: 'unity-schema',
+  endpoint: 'https://acme-prod.cloud.databricks.com',
+  authMethod: 'OAUTH_U2M',
+  secretRef:
+    'arn:aws:secretsmanager:us-east-1:123456789012:secret:databricks-oauth-Ab3xY9',
+  state: 'UNVERIFIED',
+  statusMessage: null,
+  lastCheckedAt: null,
+}
+
+/** Snowflake, failing. The message is what the platform said, not a paraphrase. */
+export const SNOWFLAKE_CONNECTION: Connection = {
+  id: 'dpc_03',
+  title: 'Snowflake (ACME_PROD)',
+  platform: 'snowflake-listing',
+  endpoint: 'acme-prod.us-east-1.snowflakecomputing.com',
+  authMethod: 'OAUTH_M2M',
+  secretRef:
+    'arn:aws:secretsmanager:us-east-1:123456789012:secret:snowflake-oauth-Kp7mQ2',
+  state: 'ERROR',
+  statusMessage: 'OAuth token exchange returned 401: invalid_client',
+  lastCheckedAt: new Date('2026-08-18T08:15:00.000Z'),
+}
+
+export const ALL_CONNECTIONS: Connection[] = [
+  DATAZONE_CONNECTION,
+  UNITY_CONNECTION,
+  SNOWFLAKE_CONNECTION,
+]

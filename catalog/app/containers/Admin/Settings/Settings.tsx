@@ -12,6 +12,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
+import DataProductConnections from './DataProductConnections'
 import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
 import SearchSettings from './SearchSettings'
@@ -389,6 +390,15 @@ export default function Settings() {
           </M.Grid>
         )}
       </M.Grid>
+
+      {/* Its own section rather than a cell in the grid above: a connection list
+          grows, and the add form needs the full width. */}
+      <M.Typography variant="h5" className={classes.title}>
+        Data Product Catalogs
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <DataProductConnections />
+      </M.Paper>
 
       <M.Typography variant="h5" className={classes.title}>
         Packaging Engine Settings
