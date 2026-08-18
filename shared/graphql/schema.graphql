@@ -700,6 +700,365 @@ type Me {
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
+# --- Data products ----------------------------------------------------------
+#
+# Products defined and governed in an enterprise catalog (AWS DataZone,
+# Databricks Unity, Snowflake Horizon). Quilt reads and renders them; the
+# catalog owns every access decision.
+#
+# NOTHING RESOLVES THIS YET. These types are a contract, added so the catalog UI
+# and whoever builds the resolvers agree on shape before either side is
+# finished. The UI reads a fixture adapter today
+# (`catalog/app/model/DataProducts/adapter.ts`); a query against a live registry
+# will fail until resolvers exist.
+
+enum DataProductPlatform {
+  DATAZONE
+  UNITY_SCHEMA
+  UNITY_SHARE
+  SNOWFLAKE_LISTING
+}
+
+"""
+How to address a product in its own catalog. A union rather than a bag of
+nullable fields so an impossible combination (a Snowflake listing carrying a
+metastore) cannot be expressed.
+"""
+union DataProductBinding =
+    DataZoneBinding
+  | UnitySchemaBinding
+  | UnityShareBinding
+  | SnowflakeListingBinding
+
+type DataZoneBinding {
+  domainId: String!
+  listingId: String!
+  entityId: String
+}
+
+type UnitySchemaBinding {
+  metastore: String!
+  catalog: String!
+  schema: String!
+}
+
+type UnityShareBinding {
+  metastore: String!
+  shareName: String!
+}
+
+type SnowflakeListingBinding {
+  listingId: String!
+}
+
+enum DataProductMemberKind {
+  TABLE
+  VIEW
+  FILESET
+}
+
+"""
+Where a member's contents come from, and therefore whose governance covers them.
+`CATALOG` means the catalog enumerates it and its row/column rules apply.
+`DIRECT_S3` means the catalog gave only a location (a bucket ARN), so Quilt lists
+S3 itself and the catalog's rules do **not** cover the listing. `UNAVAILABLE`
+means it could not be listed at all — distinct from a permission answer.
+
+Non-null deliberately: a default would let the governed and ungoverned cases
+render identically, which is the one distinction this type exists to preserve.
+"""
+enum DataProductContentsSource {
+  CATALOG
+  DIRECT_S3
+  UNAVAILABLE
+}
+
+type DataProductColumn {
+  name: String!
+  """Platform-native type string. Not normalized — platforms disagree."""
+  type: String!
+  description: String
+}
+
+type DataProductMember {
+  logicalName: String!
+  kind: DataProductMemberKind!
+  """
+  Null is three different facts depending on platform: a fileset has no columns
+  by nature, and DataZone hides tabular columns inside an opaque forms string.
+  Read it through `DataProduct.platform` rather than as "no columns".
+  """
+  schema: [DataProductColumn!]
+  sizeBytes: Float
+  """Whether the current user can read it. Discovery and readability differ."""
+  readable: Boolean!
+  contentsSource: DataProductContentsSource!
+}
+
+enum DataProductPrincipalType {
+  USER
+  GROUP
+  SERVICE_PRINCIPAL
+  ROLE
+  RECIPIENT
+  PROJECT
+  UNKNOWN
+}
+
+enum DataProductPrivilege {
+  BROWSE
+  READ
+  WRITE
+  MANAGE
+  UNKNOWN
+}
+
+enum DataProductGrantOrigin {
+  DIRECT
+  INHERITED
+  UNKNOWN
+}
+
+type DataProductGrant {
+  """Display string as the platform reports it — not a stable id."""
+  principal: String!
+  principalType: DataProductPrincipalType!
+  privilege: DataProductPrivilege!
+  """
+  Verbatim platform privilege (`SELECT`, `READ VOLUME`, `USE CATALOG`).
+  Mandatory, not decorative: Unity needs a *conjunction* of three grants for one
+  read, and normalizing to READ discards why a user can or cannot read.
+  """
+  nativePrivilege: String!
+  """`UNKNOWN` where the platform cannot resolve it, never guessed."""
+  origin: DataProductGrantOrigin!
+}
+
+"""
+Three states, because absence is not a guarantee. Snowflake's
+`POLICY_REFERENCES` is privilege-filtered, so a caller without APPLY/OWNERSHIP
+sees nothing — `NOT_VISIBLE` says "we cannot tell", which must never render as
+"no policy exists".
+"""
+enum DataProductPolicyPresence {
+  PRESENT
+  NOT_VISIBLE
+  UNKNOWN
+}
+
+type DataProductPolicyFlags {
+  rowLevel: DataProductPolicyPresence!
+  columnMask: DataProductPolicyPresence!
+}
+
+enum DataProductOwnerKind {
+  PROJECT
+  PRINCIPAL
+}
+
+type DataProductOwner {
+  kind: DataProductOwnerKind!
+  label: String!
+  """
+  True when the value was derived rather than reported. DataZone has no
+  per-product owner API (`ListEntityOwners` takes DOMAIN_UNIT only), so a human
+  name there is inferred from project membership.
+  """
+  derived: Boolean!
+}
+
+type DataProduct {
+  """
+  Synthesized from the binding, and **not stable across renames** — a Unity
+  schema rename changes it and emits no event. A miss on lookup is ordinary
+  drift, not a bad request.
+  """
+  id: ID!
+  name: String!
+  description: String
+  labels: [String!]!
+  """
+  Null where the platform has no curation concept at all (DataZone, Snowflake)
+  *and* where it has one but nothing is set (Unity). Those are different facts;
+  the client distinguishes them via the platform's declared capabilities.
+  """
+  curationStatus: String
+  owningEntity: DataProductOwner
+  members: [DataProductMember!]!
+  """
+  Who has been granted access. Deliberately not a per-user verdict: "can Alice
+  read this" is undecidable, since row-policy bodies can call external
+  functions. Do not add a `whoHasAccess(user:)` field — it cannot be answered
+  honestly on any of the three platforms.
+  """
+  grants: [DataProductGrant!]!
+  policyFlags: DataProductPolicyFlags!
+  platform: DataProductPlatform!
+  binding: DataProductBinding!
+  """
+  When Quilt last looked. Never a sync guarantee: no platform emits
+  product-level change events, so composition can change with nothing emitted.
+  """
+  fetchedAt: Datetime!
+}
+
+"""
+`SUBMITTED` and `PENDING` are different states, not styling: SUBMITTED means
+Quilt holds the record and the catalog has not acknowledged it (or cannot be
+asked), PENDING means the catalog reports it awaiting a decision.
+"""
+enum DataProductRequestStatus {
+  SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REVOKED
+  UNKNOWN
+}
+
+type DataProductPlatformRecord {
+  """Native id, e.g. a DataZone subscription request id."""
+  id: String!
+  """A read timestamp, not a sync guarantee."""
+  reconciledAt: Datetime!
+}
+
+type DataProductBeneficiary {
+  type: DataProductPrincipalType!
+  label: String!
+}
+
+"""
+The request record is **Quilt's**, not the catalog's. Only DataZone can
+enumerate pending requests, so a queue that depended on the platform would exist
+on one installation in three; platform state is reconciled in as enrichment.
+
+No expiry field: no target platform enforces time-bounded access, and an
+unenforceable expiry reads as a security boundary while being decoration.
+"""
+type DataProductRequest {
+  id: ID!
+  dataProductId: ID!
+  requestedBy: String!
+  """
+  Who the access lands on, which is routinely not the requester — a DataZone
+  subscription is held by a project, so approving one person's request grants
+  the whole project.
+  """
+  beneficiary: DataProductBeneficiary!
+  reason: String!
+  createdAt: Datetime!
+  status: DataProductRequestStatus!
+  """Null where the platform cannot be asked — a steady state on Unity."""
+  platformRecord: DataProductPlatformRecord
+  """
+  Whether a revoke left live permissions behind. Only meaningful when status is
+  REVOKED. DataZone's revoke takes `retainPermissions`, and when true the
+  underlying Lake Formation grants remain in force while DataZone stops managing
+  them. Null means undetermined, which must read as possibly-still-granted.
+  """
+  retainedPermissions: Boolean
+}
+
+input DataProductRequestSubmitInput {
+  dataProductId: ID!
+  beneficiaryType: DataProductPrincipalType!
+  beneficiaryLabel: String!
+  reason: String!
+}
+
+union DataProductRequestSubmitResult =
+    DataProductRequest
+  | InvalidInput
+  | OperationError
+
+# --- Catalog connections ----------------------------------------------------
+#
+# Where an admin says which external catalog to talk to and how to authenticate.
+#
+# NO SECRET EVER CROSSES THIS BOUNDARY. `secretRef` is a pointer (a Secrets
+# Manager ARN, an SSM parameter name) resolved server-side; returning a token or
+# key from a read field would put platform credentials in a browser, which is
+# both an exposure and the wrong place for them. There is deliberately no query
+# that returns a credential value.
+
+enum DataProductAuthMethod {
+  """SigV4 via an assumed role. The only option for DataZone/Lake Formation."""
+  IAM_ROLE
+  """Machine-to-machine OAuth, service-principal style."""
+  OAUTH_M2M
+  """
+  User-to-machine OAuth, acting as the signed-in person. Databricks documents a
+  browser-capable PKCE flow; whether Quilt brokers the exchange is a separate
+  question from whether this connection declares the method.
+  """
+  OAUTH_U2M
+  API_KEY
+}
+
+enum DataProductConnectionState {
+  """Configured and last check succeeded."""
+  READY
+  """Configured but never verified, or verification is pending."""
+  UNVERIFIED
+  """Last check failed — see `statusMessage`."""
+  ERROR
+}
+
+type DataProductConnection {
+  id: ID!
+  """Admin-facing label. Not an identifier."""
+  title: String!
+  platform: DataProductPlatform!
+  """
+  Where to reach it: a DataZone domain id, a Unity workspace host, a Snowflake
+  account locator. Shape depends on `platform`; opaque here on purpose so adding
+  a platform does not reshape this type.
+  """
+  endpoint: String!
+  authMethod: DataProductAuthMethod!
+  """
+  Pointer to where the credential actually lives. Never the credential. Null
+  when the method needs none (an instance role, say).
+  """
+  secretRef: String
+  state: DataProductConnectionState!
+  statusMessage: String
+  lastCheckedAt: Datetime
+}
+
+input DataProductConnectionAddInput {
+  title: String!
+  platform: DataProductPlatform!
+  endpoint: String!
+  authMethod: DataProductAuthMethod!
+  secretRef: String
+}
+
+input DataProductConnectionUpdateInput {
+  title: String
+  endpoint: String
+  authMethod: DataProductAuthMethod
+  secretRef: String
+}
+
+union DataProductConnectionResult =
+    DataProductConnection
+  | InvalidInput
+  | OperationError
+
+type DataProductAdminMutations {
+  connectionAdd(input: DataProductConnectionAddInput!): DataProductConnectionResult!
+  connectionUpdate(
+    id: ID!
+    input: DataProductConnectionUpdateInput!
+  ): DataProductConnectionResult!
+  connectionRemove(id: ID!): OperationResult!
+  """Attempt a read against the connection and record the outcome in `state`."""
+  connectionCheck(id: ID!): DataProductConnectionResult!
+}
+
 type Query {
   me: Me
 
@@ -729,6 +1088,25 @@ type Query {
 
   bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
   objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
+
+  """
+  Every product the caller can see, readable or not. Discovery and readability
+  are different questions, and filtering unreadable products out here would hide
+  the case a request affordance exists for.
+  """
+  dataProducts: [DataProduct!]!
+  """
+  One product, or null. Null is an ordinary answer: ids are synthesized from the
+  binding and are not stable across renames.
+  """
+  dataProduct(id: ID!): DataProduct
+  """
+  Requests recorded against a product. Always answerable, because the record is
+  Quilt's — an empty list is a real answer, not a failure to reach the platform.
+  """
+  dataProductRequests(dataProductId: ID!): [DataProductRequest!]!
+  """Configured external catalogs. Admin-only: endpoints are infrastructure."""
+  dataProductConnections: [DataProductConnection!]! @admin
 
   admin: AdminQueries! @admin
 
@@ -1104,6 +1482,7 @@ type AdminMutations {
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
   apiKeys: APIKeyAdminMutations!
+  dataProducts: DataProductAdminMutations!
 }
 
 type Mutation {
@@ -1111,6 +1490,17 @@ type Mutation {
 
   apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
   apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
+
+  """
+  Record an intention to grant. Never an approval: the catalog decides, and the
+  returned request is `SUBMITTED` at best.
+
+  Not `@admin` — an ordinary user asks for access to a product they can see. The
+  approval happens in the owning catalog, not here.
+  """
+  dataProductRequestSubmit(
+    input: DataProductRequestSubmitInput!
+  ): DataProductRequestSubmitResult!
 
   packageConstruct(
     params: PackagePushParams!
