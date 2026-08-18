@@ -131,6 +131,20 @@ export const dataProduct = route(
 
 export type DataProductArgs = Parameters<typeof dataProduct.url>
 
+// Sections are their own routes rather than local state, matching the in-bucket
+// and Quilt-owned-DP vocabulary: a tab is addressable, survives reload, and can
+// be linked to. Same `encodeURIComponent` reasoning as above.
+export const dataProductContents = route(
+  '/data-products/:dataProductId/contents',
+  (dataProductId: string) =>
+    `/data-products/${encodeURIComponent(dataProductId)}/contents`,
+)
+
+export const dataProductAccess = route(
+  '/data-products/:dataProductId/access',
+  (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}/access`,
+)
+
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

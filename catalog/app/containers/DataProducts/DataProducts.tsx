@@ -26,11 +26,6 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
   },
-  // The list is a run of full-bleed rows, so its own padding would double the
-  // row padding; the detail view needs the card padding.
-  detailSection: {
-    padding: t.spacing(3),
-  },
 }))
 
 export function DataProductsScreen() {
@@ -48,34 +43,39 @@ export function DataProductsScreen() {
     <Container className={classes.content}>
       <MetaTitle>Data products</MetaTitle>
 
-      <M.Paper className={classes.headerCard}>
-        <div className={classes.headerTop}>
-          <M.Typography variant="h5">Data products</M.Typography>
-          {/* Says plainly where products come from. Quilt renders them; it does
-              not define them, and a reader who expects to create one here should
-              learn otherwise before hunting for the button. */}
-          <M.Typography variant="body2" color="textSecondary">
-            Defined and governed in your enterprise catalog. Quilt shows what they hold
-            and who can reach it.
-          </M.Typography>
-        </div>
-      </M.Paper>
+      <Switch>
+        {/* Detail carries its own header and section tabs, so it is not wrapped
+            in the list's header card — two stacked titles would compete for the
+            same slot. `exact` is deliberately absent: the section routes live
+            below this path and Detail's own Switch dispatches them. */}
+        <Route path={paths.dataProduct}>
+          <M.Paper className={classes.section}>
+            <Detail />
+          </M.Paper>
+        </Route>
 
-      <M.Paper className={classes.section}>
-        <Switch>
-          <Route path={paths.dataProduct} exact>
-            <div className={classes.detailSection}>
-              <Detail />
+        <Route path={paths.dataProducts} exact>
+          <M.Paper className={classes.headerCard}>
+            <div className={classes.headerTop}>
+              <M.Typography variant="h5">Data products</M.Typography>
+              {/* Says plainly where products come from. Quilt renders them; it
+                  does not define them, and a reader who expects to create one
+                  here should learn otherwise before hunting for the button. */}
+              <M.Typography variant="body2" color="textSecondary">
+                Defined and governed in your enterprise catalog. Quilt shows what they
+                hold and who can reach it.
+              </M.Typography>
             </div>
-          </Route>
-          <Route path={paths.dataProducts} exact>
+          </M.Paper>
+          <M.Paper className={classes.section}>
             <List />
-          </Route>
-          <Route>
-            <Redirect to={urls.dataProducts()} />
-          </Route>
-        </Switch>
-      </M.Paper>
+          </M.Paper>
+        </Route>
+
+        <Route>
+          <Redirect to={urls.dataProducts()} />
+        </Route>
+      </Switch>
     </Container>
   )
 }
