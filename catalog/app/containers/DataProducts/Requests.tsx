@@ -221,7 +221,7 @@ export default function Requests({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const caps = DP.CAPABILITIES[product.binding.kind]
-  const requests = DP.fixtures.requestsFor(product)
+  const requests = DP.useRequests(product.id)
 
   // Partial access counts. Gating on *nothing* readable would hide the
   // affordance in the commonest real case -- the DataZone product whose manifest

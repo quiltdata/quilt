@@ -472,19 +472,22 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     }
   })
 
+  // Read through the adapter port, never `fixtures` directly. The flag is passed
+  // in rather than guarding the call: hooks cannot be called conditionally, so
+  // the disabled case resolves to [] inside the resource without reaching the
+  // adapter at all.
+  const allDataProducts = DP.useProducts(dataProductsEnabled)
+
   // Products answer the same filter box as buckets — a user typing "clinical"
-  // means it about everything on the page, not about buckets only. Fixture-backed
-  // until catalog adapters land.
+  // means it about everything on the page, not about buckets only.
   const dataProducts = React.useMemo(() => {
-    if (!dataProductsEnabled) return []
-    const all = DP.fixtures.ALL_PRODUCTS
-    if (!terms.length) return all
+    if (!terms.length) return allDataProducts
     const matches = R.allPass(R.map(R.includes, terms))
     const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
-    return all.filter((p) =>
+    return allDataProducts.filter((p) =>
       anyFieldMatches([p.name, p.description, ...(p.labels || [])]),
     )
-  }, [dataProductsEnabled, terms])
+  }, [allDataProducts, terms])
 
   // Products trail the paginated buckets, so they belong to the last page only.
   // Passing them on every page would render the same product once per page.

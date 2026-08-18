@@ -413,7 +413,7 @@ export default function Detail() {
   // from utils/s3paths.
   const id = decodeURIComponent(dataProductId)
 
-  const product = DP.fixtures.ALL_PRODUCTS.find((p) => p.id === id)
+  const product = DP.useProduct(id)
 
   // A synthesized id is not stable across renames — on Unity a schema rename
   // silently changes it and emits no event — so a miss is expected drift, not

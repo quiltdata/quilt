@@ -107,7 +107,9 @@ function Row({ product }: RowProps) {
 }
 
 export default function List() {
-  const products = DP.fixtures.ALL_PRODUCTS
+  // Through the port, never `fixtures` directly: a container that reaches for
+  // fixtures keeps reading them after a real adapter lands.
+  const products = DP.useProducts()
 
   if (!products.length) {
     return (

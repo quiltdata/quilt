@@ -28,6 +28,28 @@ vi.mock('components/Layout', () => ({
 }))
 vi.mock('utils/MetaTitle', () => ({ default: () => null }))
 
+// Stub *only* the async boundary. The port is a suspending network read, which
+// would make every assertion below await a microtask and every negative
+// assertion need a positive await first to avoid passing against an unrendered
+// tree -- the same "passes while asserting nothing" trap this file has already
+// been bitten by twice.
+//
+// Everything else stays real: CAPABILITIES, grantsBeyondRequester, the fixtures
+// themselves. So these tests still exercise the actual rendering logic, and the
+// port's async contract is covered in model/DataProducts/hooks.spec.ts instead.
+vi.mock('model/DataProducts', async () => {
+  const actual =
+    await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
+  return {
+    ...actual,
+    useProducts: (enabled = true) => (enabled ? actual.fixtures.ALL_PRODUCTS : []),
+    useProduct: (id: string) =>
+      actual.fixtures.ALL_PRODUCTS.find((p) => p.id === id) ?? null,
+    useRequests: (productId: string) =>
+      actual.fixtures.ALL_REQUESTS.filter((r) => r.dataProductId === productId),
+  }
+})
+
 import { DataProductsScreen } from './DataProducts'
 import Requests from './Requests'
 

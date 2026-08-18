@@ -40,6 +40,19 @@ vi.mock('utils/features', () => ({
   useFeature: () => dataProductsEnabled,
 }))
 
+// Stub only the suspending port read. `useProducts` goes through ResourceCache,
+// which needs a Provider this spec does not mount, and suspending here would
+// make every assertion await a microtask. The `enabled` passthrough is kept
+// faithful, because "shows none while the feature is off" depends on it.
+vi.mock('model/DataProducts', async () => {
+  const actual =
+    await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
+  return {
+    ...actual,
+    useProducts: (enabled = true) => (enabled ? actual.fixtures.ALL_PRODUCTS : []),
+  }
+})
+
 vi.mock('utils/NamedRoutes', async () => ({
   ...(await vi.importActual('utils/NamedRoutes')),
   use: () => ({
