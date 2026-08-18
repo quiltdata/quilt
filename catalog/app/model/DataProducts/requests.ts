@@ -155,8 +155,16 @@ export function isSettled(request: AccessRequest): boolean {
  */
 export function grantsBeyondRequester(request: AccessRequest): boolean {
   const { type, label } = request.beneficiary
-  if (type === 'PROJECT' || type === 'GROUP' || type === 'ROLE') return true
-  // A user-typed beneficiary who is not the requester is still a widening, just
-  // a single-seat one.
-  return type === 'USER' && label !== request.requestedBy
+  // Stated as the *one* case that is provably requester-only, rather than as a
+  // list of collective types. An allow-list was the original shape and it was
+  // wrong twice over: it omitted RECIPIENT (a Delta Sharing recipient is an
+  // external identity -- approval hands access to whoever holds its
+  // credentials), and it silently answered "no widening" for UNKNOWN, where the
+  // platform did not say what kind of principal this is.
+  //
+  // Both errors ran the same direction: under-reporting blast radius. Since the
+  // caller uses this to decide whether to warn an approver, the unsafe default
+  // is the one that stays quiet -- so anything not demonstrably a grant to the
+  // requester alone counts as a widening.
+  return !(type === 'USER' && label === request.requestedBy)
 }

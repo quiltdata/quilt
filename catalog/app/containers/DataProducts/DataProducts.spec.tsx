@@ -181,6 +181,22 @@ describe('containers/DataProducts', () => {
         ).toBeTruthy()
       })
 
+      it('names a share recipient as an external widening', () => {
+        // A Delta Sharing recipient is an external identity: approval hands
+        // access to whoever holds its credentials. `grantsBeyondRequester`
+        // originally allow-listed PROJECT/GROUP/ROLE and omitted RECIPIENT, which
+        // made this wording unreachable — so it renders only because that bug is
+        // fixed, and this test is what keeps it fixed.
+        const { getByText } = mount(
+          dataProductAccess.url('uc:aws-prod-metastore/share/acme_trials_outbound'),
+        )
+        expect(
+          getByText(
+            /Approving this grants acme_analytics — everyone using that share, not only priya@quiltdata.io/,
+          ),
+        ).toBeTruthy()
+      })
+
       it('says the platform cannot report status rather than implying a pending sync', () => {
         // Unity can initiate a request but not enumerate one, so a missing
         // platform record is the steady state here. "Not yet visible" would

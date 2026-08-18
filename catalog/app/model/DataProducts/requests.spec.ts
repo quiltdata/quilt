@@ -101,11 +101,49 @@ describe('model/DataProducts/requests', () => {
     })
   })
 
+  describe('sharing widens beyond the workspace', () => {
+    it('treats a Delta Sharing recipient as a widening', () => {
+      // A recipient is an *external* identity: approval hands access to whoever
+      // holds that recipient's credentials, not to a person and not to a group
+      // inside this workspace.
+      const r = fixtures.UNITY_SHARE_RECIPIENT_REQUEST
+      expect(r.beneficiary.type).toBe('RECIPIENT')
+      expect(grantsBeyondRequester(r)).toBe(true)
+    })
+
+    it('cannot confirm a share request reached an approver', () => {
+      // Same reason as the Unity schema case: Unity cannot enumerate requests.
+      expect(fixtures.UNITY_SHARE_RECIPIENT_REQUEST.platformRecord).toBeNull()
+      expect(isSettled(fixtures.UNITY_SHARE_RECIPIENT_REQUEST)).toBe(false)
+    })
+  })
+
+  describe('a request that actually finished', () => {
+    it('settles an approved request', () => {
+      // Asserted against a fixture the UI renders rather than a synthesized
+      // object, so the model has a demonstrable clean terminal state.
+      const r = fixtures.UNITY_APPROVED_REQUEST
+      expect(r.status).toBe('APPROVED')
+      expect(isSettled(r)).toBe(true)
+      expect(accessMayPersistAfterRevoke(r)).toBe(false)
+    })
+  })
+
   describe('fixtures', () => {
     it('indexes requests by product', () => {
       const dz = fixtures.requestsFor(fixtures.DATAZONE_PRODUCT)
       expect(dz).toHaveLength(2)
       expect(fixtures.requestsFor(fixtures.SNOWFLAKE_PRODUCT)).toHaveLength(0)
+      expect(fixtures.requestsFor(fixtures.UNITY_SHARE_PRODUCT)).toHaveLength(1)
+    })
+
+    it('covers every request status the UI can render', () => {
+      // A status with no fixture is a rendering path nobody has looked at.
+      const statuses = new Set(fixtures.ALL_REQUESTS.map((r) => r.status))
+      expect(statuses).toContain('SUBMITTED')
+      expect(statuses).toContain('PENDING')
+      expect(statuses).toContain('APPROVED')
+      expect(statuses).toContain('REVOKED')
     })
   })
 })

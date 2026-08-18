@@ -302,9 +302,90 @@ export const DISCOVERY_ONLY_PRODUCT: DataProduct = {
   fetchedAt: FETCHED_AT,
 }
 
+/**
+ * Unity via Delta Sharing: the fourth binding kind, and the only one where the
+ * product is consumed rather than owned.
+ *
+ * Exists because `unity-share` had no fixture at all while being a real
+ * `PlatformBinding` case that maps to the same UNITY capabilities as
+ * `unity-schema`. Three branches only this fixture reaches:
+ *
+ * - `curationStatus: null` *with* `caps.curationStatus === true`. Unity can
+ *   express curation, this share has none set. That is the "Not set" reading --
+ *   genuinely different from DataZone, where the field is absent because the
+ *   concept does not exist. Nothing else exercises the difference.
+ * - A `RECIPIENT` principal, whose approval widens to everyone using the share.
+ * - An `UNAVAILABLE` member, the third `ContentsSource` state.
+ */
+export const UNITY_SHARE_PRODUCT: DataProduct = {
+  id: 'uc:aws-prod-metastore/share/acme_trials_outbound',
+  name: 'acme_trials_outbound',
+  description: 'Trial results shared out to the Acme analytics recipient.',
+  labels: ['domain=clinical', 'sharing=outbound'],
+  // Unity *can* carry certification; this share has none. Renders "Not set",
+  // not absent -- see the class comment.
+  curationStatus: null,
+  owningEntity: { kind: 'PRINCIPAL', label: 'data-platform-team', derived: false },
+  members: [
+    {
+      logicalName: 'trial_results',
+      kind: 'TABLE',
+      schema: [
+        { name: 'trial_id', type: 'string' },
+        { name: 'endpoint', type: 'string', description: 'Primary endpoint measured' },
+        { name: 'value', type: 'double' },
+      ],
+      locator: token('uc:share/acme_trials_outbound#trial_results'),
+      readable: true,
+      contentsSource: 'CATALOG',
+    },
+    {
+      // A share entry that no longer resolves on the provider side. Shares
+      // reference objects by name, so a dropped or renamed upstream table leaves
+      // an entry that cannot be listed -- distinct from "not readable by you",
+      // which is a permission answer rather than a missing object.
+      logicalName: 'trial_sites',
+      kind: 'TABLE',
+      schema: null,
+      locator: token('uc:share/acme_trials_outbound#trial_sites'),
+      readable: false,
+      contentsSource: 'UNAVAILABLE',
+    },
+  ],
+  grants: [
+    {
+      // `GRANT SELECT ON SHARE ... TO RECIPIENT ...` -- the recipient is the
+      // principal, and it is an external identity rather than a workspace group.
+      principal: 'acme_analytics',
+      principalType: 'RECIPIENT',
+      privilege: 'READ',
+      nativePrivilege: 'SELECT',
+      origin: 'DIRECT',
+    },
+    {
+      principal: 'data-platform-team',
+      principalType: 'GROUP',
+      privilege: 'MANAGE',
+      nativePrivilege: 'ALL PRIVILEGES',
+      origin: 'DIRECT',
+    },
+  ],
+  // Not claimed either way: what a recipient sees through a share is mediated by
+  // the provider's own rules, and the share surface does not report whether a
+  // row filter or column mask sits behind it. UNKNOWN rather than a guess.
+  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
+  binding: {
+    kind: 'unity-share',
+    metastore: 'aws-prod-metastore',
+    shareName: 'acme_trials_outbound',
+  },
+  fetchedAt: FETCHED_AT,
+}
+
 export const ALL_PRODUCTS: DataProduct[] = [
   DATAZONE_PRODUCT,
   UNITY_PRODUCT,
+  UNITY_SHARE_PRODUCT,
   SNOWFLAKE_PRODUCT,
   DISCOVERY_ONLY_PRODUCT,
 ]
@@ -392,10 +473,60 @@ export const DATAZONE_REVOKED_RETAINED_REQUEST: AccessRequest = {
   retainedPermissions: true,
 }
 
+/**
+ * A share request whose beneficiary is a recipient.
+ *
+ * The fourth widening shape. A Delta Sharing recipient is an *external*
+ * identity, so approval hands access to whoever holds that recipient's
+ * credentials -- not to a person and not to a group inside this workspace. The
+ * other fixtures cover USER and PROJECT; without this one the RECIPIENT branch
+ * of the blast-radius wording is unreachable, and a reviewer would have to take
+ * it on faith.
+ *
+ * `platformRecord` is null for the same reason as the Unity schema case: Unity
+ * cannot enumerate requests, so this is the steady state rather than a stage.
+ */
+export const UNITY_SHARE_RECIPIENT_REQUEST: AccessRequest = {
+  id: 'dpr_01hqb2',
+  dataProductId: UNITY_SHARE_PRODUCT.id,
+  requestedBy: 'priya@quiltdata.io',
+  beneficiary: { type: 'RECIPIENT', label: 'acme_analytics' },
+  reason: 'Acme needs the site-level breakdown for their Q3 readout.',
+  createdAt: new Date('2026-08-17T08:40:00.000Z'),
+  status: 'SUBMITTED',
+  platformRecord: null,
+  retainedPermissions: null,
+}
+
+/**
+ * The settled happy path, which nothing else covered.
+ *
+ * Every other request fixture is unresolved in some way, so `isSettled` was only
+ * ever exercised as `true` against a synthesized object in the spec -- never
+ * against something the UI actually renders. A reviewer reading the fixtures
+ * would reasonably conclude the model has no clean terminal state.
+ */
+export const UNITY_APPROVED_REQUEST: AccessRequest = {
+  id: 'dpr_01hq7a',
+  dataProductId: UNITY_PRODUCT.id,
+  requestedBy: 'dana@quiltdata.io',
+  beneficiary: { type: 'GROUP', label: 'quilt-consumers' },
+  reason: 'Joining package metadata against the assay manifest.',
+  createdAt: new Date('2026-08-10T13:15:00.000Z'),
+  status: 'APPROVED',
+  platformRecord: {
+    id: 'req_9xk3m',
+    reconciledAt: FETCHED_AT,
+  },
+  retainedPermissions: null,
+}
+
 export const ALL_REQUESTS: AccessRequest[] = [
   UNITY_SUBMITTED_REQUEST,
   DATAZONE_PENDING_REQUEST,
   DATAZONE_REVOKED_RETAINED_REQUEST,
+  UNITY_SHARE_RECIPIENT_REQUEST,
+  UNITY_APPROVED_REQUEST,
 ]
 
 /** Requests filed against one product. */
