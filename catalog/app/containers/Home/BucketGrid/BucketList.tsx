@@ -1,10 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type * as DP from 'model/DataProducts'
-
 import BucketCard, { Bucket } from './BucketCard'
 import DataProductCard from './DataProductCard'
+import type { VolumeEntry } from './entries'
 
 export type { Bucket }
 
@@ -22,39 +21,37 @@ export const useGridStyles = M.makeStyles((t) => ({
 }))
 
 interface BucketListProps {
-  buckets: ReadonlyArray<Bucket>
-  // Externally-owned data products share the volume grid with buckets: both are
-  // things a user browses into, so splitting them into two walls would make the
-  // page answer "what kind of object is this" before "what is here".
-  dataProducts?: ReadonlyArray<DP.DataProduct>
+  // One sorted, paginated list of volumes — buckets and data products
+  // interleaved. Not two arrays: a caller that could pass them separately would
+  // be able to order them separately, which is the two-panes shape this replaced.
+  entries: ReadonlyArray<VolumeEntry>
   tagIsMatching?: (tag: string) => boolean
   onTagClick?: (tag: string) => void
 }
 
 export default function BucketList({
-  buckets,
-  dataProducts = [],
+  entries,
   tagIsMatching = () => false,
   onTagClick = () => {},
 }: BucketListProps) {
   const classes = useGridStyles()
   return (
     <div className={classes.grid}>
-      {buckets.map((b) => (
-        <BucketCard
-          key={b.name}
-          bucket={b}
-          tagIsMatching={tagIsMatching}
-          onTagClick={onTagClick}
-        />
-      ))}
-      {/* After the buckets rather than interleaved: a product's sort keys
-          (catalog, readability) are not a bucket's (title, relevance), so
-          ordering them together would need a comparator over fields neither
-          shares. */}
-      {dataProducts.map((dp) => (
-        <DataProductCard key={dp.id} product={dp} />
-      ))}
+      {entries.map((e) =>
+        e.kind === 'bucket' ? (
+          <BucketCard
+            key={`bucket:${e.bucket.name}`}
+            bucket={e.bucket}
+            tagIsMatching={tagIsMatching}
+            onTagClick={onTagClick}
+          />
+        ) : (
+          // Keys are kind-prefixed: a product id and a bucket name occupy the
+          // same keyspace once they share a list, and a collision would make
+          // React reuse the wrong card.
+          <DataProductCard key={`product:${e.product.id}`} product={e.product} />
+        ),
+      )}
     </div>
   )
 }

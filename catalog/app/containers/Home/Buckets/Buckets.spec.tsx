@@ -103,20 +103,39 @@ vi.mock('utils/GraphQL', () => ({
   },
 }))
 
+// One list of volumes, buckets and products interleaved. The stand-ins echo
+// entries *in order*, so a test can assert interleaving rather than only
+// membership — the previous shape took two arrays and could not tell the
+// difference between "merged" and "products appended".
 interface RowsProps {
-  buckets: ReadonlyArray<{ name: string }>
-  // Both grid renderers take data products alongside buckets; the stand-ins
-  // echo them so a test can assert they reached the renderer at all.
-  dataProducts?: ReadonlyArray<{ id: string }>
+  entries: ReadonlyArray<
+    | { kind: 'bucket'; bucket: { name: string } }
+    | { kind: 'product'; product: { id: string } }
+  >
 }
 
-const Rows = ({ buckets, dataProducts = [] }: RowsProps) => (
+// Two label vocabularies, kept as the existing tests already spelled them: the
+// card view says `bucket:<name>` / `dp:<id>`, the row view `row:<name>` /
+// `row-dp:<id>`. Not unified behind one prefix — the point of the difference is
+// that a test can tell which renderer the `view` param selected.
+type Entry = RowsProps['entries'][number]
+
+const cardLabel = (e: Entry) =>
+  e.kind === 'bucket' ? `bucket:${e.bucket.name}` : `dp:${e.product.id}`
+
+const rowLabel = (e: Entry) =>
+  e.kind === 'bucket' ? `row:${e.bucket.name}` : `row-dp:${e.product.id}`
+
+// Each entry carries a testid so an order assertion can select the entries
+// themselves. Querying `div` would also match the wrapper, whose textContent is
+// every child concatenated — it looks like a first entry and silently ruins any
+// index-based check.
+const Rows = ({ entries }: RowsProps) => (
   <div>
-    {buckets.map((b) => (
-      <div key={b.name}>{`bucket:${b.name}`}</div>
-    ))}
-    {dataProducts.map((p) => (
-      <div key={p.id}>{`dp:${p.id}`}</div>
+    {entries.map((e) => (
+      <div key={cardLabel(e)} data-testid="entry">
+        {cardLabel(e)}
+      </div>
     ))}
   </div>
 )
@@ -130,13 +149,12 @@ vi.mock('containers/Home/BucketGrid/BucketList', () => ({
 // Distinguishable from the card view's stand-in so a test can tell which
 // renderer the `view` param selected.
 vi.mock('containers/Home/BucketGrid/BucketRows', () => ({
-  default: ({ buckets, dataProducts = [] }: RowsProps) => (
+  default: ({ entries }: RowsProps) => (
     <div>
-      {buckets.map((b) => (
-        <div key={b.name}>{`row:${b.name}`}</div>
-      ))}
-      {dataProducts.map((p) => (
-        <div key={p.id}>{`row-dp:${p.id}`}</div>
+      {entries.map((e) => (
+        <div key={rowLabel(e)} data-testid="entry">
+          {rowLabel(e)}
+        </div>
       ))}
     </div>
   ),
@@ -219,6 +237,39 @@ describe('website/pages/Landing/Buckets', () => {
       const { queryByText } = renderBuckets()
       expect(queryByText('Add Bucket')).toBeFalsy()
       expect(queryByText('dp:datazone:dzd_4xample/lst_9kq2v')).toBeTruthy()
+    })
+
+    it('interleaves them by sort rather than appending them after buckets', () => {
+      // The point of one list. Sorted A–Z, `acme_cohort_2024` precedes
+      // `Bucket One` and `Clinical Cohort 2024` follows it — so a product sits
+      // on either side of a bucket. Appending products after buckets (the
+      // previous shape) would put both after it, which is two lists wearing one
+      // heading.
+      dataProductsEnabled = true
+      const { getAllByTestId } = renderBuckets('?sort=name-asc')
+      const rendered = getAllByTestId('entry').map((d) => d.textContent ?? '')
+
+      const acme = rendered.indexOf(
+        'dp:uc:aws-prod-metastore/quilt_demo/acme_cohort_2024',
+      )
+      const bucket = rendered.indexOf('bucket:bucket-one')
+      const clinical = rendered.indexOf('dp:datazone:dzd_4xample/lst_9kq2v')
+
+      expect(acme).toBeGreaterThanOrEqual(0)
+      expect(bucket).toBeGreaterThan(acme)
+      expect(clinical).toBeGreaterThan(bucket)
+    })
+
+    it('ranks a product against buckets under relevance sort', () => {
+      // Relevance is the default, and a product has no score of its own. It must
+      // still take a position in the one ordering rather than being parked at the
+      // end: `bucket-one` has relevanceScore 1, products default to 0, so the
+      // bucket leads and products follow *by rank*, not by kind.
+      dataProductsEnabled = true
+      const { getAllByTestId } = renderBuckets()
+      const rendered = getAllByTestId('entry').map((d) => d.textContent ?? '')
+      expect(rendered[0]).toBe('bucket:bucket-one')
+      expect(rendered.length).toBeGreaterThan(1)
     })
   })
 

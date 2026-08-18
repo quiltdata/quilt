@@ -55,18 +55,51 @@ const SORT_OPTIONS = [
 const DEFAULT_SORT = SORT_OPTIONS[0].valueOf()
 const SORT_VALUES = SORT_OPTIONS.map((o) => o.valueOf())
 
-// `buckets` is already relevance+name sorted (see useRelevantBuckets) and
-// has the admin curation filter (relevanceScore >= 0) applied; this just
-// re-orders that same list per the selected sort option.
-function sortBuckets(buckets, sort) {
+// A volume is a bucket or a data product. They share this list, this filter,
+// this sort, and this pagination — a reader is browsing "what is here", and
+// which backing kind an entry has is a property of the entry, not a reason to
+// put it in a different pane.
+//
+// The wrapper exists because the two carry different fields: a bucket sorts by
+// `title` and has a `relevanceScore`, a product has `name` and neither. Rather
+// than teach every comparator about both shapes, each entry is normalized once
+// to the two keys the list actually orders on.
+const asEntries = (buckets, products) => [
+  ...buckets.map((b) => ({
+    kind: 'bucket',
+    // Buckets always have a title; `name` is the s3 name and is the fallback a
+    // bucket card itself uses.
+    label: b.title || b.name,
+    relevance: b.relevanceScore ?? 0,
+    bucket: b,
+  })),
+  ...products.map((p) => ({
+    kind: 'product',
+    label: p.name,
+    // No platform exposes anything relevance-like for a product, and inventing
+    // a score would silently decide ranking. 0 places them among buckets of
+    // default relevance rather than pinning them to either end.
+    relevance: 0,
+    product: p,
+  })),
+]
+
+// `buckets` arrives relevance+name sorted with the admin curation filter
+// (relevanceScore >= 0) applied; products have no such ordering of their own, so
+// relevance mode re-sorts the merged list rather than trusting arrival order.
+function sortEntries(entries, sort) {
+  const byLabel = R.pipe(R.prop('label'), R.toLower)
   switch (sort) {
     case 'name-asc':
-      return R.sortBy(R.pipe(R.prop('title'), R.toLower), buckets)
+      return R.sortBy(byLabel, entries)
     case 'name-desc':
-      return R.reverse(R.sortBy(R.pipe(R.prop('title'), R.toLower), buckets))
+      return R.reverse(R.sortBy(byLabel, entries))
     case 'relevance':
     default:
-      return buckets
+      // Descending relevance, then label — the same rule `useRelevantBuckets`
+      // applies to buckets alone, extended over the merged list so a product
+      // does not jump the queue for lacking a score.
+      return R.sortWith([R.descend(R.prop('relevance')), R.ascend(byLabel)], entries)
   }
 }
 
@@ -442,16 +475,45 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   // bucket data) — kept local so each component's dependency is obvious.
   const tagIsMatching = React.useCallback((tg) => filter.includes(tg), [filter])
 
+  // Read through the adapter port, never `fixtures` directly. The flag is passed
+  // in rather than guarding the call: hooks cannot be called conditionally, so
+  // the disabled case resolves to [] inside the resource without reaching the
+  // adapter at all.
+  const dataProducts = DP.useProducts(dataProductsEnabled)
+
+  // One list from here down. Merging *before* filter/sort/pagination is what
+  // makes a volume a volume: a product is ranked against buckets, lands on
+  // whichever page it sorts onto, and answers the same filter box. Merging after
+  // (the previous shape) meant products trailed the buckets and only appeared on
+  // the last page — two lists wearing one heading.
+  const entries = React.useMemo(
+    () => asEntries(buckets, dataProducts),
+    [buckets, dataProducts],
+  )
+
   const filtered = React.useMemo(() => {
-    if (!terms.length) return buckets
+    if (!terms.length) return entries
     const matches = R.allPass(R.map(R.includes, terms))
     const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
-    return buckets.filter((b) =>
-      anyFieldMatches([b.title, b.name, b.description, ...(b.tags || [])]),
+    // Each kind contributes the fields it actually has. A product has labels
+    // where a bucket has tags; neither borrows the other's vocabulary.
+    return entries.filter((e) =>
+      e.kind === 'bucket'
+        ? anyFieldMatches([
+            e.bucket.title,
+            e.bucket.name,
+            e.bucket.description,
+            ...(e.bucket.tags || []),
+          ])
+        : anyFieldMatches([
+            e.product.name,
+            e.product.description,
+            ...(e.product.labels || []),
+          ]),
     )
-  }, [terms, buckets])
+  }, [terms, entries])
 
-  const sorted = React.useMemo(() => sortBuckets(filtered, sort), [filtered, sort])
+  const sorted = React.useMemo(() => sortEntries(filtered, sort), [filtered, sort])
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
 
@@ -472,32 +534,10 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     }
   })
 
-  // Read through the adapter port, never `fixtures` directly. The flag is passed
-  // in rather than guarding the call: hooks cannot be called conditionally, so
-  // the disabled case resolves to [] inside the resource without reaching the
-  // adapter at all.
-  const allDataProducts = DP.useProducts(dataProductsEnabled)
-
-  // Products answer the same filter box as buckets — a user typing "clinical"
-  // means it about everything on the page, not about buckets only.
-  const dataProducts = React.useMemo(() => {
-    if (!terms.length) return allDataProducts
-    const matches = R.allPass(R.map(R.includes, terms))
-    const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
-    return allDataProducts.filter((p) =>
-      anyFieldMatches([p.name, p.description, ...(p.labels || [])]),
-    )
-  }, [allDataProducts, terms])
-
-  // Products trail the paginated buckets, so they belong to the last page only.
-  // Passing them on every page would render the same product once per page.
-  const onLastPage = pages <= 1 || page === pages
-  const shownDataProducts = onLastPage ? dataProducts : []
-
-  // Emptiness accounts for products: a catalog with products but no buckets is
-  // not empty, and ZeroState's "add a bucket" would hide what is actually there.
-  const noBuckets = !buckets.length && !dataProducts.length
-  const noMatch = !noBuckets && !sorted.length && !dataProducts.length
+  // Empty means nothing of either kind. ZeroState teaches "add a bucket", which
+  // would be wrong on a catalog whose products are the only thing here.
+  const isEmpty = !entries.length
+  const noMatch = !isEmpty && !sorted.length
 
   // Both views take the same props over the same page: the toggle swaps the
   // renderer and nothing else.
@@ -505,17 +545,12 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
 
   return (
     <>
-      {noBuckets ? (
+      {isEmpty ? (
         <ZeroState isAdmin={isAdmin} />
       ) : noMatch ? (
         <NoMatch filter={filter} />
       ) : (
-        <View
-          buckets={paginated}
-          dataProducts={shownDataProducts}
-          tagIsMatching={tagIsMatching}
-          onTagClick={onTagClick}
-        />
+        <View entries={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
       )}
       <div className={classes.controls}>
         <M.Box>

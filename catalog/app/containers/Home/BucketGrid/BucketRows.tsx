@@ -11,6 +11,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
 import type { Bucket } from './BucketCard'
+import type { VolumeEntry } from './entries'
 
 // The dense counterpart to the card grid: same buckets, same fields, one line
 // each. It exists so a long volume list can be scanned vertically without a
@@ -284,40 +285,44 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
 }
 
 interface BucketRowsProps {
-  buckets: ReadonlyArray<Bucket>
-  // Data products share the volume list with buckets: both are things a user
-  // browses into. See BucketList for the card side.
-  dataProducts?: ReadonlyArray<DP.DataProduct>
+  // One sorted, paginated list of volumes — buckets and data products
+  // interleaved. Not two arrays: a caller able to pass them separately would be
+  // able to order them separately, which is the two-panes shape this replaced.
+  entries: ReadonlyArray<VolumeEntry>
   tagIsMatching?: (tag: string) => boolean
   onTagClick?: (tag: string) => void
 }
 
 export default function BucketRows({
-  buckets,
-  dataProducts = [],
+  entries,
   tagIsMatching = () => false,
   onTagClick = () => {},
 }: BucketRowsProps) {
   return (
     <M.Paper elevation={0} variant="outlined">
       <M.List disablePadding>
-        {buckets.map((b, i) => (
-          <BucketRow
-            key={b.name}
-            bucket={b}
-            // The last bucket still needs a divider when products follow it.
-            divider={i < buckets.length - 1 || !!dataProducts.length}
-            tagIsMatching={tagIsMatching}
-            onTagClick={onTagClick}
-          />
-        ))}
-        {dataProducts.map((dp, i) => (
-          <DataProductRow
-            key={dp.id}
-            product={dp}
-            divider={i < dataProducts.length - 1}
-          />
-        ))}
+        {entries.map((e, i) => {
+          // Divider on every row but the last, whatever kind the neighbours are.
+          const divider = i < entries.length - 1
+          return e.kind === 'bucket' ? (
+            <BucketRow
+              // Kind-prefixed: a product id and a bucket name share one keyspace
+              // once they share a list, and a collision would make React reuse
+              // the wrong row.
+              key={`bucket:${e.bucket.name}`}
+              bucket={e.bucket}
+              divider={divider}
+              tagIsMatching={tagIsMatching}
+              onTagClick={onTagClick}
+            />
+          ) : (
+            <DataProductRow
+              key={`product:${e.product.id}`}
+              product={e.product}
+              divider={divider}
+            />
+          )
+        })}
       </M.List>
     </M.Paper>
   )
