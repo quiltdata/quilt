@@ -131,7 +131,7 @@ def test_same_object_repush_bug_condition(repush_registry_stub, mutation, dedupe
 
     try:
         second_returned = _push_for_repush_test(initiating, package_name, registry_url, dedupe=dedupe)
-    except QuiltConflictException as error:
+    except QuiltConflictException as error:  # pragma: no cover - exercised only on regression
         expected_hash = None if initiating_origin_before_repush is None else initiating_origin_before_repush[2]
         diagnostic = str(error)
         pytest.fail(
@@ -198,7 +198,7 @@ def test_coincident_foreign_origin_does_not_authorize_destination(repush_registr
         _push_for_repush_test(foreign_returned, destination_name, registry_url)
     except QuiltConflictException as error:
         diagnostic = str(error)
-    else:
+    else:  # pragma: no cover - exercised only on regression
         pytest.fail(
             'Destination-identity counterexample: '
             f'foreign_origin={foreign_origin!r}, destination_name={destination_name!r}, '
@@ -326,6 +326,43 @@ def test_repush_preservation_interleaved_conflict(repush_registry_stub):
     assert _origin_tuple(initiating) == expected_origin
 
 
+def test_repush_dedupe_rechecks_latest_before_return(repush_registry_stub, monkeypatch):
+    """Dedupe must reject a remote update that lands during transfer and hashing.
+
+    **Validates: Requirements 2.5, 2.6, 2.7, 3.3, 3.8**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/preservation'
+    initiating = _push_preservation_scenario(Package(), package_name, registry_url)
+    established_hash = initiating.top_hash
+    established_origin = (str(package_registry.base), package_name, established_hash)
+    interleaved_hash = 'a' * 64
+    assert interleaved_hash != established_hash
+
+    publications_before = len(published_hashes)
+    reads = {'count': 0}
+
+    def interleave_before_fresh_read(_physical_key):
+        reads['count'] += 1
+        if reads['count'] == 1:
+            return established_hash.encode()
+        remote_latest['value'] = interleaved_hash
+        return interleaved_hash.encode()
+
+    monkeypatch.setattr('quilt3.packages.get_bytes', interleave_before_fresh_read)
+
+    with pytest.raises(QuiltConflictException) as excinfo:
+        _push_preservation_scenario(initiating, package_name, registry_url, dedupe=True)
+
+    diagnostic = str(excinfo.value)
+    assert reads['count'] == 2
+    assert interleaved_hash in diagnostic
+    assert established_hash in diagnostic
+    assert len(published_hashes) == publications_before
+    assert remote_latest['value'] == interleaved_hash
+    assert _origin_tuple(initiating) == established_origin
+
+
 def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, monkeypatch):
     """Origin advances after publication and survives later display failure.
 
@@ -414,7 +451,7 @@ def test_repush_success_replaces_expected_destination_baseline(monkeypatch):
                         'GetObject',
                     )
                 return latest_hash.encode()
-        raise AssertionError(f'Unexpected latest pointer: {pointer}')
+        raise AssertionError(f'Unexpected latest pointer: {pointer}')  # pragma: no cover - defensive guard
 
     def push_manifest(_package, name, registry, top_hash):
         destination_revision = (str(registry.base), name, top_hash)
@@ -590,7 +627,7 @@ def test_repush_preservation_failure_origin_atomicity(repush_registry_stub, monk
             raise failure
 
         monkeypatch.setattr(Package, '_push_manifest', fail_publication)
-    else:
+    else:  # pragma: no cover - exhaustive parameter guard
         raise AssertionError(f'Unhandled failure stage: {failure_stage}')
 
     with pytest.raises(RuntimeError) as excinfo:
@@ -1897,7 +1934,13 @@ class PackageTest(QuiltTestCase):
 
             # Remote package exists and has the same hash.
 
-            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash)
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer(
+                    pkg_registry,
+                    pkg_name,
+                    pointer='latest',
+                    top_hash=pkg2.top_hash,
+                )
 
             push_manifest.reset_mock()
             pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)

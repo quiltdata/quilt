@@ -1632,13 +1632,20 @@ class Package:
         top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())
 
         if dedupe and top_hash == latest_hash:
-            if print_info:
-                print(
-                    f"Skipping since package with hash {latest_hash} already exists "
-                    "at the destination and dedupe parameter is true."
-                )
-            self._origin = PackageRevInfo(destination_registry, name, latest_hash)
-            return self
+            # Hashing and transfer may take long enough for another writer to update latest.
+            # Re-read before accepting the dedupe result so we do not return stale success.
+            latest_hash = get_latest_hash()
+            if not force:
+                check_hash_conficts(latest_hash)
+
+            if top_hash == latest_hash:
+                if print_info:
+                    print(
+                        f"Skipping since package with hash {latest_hash} already exists "
+                        "at the destination and dedupe parameter is true."
+                    )
+                self._origin = PackageRevInfo(destination_registry, name, latest_hash)
+                return self
 
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
