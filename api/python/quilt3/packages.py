@@ -1552,6 +1552,13 @@ class Package:
                     )
 
         registry = get_package_registry(registry)
+        destination_registry = str(registry.base)
+        destination = (destination_registry, name)
+        if self._origin is not None and self._origin.registry == destination_registry and self._origin.name == name:
+            expected_hash = self._origin.top_hash
+        else:
+            expected_hash = None
+
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
         def get_latest_hash():
@@ -1567,10 +1574,10 @@ class Package:
             if latest_hash is None:
                 return
 
-            if self._origin is None or latest_hash != self._origin.top_hash:
+            if latest_hash != expected_hash:
                 raise QuiltConflictException(
-                    f"Package with hash {latest_hash!r} already exists at the destination; "
-                    f"expected {None if self._origin is None else self._origin.top_hash!r}. "
+                    f"Package with hash {latest_hash!r} already exists at destination {destination!r}; "
+                    f"expected {expected_hash!r}. "
                     "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
@@ -1630,9 +1637,8 @@ class Package:
                     f"Skipping since package with hash {latest_hash} already exists "
                     "at the destination and dedupe parameter is true."
                 )
+            self._origin = PackageRevInfo(destination_registry, name, latest_hash)
             return self
-
-        pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
@@ -1659,6 +1665,10 @@ class Package:
             check_hash_conficts(latest_hash)
 
         pkg._push_manifest(name, registry, top_hash)
+
+        established_origin = PackageRevInfo(destination_registry, name, top_hash)
+        self._origin = established_origin
+        pkg._origin = established_origin
 
         if print_info:
             shorthash = registry.shorten_top_hash(name, top_hash)

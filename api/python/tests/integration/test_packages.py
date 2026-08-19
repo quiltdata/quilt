@@ -19,6 +19,7 @@ from unittest.mock import ANY, Mock, call, patch
 import jsonlines
 import pandas as pd
 import pytest
+from botocore.exceptions import ClientError
 
 import quilt3
 from quilt3 import Package, checksums
@@ -51,6 +52,559 @@ LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
 def _mock_copy_file_list(file_list, callback=None, message=None):
     return [(key, None) for _, key, _ in file_list]
+
+
+@pytest.fixture
+def repush_registry_stub(monkeypatch):
+    """Provide deterministic versioned-registry state for package repush tests."""
+    registry_url = 's3://test-bucket'
+    package_registry = S3PackageRegistryV1(PhysicalKey.from_url(registry_url))
+    remote_latest = {'value': None}
+    published_hashes = []
+
+    def get_latest_bytes(_physical_key):
+        if remote_latest['value'] is None:
+            raise ClientError(
+                {'Error': {'Code': 'NoSuchKey', 'Message': 'The specified key does not exist.'}},
+                'GetObject',
+            )
+        return remote_latest['value'].encode()
+
+    def push_manifest(_package, _name, _registry, top_hash):
+        published_hashes.append(top_hash)
+        remote_latest['value'] = top_hash
+
+    monkeypatch.setattr('quilt3.packages.get_package_registry', lambda _registry: package_registry)
+    monkeypatch.setattr('quilt3.packages.get_bytes', get_latest_bytes)
+    monkeypatch.setattr(Package, '_validate_with_workflow', lambda *args, **kwargs: None)
+    monkeypatch.setattr(Package, '_push_manifest', push_manifest)
+
+    return registry_url, package_registry, remote_latest, published_hashes
+
+
+def _push_for_repush_test(package, name, registry_url, *, dedupe=False):
+    return package._push(
+        name,
+        registry=registry_url,
+        workflow=None,
+        print_info=False,
+        force=False,
+        dedupe=dedupe,
+        copy_file_list_fn=_mock_copy_file_list,
+    )
+
+
+def _origin_tuple(package):
+    if package._origin is None:
+        return None
+    return package._origin.registry, package._origin.name, package._origin.top_hash
+
+
+@pytest.mark.parametrize(
+    ('mutation', 'dedupe'),
+    [
+        pytest.param('metadata', False, id='modified-nondedupe'),
+        pytest.param('none', False, id='unmodified-nondedupe'),
+        pytest.param('none', True, id='unmodified-dedupe'),
+    ],
+)
+def test_same_object_repush_bug_condition(repush_registry_stub, mutation, dedupe):
+    """Property 1: same-object linear repush establishes current remote state.
+
+    **Validates: Requirements 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.4, 2.8**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/test'
+    initiating = Package()
+
+    first_returned = _push_for_repush_test(initiating, package_name, registry_url)
+    first_hash = first_returned.top_hash
+    assert remote_latest['value'] == first_hash
+    assert published_hashes == [first_hash]
+
+    if mutation == 'metadata':
+        initiating.set_meta({'revision': 2})
+
+    expected_candidate = initiating.top_hash
+    initiating_origin_before_repush = _origin_tuple(initiating)
+    publications_before_repush = len(published_hashes)
+
+    try:
+        second_returned = _push_for_repush_test(initiating, package_name, registry_url, dedupe=dedupe)
+    except QuiltConflictException as error:
+        expected_hash = None if initiating_origin_before_repush is None else initiating_origin_before_repush[2]
+        diagnostic = str(error)
+        pytest.fail(
+            'Property 1 counterexample: '
+            f'mutation={mutation!r}, dedupe={dedupe!r}, '
+            f'initiating_origin={initiating_origin_before_repush!r} (stale_or_absent=True), '
+            f'actual_remote_hash={remote_latest["value"]!r}, expected_hash={expected_hash!r}, '
+            f'diagnostic={diagnostic!r}, '
+            f'force_guidance={"force=True" in diagnostic and "--force" in diagnostic}, '
+            f'_push_manifest_reached={len(published_hashes) > publications_before_repush}, '
+            'publication_reachable=False',
+        )
+
+    destination_revision = (str(package_registry.base), package_name, remote_latest['value'])
+    assert _origin_tuple(initiating) == destination_revision
+
+    if dedupe:
+        assert second_returned is initiating
+        assert len(published_hashes) == publications_before_repush
+        assert remote_latest['value'] == first_hash == expected_candidate
+    else:
+        assert second_returned is not initiating
+        assert len(published_hashes) == publications_before_repush + 1
+        assert remote_latest['value'] == expected_candidate
+        assert _origin_tuple(second_returned) == destination_revision
+
+
+def test_returned_object_repush_control(repush_registry_stub):
+    """The returned-package path succeeds and explains the historical coverage gap.
+
+    **Validates: Requirements 1.5, 2.8**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/test'
+
+    first_returned = _push_for_repush_test(Package(), package_name, registry_url)
+    first_hash = first_returned.top_hash
+    publications_before_repush = len(published_hashes)
+
+    second_returned = _push_for_repush_test(first_returned, package_name, registry_url)
+
+    destination_revision = (str(package_registry.base), package_name, first_hash)
+    assert len(published_hashes) == publications_before_repush + 1
+    assert remote_latest['value'] == first_hash
+    assert _origin_tuple(first_returned) == destination_revision
+    assert _origin_tuple(second_returned) == destination_revision
+
+
+def test_coincident_foreign_origin_does_not_authorize_destination(repush_registry_stub):
+    """A coincident hash from another package name is not destination authority.
+
+    **Validates: Requirements 2.3, 2.4, 2.8**
+    """
+    registry_url, _package_registry, remote_latest, published_hashes = repush_registry_stub
+    foreign_name = 'Quilt/foreign'
+    destination_name = 'Quilt/test'
+
+    foreign_returned = _push_for_repush_test(Package(), foreign_name, registry_url)
+    coincident_hash = foreign_returned.top_hash
+    foreign_origin = _origin_tuple(foreign_returned)
+    publications_before_destination = len(published_hashes)
+
+    try:
+        _push_for_repush_test(foreign_returned, destination_name, registry_url)
+    except QuiltConflictException as error:
+        diagnostic = str(error)
+    else:
+        pytest.fail(
+            'Destination-identity counterexample: '
+            f'foreign_origin={foreign_origin!r}, destination_name={destination_name!r}, '
+            f'coincident_remote_hash={coincident_hash!r}, '
+            f'_push_manifest_reached={len(published_hashes) > publications_before_destination}, '
+            f'remote_latest_after_attempt={remote_latest["value"]!r}; '
+            'hash equality incorrectly authorized publication to a different package name',
+        )
+
+    assert remote_latest['value'] == coincident_hash
+    assert len(published_hashes) == publications_before_destination
+    assert _origin_tuple(foreign_returned) == foreign_origin
+    assert coincident_hash in diagnostic
+    assert 'expected None' in diagnostic
+    assert 'force=True' in diagnostic
+    assert '--force' in diagnostic
+
+
+def _push_preservation_scenario(
+    package,
+    name,
+    registry_url,
+    *,
+    force=False,
+    dedupe=False,
+    copy_file_list_fn=_mock_copy_file_list,
+):
+    return package._push(
+        name,
+        registry=registry_url,
+        workflow=None,
+        print_info=False,
+        force=force,
+        dedupe=dedupe,
+        copy_file_list_fn=copy_file_list_fn,
+    )
+
+
+@pytest.mark.parametrize(
+    'scenario',
+    [
+        pytest.param('first-push', id='absent-destination'),
+        pytest.param('returned-linear-successor', id='returned-linear-successor'),
+        pytest.param('equal-hash-dedupe', id='equal-hash-dedupe'),
+        pytest.param('unmodified-nondedupe', id='unmodified-nondedupe'),
+        pytest.param('forced-overwrite', id='forced-overwrite'),
+    ],
+)
+def test_repush_preservation_success_matrix(repush_registry_stub, scenario):
+    """Property 2: non-bug success scenarios preserve existing push contracts.
+
+    **Validates: Requirements 3.1, 3.2, 3.4, 3.5, 3.6**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/preservation'
+
+    if scenario == 'first-push':
+        result = _push_preservation_scenario(Package(), package_name, registry_url)
+        expected_hash = result.top_hash
+        assert published_hashes == [expected_hash]
+    else:
+        current = _push_preservation_scenario(Package(), package_name, registry_url)
+        current_hash = current.top_hash
+        publications_before = len(published_hashes)
+
+        if scenario == 'returned-linear-successor':
+            current.set_meta({'revision': 2})
+            expected_hash = current.top_hash
+            result = _push_preservation_scenario(current, package_name, registry_url)
+            assert expected_hash != current_hash
+            assert len(published_hashes) == publications_before + 1
+        elif scenario == 'equal-hash-dedupe':
+            result = _push_preservation_scenario(current, package_name, registry_url, dedupe=True)
+            expected_hash = current_hash
+            assert result is current
+            assert len(published_hashes) == publications_before
+        elif scenario == 'unmodified-nondedupe':
+            result = _push_preservation_scenario(current, package_name, registry_url)
+            expected_hash = current_hash
+            assert result is not current
+            assert len(published_hashes) == publications_before + 1
+        else:
+            remote_latest['value'] = 'f' * 64
+            current.set_meta({'forced': True})
+            expected_hash = current.top_hash
+            result = _push_preservation_scenario(current, package_name, registry_url, force=True)
+            assert expected_hash not in {current_hash, 'f' * 64}
+            assert len(published_hashes) == publications_before + 1
+
+    destination_revision = (str(package_registry.base), package_name, expected_hash)
+    assert remote_latest['value'] == expected_hash
+    assert result.top_hash == expected_hash
+    assert _origin_tuple(result) == destination_revision
+
+
+def test_repush_preservation_interleaved_conflict(repush_registry_stub):
+    """Property 2: a genuine interleaved writer remains protected.
+
+    **Validates: Requirements 2.5, 2.6, 2.7, 3.3, 3.8**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/preservation'
+    initiating = _push_preservation_scenario(Package(), package_name, registry_url)
+    expected_hash = initiating.top_hash
+    expected_origin = (str(package_registry.base), package_name, expected_hash)
+    initiating.set_meta({'candidate': 2})
+    candidate_hash = initiating.top_hash
+    actual_hash = 'a' * 64
+    assert len({expected_hash, candidate_hash, actual_hash}) == 3
+
+    remote_latest['value'] = actual_hash
+    publications_before = len(published_hashes)
+
+    with pytest.raises(QuiltConflictException) as excinfo:
+        _push_preservation_scenario(initiating, package_name, registry_url)
+
+    diagnostic = str(excinfo.value)
+    assert repr((str(package_registry.base), package_name)) in diagnostic
+    assert actual_hash in diagnostic
+    assert expected_hash in diagnostic
+    assert 'force=True' in diagnostic
+    assert '--force' in diagnostic
+    assert len(published_hashes) == publications_before
+    assert remote_latest['value'] == actual_hash
+    assert _origin_tuple(initiating) == expected_origin
+
+
+def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, monkeypatch):
+    """Origin advances after publication and survives later display failure.
+
+    **Validates: Requirements 2.3, 2.7, 2.8, 3.8**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/publication-boundary'
+    initiating = _push_preservation_scenario(Package(), package_name, registry_url)
+    established_origin = _origin_tuple(initiating)
+    initiating.set_meta({'revision': 2})
+    candidate_hash = initiating.top_hash
+    published_package = {'value': None}
+    display_failure = RuntimeError('post-publication display failure')
+
+    def publish_manifest(remote_package, name, registry, top_hash):
+        assert name == package_name
+        assert registry is package_registry
+        assert top_hash == candidate_hash
+        assert _origin_tuple(initiating) == established_origin
+        assert _origin_tuple(remote_package) is None
+        published_package['value'] = remote_package
+        published_hashes.append(top_hash)
+        remote_latest['value'] = top_hash
+
+    def fail_display(name, top_hash):
+        destination_revision = (str(package_registry.base), package_name, candidate_hash)
+        assert name == package_name
+        assert top_hash == candidate_hash
+        assert remote_latest['value'] == candidate_hash
+        assert _origin_tuple(initiating) == destination_revision
+        assert _origin_tuple(published_package['value']) == destination_revision
+        raise display_failure
+
+    monkeypatch.setattr(Package, '_push_manifest', publish_manifest)
+    monkeypatch.setattr(package_registry, 'shorten_top_hash', fail_display)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        initiating._push(
+            package_name,
+            registry=registry_url,
+            workflow=None,
+            print_info=True,
+            force=False,
+            dedupe=False,
+            copy_file_list_fn=_mock_copy_file_list,
+        )
+
+    destination_revision = (str(package_registry.base), package_name, candidate_hash)
+    assert excinfo.value is display_failure
+    assert remote_latest['value'] == candidate_hash
+    assert published_hashes[-1] == candidate_hash
+    assert _origin_tuple(initiating) == destination_revision
+    assert _origin_tuple(published_package['value']) == destination_revision
+
+
+def test_repush_success_replaces_expected_destination_baseline(monkeypatch):
+    """Only the most recently established registry/name tuple remains expected.
+
+    **Validates: Requirements 2.3, 2.5, 2.6, 2.8**
+    """
+    registry_urls = ('s3://first-bucket', 's3://second-bucket/')
+    registries = {
+        registry_url.rstrip('/'): S3PackageRegistryV1(PhysicalKey.from_url(registry_url))
+        for registry_url in registry_urls
+    }
+    destinations = (
+        (registry_urls[0], 'Quilt/first'),
+        (registry_urls[0], 'Quilt/second'),
+        (registry_urls[1], 'Quilt/second'),
+    )
+    remote_latest = {
+        (str(registries[registry_url.rstrip('/')].base), name): None for registry_url, name in destinations
+    }
+    published_destinations = []
+
+    def get_registry(registry_url):
+        return registries[registry_url.rstrip('/')]
+
+    def get_latest_bytes(pointer):
+        for (registry_base, name), latest_hash in remote_latest.items():
+            registry = next(item for item in registries.values() if str(item.base) == registry_base)
+            if pointer == registry.pointer_latest_pk(name):
+                if latest_hash is None:
+                    raise ClientError(
+                        {'Error': {'Code': 'NoSuchKey', 'Message': 'The specified key does not exist.'}},
+                        'GetObject',
+                    )
+                return latest_hash.encode()
+        raise AssertionError(f'Unexpected latest pointer: {pointer}')
+
+    def push_manifest(_package, name, registry, top_hash):
+        destination_revision = (str(registry.base), name, top_hash)
+        published_destinations.append(destination_revision)
+        remote_latest[(str(registry.base), name)] = top_hash
+
+    monkeypatch.setattr('quilt3.packages.get_package_registry', get_registry)
+    monkeypatch.setattr('quilt3.packages.get_bytes', get_latest_bytes)
+    monkeypatch.setattr(Package, '_validate_with_workflow', lambda *args, **kwargs: None)
+    monkeypatch.setattr(Package, '_push_manifest', push_manifest)
+
+    initiating = Package()
+    established_destinations = []
+    for revision, (registry_url, package_name) in enumerate(destinations, start=1):
+        initiating.set_meta({'revision': revision})
+        returned = _push_preservation_scenario(initiating, package_name, registry_url)
+        destination_revision = (
+            str(registries[registry_url.rstrip('/')].base),
+            package_name,
+            returned.top_hash,
+        )
+        established_destinations.append(destination_revision)
+        assert _origin_tuple(initiating) == destination_revision
+        assert _origin_tuple(returned) == destination_revision
+        assert published_destinations[-1] == destination_revision
+
+    assert len({revision[2] for revision in established_destinations}) == len(destinations)
+    assert _origin_tuple(initiating) == established_destinations[-1]
+
+    publications_before_conflict = len(published_destinations)
+    first_registry, first_name = destinations[0]
+    with pytest.raises(QuiltConflictException) as excinfo:
+        _push_preservation_scenario(initiating, first_name, first_registry)
+
+    diagnostic = str(excinfo.value)
+    assert repr(established_destinations[0][:2]) in diagnostic
+    assert established_destinations[0][2] in diagnostic
+    assert 'expected None' in diagnostic
+    assert 'force=True' in diagnostic
+    assert '--force' in diagnostic
+    assert len(published_destinations) == publications_before_conflict
+    assert _origin_tuple(initiating) == established_destinations[-1]
+
+
+def test_repush_preservation_returned_package_materialization(repush_registry_stub):
+    """Property 2: successful pushes preserve the remote-materialized return contract.
+
+    **Validates: Requirements 3.1, 3.6, 3.7**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/materialized'
+    checksum = 'c' * 64
+    source = Package().set('foo', DATA_DIR / 'foo.txt', meta={'role': 'input'}).set_meta({'owner': 'quilt'})
+
+    def copy_with_checksum(file_list, callback=None, message=None):
+        return [(destination, checksum) for _source, destination, _size in file_list]
+
+    result = _push_preservation_scenario(
+        source,
+        package_name,
+        registry_url,
+        copy_file_list_fn=copy_with_checksum,
+    )
+
+    expected_physical_key = PhysicalKey.from_url(f'{registry_url}/{package_name}/foo')
+    destination_revision = (str(package_registry.base), package_name, result.top_hash)
+    assert result is not source
+    assert [logical_key for logical_key, _entry in result.walk()] == ['foo']
+    assert result.meta == {'owner': 'quilt'}
+    assert result['foo'].meta == {'role': 'input'}
+    assert result['foo'].physical_key == expected_physical_key
+    assert result['foo'].hash == {'type': checksums.DEFAULT_HASH, 'value': checksum}
+    assert result.top_hash == remote_latest['value'] == published_hashes[-1]
+    assert _origin_tuple(result) == destination_revision
+
+
+@pytest.mark.parametrize(
+    ('mutation', 'hash_changes'),
+    [
+        pytest.param('content', True, id='content-affects-hash'),
+        pytest.param('package-metadata', True, id='package-metadata-affects-hash'),
+        pytest.param('entry-metadata', True, id='entry-metadata-affects-hash'),
+        pytest.param('physical-relocation', False, id='physical-key-excluded-from-hash'),
+    ],
+)
+def test_repush_preservation_semantic_hashing(mutation, hash_changes):
+    """Property 2: top hashes remain semantic rather than location-dependent.
+
+    **Validates: Requirements 3.7**
+    """
+    base = Package().set('foo', DATA_DIR / 'foo.txt', meta={'kind': 'base'}).set_meta({'revision': 1})
+    base._calculate_missing_hashes()
+    base_entry = base['foo']
+    variant = Package()
+    variant._meta = dict(base._meta)
+
+    if mutation == 'content':
+        variant.set('foo', DATA_DIR / 'blah.txt.gz', meta={'kind': 'base'})
+        variant._calculate_missing_hashes()
+    else:
+        physical_key = base_entry.physical_key
+        entry_meta = dict(base_entry._meta)
+        if mutation == 'package-metadata':
+            variant.set_meta({'revision': 2})
+        elif mutation == 'entry-metadata':
+            entry_meta = {'user_meta': {'kind': 'changed'}}
+        else:
+            physical_key = PhysicalKey.from_url('s3://relocated-bucket/other/path/foo')
+
+        variant._set(
+            'foo',
+            PackageEntry(physical_key, base_entry.size, dict(base_entry.hash), entry_meta),
+        )
+
+    if hash_changes:
+        assert variant.top_hash != base.top_hash
+    else:
+        assert variant.top_hash == base.top_hash
+
+
+@pytest.mark.parametrize(
+    'failure_stage',
+    [
+        pytest.param('validation', id='validation'),
+        pytest.param('initial-registry-read', id='initial-registry-read'),
+        pytest.param('transfer', id='transfer'),
+        pytest.param('hash-preparation', id='hash-preparation'),
+        pytest.param('final-registry-read', id='final-registry-read'),
+        pytest.param('manifest-publication', id='manifest-publication'),
+    ],
+)
+def test_repush_preservation_failure_origin_atomicity(repush_registry_stub, monkeypatch, failure_stage):
+    """Property 2: every pre-publication failure preserves complete origin state.
+
+    **Validates: Requirements 2.7, 2.8, 3.8**
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/preservation'
+    initiating = _push_preservation_scenario(Package(), package_name, registry_url)
+    established_hash = initiating.top_hash
+    established_origin = (str(package_registry.base), package_name, established_hash)
+    initiating.set_meta({'candidate': failure_stage})
+    publications_before = len(published_hashes)
+    failure = RuntimeError(f'{failure_stage} failure')
+    copy_file_list_fn = _mock_copy_file_list
+
+    def raise_failure(*_args, **_kwargs):
+        raise failure
+
+    if failure_stage == 'validation':
+        monkeypatch.setattr(Package, '_validate_with_workflow', raise_failure)
+    elif failure_stage == 'initial-registry-read':
+        monkeypatch.setattr('quilt3.packages.get_bytes', raise_failure)
+    elif failure_stage == 'transfer':
+        copy_file_list_fn = raise_failure
+    elif failure_stage == 'hash-preparation':
+        monkeypatch.setattr(Package, '_calculate_missing_hashes', raise_failure)
+    elif failure_stage == 'final-registry-read':
+        reads = {'count': 0}
+
+        def fail_second_read(_physical_key):
+            reads['count'] += 1
+            if reads['count'] == 2:
+                raise failure
+            return established_hash.encode()
+
+        monkeypatch.setattr('quilt3.packages.get_bytes', fail_second_read)
+    elif failure_stage == 'manifest-publication':
+
+        def fail_publication(remote_package, *_args, **_kwargs):
+            assert _origin_tuple(initiating) == established_origin
+            assert _origin_tuple(remote_package) is None
+            raise failure
+
+        monkeypatch.setattr(Package, '_push_manifest', fail_publication)
+    else:
+        raise AssertionError(f'Unhandled failure stage: {failure_stage}')
+
+    with pytest.raises(RuntimeError) as excinfo:
+        _push_preservation_scenario(
+            initiating,
+            package_name,
+            registry_url,
+            copy_file_list_fn=copy_file_list_fn,
+        )
+
+    assert excinfo.value is failure
+    assert _origin_tuple(initiating) == established_origin
+    assert remote_latest['value'] == established_hash
+    assert len(published_hashes) == publications_before
 
 
 class PackageTest(QuiltTestCase):
@@ -1295,9 +1849,16 @@ class PackageTest(QuiltTestCase):
 
             pkg2.push('Quilt/test', 's3://test-bucket')
 
-            # Remote package exists and the hash does not match: push fails.
+            # A distinct interleaved remote revision does not match: push fails.
 
-            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash)
+            interleaved_hash = 'f' * 64
+            self.assertNotEqual(interleaved_hash, pkg2.top_hash)
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry,
+                pkg_name,
+                pointer='latest',
+                top_hash=interleaved_hash,
+            )
 
             with self.assertRaisesRegex(QuiltConflictException, 'already exists'):
                 pkg2.push('Quilt/test', 's3://test-bucket')
