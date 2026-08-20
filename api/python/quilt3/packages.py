@@ -638,8 +638,8 @@ class Package:
                 cache_path = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
                 local_pkg_manifest = cache_path
                 if not cache_path.exists():
-                    # Copy to a temporary file first so the manifest can be validated before it is cached.
-                    local_pkg_manifest = cache_path.with_suffix('.tmp')
+                    # Use a unique temporary file so concurrent downloads cannot interfere with one another.
+                    local_pkg_manifest = cache_path.with_name(f'{cache_path.name}.{uuid.uuid4().hex}.tmp')
                     stack.callback(local_pkg_manifest.unlink, missing_ok=True)
                     download_manifest(local_pkg_manifest)
             else:
@@ -659,7 +659,7 @@ class Package:
                     f"Manifest top hash mismatch: expected {top_hash!r}, got {actual_top_hash!r}"
                 )
             if cache_path is not None and local_pkg_manifest != cache_path:
-                local_pkg_manifest.rename(cache_path)
+                local_pkg_manifest.replace(cache_path)
             pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
             return pkg
 
