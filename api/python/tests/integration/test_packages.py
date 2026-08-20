@@ -22,6 +22,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 import quilt3
+import quilt3.main
 from quilt3 import Package, checksums
 from quilt3.backends.local import (
     LocalPackageRegistryV1,
@@ -30,7 +31,7 @@ from quilt3.backends.local import (
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
 from quilt3.data_transfer import FileChecksumTask
 from quilt3.exceptions import PackageException
-from quilt3.packages import PackageEntry
+from quilt3.packages import PackageEntry, PackageRevInfo
 from quilt3.util import (
     PhysicalKey,
     QuiltConflictException,
@@ -215,6 +216,69 @@ def test_coincident_foreign_origin_does_not_authorize_destination(repush_registr
     assert 'expected None' in diagnostic
     assert 'force=True' in diagnostic
     assert '--force' in diagnostic
+
+
+def _local_parent_package(package_name, *, revision=1):
+    """Build the state left behind by ``Package.browse(name, None)`` in ``quilt3 push``.
+
+    The parent revision comes from the *local* registry while the push target is S3.
+    """
+    parent = Package().set_meta({'revision': revision})
+    parent._origin = PackageRevInfo(
+        'file:///home/user/.local/share/Quilt/packages/',
+        package_name,
+        parent.top_hash,
+    )
+    return parent
+
+
+def test_push_accepts_parent_revision_from_another_registry(repush_registry_stub):
+    """A parent revision read from a different registry still authorizes the destination.
+
+    ``quilt3 push`` deliberately bases a remote push on a parent taken from the local
+    registry (#2722), so the remembered revision must not be scoped to the registry it
+    was read from -- only to the package name.
+    """
+    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/test'
+
+    local_parent = _local_parent_package(package_name)
+    parent_hash = local_parent._origin.top_hash
+    remote_latest['value'] = parent_hash
+
+    local_parent.set_meta({'revision': 2})
+
+    returned = _push_for_repush_test(local_parent, package_name, registry_url)
+
+    candidate_hash = returned.top_hash
+    destination_revision = (str(package_registry.base), package_name, candidate_hash)
+    assert candidate_hash != parent_hash
+    assert published_hashes == [candidate_hash]
+    assert remote_latest['value'] == candidate_hash
+    assert _origin_tuple(local_parent) == destination_revision
+    assert _origin_tuple(returned) == destination_revision
+
+
+def test_push_rejects_stale_parent_revision_from_another_registry(repush_registry_stub):
+    """A cross-registry parent is still checked against the destination's current revision."""
+    registry_url, _package_registry, remote_latest, published_hashes = repush_registry_stub
+    package_name = 'Quilt/test'
+
+    local_parent = _local_parent_package(package_name)
+    parent_hash = local_parent._origin.top_hash
+    interleaved_hash = 'f' * 64
+    remote_latest['value'] = interleaved_hash
+
+    local_parent.set_meta({'revision': 2})
+
+    with pytest.raises(QuiltConflictException) as excinfo:
+        _push_for_repush_test(local_parent, package_name, registry_url)
+
+    diagnostic = str(excinfo.value)
+    assert interleaved_hash in diagnostic
+    assert parent_hash in diagnostic
+    assert not published_hashes
+    assert remote_latest['value'] == interleaved_hash
 
 
 def _push_preservation_scenario(
@@ -419,7 +483,10 @@ def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, mo
 
 
 def test_repush_success_replaces_expected_destination_baseline(monkeypatch):
-    """Only the most recently established registry/name tuple remains expected.
+    """Only the most recently established revision remains expected.
+
+    A package name for which no revision has been established is expected to be absent,
+    whichever registry it is pushed to.
 
     **Validates: Requirements 2.3, 2.5, 2.6, 2.8**
     """
@@ -1854,6 +1921,56 @@ class PackageTest(QuiltTestCase):
         # disallow pushing the pacakge manifest to remote but package data to a different remote
         with pytest.raises(QuiltException):
             p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket', force=True)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_cli_push_with_local_registry_parent(self):
+        """`quilt3 push` pushes to S3 using a parent revision from the local registry (#2722).
+
+        This is the real `cmd_push` code path, unpatched, so the parent's registry differs
+        from the destination's.
+        """
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+
+        src_dir = Path('cli_push_src')
+        src_dir.mkdir()
+        (src_dir / 'foo.txt').write_text('foo')
+
+        # `quilt3 install` writes the manifest and the `latest` pointer into the local
+        # registry; `build` leaves the same state behind.
+        parent_hash = Package().set_dir('.', src_dir).build(pkg_name)
+
+        # The remote holds exactly that revision, so this is an ordinary next revision.
+        for _ in range(2):
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=parent_hash)
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+
+        (src_dir / 'bar.txt').write_text('bar')
+
+        def copy_with_checksum(file_list, callback=None, message=None):
+            return [(destination, 'c' * 64) for _source, destination, _size in file_list]
+
+        with (
+            patch('quilt3.packages.copy_file_list', copy_with_checksum),
+            patch('quilt3.Package._push_manifest') as push_manifest,
+        ):
+            quilt3.main.cmd_push(
+                name=pkg_name,
+                dir=str(src_dir),
+                registry=registry,
+                dest=None,
+                message=None,
+                meta=None,
+                workflow=None,
+                force=False,
+                dedupe=False,
+                no_copy=False,
+            )
+
+        push_manifest.assert_called_once()
+        pushed_hash = push_manifest.call_args[0][-1]
+        self.assertNotEqual(pushed_hash, parent_hash)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_conflicts(self):

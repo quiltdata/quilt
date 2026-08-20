@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+
 ## 8.0.0 - 2026-08-04
 
 ### Python API

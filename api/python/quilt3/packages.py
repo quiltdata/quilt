@@ -1554,7 +1554,11 @@ class Package:
         registry = get_package_registry(registry)
         destination_registry = str(registry.base)
         destination = (destination_registry, name)
-        if self._origin is not None and self._origin.registry == destination_registry and self._origin.name == name:
+        # The parent revision is identified by package name alone, not by the registry it was
+        # read from: `quilt3 push` deliberately bases a remote push on a parent taken from the
+        # local registry (see #2722), and top hashes are content-derived, so a hash remembered
+        # for this package name is valid evidence of the parent revision wherever it came from.
+        if self._origin is not None and self._origin.name == name:
             expected_hash = self._origin.top_hash
         else:
             expected_hash = None
@@ -1578,7 +1582,9 @@ class Package:
                 raise QuiltConflictException(
                     f"Package with hash {latest_hash!r} already exists at destination {destination!r}; "
                     f"expected {expected_hash!r}. "
-                    "Use force=True (Python) or --force (CLI) to overwrite."
+                    "To build on that revision, re-use the package returned by the previous push(), "
+                    "or call Package.browse() (CLI: quilt3 install) first. "
+                    "Use force=True (Python) or --force (CLI) to overwrite it instead."
                 )
 
         # Get the latest hash if we're either checking for conflicts or deduping.
