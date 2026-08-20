@@ -34,6 +34,20 @@ export interface ContentEntry {
    * visible while an individual object is refused (research §3.1).
    */
   readable?: boolean
+  /**
+   * Pinned Quilt+ URI for this one entry, including its `path` fragment.
+   *
+   * Not invented for the UI: the working implementation's contents endpoint
+   * already emits `{path, size, usl}` per entry, where `usl` is exactly this
+   * (`research/raja-poc-reverse-engineered.md` §4). Carried through because it is
+   * the entry's *identity* -- the thing to show a reader, copy to a clipboard,
+   * and hand to a broker in exchange for bytes.
+   *
+   * Optional because a catalog-enumerated member has no package URI at all. Its
+   * absence is what distinguishes an entry we can address from one we can only
+   * name.
+   */
+  usl?: string
 }
 
 /** A folder at the current level. */

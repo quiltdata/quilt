@@ -42,6 +42,20 @@ vi.mock('utils/MetaTitle', () => ({ default: () => null }))
 // product, whose actions are download-via-broker rather than S3.
 vi.mock('constants/config', () => ({ default: {} }))
 
+// JsonDisplay (the file view's JSON preview) uses use-resize-observer, which
+// needs the ResizeObserver global that jsdom lacks. Same stub JsonDisplay's own
+// spec uses.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  },
+)
+
 // Stub *only* the async boundary. The port is a suspending network read, which
 // would make every assertion below await a microtask and every negative
 // assertion need a positive await first to avoid passing against an unrendered
@@ -82,6 +96,26 @@ vi.mock('model/DataProducts', async () => {
         ok: true,
         entries: actual.fixtures.PACKAGE_CONTENTS[`${productId}::${memberName}`] ?? [],
       }
+    },
+    // Mirrors fixtureAdapter.fetchEntry, for the same reason as useContents above.
+    // The per-entry `readable` check is what makes the refused-file path reachable.
+    useEntryBody: (
+      productId: string,
+      memberName: string,
+      logicalKey: string,
+    ): DP.EntryBodyResult => {
+      const entries = actual.fixtures.PACKAGE_CONTENTS[`${productId}::${memberName}`]
+      const entry = entries?.find((e) => e.logicalKey === logicalKey)
+      if (!entry) return { ok: false, reason: 'NOT_FOUND' }
+      if (entry.readable === false) return { ok: false, reason: 'NOT_A_MEMBER' }
+      const text = actual.fixtures.ENTRY_TEXT[logicalKey]
+      if (text === undefined) {
+        return {
+          ok: true,
+          body: { kind: 'opaque', mediaHint: logicalKey.split('.').pop() },
+        }
+      }
+      return { ok: true, body: { kind: 'text', text } }
     },
   }
 })
@@ -233,6 +267,90 @@ describe('containers/DataProducts', () => {
       // The distinction that matters: not phrased as a permission problem.
       expect(queryByText(/request access/i)).toBeNull()
       expect(queryByText(/catalog admin/i)).toBeNull()
+    })
+
+    it('opens a file when its row is clicked', () => {
+      // The whole point of this change. Files were inert on the belief that a
+      // preview needed an S3 handle -- true of every loader, false of the
+      // renderers.
+      const { getByText, queryByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      // The README's rendered body is absent before the click and present after,
+      // so this cannot pass against an unrendered tree.
+      expect(queryByText(/subject-level readouts/)).toBeNull()
+      fireEvent.click(getByText('README.md'))
+      expect(getByText(/subject-level readouts/)).toBeTruthy()
+    })
+
+    it('keeps the listing visible while a file is open', () => {
+      // Below the listing rather than replacing it: opening one file in a plate of
+      // 300 should not cost the reader their place.
+      //
+      // Asserted by counting rows rather than by text, because the opened README
+      // *mentions* data.csv in its body -- a getByText would find two matches and
+      // fail for a reason that has nothing to do with the listing surviving. That
+      // ambiguity is itself evidence the file body rendered.
+      const { getByText, container } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      const rowsBefore = container.querySelectorAll('[role="row"]').length
+      expect(rowsBefore).toBeGreaterThan(1)
+      fireEvent.click(getByText('README.md'))
+      expect(container.querySelectorAll('[role="row"]').length).toBe(rowsBefore)
+    })
+
+    it('shows a file’s pinned URI as its identity', () => {
+      const { getByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      fireEvent.click(getByText('README.md'))
+      // Registry, package, immutable revision, and the entry's own path -- which
+      // together make a reference to this one file reproducible.
+      expect(getByText(/&path=README\.md$/)).toBeTruthy()
+    })
+
+    it('renders a JSON file through the JSON viewer, not as raw text', async () => {
+      const { getByText, findByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      fireEvent.click(getByText('results.json'))
+      // JsonDisplay renders asynchronously -- it shows "rendering..." first, which
+      // a synchronous getByText catches instead of the content. Awaiting is the
+      // point rather than an inconvenience: it proves the viewer mounted and
+      // settled, where a <pre> dump would have been there immediately.
+      // Structured keys, not a text dump. `mean: 4.206` proves the viewer parsed
+      // and rendered the object; a <pre> would show the raw JSON braces instead.
+      expect(await findByText(/mean/)).toBeTruthy()
+      expect(getByText(/4\.206/)).toBeTruthy()
+      // The nested array stays collapsed at defaultExpanded={1}, which is why this
+      // asserts a top-level key rather than a value inside `arms`.
+      expect(getByText(/<…2>/)).toBeTruthy()
+    })
+
+    it('admits it cannot preview a file rather than showing an empty pane', () => {
+      // A .tiff has bytes that are not text. The honest outcome is
+      // identity-without-preview -- the alternative is a pane that looks like a
+      // preview and is not.
+      const { getByText } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=raw%2Fplate_2%2F`,
+      )
+      fireEvent.click(getByText('A01.tiff'))
+      expect(getByText(/No preview for this file type/)).toBeTruthy()
+      // Identity survives: it is what a reader copies into a notebook.
+      expect(getByText(/&path=raw\/plate_2\/A01\.tiff$/)).toBeTruthy()
+    })
+
+    it('reports a refused file with the same words the listing uses', () => {
+      // The broker checks membership per object, so one file can be denied inside
+      // a fully visible listing. It must name the same person to ask as a refused
+      // listing does, or the reader learns two vocabularies for one problem.
+      const { getByText } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=derived%2F`,
+      )
+      fireEvent.click(getByText('restricted.parquet'))
+      expect(getByText('Contents not visible to you')).toBeTruthy()
+      expect(getByText(/Ask a catalog admin/)).toBeTruthy()
     })
 
     it('routes the two access denials to different people', () => {

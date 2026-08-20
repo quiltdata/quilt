@@ -13,7 +13,7 @@
  * visible.
  */
 
-import type { BrowsingAdapter, ContentsResult } from './adapter'
+import type { ContentsResult, EntryBodyResult, FetchingAdapter } from './adapter'
 import * as fixtures from './fixtures'
 import type { AccessRequest } from './requests'
 import type { DataProduct } from './types'
@@ -31,7 +31,7 @@ import type { DataProduct } from './types'
  * exactly the kind of never-rendered branch that rots. Tests cover it explicitly
  * instead of relying on the fixture path to reveal it.
  */
-export const fixtureAdapter: BrowsingAdapter = {
+export const fixtureAdapter: FetchingAdapter = {
   async listProducts(): Promise<DataProduct[]> {
     return fixtures.ALL_PRODUCTS
   },
@@ -84,5 +84,45 @@ export const fixtureAdapter: BrowsingAdapter = {
 
     const entries = fixtures.PACKAGE_CONTENTS[`${productId}::${memberLogicalName}`]
     return { ok: true, entries: entries ?? [] }
+  },
+
+  /**
+   * One entry's bytes.
+   *
+   * Reuses `listContents` rather than re-deriving the member state, so the two
+   * cannot disagree: an entry in a member that cannot be listed is never
+   * fetchable, and it reports the same reason.
+   *
+   * Note the per-entry denial is checked *after* the member resolves. That
+   * ordering is the real one -- the broker authorizes the package, then checks
+   * membership per object -- and it is what lets a listing be fully visible while
+   * one file in it is refused.
+   */
+  async fetchEntry(
+    productId: string,
+    memberLogicalName: string,
+    logicalKey: string,
+  ): Promise<EntryBodyResult> {
+    const listing = await this.listContents(productId, memberLogicalName)
+    if (!listing.ok) return { ok: false, reason: listing.reason }
+
+    const entry = listing.entries.find((e) => e.logicalKey === logicalKey)
+    if (!entry) return { ok: false, reason: 'NOT_FOUND' }
+
+    // The per-object refusal. NOT_A_MEMBER because the broker's answer is a
+    // membership verdict, not a storage-layer one.
+    if (entry.readable === false) return { ok: false, reason: 'NOT_A_MEMBER' }
+
+    const text = fixtures.ENTRY_TEXT[logicalKey]
+    // No body is not a failure. A .tiff or .parquet has bytes that simply are not
+    // text, and saying so lets the file view render identity-without-preview
+    // rather than an error or an empty pane.
+    if (text === undefined) {
+      return {
+        ok: true,
+        body: { kind: 'opaque', mediaHint: logicalKey.split('.').pop() },
+      }
+    }
+    return { ok: true, body: { kind: 'text', text } }
   },
 }

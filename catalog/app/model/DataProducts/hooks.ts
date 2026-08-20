@@ -18,8 +18,8 @@
 
 import * as Cache from 'utils/ResourceCache'
 
-import type { ContentsResult, DataProductAdapter } from './adapter'
-import { supportsBrowsing } from './adapter'
+import type { ContentsResult, DataProductAdapter, EntryBodyResult } from './adapter'
+import { supportsBrowsing, supportsFetching } from './adapter'
 import { fixtureAdapter } from './fixtureAdapter'
 import type { AccessRequest } from './requests'
 import type { DataProduct } from './types'
@@ -93,6 +93,22 @@ const ContentsResource = Cache.createResource({
     `${productId}::${member}`,
 })
 
+type EntryInput = { productId: string; member: string; logicalKey: string }
+
+const EntryBodyResource = Cache.createResource({
+  name: 'DataProducts.entryBody',
+  fetch: ({ productId, member, logicalKey }: EntryInput) =>
+    // Same reasoning as contents: an adapter that cannot fetch is a real shape,
+    // not a broken one, and NOT_FOUND keeps the UI on one path rather than
+    // branching on adapter capability at the call site.
+    supportsFetching(adapter)
+      ? adapter.fetchEntry(productId, member, logicalKey)
+      : Promise.resolve<EntryBodyResult>({ ok: false, reason: 'NOT_FOUND' }),
+  // @ts-expect-error
+  key: ({ productId, member, logicalKey }: EntryInput) =>
+    `${productId}::${member}::${logicalKey}`,
+})
+
 /**
  * Every product this user can see, readable or not.
  *
@@ -121,6 +137,25 @@ export function useRequests(productId: string): AccessRequest[] {
     { productId },
     { suspend: true },
   ) as AccessRequest[]
+}
+
+/**
+ * One entry's bytes, or the reason they are unavailable.
+ *
+ * Keyed on the triple. Note the cache means opening the same file twice is one
+ * fetch -- worth having, because a broker read costs a credential exchange rather
+ * than just a round trip.
+ */
+export function useEntryBody(
+  productId: string,
+  member: string,
+  logicalKey: string,
+): EntryBodyResult {
+  return Cache.useData(
+    EntryBodyResource,
+    { productId, member, logicalKey },
+    { suspend: true },
+  ) as EntryBodyResult
 }
 
 /**

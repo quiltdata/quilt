@@ -136,3 +136,76 @@ export function supportsBrowsing(
 ): adapter is BrowsingAdapter {
   return typeof (adapter as BrowsingAdapter).listContents === 'function'
 }
+
+/**
+ * What a broker returned for one entry.
+ *
+ * **Text only, and that is a decision rather than a limitation of today's
+ * fixtures.** The UI is not in the byte path: it hands a locator plus the user's
+ * credential to a broker and gets bytes back. For a small text-ish file that is
+ * enough to render, because every text-shaped preview renderer in this codebase
+ * accepts a string. For an image, a PDF, or a Parquet file it is not -- those
+ * renderers need a URL the browser can fetch, or a Blob.
+ *
+ * So this type deliberately cannot express "here is an image". A file view given
+ * a `.tiff` must render identity-without-preview, which is the honest outcome,
+ * rather than being handed something that looks previewable and is not. When a
+ * broker can issue a short-lived URL, that becomes a second variant here and the
+ * renderers that need one become reachable -- an additive change, and the reason
+ * this is a tagged result rather than a bare string.
+ */
+export type EntryBody =
+  | {
+      kind: 'text'
+      text: string
+      /**
+       * True when the broker returned a prefix rather than the whole object.
+       *
+       * Carried so a preview can say so. A truncated file rendered as complete is
+       * the kind of quiet misreport that costs a reader real time -- a JSON
+       * preview that silently loses its tail looks like malformed data.
+       */
+      truncated?: boolean
+    }
+  /**
+   * The entry exists and is readable, but its bytes are not renderable as text.
+   *
+   * Not an error and not a denial: a 4 GB TIFF is a perfectly good object. The
+   * `mediaHint` is for explaining *why* there is no preview, never for guessing at
+   * one.
+   */
+  | { kind: 'opaque'; mediaHint?: string }
+
+export type EntryBodyResult =
+  | { ok: true; body: EntryBody }
+  | { ok: false; reason: UnavailableReason }
+
+/**
+ * An adapter that can fetch one entry's bytes.
+ *
+ * Separate from `BrowsingAdapter` because listing and reading are separately
+ * authorized in the real implementation: the broker checks manifest membership
+ * *per object*, so a caller can enumerate a package fully and still be refused a
+ * single file in it (`research/raja-poc-reverse-engineered.md` §3.1). An adapter
+ * that can list but not fetch is a real shape, not a half-built one.
+ */
+export interface FetchingAdapter extends BrowsingAdapter {
+  /**
+   * One entry's bytes, or the reason they are unavailable.
+   *
+   * Keyed by logical key rather than by the entry's `usl`, so a caller does not
+   * have to hold the listing to ask -- and so a fixture cannot silently depend on
+   * a URI it never validated.
+   */
+  fetchEntry(
+    productId: string,
+    memberLogicalName: string,
+    logicalKey: string,
+  ): Promise<EntryBodyResult>
+}
+
+export function supportsFetching(
+  adapter: DataProductAdapter,
+): adapter is FetchingAdapter {
+  return typeof (adapter as FetchingAdapter).fetchEntry === 'function'
+}

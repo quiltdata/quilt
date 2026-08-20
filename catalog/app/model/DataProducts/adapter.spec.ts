@@ -155,11 +155,31 @@ describe('model/DataProducts/adapter', () => {
       // The three real entries from the live raja-poc package, by name and size.
       expect(result.entries).toEqual(
         expect.arrayContaining([
-          { logicalKey: 'README.md', sizeBytes: 147, readable: true },
-          { logicalKey: 'data.csv', sizeBytes: 115, readable: true },
-          { logicalKey: 'results.json', sizeBytes: 107, readable: true },
+          expect.objectContaining({
+            logicalKey: 'README.md',
+            sizeBytes: 147,
+            readable: true,
+          }),
+          expect.objectContaining({ logicalKey: 'data.csv', sizeBytes: 115 }),
+          expect.objectContaining({ logicalKey: 'results.json', sizeBytes: 107 }),
         ]),
       )
+    })
+
+    it('addresses every entry with a pinned, path-scoped URI', () => {
+      // The entry's identity, and the thing a broker is handed in exchange for
+      // bytes. Asserted structurally rather than by string equality so it stays a
+      // claim about *shape*: one registry, one immutable revision, and the entry's
+      // own path -- which is what makes a single file reference reproducible.
+      const entries =
+        fixtures.PACKAGE_CONTENTS[`${fixtures.PACKAGE_PRODUCT.id}::alpha/home`]!
+      expect(entries.length).toBeGreaterThan(0)
+      entries.forEach((e) => {
+        expect(e.usl).toMatch(
+          /^quilt\+s3:\/\/[^#]+#package=alpha\/home@[0-9a-f]{64}&path=.+$/,
+        )
+        expect(e.usl).toContain(`&path=${e.logicalKey}`)
+      })
     })
 
     it('returns flat logical keys, not a pre-grouped tree', async () => {

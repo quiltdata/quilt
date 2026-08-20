@@ -16,7 +16,7 @@
  * alone would let capability-aware mode rot untested (clause 7.3).
  */
 
-import type { Capabilities, DataProduct, Member } from './types'
+import type { Capabilities, DataProduct, Member, PackageHandle } from './types'
 import type { Connection } from './connections'
 import type { ContentEntry } from './contents'
 import type { AccessRequest } from './requests'
@@ -568,26 +568,84 @@ export const ALL_PRODUCTS: DataProduct[] = [
  * plus nesting the real package lacks, because a browser that has only rendered
  * a flat list has never exercised drilling in.
  */
+/**
+ * Build an entry's pinned USL the way the real implementation does.
+ *
+ * A helper rather than eight hand-typed URIs, because the point of the field is
+ * that every entry's URI shares one registry and one revision -- a copy-paste
+ * fixture would let them drift and quietly stop demonstrating that.
+ * Deliberately mirrors the shape `raja/quilt_uri.py` produces:
+ * `quilt+s3://{registry}#package={name}@{hash}&path={key}`.
+ */
+const usl = (handle: PackageHandle, logicalKey: string) =>
+  `quilt+s3://${handle.registry}#package=${handle.name}@${handle.topHash}&path=${logicalKey}`
+
+const ALPHA_HOME: PackageHandle = {
+  registry: 'raja-poc-registry-712023778557-us-east-1',
+  name: 'alpha/home',
+  topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
+}
+
+const alphaEntry = (
+  logicalKey: string,
+  rest: Omit<ContentEntry, 'logicalKey' | 'usl'> = {},
+): ContentEntry => ({ logicalKey, usl: usl(ALPHA_HOME, logicalKey), ...rest })
+
 export const PACKAGE_CONTENTS: Record<string, ContentEntry[]> = {
   [`datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv::alpha/home`]: [
     // The three real entries, with their real sizes.
-    { logicalKey: 'README.md', sizeBytes: 147, readable: true },
-    { logicalKey: 'data.csv', sizeBytes: 115, readable: true },
-    { logicalKey: 'results.json', sizeBytes: 107, readable: true },
+    alphaEntry('README.md', { sizeBytes: 147, readable: true }),
+    alphaEntry('data.csv', { sizeBytes: 115, readable: true }),
+    alphaEntry('results.json', { sizeBytes: 107, readable: true }),
     // Nesting, so drill-down is exercised. Numeric suffixes out of order on
     // purpose: plate_2 must sort before plate_10, which bytewise ordering gets
     // wrong.
-    { logicalKey: 'raw/plate_2/A01.tiff', sizeBytes: 2_048, readable: true },
-    { logicalKey: 'raw/plate_10/A01.tiff', sizeBytes: 4_096, readable: true },
-    { logicalKey: 'raw/plate_10/A02.tiff', sizeBytes: 4_096, readable: true },
+    alphaEntry('raw/plate_2/A01.tiff', { sizeBytes: 2_048, readable: true }),
+    alphaEntry('raw/plate_10/A01.tiff', { sizeBytes: 4_096, readable: true }),
+    alphaEntry('raw/plate_10/A02.tiff', { sizeBytes: 4_096, readable: true }),
     // One unsized entry, which forces its folder's total to be withheld rather
     // than shown as a partial sum.
-    { logicalKey: 'raw/plate_10/A03.tiff', readable: true },
+    alphaEntry('raw/plate_10/A03.tiff', { readable: true }),
     // Present in the manifest but refused by the broker. Real: membership is
     // checked per object, so a listing can be fully visible while one object in
     // it is denied (research §3.1).
-    { logicalKey: 'derived/restricted.parquet', sizeBytes: 8_192, readable: false },
+    alphaEntry('derived/restricted.parquet', { sizeBytes: 8_192, readable: false }),
   ],
+}
+
+/**
+ * Text bodies for the entries a preview can actually render.
+ *
+ * Only three, and that is the honest set: a preview needs bytes, the UI is not
+ * in the byte path, and no broker is wired. So these stand in for what a broker
+ * would return for the small text-ish files -- and the `.tiff` and `.parquet`
+ * entries deliberately have **no** body, because an image or columnar preview
+ * cannot be faked from a string. A file view must render those as
+ * identity-without-preview rather than inventing something.
+ *
+ * Contents match the real package's file names; the bodies are plausible rather
+ * than copied, since the real objects are 147/115/107 bytes of test data.
+ */
+export const ENTRY_TEXT: Record<string, string> = {
+  'README.md': [
+    '# alpha/home',
+    '',
+    'Test package published to the RAJA proof-of-concept registry.',
+    '',
+    '- `data.csv` — subject-level readouts',
+    '- `results.json` — summary statistics',
+  ].join('\n'),
+  'data.csv': [
+    'subject_id,arm,value',
+    'S-0001,treatment,4.21',
+    'S-0002,control,3.86',
+    'S-0003,treatment,4.55',
+  ].join('\n'),
+  'results.json': JSON.stringify(
+    { n: 3, arms: ['treatment', 'control'], mean: 4.206, generated: '2026-04-26' },
+    null,
+    2,
+  ),
 }
 
 /** Capabilities that go with a fixture, so UI wiring stays consistent. */

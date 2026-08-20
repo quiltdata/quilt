@@ -25,10 +25,20 @@ export type {
   BrowsingAdapter,
   ContentsResult,
   DataProductAdapter,
+  EntryBody,
+  EntryBodyResult,
+  FetchingAdapter,
   RequestingAdapter,
 } from './adapter'
-export { supportsBrowsing, supportsRequests } from './adapter'
-export { useAdapter, useContents, useProduct, useProducts, useRequests } from './hooks'
+export { supportsBrowsing, supportsFetching, supportsRequests } from './adapter'
+export {
+  useAdapter,
+  useContents,
+  useEntryBody,
+  useProduct,
+  useProducts,
+  useRequests,
+} from './hooks'
 export {
   CAPABILITIES,
   INTERSECTION,

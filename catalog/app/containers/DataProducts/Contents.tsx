@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import Empty from 'components/Empty'
 import * as Listing from 'containers/Bucket/Listing'
+import EntryView from './EntryView'
 import * as DP from 'model/DataProducts'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import parseSearch from 'utils/parseSearch'
@@ -73,6 +74,10 @@ const useStyles = M.makeStyles((t) => ({
   empty: {
     padding: t.spacing(4, 2),
   },
+  entry: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2),
+  },
   remedy: {
     marginTop: t.spacing(1),
   },
@@ -113,6 +118,10 @@ interface BrowserProps {
   path: string
   /** Navigate to another directory. */
   onNavigate: (path: string) => void
+  /** Open one file, by full logical key. */
+  onOpen: (logicalKey: string) => void
+  /** The file currently open in this member, if any. */
+  openKey?: string
 }
 
 /**
@@ -121,7 +130,7 @@ interface BrowserProps {
  * Suspends on `useContents`. The caller supplies the Suspense boundary, so this
  * component has no loading branch of its own -- one fewer never-rendered path.
  */
-function Browser({ product, member, path, onNavigate }: BrowserProps) {
+function Browser({ product, member, path, onNavigate, onOpen, openKey }: BrowserProps) {
   const classes = useStyles()
   const result = DP.useContents(product.id, member.logicalName)
 
@@ -163,23 +172,18 @@ function Browser({ product, member, path, onNavigate }: BrowserProps) {
 
   const CellComponent = React.useCallback(
     ({ item, className, children, ...props }: Listing.CellProps) => {
-      const target = item.type === 'dir' ? item.to : null
+      // Both kinds act now. Files used to be inert here, on the belief that a
+      // preview needed an S3 handle -- true of every *loader*, but the renderers
+      // (`components/Markdown`, `JsonDisplay`, `Perspective`) take strings and
+      // import no AWS anything, so `EntryView` reaches them without one.
+      const act = item.type === 'dir' ? () => onNavigate(item.to) : () => onOpen(item.to)
       return (
-        <div
-          className={className}
-          {...props}
-          // Only directories navigate. A file has nowhere to go yet -- preview
-          // needs a broker-issued URL, and every preview loader requires an S3
-          // handle today, so a file row that looked clickable would be a dead
-          // affordance ("anything styled as interactive must act").
-          onClick={target ? () => onNavigate(target) : undefined}
-          style={target ? { cursor: 'pointer' } : undefined}
-        >
+        <div className={className} {...props} onClick={act} style={{ cursor: 'pointer' }}>
           {children}
         </div>
       )
     },
-    [onNavigate],
+    [onNavigate, onOpen],
   )
 
   if (!result.ok) {
@@ -193,6 +197,11 @@ function Browser({ product, member, path, onNavigate }: BrowserProps) {
   }
 
   const refused = entries.filter((e) => e.readable === false).length
+
+  // Resolved against the listing rather than trusted from the URL, so a stale or
+  // hand-edited link opens nothing instead of rendering a file view for a key
+  // this revision does not contain.
+  const openEntry = openKey ? entries.find((e) => e.logicalKey === openKey) : undefined
 
   return (
     <div className={classes.root}>
@@ -229,6 +238,19 @@ function Browser({ product, member, path, onNavigate }: BrowserProps) {
           {member.packageHandle.name}@{member.packageHandle.topHash}
         </M.Typography>
       )}
+
+      {openEntry && (
+        // Below the listing rather than replacing it, so the surrounding files
+        // stay visible -- opening one file in a plate of 300 should not cost the
+        // reader their place. Its own Suspense boundary because fetching bytes is
+        // a separate broker call from listing, and a spinner over the whole tree
+        // would imply the listing was reloading too.
+        <div className={classes.entry}>
+          <React.Suspense fallback={<M.CircularProgress size={24} />}>
+            <EntryView product={product} member={member} entry={openEntry} />
+          </React.Suspense>
+        </div>
+      )}
     </div>
   )
 }
@@ -241,22 +263,27 @@ function Browser({ product, member, path, onNavigate }: BrowserProps) {
  * single flat listing would erase that -- the type docs say so explicitly, and it
  * is the reason the previous screen grouped its tables the way it did.
  *
- * The current directory lives in a query param rather than the path. A member's
- * logical name contains slashes (`alpha/home`), so `/contents/alpha/home/raw/`
- * cannot be split back into member and path without guessing. Query params are
- * unambiguous, and the directory stays linkable -- which is the property the tab
- * routes were chosen for in the first place.
+ * The current directory and open file live in query params rather than the path.
+ * A member's logical name contains slashes (`alpha/home`), so
+ * `/contents/alpha/home/raw/` cannot be split back into member and path without
+ * guessing. Query params are unambiguous, and both stay linkable -- which is the
+ * property the tab routes were chosen for in the first place. A reader can send
+ * someone a URL that opens one file of one member at one revision.
  */
 export default function ContentsTab({ product }: { product: DP.DataProduct }) {
   const location = useLocation()
   const history = useHistory()
-  const { dir, member: activeMember } = parseSearch(location.search, true)
+  const { dir, file, member: activeMember } = parseSearch(location.search, true)
 
-  const navigate = React.useCallback(
-    (member: string, path: string) => {
+  // `push` for both, so browser Back walks the reader out of a file and back up a
+  // directory. Replacing history would make Back leave the tab entirely, which is
+  // not what "I opened this by accident" wants.
+  const go = React.useCallback(
+    (member: string, path: string, openKey?: string) => {
       const params = new URLSearchParams()
       params.set('member', member)
       if (path) params.set('dir', path)
+      if (openKey) params.set('file', openKey)
       history.push(`${location.pathname}?${params}`)
     },
     [history, location.pathname],
@@ -278,7 +305,18 @@ export default function ContentsTab({ product }: { product: DP.DataProduct }) {
           product={product}
           member={member}
           path={activeMember === member.logicalName ? (dir ?? '') : ''}
-          onNavigate={(path) => navigate(member.logicalName, path)}
+          openKey={activeMember === member.logicalName ? file : undefined}
+          onNavigate={(path) => go(member.logicalName, path)}
+          onOpen={(logicalKey) =>
+            // The directory is preserved deliberately: opening a file must not
+            // also navigate the tree, or closing the file would land the reader
+            // somewhere they never were.
+            go(
+              member.logicalName,
+              activeMember === member.logicalName ? (dir ?? '') : '',
+              logicalKey,
+            )
+          }
         />
       ))}
     </>
@@ -308,7 +346,8 @@ const useSectionStyles = M.makeStyles((t) => ({
  * rules do not cover what is shown. Flattening these would imply one uniform
  * guarantee that does not exist.
  */
-function MemberSection({ product, member, path, onNavigate }: BrowserProps) {
+function MemberSection(props: BrowserProps) {
+  const { product, member } = props
   const classes = useSectionStyles()
   const provenance = provenanceFor(
     member.contentsSource,
@@ -330,7 +369,7 @@ function MemberSection({ product, member, path, onNavigate }: BrowserProps) {
         </M.Typography>
       )}
       <React.Suspense fallback={<M.CircularProgress size={24} />}>
-        <Browser product={product} member={member} path={path} onNavigate={onNavigate} />
+        <Browser {...props} />
       </React.Suspense>
     </section>
   )
