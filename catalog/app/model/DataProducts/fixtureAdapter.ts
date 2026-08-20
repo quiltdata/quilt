@@ -13,7 +13,7 @@
  * visible.
  */
 
-import type { DataProductAdapter } from './adapter'
+import type { BrowsingAdapter, ContentsResult } from './adapter'
 import * as fixtures from './fixtures'
 import type { AccessRequest } from './requests'
 import type { DataProduct } from './types'
@@ -31,7 +31,7 @@ import type { DataProduct } from './types'
  * exactly the kind of never-rendered branch that rots. Tests cover it explicitly
  * instead of relying on the fixture path to reveal it.
  */
-export const fixtureAdapter: DataProductAdapter = {
+export const fixtureAdapter: BrowsingAdapter = {
   async listProducts(): Promise<DataProduct[]> {
     return fixtures.ALL_PRODUCTS
   },
@@ -45,5 +45,44 @@ export const fixtureAdapter: DataProductAdapter = {
 
   async listRequests(productId: string): Promise<AccessRequest[]> {
     return fixtures.ALL_REQUESTS.filter((r) => r.dataProductId === productId)
+  },
+
+  /**
+   * Contents of one member.
+   *
+   * Derives its answer from the member's own declaration rather than from a
+   * lookup table of failures, so the fixture cannot drift out of agreement with
+   * the product it describes: a member marked `UNAVAILABLE` reports exactly the
+   * reason it states.
+   *
+   * Note the two different misses. A member whose `contentsSource` is `PACKAGE`
+   * but that has no fixture entry is a *fixture* bug, so it returns `EMPTY`
+   * rather than inventing a permission story -- consistent with `reasonFor`'s
+   * fallback, and for the same reason: guessing "denied" accuses somebody.
+   */
+  async listContents(
+    productId: string,
+    memberLogicalName: string,
+  ): Promise<ContentsResult> {
+    const product = fixtures.ALL_PRODUCTS.find((p) => p.id === productId)
+    const member = product?.members.find((m) => m.logicalName === memberLogicalName)
+
+    // An unknown product or member is not the same as an empty one, but neither
+    // is it a permission answer. NOT_FOUND is the honest reading: the thing we
+    // were asked to enumerate is not there.
+    if (!member) return { ok: false, reason: 'NOT_FOUND' }
+
+    if (member.contentsSource === 'UNAVAILABLE') {
+      return { ok: false, reason: member.unavailableReason ?? 'EMPTY' }
+    }
+
+    // A member the current user cannot read is a catalog-side denial. Reported as
+    // NOT_A_MEMBER rather than REGISTRY_UNREADABLE because `readable` is what the
+    // *catalog* told us; a storage-layer refusal is a different signal that no
+    // fixture can produce.
+    if (!member.readable) return { ok: false, reason: 'NOT_A_MEMBER' }
+
+    const entries = fixtures.PACKAGE_CONTENTS[`${productId}::${memberLogicalName}`]
+    return { ok: true, entries: entries ?? [] }
   },
 }

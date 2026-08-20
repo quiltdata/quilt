@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { supportsRequests } from './adapter'
+import { supportsBrowsing, supportsRequests } from './adapter'
 import type { DataProductAdapter, RequestingAdapter } from './adapter'
 import { fixtureAdapter } from './fixtureAdapter'
 import * as fixtures from './fixtures'
@@ -123,6 +123,114 @@ describe('model/DataProducts/adapter', () => {
         expect(r.status).toBe('SUBMITTED')
       }
       expect(supportsRequests(adapter)).toBe(false)
+    })
+  })
+
+  describe('supportsBrowsing', () => {
+    it('is true for the fixture adapter', () => {
+      // The opposite polarity to supportsRequests, and deliberately so: a fixture
+      // *can* honestly enumerate contents, because listing a manifest is a read
+      // it fully performs. Filing a request with a catalog is not.
+      expect(supportsBrowsing(fixtureAdapter)).toBe(true)
+    })
+
+    it('is false for an adapter that cannot enumerate contents', () => {
+      // Guards the predicate: written to always return true, the test above would
+      // still pass and the UI would call listContents on an adapter without it.
+      const { listContents: _omitted, ...browseless } = fixtureAdapter
+      expect(supportsBrowsing(browseless)).toBe(false)
+    })
+  })
+
+  describe('listContents', () => {
+    const PACKAGE_MEMBER = 'alpha/home'
+
+    it('enumerates a package-backed member from its manifest', async () => {
+      const result = await fixtureAdapter.listContents(
+        fixtures.PACKAGE_PRODUCT.id,
+        PACKAGE_MEMBER,
+      )
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      // The three real entries from the live raja-poc package, by name and size.
+      expect(result.entries).toEqual(
+        expect.arrayContaining([
+          { logicalKey: 'README.md', sizeBytes: 147, readable: true },
+          { logicalKey: 'data.csv', sizeBytes: 115, readable: true },
+          { logicalKey: 'results.json', sizeBytes: 107, readable: true },
+        ]),
+      )
+    })
+
+    it('returns flat logical keys, not a pre-grouped tree', async () => {
+      // The port's shape claim. A manifest is flat; grouping is the UI's job, and
+      // an adapter that pre-grouped would make the same data unavailable to a
+      // caller wanting the whole listing at once.
+      const result = await fixtureAdapter.listContents(
+        fixtures.PACKAGE_PRODUCT.id,
+        PACKAGE_MEMBER,
+      )
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.entries.map((e) => e.logicalKey)).toContain('raw/plate_10/A01.tiff')
+    })
+
+    it('carries a per-object denial through as data', async () => {
+      // The broker checks membership per object, so a fully visible listing can
+      // still contain a refused entry. Dropping such entries would misreport the
+      // package as smaller than it is; marking the whole member unreadable would
+      // hide the rest.
+      const result = await fixtureAdapter.listContents(
+        fixtures.PACKAGE_PRODUCT.id,
+        PACKAGE_MEMBER,
+      )
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      const restricted = result.entries.find((e) => e.readable === false)
+      expect(restricted?.logicalKey).toBe('derived/restricted.parquet')
+    })
+
+    it('reports NOT_FOUND rather than throwing, for a dangling product', async () => {
+      // 4 of raja-poc's 7 published products are in this state. An exception here
+      // would flatten it into the same failure as a permission denial, and the UI
+      // could only render both as an error.
+      const result = await fixtureAdapter.listContents(
+        fixtures.DANGLING_PACKAGE_PRODUCT.id,
+        'scale/1k',
+      )
+      expect(result).toEqual({ ok: false, reason: 'NOT_FOUND' })
+    })
+
+    it('reports a catalog-side denial as NOT_A_MEMBER', async () => {
+      // `readable: false` is what the *catalog* told us, so the remedy is a
+      // catalog grant. A storage refusal is a different signal and must not be
+      // reported with this reason.
+      const result = await fixtureAdapter.listContents(
+        fixtures.DATAZONE_PRODUCT.id,
+        'assay_outputs',
+      )
+      expect(result).toEqual({ ok: false, reason: 'NOT_A_MEMBER' })
+    })
+
+    it('reports NOT_FOUND for an unknown product or member', async () => {
+      expect(await fixtureAdapter.listContents('nope', 'nope')).toEqual({
+        ok: false,
+        reason: 'NOT_FOUND',
+      })
+      expect(
+        await fixtureAdapter.listContents(fixtures.PACKAGE_PRODUCT.id, 'nope'),
+      ).toEqual({ ok: false, reason: 'NOT_FOUND' })
+    })
+
+    it('does not invent a denial for a member with no fixture entries', async () => {
+      // A readable CATALOG member with nothing recorded is a fixture gap, and the
+      // honest answer is an empty listing. Defaulting to a permission story would
+      // accuse somebody on the strength of missing test data.
+      const result = await fixtureAdapter.listContents(
+        fixtures.DATAZONE_PRODUCT.id,
+        'cohort_manifest',
+      )
+      expect(result).toEqual({ ok: true, entries: [] })
     })
   })
 })

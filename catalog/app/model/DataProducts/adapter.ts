@@ -25,7 +25,8 @@
  *   Callers re-ask and get a new `fetchedAt`.
  */
 
-import type { DataProduct } from './types'
+import type { DataProduct, UnavailableReason } from './types'
+import type { ContentEntry } from './contents'
 import type { AccessRequest } from './requests'
 
 /**
@@ -92,4 +93,46 @@ export function supportsRequests(
   adapter: DataProductAdapter,
 ): adapter is RequestingAdapter {
   return typeof (adapter as RequestingAdapter).submitRequest === 'function'
+}
+
+/**
+ * An adapter that can enumerate a member's contents.
+ *
+ * **A separate call on purpose, not a field on `Member`.** In the one working
+ * implementation, listing a product does not yield its contents: the locator
+ * lives on the asset rather than the listing, so resolving it costs an extra
+ * read that is *authorized separately* -- a caller can list products and still
+ * be refused the handle (`research/raja-poc-reverse-engineered.md` §1.1, §2).
+ * Folding contents into `listProducts` would model that cost away and make the
+ * discoverable-but-unresolvable state unrepresentable.
+ *
+ * Split from `DataProductAdapter` for the same reason as `RequestingAdapter`: an
+ * adapter for a platform that cannot enumerate contents should not implement a
+ * method that throws. Whether a *given member* can be enumerated is a different
+ * question, carried by `Member.contentsSource`.
+ */
+export interface BrowsingAdapter extends DataProductAdapter {
+  /**
+   * Entries in one member, as a flat list of logical keys.
+   *
+   * Flat rather than pre-grouped because that is what a manifest is; grouping
+   * into directory levels is the UI's job (`model/DataProducts/contents`).
+   *
+   * Returns `UnavailableReason` rather than throwing when contents cannot be
+   * listed. Four of those reasons are ordinary states -- an empty package, a
+   * product whose target was never published, and two different permission
+   * layers -- and an exception would flatten them into one failure that the UI
+   * could only render as an error.
+   */
+  listContents(productId: string, memberLogicalName: string): Promise<ContentsResult>
+}
+
+export type ContentsResult =
+  | { ok: true; entries: ContentEntry[] }
+  | { ok: false; reason: UnavailableReason }
+
+export function supportsBrowsing(
+  adapter: DataProductAdapter,
+): adapter is BrowsingAdapter {
+  return typeof (adapter as BrowsingAdapter).listContents === 'function'
 }

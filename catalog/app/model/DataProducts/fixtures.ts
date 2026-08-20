@@ -18,6 +18,7 @@
 
 import type { Capabilities, DataProduct, Member } from './types'
 import type { Connection } from './connections'
+import type { ContentEntry } from './contents'
 import type { AccessRequest } from './requests'
 import { CAPABILITIES } from './capabilities'
 
@@ -351,6 +352,13 @@ export const UNITY_SHARE_PRODUCT: DataProduct = {
       locator: token('uc:share/acme_trials_outbound#trial_sites'),
       readable: false,
       contentsSource: 'UNAVAILABLE',
+      // NOT_FOUND, not a permission answer: shares reference objects by name, so
+      // a dropped or renamed upstream table leaves an entry pointing at nothing.
+      // The distinction matters here more than most places -- `readable: false`
+      // on this member is the catalog reporting it cannot resolve the target,
+      // and telling the reader to request access would send them to an admin who
+      // finds nothing to grant.
+      unavailableReason: 'NOT_FOUND',
     },
   ],
   grants: [
@@ -383,13 +391,204 @@ export const UNITY_SHARE_PRODUCT: DataProduct = {
   fetchedAt: FETCHED_AT,
 }
 
+/**
+ * DataZone wrapping a **Quilt package** -- modeled on a real deployment.
+ *
+ * Every awkward detail here was read out of AWS's `raja-poc` staging domain
+ * rather than invented; see `research/raja-poc-reverse-engineered.md`. It is the
+ * only fixture whose shape is corroborated by something running.
+ *
+ * What it exercises that nothing else does:
+ * - `contentsSource: 'PACKAGE'` -- contents come from a pinned manifest, so the
+ *   listing carries logical keys and per-entry sizes and is reproducible. The
+ *   other file-ish source (`DIRECT_S3`) has neither.
+ * - A `packageHandle` on the binding *and* on the member. Real: the locator is
+ *   the asset's `externalIdentifier`, a fully-pinned Quilt+ URI.
+ *
+ * The names mirror the real domain (`alpha/home` under project `raja-owner`) so
+ * anyone comparing this fixture to the live deployment sees the same shape.
+ */
+export const PACKAGE_PRODUCT: DataProduct = {
+  id: 'datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv',
+  name: 'alpha/home',
+  // The real asset's description is generated: "RAJA package asset for
+  // alpha/home". Kept close to that rather than written as marketing copy,
+  // because a generated description is what the UI will actually receive.
+  description: 'RAJA package asset for alpha/home. JWT-scoped read via the broker.',
+  labels: ['raja', 'package-backed'],
+  curationStatus: null,
+  owningEntity: { kind: 'PROJECT', label: 'raja-owner', derived: false },
+  members: [
+    {
+      // One member per package. The real implementation is one listing per
+      // package, with entries enumerated on demand by walking the manifest --
+      // so a member here is the package, not a file in it.
+      logicalName: 'alpha/home',
+      // FILESET rather than TABLE: package entries are files. No columns exist
+      // to expose, and `schema: null` is correct representation, not a gap.
+      kind: 'FILESET',
+      schema: null,
+      locator: token(
+        'quilt+s3://raja-poc-registry-712023778557-us-east-1#package=alpha/home@bee98d06',
+      ),
+      readable: true,
+      contentsSource: 'PACKAGE',
+      // Sizes come from the manifest, so a total is knowable without touching
+      // S3 -- unlike DIRECT_S3, where the catalog carries only a bucket ARN.
+      sizeBytes: 369,
+      packageHandle: {
+        registry: 'raja-poc-registry-712023778557-us-east-1',
+        name: 'alpha/home',
+        topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
+      },
+    },
+  ],
+  grants: [
+    {
+      principal: 'raja-owner',
+      principalType: 'PROJECT',
+      privilege: 'MANAGE',
+      nativePrivilege: 'OWNING_PROJECT',
+      origin: 'UNKNOWN',
+    },
+    {
+      // A real approved subscription in the live domain, whose subscribed
+      // principal is a *project* rather than a person -- which is why
+      // PrincipalType has a PROJECT arm at all.
+      principal: 'raja-guests',
+      principalType: 'PROJECT',
+      privilege: 'READ',
+      nativePrivilege: 'SUBSCRIPTION:APPROVED',
+      origin: 'UNKNOWN',
+    },
+  ],
+  // Nothing observed says otherwise, and the broker's grant is package-wide with
+  // per-object membership checks rather than a row filter. NOT_VISIBLE would
+  // imply we looked and were refused; UNKNOWN is the honest state.
+  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
+  binding: {
+    kind: 'datazone',
+    domainId: 'dzd-61b4n7ubllnqlj',
+    listingId: '46g5jnuhfnucyv',
+    entityId: 'brga0b06ujf3tz',
+    packageHandle: {
+      registry: 'raja-poc-registry-712023778557-us-east-1',
+      name: 'alpha/home',
+      topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
+    },
+  },
+  fetchedAt: FETCHED_AT,
+}
+
+/**
+ * A published product pointing at a package that does not resolve.
+ *
+ * **Not hypothetical.** Four of the seven products published in `raja-poc` are
+ * in this state: `scale/1k`, `scale/10k`, `scale/100k` and `scale/1m` are all
+ * discoverable and subscribable, and `Package.browse` on each fails `NoSuchKey`
+ * against the registry that deployment is configured with (research §5).
+ *
+ * Exists so `NOT_FOUND` is rendered by something rather than being a branch
+ * nobody has seen. Note the shape it forces: the product is complete and legible
+ * -- name, description, owner, grants -- and only its contents are missing. A UI
+ * that treated unresolvable contents as a broken product would hide information
+ * the reader can still use.
+ */
+export const DANGLING_PACKAGE_PRODUCT: DataProduct = {
+  id: 'datazone:dzd-61b4n7ubllnqlj/5i2yhfmdd9nbqf',
+  name: 'scale/1k',
+  description: 'RAJA package asset for scale/1k. Scale-test fixture.',
+  labels: ['raja', 'scale-test'],
+  curationStatus: null,
+  owningEntity: { kind: 'PROJECT', label: 'raja-owner', derived: false },
+  members: [
+    {
+      logicalName: 'scale/1k',
+      kind: 'FILESET',
+      schema: null,
+      locator: token(
+        'quilt+s3://raja-poc-registry-712023778557-us-east-1#package=scale/1k@0000000',
+      ),
+      // `readable: true` is deliberate and is the point of this fixture. The
+      // catalog authorized us; the package is simply not where it says. Setting
+      // this false would conflate a publishing fault with a permission denial --
+      // exactly the collapse the four reasons exist to prevent.
+      readable: true,
+      contentsSource: 'UNAVAILABLE',
+      unavailableReason: 'NOT_FOUND',
+      packageHandle: {
+        registry: 'raja-poc-registry-712023778557-us-east-1',
+        name: 'scale/1k',
+        topHash: '0000000000000000000000000000000000000000000000000000000000000000',
+      },
+    },
+  ],
+  grants: [
+    {
+      principal: 'raja-owner',
+      principalType: 'PROJECT',
+      privilege: 'MANAGE',
+      nativePrivilege: 'OWNING_PROJECT',
+      origin: 'UNKNOWN',
+    },
+  ],
+  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
+  binding: {
+    kind: 'datazone',
+    domainId: 'dzd-61b4n7ubllnqlj',
+    listingId: '5i2yhfmdd9nbqf',
+    packageHandle: {
+      registry: 'raja-poc-registry-712023778557-us-east-1',
+      name: 'scale/1k',
+      topHash: '0000000000000000000000000000000000000000000000000000000000000000',
+    },
+  },
+  fetchedAt: FETCHED_AT,
+}
+
 export const ALL_PRODUCTS: DataProduct[] = [
   DATAZONE_PRODUCT,
+  PACKAGE_PRODUCT,
+  DANGLING_PACKAGE_PRODUCT,
   UNITY_PRODUCT,
   UNITY_SHARE_PRODUCT,
   SNOWFLAKE_PRODUCT,
   DISCOVERY_ONLY_PRODUCT,
 ]
+
+/**
+ * Contents per member, keyed `productId::memberLogicalName`.
+ *
+ * Separate from the products because that is how it really arrives: the locator
+ * is not in a listing, so enumerating contents is a second call authorized
+ * separately (research §1.1, §2). Hanging entries off `Member` would model that
+ * cost away.
+ *
+ * Mirrors the real `alpha/home` manifest -- three files, those exact sizes --
+ * plus nesting the real package lacks, because a browser that has only rendered
+ * a flat list has never exercised drilling in.
+ */
+export const PACKAGE_CONTENTS: Record<string, ContentEntry[]> = {
+  [`datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv::alpha/home`]: [
+    // The three real entries, with their real sizes.
+    { logicalKey: 'README.md', sizeBytes: 147, readable: true },
+    { logicalKey: 'data.csv', sizeBytes: 115, readable: true },
+    { logicalKey: 'results.json', sizeBytes: 107, readable: true },
+    // Nesting, so drill-down is exercised. Numeric suffixes out of order on
+    // purpose: plate_2 must sort before plate_10, which bytewise ordering gets
+    // wrong.
+    { logicalKey: 'raw/plate_2/A01.tiff', sizeBytes: 2_048, readable: true },
+    { logicalKey: 'raw/plate_10/A01.tiff', sizeBytes: 4_096, readable: true },
+    { logicalKey: 'raw/plate_10/A02.tiff', sizeBytes: 4_096, readable: true },
+    // One unsized entry, which forces its folder's total to be withheld rather
+    // than shown as a partial sum.
+    { logicalKey: 'raw/plate_10/A03.tiff', readable: true },
+    // Present in the manifest but refused by the broker. Real: membership is
+    // checked per object, so a listing can be fully visible while one object in
+    // it is denied (research §3.1).
+    { logicalKey: 'derived/restricted.parquet', sizeBytes: 8_192, readable: false },
+  ],
+}
 
 /** Capabilities that go with a fixture, so UI wiring stays consistent. */
 export function capabilitiesFor(product: DataProduct): Capabilities {

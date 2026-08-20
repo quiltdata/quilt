@@ -21,8 +21,13 @@ export * from './requests'
 export * from './connections'
 export * from './contents'
 export * from './unavailable'
-export type { DataProductAdapter, RequestingAdapter } from './adapter'
-export { supportsRequests } from './adapter'
+export type {
+  BrowsingAdapter,
+  ContentsResult,
+  DataProductAdapter,
+  RequestingAdapter,
+} from './adapter'
+export { supportsBrowsing, supportsRequests } from './adapter'
 export { useAdapter, useProduct, useProducts, useRequests } from './hooks'
 export {
   CAPABILITIES,

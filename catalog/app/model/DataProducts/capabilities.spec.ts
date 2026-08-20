@@ -170,9 +170,41 @@ describe('model/DataProducts/fixtures', () => {
     // member must declare where its contents come from. Not defaulted on
     // purpose -- guessing means either hiding real contents or implying
     // governance that is not there.
+    //
+    // The list is spelled out rather than derived from the type because a type
+    // cannot be enumerated at runtime, and that is the point: adding a source
+    // breaks this test, which forces a decision about whether the new source
+    // belongs in fixtures at all. It broke once already, for `PACKAGE`.
+    const SOURCES = ['CATALOG', 'DIRECT_S3', 'PACKAGE', 'UNAVAILABLE']
     fixtures.ALL_PRODUCTS.flatMap((p) => p.members).forEach((m) => {
-      expect(['CATALOG', 'DIRECT_S3', 'UNAVAILABLE']).toContain(m.contentsSource)
+      expect(SOURCES).toContain(m.contentsSource)
     })
+  })
+
+  it('states a reason whenever contents are unavailable', () => {
+    // `UNAVAILABLE` with no reason is renderable -- `reasonFor` falls back to
+    // EMPTY -- but it is never what a fixture *means*, and the fallback exists
+    // for adapters we do not control rather than for our own data. A fixture
+    // that omits the reason silently claims "no files" about something
+    // restricted or broken.
+    fixtures.ALL_PRODUCTS.flatMap((p) => p.members)
+      .filter((m) => m.contentsSource === 'UNAVAILABLE')
+      .forEach((m) => {
+        expect(m.unavailableReason).toBeDefined()
+      })
+  })
+
+  it('pins every package-backed member to an immutable revision', () => {
+    // The reproducibility guarantee, asserted rather than assumed. The broker
+    // accepts an unpinned reference and silently resolves it to latest, so a
+    // fixture without a topHash would model a moving target as a fixed one.
+    // 64 hex chars: a real Quilt top hash, not a placeholder like "latest".
+    fixtures.ALL_PRODUCTS.flatMap((p) => p.members)
+      .filter((m) => m.contentsSource === 'PACKAGE')
+      .forEach((m) => {
+        expect(m.packageHandle?.topHash).toMatch(/^[0-9a-f]{64}$/)
+        expect(m.packageHandle?.registry).toBeTruthy()
+      })
   })
 
   it('reads DataZone file contents around the catalog, not through it', () => {
