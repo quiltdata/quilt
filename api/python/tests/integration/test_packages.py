@@ -1,5 +1,6 @@
 """Integration tests for Quilt Packages."""
 
+import hashlib
 import io
 import locale
 import math
@@ -377,6 +378,40 @@ class PackageTest(QuiltTestCase):
 
         with pytest.raises(QuiltException, match='Found zero matches'):
             Package.browse(pkg_name, top_hash='123456', registry=registry)
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_rejects_manifest_top_hash_mismatch(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+        expected_top_hash = '0' * 64
+        actual_top_hash = self.default_test_top_hash
+
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            pkg_name,
+            top_hash=expected_top_hash,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        with pytest.raises(PackageException) as exc_info:
+            Package.browse(pkg_name, registry=registry)
+
+        assert expected_top_hash in str(exc_info.value)
+        assert actual_top_hash in str(exc_info.value)
+
+        cache_dir = quilt3.packages.CACHE_PATH / 'manifest'
+        assert not any(cache_dir.iterdir())
+
+        cache_path = (
+            cache_dir / hashlib.sha256(str(pkg_registry.manifest_pk(pkg_name, expected_top_hash)).encode()).hexdigest()
+        )
+        cache_path.write_bytes(REMOTE_MANIFEST.read_bytes())
+
+        with pytest.raises(PackageException):
+            Package.browse(pkg_name, registry=registry, top_hash=expected_top_hash)
+
+        assert not cache_path.exists()
 
     def test_install_restrictions(self):
         """Verify that install can only operate remote -> local."""
