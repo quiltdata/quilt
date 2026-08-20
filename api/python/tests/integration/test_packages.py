@@ -58,7 +58,7 @@ class PackageTest(QuiltTestCase):
     S3PackageRegistryDefault = S3PackageRegistryV1
     LocalPackageRegistryDefault = LocalPackageRegistryV1
 
-    default_test_top_hash = 'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'
+    default_test_top_hash = '4cf8b52e3647c21207c1f60394f394f7dbf1a04a89d94aeb6c28a9bf09688f2b'
 
     def setUp(self):
         super().setUp()
@@ -336,7 +336,7 @@ class PackageTest(QuiltTestCase):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
         pkg_name = 'Quilt/test'
 
-        top_hash = 'abcdefgh' * 8
+        top_hash = self.default_test_top_hash
 
         # Make the first request.
         self.setup_s3_stubber_pkg_install(
@@ -362,7 +362,7 @@ class PackageTest(QuiltTestCase):
 
         # Make a request with a short hash.
         self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
-        pkg3 = Package.browse(pkg_name, top_hash='abcdef', registry=registry)
+        pkg3 = Package.browse(pkg_name, top_hash=top_hash[:6], registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a bad short hash.

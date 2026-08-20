@@ -631,25 +631,35 @@ class Package:
             copy_file(pkg_manifest, PhysicalKey.from_path(dst), message="Downloading manifest")
 
         with contextlib.ExitStack() as stack:
+            cache_path = None
             if pkg_manifest.is_local():
-                local_pkg_manifest = pkg_manifest.path
+                local_pkg_manifest = pathlib.Path(pkg_manifest.path)
             elif util.IS_CACHE_ENABLED:
-                local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
-                if not local_pkg_manifest.exists():
-                    # Copy to a temporary file first, to make sure we don't cache a truncated file
-                    # if the download gets interrupted.
-                    tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                    download_manifest(tmp_path)
-                    tmp_path.rename(local_pkg_manifest)
+                cache_path = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
+                local_pkg_manifest = cache_path
+                if not cache_path.exists():
+                    # Copy to a temporary file first so the manifest can be validated before it is cached.
+                    local_pkg_manifest = cache_path.with_suffix('.tmp')
+                    stack.callback(local_pkg_manifest.unlink, missing_ok=True)
+                    download_manifest(local_pkg_manifest)
             else:
                 # This tmp file has to closed before downloading, because on Windows it can't be
                 # opened for concurrent access.
                 with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                    local_pkg_manifest = tmp_file.name
+                    local_pkg_manifest = pathlib.Path(tmp_file.name)
                     stack.callback(os.unlink, local_pkg_manifest)
                 download_manifest(local_pkg_manifest)
 
             pkg = cls._from_path(local_pkg_manifest)
+            actual_top_hash = pkg.top_hash
+            if actual_top_hash != top_hash:
+                if cache_path == local_pkg_manifest:
+                    cache_path.unlink()
+                raise PackageException(
+                    f"Manifest top hash mismatch: expected {top_hash!r}, got {actual_top_hash!r}"
+                )
+            if cache_path is not None and local_pkg_manifest != cache_path:
+                local_pkg_manifest.rename(cache_path)
             pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
             return pkg
 
