@@ -684,6 +684,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                     roles={roles}
                     defaultRole={defaultRole}
                     nonAssignable={user.isRoleAssignmentDisabled}
+                    nonAssignableReason={user.isService ? 'service' : 'sso'}
                     {...props}
                   />
                 )}

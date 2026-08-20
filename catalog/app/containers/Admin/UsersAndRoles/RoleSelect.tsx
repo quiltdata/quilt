@@ -61,6 +61,8 @@ interface RoleSelectProps extends RF.FieldRenderProps<Value> {
   roles: readonly Role[]
   defaultRole: Role | null
   nonAssignable?: boolean
+  // Which authority owns the roles, so the explanatory copy doesn't cite the wrong one.
+  nonAssignableReason?: 'sso' | 'service'
 }
 
 export function RoleSelect({
@@ -69,6 +71,7 @@ export function RoleSelect({
   input: { value, onChange },
   meta,
   nonAssignable,
+  nonAssignableReason = 'sso',
 }: RoleSelectProps) {
   const classes = useRoleSelectStyles({ roles: roles.length })
 
@@ -125,10 +128,14 @@ export function RoleSelect({
       ) : (
         <M.Typography variant="body2" color="textSecondary">
           {nonAssignable ? (
-            <>
-              Roles are assigned via role mapping and may be changed in config.
-              {/* <a href="docs/TODO">Learn more</a>.*/}
-            </>
+            nonAssignableReason === 'service' ? (
+              'Roles for this service user are managed by the stack.'
+            ) : (
+              <>
+                Roles are assigned via role mapping and may be changed in config.
+                {/* <a href="docs/TODO">Learn more</a>.*/}
+              </>
+            )
           ) : (
             'User can assume any of the assigned roles.'
           )}
