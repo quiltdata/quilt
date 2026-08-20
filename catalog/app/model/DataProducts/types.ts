@@ -22,9 +22,55 @@
  *   platform. Clause 5.3a.
  */
 
-/** Which external catalog a product came from, and how to address it there. */
+/**
+ * How to address a Quilt package, pinned to an immutable revision.
+ *
+ * Modeled on what a real deployment does rather than on what we'd design: AWS's
+ * `raja-poc` publishes DataZone assets of a custom type whose `externalIdentifier`
+ * is exactly this, serialized as a Quilt+ URI
+ * (`quilt+s3://{registry}#package={name}@{topHash}`). Verified first-hand against
+ * the live staging domain -- see
+ * `wb/dp-ui-slice-1/research/raja-poc-reverse-engineered.md` §1.
+ *
+ * `topHash` is not optional, and that is the point. The broker accepts an
+ * *unpinned* reference and silently resolves it to whatever is current, so
+ * reproducibility is a property of how the caller addressed the package rather
+ * than of the system (§3.2). Making the field mandatory means the UI cannot
+ * accidentally render a moving target as a fixed one.
+ */
+export interface PackageHandle {
+  /** Registry bucket. Not derivable from the package name -- it is deployment config. */
+  registry: string
+  /** `namespace/name`. */
+  name: string
+  /** Immutable revision. Mandatory: see above. */
+  topHash: string
+}
+
+/**
+ * Which external catalog a product came from, and how to address it there.
+ *
+ * The `packageHandle` on the DataZone arm is optional because it is a property
+ * of the *asset type*, not of DataZone: `raja-poc` defines a custom
+ * `QuiltPackage` type carrying a package URI, while a native DataZone S3 asset
+ * carries only `{"bucketArn": "..."}` with no package concept at all. Both are
+ * DataZone products. Absent means "this DataZone product is not package-backed",
+ * not "we failed to read it".
+ */
 export type PlatformBinding =
-  | { kind: 'datazone'; domainId: string; listingId: string; entityId?: string }
+  | {
+      kind: 'datazone'
+      domainId: string
+      listingId: string
+      entityId?: string
+      /**
+       * Present when the product is package-backed. Read from the asset's
+       * `externalIdentifier`, which is an asset-level field rather than a
+       * metadata form -- so it is **not** in a listing response and costs a
+       * separate, separately-authorized read (§1.1, §2).
+       */
+      packageHandle?: PackageHandle
+    }
   | { kind: 'unity-schema'; metastore: string; catalog: string; schema: string }
   | { kind: 'unity-share'; metastore: string; shareName: string }
   | { kind: 'snowflake-listing'; listingId: string }
@@ -73,10 +119,52 @@ export interface MemberLocator {
  *   file contents there. The catalog's governance does **not** cover what we
  *   render (contract §7.1).
  *
+ * - `PACKAGE` -- the member is a Quilt package, enumerated from its manifest.
+ *   Distinct from `DIRECT_S3` even though both end at S3 objects, because the
+ *   manifest is a *pinned* index: it carries logical keys, sizes, and an
+ *   immutable revision, so the listing is reproducible rather than a
+ *   point-in-time bucket scan. It is also the enforcement authority -- the
+ *   broker answers "may this object be read" by checking manifest membership.
+ *   Modeled on a real deployment, not speculation: see
+ *   `wb/dp-ui-slice-1/research/raja-poc-reverse-engineered.md` §3, §4.
+ * - `UNAVAILABLE` -- contents cannot be listed. Pair with `UnavailableReason`,
+ *   which distinguishes four causes fixed by four different people.
+ *
  * A UI must not flatten these into one undifferentiated list: doing so implies
  * a uniform governance guarantee that does not exist.
  */
-export type ContentsSource = 'CATALOG' | 'DIRECT_S3' | 'UNAVAILABLE'
+export type ContentsSource = 'CATALOG' | 'DIRECT_S3' | 'PACKAGE' | 'UNAVAILABLE'
+
+/**
+ * Why a member's contents cannot be listed. Only meaningful when
+ * `contentsSource` is `UNAVAILABLE`.
+ *
+ * Four reasons, not one, because they are **fixed by different people** and a
+ * single "no files" message sends users to the wrong one. All four are live in
+ * `raja-poc` today -- 4 of its 7 published products are in one of these states
+ * (research §5, §5a):
+ *
+ * - `EMPTY` -- resolvable and genuinely contains nothing. Not a failure.
+ * - `NOT_FOUND` -- the locator resolves to nothing in the registry it names.
+ *   A publishing bug, or a product pointing at a registry that was never
+ *   populated. Nobody can grant their way out of this.
+ * - `NOT_A_MEMBER` -- the caller lacks *catalog-side* authorization. Verified as
+ *   distinct: the same admin credential got AccessDenied on one DataZone project
+ *   and success on another, so this is project membership, not IAM (§2). Fixed by
+ *   a catalog/project admin.
+ * - `REGISTRY_UNREADABLE` -- the caller is authorized in the catalog but cannot
+ *   read the underlying storage; typically a cross-account bucket policy. Fixed
+ *   by a storage/cloud admin.
+ *
+ * The last two are both "you lack access" and are the pair most tempting to
+ * merge. Do not: one is a catalog grant, the other a bucket policy, and knowing
+ * which determines who to ask.
+ */
+export type UnavailableReason =
+  | 'EMPTY'
+  | 'NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'REGISTRY_UNREADABLE'
 
 export interface Member {
   logicalName: string
@@ -107,6 +195,25 @@ export interface Member {
    * implying governance that is not there.
    */
   contentsSource: ContentsSource
+  /**
+   * Why contents are unlistable. Required when `contentsSource` is
+   * `UNAVAILABLE` and meaningless otherwise -- see `UnavailableReason` for why
+   * one reason is not enough.
+   *
+   * Not folded into `contentsSource` as extra variants because the two answer
+   * different questions: source is "whose rules govern what you see", reason is
+   * "who can fix this". A member can be `PACKAGE`-sourced and still unavailable.
+   */
+  unavailableReason?: UnavailableReason
+  /**
+   * The package this member's contents live in, when `contentsSource` is
+   * `PACKAGE`.
+   *
+   * Per-member rather than per-product on purpose: a product may wrap several
+   * packages, or mix a package member with catalog-governed tables. Pinned, so a
+   * rendered listing names the exact revision it came from.
+   */
+  packageHandle?: PackageHandle
 }
 
 /** Normalized privilege. `native` is mandatory alongside -- see clause 4.1. */

@@ -19,6 +19,8 @@
 export * from './types'
 export * from './requests'
 export * from './connections'
+export * from './contents'
+export * from './unavailable'
 export type { DataProductAdapter, RequestingAdapter } from './adapter'
 export { supportsRequests } from './adapter'
 export { useAdapter, useProduct, useProducts, useRequests } from './hooks'
