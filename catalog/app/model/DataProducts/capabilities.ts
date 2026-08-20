@@ -159,9 +159,20 @@ export const INTERSECTION: Capabilities = {
 /**
  * Capabilities the UI should consult, given a render mode.
  *
- * `intersection` deliberately returns the lowest common denominator regardless
- * of platform, so intersection-mode rendering cannot accidentally depend on a
- * single platform's extras. `capability-aware` returns the real ones.
+ * **The rejected option, kept as documentation.** The 2026-08-17 direction was
+ * "ship the intersection surface, build capability-aware underneath, one flag
+ * between them". The 2026-08-18 decision replaced that with capability-aware
+ * only, for a reason the build surfaced: intersection mode was never wired, and
+ * nothing missed it. Every capability read site in the containers calls
+ * `CAPABILITIES[binding.kind]` directly; this function and `INTERSECTION` have no
+ * production consumer.
+ *
+ * Retained rather than deleted so the reasoning survives for whoever later asks
+ * why the UI is not intersection-rendered — and because the specs that exercise
+ * it are the same ones that prove `mayBranchOn` works. **Do not wire it up
+ * without revisiting that decision**; a second rendering path no screen has ever
+ * rendered is the "permanently-off dead code that no longer works when you need
+ * it" failure the original direction warned about.
  *
  * Note what this function does *not* do: it does not filter or reshape product
  * data. Adapters have already fetched everything. This only decides what gets
