@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin Users table: the Enabled toggle, email editor and Delete action are no longer offered for a service user (the stack-managed `_canary` account), since the registry refuses to modify one, and its roles dialog no longer explains itself by citing an SSO role mapping the stack may not have ([#5183](https://github.com/quiltdata/quilt/pull/5183))
 - [Added] Admin Settings: a Support Diagnostics section that collects a diagnostics bundle from the stack and downloads it, for admins with no AWS access ([#5168](https://github.com/quiltdata/quilt/pull/5168))
 - [Fixed] Package revise dialog: when a package's existing contents fail to load — including a partial response, which previously resolved as success — pushing a revision over it is now blocked with the reason shown, instead of silently replacing the latest revision with only the newly added files ([#5165](https://github.com/quiltdata/quilt/pull/5165))
 - [Changed] Object delete writes an S3 delete marker instead of destroying a specific object version, so prior versions are retained and stay available in the object's version history. This applies to all three delete entrypoints: the file viewer, the directory-listing row action, and bulk "Delete selected". Permanently erasing a version now requires an admin-attached custom policy granting `s3:DeleteObjectVersion` ([#5161](https://github.com/quiltdata/quilt/pull/5161))
