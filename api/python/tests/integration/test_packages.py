@@ -1101,35 +1101,35 @@ class PackageTest(QuiltTestCase):
 
     def test_local_delete_package_revision(self):
         pkg_name = 'Quilt/Test'
-        top_hash1 = 'top_hash1'
-        top_hash2 = 'top_hash2'
-        top_hash3 = 'top_hash3'
-        top_hashes = (top_hash1, top_hash2, top_hash3)
+        logical_key1 = 'revision1'
+        logical_key2 = 'revision2'
+        logical_key3 = 'revision3'
+        logical_keys = (logical_key1, logical_key2, logical_key3)
+        top_hashes = []
 
-        for i, top_hash in enumerate(top_hashes):
-            with (
-                patch('quilt3.Package.top_hash', top_hash),
-                patch('time.time', return_value=i),
-            ):
-                Path(top_hash).write_text(top_hash)
-                Package().set(top_hash, top_hash).build(pkg_name)
+        for i, logical_key in enumerate(logical_keys):
+            with patch('time.time', return_value=i):
+                Path(logical_key).write_text(logical_key)
+                top_hashes.append(Package().set(logical_key, logical_key).build(pkg_name))
+
+        top_hash1, top_hash2, top_hash3 = top_hashes
 
         # All is set up correctly.
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == set(top_hashes)
-        assert Package.browse(pkg_name)[top_hash3].get_as_string() == top_hash3
+        assert Package.browse(pkg_name)[logical_key3].get_as_string() == logical_key3
 
         # Remove latest revision, latest now points to the previous one.
         quilt3.delete_package(pkg_name, top_hash=top_hash3)
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1, top_hash2}
-        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
+        assert Package.browse(pkg_name)[logical_key2].get_as_string() == logical_key2
 
         # Remove non-latest revision, latest stays the same.
         quilt3.delete_package(pkg_name, top_hash=top_hash1)
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash2}
-        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
+        assert Package.browse(pkg_name)[logical_key2].get_as_string() == logical_key2
 
         # Remove the last revision, package is not listed anymore.
         quilt3.delete_package(pkg_name, top_hash=top_hash2)
