@@ -18,7 +18,8 @@
 
 import * as Cache from 'utils/ResourceCache'
 
-import type { DataProductAdapter } from './adapter'
+import type { ContentsResult, DataProductAdapter } from './adapter'
+import { supportsBrowsing } from './adapter'
 import { fixtureAdapter } from './fixtureAdapter'
 import type { AccessRequest } from './requests'
 import type { DataProduct } from './types'
@@ -72,6 +73,26 @@ const RequestsResource = Cache.createResource({
   key: ({ productId }: { productId: string }) => productId,
 })
 
+// Keyed on the pair, because contents belong to a member and a product may have
+// several. The `::` separator is safe: a product id is synthesized from the
+// binding and a member's logical name comes from the platform, and neither
+// contains it -- but even a collision would only over-share within one product,
+// never across products, because the product id comes first.
+const ContentsResource = Cache.createResource({
+  name: 'DataProducts.contents',
+  fetch: ({ productId, member }: { productId: string; member: string }) =>
+    // A non-browsing adapter is not an error state: some platforms cannot
+    // enumerate contents at all. NOT_FOUND is the honest answer -- we have no way
+    // to look, so we did not find anything -- and it keeps the UI on one code
+    // path rather than branching on adapter shape at every call site.
+    supportsBrowsing(adapter)
+      ? adapter.listContents(productId, member)
+      : Promise.resolve<ContentsResult>({ ok: false, reason: 'NOT_FOUND' }),
+  // @ts-expect-error
+  key: ({ productId, member }: { productId: string; member: string }) =>
+    `${productId}::${member}`,
+})
+
 /**
  * Every product this user can see, readable or not.
  *
@@ -100,6 +121,21 @@ export function useRequests(productId: string): AccessRequest[] {
     { productId },
     { suspend: true },
   ) as AccessRequest[]
+}
+
+/**
+ * Entries in one member, or the reason there are none.
+ *
+ * Suspends like the others. Note it does **not** take the member object -- only
+ * its logical name -- so the cache key stays a string pair and two renders of the
+ * same member share one fetch rather than keying on object identity.
+ */
+export function useContents(productId: string, member: string): ContentsResult {
+  return Cache.useData(
+    ContentsResource,
+    { productId, member },
+    { suspend: true },
+  ) as ContentsResult
 }
 
 /**

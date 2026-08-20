@@ -28,7 +28,7 @@ export type {
   RequestingAdapter,
 } from './adapter'
 export { supportsBrowsing, supportsRequests } from './adapter'
-export { useAdapter, useProduct, useProducts, useRequests } from './hooks'
+export { useAdapter, useContents, useProduct, useProducts, useRequests } from './hooks'
 export {
   CAPABILITIES,
   INTERSECTION,

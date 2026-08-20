@@ -29,6 +29,19 @@ vi.mock('components/Layout', () => ({
 }))
 vi.mock('utils/MetaTitle', () => ({ default: () => null }))
 
+// The Contents tab reuses `containers/Bucket/Listing`, which imports
+// `BucketPreferences/Provider`, which reads `constants/config` at *module load* --
+// so without this the suite fails to import at all with "window
+// .QUILT_CATALOG_CONFIG must be defined". Same stub `QuiltSummarize.spec` uses for
+// the same reason.
+//
+// Note the Provider is only ever imported, never rendered here: its context has a
+// default (`Result.Init()`), and `Listing` renders row actions under a
+// `Result.match` whose `_` arm is empty. So the grid renders without bucket
+// preferences and simply shows no per-row actions -- which is correct for a data
+// product, whose actions are download-via-broker rather than S3.
+vi.mock('constants/config', () => ({ default: {} }))
+
 // Stub *only* the async boundary. The port is a suspending network read, which
 // would make every assertion below await a microtask and every negative
 // assertion need a positive await first to avoid passing against an unrendered
@@ -48,6 +61,28 @@ vi.mock('model/DataProducts', async () => {
       actual.fixtures.ALL_PRODUCTS.find((p) => p.id === id) ?? null,
     useRequests: (productId: string) =>
       actual.fixtures.ALL_REQUESTS.filter((r) => r.dataProductId === productId),
+    // Mirrors fixtureAdapter.listContents rather than reaching for the adapter,
+    // for the same reason as the hooks above: the real one goes through
+    // ResourceCache, which needs a provider these tests do not mount (it
+    // destructures `access` off a context and fails with an opaque
+    // "Cannot destructure property 'access' of 'use(...)'").
+    //
+    // The branch logic is duplicated deliberately and kept small: the adapter's
+    // own version is covered directly in model/DataProducts/adapter.spec.ts, so
+    // this copy only has to be faithful enough to drive the four rendering paths.
+    useContents: (productId: string, memberName: string): DP.ContentsResult => {
+      const product = actual.fixtures.ALL_PRODUCTS.find((p) => p.id === productId)
+      const member = product?.members.find((m) => m.logicalName === memberName)
+      if (!member) return { ok: false, reason: 'NOT_FOUND' }
+      if (member.contentsSource === 'UNAVAILABLE') {
+        return { ok: false, reason: member.unavailableReason ?? 'EMPTY' }
+      }
+      if (!member.readable) return { ok: false, reason: 'NOT_A_MEMBER' }
+      return {
+        ok: true,
+        entries: actual.fixtures.PACKAGE_CONTENTS[`${productId}::${memberName}`] ?? [],
+      }
+    },
   }
 })
 
@@ -128,14 +163,88 @@ describe('containers/DataProducts', () => {
       // S3 asset gives only a bucketArn, so Quilt lists it directly and the
       // catalog's row/column rules do not cover what is shown. One
       // undifferentiated list would imply a guarantee that does not exist.
+      //
+      // The disclosure moved when Contents became a browser: it used to be a
+      // "Files listed from S3" section heading grouping members by source, and is
+      // now a per-member provenance line. Grouping by member rather than by source
+      // is what lets each member have its own file tree. What must not change is
+      // that the two guarantees read differently, which is what this asserts.
       const { getByText } = mount(
         dataProductContents.url('datazone:dzd_4xample/lst_9kq2v'),
       )
       expect(getByText(/Enumerated and governed by AWS DataZone/)).toBeTruthy()
-      expect(getByText('Files listed from S3')).toBeTruthy()
+      expect(getByText(/AWS DataZone identifies these by location only/)).toBeTruthy()
       expect(
         getByText(/row and column rules do not\s+apply to this listing/),
       ).toBeTruthy()
+    })
+
+    it('shows a package-backed product’s actual files, not just its members', () => {
+      // The whole point of the rebuild. The previous screen listed *that* members
+      // exist -- name, kind, schema, access -- which told a reader nothing about
+      // what is inside. These are the three real entries from the live raja-poc
+      // alpha/home package.
+      const { getByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      expect(getByText('README.md')).toBeTruthy()
+      expect(getByText('data.csv')).toBeTruthy()
+      expect(getByText('results.json')).toBeTruthy()
+      // And the directories, which only appear if prefix grouping ran.
+      expect(getByText('raw')).toBeTruthy()
+      expect(getByText('derived')).toBeTruthy()
+    })
+
+    it('names the revision a package listing came from', () => {
+      // Reproducibility is the property that distinguishes a manifest listing
+      // from a bucket listing, and it is worth nothing if the reader cannot see
+      // which revision they are looking at.
+      const { getByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      expect(
+        getByText(
+          /alpha\/home@bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84/,
+        ),
+      ).toBeTruthy()
+    })
+
+    it('reports a per-object denial without hiding the rest of the listing', () => {
+      // The broker checks membership per object, so a fully visible listing can
+      // contain a refused entry. Dropping it would understate the package;
+      // marking the whole member unreadable would hide everything else.
+      const { getByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      // Stated in words rather than by dimming a row: state is never signalled by
+      // color alone (DESIGN.md).
+      expect(getByText(/1 not readable by you/)).toBeTruthy()
+    })
+
+    it('distinguishes a dangling product from an empty or restricted one', () => {
+      // 4 of raja-poc's 7 published products are in this state: published,
+      // discoverable, resolving to nothing. Telling the reader to request access
+      // would send them to an admin who finds nothing to grant.
+      const { getByText, queryByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/5i2yhfmdd9nbqf'),
+      )
+      expect(getByText('Contents not found')).toBeTruthy()
+      expect(getByText(/Ask whoever publishes this product/)).toBeTruthy()
+      // The distinction that matters: not phrased as a permission problem.
+      expect(queryByText(/request access/i)).toBeNull()
+      expect(queryByText(/catalog admin/i)).toBeNull()
+    })
+
+    it('routes the two access denials to different people', () => {
+      // Both are "you lack access", at different layers -- a catalog grant versus
+      // a bucket policy -- and a reader told the wrong one wastes a round trip
+      // discovering the message was wrong.
+      const { getByText } = mount(
+        dataProductContents.url('datazone:dzd_4xample/lst_9kq2v'),
+      )
+      // assay_outputs is readable: false, which is a catalog-side denial.
+      expect(getByText('Contents not visible to you')).toBeTruthy()
+      expect(getByText(/Ask a catalog admin/)).toBeTruthy()
     })
 
     it('never claims what a named person can see', () => {

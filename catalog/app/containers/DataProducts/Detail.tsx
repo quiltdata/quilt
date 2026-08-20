@@ -6,6 +6,7 @@ import * as DP from 'model/DataProducts'
 import * as Format from 'utils/format'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import ContentsTab from './Contents'
 import Requests from './Requests'
 
 // Wears the shell the Quilt-owned DP view established: an overline/title/summary
@@ -206,114 +207,6 @@ function OverviewTab({ product }: { product: DP.DataProduct }) {
         </M.Tooltip>
         {' · composition can change without notice'}
       </Stat>
-    </M.Paper>
-  )
-}
-
-/**
- * Contents, grouped by where they come from.
- *
- * The grouping is the point, not styling. A product's contents arrive from two
- * sources with *different governance guarantees*: catalog-enumerated members are
- * subject to the catalog's row and column rules, while files identified only by
- * a bucket ARN are listed by Quilt directly -- outside those rules entirely.
- * One undifferentiated list would imply a uniform guarantee that does not exist.
- */
-function ContentsTab({ product }: { product: DP.DataProduct }) {
-  const classes = useStyles()
-  const caps = DP.CAPABILITIES[product.binding.kind]
-  const platform = PLATFORM_LABEL[product.binding.kind]
-
-  if (!product.members.length) {
-    return (
-      <M.Paper className={classes.infoCard}>
-        <M.Typography variant="body2" color="textSecondary">
-          You can see this product but not its contents. That is a permission boundary,
-          not an empty product — request access to list what it holds.
-        </M.Typography>
-      </M.Paper>
-    )
-  }
-
-  const governed = product.members.filter((m) => m.contentsSource === 'CATALOG')
-  const direct = product.members.filter((m) => m.contentsSource === 'DIRECT_S3')
-  const unavailable = product.members.filter((m) => m.contentsSource === 'UNAVAILABLE')
-
-  const renderTable = (members: DP.Member[]) => (
-    <M.Table size="small">
-      <M.TableHead>
-        <M.TableRow>
-          <M.TableCell>Name</M.TableCell>
-          <M.TableCell>Kind</M.TableCell>
-          <M.TableCell>Schema</M.TableCell>
-          <M.TableCell>Access</M.TableCell>
-        </M.TableRow>
-      </M.TableHead>
-      <M.TableBody>
-        {members.map((m) => (
-          <M.TableRow key={m.logicalName}>
-            <M.TableCell>{m.logicalName}</M.TableCell>
-            <M.TableCell>{m.kind}</M.TableCell>
-            <M.TableCell>
-              {/* A null schema is three different facts depending on platform,
-                  so it is never rendered as "no columns". Filesets have none by
-                  nature; DataZone hides tabular columns in an opaque forms
-                  string. */}
-              {m.schema
-                ? `${m.schema.length} ${m.schema.length === 1 ? 'column' : 'columns'}`
-                : caps.memberSchema
-                  ? '—'
-                  : 'Not exposed by this catalog'}
-            </M.TableCell>
-            <M.TableCell>
-              {m.readable ? (
-                'Readable by you'
-              ) : (
-                <M.Typography variant="body2" color="textSecondary">
-                  Not readable by you
-                </M.Typography>
-              )}
-            </M.TableCell>
-          </M.TableRow>
-        ))}
-      </M.TableBody>
-    </M.Table>
-  )
-
-  return (
-    <M.Paper className={classes.infoCard}>
-      {!!governed.length && (
-        <>
-          <M.Typography variant="body2" color="textSecondary">
-            Enumerated and governed by {platform}. Row and column rules may apply to what
-            you see.
-          </M.Typography>
-          {renderTable(governed)}
-        </>
-      )}
-
-      {!!direct.length && (
-        <div className={classes.section}>
-          <M.Typography variant="subtitle2">Files listed from S3</M.Typography>
-          {/* The honest disclosure. The catalog gave us only a bucket ARN for
-              these, so Quilt enumerates S3 itself and the catalog's governance
-              does not cover what is shown. A reader deserves to know the
-              difference between "the catalog vetted this" and "we listed the
-              bucket". */}
-          <M.Typography variant="body2" color="textSecondary">
-            {platform} identifies these by location only, so Quilt lists them from S3
-            directly. The catalog's row and column rules do not apply to this listing.
-          </M.Typography>
-          {renderTable(direct)}
-        </div>
-      )}
-
-      {!!unavailable.length && (
-        <M.Typography className={classes.note} variant="body2" color="textSecondary">
-          {unavailable.length} member{unavailable.length === 1 ? '' : 's'} could not be
-          listed from this catalog.
-        </M.Typography>
-      )}
     </M.Paper>
   )
 }
