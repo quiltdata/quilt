@@ -811,6 +811,9 @@ interface EmailDisplayProps {
 }
 
 function EmailDisplay({ user, openDialog }: EmailDisplayProps) {
+  // setEmail is refused for service users, and no server-computed flag covers it.
+  if (user.isService) return <>{user.email}</>
+
   const edit = () =>
     openDialog(({ close }) => <EditEmail {...{ close, user }} />, DIALOG_PROPS)
 
@@ -874,7 +877,7 @@ const columns: Table.Column<User>[] = [
     getDisplay: (_v, u, { setActive, isSelf }: ColumnDisplayProps) => (
       <EditableSwitch
         hint="Deactivated users can't sign in and use the Catalog"
-        disabled={isSelf}
+        disabled={isSelf || u.isService}
         checked={u.isActive}
         onChange={(active) => setActive(u.name, active)}
       />
@@ -1040,7 +1043,7 @@ export default function Users() {
   const self: string = redux.useSelector(Auth.selectors.username)
 
   const inlineActions = (user: User) => [
-    user.name === self
+    user.name === self || user.isService
       ? null
       : {
           title: 'Delete',
