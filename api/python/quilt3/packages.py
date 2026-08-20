@@ -654,7 +654,7 @@ class Package:
             actual_top_hash = pkg.top_hash
             if actual_top_hash != top_hash:
                 if cache_path == local_pkg_manifest:
-                    cache_path.unlink()
+                    cache_path.unlink(missing_ok=True)
                 raise PackageException(
                     f"Manifest top hash mismatch: expected {top_hash!r}, got {actual_top_hash!r}"
                 )
