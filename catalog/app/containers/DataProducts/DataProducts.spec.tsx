@@ -290,6 +290,22 @@ describe('containers/DataProducts', () => {
       expect(getByText(/Nothing at this path in this revision/)).toBeTruthy()
     })
 
+    it('makes parent breadcrumbs real, focusable actions', () => {
+      // They were styled `<a>` elements with no href and no onClick: dead links,
+      // not keyboard-reachable, leaving the inert `..` row as the only way up a
+      // deep tree. The same WCAG 2.1.1 failure fixed for grid rows and missed here.
+      const { getByText, container } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=raw%2Fplate_10%2F`,
+      )
+      // StyledLink renders a <button> when given onClick and no `to`, which is
+      // what makes it focusable at all.
+      const parent = container.querySelector('button')
+      expect(parent).toBeTruthy()
+      // And it navigates: clicking `raw` goes up a level, so plate_2 appears.
+      fireEvent.click(getByText('raw'))
+      expect(getByText('plate_2')).toBeTruthy()
+    })
+
     it('keeps the size column on a directory holding only folders', () => {
       // `raw/` contains only subdirectories, so there are no *file* rows -- but the
       // folder rows carry real summed sizes. The old predicate checked only files,

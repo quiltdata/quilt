@@ -187,11 +187,30 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
 
   const crumbs = BreadCrumbs.use(
     DP.normalizePath(path),
-    // Segment URLs are unused: navigation is a callback, so `getRoute` returns a
-    // stable placeholder rather than a route this screen does not have.
-    () => '',
+    // The segment's own prefix, carried through so `getLinkProps` below can turn
+    // it into a callback. It is not a URL and never reaches an href.
+    //
+    // This used to return `''`, which looked harmless and was not: `Segment`
+    // branches on `to != null`, and `''` is not null, so every parent crumb
+    // rendered as a styled `<a>` with no href and no onClick -- a dead link, not
+    // keyboard-reachable, and the only other way up a deep tree is the `..` row.
+    // Exactly the WCAG 2.1.1 failure fixed for the grid rows, missed here.
+    (segPath: string) => segPath,
     member.logicalName,
-    { skipRoot: false, tailLink: false },
+    // `skipRoot` is deliberately not passed: it is declared on the options type
+    // but neither `getCrumbs` nor `useCrumbs` reads it, so setting it would look
+    // like configuration while doing nothing. `tailLink: false` is real -- it
+    // keeps the current directory from rendering as an action to itself.
+    { tailLink: false },
+  )
+
+  // Turns each crumb's carried prefix into a real action. `StyledLink` renders a
+  // `<button>` when given `onClick` and no `to` (see its own comment on why an
+  // anchor without href is not focusable), so this gets native keyboard
+  // behaviour rather than hand-rolled key handling.
+  const crumbLinkProps = React.useCallback(
+    ({ to }: { to?: string }) => ({ onClick: () => onNavigate(to ?? '') }),
+    [onNavigate],
   )
 
   const CellComponent = React.useCallback(
@@ -281,7 +300,9 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
   return (
     <div className={classes.root}>
       <div className={classes.head}>
-        <div className={classes.crumbs}>{BreadCrumbs.render(crumbs)}</div>
+        <div className={classes.crumbs}>
+          {BreadCrumbs.render(crumbs, { getLinkProps: crumbLinkProps })}
+        </div>
         <div className={classes.totals}>
           {/* Real counts only, and each one labelled with its scope. A withheld
               byte total renders as absent rather than as an em-dash or a zero:
