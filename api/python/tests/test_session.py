@@ -376,3 +376,88 @@ def test_login_with_api_key_validates_prefix(api_key_session):
     # Valid prefix should work
     quilt3.login_with_api_key('qk_valid_key')
     assert quilt3.session._api_key == 'qk_valid_key'
+
+
+class TestRegistryUrlOverride(QuiltTestCase):
+    def test_default_reads_config(self):
+        assert quilt3.session.get_registry_url() == quilt3.util.get_from_config('registryUrl')
+
+    def test_use_registry_url_overrides_and_restores(self):
+        original = quilt3.session.get_registry_url()
+
+        with quilt3.session.use_registry_url('https://other.example.com'):
+            assert quilt3.session.get_registry_url() == 'https://other.example.com'
+
+        assert quilt3.session.get_registry_url() == original
+
+    def test_use_registry_url_restores_on_exception(self):
+        original = quilt3.session.get_registry_url()
+
+        with pytest.raises(ValueError):
+            with quilt3.session.use_registry_url('https://other.example.com'):
+                raise ValueError('boom')
+
+        assert quilt3.session.get_registry_url() == original
+
+    def test_use_registry_url_nests(self):
+        original = quilt3.session.get_registry_url()
+
+        with quilt3.session.use_registry_url('https://outer.example.com'):
+            with quilt3.session.use_registry_url('https://inner.example.com'):
+                assert quilt3.session.get_registry_url() == 'https://inner.example.com'
+            assert quilt3.session.get_registry_url() == 'https://outer.example.com'
+
+        assert quilt3.session.get_registry_url() == original
+
+    def test_resolver_is_called_per_call(self):
+        urls = iter(['https://first.example.com', 'https://second.example.com'])
+        token = quilt3.session.set_registry_url_resolver(lambda: next(urls))
+        try:
+            assert quilt3.session.get_registry_url() == 'https://first.example.com'
+            assert quilt3.session.get_registry_url() == 'https://second.example.com'
+        finally:
+            quilt3.session.reset_registry_url_resolver(token)
+
+    def test_resolver_none_restores_config_lookup(self):
+        original = quilt3.session.get_registry_url()
+
+        with quilt3.session.use_registry_url('https://other.example.com'):
+            token = quilt3.session.set_registry_url_resolver(None)
+            try:
+                assert quilt3.session.get_registry_url() == original
+            finally:
+                quilt3.session.reset_registry_url_resolver(token)
+
+    def test_set_resolver_rejects_non_callable(self):
+        with pytest.raises(ValueError, match='must be a callable'):
+            quilt3.session.set_registry_url_resolver('https://other.example.com')
+
+    def test_override_does_not_write_config(self):
+        before = quilt3.util.CONFIG_PATH.read_bytes()
+
+        with quilt3.session.use_registry_url('https://other.example.com'):
+            pass
+
+        assert quilt3.util.CONFIG_PATH.read_bytes() == before
+
+    def test_override_applies_to_graphql_client_url(self):
+        from quilt3._graphql_client.base_client import BaseClient
+
+        with quilt3.session.use_registry_url('https://other.example.com'):
+            assert BaseClient().url == 'https://other.example.com/graphql'
+
+    def test_override_is_isolated_per_thread(self):
+        import threading
+
+        original = quilt3.session.get_registry_url()
+        seen = {}
+
+        def worker():
+            seen['value'] = quilt3.session.get_registry_url()
+
+        with quilt3.session.use_registry_url('https://other.example.com'):
+            thread = threading.Thread(target=worker)
+            thread.start()
+            thread.join()
+
+        assert seen['value'] == original
