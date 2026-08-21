@@ -247,12 +247,77 @@ describe('containers/DataProducts', () => {
       // The broker checks membership per object, so a fully visible listing can
       // contain a refused entry. Dropping it would understate the package;
       // marking the whole member unreadable would hide everything else.
+      //
+      // Scoped to `derived/`, which is where the refused entry lives. This test
+      // used to sit at the package root and pass on a package-wide count -- a
+      // number about files the reader could not see from there. Counting per
+      // directory is the fix; asserting it here is what pins the fix.
       const { getByText } = mount(
-        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=derived%2F`,
       )
       // Stated in words rather than by dimming a row: state is never signalled by
       // color alone (DESIGN.md).
       expect(getByText(/1 not readable by you/)).toBeTruthy()
+    })
+
+    it('counts files for the directory on screen, not the whole package', () => {
+      // The bug this pins: package totals were rendered beside a per-directory
+      // breadcrumb, so a folder holding one file could read "8 files". Cross-model
+      // review (gpt-5.6-sol) caught it.
+      const { getByText } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=derived%2F`,
+      )
+      // derived/ holds exactly one entry; the package holds more. Both are shown,
+      // each labelled, so neither number can be mistaken for the other.
+      //
+      // The package count is derived from the fixture rather than hardcoded: it
+      // was written as a literal 8, and adding one fixture entry broke the test
+      // for a reason that had nothing to do with the behaviour being pinned.
+      const total =
+        DP.fixtures.PACKAGE_CONTENTS[`${DP.fixtures.PACKAGE_PRODUCT.id}::alpha/home`]!
+          .length
+      expect(getByText(/^1 file · /)).toBeTruthy()
+      expect(getByText(new RegExp(`${total} in package`))).toBeTruthy()
+    })
+
+    it('says a path is absent rather than rendering an empty grid', () => {
+      // Reachable from a bookmark: a pinned revision need not contain a directory
+      // that a later one does. Previously this rendered an empty grid beside
+      // nonzero package totals, which reads as a broken listing.
+      const { getByText } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=no%2Fsuch%2Fdir%2F`,
+      )
+      expect(getByText(/Nothing at this path in this revision/)).toBeTruthy()
+    })
+
+    it('keeps the size column for a zero-byte file', () => {
+      // Zero is a KNOWN size, not a missing one. The old check was
+      // `!f.sizeBytes`, which is true for 0 -- so a directory whose only file was
+      // empty hid a column we could have filled, reporting "we don't know" about
+      // a size we did know.
+      //
+      // This test exists because mutation-testing the fix found nothing to fail:
+      // the change was real but uncovered, and no fixture had a zero-byte entry.
+      const { getByText, container } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=logs%2F`,
+      )
+      expect(getByText('empty.log')).toBeTruthy()
+      // The grid renders a Size header only when some item reports one.
+      expect(container.textContent).toMatch(/Size/)
+    })
+
+    it('gives file rows a keyboard path, not just a click target', () => {
+      // WCAG 2.1.1. The rows were mouse-only divs, so a keyboard user could not
+      // open a file at all.
+      const { getByText } = mount(
+        dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
+      )
+      const cell = getByText('README.md').closest('[role="button"]')
+      expect(cell).toBeTruthy()
+      expect(cell!.getAttribute('tabindex')).toBe('0')
+      // Enter opens it, same as a click.
+      fireEvent.keyDown(cell!, { key: 'Enter' })
+      expect(getByText(/subject-level readouts/)).toBeTruthy()
     })
 
     it('distinguishes a dangling product from an empty or restricted one', () => {

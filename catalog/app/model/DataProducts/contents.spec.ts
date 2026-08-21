@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { groupForPath, normalizePath, totals } from './contents'
+import { groupForPath, normalizePath, totals, totalsForPath } from './contents'
 import type { ContentEntry } from './contents'
 
 /**
@@ -95,6 +95,47 @@ describe('model/DataProducts/contents', () => {
       // unrenderable.
       const { files } = groupForPath([{ logicalKey: 'a.tiff', readable: false }])
       expect(files[0]!.readable).toBe(false)
+    })
+  })
+
+  describe('totalsForPath', () => {
+    it('counts everything at or below a directory, not just direct children', () => {
+      // Recursive on purpose, so the header agrees with the folder rows --
+      // DirGroup.fileCount is already recursive, and a header that counted only
+      // direct children would contradict the row beneath it.
+      expect(totalsForPath(ENTRIES, 'raw/')).toEqual({ fileCount: 3, sizeBytes: 600 })
+      expect(totalsForPath(ENTRIES, 'raw/plate_10/')).toEqual({
+        fileCount: 2,
+        sizeBytes: 500,
+      })
+    })
+
+    it('is the whole package at the root, so it generalizes totals', () => {
+      expect(totalsForPath(ENTRIES, '')).toEqual(totals(ENTRIES))
+      expect(totalsForPath(ENTRIES, '/')).toEqual(totals(ENTRIES))
+    })
+
+    it('reports zero for a path this revision does not contain', () => {
+      // Not an error: a pinned revision may genuinely lack a directory a later one
+      // has. The UI renders this as "nothing at this path".
+      expect(totalsForPath(ENTRIES, 'nope/')).toEqual({ fileCount: 0, sizeBytes: 0 })
+    })
+
+    it('withholds the byte total when an entry below the path lacks a size', () => {
+      const t = totalsForPath(
+        [{ logicalKey: 'raw/a.tiff', sizeBytes: 100 }, { logicalKey: 'raw/b.tiff' }],
+        'raw/',
+      )
+      expect(t.fileCount).toBe(2)
+      expect(t.sizeBytes).toBeUndefined()
+    })
+
+    it('does not count the folder key itself as a file in it', () => {
+      const t = totalsForPath(
+        [{ logicalKey: 'raw/' }, { logicalKey: 'raw/a.tiff', sizeBytes: 1 }],
+        'raw/',
+      )
+      expect(t.fileCount).toBe(1)
     })
   })
 

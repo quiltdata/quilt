@@ -606,6 +606,12 @@ export const PACKAGE_CONTENTS: Record<string, ContentEntry[]> = {
     // One unsized entry, which forces its folder's total to be withheld rather
     // than shown as a partial sum.
     alphaEntry('raw/plate_10/A03.tiff', { readable: true }),
+    // A genuinely empty file, in its own directory so the case is isolable. Zero
+    // is a *known* size, and treating it as unreported is a real bug the size
+    // column had: `!f.sizeBytes` is true for 0, so a directory whose only sizes
+    // were zero hid a column we could have filled. Empty files are ordinary in
+    // pipeline output -- a touched sentinel, a run that produced nothing.
+    alphaEntry('logs/empty.log', { sizeBytes: 0, readable: true }),
     // Present in the manifest but refused by the broker. Real: membership is
     // checked per object, so a listing can be fully visible while one object in
     // it is denied (research §3.1).

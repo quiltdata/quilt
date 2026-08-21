@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import Perspective from 'components/Preview/renderers/Perspective'
 import * as DP from 'model/DataProducts'
 import { readableBytes } from 'utils/string'
 
@@ -124,47 +125,29 @@ export function previewKindFor(logicalKey: string): PreviewKind {
   }
 }
 
-/** Rows of CSV/TSV, for the tabular renderer. */
-function Tabular({ text, delimiter }: { text: string; delimiter: string }) {
-  // A deliberately small parser rather than a CSV library: this renders a preview
-  // of a text body the broker already returned, and quoted-field handling is the
-  // kind of correctness that belongs in the real tabular loader (which reads
-  // Parquet and Arrow server-side) rather than in a preview shim. Fields
-  // containing the delimiter will split wrongly, which is why this is a table and
-  // not presented as the data.
-  const rows = React.useMemo(
-    () =>
-      text
-        .split('\n')
-        .filter((line) => line.trim() !== '')
-        .map((line) => line.split(delimiter)),
-    [text, delimiter],
-  )
-  if (!rows.length) return null
-  const [header, ...body] = rows
-  return (
-    <M.Table size="small">
-      <M.TableHead>
-        <M.TableRow>
-          {header!.map((cell, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <M.TableCell key={`${cell}:${i}`}>{cell}</M.TableCell>
-          ))}
-        </M.TableRow>
-      </M.TableHead>
-      <M.TableBody>
-        {body.map((row, r) => (
-          // eslint-disable-next-line react/no-array-index-key
-          <M.TableRow key={r}>
-            {row.map((cell, c) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <M.TableCell key={c}>{cell}</M.TableCell>
-            ))}
-          </M.TableRow>
-        ))}
-      </M.TableBody>
-    </M.Table>
-  )
+/**
+ * Delimited text, through the real tabular renderer.
+ *
+ * **This replaced a hand-rolled `split(delimiter)` parser, which was wrong in a
+ * way that mattered.** A table asserts record boundaries, headers and column
+ * counts with visual authority, so a parser that mis-splits does not merely look
+ * rough -- it states something false about scientific data. The inputs it got
+ * wrong were ordinary, not exotic: a quoted field containing the delimiter
+ * (`"Doe, Jane",42` became three cells), a quoted field containing a newline
+ * (one record became two rows), escaped quotes, CRLF (a stray `\r` in every last
+ * field), a headerless file (the first data row silently promoted to headings),
+ * and `.csv` files that are actually semicolon-delimited.
+ *
+ * Perspective takes a raw CSV string directly -- `PerspectiveInput` is
+ * `@finos/perspective`'s `TableData`, which accepts `string` -- and parses it
+ * properly. Passing the text through instead of pre-splitting it removes the
+ * whole class of bug rather than fixing the cases someone thought of.
+ *
+ * `truncated` is forwarded honestly: a body cut mid-record would otherwise
+ * present an invented final row as data.
+ */
+function Tabular({ text, truncated }: { text: string; truncated?: boolean }) {
+  return <Perspective data={text} truncated={!!truncated} />
 }
 
 function Json({ text }: { text: string }) {
@@ -230,12 +213,10 @@ function Body({ logicalKey, body }: { logicalKey: string; body: DP.EntryBody }) 
       {truncated}
       {kind === 'markdown' && <Markdown data={body.text} />}
       {kind === 'json' && <Json text={body.text} />}
-      {kind === 'tabular' && (
-        <Tabular
-          text={body.text}
-          delimiter={extensionOf(logicalKey) === 'csv' ? ',' : '\t'}
-        />
-      )}
+      {/* No delimiter argument: Perspective sniffs it, which also fixes the
+          `.csv`-that-is-actually-semicolon-delimited case the old hardcoded
+          comma got wrong. */}
+      {kind === 'tabular' && <Tabular text={body.text} truncated={body.truncated} />}
       {(kind === 'text' || kind === 'none') && (
         <pre className={classes.plain}>{body.text}</pre>
       )}

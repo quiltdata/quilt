@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -74,9 +75,23 @@ const useStyles = M.makeStyles((t) => ({
   empty: {
     padding: t.spacing(4, 2),
   },
+  emptyDir: {
+    padding: t.spacing(4, 2),
+  },
   entry: {
     borderTop: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2),
+  },
+  // Keyboard operability for the row, which is a div rather than a button
+  // because it lives inside a DataGrid cell. Focus must never be invisible
+  // (DESIGN.md's Focus Ring Rule), and the counter-color on a light surface is
+  // the Midnight Chassis.
+  cell: {
+    cursor: 'pointer',
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.dark}`,
+      outlineOffset: -2,
+    },
   },
   remedy: {
     marginTop: t.spacing(1),
@@ -139,7 +154,16 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
   // grouping on each keystroke in the grid's filter box.
   const entries = React.useMemo(() => (result.ok ? result.entries : []), [result])
   const grouped = React.useMemo(() => DP.groupForPath(entries, path), [entries, path])
+  // Two scopes, kept distinct because they answer different questions and the
+  // header shows both. `all` is the package; `here` is everything at or below the
+  // directory the breadcrumb currently names.
+  //
+  // Conflating them was a real defect: package totals rendered beside a
+  // per-directory breadcrumb, so a folder holding ten files could read
+  // "1,000,000 files". Labelling each scope is what makes the number checkable
+  // against what the reader can see.
   const all = React.useMemo(() => DP.totals(entries), [entries])
+  const here = React.useMemo(() => DP.totalsForPath(entries, path), [entries, path])
 
   // `format` does the `..` row, prefix-stripping and dir/file de-duplication.
   // Passing no `urls` leaves `to` as the raw key, which the cell component below
@@ -177,13 +201,39 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
       // (`components/Markdown`, `JsonDisplay`, `Perspective`) take strings and
       // import no AWS anything, so `EntryView` reaches them without one.
       const act = item.type === 'dir' ? () => onNavigate(item.to) : () => onOpen(item.to)
+      // `..` gets no interactivity of its own: `format` gives it a `to` that
+      // points at the parent, but Listing already renders it as its own affordance
+      // and a second click target on the same row is a keyboard trap in miniature.
+      const inert = item.name === '..'
       return (
-        <div className={className} {...props} onClick={act} style={{ cursor: 'pointer' }}>
+        <div
+          className={cx(className, !inert && classes.cell)}
+          {...props}
+          // A div rather than a button because it sits inside a DataGrid cell, so
+          // the button semantics have to be added by hand. Omitting them was a
+          // real WCAG 2.1.1 failure: the row was mouse-only, and a keyboard user
+          // could not open a file at all.
+          role={inert ? undefined : 'button'}
+          tabIndex={inert ? undefined : 0}
+          onClick={inert ? undefined : act}
+          onKeyDown={
+            inert
+              ? undefined
+              : (e) => {
+                  // Enter and Space are both expected of a button. Space must
+                  // preventDefault or the page scrolls under the reader.
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    act()
+                  }
+                }
+          }
+        >
           {children}
         </div>
       )
     },
-    [onNavigate, onOpen],
+    [classes.cell, onNavigate, onOpen],
   )
 
   if (!result.ok) {
@@ -196,7 +246,23 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
     return <Unavailable reason={DP.UNAVAILABLE.EMPTY} />
   }
 
-  const refused = entries.filter((e) => e.readable === false).length
+  // A directory with nothing in it is its own state, and it is reachable: a
+  // bookmarked or hand-edited `dir` can name a prefix this pinned revision does
+  // not contain. Checking only `entries.length` above left that case rendering an
+  // empty grid beside nonzero package totals -- which reads as a broken listing
+  // rather than as a path that is not here.
+  //
+  // Not an `Unavailable` reason: those four are about a *member* being
+  // unlistable, and this member listed fine. Conflating them would tell a reader
+  // to ask an admin about a stale URL.
+  const emptyHere = !grouped.dirs.length && !grouped.files.length
+
+  // Scoped to the current directory, for the same reason the totals are: a count
+  // of refusals elsewhere in the package is not a fact about what is on screen.
+  //
+  // A plain expression rather than a useMemo -- it sits after the early returns
+  // above, and a hook there would change hook order between renders.
+  const refused = grouped.files.filter((e) => e.readable === false).length
 
   // Resolved against the listing rather than trusted from the URL, so a stale or
   // hand-edited link opens nothing instead of rendering a file view for a key
@@ -208,26 +274,44 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
       <div className={classes.head}>
         <div className={classes.crumbs}>{BreadCrumbs.render(crumbs)}</div>
         <div className={classes.totals}>
-          {/* Real counts only. A withheld byte total renders as absent rather
-              than as an em-dash or a zero: a partial sum shown as a total reads
-              authoritative while understating. */}
-          {all.fileCount} {all.fileCount === 1 ? 'file' : 'files'}
-          {all.sizeBytes !== undefined && ` · ${readableBytes(all.sizeBytes)}`}
+          {/* Real counts only, and each one labelled with its scope. A withheld
+              byte total renders as absent rather than as an em-dash or a zero:
+              a partial sum shown as a total reads authoritative while
+              understating.
+
+              At the package root the two scopes are identical, so showing both
+              would be noise -- `here` alone is correct and unambiguous there. */}
+          {here.fileCount} {here.fileCount === 1 ? 'file' : 'files'}
+          {here.sizeBytes !== undefined && ` · ${readableBytes(here.sizeBytes)}`}
+          {!!DP.normalizePath(path) &&
+            ` · ${all.fileCount} in package${
+              all.sizeBytes !== undefined ? `, ${readableBytes(all.sizeBytes)}` : ''
+            }`}
           {/* Stated rather than shown by dimming a row: state is never signalled
               by color alone. */}
           {refused > 0 && ` · ${refused} not readable by you`}
         </div>
       </div>
 
-      <Listing.Listing
-        items={items}
-        CellComponent={CellComponent}
-        RootComponent="div"
-        onReload={() => {}}
-        // Sizes are per-entry from the manifest, so the column is meaningful --
-        // but a member whose entries are all unsized would show an empty one.
-        hideSize={all.sizeBytes === undefined && !grouped.files.some((f) => f.sizeBytes)}
-      />
+      {emptyHere ? (
+        <M.Typography className={classes.emptyDir} variant="body2" color="textSecondary">
+          Nothing at this path in this revision. A pinned revision may not contain a
+          directory that a later one does.
+        </M.Typography>
+      ) : (
+        <Listing.Listing
+          items={items}
+          CellComponent={CellComponent}
+          RootComponent="div"
+          onReload={() => {}}
+          // `!== undefined` rather than truthiness, which is not pedantry: a
+          // 0-byte file has a *known* size of zero, and `!f.sizeBytes` treated it
+          // as unreported -- hiding the column on a directory whose sizes we
+          // actually know. Scoped to the current directory for the same reason as
+          // the totals.
+          hideSize={!grouped.files.some((f) => f.sizeBytes !== undefined)}
+        />
+      )}
 
       {member.packageHandle && (
         // The revision this listing came from. Shown because it is what makes the

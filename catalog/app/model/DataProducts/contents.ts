@@ -141,16 +141,18 @@ export function groupForPath(entries: ContentEntry[], path: string = ''): Groupe
   }
 }
 
+export interface Totals {
+  fileCount: number
+  sizeBytes?: number
+}
+
 /**
  * Total files and bytes for a whole package.
  *
  * `sizeBytes` is `undefined` unless every entry reported one, for the same
  * reason as folder totals.
  */
-export function totals(entries: ContentEntry[]): {
-  fileCount: number
-  sizeBytes?: number
-} {
+export function totals(entries: ContentEntry[]): Totals {
   let sizeBytes = 0
   let allSized = true
   for (const entry of entries) {
@@ -158,4 +160,36 @@ export function totals(entries: ContentEntry[]): {
     else allSized = false
   }
   return { fileCount: entries.length, sizeBytes: allSized ? sizeBytes : undefined }
+}
+
+/**
+ * Totals for everything at or below one directory.
+ *
+ * Exists because the two scopes were conflated in the UI: package-wide totals
+ * were rendered beside a per-directory breadcrumb, so a folder holding ten files
+ * could read "1,000,000 files". Caught by cross-model review.
+ *
+ * Counts *at or below* rather than only the direct children, so the header agrees
+ * with the folder rows beneath it -- `DirGroup.fileCount` is already recursive,
+ * and a header counting only direct children would contradict the row under it.
+ *
+ * `path` of `''` is the whole package, which makes this a strict generalization
+ * of `totals`.
+ */
+export function totalsForPath(entries: ContentEntry[], path: string = ''): Totals {
+  const prefix = normalizePath(path)
+  if (!prefix) return totals(entries)
+
+  let fileCount = 0
+  let sizeBytes = 0
+  let allSized = true
+  for (const entry of entries) {
+    if (!entry.logicalKey.startsWith(prefix)) continue
+    // A key equal to the prefix is the folder itself, not a file in it.
+    if (entry.logicalKey.length === prefix.length) continue
+    fileCount += 1
+    if (typeof entry.sizeBytes === 'number') sizeBytes += entry.sizeBytes
+    else allSized = false
+  }
+  return { fileCount, sizeBytes: allSized ? sizeBytes : undefined }
 }
