@@ -50,7 +50,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {truncated && (
         <span className={cx(classes.message, classes.item)}>
           <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-            info_outlined
+            info_outline
           </M.Icon>
           {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
         </span>
@@ -81,7 +81,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {state?.rotateThemes && (
         <M.Button
           className={classes.item}
-          startIcon={<M.Icon>palette_outlined</M.Icon>}
+          startIcon={<M.Icon>palette</M.Icon>}
           size="small"
           onClick={state?.rotateThemes}
         >
