@@ -545,6 +545,44 @@ def test_repush_dedupe_rechecks_latest_before_return(repush_registry_stub, monke
     assert _accepted_revisions(initiating, package_name) == {established_hash}
 
 
+def test_repush_forced_dedupe_overwrites_a_writer_that_lands_during_transfer(repush_registry_stub, monkeypatch):
+    """`force=True` with `dedupe=True` overwrites a revision that appears mid-push.
+
+    The re-read that protects the unforced dedupe path also means a forced push no longer stops at
+    a stale equal-hash match: the destination has moved, so `force` does what it says and publishes
+    over it. Previously this returned a "Skipping..." success and left the other writer's revision
+    in place.
+    """
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/forced-dedupe'
+    destination = _destination(package_registry, package_name)
+    initiating = _push_preservation_scenario(Package(), package_name, registry_url)
+    established_hash = initiating.top_hash
+    interleaved_hash = 'a' * 64
+    assert interleaved_hash != established_hash
+
+    publications_before = len(published)
+    reads = {'count': 0}
+
+    def interleave_before_fresh_read(_physical_key):
+        reads['count'] += 1
+        if reads['count'] == 1:
+            return established_hash.encode()
+        remote_latest[destination] = interleaved_hash
+        return interleaved_hash.encode()
+
+    monkeypatch.setattr('quilt3.packages.get_bytes', interleave_before_fresh_read)
+
+    returned = _push_preservation_scenario(initiating, package_name, registry_url, force=True, dedupe=True)
+
+    assert reads['count'] == 2
+    assert returned is not initiating
+    assert returned.top_hash == established_hash
+    assert len(published) == publications_before + 1
+    assert remote_latest[destination] == established_hash
+    assert _accepted_revisions(initiating, package_name) == {established_hash}
+
+
 def test_repush_dedupe_skip_records_the_revision_it_matched(repush_registry_stub):
     """A dedupe skip leaves the object able to build on the revision it matched.
 
