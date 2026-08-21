@@ -16,6 +16,12 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Added] `quilt3.session.use_registry_url()`, `set_registry_url_resolver()`, and `reset_registry_url_resolver()` for overriding the registry URL in-process without writing `~/.quilt/config.yml`, so a host application can drive a registry chosen at runtime or several registries in one process ([#4878](https://github.com/quiltdata/quilt/issues/4878))
+
 ## 8.0.0 - 2026-08-04
 
 ### Python API

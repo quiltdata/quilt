@@ -10,6 +10,8 @@ import stat
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
 from importlib import metadata
 
 import boto3
@@ -26,6 +28,11 @@ from .util import BASE_PATH, QuiltException, get_from_config
 AUTH_PATH = BASE_PATH / 'auth.json'
 CREDENTIALS_PATH = BASE_PATH / 'credentials.json'
 VERSION = metadata.version('quilt3')
+
+# Optional override for registry URL resolution; see set_registry_url_resolver().
+# A ContextVar rather than a plain global so concurrent tasks and threads can
+# each bind their own registry without racing.
+_registry_url_resolver: ContextVar = ContextVar('quilt3_registry_url_resolver', default=None)
 
 
 def _load_auth():
@@ -58,7 +65,72 @@ def _save_credentials(creds):
         json.dump(creds, fd)
 
 
+def set_registry_url_resolver(resolver):
+    """
+    Override how the registry URL is resolved, for the current context.
+
+    Normally `get_registry_url()` reads `registryUrl` from `~/.quilt/config.yml`
+    on every call. Host applications that need to drive a registry chosen at
+    runtime -- or several registries in one process -- can install a resolver
+    instead of calling `quilt3.config()`, which would overwrite the user's
+    config file.
+
+    Args:
+        resolver: a zero-argument callable returning the registry URL as a
+            string, or `None` to restore the default config-file lookup.
+
+    Returns:
+        A token that can be passed to `reset_registry_url_resolver()` to
+        restore the previous resolver.
+
+    Prefer `use_registry_url()` for the common case of scoping an override to
+    a block of code.
+
+    Note that `quilt3.admin` and other GraphQL callers capture the URL when
+    their client is constructed, so the resolver must be installed before the
+    call you want it to affect.
+    """
+    if resolver is not None and not callable(resolver):
+        raise ValueError(
+            "resolver must be a callable returning a registry URL, or None; "
+            f"got {type(resolver).__name__}. To set a fixed URL, pass "
+            "`lambda: url` or use use_registry_url(url)."
+        )
+    return _registry_url_resolver.set(resolver)
+
+
+def reset_registry_url_resolver(token):
+    """
+    Restore the resolver replaced by `set_registry_url_resolver()`.
+
+    Args:
+        token: the value returned by `set_registry_url_resolver()`.
+    """
+    _registry_url_resolver.reset(token)
+
+
+@contextmanager
+def use_registry_url(url):
+    """
+    Resolve the registry URL to `url` inside a `with` block.
+
+    Nothing is written to `~/.quilt/config.yml`, and the previous resolution
+    behavior is restored on exit, including when the block raises.
+
+    Args:
+        url: the registry URL to use inside the block.
+    """
+    token = set_registry_url_resolver(lambda: url)
+    try:
+        yield
+    finally:
+        reset_registry_url_resolver(token)
+
+
 def get_registry_url():
+    resolver = _registry_url_resolver.get()
+    if resolver is not None:
+        return resolver()
     return get_from_config('registryUrl')
 
 
