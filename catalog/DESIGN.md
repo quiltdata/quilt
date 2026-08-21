@@ -206,8 +206,8 @@ never read as a selection) and the semantic Info/Warning pairs.
 
 ### Retired
 
-The website register's palette — coral (#f38681), cobalt (#5471f1, #2d306d,
-#6a93ff), and the muted web text (#b2bddb) — is removed along with its themes
+The website register's palette — coral (#f38681), cobalt (#5471f1, #2d306d, #6a93ff),
+and the muted web text (#b2bddb) — is removed along with its themes
 (`navTheme`, `websitePalette`). Web Midnight was promoted to the primary above;
 the rest does not come back. Do not reintroduce these values; a surface that
 seems to need them needs a different design.
