@@ -2,6 +2,20 @@ import * as React from 'react'
 
 import type { PackageHandle } from 'utils/packageHandle'
 
+/**
+ * Per-field errors returned by the backend when it rejects a package write.
+ * Keys must match the inputs that read them, see `name`, `message`, `meta`,
+ * `files` and `workflow` state hooks.
+ */
+export interface FormFieldErrors {
+  files?: Error
+
+  message?: Error
+  name?: Error
+  userMeta?: Error
+  workflow?: Error
+}
+
 export type FormStatus =
   | { _tag: 'idle' }
   | { _tag: 'ready' }
@@ -10,14 +24,7 @@ export type FormStatus =
   | {
       _tag: 'error'
       error: Error
-      fields?: {
-        files?: Error
-
-        message?: Error
-        name?: Error
-        userMeta?: Error
-        workflow?: Error
-      }
+      fields?: FormFieldErrors
     }
   | { _tag: 'success'; handle: PackageHandle }
 
@@ -25,16 +32,11 @@ export const Idle = { _tag: 'idle' as const }
 export const Ready = { _tag: 'ready' as const }
 export const Submitting = { _tag: 'submitting' as const }
 export const EmptyFiles = { _tag: 'emptyFiles' as const }
-export const Err = (
-  error: Error,
-  fields?: {
-    files?: Error
-    message?: Error
-    name?: Error
-    userMeta?: Error
-    workflow?: Error
-  },
-) => ({ _tag: 'error' as const, error, fields })
+export const Err = (error: Error, fields?: FormFieldErrors) => ({
+  _tag: 'error' as const,
+  error,
+  fields,
+})
 export const Success = (handle: PackageHandle) => ({ _tag: 'success' as const, handle })
 
 export interface FormState {

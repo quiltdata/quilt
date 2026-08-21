@@ -62,7 +62,7 @@ vi.mock('utils/GraphQL', () => ({
       searchPackages: {
         __typename: 'PackagesSearchResultSet',
         total,
-        firstPage: { hits },
+        firstPage: { __typename: 'PackagesSearchResultSetPage', hits },
       },
     })
   },
