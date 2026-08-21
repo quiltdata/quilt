@@ -1648,12 +1648,14 @@ class Package:
                 check_hash_conficts(latest_hash)
 
             if top_hash == latest_hash:
+                # Record before displaying anything, as the publication path below does: the match
+                # is confirmed at this point, so a failing output stream must not lose it.
+                self._record_revision(name, latest_hash)
                 if print_info:
                     print(
                         f"Skipping since package with hash {latest_hash} already exists "
                         "at the destination and dedupe parameter is true."
                     )
-                self._record_revision(name, latest_hash)
                 return self
 
         def physical_key_is_temp_file(pk):

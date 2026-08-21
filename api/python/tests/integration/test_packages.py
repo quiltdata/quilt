@@ -613,6 +613,50 @@ def test_repush_dedupe_skip_records_the_revision_it_matched(repush_registry_stub
     assert remote_latest[destination] == returned.top_hash
 
 
+def test_repush_dedupe_records_before_display(repush_registry_stub, monkeypatch):
+    """A confirmed dedupe survives a failing output stream.
+
+    The match is settled before anything is printed, so a closed stdout or a BrokenPipeError cannot
+    lose it -- the same ordering the publication path uses. A forced dedupe against a destination
+    this object has never read is the case that shows it: the skip is the only thing that can put
+    the matched revision on the object.
+    """
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/dedupe-display'
+    destination = _destination(package_registry, package_name)
+
+    initiating = Package().set_meta({'revision': 1})
+    # push() stamps the commit message into the package metadata, so the hash it compares against
+    # `latest` is the one this object has after that stamp (see #5186).
+    initiating._set_commit_message(None)
+    established_hash = initiating.top_hash
+    remote_latest[destination] = established_hash
+    assert _accepted_revisions(initiating, package_name) == frozenset()
+
+    display_failure = BrokenPipeError('closed output stream')
+
+    def fail_print(*_args, **_kwargs):
+        raise display_failure
+
+    monkeypatch.setattr('builtins.print', fail_print)
+
+    with pytest.raises(BrokenPipeError) as excinfo:
+        initiating._push(
+            package_name,
+            registry=registry_url,
+            workflow=None,
+            print_info=True,
+            force=True,
+            dedupe=True,
+            copy_file_list_fn=_mock_copy_file_list,
+        )
+
+    assert excinfo.value is display_failure
+    assert not published
+    assert remote_latest[destination] == established_hash
+    assert _accepted_revisions(initiating, package_name) == {established_hash}
+
+
 def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, monkeypatch):
     """Accepted revisions advance after publication and survive later display failure."""
     registry_url, package_registry, remote_latest, published = repush_registry_stub
