@@ -377,15 +377,6 @@ class PackageEntry:
         return self.__class__(key, self.size, self.hash, self._meta)
 
 
-class PackageRevInfo:
-    __slots__ = ('registry', 'name', 'top_hash')
-
-    def __init__(self, registry, name, top_hash):
-        self.registry = registry
-        self.name = name
-        self.top_hash = top_hash
-
-
 class ManifestJSONDecoder(json.JSONDecoder):
     """
     Standard json.JSONDecoder reuses same `str` objects for JSON properties, while doing
@@ -410,7 +401,15 @@ class Package:
     def __init__(self):
         self._children = {}
         self._meta = {'version': 'v0'}
-        self._origin = None
+        # Per package name, the top hashes this object is a valid successor to: the revision it was
+        # read from, plus every revision it has published under that name. A push is accepted when
+        # the destination's latest revision is one of these, so the destination is known to be an
+        # ancestor of what is being pushed rather than an unrelated write.
+        self._parent_top_hashes = {}
+
+    def _record_revision(self, name, top_hash):
+        """Remember `top_hash` as a revision of `name` that this package is a valid successor to."""
+        self._parent_top_hashes.setdefault(name, set()).add(top_hash)
 
     @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):
@@ -650,7 +649,7 @@ class Package:
                 download_manifest(local_pkg_manifest)
 
             pkg = cls._from_path(local_pkg_manifest)
-            pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+            pkg._record_revision(name, top_hash)
             return pkg
 
     @classmethod
@@ -1441,6 +1440,11 @@ class Package:
         By default, push will not overwrite an existing package if its top hash does not match
         the parent hash of the package being pushed. Use `force=True` to skip the check.
 
+        A successful push records the revision it published on the package it was called on, in
+        addition to the package it returns. Either object can therefore push again -- as the next
+        revision at the same destination, or as the same revision to another registry holding the
+        parent -- without an intervening `browse()` and without `force=True`.
+
         Args:
             name: name for package in registry
             dest: where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
@@ -1553,15 +1557,13 @@ class Package:
 
         registry = get_package_registry(registry)
         destination_registry = str(registry.base)
-        destination = (destination_registry, name)
-        # The parent revision is identified by package name alone, not by the registry it was
-        # read from: `quilt3 push` deliberately bases a remote push on a parent taken from the
-        # local registry (see #2722), and top hashes are content-derived, so a hash remembered
-        # for this package name is valid evidence of the parent revision wherever it came from.
-        if self._origin is not None and self._origin.name == name:
-            expected_hash = self._origin.top_hash
-        else:
-            expected_hash = None
+        # Acceptable parent revisions are identified by package name alone, never by the registry a
+        # hash was learned from. `quilt3 push` deliberately bases a remote push on a parent taken
+        # from the local registry (see #2722), and one object mirrored to several buckets pushes to
+        # destinations it has never read. Top hashes are content-derived, so a hash remembered for a
+        # name identifies the same revision wherever it is found. Snapshot it: this call adds to the
+        # set once it publishes, and every check below must judge against the pre-push state.
+        expected_hashes = frozenset(self._parent_top_hashes.get(name, ()))
 
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
@@ -1578,10 +1580,11 @@ class Package:
             if latest_hash is None:
                 return
 
-            if latest_hash != expected_hash:
+            if latest_hash not in expected_hashes:
+                expectation = ' or '.join(map(repr, sorted(expected_hashes))) if expected_hashes else 'no revision'
                 raise QuiltConflictException(
-                    f"Package with hash {latest_hash!r} already exists at destination {destination!r}; "
-                    f"expected {expected_hash!r}. "
+                    f"Package {name!r} already exists at {destination_registry} "
+                    f"with hash {latest_hash!r}; expected {expectation}. "
                     "To build on that revision, re-use the package returned by the previous push(), "
                     "or call Package.browse() (CLI: quilt3 install) first. "
                     "Use force=True (Python) or --force (CLI) to overwrite it instead."
@@ -1650,7 +1653,7 @@ class Package:
                         f"Skipping since package with hash {latest_hash} already exists "
                         "at the destination and dedupe parameter is true."
                     )
-                self._origin = PackageRevInfo(destination_registry, name, latest_hash)
+                self._record_revision(name, latest_hash)
                 return self
 
         def physical_key_is_temp_file(pk):
@@ -1679,9 +1682,11 @@ class Package:
 
         pkg._push_manifest(name, registry, top_hash)
 
-        established_origin = PackageRevInfo(destination_registry, name, top_hash)
-        self._origin = established_origin
-        pkg._origin = established_origin
+        self._record_revision(name, top_hash)
+        # The returned package continues this object's history, so a caller who keeps it can push on
+        # to further destinations exactly as the initiating object can. Copied, not shared: later
+        # pushes from either object must not silently widen what the other will accept.
+        pkg._parent_top_hashes = {pkg_name: set(hashes) for pkg_name, hashes in self._parent_top_hashes.items()}
 
         if print_info:
             shorthash = registry.shorten_top_hash(name, top_hash)

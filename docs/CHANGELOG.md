@@ -20,6 +20,8 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
+* [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] The `QuiltConflictException` raised by `Package.push()` now names the destination bucket and package name, and leads with the routes that satisfy the check — re-using the package returned by the previous `push()`, or calling `Package.browse()` (CLI: `quilt3 install`) — before offering `force=True`/`--force` ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 
 ## 8.0.0 - 2026-08-04

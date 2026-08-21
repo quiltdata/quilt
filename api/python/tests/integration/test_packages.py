@@ -31,7 +31,7 @@ from quilt3.backends.local import (
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
 from quilt3.data_transfer import FileChecksumTask
 from quilt3.exceptions import PackageException
-from quilt3.packages import PackageEntry, PackageRevInfo
+from quilt3.packages import PackageEntry
 from quilt3.util import (
     PhysicalKey,
     QuiltConflictException,
@@ -57,30 +57,51 @@ def _mock_copy_file_list(file_list, callback=None, message=None):
 
 @pytest.fixture
 def repush_registry_stub(monkeypatch):
-    """Provide deterministic versioned-registry state for package repush tests."""
-    registry_url = 's3://test-bucket'
-    package_registry = S3PackageRegistryV1(PhysicalKey.from_url(registry_url))
-    remote_latest = {'value': None}
-    published_hashes = []
+    """Provide deterministic versioned-registry state for package repush tests.
 
-    def get_latest_bytes(_physical_key):
-        if remote_latest['value'] is None:
+    Latest pointers and publications are keyed by ``(registry, package name)`` and resolved through
+    each registry's own ``pointer_latest_pk``, so a push that reads or writes the pointer of another
+    package name -- or another registry -- surfaces as a miss instead of being absorbed by one
+    shared slot.
+    """
+    registry_url = 's3://test-bucket'
+    registries = {}
+    remote_latest = {}  # (str(registry.base), name) -> top hash
+    published = []  # (str(registry.base), name, top hash)
+
+    def get_registry(url):
+        key = str(url).rstrip('/')
+        if key not in registries:
+            registries[key] = S3PackageRegistryV1(PhysicalKey.from_url(key))
+        return registries[key]
+
+    def resolve_destination(pointer):
+        for destination in remote_latest:
+            registry_base, name = destination
+            for registry in registries.values():
+                if str(registry.base) == registry_base and pointer == registry.pointer_latest_pk(name):
+                    return destination
+        return None
+
+    def get_latest_bytes(pointer):
+        destination = resolve_destination(pointer)
+        if destination is None:
             raise ClientError(
                 {'Error': {'Code': 'NoSuchKey', 'Message': 'The specified key does not exist.'}},
                 'GetObject',
             )
-        return remote_latest['value'].encode()
+        return remote_latest[destination].encode()
 
-    def push_manifest(_package, _name, _registry, top_hash):
-        published_hashes.append(top_hash)
-        remote_latest['value'] = top_hash
+    def push_manifest(_package, name, registry, top_hash):
+        published.append((str(registry.base), name, top_hash))
+        remote_latest[(str(registry.base), name)] = top_hash
 
-    monkeypatch.setattr('quilt3.packages.get_package_registry', lambda _registry: package_registry)
+    monkeypatch.setattr('quilt3.packages.get_package_registry', get_registry)
     monkeypatch.setattr('quilt3.packages.get_bytes', get_latest_bytes)
     monkeypatch.setattr(Package, '_validate_with_workflow', lambda *args, **kwargs: None)
     monkeypatch.setattr(Package, '_push_manifest', push_manifest)
 
-    return registry_url, package_registry, remote_latest, published_hashes
+    return registry_url, get_registry(registry_url), remote_latest, published
 
 
 def _push_for_repush_test(package, name, registry_url, *, dedupe=False):
@@ -95,190 +116,21 @@ def _push_for_repush_test(package, name, registry_url, *, dedupe=False):
     )
 
 
-def _origin_tuple(package):
-    if package._origin is None:
-        return None
-    return package._origin.registry, package._origin.name, package._origin.top_hash
+def _accepted_revisions(package, name):
+    """Top hashes `package` accepts as the destination's current revision of `name`."""
+    return frozenset(package._parent_top_hashes.get(name, ()))
 
 
-@pytest.mark.parametrize(
-    ('mutation', 'dedupe'),
-    [
-        pytest.param('metadata', False, id='modified-nondedupe'),
-        pytest.param('none', False, id='unmodified-nondedupe'),
-        pytest.param('none', True, id='unmodified-dedupe'),
-    ],
-)
-def test_same_object_repush_bug_condition(repush_registry_stub, mutation, dedupe):
-    """Property 1: same-object linear repush establishes current remote state.
-
-    **Validates: Requirements 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.4, 2.8**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
-    package_name = 'Quilt/test'
-    initiating = Package()
-
-    first_returned = _push_for_repush_test(initiating, package_name, registry_url)
-    first_hash = first_returned.top_hash
-    assert remote_latest['value'] == first_hash
-    assert published_hashes == [first_hash]
-
-    if mutation == 'metadata':
-        initiating.set_meta({'revision': 2})
-
-    expected_candidate = initiating.top_hash
-    initiating_origin_before_repush = _origin_tuple(initiating)
-    publications_before_repush = len(published_hashes)
-
-    try:
-        second_returned = _push_for_repush_test(initiating, package_name, registry_url, dedupe=dedupe)
-    except QuiltConflictException as error:  # pragma: no cover - exercised only on regression
-        expected_hash = None if initiating_origin_before_repush is None else initiating_origin_before_repush[2]
-        diagnostic = str(error)
-        pytest.fail(
-            'Property 1 counterexample: '
-            f'mutation={mutation!r}, dedupe={dedupe!r}, '
-            f'initiating_origin={initiating_origin_before_repush!r} (stale_or_absent=True), '
-            f'actual_remote_hash={remote_latest["value"]!r}, expected_hash={expected_hash!r}, '
-            f'diagnostic={diagnostic!r}, '
-            f'force_guidance={"force=True" in diagnostic and "--force" in diagnostic}, '
-            f'_push_manifest_reached={len(published_hashes) > publications_before_repush}, '
-            'publication_reachable=False',
-        )
-
-    destination_revision = (str(package_registry.base), package_name, remote_latest['value'])
-    assert _origin_tuple(initiating) == destination_revision
-
-    if dedupe:
-        assert second_returned is initiating
-        assert len(published_hashes) == publications_before_repush
-        assert remote_latest['value'] == first_hash == expected_candidate
-    else:
-        assert second_returned is not initiating
-        assert len(published_hashes) == publications_before_repush + 1
-        assert remote_latest['value'] == expected_candidate
-        assert _origin_tuple(second_returned) == destination_revision
+def _destination(package_registry, name):
+    return str(package_registry.base), name
 
 
-def test_returned_object_repush_control(repush_registry_stub):
-    """The returned-package path succeeds and explains the historical coverage gap.
-
-    **Validates: Requirements 1.5, 2.8**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
-    package_name = 'Quilt/test'
-
-    first_returned = _push_for_repush_test(Package(), package_name, registry_url)
-    first_hash = first_returned.top_hash
-    publications_before_repush = len(published_hashes)
-
-    second_returned = _push_for_repush_test(first_returned, package_name, registry_url)
-
-    destination_revision = (str(package_registry.base), package_name, first_hash)
-    assert len(published_hashes) == publications_before_repush + 1
-    assert remote_latest['value'] == first_hash
-    assert _origin_tuple(first_returned) == destination_revision
-    assert _origin_tuple(second_returned) == destination_revision
-
-
-def test_coincident_foreign_origin_does_not_authorize_destination(repush_registry_stub):
-    """A coincident hash from another package name is not destination authority.
-
-    **Validates: Requirements 2.3, 2.4, 2.8**
-    """
-    registry_url, _package_registry, remote_latest, published_hashes = repush_registry_stub
-    foreign_name = 'Quilt/foreign'
-    destination_name = 'Quilt/test'
-
-    foreign_returned = _push_for_repush_test(Package(), foreign_name, registry_url)
-    coincident_hash = foreign_returned.top_hash
-    foreign_origin = _origin_tuple(foreign_returned)
-    publications_before_destination = len(published_hashes)
-
-    try:
-        _push_for_repush_test(foreign_returned, destination_name, registry_url)
-    except QuiltConflictException as error:
-        diagnostic = str(error)
-    else:  # pragma: no cover - exercised only on regression
-        pytest.fail(
-            'Destination-identity counterexample: '
-            f'foreign_origin={foreign_origin!r}, destination_name={destination_name!r}, '
-            f'coincident_remote_hash={coincident_hash!r}, '
-            f'_push_manifest_reached={len(published_hashes) > publications_before_destination}, '
-            f'remote_latest_after_attempt={remote_latest["value"]!r}; '
-            'hash equality incorrectly authorized publication to a different package name',
-        )
-
-    assert remote_latest['value'] == coincident_hash
-    assert len(published_hashes) == publications_before_destination
-    assert _origin_tuple(foreign_returned) == foreign_origin
-    assert coincident_hash in diagnostic
-    assert 'expected None' in diagnostic
-    assert 'force=True' in diagnostic
-    assert '--force' in diagnostic
-
-
-def _local_parent_package(package_name, *, revision=1):
-    """Build the state left behind by ``Package.browse(name, None)`` in ``quilt3 push``.
-
-    The parent revision comes from the *local* registry while the push target is S3.
-    """
-    parent = Package().set_meta({'revision': revision})
-    parent._origin = PackageRevInfo(
-        'file:///home/user/.local/share/Quilt/packages/',
-        package_name,
-        parent.top_hash,
-    )
-    return parent
-
-
-def test_push_accepts_parent_revision_from_another_registry(repush_registry_stub):
-    """A parent revision read from a different registry still authorizes the destination.
-
-    ``quilt3 push`` deliberately bases a remote push on a parent taken from the local
-    registry (#2722), so the remembered revision must not be scoped to the registry it
-    was read from -- only to the package name.
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
-    package_name = 'Quilt/test'
-
-    local_parent = _local_parent_package(package_name)
-    parent_hash = local_parent._origin.top_hash
-    remote_latest['value'] = parent_hash
-
-    local_parent.set_meta({'revision': 2})
-
-    returned = _push_for_repush_test(local_parent, package_name, registry_url)
-
-    candidate_hash = returned.top_hash
-    destination_revision = (str(package_registry.base), package_name, candidate_hash)
-    assert candidate_hash != parent_hash
-    assert published_hashes == [candidate_hash]
-    assert remote_latest['value'] == candidate_hash
-    assert _origin_tuple(local_parent) == destination_revision
-    assert _origin_tuple(returned) == destination_revision
-
-
-def test_push_rejects_stale_parent_revision_from_another_registry(repush_registry_stub):
-    """A cross-registry parent is still checked against the destination's current revision."""
-    registry_url, _package_registry, remote_latest, published_hashes = repush_registry_stub
-    package_name = 'Quilt/test'
-
-    local_parent = _local_parent_package(package_name)
-    parent_hash = local_parent._origin.top_hash
-    interleaved_hash = 'f' * 64
-    remote_latest['value'] = interleaved_hash
-
-    local_parent.set_meta({'revision': 2})
-
-    with pytest.raises(QuiltConflictException) as excinfo:
-        _push_for_repush_test(local_parent, package_name, registry_url)
-
-    diagnostic = str(excinfo.value)
-    assert interleaved_hash in diagnostic
-    assert parent_hash in diagnostic
-    assert not published_hashes
-    assert remote_latest['value'] == interleaved_hash
+def _published_hashes(published, package_registry, name):
+    return [
+        top_hash
+        for registry_base, published_name, top_hash in published
+        if (registry_base, published_name) == _destination(package_registry, name)
+    ]
 
 
 def _push_preservation_scenario(
@@ -302,6 +154,277 @@ def _push_preservation_scenario(
 
 
 @pytest.mark.parametrize(
+    ('mutation', 'dedupe'),
+    [
+        pytest.param('metadata', False, id='modified-nondedupe'),
+        pytest.param('none', False, id='unmodified-nondedupe'),
+        pytest.param('none', True, id='unmodified-dedupe'),
+    ],
+)
+def test_same_object_repush_bug_condition(repush_registry_stub, mutation, dedupe):
+    """Property 1: same-object linear repush establishes current remote state."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/test'
+    destination = _destination(package_registry, package_name)
+    initiating = Package()
+
+    first_returned = _push_for_repush_test(initiating, package_name, registry_url)
+    first_hash = first_returned.top_hash
+    assert remote_latest[destination] == first_hash
+    assert _published_hashes(published, package_registry, package_name) == [first_hash]
+
+    if mutation == 'metadata':
+        initiating.set_meta({'revision': 2})
+
+    expected_candidate = initiating.top_hash
+    accepted_before_repush = _accepted_revisions(initiating, package_name)
+    publications_before_repush = len(published)
+
+    try:
+        second_returned = _push_for_repush_test(initiating, package_name, registry_url, dedupe=dedupe)
+    except QuiltConflictException as error:  # pragma: no cover - exercised only on regression
+        diagnostic = str(error)
+        pytest.fail(
+            'Property 1 counterexample: '
+            f'mutation={mutation!r}, dedupe={dedupe!r}, '
+            f'accepted_revisions={sorted(accepted_before_repush)!r} (stale_or_absent=True), '
+            f'actual_remote_hash={remote_latest[destination]!r}, '
+            f'diagnostic={diagnostic!r}, '
+            f'force_guidance={"force=True" in diagnostic and "--force" in diagnostic}, '
+            f'_push_manifest_reached={len(published) > publications_before_repush}, '
+            'publication_reachable=False',
+        )
+
+    # Both the parent and whatever this push settled on are acceptable from here on.
+    assert _accepted_revisions(initiating, package_name) == {first_hash, remote_latest[destination]}
+
+    if dedupe:
+        assert second_returned is initiating
+        assert len(published) == publications_before_repush
+        assert remote_latest[destination] == first_hash == expected_candidate
+    else:
+        assert second_returned is not initiating
+        assert len(published) == publications_before_repush + 1
+        assert remote_latest[destination] == expected_candidate
+        assert _accepted_revisions(second_returned, package_name) == _accepted_revisions(initiating, package_name)
+
+
+def test_returned_object_repush_control(repush_registry_stub):
+    """The returned-package path succeeds and explains the historical coverage gap."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/test'
+    destination = _destination(package_registry, package_name)
+
+    first_returned = _push_for_repush_test(Package(), package_name, registry_url)
+    first_hash = first_returned.top_hash
+    publications_before_repush = len(published)
+
+    second_returned = _push_for_repush_test(first_returned, package_name, registry_url)
+
+    assert len(published) == publications_before_repush + 1
+    assert remote_latest[destination] == first_hash
+    assert _accepted_revisions(first_returned, package_name) == {first_hash}
+    assert _accepted_revisions(second_returned, package_name) == {first_hash}
+
+
+def test_coincident_foreign_origin_does_not_authorize_destination(repush_registry_stub):
+    """A coincident hash from another package name is not destination authority."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    foreign_name = 'Quilt/foreign'
+    destination_name = 'Quilt/test'
+    destination = _destination(package_registry, destination_name)
+
+    foreign_returned = _push_for_repush_test(Package(), foreign_name, registry_url)
+    coincident_hash = foreign_returned.top_hash
+    foreign_accepted = _accepted_revisions(foreign_returned, foreign_name)
+    # The other name happens to sit at the very same revision. Knowing that hash under
+    # `foreign_name` must not authorize a push to `destination_name`.
+    remote_latest[destination] = coincident_hash
+    publications_before_destination = len(published)
+
+    try:
+        _push_for_repush_test(foreign_returned, destination_name, registry_url)
+    except QuiltConflictException as error:
+        diagnostic = str(error)
+    else:  # pragma: no cover - exercised only on regression
+        pytest.fail(
+            'Destination-identity counterexample: '
+            f'foreign_accepted={sorted(foreign_accepted)!r}, destination_name={destination_name!r}, '
+            f'coincident_remote_hash={coincident_hash!r}, '
+            f'_push_manifest_reached={len(published) > publications_before_destination}, '
+            f'remote_latest_after_attempt={remote_latest[destination]!r}; '
+            'hash equality incorrectly authorized publication to a different package name',
+        )
+
+    assert remote_latest[destination] == coincident_hash
+    assert len(published) == publications_before_destination
+    assert _accepted_revisions(foreign_returned, foreign_name) == foreign_accepted
+    assert _accepted_revisions(foreign_returned, destination_name) == frozenset()
+    assert coincident_hash in diagnostic
+    assert 'expected no revision' in diagnostic
+    assert 'force=True' in diagnostic
+    assert '--force' in diagnostic
+
+
+def _local_parent_package(package_name, *, revision=1):
+    """Build the state left behind by ``Package.browse(name, None)`` in ``quilt3 push``.
+
+    The parent revision comes from the *local* registry while the push target is S3.
+    """
+    parent = Package().set_meta({'revision': revision})
+    parent._record_revision(package_name, parent.top_hash)
+    return parent
+
+
+def test_push_accepts_parent_revision_from_another_registry(repush_registry_stub):
+    """A parent revision read from a different registry still authorizes the destination.
+
+    ``quilt3 push`` deliberately bases a remote push on a parent taken from the local
+    registry (#2722), so the remembered revision must not be scoped to the registry it
+    was read from -- only to the package name.
+    """
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/test'
+    destination = _destination(package_registry, package_name)
+
+    local_parent = _local_parent_package(package_name)
+    (parent_hash,) = _accepted_revisions(local_parent, package_name)
+    remote_latest[destination] = parent_hash
+
+    local_parent.set_meta({'revision': 2})
+
+    returned = _push_for_repush_test(local_parent, package_name, registry_url)
+
+    candidate_hash = returned.top_hash
+    assert candidate_hash != parent_hash
+    assert _published_hashes(published, package_registry, package_name) == [candidate_hash]
+    assert remote_latest[destination] == candidate_hash
+    assert _accepted_revisions(local_parent, package_name) == {parent_hash, candidate_hash}
+    assert _accepted_revisions(returned, package_name) == {parent_hash, candidate_hash}
+
+
+def test_push_rejects_stale_parent_revision_from_another_registry(repush_registry_stub):
+    """A cross-registry parent is still checked against the destination's current revision."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/test'
+    destination = _destination(package_registry, package_name)
+
+    local_parent = _local_parent_package(package_name)
+    (parent_hash,) = _accepted_revisions(local_parent, package_name)
+    interleaved_hash = 'f' * 64
+    remote_latest[destination] = interleaved_hash
+
+    local_parent.set_meta({'revision': 2})
+
+    with pytest.raises(QuiltConflictException) as excinfo:
+        _push_for_repush_test(local_parent, package_name, registry_url)
+
+    diagnostic = str(excinfo.value)
+    assert interleaved_hash in diagnostic
+    assert parent_hash in diagnostic
+    assert not published
+    assert remote_latest[destination] == interleaved_hash
+
+
+def test_push_same_object_to_several_registries(repush_registry_stub):
+    """One object distributes a revision to every mirror that holds the shared parent.
+
+    Mirroring across buckets, and promoting between environments, push the same object to
+    destinations it has never read. Publishing to the first must not turn that publication into a
+    precondition at the rest, which still sit at the parent revision.
+    """
+    _registry_url, _package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/mirrored'
+    mirror_urls = ('s3://mirror-one', 's3://mirror-two', 's3://mirror-three')
+
+    initiating = Package().set_meta({'revision': 1})
+    parent_hash = initiating.top_hash
+    mirrors = {}
+    for mirror_url in mirror_urls:
+        # Every mirror is in sync at the parent revision.
+        mirror_registry = quilt3.packages.get_package_registry(mirror_url)
+        mirrors[mirror_url] = mirror_registry
+        remote_latest[_destination(mirror_registry, package_name)] = parent_hash
+    initiating._record_revision(package_name, parent_hash)
+
+    initiating.set_meta({'revision': 2})
+
+    refused = []
+    candidate_hashes = set()
+    for mirror_url in mirror_urls:
+        try:
+            candidate_hashes.add(_push_for_repush_test(initiating, package_name, mirror_url).top_hash)
+        except QuiltConflictException as error:  # pragma: no cover - exercised only on regression
+            refused.append((mirror_url, str(error)))
+
+    assert not refused, f'{len(refused)} mirror(s) refused the shared parent: {refused}'
+    assert len(candidate_hashes) == 1, 'mirrors received different revisions'
+    (candidate_hash,) = candidate_hashes
+    assert candidate_hash != parent_hash
+    for mirror_url, mirror_registry in mirrors.items():
+        destination = _destination(mirror_registry, package_name)
+        assert remote_latest[destination] == candidate_hash, mirror_url
+        assert _published_hashes(published, mirror_registry, package_name) == [candidate_hash]
+    assert _accepted_revisions(initiating, package_name) == {parent_hash, candidate_hash}
+
+
+def test_repush_accumulates_expected_revisions_per_name(repush_registry_stub):
+    """Accepted revisions accumulate under a name; other names start with none of their own."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    other_registry_url = 's3://second-bucket/'
+    other_registry = quilt3.packages.get_package_registry(other_registry_url)
+    first_name = 'Quilt/first'
+    second_name = 'Quilt/second'
+
+    initiating = Package()
+    initiating.set_meta({'revision': 1})
+    first_revision = _push_for_repush_test(initiating, first_name, registry_url).top_hash
+    initiating.set_meta({'revision': 2})
+    second_revision = _push_for_repush_test(initiating, second_name, registry_url).top_hash
+    initiating.set_meta({'revision': 3})
+    third_revision = _push_for_repush_test(initiating, second_name, other_registry_url).top_hash
+
+    assert len({first_revision, second_revision, third_revision}) == 3
+    # Pushing under `second_name` never widens what is accepted under `first_name`, and the two
+    # revisions published under `second_name` both remain acceptable wherever that name is pushed.
+    assert _accepted_revisions(initiating, first_name) == {first_revision}
+    assert _accepted_revisions(initiating, second_name) == {second_revision, third_revision}
+
+    # The first destination still holds the revision established there, so it is an ordinary
+    # next revision rather than a conflict.
+    publications_before = len(published)
+    initiating.set_meta({'revision': 4})
+    fourth_revision = _push_for_repush_test(initiating, first_name, registry_url).top_hash
+
+    assert len(published) == publications_before + 1
+    assert remote_latest[_destination(package_registry, first_name)] == fourth_revision
+    assert remote_latest[_destination(package_registry, second_name)] == second_revision
+    assert remote_latest[_destination(other_registry, second_name)] == third_revision
+    assert _accepted_revisions(initiating, first_name) == {first_revision, fourth_revision}
+
+
+def test_conflict_message_names_the_safe_routes(repush_registry_stub):
+    """The diagnostic leads with the routes that satisfy the check, not the one that skips it."""
+    registry_url, package_registry, remote_latest, _published = repush_registry_stub
+    package_name = 'Quilt/guidance'
+    interleaved_hash = 'a' * 64
+    remote_latest[_destination(package_registry, package_name)] = interleaved_hash
+
+    with pytest.raises(QuiltConflictException) as excinfo:
+        _push_for_repush_test(Package(), package_name, registry_url)
+
+    diagnostic = str(excinfo.value)
+    assert 're-use the package returned by the previous push()' in diagnostic
+    assert 'Package.browse()' in diagnostic
+    assert 'quilt3 install' in diagnostic
+    # The overwrite escape hatch is offered last, after the routes that satisfy the check.
+    assert diagnostic.index('Package.browse()') < diagnostic.index('force=True')
+    # Bucket and package name are spelled out rather than interpolated as a Python tuple.
+    assert str(package_registry.base) in diagnostic
+    assert repr(_destination(package_registry, package_name)) not in diagnostic
+
+
+@pytest.mark.parametrize(
     'scenario',
     [
         pytest.param('first-push', id='absent-destination'),
@@ -312,105 +435,100 @@ def _push_preservation_scenario(
     ],
 )
 def test_repush_preservation_success_matrix(repush_registry_stub, scenario):
-    """Property 2: non-bug success scenarios preserve existing push contracts.
-
-    **Validates: Requirements 3.1, 3.2, 3.4, 3.5, 3.6**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    """Property 2: non-bug success scenarios preserve existing push contracts."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
     package_name = 'Quilt/preservation'
+    destination = _destination(package_registry, package_name)
+    accepted = set()
 
     if scenario == 'first-push':
         result = _push_preservation_scenario(Package(), package_name, registry_url)
         expected_hash = result.top_hash
-        assert published_hashes == [expected_hash]
+        assert _published_hashes(published, package_registry, package_name) == [expected_hash]
     else:
         current = _push_preservation_scenario(Package(), package_name, registry_url)
         current_hash = current.top_hash
-        publications_before = len(published_hashes)
+        accepted.add(current_hash)
+        publications_before = len(published)
 
         if scenario == 'returned-linear-successor':
             current.set_meta({'revision': 2})
             expected_hash = current.top_hash
             result = _push_preservation_scenario(current, package_name, registry_url)
             assert expected_hash != current_hash
-            assert len(published_hashes) == publications_before + 1
+            assert len(published) == publications_before + 1
         elif scenario == 'equal-hash-dedupe':
             result = _push_preservation_scenario(current, package_name, registry_url, dedupe=True)
             expected_hash = current_hash
             assert result is current
-            assert len(published_hashes) == publications_before
+            assert len(published) == publications_before
         elif scenario == 'unmodified-nondedupe':
             result = _push_preservation_scenario(current, package_name, registry_url)
             expected_hash = current_hash
             assert result is not current
-            assert len(published_hashes) == publications_before + 1
+            assert len(published) == publications_before + 1
         else:
-            remote_latest['value'] = 'f' * 64
+            remote_latest[destination] = 'f' * 64
             current.set_meta({'forced': True})
             expected_hash = current.top_hash
             result = _push_preservation_scenario(current, package_name, registry_url, force=True)
             assert expected_hash not in {current_hash, 'f' * 64}
-            assert len(published_hashes) == publications_before + 1
+            assert len(published) == publications_before + 1
 
-    destination_revision = (str(package_registry.base), package_name, expected_hash)
-    assert remote_latest['value'] == expected_hash
+    accepted.add(expected_hash)
+    assert remote_latest[destination] == expected_hash
     assert result.top_hash == expected_hash
-    assert _origin_tuple(result) == destination_revision
+    assert _accepted_revisions(result, package_name) == accepted
 
 
 def test_repush_preservation_interleaved_conflict(repush_registry_stub):
-    """Property 2: a genuine interleaved writer remains protected.
-
-    **Validates: Requirements 2.5, 2.6, 2.7, 3.3, 3.8**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    """Property 2: a genuine interleaved writer remains protected."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
     package_name = 'Quilt/preservation'
+    destination = _destination(package_registry, package_name)
     initiating = _push_preservation_scenario(Package(), package_name, registry_url)
     expected_hash = initiating.top_hash
-    expected_origin = (str(package_registry.base), package_name, expected_hash)
     initiating.set_meta({'candidate': 2})
     candidate_hash = initiating.top_hash
     actual_hash = 'a' * 64
     assert len({expected_hash, candidate_hash, actual_hash}) == 3
 
-    remote_latest['value'] = actual_hash
-    publications_before = len(published_hashes)
+    remote_latest[destination] = actual_hash
+    publications_before = len(published)
 
     with pytest.raises(QuiltConflictException) as excinfo:
         _push_preservation_scenario(initiating, package_name, registry_url)
 
     diagnostic = str(excinfo.value)
-    assert repr((str(package_registry.base), package_name)) in diagnostic
+    assert str(package_registry.base) in diagnostic
+    assert package_name in diagnostic
     assert actual_hash in diagnostic
     assert expected_hash in diagnostic
     assert 'force=True' in diagnostic
     assert '--force' in diagnostic
-    assert len(published_hashes) == publications_before
-    assert remote_latest['value'] == actual_hash
-    assert _origin_tuple(initiating) == expected_origin
+    assert len(published) == publications_before
+    assert remote_latest[destination] == actual_hash
+    assert _accepted_revisions(initiating, package_name) == {expected_hash}
 
 
 def test_repush_dedupe_rechecks_latest_before_return(repush_registry_stub, monkeypatch):
-    """Dedupe must reject a remote update that lands during transfer and hashing.
-
-    **Validates: Requirements 2.5, 2.6, 2.7, 3.3, 3.8**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    """Dedupe must reject a remote update that lands during transfer and hashing."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
     package_name = 'Quilt/preservation'
+    destination = _destination(package_registry, package_name)
     initiating = _push_preservation_scenario(Package(), package_name, registry_url)
     established_hash = initiating.top_hash
-    established_origin = (str(package_registry.base), package_name, established_hash)
     interleaved_hash = 'a' * 64
     assert interleaved_hash != established_hash
 
-    publications_before = len(published_hashes)
+    publications_before = len(published)
     reads = {'count': 0}
 
     def interleave_before_fresh_read(_physical_key):
         reads['count'] += 1
         if reads['count'] == 1:
             return established_hash.encode()
-        remote_latest['value'] = interleaved_hash
+        remote_latest[destination] = interleaved_hash
         return interleaved_hash.encode()
 
     monkeypatch.setattr('quilt3.packages.get_bytes', interleave_before_fresh_read)
@@ -422,20 +540,48 @@ def test_repush_dedupe_rechecks_latest_before_return(repush_registry_stub, monke
     assert reads['count'] == 2
     assert interleaved_hash in diagnostic
     assert established_hash in diagnostic
-    assert len(published_hashes) == publications_before
-    assert remote_latest['value'] == interleaved_hash
-    assert _origin_tuple(initiating) == established_origin
+    assert len(published) == publications_before
+    assert remote_latest[destination] == interleaved_hash
+    assert _accepted_revisions(initiating, package_name) == {established_hash}
+
+
+def test_repush_dedupe_skip_records_the_revision_it_matched(repush_registry_stub):
+    """A dedupe skip leaves the object able to build on the revision it matched.
+
+    A forced dedupe against a destination the object has never read is the one path that reaches
+    the skip with nothing remembered; without recording there, the next push conflicts.
+    """
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
+    package_name = 'Quilt/dedupe-skip'
+    destination = _destination(package_registry, package_name)
+
+    initiating = Package().set_meta({'revision': 1})
+    # push() stamps the commit message into the package metadata, so the hash it compares against
+    # `latest` is the one this object has after that stamp (see #5186).
+    initiating._set_commit_message(None)
+    established_hash = initiating.top_hash
+    remote_latest[destination] = established_hash
+
+    skipped = _push_preservation_scenario(initiating, package_name, registry_url, force=True, dedupe=True)
+
+    assert skipped is initiating
+    assert not published
+    assert _accepted_revisions(initiating, package_name) == {established_hash}
+
+    initiating.set_meta({'revision': 2})
+    returned = _push_preservation_scenario(initiating, package_name, registry_url)
+
+    assert _published_hashes(published, package_registry, package_name) == [returned.top_hash]
+    assert remote_latest[destination] == returned.top_hash
 
 
 def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, monkeypatch):
-    """Origin advances after publication and survives later display failure.
-
-    **Validates: Requirements 2.3, 2.7, 2.8, 3.8**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    """Accepted revisions advance after publication and survive later display failure."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
     package_name = 'Quilt/publication-boundary'
+    destination = _destination(package_registry, package_name)
     initiating = _push_preservation_scenario(Package(), package_name, registry_url)
-    established_origin = _origin_tuple(initiating)
+    established_hash = initiating.top_hash
     initiating.set_meta({'revision': 2})
     candidate_hash = initiating.top_hash
     published_package = {'value': None}
@@ -445,19 +591,21 @@ def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, mo
         assert name == package_name
         assert registry is package_registry
         assert top_hash == candidate_hash
-        assert _origin_tuple(initiating) == established_origin
-        assert _origin_tuple(remote_package) is None
+        assert _accepted_revisions(initiating, package_name) == {established_hash}
+        assert _accepted_revisions(remote_package, package_name) == frozenset()
         published_package['value'] = remote_package
-        published_hashes.append(top_hash)
-        remote_latest['value'] = top_hash
+        published.append((str(registry.base), name, top_hash))
+        remote_latest[(str(registry.base), name)] = top_hash
 
     def fail_display(name, top_hash):
-        destination_revision = (str(package_registry.base), package_name, candidate_hash)
         assert name == package_name
         assert top_hash == candidate_hash
-        assert remote_latest['value'] == candidate_hash
-        assert _origin_tuple(initiating) == destination_revision
-        assert _origin_tuple(published_package['value']) == destination_revision
+        assert remote_latest[destination] == candidate_hash
+        assert _accepted_revisions(initiating, package_name) == {established_hash, candidate_hash}
+        assert _accepted_revisions(published_package['value'], package_name) == {
+            established_hash,
+            candidate_hash,
+        }
         raise display_failure
 
     monkeypatch.setattr(Package, '_push_manifest', publish_manifest)
@@ -474,107 +622,41 @@ def test_repush_origin_advances_at_publication_boundary(repush_registry_stub, mo
             copy_file_list_fn=_mock_copy_file_list,
         )
 
-    destination_revision = (str(package_registry.base), package_name, candidate_hash)
     assert excinfo.value is display_failure
-    assert remote_latest['value'] == candidate_hash
-    assert published_hashes[-1] == candidate_hash
-    assert _origin_tuple(initiating) == destination_revision
-    assert _origin_tuple(published_package['value']) == destination_revision
+    assert remote_latest[destination] == candidate_hash
+    assert published[-1] == (str(package_registry.base), package_name, candidate_hash)
+    assert _accepted_revisions(initiating, package_name) == {established_hash, candidate_hash}
+    assert _accepted_revisions(published_package['value'], package_name) == {established_hash, candidate_hash}
 
 
-def test_repush_success_replaces_expected_destination_baseline(monkeypatch):
-    """Only the most recently established revision remains expected.
+def test_repush_returned_package_does_not_share_state_with_its_source(repush_registry_stub):
+    """The returned package inherits accepted revisions by copy, so the two do not widen together."""
+    registry_url, package_registry, _remote_latest, _published = repush_registry_stub
+    package_name = 'Quilt/independent'
 
-    A package name for which no revision has been established is expected to be absent,
-    whichever registry it is pushed to.
+    initiating = Package().set_meta({'revision': 1})
+    returned = _push_for_repush_test(initiating, package_name, registry_url)
+    first_hash = returned.top_hash
+    assert _accepted_revisions(returned, package_name) == {first_hash}
 
-    **Validates: Requirements 2.3, 2.5, 2.6, 2.8**
-    """
-    registry_urls = ('s3://first-bucket', 's3://second-bucket/')
-    registries = {
-        registry_url.rstrip('/'): S3PackageRegistryV1(PhysicalKey.from_url(registry_url))
-        for registry_url in registry_urls
-    }
-    destinations = (
-        (registry_urls[0], 'Quilt/first'),
-        (registry_urls[0], 'Quilt/second'),
-        (registry_urls[1], 'Quilt/second'),
-    )
-    remote_latest = {
-        (str(registries[registry_url.rstrip('/')].base), name): None for registry_url, name in destinations
-    }
-    published_destinations = []
+    initiating.set_meta({'revision': 2})
+    second_hash = _push_for_repush_test(initiating, package_name, registry_url).top_hash
 
-    def get_registry(registry_url):
-        return registries[registry_url.rstrip('/')]
-
-    def get_latest_bytes(pointer):
-        for (registry_base, name), latest_hash in remote_latest.items():
-            registry = next(item for item in registries.values() if str(item.base) == registry_base)
-            if pointer == registry.pointer_latest_pk(name):
-                if latest_hash is None:
-                    raise ClientError(
-                        {'Error': {'Code': 'NoSuchKey', 'Message': 'The specified key does not exist.'}},
-                        'GetObject',
-                    )
-                return latest_hash.encode()
-        raise AssertionError(f'Unexpected latest pointer: {pointer}')  # pragma: no cover - defensive guard
-
-    def push_manifest(_package, name, registry, top_hash):
-        destination_revision = (str(registry.base), name, top_hash)
-        published_destinations.append(destination_revision)
-        remote_latest[(str(registry.base), name)] = top_hash
-
-    monkeypatch.setattr('quilt3.packages.get_package_registry', get_registry)
-    monkeypatch.setattr('quilt3.packages.get_bytes', get_latest_bytes)
-    monkeypatch.setattr(Package, '_validate_with_workflow', lambda *args, **kwargs: None)
-    monkeypatch.setattr(Package, '_push_manifest', push_manifest)
-
-    initiating = Package()
-    established_destinations = []
-    for revision, (registry_url, package_name) in enumerate(destinations, start=1):
-        initiating.set_meta({'revision': revision})
-        returned = _push_preservation_scenario(initiating, package_name, registry_url)
-        destination_revision = (
-            str(registries[registry_url.rstrip('/')].base),
-            package_name,
-            returned.top_hash,
-        )
-        established_destinations.append(destination_revision)
-        assert _origin_tuple(initiating) == destination_revision
-        assert _origin_tuple(returned) == destination_revision
-        assert published_destinations[-1] == destination_revision
-
-    assert len({revision[2] for revision in established_destinations}) == len(destinations)
-    assert _origin_tuple(initiating) == established_destinations[-1]
-
-    publications_before_conflict = len(published_destinations)
-    first_registry, first_name = destinations[0]
-    with pytest.raises(QuiltConflictException) as excinfo:
-        _push_preservation_scenario(initiating, first_name, first_registry)
-
-    diagnostic = str(excinfo.value)
-    assert repr(established_destinations[0][:2]) in diagnostic
-    assert established_destinations[0][2] in diagnostic
-    assert 'expected None' in diagnostic
-    assert 'force=True' in diagnostic
-    assert '--force' in diagnostic
-    assert len(published_destinations) == publications_before_conflict
-    assert _origin_tuple(initiating) == established_destinations[-1]
+    assert second_hash != first_hash
+    assert _accepted_revisions(initiating, package_name) == {first_hash, second_hash}
+    assert _accepted_revisions(returned, package_name) == {first_hash}
 
 
 def test_repush_preservation_returned_package_materialization(repush_registry_stub):
-    """Property 2: successful pushes preserve the remote-materialized return contract.
-
-    **Validates: Requirements 3.1, 3.6, 3.7**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    """Property 2: successful pushes preserve the remote-materialized return contract."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
     package_name = 'Quilt/materialized'
+    destination = _destination(package_registry, package_name)
     checksum = 'c' * 64
     source = Package().set('foo', DATA_DIR / 'foo.txt', meta={'role': 'input'}).set_meta({'owner': 'quilt'})
 
     def copy_with_checksum(file_list, callback=None, message=None):
-        return [(destination, checksum) for _source, destination, _size in file_list]
+        return [(destination_key, checksum) for _source, destination_key, _size in file_list]
 
     result = _push_preservation_scenario(
         source,
@@ -584,15 +666,15 @@ def test_repush_preservation_returned_package_materialization(repush_registry_st
     )
 
     expected_physical_key = PhysicalKey.from_url(f'{registry_url}/{package_name}/foo')
-    destination_revision = (str(package_registry.base), package_name, result.top_hash)
     assert result is not source
     assert [logical_key for logical_key, _entry in result.walk()] == ['foo']
     assert result.meta == {'owner': 'quilt'}
     assert result['foo'].meta == {'role': 'input'}
     assert result['foo'].physical_key == expected_physical_key
     assert result['foo'].hash == {'type': checksums.DEFAULT_HASH, 'value': checksum}
-    assert result.top_hash == remote_latest['value'] == published_hashes[-1]
-    assert _origin_tuple(result) == destination_revision
+    assert result.top_hash == remote_latest[destination]
+    assert _published_hashes(published, package_registry, package_name) == [result.top_hash]
+    assert _accepted_revisions(result, package_name) == {result.top_hash}
 
 
 @pytest.mark.parametrize(
@@ -605,10 +687,7 @@ def test_repush_preservation_returned_package_materialization(repush_registry_st
     ],
 )
 def test_repush_preservation_semantic_hashing(mutation, hash_changes):
-    """Property 2: top hashes remain semantic rather than location-dependent.
-
-    **Validates: Requirements 3.7**
-    """
+    """Property 2: top hashes remain semantic rather than location-dependent."""
     base = Package().set('foo', DATA_DIR / 'foo.txt', meta={'kind': 'base'}).set_meta({'revision': 1})
     base._calculate_missing_hashes()
     base_entry = base['foo']
@@ -651,17 +730,14 @@ def test_repush_preservation_semantic_hashing(mutation, hash_changes):
     ],
 )
 def test_repush_preservation_failure_origin_atomicity(repush_registry_stub, monkeypatch, failure_stage):
-    """Property 2: every pre-publication failure preserves complete origin state.
-
-    **Validates: Requirements 2.7, 2.8, 3.8**
-    """
-    registry_url, package_registry, remote_latest, published_hashes = repush_registry_stub
+    """Property 2: every pre-publication failure leaves accepted revisions untouched."""
+    registry_url, package_registry, remote_latest, published = repush_registry_stub
     package_name = 'Quilt/preservation'
+    destination = _destination(package_registry, package_name)
     initiating = _push_preservation_scenario(Package(), package_name, registry_url)
     established_hash = initiating.top_hash
-    established_origin = (str(package_registry.base), package_name, established_hash)
     initiating.set_meta({'candidate': failure_stage})
-    publications_before = len(published_hashes)
+    publications_before = len(published)
     failure = RuntimeError(f'{failure_stage} failure')
     copy_file_list_fn = _mock_copy_file_list
 
@@ -689,8 +765,8 @@ def test_repush_preservation_failure_origin_atomicity(repush_registry_stub, monk
     elif failure_stage == 'manifest-publication':
 
         def fail_publication(remote_package, *_args, **_kwargs):
-            assert _origin_tuple(initiating) == established_origin
-            assert _origin_tuple(remote_package) is None
+            assert _accepted_revisions(initiating, package_name) == {established_hash}
+            assert _accepted_revisions(remote_package, package_name) == frozenset()
             raise failure
 
         monkeypatch.setattr(Package, '_push_manifest', fail_publication)
@@ -706,9 +782,9 @@ def test_repush_preservation_failure_origin_atomicity(repush_registry_stub, monk
         )
 
     assert excinfo.value is failure
-    assert _origin_tuple(initiating) == established_origin
-    assert remote_latest['value'] == established_hash
-    assert len(published_hashes) == publications_before
+    assert _accepted_revisions(initiating, package_name) == {established_hash}
+    assert remote_latest[destination] == established_hash
+    assert len(published) == publications_before
 
 
 class PackageTest(QuiltTestCase):
