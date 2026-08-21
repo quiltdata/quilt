@@ -1,15 +1,19 @@
 {
   "compilerOptions": {
+    // moduleResolution: bundler is required by perspective 3.x (its types are
+    // exposed only via the package `exports` "types" condition). target stays
+    // ES5 (+ downlevelIteration + ignoreDeprecations) — the ES2020 bump is
+    // blocked by aws-sdk v2's ES5 inheritance and is deferred to the v3
+    // migration (qhq-g023).
     "ignoreDeprecations": "6.0",
-    "baseUrl": "./app/",
     "paths": {
-      "*": ["*", "../../shared/*"]
+      "*": ["./app/*", "../shared/*"]
     },
     "sourceMap": true,
     "module": "ESNext",
     "target": "ES5",
     "downlevelIteration": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "jsx": "react",
