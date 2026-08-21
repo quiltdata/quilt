@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { groupForPath, normalizePath, totals, totalsForPath } from './contents'
+import {
+  groupForPath,
+  normalizePath,
+  refusedForPath,
+  totals,
+  totalsForPath,
+} from './contents'
 import type { ContentEntry } from './contents'
 
 /**
@@ -72,7 +78,37 @@ describe('model/DataProducts/contents', () => {
     it('returns an empty level for a prefix absent from this revision', () => {
       // Not an error: a pinned revision may genuinely not contain a path that a
       // later one does, and the UI renders that as an empty folder.
-      expect(groupForPath(ENTRIES, 'nope/')).toEqual({ dirs: [], files: [] })
+      expect(groupForPath(ENTRIES, 'nope/')).toEqual({
+        dirs: [],
+        files: [],
+        shadowed: [],
+      })
+    })
+
+    it('drops a file shadowed by a same-named folder, and says which', () => {
+      // A manifest can legally hold both `raw` (a file) and `raw/a.txt`. Only one
+      // row can carry the name, and `Listing.format` ends in
+      // `uniqBy(prop('name'))` with dirs first -- so the file used to vanish
+      // downstream, silently, while the header still counted it.
+      //
+      // Dropped here instead, so the count and the grid agree, and reported so the
+      // UI can mention an object that exists and cannot be opened.
+      const { dirs, files, shadowed } = groupForPath([
+        { logicalKey: 'raw', sizeBytes: 500 },
+        { logicalKey: 'raw/a.txt', sizeBytes: 10 },
+      ])
+      expect(dirs.map((d) => d.prefix)).toEqual(['raw/'])
+      expect(files).toEqual([])
+      expect(shadowed).toEqual(['raw'])
+    })
+
+    it('treats a directory marker as a directory, not a file', () => {
+      // An explicit `raw/` key is not an object in `raw/`. Counting it as one made
+      // the two total functions disagree about one manifest: the root said 2 files,
+      // `raw/` said 1.
+      const e = [{ logicalKey: 'raw/' }, { logicalKey: 'raw/a.txt', sizeBytes: 1 }]
+      expect(totals(e).fileCount).toBe(1)
+      expect(totalsForPath(e, 'raw/').fileCount).toBe(1)
     })
 
     it('ignores a key equal to the prefix rather than showing a nameless row', () => {
@@ -136,6 +172,38 @@ describe('model/DataProducts/contents', () => {
         'raw/',
       )
       expect(t.fileCount).toBe(1)
+    })
+  })
+
+  describe('refusedForPath', () => {
+    it('counts refusals recursively, matching how files are counted', () => {
+      // The mismatch this fixes: files counted recursively while refusals counted
+      // only direct children, so a directory whose three nested objects were all
+      // refused read "4 files" with no refusal notice at all.
+      const e = [
+        { logicalKey: 'raw/plate_1/a.tiff', readable: false },
+        { logicalKey: 'raw/plate_1/b.tiff', readable: false },
+        { logicalKey: 'raw/plate_1/c.tiff', readable: false },
+        { logicalKey: 'raw/top.txt', readable: true },
+      ]
+      expect(totalsForPath(e, 'raw/').fileCount).toBe(4)
+      expect(refusedForPath(e, 'raw/')).toBe(3)
+    })
+
+    it('scopes to the directory on screen', () => {
+      const e = [
+        { logicalKey: 'a/secret.txt', readable: false },
+        { logicalKey: 'b/open.txt', readable: true },
+      ]
+      expect(refusedForPath(e, 'b/')).toBe(0)
+      expect(refusedForPath(e, 'a/')).toBe(1)
+      expect(refusedForPath(e, '')).toBe(1)
+    })
+
+    it('treats an absent readable flag as readable, not refused', () => {
+      // `readable` is optional; absent means the adapter said nothing. Counting
+      // silence as a refusal would invent a denial.
+      expect(refusedForPath([{ logicalKey: 'a.txt' }], '')).toBe(0)
     })
   })
 

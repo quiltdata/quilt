@@ -257,17 +257,26 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
   // to ask an admin about a stale URL.
   const emptyHere = !grouped.dirs.length && !grouped.files.length
 
-  // Scoped to the current directory, for the same reason the totals are: a count
-  // of refusals elsewhere in the package is not a fact about what is on screen.
+  // Recursive over the same prefix as `here`, and that pairing is the fix. These
+  // were mismatched: files counted recursively while refusals counted only direct
+  // children, so a directory whose three nested objects were all refused read
+  // "4 files" with no refusal notice. A UI premised on not misreporting access
+  // cannot have its access count disagree with the file count beside it.
   //
   // A plain expression rather than a useMemo -- it sits after the early returns
   // above, and a hook there would change hook order between renders.
-  const refused = grouped.files.filter((e) => e.readable === false).length
+  const refused = DP.refusedForPath(entries, path)
 
-  // Resolved against the listing rather than trusted from the URL, so a stale or
-  // hand-edited link opens nothing instead of rendering a file view for a key
-  // this revision does not contain.
-  const openEntry = openKey ? entries.find((e) => e.logicalKey === openKey) : undefined
+  // Resolved against the *current directory*, not the whole member, so the open
+  // file always belongs to the listing above it.
+  //
+  // The comment here used to claim "against the listing" while the code searched
+  // `entries`. A stale link like `?dir=raw/plate_2/&file=raw/plate_10/A01.tiff`
+  // therefore rendered plate_2's listing with a plate_10 file open beneath it, and
+  // a reader would reasonably attribute the file to the directory shown above it.
+  const openEntry = openKey
+    ? grouped.files.find((e) => e.logicalKey === openKey)
+    : undefined
 
   return (
     <div className={classes.root}>
@@ -290,6 +299,14 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
           {/* Stated rather than shown by dimming a row: state is never signalled
               by color alone. */}
           {refused > 0 && ` · ${refused} not readable by you`}
+          {/* An object that exists and cannot be opened gets a line rather than
+              silence. A manifest may legally hold both `raw` (a file) and
+              `raw/a.txt`; only one row can carry the name, so the file is
+              unreachable here -- but it is in the package, and a reader comparing
+              this listing against the manifest deserves to know why it is absent
+              rather than concluding the listing is wrong. */}
+          {grouped.shadowed.length > 0 &&
+            ` · ${grouped.shadowed.length} hidden by a same-named folder`}
         </div>
       </div>
 
@@ -304,12 +321,19 @@ function Browser({ product, member, path, onNavigate, onOpen, openKey }: Browser
           CellComponent={CellComponent}
           RootComponent="div"
           onReload={() => {}}
-          // `!== undefined` rather than truthiness, which is not pedantry: a
-          // 0-byte file has a *known* size of zero, and `!f.sizeBytes` treated it
-          // as unreported -- hiding the column on a directory whose sizes we
-          // actually know. Scoped to the current directory for the same reason as
-          // the totals.
-          hideSize={!grouped.files.some((f) => f.sizeBytes !== undefined)}
+          // Two corrections in one predicate, both of which hid sizes we knew.
+          //
+          // `!== undefined` rather than truthiness: a 0-byte file has a *known*
+          // size of zero, and `!f.sizeBytes` treated it as unreported.
+          //
+          // And dirs count too. Checking only `files` hid the column on every
+          // intermediate directory of a nested package -- `raw/` holding only
+          // subdirectories has no files at all, while its dir rows carry real
+          // summed sizes.
+          hideSize={
+            !grouped.files.some((f) => f.sizeBytes !== undefined) &&
+            !grouped.dirs.some((d) => d.sizeBytes !== undefined)
+          }
         />
       )}
 

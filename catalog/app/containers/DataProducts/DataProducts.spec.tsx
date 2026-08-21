@@ -290,6 +290,32 @@ describe('containers/DataProducts', () => {
       expect(getByText(/Nothing at this path in this revision/)).toBeTruthy()
     })
 
+    it('keeps the size column on a directory holding only folders', () => {
+      // `raw/` contains only subdirectories, so there are no *file* rows -- but the
+      // folder rows carry real summed sizes. The old predicate checked only files,
+      // so it hid the column on every intermediate directory of a nested package,
+      // withholding sizes the manifest had reported.
+      //
+      // Written because mutation-testing found this fix uncovered: reverting it
+      // failed nothing.
+      const { getByText, container } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=raw%2F`,
+      )
+      expect(getByText('plate_2')).toBeTruthy()
+      expect(container.textContent).toMatch(/Size/)
+    })
+
+    it('agrees between the file count and the refusal count', () => {
+      // These were mismatched: files counted recursively, refusals only at the
+      // level. A directory whose nested objects were all refused read as fully
+      // readable. `derived/` holds one refused file, so both must see it.
+      const { getByText } = mount(
+        `${dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv')}?member=alpha%2Fhome&dir=derived%2F`,
+      )
+      expect(getByText(/^1 file · /)).toBeTruthy()
+      expect(getByText(/1 not readable by you/)).toBeTruthy()
+    })
+
     it('keeps the size column for a zero-byte file', () => {
       // Zero is a KNOWN size, not a missing one. The old check was
       // `!f.sizeBytes`, which is true for 0 -- so a directory whose only file was
