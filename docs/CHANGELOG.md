@@ -16,6 +16,16 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Added] `quilt3.graphql.execute()` for running arbitrary GraphQL queries and mutations against the registry
+
+### CLI
+
+* [Added] `quilt3 graphql` for running arbitrary GraphQL queries and mutations against the registry
+
 ## 8.0.0 - 2026-08-04
 
 ### Python API
