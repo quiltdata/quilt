@@ -25,6 +25,7 @@ Entries inside each section should be ordered by type:
 * [Changed] `Package` no longer carries a `_origin` attribute or a `PackageRevInfo` class; the revision a package was read from or has published is tracked internally per package name. `Package.push()` returns the package it published, so `result.top_hash` is the published revision ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Changed] `Package.push(force=True, dedupe=True)` re-reads the destination before accepting an equal-hash match, so a revision published by another writer during transfer is overwritten rather than reported as a skip ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Fixed] `Package.browse()` and `Package.install()` now recompute the manifest's top hash and raise `PackageException` when it does not match the revision that was resolved, instead of returning a package whose contents disagree with the hash it was pinned to. A cached manifest that fails the check is evicted, and a freshly downloaded one is verified before it is written into the manifest cache ([#5184](https://github.com/quiltdata/quilt/pull/5184))
 
 ## 8.0.0 - 2026-08-04
 
