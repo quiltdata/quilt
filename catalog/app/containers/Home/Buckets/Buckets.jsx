@@ -587,6 +587,26 @@ export default function Buckets() {
   return (
     <M.Container maxWidth={false} disableGutters className={classes.container}>
       <div className={classes.wrapper} ref={scrollRef}>
+        {/* The page's h1, sized as an h5 -- same treatment FrontDoor's greeting
+            uses, per DESIGN.md's No-Display-Font Rule (nothing outranks a
+            Headline). The predecessor heading here was a `variant="h1"` display
+            size on the old marketing-style landing; it does not come back at
+            that weight.
+
+            `data-testid` is the end-to-end canaries' "login landed" signal
+            (quiltdata/e2e `shared/auth.ts`, `waitForHomePage`). They used to key
+            off the literal string "Explore your buckets" and went red the moment
+            it was dropped. The same hook is on FrontDoor's h1, so the check holds
+            whichever side of the `front-door` flag a stack is on, and the visible
+            words stay free to change. */}
+        <M.Typography
+          variant="h5"
+          component="h1"
+          color="textPrimary"
+          data-testid="landing-heading"
+        >
+          Volumes
+        </M.Typography>
         <div className={classes.filterRow}>
           <M.TextField
             className={classes.filter}
