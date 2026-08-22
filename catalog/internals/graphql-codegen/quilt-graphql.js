@@ -84,7 +84,6 @@ async function operationPlugin(schema, documents, config, info) {
 
   return {
     prepend: [
-      '/* eslint-disable @typescript-eslint/naming-convention */',
       ...(tsOpsResult.prepend || []),
       ...(typedDocumentNodeResult.prepend || []),
     ],
@@ -133,4 +132,9 @@ async function buildGeneratesSection(options) {
   ]
 }
 
-module.exports = { plugin, preset: { buildGeneratesSection } }
+// codegen v7 loads this module via ESM import(); `preset` must be a module-level
+// binding (not an inline object) so cjs-module-lexer exposes it as a named export
+// for the cli's getPresetByName, which reads `.preset`.
+const preset = { buildGeneratesSection }
+
+module.exports = { plugin, preset }

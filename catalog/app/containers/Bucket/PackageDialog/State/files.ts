@@ -127,6 +127,8 @@ function filesStateToEntries(files: FI.FilesState): readonly ValidationEntry[] {
   )
 }
 
+// XXX: an unloaded manifest is indistinguishable from an empty one here, and this list is
+// sent as a complete replacement — so useParams refuses to publish in that state.
 function mergeFiles(manifest: ManifestStatus, files?: Partial<FI.FilesState>) {
   const existing =
     manifest._tag === 'ready' ? manifest.manifest?.entries || EMPTY_FILES : EMPTY_FILES

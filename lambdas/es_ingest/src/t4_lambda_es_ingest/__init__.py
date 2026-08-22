@@ -1,3 +1,4 @@
+import collections
 import json
 import os
 import random
@@ -38,7 +39,10 @@ def bulk(context, es, data: bytes):
     try:
         resp = es.bulk(
             data,
-            filter_path="errors",
+            # Return per-item errors so failures can be diagnosed. Successful
+            # items have no `error` field, so they're pruned from the response,
+            # keeping the (common) no-error case compact.
+            filter_path="errors,items.*.error",
             # wait as much as possible because it's better die trying than just die
             # leave a second to avoid lambda timeout
             request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
@@ -65,9 +69,33 @@ def bulk(context, es, data: bytes):
         logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
         time.sleep(time_to_sleep)
     if resp["errors"]:
-        # TODO: log errors from items.*.error?
+        # Aggregate by error: failures are usually systematic (e.g. one bad
+        # mapping affecting many documents), so this keeps the logs and message
+        # compact in the common case.
+        failures = collections.Counter(
+            (op, error.get("type"), error.get("reason"))
+            for item in resp.get("items", [])
+            for op, details in item.items()
+            if (error := details.get("error"))
+        )
+        if failures:
+            for (op, error_type, reason), count in failures.items():
+                # %r so a user-controlled `reason` (ES echoes field names/values)
+                # can't forge log lines via embedded newlines.
+                logger.error("Bulk %s failed (x%s): %r: %r", op, count, error_type, reason)
+            detail = (
+                f"{failures.total()} document(s) failed in bulk request "
+                f"({len(failures)} distinct error(s))"
+            )
+        else:
+            # `errors` is set but no per-item error details came back. This
+            # shouldn't happen for ES 6.8 (failed items always carry an `error`),
+            # but log the raw response so the failure stays diagnosable instead
+            # of raising with no detail.
+            logger.error("Bulk reported errors but no per-item error details were found: %s", resp)
+            detail = "bulk reported errors but no per-item error details were found"
         # TODO: ignore index_not_found_exception for delete operations?
-        raise BulkDocumentError
+        raise BulkDocumentError(detail)
 
 
 def handler(event, context):
@@ -84,5 +112,11 @@ def handler(event, context):
         params["VersionId"] = version_id
 
     data = s3_client.get_object(**params)["Body"].read()
-    bulk(context, es, data)
+    try:
+        bulk(context, es, data)
+    except BulkDocumentError:
+        # Surface which batch failed. The object isn't deleted (below), so it
+        # stays in S3 for retry/DLQ and can be fetched for inspection.
+        logger.error("Bulk indexing failed for s3://%s/%s", bucket, key)
+        raise
     s3_client.delete_object(**params)

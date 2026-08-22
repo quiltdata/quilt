@@ -82,6 +82,11 @@ export interface ColumnUserMeta {
   tag: ColumnTag.UserMeta
   filter: JSONPointer.Pointer
   predicateType: SearchUIModel.KnownPredicate['_tag']
+  // Whether ES can sort this pointer, from the facet's authoritative `sortable`
+  // signal. Distinct from predicateType: a high-cardinality keyword renders as
+  // a Text facet (predicateType 'Text') but is sortable. The per-column sort
+  // affordance gates on this, not on predicateType — see Table/sort.ts.
+  sortable: boolean
   state: ColumnState
   title: string
 }
@@ -89,11 +94,13 @@ export interface ColumnUserMeta {
 export const ColumnUserMetaCreate = (
   filter: string,
   predicateType: SearchUIModel.KnownPredicate['_tag'],
+  sortable: boolean,
   state?: ColumnState,
 ): ColumnUserMeta => ({
   tag: ColumnTag.UserMeta,
   filter,
   predicateType,
+  sortable,
   state: ColumnStateCreate(state),
   title: filter.replace(/^\//, ''),
 })
@@ -151,9 +158,10 @@ export function useColumns(hiddenColumns: HiddenColumns, bucket?: string) {
     (
       filter: string,
       predicateType: SearchUIModel.KnownPredicate['_tag'],
+      sortable: boolean,
       inferred: boolean,
     ): ColumnUserMeta =>
-      ColumnUserMetaCreate(filter, predicateType, {
+      ColumnUserMetaCreate(filter, predicateType, sortable, {
         filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
         visible: !hiddenColumns.has(filter),
         inferred,
@@ -168,8 +176,14 @@ export function useColumns(hiddenColumns: HiddenColumns, bucket?: string) {
 
     const systemMeta = AVAILABLE_PACKAGES_FILTERS.map(createSystemMetaColumn)
 
+    // Selected filters carry a predicate, not a facet, so there's no
+    // authoritative `sortable` to read. Derive it from the predicate type: only
+    // 'Text' is unsortable, which matches the pre-decoupling gate exactly (the
+    // demoted-keyword-as-Text case only arises for inferred facets, handled
+    // below with the real signal).
     const selectedUserMeta = Array.from(state.userMetaFilters.filters.entries()).map(
-      ([filter, predicate]) => createUserMetaColumn(filter, predicate._tag, false),
+      ([filter, predicate]) =>
+        createUserMetaColumn(filter, predicate._tag, predicate._tag !== 'Text', false),
     )
 
     const columns = [...fixed, ...systemMeta, ...selectedUserMeta]
@@ -182,10 +196,11 @@ export function useColumns(hiddenColumns: HiddenColumns, bucket?: string) {
       return { columns: columnsToMap(columns), notReady: inferredFacets }
     }
 
-    const inferredUserMeta = Array.from(inferredFacets).map(([filter, predicateType]) =>
+    const inferredUserMeta = Array.from(inferredFacets).map(([filter, facet]) =>
       createUserMetaColumn(
         filter,
-        SearchUIModel.PackageUserMetaFacetMap[predicateType],
+        SearchUIModel.PackageUserMetaFacetMap[facet.typename],
+        facet.sortable,
         true,
       ),
     )

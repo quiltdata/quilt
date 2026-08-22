@@ -283,3 +283,36 @@ class TestBucket(QuiltTestCase):
 
         with pytest.raises(ValueError):
             bucket.delete_dir('dir')
+
+    def test_remote_delete_dir_with_directory_marker(self):
+        # 'dir/sub/' is a zero-byte placeholder object, listed like any other key.
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'IsTruncated': False,
+                'Contents': [{'Key': 'dir/sub/'}, {'Key': 'dir/a'}],
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': 'dir/',
+            },
+        )
+        for key in ('dir/sub/', 'dir/a'):
+            self.s3_stubber.add_response(
+                method='head_object',
+                service_response={},
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': key,
+                },
+            )
+            self.s3_stubber.add_response(
+                method='delete_object',
+                service_response={},
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': key,
+                },
+            )
+
+        Bucket('s3://test-bucket').delete_dir('dir/')

@@ -52,21 +52,20 @@ const makeContextStub = (): {
 })
 
 /**
- * LLM stub — `converse` returns the provided response. The deferred
- * lets tests notice when the LLM was actually invoked. The only stable
- * shape we need from the response is `content: Option.Option<[]>` and
- * the BedrockRuntime envelope — we minimally satisfy both with `[]`.
+ * LLM stub — `converse` signals via the deferred that it was invoked, then
+ * suspends. A real `converse` is an async round-trip, so the conversation
+ * stays in `WaitingForAssistant` (an observable state) for the duration. If
+ * the stub returned synchronously instead, the actor would fall straight back
+ * to Idle and effect's scheduler would coalesce the transient
+ * `WaitingForAssistant` out of `state.changes` before any observer saw it.
+ * Tests that need the response delivered gate their own stub (see below).
  */
-const makeLLMStub = (next: Eff.Deferred.Deferred<unknown>): LLM.LLM['Type'] => ({
+const makeLLMStub = (called: Eff.Deferred.Deferred<unknown>): LLM.LLM['Type'] => ({
   converse: () =>
     Eff.Effect.gen(function* () {
-      yield* Eff.Deferred.succeed(next, undefined)
-      return {
-        // Force at least one content block so the actor doesn't error;
-        // empty content array is the simplest valid shape.
-        content: Eff.Option.some([]),
-        backendResponse: {} as never,
-      }
+      yield* Eff.Deferred.succeed(called, undefined)
+      yield* Eff.Effect.never
+      return { content: Eff.Option.some([]), backendResponse: {} as never }
     }),
 })
 
@@ -302,6 +301,7 @@ describe('Conversation actor — connector gating', () => {
         Eff.Effect.gen(function* () {
           const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
           const executorRan = yield* Eff.Deferred.make<void>()
+          const responded = yield* Eff.Ref.make(false)
 
           const connectorTool: Tool.Descriptor<Record<string, unknown>> = {
             schema: {} as Eff.JSONSchema.JsonSchema7Root,
@@ -324,15 +324,24 @@ describe('Conversation actor — connector gating', () => {
           }
           const llm: LLM.LLM['Type'] = {
             converse: () =>
-              Eff.Effect.succeed({
-                content: Eff.Option.some([
-                  Content.ResponseMessageContentBlock.ToolUse({
-                    toolUseId: 'tu1',
-                    name: 'c1__t1',
-                    input: {},
-                  }),
-                ]),
-                backendResponse: {} as never,
+              Eff.Effect.gen(function* () {
+                // Issue the tool-use once. On the follow-up round (after the
+                // ToolResult) respond with no tools so the conversation
+                // settles, instead of looping converse → ToolUse → converse
+                // forever.
+                if (yield* Eff.Ref.getAndSet(responded, true)) {
+                  return { content: Eff.Option.some([]), backendResponse: {} as never }
+                }
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'tu1',
+                      name: 'c1__t1',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
               }),
           }
           const layer = Eff.Layer.mergeAll(

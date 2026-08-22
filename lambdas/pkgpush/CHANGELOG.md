@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Read the published revision off the package `_push()` returns instead of its private `_origin` bookkeeping, which quilt3 8 removes ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 - [Changed] Switch to uv ([#4649](https://github.com/quiltdata/quilt/pull/4649))
 - [Changed] Upgrade to Python 3.13 ([#4649](https://github.com/quiltdata/quilt/pull/4649))
 - [Added] CRC64NVME checksum support with priority-based multi-algorithm selection and optimized precomputed checksum retrieval ([#4625](https://github.com/quiltdata/quilt/pull/4625))

@@ -1,11 +1,13 @@
 import invariant from 'invariant'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 
 import * as Bookmarks from 'containers/Bookmarks'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 import DeleteDialog, { type DeleteResult } from 'containers/Bucket/Toolbar/DeleteDialog'
 import * as FileEditor from 'components/FileEditor'
 import * as Dialogs from 'utils/Dialogs'
+import parseSearch from 'utils/parseSearch'
 
 interface OrganizeState {
   toggleBookmark: () => void
@@ -44,6 +46,8 @@ function OrganizeProvider({
 }: OrganizeProviderProps) {
   const bookmarks = Bookmarks.use()
   const dialogs = Dialogs.use()
+  const location = RRDom.useLocation()
+  const versionPinned = !!parseSearch(location.search).version
 
   invariant(editorState, '`editorState` should be provided')
 
@@ -66,13 +70,13 @@ function OrganizeProvider({
 
   const confirmDelete = React.useCallback(async () => {
     const result = await dialogs.open<DeleteResult>(({ close }) => (
-      <DeleteDialog handles={[handle]} close={close} />
+      <DeleteDialog handles={[handle]} close={close} versionPinned={versionPinned} />
     ))
 
     if (result.deleted) {
       onReload()
     }
-  }, [dialogs, handle, onReload])
+  }, [dialogs, handle, onReload, versionPinned])
 
   const actions = React.useMemo(
     (): OrganizeState => ({

@@ -109,6 +109,15 @@ If either of the above conditions fails, Quilt will not add the bucket in questi
 
 See [S3 Events, EventBridge](../EventBridge.md) for more.
 
+### Stack-managed bucket protections
+
+Manual bucket-management operations on stack-managed S3 buckets are denied by
+bucket policy. All configuration changes to a stack-managed bucket — including
+notifications, policies, and lifecycle rules — must go through CloudFormation
+rather than the S3 console, CLI, or API. This keeps each bucket's
+configuration in sync with the stack template and prevents drift that could
+break indexing or event delivery.
+
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links

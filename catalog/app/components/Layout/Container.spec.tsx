@@ -42,15 +42,14 @@ describe('components/Layout/Container', () => {
     window.removeEventListener('error', errorHandler)
   })
 
-  it('has restricted width by default', () => {
+  it('is full width by default', () => {
     const { container } = render(
       <FullWidthProvider>
         <EmptyContainer />
       </FullWidthProvider>,
     )
     const element = container.firstChild as HTMLElement
-    expect(element.className).toContain('maxWidthLg')
-    expect(element.className).not.toContain('fullWidth')
+    expect(element.className).not.toContain('maxWidthLg')
   })
 
   it('has full width once set', () => {

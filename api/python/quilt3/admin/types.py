@@ -56,7 +56,7 @@ class UnmanagedRole:
     typename__: T.Literal["UnmanagedRole"]
 
 
-Role = T.Union[ManagedRole, UnmanagedRole]
+Role = ManagedRole | UnmanagedRole
 AnnotatedRole = T.Annotated[Role, pydantic.Field(discriminator="typename__")]
 _role_adapter = pydantic.TypeAdapter(AnnotatedRole)
 
@@ -89,7 +89,7 @@ class User:
     is_admin: bool
     is_sso_only: bool
     is_service: bool
-    role: T.Optional[AnnotatedRole]
+    role: AnnotatedRole | None
     extra_roles: list[AnnotatedRole]
 
     @classmethod
@@ -118,15 +118,15 @@ class TabulatorTable:
 class Bucket:
     name: str
     title: str
-    icon_url: T.Optional[str]
-    description: T.Optional[str]
-    overview_url: T.Optional[str]
-    tags: T.Optional[list[str]]
+    icon_url: str | None
+    description: str | None
+    overview_url: str | None
+    tags: list[str] | None
     relevance_score: int
-    last_indexed: T.Optional[datetime]
-    sns_notification_arn: T.Optional[str]
-    scanner_parallel_shards_depth: T.Optional[int]
-    skip_meta_data_indexing: T.Optional[bool]
-    file_extensions_to_index: T.Optional[list[str]]
-    index_content_bytes: T.Optional[int]
+    last_indexed: datetime | None
+    sns_notification_arn: str | None
+    scanner_parallel_shards_depth: int | None
+    skip_meta_data_indexing: bool | None
+    file_extensions_to_index: list[str] | None
+    index_content_bytes: int | None
     prefixes: list[str]

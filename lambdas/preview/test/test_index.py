@@ -2,7 +2,6 @@
 Test functions for preview endpoint
 """
 import json
-import math
 import os
 import re
 from pathlib import Path
@@ -246,7 +245,8 @@ class TestIndex:
             '<span class="p">'
         ) in body_html, 'Last cell output missing'
 
-    @patch('t4_lambda_preview.LAMBDA_MAX_OUT', 89_322)
+    # well below the fixture size so the gate fires regardless of its exact bytes
+    @patch('t4_lambda_preview.LAMBDA_MAX_OUT', 40_000)
     @responses.activate
     def test_ipynb_chop(self):
         """test that we eliminate output cells when we're in danger of breaking
@@ -262,8 +262,14 @@ class TestIndex:
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
-        # isclose bc string sizes differ, e.g. on Linux
-        assert math.isclose(len(body_html), 18084, abs_tol=300), "Hmm, didn't chop nb_1200727.ipynb"
+        # Assert the exclusion behavior, not an exact HTML length: nbconvert/pygments markup
+        # drifts across versions. This warning is emitted only on the size-triggered path.
+        assert body['info'].get('warnings') == "Omitted cell outputs to reduce notebook size", \
+            'size gate should have set the exclude_output warning'
+        # Match the output data, not nbconvert's <pre> wrapper, else a wrapper change makes
+        # `not in` pass vacuously. This list-repr is unique to cell 3's output.
+        assert "['SEE', 'SE', 'SHW', 'SIG'," not in body_html, 'output cell should have been omitted'
+        assert 'SVD of Minute-Market-Data' in body_html, 'code/markdown cells should remain'
 
     @responses.activate
     def test_ipynb_exclude(self):
@@ -292,7 +298,9 @@ class TestIndex:
         # check for some strings we know should be in there
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
-        assert "<pre>['SEE', 'SE', 'SHW', 'SIG'," not in body_html, \
+        # match the output data, not the <pre> wrapper, so `not in` can't pass vacuously
+        # (see test_ipynb_chop)
+        assert "['SEE', 'SE', 'SHW', 'SIG'," not in body_html, \
             'Unexpected output cell; exclude_output:true was given'
         assert (
             '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'

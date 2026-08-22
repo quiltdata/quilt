@@ -7,7 +7,7 @@
 
 - [ ] Unit tests
 - [ ] Security: Confirm that this change meets security best practices and does not violate the security model
-- [ ] Open and Embed: Confirm that this change doesn't break Open variant and Embed widget
+- [ ] Open: Confirm that this change doesn't break the Open variant
 - [ ] Documentation
     - [ ] run `optipng` on any new PNGs
     - [ ] [Python: Run `build.py`](../tree/master/gendocs/build.py) for new docstrings

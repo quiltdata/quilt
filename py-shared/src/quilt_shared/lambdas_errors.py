@@ -7,7 +7,7 @@ if T.TYPE_CHECKING:
 
 
 class LambdaError(Exception):
-    def __init__(self, name: str, context: T.Optional[dict] = None):
+    def __init__(self, name: str, context: dict | None = None):
         super().__init__(name, context)
         self.name = name
         self.context = context

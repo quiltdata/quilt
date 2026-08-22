@@ -1,19 +1,20 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageDialog_gql_PackageExistsQueryVariables =
-  Types.Exact<{
-    bucket: Types.Scalars['String']
-    name: Types.Scalars['String']
-  }>
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+export type containers_Bucket_PackageDialog_gql_PackageExistsQueryVariables = Exact<{
+  bucket: string
+  name: string
+}>
 
-export type containers_Bucket_PackageDialog_gql_PackageExistsQuery = {
+export interface containers_Bucket_PackageDialog_gql_PackageExistsQuery {
   readonly __typename: 'Query'
-} & {
-  readonly package: Types.Maybe<
-    { readonly __typename: 'Package' } & Pick<Types.Package, 'name'>
-  >
+  readonly package: { readonly __typename: 'Package'; readonly name: string } | null
 }
 
 export const containers_Bucket_PackageDialog_gql_PackageExistsDocument = {

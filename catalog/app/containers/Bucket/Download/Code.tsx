@@ -1,12 +1,13 @@
-import hljs from 'highlight.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
 import * as Notifications from 'containers/Notifications'
 import copyToClipboard from 'utils/clipboard'
+import HljsBoundary from 'utils/HljsBoundary'
+import hljs, { RegisteredLanguage, ensureLanguages } from 'utils/hljs'
 
-function highlight(str: string, lang?: string) {
+function highlight(str: string, lang?: RegisteredLanguage) {
   if (lang && hljs.getLanguage(lang)) {
     try {
       const { value } = hljs.highlight(str, { language: lang })
@@ -21,8 +22,27 @@ function highlight(str: string, lang?: string) {
 
 interface LineOfCodeProps {
   className: string
-  hl: string
+  hl: RegisteredLanguage
   line: string
+}
+
+function CodeLines({
+  lines,
+  hl,
+  className,
+}: {
+  lines: string[]
+  hl: RegisteredLanguage
+  className: string
+}) {
+  ensureLanguages([hl])
+  return (
+    <>
+      {lines.map((line, index) => (
+        <LineOfCode className={className} hl={hl} key={`${line}_${index}`} line={line} />
+      ))}
+    </>
+  )
 }
 
 const LineOfCode = React.memo(({ line, hl, className }: LineOfCodeProps) => {
@@ -70,7 +90,7 @@ interface CodeProps {
   lines: string[]
   className: string
   help: string
-  hl: string
+  hl: RegisteredLanguage
   label: string
 }
 
@@ -99,14 +119,19 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
             <Icons.FileCopy fontSize="inherit" />
           </M.IconButton>
         </div>
-        {lines.map((line, index) => (
-          <LineOfCode
-            className={classes.line}
-            hl={hl}
-            key={`${line}_${index}`}
-            line={line}
-          />
-        ))}
+        <HljsBoundary
+          fallback={
+            <>
+              {lines.map((line, index) => (
+                <p className={classes.line} key={`${line}_${index}`}>
+                  {line}
+                </p>
+              ))}
+            </>
+          }
+        >
+          <CodeLines className={classes.line} hl={hl} lines={lines} />
+        </HljsBoundary>
       </div>
     </div>
   )
