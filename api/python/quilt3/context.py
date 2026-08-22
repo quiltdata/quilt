@@ -69,38 +69,70 @@ def _check_mergeable(meta, namespace):
         )
 
 
+def _quilt_catalog_confirmed():
+    """
+    True only when the currently configured registry has its own auth-token
+    entry in the auth store.
+
+    This is deliberately narrower than `logged_in()`: `logged_in()` also
+    returns truthy when an API key is set, regardless of which registry that
+    key is for, and `_load_credentials()` is a single global cache with no
+    record of which catalog issued it. Neither, alone, proves that the AWS
+    credentials backing the current session were issued by the catalog
+    `logged_in()` currently reports — e.g. a user who logs into catalog A,
+    then switches to catalog B via `quilt3.config()` and authenticates there
+    with an API key (which never touches the credentials cache), would still
+    have catalog A's cached AWS credentials on disk. Requiring a token
+    entry for the *current* registry specifically confirms that a real
+    catalog login happened for the registry now configured, closing the
+    common versions of that gap using only existing session state.
+    """
+    return session.get_registry_url() in session._load_auth()
+
+
 def collect():
     """
     Collect Quilt-observed context, resolving identity and time exactly once.
 
     Identity comes from STS `get_caller_identity()` on Quilt's effective Boto3
     session (`get_boto3_session(fallback=True)`). `authentication.type` is
-    derived from the credentials that actually produced that session: it is
-    `quilt-catalog` only when cached Quilt credentials exist, otherwise `aws` —
-    never from `logged_in()` alone, and never from the STS ARN.
+    `quilt-catalog` only when both cached Quilt credentials exist and the
+    currently configured registry is independently confirmed as logged in
+    (see `_quilt_catalog_confirmed`); otherwise `aws`. A catalog is never
+    reported without also being the reason `authentication.type` is
+    `quilt-catalog` (and vice versa), so the two invariants required by the
+    companion Agent Context schema — `catalog` present iff
+    `type == "quilt-catalog"` — always hold.
 
     Raises:
-        QuiltException: when STS identity cannot be resolved. The underlying
-            exception is chained as the cause; its text is not repeated in the
-            message so credential material cannot leak into it.
+        QuiltException: when STS identity cannot be resolved. The exception
+            resolving STS is not chained onto it (neither as `__cause__` nor
+            as the implicit `__context__`), so its text — which may contain
+            credential material — cannot reach a traceback, log, or error
+            reporter walking either chain.
     """
     import quilt3
 
     timestamp = _utc_now().strftime(_TIMESTAMP_FORMAT)
     quilt_credentials_cached = bool(session._load_credentials())
+
+    sts_failure = None
+    identity = None
     try:
         identity = session.get_boto3_session(fallback=True).client("sts").get_caller_identity()
     except Exception as ex:
-        raise QuiltException(
+        sts_failure = QuiltException(
             "Failed to resolve AWS identity for Quilt context "
             f"(STS get_caller_identity raised {type(ex).__name__}); nothing was pushed."
-        ) from ex
+        )
+    if sts_failure is not None:
+        raise sts_failure
 
-    authentication = {"type": "quilt-catalog" if quilt_credentials_cached else "aws"}
-    if quilt_credentials_cached:
-        catalog = session.logged_in()
-        if catalog is not None:
-            authentication["catalog"] = catalog
+    catalog = session.logged_in() if quilt_credentials_cached and _quilt_catalog_confirmed() else None
+    is_quilt_catalog = catalog is not None
+    authentication = {"type": "quilt-catalog"} if is_quilt_catalog else {"type": "aws"}
+    if is_quilt_catalog:
+        authentication["catalog"] = catalog
 
     return {
         "version": CONTEXT_VERSION,

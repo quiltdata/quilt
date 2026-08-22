@@ -232,6 +232,36 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     )
 
 
+def _normalize_embed_quilt_context_ordering(argv):
+    """
+    Work around an inherent argparse ambiguity for `push --embed-quilt-context`.
+
+    NAMESPACE is optional (`nargs="?"`), which is required so a bare
+    `--embed-quilt-context` means `"context"`. But that also means argparse
+    cannot tell a bare flag apart from one immediately followed by the
+    positional package NAME: given `--embed-quilt-context NAME`, it always
+    consumes NAME as NAMESPACE, leaving the required `name` positional
+    unfilled.
+
+    A valid NAMESPACE can never contain '/' (it must match
+    `^[a-z][a-z0-9_-]*$`), while a valid package NAME always does
+    (`USER/PKG`), so the two token classes are distinguishable. If the token
+    right after a bare `--embed-quilt-context` contains '/', it cannot be a
+    namespace — move the flag past it so argparse sees it as bare (using
+    `const="context"`) and matches NAME normally. The `--embed-quilt-context=
+    NAMESPACE` form is already unambiguous regardless of position and is
+    left untouched.
+    """
+    argv = list(argv)
+    try:
+        i = argv.index('--embed-quilt-context')
+    except ValueError:
+        return argv
+    if i + 1 < len(argv) and not argv[i + 1].startswith('-') and '/' in argv[i + 1]:
+        argv.append(argv.pop(i))
+    return argv
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -473,12 +503,8 @@ def create_parser():
             Embed Quilt-observed commit context (STS principal, authentication
             path, client version, UTC timestamp) into package metadata at
             NAMESPACE.quilt before validation and top-hash calculation.
-            NAMESPACE defaults to 'context'. Because NAMESPACE is optional,
-            argparse cannot tell it apart from the positional NAME that
-            immediately follows it on the command line, and will consume
-            NAME as NAMESPACE instead: place NAME before this flag, e.g.
-            'quilt3 push --dir DIR NAME --embed-quilt-context', or use
-            --embed-quilt-context=NAMESPACE.
+            NAMESPACE defaults to 'context'; use --embed-quilt-context=
+            NAMESPACE to set an explicit one.
             """,
         nargs="?",
         const="context",
@@ -517,8 +543,10 @@ def create_parser():
 
 
 def main(args=None):
+    argv = sys.argv[1:] if args is None else list(args)
+    argv = _normalize_embed_quilt_context_ordering(argv)
     parser = create_parser()
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv)
 
     kwargs = vars(args)
     func = kwargs.pop('func')

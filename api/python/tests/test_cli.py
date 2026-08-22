@@ -241,25 +241,28 @@ def test_push_embed_quilt_context(flag, expected_namespace):
         )
 
 
-def test_push_embed_quilt_context_bare_flag_before_name_fails(capsys):
-    # Documents a known argparse limitation called out in the flag's help text:
-    # nargs="?" cannot distinguish a following NAMESPACE from the positional NAME,
-    # so a bare flag placed before NAME consumes NAME as NAMESPACE instead, leaving
-    # the required `name` positional unfilled.
+def test_push_embed_quilt_context_bare_flag_before_name():
+    # nargs="?" alone can't distinguish a following NAMESPACE from the positional
+    # NAME, so main._normalize_embed_quilt_context_ordering reorders argv first:
+    # this ordering must actually work, not just be documented as unsafe.
     name = 'test/name'
     dir_path = 'test/dir/path'
 
     with patch_package_class as mocked_package_class:
-        with pytest.raises(SystemExit):
-            main.main(('push', '--dir', dir_path, '--embed-quilt-context', name))
-        mocked_package_class.assert_not_called()
-        captured = capsys.readouterr()
-        assert 'the following arguments are required: name' in captured.err
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+
+        main.main(('push', '--dir', dir_path, '--embed-quilt-context', name))
+
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_quilt_context.assert_called_once_with('context')
+        mocked_package.push.assert_called_once_with(
+            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
+        )
 
 
 def test_push_embed_quilt_context_equals_form_before_name():
-    # The --flag=NAMESPACE form is unambiguous regardless of position, unlike the
-    # bare flag (see test above), and is the documented alternative.
+    # The --flag=NAMESPACE form is unambiguous regardless of position and needs
+    # no reordering.
     name = 'test/name'
     dir_path = 'test/dir/path'
 
@@ -270,6 +273,46 @@ def test_push_embed_quilt_context_equals_form_before_name():
 
         mocked_package = mocked_package_class.return_value
         mocked_package.set_quilt_context.assert_called_once_with('provenance')
+
+
+class NormalizeEmbedQuiltContextOrderingTest(CommandLineTestCase):
+    normalize = staticmethod(main._normalize_embed_quilt_context_ordering)
+
+    def test_bare_flag_before_name_moves_flag_after(self):
+        # A namespace can never contain '/' (^[a-z][a-z0-9_-]*$), while a
+        # package NAME always does (USER/PKG), so this token can only be NAME.
+        argv = ['push', '--dir', 'd', '--embed-quilt-context', 'test/name']
+        assert self.normalize(argv) == ['push', '--dir', 'd', 'test/name', '--embed-quilt-context']
+
+    def test_bare_flag_before_real_namespace_left_alone(self):
+        # No '/' in the following token: it's a legitimate NAMESPACE value,
+        # not NAME, so argparse's normal nargs="?" consumption is correct.
+        argv = ['push', '--dir', 'd', '--embed-quilt-context', 'provenance', 'test/name']
+        assert self.normalize(argv) == argv
+
+    def test_bare_flag_already_after_name_is_a_no_op(self):
+        argv = ['push', '--dir', 'd', 'test/name', '--embed-quilt-context']
+        assert self.normalize(argv) == argv
+
+    def test_bare_flag_at_end_of_argv_is_a_no_op(self):
+        argv = ['push', '--embed-quilt-context']
+        assert self.normalize(argv) == argv
+
+    def test_bare_flag_before_another_option_is_a_no_op(self):
+        # Argparse already handles this correctly on its own (nargs="?"
+        # skips consuming a token that looks like another option).
+        argv = ['push', '--embed-quilt-context', '--force', 'test/name']
+        assert self.normalize(argv) == argv
+
+    def test_equals_form_is_a_no_op(self):
+        # A different literal token ('--embed-quilt-context=provenance'), so
+        # it's never matched at all; it was already unambiguous.
+        argv = ['push', '--embed-quilt-context=provenance', 'test/name']
+        assert self.normalize(argv) == argv
+
+    def test_flag_absent_is_a_no_op(self):
+        argv = ['push', '--dir', 'd', 'test/name']
+        assert self.normalize(argv) == argv
 
 
 def test_push_no_copy():

@@ -35,18 +35,29 @@ FAKE_QUILT_CREDENTIALS = {
 }
 
 
+CURRENT_REGISTRY_URL = "https://registry.example.com"  # matches QuiltTestCase.setUp's registryUrl
+
+
 @contextlib.contextmanager
 def mock_quilt_context(
     *,
     credentials=None,
     logged_in_url=None,
+    registry_confirmed=True,
     identity=STS_IDENTITY,
     sts_error=None,
     now=FIXED_NOW,
 ):
     """
     Patch the clock, the Quilt credential cache, the effective Boto3 session,
-    and the catalog login lookup, so no test needs network or live credentials.
+    the catalog login lookup, and the auth store, so no test needs network or
+    live credentials.
+
+    `registry_confirmed` controls whether the *currently configured* registry
+    has its own auth-store entry (see `context._quilt_catalog_confirmed`):
+    defaults to True so tests not specifically about that distinction don't
+    need to think about it, while `credentials=` alone still governs whether
+    any Quilt credentials are cached at all.
     """
     sts_client = mock.Mock(name="sts_client")
     if sts_error is None:
@@ -56,12 +67,16 @@ def mock_quilt_context(
     boto_session = mock.Mock(name="boto3_session")
     boto_session.client.return_value = sts_client
 
+    auth_store = {CURRENT_REGISTRY_URL: {"access_token": "fake"}} if registry_confirmed else {}
+
     clock = mock.patch.object(quilt_context, "_utc_now", return_value=now)
     with (
         clock if now is not None else contextlib.nullcontext(),
         mock.patch.object(quilt3.session, "_load_credentials", return_value=credentials or {}),
         mock.patch.object(quilt3.session, "get_boto3_session", return_value=boto_session) as get_boto3_session_mock,
         mock.patch.object(quilt3.session, "logged_in", return_value=logged_in_url),
+        mock.patch.object(quilt3.session, "get_registry_url", return_value=CURRENT_REGISTRY_URL),
+        mock.patch.object(quilt3.session, "_load_auth", return_value=auth_store),
     ):
         yield SimpleNamespace(get_boto3_session=get_boto3_session_mock, sts_client=sts_client)
 
@@ -217,6 +232,44 @@ class QuiltContextTest(QuiltTestCase):
                     pkg.set_quilt_context()
                 assert pkg.meta["context"]["quilt"]["authentication"] == {"type": "aws"}
 
+    # 11a. Cached Quilt credentials alone are not enough: unless the
+    # *currently configured* registry has its own auth-store entry, the
+    # cached AWS credentials cannot be proven to have come from the catalog
+    # logged_in() reports (e.g. they could be stale from a different catalog
+    # the caller switched away from via quilt3.config(), while now
+    # authenticated to the new one only via an API key, which never touches
+    # the credentials cache). Recording quilt-catalog in that case would be a
+    # durable, wrong provenance claim, so it must fall back to aws.
+    def test_unconfirmed_registry_records_aws_despite_cached_credentials(self):
+        pkg = Package()
+        with mock_quilt_context(
+            credentials=FAKE_QUILT_CREDENTIALS, logged_in_url=CATALOG_URL, registry_confirmed=False
+        ):
+            pkg.set_quilt_context()
+        assert pkg.meta["context"]["quilt"]["authentication"] == {"type": "aws"}
+
+    # 11b. authentication never mixes the two shapes: quilt-catalog always
+    # carries catalog, and aws never does — matching the companion Agent
+    # Context schema's authentication oneOf.
+    def test_authentication_shape_is_never_mixed(self):
+        cases = [
+            dict(credentials={}, logged_in_url=None, registry_confirmed=False),
+            dict(credentials={}, logged_in_url=CATALOG_URL, registry_confirmed=True),
+            dict(credentials=FAKE_QUILT_CREDENTIALS, logged_in_url=None, registry_confirmed=True),
+            dict(credentials=FAKE_QUILT_CREDENTIALS, logged_in_url=CATALOG_URL, registry_confirmed=False),
+            dict(credentials=FAKE_QUILT_CREDENTIALS, logged_in_url=CATALOG_URL, registry_confirmed=True),
+        ]
+        for kwargs in cases:
+            with self.subTest(**kwargs):
+                pkg = Package()
+                with mock_quilt_context(**kwargs):
+                    pkg.set_quilt_context()
+                auth = pkg.meta["context"]["quilt"]["authentication"]
+                if auth["type"] == "quilt-catalog":
+                    assert auth.keys() == {"type", "catalog"}
+                else:
+                    assert auth.keys() == {"type"}
+
     # 12. Mocked STS values map exactly to account, arn, and user_id.
     def test_sts_fields_map_exactly(self):
         identity = {
@@ -259,6 +312,11 @@ class QuiltContextTest(QuiltTestCase):
         push_mock.assert_not_called()
         assert pkg.meta == {}
         assert "identity" in str(raised.exception).lower()
+        # Not chained at all, so nothing walking __cause__ or the implicit
+        # __context__ (tracebacks, logger.exception, error reporters) can
+        # reach the original STS exception's text.
+        assert raised.exception.__cause__ is None
+        assert raised.exception.__context__ is None
 
     # 15. Identical bytes with different embedded context produce different top hashes.
     def test_different_context_different_top_hash(self):
@@ -315,11 +373,16 @@ class QuiltContextTest(QuiltTestCase):
             assert secret not in serialized
 
         # Even when the underlying STS error itself carries credential
-        # material, the QuiltException message must not repeat it.
+        # material, it must not be reachable at all: not in the message, not
+        # as __cause__, and not as the implicit __context__ either — the
+        # latter is what a bare `from ex` would still leak (traceback
+        # printers, logger.exception(), and error reporters all walk it),
+        # even though str() of the outer exception stays clean.
         sts_error = Exception(f"rejected credentials {' '.join(secrets)}")
         with mock_quilt_context(credentials=FAKE_QUILT_CREDENTIALS, sts_error=sts_error):
             with self.assertRaises(QuiltException) as raised:
                 Package().set_quilt_context()
-        assert raised.exception.__cause__ is sts_error
+        assert raised.exception.__cause__ is None
+        assert raised.exception.__context__ is None
         for secret in secrets:
             assert secret not in str(raised.exception)
