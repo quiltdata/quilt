@@ -208,7 +208,7 @@ export function Error({
       case 'syntax':
         return (
           <>
-            Oops, couldn&apos;t parse that search.
+            The search cluster couldn&apos;t parse that query.
             <br />
             Try quoting{' '}
             <StyledLink onClick={() => onRefine(Refine.Search)}>
@@ -224,7 +224,7 @@ export function Error({
       case 'timeout':
         return (
           <>
-            Oops, the search cluster seems stressed.
+            The search cluster is under load and didn&apos;t answer in time.
             <br />
             <StyledLink onClick={() => onRefine(Refine.Network)}>
               Try again
@@ -236,7 +236,7 @@ export function Error({
       case 'unexpected':
         return (
           <>
-            Oops, something went wrong.
+            The search request failed for an unexpected reason.
             <br />
             <StyledLink onClick={() => onRefine(Refine.Network)}>
               Try again
@@ -252,7 +252,8 @@ export function Error({
 
   return (
     <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">{heading}</M.Typography>
+      {/* Headline, not Display (No-Display-Font Rule) -- matches Empty. */}
+      <M.Typography variant="h5">{heading}</M.Typography>
       <M.Typography variant="body1" align="center" className={classes.body}>
         {body}
       </M.Typography>

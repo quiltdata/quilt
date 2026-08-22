@@ -19,7 +19,7 @@ export default function MoreButton({ reverse, ...props }: MoreButtonProps) {
       size="small"
       {...props}
     >
-      <span className={classes.title}>{reverse ? 'Less filters' : 'More filters'}</span>
+      <span className={classes.title}>{reverse ? 'Fewer filters' : 'More filters'}</span>
     </M.Button>
   )
 }

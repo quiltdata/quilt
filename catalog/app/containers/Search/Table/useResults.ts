@@ -132,12 +132,26 @@ function parseFirstResults(
         case 'OperationError':
           return { _tag: 'fail' as const, error: { _tag: 'data', error: query.data } }
         case 'PackagesSearchResultSet':
-          const { hits, ...data } = query.data.firstPage
-          return {
-            _tag: 'ok' as const,
-            hits: hits.length ? hits.map(parseHit) : [null],
-            determinate: query.data.total > -1, // `-1` == secure search
-            ...data,
+          // firstPage is a union: an unsupported sort is rejected as
+          // InvalidInput, a backend failure as OperationError
+          // (d-unsupported-error). Route those through the `data` error tag.
+          const firstPage = query.data.firstPage
+          switch (firstPage.__typename) {
+            case 'InvalidInput':
+              const [fpError] = firstPage.errors
+              return { _tag: 'fail' as const, error: { _tag: 'data', error: fpError } }
+            case 'OperationError':
+              return { _tag: 'fail' as const, error: { _tag: 'data', error: firstPage } }
+            case 'PackagesSearchResultSetPage':
+              const { hits, ...data } = firstPage
+              return {
+                _tag: 'ok' as const,
+                hits: hits.length ? hits.map(parseHit) : [null],
+                determinate: query.data.total > -1, // `-1` == secure search
+                ...data,
+              }
+            default:
+              return assertNever(firstPage)
           }
         case 'ObjectsSearchResultSet':
           return {

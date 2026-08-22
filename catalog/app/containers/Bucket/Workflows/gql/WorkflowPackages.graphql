@@ -3,18 +3,21 @@ query ($buckets: [String!]!, $filter: PackagesSearchFilter!) {
     __typename
     ... on PackagesSearchResultSet {
       total
-      firstPage(size: 6, order: NEWEST) {
-        hits {
-          __typename
-          id
-          bucket
-          size
-          modified
-          name
-          hash
-          comment
-          meta
-          workflow
+      firstPage(size: 6, ordering: "sys:modified:desc") {
+        __typename
+        ... on PackagesSearchResultSetPage {
+          hits {
+            __typename
+            id
+            bucket
+            size
+            modified
+            name
+            hash
+            comment
+            meta
+            workflow
+          }
         }
       }
     }

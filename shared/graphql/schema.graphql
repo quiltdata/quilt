@@ -11,10 +11,47 @@ scalar PackageContentsFlatMap
 # bucket + key + version (aka physical key)
 scalar S3ObjectLocation
 
-enum SortDirection {
-  ASC
-  DESC
-}
+"""
+A package ordering expression (packages `firstPage(ordering:)`). Nullable: null
+or absent = relevance (_score). Otherwise one expression, no combinations:
+
+    expression := system | usermeta
+    system     := "sys:" field ":" dir
+    usermeta   := "usr:" pointer ":" type ":" dir
+
+    field      := "name" | "modified" | "size" | "entries" | "hash"
+                | "workflow" | "comment"
+    pointer    := a JSON pointer (RFC 6901), e.g. /experiment/date
+    type       := "number" | "datetime" | "keyword" | "text" | "boolean"
+    dir        := "asc" | "desc"
+
+`type` names a FACET type, not a raw storage type — the registry maps it to the
+stored subfield privately. `text` is contingent best-effort: it sorts a pointer's
+keyword-backed storage and is rejected (as unsupported) when only analyzed text
+is stored.
+
+The prefix is `usr:` (not `user:`). `usr:` is parsed RIGHT-anchored — a JSON
+pointer may itself contain `:`, so the last two `:`-segments are the type and
+dir, and everything between `usr:` and `:<type>:<dir>` is the pointer, verbatim.
+`sys:` is a closed field set, parsed left-to-right. All tokens are lowercase and
+exact: no trimming, no aliases, no case-folding. A non-string wire value (a
+mistyped variable or inline literal) is unparseable.
+
+Examples: `sys:modified:desc` · `sys:name:asc` · `usr:/experiment/date:datetime:asc`
+· null (relevance).
+
+Two rejection classes, both surfaced as the typed InvalidInput arm of
+PackagesFirstPageResult (never a GraphQLError, never a silent _score fallback):
+  - unparseable — fails the grammar (bad prefix, wrong arity, unknown
+    field/type/dir, non-lowercase, non-string); name `ordering`, message quotes
+    the grammar;
+  - unsupported — well-formed but unhonorable: `comment` (no keyword subfield
+    yet), a `text` pointer with no keyword-backed storage, or a TYPE MISMATCH
+    where the type's mapped storage type is not among the pointer's indexed
+    stored types (membership-validated against the facet mapping, never
+    inferred); name `UnsupportedSort`, message states the reason.
+"""
+scalar PackageOrdering
 
 enum APIKeyStatus {
   ACTIVE
@@ -376,29 +413,40 @@ type KeywordExtents {
 
 interface IPackageUserMetaFacet {
   path: String!
+  """
+  Whether ES can sort on this pointer's stored subfield. Independent of the
+  concrete facet type: a high-cardinality keyword is rendered as a
+  TextPackageUserMetaFacet (no bounded value picker) yet is `sortable: true`.
+  """
+  sortable: Boolean!
 }
 
 type NumberPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: NumberExtents!
 }
 
 type DatetimePackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: DatetimeExtents!
 }
 
 type KeywordPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: KeywordExtents!
 }
 
 type TextPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
 }
 
 type BooleanPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
 }
 
 union PackageUserMetaFacet =
@@ -504,7 +552,16 @@ type PackagesSearchResultSet {
   total: Int!
   stats: PackagesSearchStats!
   filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
-  firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
+  # `ordering` is a PackageOrdering wire expression (see that scalar for the
+  # grammar); null or absent = relevance (_score).
+  #
+  # Returns a union rather than the bare page: an `ordering` that is unparseable
+  # (fails the grammar) or unsupported (well-formed but a type mismatch against
+  # the pointer's stored types) is rejected as the typed InvalidInput arm, and a
+  # backend timeout as OperationError. A concrete non-null page has no error arm
+  # — returning an error object down it renders an empty page and 500s on `hits`
+  # (d-unsupported-error / qhq-obs.217).
+  firstPage(size: Int = 30, ordering: PackageOrdering): PackagesFirstPageResult!
 }
 
 type EmptySearchResultSet {
@@ -514,6 +571,8 @@ type EmptySearchResultSet {
 union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
 
 union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
+
+union PackagesFirstPageResult = PackagesSearchResultSetPage | InvalidInput | OperationError
 
 union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput | OperationError
 

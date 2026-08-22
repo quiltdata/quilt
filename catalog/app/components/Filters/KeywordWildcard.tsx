@@ -7,7 +7,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   hintIcon: {
     color: t.palette.divider,
-    fontSize: '1rem',
+    fontSize: t.typography.body1.fontSize,
     marginLeft: '4px',
     verticalAlign: '-4px',
     '&:hover': {

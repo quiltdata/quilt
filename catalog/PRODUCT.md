@@ -1,9 +1,5 @@
 # Product
 
-## Register
-
-product
-
 ## Platform
 
 web

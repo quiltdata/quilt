@@ -18,7 +18,7 @@ const useAvatarStyles = M.makeStyles((t) => ({
     return {
       backgroundColor,
       color,
-      fontSize: '13px',
+      fontSize: t.typography.caption.fontSize,
       height: '24px',
       textTransform: 'uppercase',
       width: '24px',

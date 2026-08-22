@@ -4,19 +4,12 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type SearchResultOrder =
-  | 'BEST_MATCH'
-  | 'LEX_ASC'
-  | 'LEX_DESC'
-  | 'NEWEST'
-  | 'OLDEST'
-
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type containers_Bucket_Overview_gql_RecentPackagesQueryVariables = Exact<{
   buckets: ReadonlyArray<string> | null | undefined
-  order: Types.SearchResultOrder | null | undefined
+  ordering: string | null | undefined
 }>
 
 export interface containers_Bucket_Overview_gql_RecentPackagesQuery {
@@ -34,19 +27,22 @@ export interface containers_Bucket_Overview_gql_RecentPackagesQuery {
     | {
         readonly __typename: 'PackagesSearchResultSet'
         readonly total: number
-        readonly firstPage: {
-          readonly __typename: 'PackagesSearchResultSetPage'
-          readonly hits: ReadonlyArray<{
-            readonly __typename: 'SearchHitPackage'
-            readonly id: string
-            readonly bucket: string
-            readonly name: string
-            readonly pointer: string
-            readonly hash: string
-            readonly size: number
-            readonly modified: Date
-          }>
-        }
+        readonly firstPage:
+          | { readonly __typename: 'InvalidInput' }
+          | { readonly __typename: 'OperationError' }
+          | {
+              readonly __typename: 'PackagesSearchResultSetPage'
+              readonly hits: ReadonlyArray<{
+                readonly __typename: 'SearchHitPackage'
+                readonly id: string
+                readonly bucket: string
+                readonly name: string
+                readonly pointer: string
+                readonly hash: string
+                readonly size: number
+                readonly modified: Date
+              }>
+            }
       }
 }
 
@@ -71,8 +67,8 @@ export const containers_Bucket_Overview_gql_RecentPackagesDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'ordering' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'PackageOrdering' } },
         },
       ],
       selectionSet: {
@@ -113,10 +109,10 @@ export const containers_Bucket_Overview_gql_RecentPackagesDocument = {
                         arguments: [
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
+                            name: { kind: 'Name', value: 'ordering' },
                             value: {
                               kind: 'Variable',
-                              name: { kind: 'Name', value: 'order' },
+                              name: { kind: 'Name', value: 'ordering' },
                             },
                           },
                         ],
@@ -125,34 +121,56 @@ export const containers_Bucket_Overview_gql_RecentPackagesDocument = {
                           selections: [
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'hits' },
+                              name: { kind: 'Name', value: '__typename' },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: {
+                                  kind: 'Name',
+                                  value: 'PackagesSearchResultSetPage',
+                                },
+                              },
                               selectionSet: {
                                 kind: 'SelectionSet',
                                 selections: [
-                                  { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'bucket' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'name' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'pointer' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'hash' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'size' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'modified' },
+                                    name: { kind: 'Name', value: 'hits' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'id' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'bucket' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'pointer' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'hash' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'size' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'modified' },
+                                        },
+                                      ],
+                                    },
                                   },
                                 ],
                               },

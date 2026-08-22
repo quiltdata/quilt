@@ -48,6 +48,7 @@ export default defineConfig({
       constants: path.resolve(__dirname, './app/constants'),
       schemas: path.resolve(__dirname, '../shared/schemas'),
       model: path.resolve(__dirname, './app/model'),
+      website: path.resolve(__dirname, './app/website'),
     },
   },
 })
