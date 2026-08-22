@@ -474,9 +474,11 @@ def create_parser():
             path, client version, UTC timestamp) into package metadata at
             NAMESPACE.quilt before validation and top-hash calculation.
             NAMESPACE defaults to 'context'. Because NAMESPACE is optional,
-            a bare --embed-quilt-context immediately followed by NAME on the
-            command line consumes NAME as NAMESPACE instead: place NAME
-            before this flag, or use --embed-quilt-context=NAMESPACE.
+            argparse cannot tell it apart from the positional NAME that
+            immediately follows it on the command line, and will consume
+            NAME as NAMESPACE instead: place NAME before this flag, e.g.
+            'quilt3 push --dir DIR NAME --embed-quilt-context', or use
+            --embed-quilt-context=NAMESPACE.
             """,
         nargs="?",
         const="context",

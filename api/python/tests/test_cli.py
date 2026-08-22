@@ -241,6 +241,37 @@ def test_push_embed_quilt_context(flag, expected_namespace):
         )
 
 
+def test_push_embed_quilt_context_bare_flag_before_name_fails(capsys):
+    # Documents a known argparse limitation called out in the flag's help text:
+    # nargs="?" cannot distinguish a following NAMESPACE from the positional NAME,
+    # so a bare flag placed before NAME consumes NAME as NAMESPACE instead, leaving
+    # the required `name` positional unfilled.
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        with pytest.raises(SystemExit):
+            main.main(('push', '--dir', dir_path, '--embed-quilt-context', name))
+        mocked_package_class.assert_not_called()
+        captured = capsys.readouterr()
+        assert 'the following arguments are required: name' in captured.err
+
+
+def test_push_embed_quilt_context_equals_form_before_name():
+    # The --flag=NAMESPACE form is unambiguous regardless of position, unlike the
+    # bare flag (see test above), and is the documented alternative.
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+
+        main.main(('push', '--dir', dir_path, '--embed-quilt-context=provenance', name))
+
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_quilt_context.assert_called_once_with('provenance')
+
+
 def test_push_no_copy():
     name = 'test/name'
     dir_path = 's3://test/dir/path'
