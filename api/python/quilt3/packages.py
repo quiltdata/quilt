@@ -1016,7 +1016,7 @@ class Package:
                 `<namespace>.quilt` already exists; also when the STS
                 identity cannot be resolved.
         """
-        return self.set_meta(quilt_context.embed_quilt_context(self.meta, namespace))
+        return self.set_meta(quilt_context.merge_quilt_context(self.meta, namespace))
 
     def _calculate_missing_hashes(self):
         """

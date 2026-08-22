@@ -473,7 +473,10 @@ def create_parser():
             Embed Quilt-observed commit context (STS principal, authentication
             path, client version, UTC timestamp) into package metadata at
             NAMESPACE.quilt before validation and top-hash calculation.
-            NAMESPACE defaults to 'context'.
+            NAMESPACE defaults to 'context'. Because NAMESPACE is optional,
+            a bare --embed-quilt-context immediately followed by NAME on the
+            command line consumes NAME as NAMESPACE instead: place NAME
+            before this flag, or use --embed-quilt-context=NAMESPACE.
             """,
         nargs="?",
         const="context",

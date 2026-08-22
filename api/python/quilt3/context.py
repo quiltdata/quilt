@@ -46,7 +46,7 @@ def validate_namespace(namespace):
         )
 
 
-def _check_embeddable(meta, namespace):
+def _check_mergeable(meta, namespace):
     """
     Validate that `meta` can accept Quilt context at `<namespace>.quilt`.
 
@@ -115,13 +115,13 @@ def collect():
     }
 
 
-def embed_quilt_context(meta, namespace="context"):
+def merge_quilt_context(meta, namespace="context"):
     """
-    Return a new metadata dict with collected Quilt context at `<namespace>.quilt`.
-
-    Treats missing metadata (`None`) as an empty object, copies before
-    modifying (the caller's dict is never mutated), and preserves every
-    existing top-level key and every existing sibling inside the namespace.
+    Return a new metadata dict with collected Quilt context merged in at
+    `<namespace>.quilt`, per the merge rules: missing metadata (`None`) is
+    treated as an empty object, the caller's dict is copied before
+    modification (never mutated in place), and every existing top-level key
+    and every existing sibling inside the namespace is preserved.
 
     All validation failures raise before any AWS call is made.
 
@@ -131,7 +131,7 @@ def embed_quilt_context(meta, namespace="context"):
             key, or failure to resolve STS identity.
     """
     validate_namespace(namespace)
-    _check_embeddable(meta, namespace)
+    _check_mergeable(meta, namespace)
     quilt_context = collect()
     new_meta = copy.deepcopy(meta) if meta is not None else {}
     new_meta.setdefault(namespace, {})[QUILT_KEY] = quilt_context
