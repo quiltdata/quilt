@@ -995,6 +995,10 @@ class Package:
         `agent_context` (such as `agent_context.agent` and
         `agent_context.inputs`) is preserved; the caller's object is never
         mutated, and on any failure the package's metadata is left untouched.
+        Like every `set_meta` call, this replaces what is stored (last write
+        wins): metadata set earlier — for example via
+        `set_dir(".", path, meta=...)` — is not merged in, so pass it back:
+        `set_meta(pkg.meta, agent_context=True)`.
         Passing back metadata that already carries a previous embed — from
         the package `push()` returns, or one read back via
         `Package.browse()` — replaces the previously embedded context with
