@@ -119,7 +119,19 @@ class QuiltContextTest(QuiltTestCase):
 
     # 4. An invalid namespace raises before any AWS call.
     def test_invalid_namespace_raises_before_aws(self):
-        for namespace in ["Context", "context.quilt", "9ns", "", " ", "con text", "-x", "ns.", None, 1]:
+        for namespace in [
+            "Context",
+            "context.quilt",
+            "9ns",
+            "",
+            " ",
+            "con text",
+            "-x",
+            "ns.",
+            None,
+            1,
+            "context\n",  # `$` matches before a trailing newline; namespace must reject it anyway
+        ]:
             with self.subTest(namespace=namespace):
                 pkg = Package()
                 with mock_quilt_context() as mocks:

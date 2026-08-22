@@ -39,7 +39,7 @@ def validate_namespace(namespace):
     Raises:
         QuiltException: when `namespace` is not a string matching ^[a-z][a-z0-9_-]*$.
     """
-    if not isinstance(namespace, str) or not _NAMESPACE_RE.match(namespace):
+    if not isinstance(namespace, str) or not _NAMESPACE_RE.fullmatch(namespace):
         raise QuiltException(
             f"Invalid Quilt context namespace {namespace!r}: must be a single "
             f"top-level key matching {_NAMESPACE_PATTERN}."
