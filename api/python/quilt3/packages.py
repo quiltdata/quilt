@@ -21,7 +21,7 @@ import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
-from . import checksums, util, workflows
+from . import checksums, context as quilt_context, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     FileChecksumTask,
@@ -979,6 +979,44 @@ class Package:
         """
         self._meta['user_meta'] = meta
         return self
+
+    def set_quilt_context(self, namespace: str = "context") -> "Package":
+        """
+        Records what Quilt can observe about this commit — the effective AWS
+        principal (from STS `get_caller_identity()`), the authentication path
+        (`quilt-catalog` or `aws`), the quilt3 client version, and a UTC
+        timestamp — and embeds it into this package's user metadata at
+        `<namespace>.quilt`.
+
+        Context is resolved exactly once, when this method is called, and is
+        frozen into the manifest, so workflow validation, top-hash
+        calculation, and publication all observe identical bytes. Call it
+        before `push` to include the context in the published revision.
+
+        Existing user metadata is augmented, never replaced: every top-level
+        key and every sibling inside the namespace (such as `context.agent`
+        and `context.inputs`) is preserved. The caller's metadata object is
+        not mutated in place.
+
+        Note: account IDs and principal ARNs become durable, queryable
+        package metadata; nothing is collected unless this method is called.
+
+        Args:
+            namespace: single top-level metadata key to embed under, matching
+                `^[a-z][a-z0-9_-]*$`. Defaults to `"context"`, so the context
+                object is written at `context.quilt`.
+
+        Returns:
+            self
+
+        Raises:
+            QuiltException: before any AWS call, when the namespace is
+                invalid, the existing user metadata is not an object, the
+                namespace value exists but is not an object, or
+                `<namespace>.quilt` already exists; also when the STS
+                identity cannot be resolved.
+        """
+        return self.set_meta(quilt_context.embed_quilt_context(self.meta, namespace))
 
     def _calculate_missing_hashes(self):
         """

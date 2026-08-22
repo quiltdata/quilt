@@ -197,6 +197,50 @@ def test_list_packages(capsys):
         assert captured.out.split() == pkg_names
 
 
+def test_push_without_embed_quilt_context():
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+
+        main.main(('push', '--dir', dir_path, name))
+
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_quilt_context.assert_not_called()
+        mocked_package.push.assert_called_once_with(
+            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
+        )
+
+
+@pytest.mark.parametrize(
+    'flag, expected_namespace',
+    [
+        ('--embed-quilt-context', 'context'),
+        ('--embed-quilt-context=provenance', 'provenance'),
+    ],
+)
+def test_push_embed_quilt_context(flag, expected_namespace):
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+
+        main.main(('push', '--dir', dir_path, name, flag))
+
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_quilt_context.assert_called_once_with(expected_namespace)
+        # set_quilt_context is invoked after set_dir and before push.
+        mocked_package.assert_has_calls(
+            [
+                mock.call.set_dir('.', dir_path, meta=None),
+                mock.call.set_quilt_context(expected_namespace),
+                mock.call.push(name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False),
+            ]
+        )
+
+
 def test_push_no_copy():
     name = 'test/name'
     dir_path = 's3://test/dir/path'

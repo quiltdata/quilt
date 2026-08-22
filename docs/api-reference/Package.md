@@ -193,6 +193,46 @@ no such entry exists.
 Sets user metadata on this Package.
 
 
+## Package.set\_quilt\_context(self, namespace: str = 'context') -> 'Package'  {#Package.set\_quilt\_context}
+
+Records what Quilt can observe about this commit — the effective AWS
+principal (from STS `get_caller_identity()`), the authentication path
+(`quilt-catalog` or `aws`), the quilt3 client version, and a UTC
+timestamp — and embeds it into this package's user metadata at
+`<namespace>.quilt`.
+
+Context is resolved exactly once, when this method is called, and is
+frozen into the manifest, so workflow validation, top-hash
+calculation, and publication all observe identical bytes. Call it
+before `push` to include the context in the published revision.
+
+Existing user metadata is augmented, never replaced: every top-level
+key and every sibling inside the namespace (such as `context.agent`
+and `context.inputs`) is preserved. The caller's metadata object is
+not mutated in place.
+
+Note: account IDs and principal ARNs become durable, queryable
+package metadata; nothing is collected unless this method is called.
+
+__Arguments__
+
+* __namespace__:  single top-level metadata key to embed under, matching
+    `^[a-z][a-z0-9_-]*$`. Defaults to `"context"`, so the context
+    object is written at `context.quilt`.
+
+__Returns__
+
+self
+
+__Raises__
+
+* `QuiltException`:  before any AWS call, when the namespace is
+    invalid, the existing user metadata is not an object, the
+    namespace value exists but is not an object, or
+    `<namespace>.quilt` already exists; also when the STS
+    identity cannot be resolved.
+
+
 ## Package.build(self, name, registry=None, message=None, \*, workflow=Ellipsis)  {#Package.build}
 
 Serializes this package to a registry.

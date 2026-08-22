@@ -208,7 +208,7 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, embed_quilt_context=None):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
@@ -218,6 +218,8 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         pkg = Package()
 
     pkg.set_dir('.', dir, meta=meta)
+    if embed_quilt_context is not None:
+        pkg.set_quilt_context(embed_quilt_context)
     pkg.push(
         name,
         registry=registry,
@@ -464,6 +466,18 @@ def create_parser():
             Format: A json string with keys in double quotes '{"key": "value"}'
             """,
         type=parse_arg_json,
+    )
+    optional_args.add_argument(
+        "--embed-quilt-context",
+        help="""
+            Embed Quilt-observed commit context (STS principal, authentication
+            path, client version, UTC timestamp) into package metadata at
+            NAMESPACE.quilt before validation and top-hash calculation.
+            NAMESPACE defaults to 'context'.
+            """,
+        nargs="?",
+        const="context",
+        metavar="NAMESPACE",
     )
     optional_args.add_argument(
         "--workflow",
