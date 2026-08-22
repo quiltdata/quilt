@@ -1,5 +1,3 @@
-import AWS from 'aws-sdk/lib/core'
-import 'aws-sdk/lib/credentials'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
@@ -21,11 +19,33 @@ class InvalidTokenError extends CredentialsError {}
 
 class NewExpirationInThePastError extends CredentialsError {}
 
-class RegistryCredentials extends AWS.Credentials {
+// aws-sdk v3 model: credentials are an `AwsCredentialIdentityProvider` —
+// `() => Promise<AwsCredentialIdentity>` — not a class the SDK invokes via ES5
+// pseudo-inheritance. We keep a plain class here (no `extends AWS.Credentials`)
+// purely to preserve the catalog's React-suspense contract (`.suspend()`,
+// `.error`, `.needsRefresh()`), and expose a v3 `.provider` the clients consume.
+//
+// The SDK calls `provider()` before each request and re-invokes it once the
+// returned `expiration` has passed, so we cache the in-flight refresh and hand
+// back the current identity until it expires.
+class RegistryCredentials {
   constructor({ req, reqOpts }) {
-    super()
     this.req = req
     this.reqOpts = reqOpts
+    this.accessKeyId = undefined
+    this.secretAccessKey = undefined
+    this.sessionToken = undefined
+    this.expireTime = undefined
+    // bound so it can be passed directly as an AwsCredentialIdentityProvider
+    this.provider = this.provider.bind(this)
+  }
+
+  // matches aws-sdk v2 Credentials#needsRefresh expiry-window semantics:
+  // refresh a bit before actual expiry (15s) to avoid using stale creds.
+  needsRefresh() {
+    if (!this.accessKeyId) return true
+    if (!this.expireTime) return false
+    return this.expireTime.getTime() - 15 * 1000 < Date.now()
   }
 
   refresh(callback) {
@@ -65,6 +85,18 @@ class RegistryCredentials extends AWS.Credentials {
     return this.refreshing
   }
 
+  // aws-sdk v3 AwsCredentialIdentityProvider entry point.
+  async provider() {
+    if (this.error) throw this.error
+    if (this.needsRefresh()) await this.refresh()
+    return {
+      accessKeyId: this.accessKeyId,
+      secretAccessKey: this.secretAccessKey,
+      sessionToken: this.sessionToken,
+      expiration: this.expireTime ?? undefined,
+    }
+  }
+
   suspend() {
     if (this.error) throw this.error
     if (this.needsRefresh()) throw this.refresh()
@@ -72,7 +104,23 @@ class RegistryCredentials extends AWS.Credentials {
   }
 }
 
-class EmptyCredentials extends AWS.Credentials {
+// Anonymous / unauthenticated. Exposes the same surface; its provider should
+// never actually be invoked (anonymous requests use a noop signer), but we
+// return empty creds defensively.
+class EmptyCredentials {
+  constructor() {
+    this.provider = this.provider.bind(this)
+  }
+
+  needsRefresh() {
+    return false
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  async provider() {
+    return { accessKeyId: '', secretAccessKey: '' }
+  }
+
   suspend() {
     return this
   }

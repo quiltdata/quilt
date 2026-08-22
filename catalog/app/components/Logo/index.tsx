@@ -76,6 +76,7 @@ function QuiltLogo({ className, height, width, variant = 'mark' }: LogoProps) {
 
 type ParsedSrc =
   | { _tag: 'ok'; src: string }
+  | { _tag: 'pending' }
   | { _tag: 'error'; error: unknown; src: string }
 
 function CustomLogo({
@@ -86,16 +87,29 @@ function CustomLogo({
   variant,
 }: LogoProps & { src: string }) {
   const sign = AWS.Signer.useS3Signer()
-  const parsedSrc = React.useMemo<ParsedSrc>(() => {
-    if (!s3paths.isS3Url(src)) return { _tag: 'ok', src }
-    try {
-      const parsed = s3paths.parseS3Url(src)
-      if (!parsed.key) {
-        return { _tag: 'error', error: new Error('S3 URL has no key'), src }
+  const [parsedSrc, setParsedSrc] = React.useState<ParsedSrc>({ _tag: 'pending' })
+  React.useEffect(() => {
+    let mounted = true
+    const set = (v: ParsedSrc) => mounted && setParsedSrc(v)
+    if (!s3paths.isS3Url(src)) {
+      set({ _tag: 'ok', src })
+    } else {
+      try {
+        const parsed = s3paths.parseS3Url(src)
+        if (!parsed.key) {
+          set({ _tag: 'error', error: new Error('S3 URL has no key'), src })
+        } else {
+          // sign is async in v3 (presigner)
+          Promise.resolve(sign(parsed))
+            .then((signed) => set({ _tag: 'ok', src: signed }))
+            .catch((error) => set({ _tag: 'error', error, src }))
+        }
+      } catch (error) {
+        set({ _tag: 'error', error, src })
       }
-      return { _tag: 'ok', src: sign(parsed) }
-    } catch (error) {
-      return { _tag: 'error', error, src }
+    }
+    return () => {
+      mounted = false
     }
   }, [sign, src])
 
@@ -109,6 +123,8 @@ function CustomLogo({
   switch (parsedSrc._tag) {
     case 'ok':
       return <img src={parsedSrc.src} className={cx(classes.custom, className)} />
+    case 'pending':
+      return <QuiltLogo className={className} height={height} width={width} />
     case 'error':
       // A broken custom logo falls back to the built-in one for the SAME slot, so
       // the variant has to travel: a wide rail slot that fell back to the compact
