@@ -137,47 +137,43 @@ options:
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
-                   [--message MESSAGE] [--meta META]
-                   [--embed-quilt-context [NAMESPACE]] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy]
+                   [--message MESSAGE] [--meta META] [--agent-context]
+                   [--workflow WORKFLOW] [--force] [--dedupe] [--no-copy]
                    name
 
 Pushes the new package to the remote registry
 
 positional arguments:
-  name                  Name of package, in the USER/PKG format
+  name                 Name of package, in the USER/PKG format
 
 required arguments:
-  --dir DIR             Directory to add to the new package
+  --dir DIR            Directory to add to the new package
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --registry REGISTRY   Registry where to create the new package. Defaults to
-                        the default remote registry.
-  --dest DEST           Where to copy the objects in the package
-  --message MESSAGE     The commit message for the new package
-  --meta META           Sets package-level metadata. Format: A json string
-                        with keys in double quotes '{"key": "value"}'
-  --embed-quilt-context [NAMESPACE]
-                        Embed Quilt-observed commit context (STS principal,
-                        authentication path, client version, UTC timestamp)
-                        into package metadata at NAMESPACE.quilt before
-                        validation and top-hash calculation. NAMESPACE
-                        defaults to 'context'; pass an explicit one as the
-                        next argument, or attach it with '=' and no space. The
-                        embedded timestamp gives every push a new top hash, so
-                        --dedupe no longer skips, and any workflow metadata
-                        schema must allow the namespace.
-  --workflow WORKFLOW   Workflow ID or empty string to skip workflow
-                        validation. If not specified, the default workflow
-                        will be used.
-  --force               Skip the parent top hash check and create a new
-                        revision even if your local state is behind the remote
-                        registry.
-  --dedupe              Skip the push if the local package hash matches the
-                        remote hash.
-  --no-copy             Do not copy data. Package manifest entries will
-                        reference the data at the original location.
+  -h, --help           show this help message and exit
+  --registry REGISTRY  Registry where to create the new package. Defaults to
+                       the default remote registry.
+  --dest DEST          Where to copy the objects in the package
+  --message MESSAGE    The commit message for the new package
+  --meta META          Sets package-level metadata. Format: A json string with
+                       keys in double quotes '{"key": "value"}'
+  --agent-context      Experimental: record Quilt-observed commit context (STS
+                       principal, authentication path, client version, UTC
+                       timestamp) at agent_context.quilt in package metadata,
+                       before validation and top-hash calculation. The
+                       embedded timestamp gives every push a new top hash, so
+                       --dedupe no longer skips, and any workflow metadata
+                       schema must allow the agent_context key.
+  --workflow WORKFLOW  Workflow ID or empty string to skip workflow
+                       validation. If not specified, the default workflow will
+                       be used.
+  --force              Skip the parent top hash check and create a new
+                       revision even if your local state is behind the remote
+                       registry.
+  --dedupe             Skip the push if the local package hash matches the
+                       remote hash.
+  --no-copy            Do not copy data. Package manifest entries will
+                       reference the data at the original location.
 ```
 ## `verify`
 ```

@@ -208,7 +208,7 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, embed_quilt_context=None):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, agent_context=False):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
@@ -217,9 +217,8 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     except FileNotFoundError:
         pkg = Package()
 
-    pkg.set_dir('.', dir, meta=meta)
-    if embed_quilt_context is not None:
-        pkg.set_quilt_context(embed_quilt_context)
+    pkg.set_dir('.', dir)
+    pkg.set_meta(meta, agent_context=agent_context)
     pkg.push(
         name,
         registry=registry,
@@ -230,48 +229,6 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         dedupe=dedupe,
         **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
     )
-
-
-def _normalize_embed_quilt_context_ordering(argv):
-    """
-    Work around an inherent argparse ambiguity for `push --embed-quilt-context`.
-
-    NAMESPACE is optional (`nargs="?"`), which is required so a bare
-    `--embed-quilt-context` means `"context"`. But that also means argparse
-    cannot tell a bare flag apart from one immediately followed by the
-    positional package NAME: given `--embed-quilt-context NAME`, it always
-    consumes NAME as NAMESPACE, leaving the required `name` positional
-    unfilled.
-
-    A valid NAMESPACE can never contain '/' (it must match
-    `^[a-z][a-z0-9_-]*$`), while a valid package NAME always does
-    (`USER/PKG`), so the two token classes are distinguishable. If the token
-    right after a bare `--embed-quilt-context` contains '/', it cannot be a
-    namespace — move the flag past it so argparse sees it as bare (using
-    `const="context"`) and matches NAME normally. The `--embed-quilt-context=
-    NAMESPACE` form is already unambiguous regardless of position and is
-    left untouched.
-
-    Known limitation, accepted deliberately to keep the single-flag UX:
-    because this runs before parsing, it cannot tell whether the flag token
-    itself is another option's missing value. In
-    `push --message --embed-quilt-context test/name` (the --message value was
-    forgotten), the flag is moved, --message consumes 'test/name', and
-    argparse reports the missing NAME positional instead of the missing
-    --message value. The rewrite can never cause a silent mis-parse — the
-    moved token must contain '/' and NAME still has to be filled — but the
-    error can point at the wrong argument. The alternative (a store_true flag
-    plus a separate --quilt-context-namespace option) was considered and
-    declined in favor of the spec'd single flag.
-    """
-    argv = list(argv)
-    try:
-        i = argv.index('--embed-quilt-context')
-    except ValueError:
-        return argv
-    if i + 1 < len(argv) and not argv[i + 1].startswith('-') and '/' in argv[i + 1]:
-        argv.append(argv.pop(i))
-    return argv
 
 
 def create_parser():
@@ -510,19 +467,16 @@ def create_parser():
         type=parse_arg_json,
     )
     optional_args.add_argument(
-        "--embed-quilt-context",
+        "--agent-context",
+        action="store_true",
         help="""
-            Embed Quilt-observed commit context (STS principal, authentication
-            path, client version, UTC timestamp) into package metadata at
-            NAMESPACE.quilt before validation and top-hash calculation.
-            NAMESPACE defaults to 'context'; pass an explicit one as the next
-            argument, or attach it with '=' and no space. The embedded
-            timestamp gives every push a new top hash, so --dedupe no longer
-            skips, and any workflow metadata schema must allow the namespace.
+            Experimental: record Quilt-observed commit context (STS
+            principal, authentication path, client version, UTC timestamp)
+            at agent_context.quilt in package metadata, before validation and
+            top-hash calculation. The embedded timestamp gives every push a
+            new top hash, so --dedupe no longer skips, and any workflow
+            metadata schema must allow the agent_context key.
             """,
-        nargs="?",
-        const="context",
-        metavar="NAMESPACE",
     )
     optional_args.add_argument(
         "--workflow",
@@ -558,7 +512,6 @@ def create_parser():
 
 def main(args=None):
     argv = sys.argv[1:] if args is None else list(args)
-    argv = _normalize_embed_quilt_context_ordering(argv)
     parser = create_parser()
     args = parser.parse_args(argv)
 
