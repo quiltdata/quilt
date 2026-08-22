@@ -6,7 +6,7 @@
       "const": "1.0"
     },
     "mappings": {
-      "description": "List of mapping to match against the user ID token. Only the first matching mapping is used.",
+      "description": "List of mappings to match against the user ID token. By default only the first matching mapping is applied; set `union_roles: true` to apply the union of all matching mappings.",
       "type": "array",
       "items": {
         "type": "object",
@@ -31,9 +31,9 @@
             "minItems": 1
           },
           "admin": {
-            "description": "Value of admin flag to assign to the user if the schema matches.",
-            "default": false,
-            "type": "boolean"
+            "description": "Admin flag the mapping votes for if its schema matches. With `union_roles` unset or false, only the first matching mapping applies and its `admin` value alone is used; the default is no admin, so omitting `admin` (or setting it to null) grants no admin permissions, and because the flag is written on every login a matched user is demoted if they previously had admin. With `union_roles: true` (Quilt Platform 1.69+) this is tri-state: omitted (or null) is a non-vote, `true` grants admin, `false` vetoes admin; the user becomes admin only if some matching mapping votes `true` and none vote `false`. Platforms before 1.69 reject an explicit null.",
+            "type": ["boolean", "null"],
+            "default": null
           }
         },
         "required": [
@@ -42,12 +42,18 @@
         ]
       }
 
+    },
+    "default_role": {
+      "type": "string",
+      "description": "The default role to assign if none of the mappings match."
+    },
+    "union_roles": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, login assigns the union of roles from all matching mappings (users switch among them via the role switcher) instead of stopping at the first match. The `admin` flag becomes a tri-state vote (see `mappings[].admin`). Defaults to false, preserving first-match-wins behavior. Requires Quilt Platform 1.69+; older platforms silently ignore this key and stay in first-match mode."
     }
   },
-  "default_role": {
-    "type": "string",
-    "description": "The default role to assign if none of mappings are matched."
-  },
+  "additionalProperties": false,
   "required": [
     "version",
     "mappings",

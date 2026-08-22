@@ -243,14 +243,15 @@ see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md)
 <a id="cnames"></a>
 
 In order for your users to reach the Quilt catalog you must create three DNS
-records pointing to the `LoadBalancerDNSName` as shown below and in the
-Outputs of your stack.
+records (four if Connect is enabled) pointing to the `LoadBalancerDNSName` as
+shown below and in the Outputs of your stack.
 
-| Hostname         | Target                  |
-| ---------------- | ----------------------- |
-| `<QuiltWebHost>` | `<LoadBalancerDNSName>` |
-| `<RegistryHost>` | `<LoadBalancerDNSName>` |
-| `<S3ProxyHost>`  | `<LoadBalancerDNSName>` |
+| Hostname                               | Target                         |
+| -------------------------------------- | ------------------------------ |
+| `<QuiltWebHost>`                       | `<LoadBalancerDNSName>`        |
+| `<RegistryHost>`                       | `<LoadBalancerDNSName>`        |
+| `<S3ProxyHost>`                        | `<LoadBalancerDNSName>`        |
+| `<ConnectHost>` _(if Connect enabled)_ | `<ConnectLoadBalancerDNSName>` |
 
 If your hosted zone is in **Route 53**, we recommend Route 53 alias
 records (record type `A`, alias target = `LoadBalancerDNSName`,

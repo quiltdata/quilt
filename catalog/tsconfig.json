@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./build/",
+    "ignoreDeprecations": "6.0",
     "baseUrl": "./app/",
     "paths": {
       "*": ["*", "../../shared/*"]
@@ -15,6 +15,7 @@
     "jsx": "react",
     "strict": true,
     "noImplicitAny": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,

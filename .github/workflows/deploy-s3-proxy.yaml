@@ -19,7 +19,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v6
         with:

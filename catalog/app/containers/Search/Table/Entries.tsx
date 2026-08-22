@@ -50,7 +50,11 @@ function Preview({ type, entry, onClose, to }: PreviewProps) {
         <M.Typography component={StyledLink} to={to} variant="h6">
           {entry.logicalKey}
         </M.Typography>
-        <M.IconButton onClick={onClose} className={classes.close}>
+        <M.IconButton
+          aria-label="Close preview"
+          onClick={onClose}
+          className={classes.close}
+        >
           <M.Icon>close</M.Icon>
         </M.IconButton>
       </M.DialogTitle>
@@ -183,7 +187,10 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       </M.TableCell>
       <M.TableCell className={classes.cell} align={ENTRIES_COLUMNS.meta.align}>
         {entry.meta ? (
+          // Names the row, not just the action: one of these sits in every row,
+          // so a bare "View metadata" repeats with nothing to tell them apart.
           <M.IconButton
+            aria-label={`View metadata: ${inPackage.title}`}
             className={cx(entry.matchLocations.meta && classes.match)}
             onClick={handleMeta}
             size="small"
@@ -193,13 +200,17 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
             </M.Icon>
           </M.IconButton>
         ) : (
-          <M.IconButton size="small" disabled>
+          // A dash holding the column's width open when there is no metadata.
+          // It is inert, so announcing it as a button would offer an action that
+          // doesn't exist; the absent button is what carries "no metadata".
+          <M.IconButton size="small" disabled aria-hidden tabIndex={-1}>
             <M.Divider className={classes.noMeta} />
           </M.IconButton>
         )}
       </M.TableCell>
       <M.TableCell className={classes.cell} align={ENTRIES_COLUMNS.contents.align}>
         <M.IconButton
+          aria-label={`Preview contents: ${inPackage.title}`}
           className={cx(entry.matchLocations.contents && classes.match)}
           onClick={handlePreview}
           size="small"
@@ -237,6 +248,12 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(2, 2, 2, 6.5),
     // fullWidth - page container paddings
     width: `calc(100vw - ${t.spacing(3 * 2)}px)`,
+    // Both keyframes below settle at their final state (opacity 1, no
+    // translate), so collapsing the duration lands there instantly instead
+    // of freezing mid-animation -- "no motion", not "stuck half-appeared".
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   totalCount: {
     paddingTop: t.spacing(2),

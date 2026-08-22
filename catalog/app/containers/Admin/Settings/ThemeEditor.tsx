@@ -219,7 +219,7 @@ const useThemePreviewStyles = M.makeStyles((t) => ({
   logoWrapper: {
     padding: t.spacing(1),
     backgroundColor: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || '#282b50',
+      backgroundColor || '#19163b',
     alignItems: 'center',
     display: 'flex',
     height: '46px',
@@ -232,9 +232,7 @@ const useThemePreviewStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ThemePreviewProps {}
-
-function ThemePreview({}: ThemePreviewProps) {
+function ThemePreview() {
   const settings = CatalogSettings.use()
   const classes = useThemePreviewStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
@@ -308,13 +306,20 @@ export default function ThemeEditor() {
     if (!window.confirm('You are about to remove custom theme')) return
     setRemoving(true)
     try {
-      await writeSettings(FP.function.pipe(settings, R.dissoc('theme'), R.dissoc('logo')))
+      await writeSettings(
+        FP.function.pipe(settings, R.dissoc('theme'), R.dissoc('logo')),
+        settings,
+      )
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('Error saving settings:')
       // eslint-disable-next-line no-console
       console.error(e)
-      push("Couldn't save settings, see console for details")
+      push(
+        e instanceof CatalogSettings.SettingsConflictError
+          ? e.message
+          : "Couldn't save settings, see console for details",
+      )
     } finally {
       setRemoving(false)
     }
@@ -328,7 +333,13 @@ export default function ThemeEditor() {
         if (raw && typeof raw !== 'string') {
           logoUrl = s3paths.handleToS3Url(await uploadFile(raw))
         }
-        const updatedSettings = settings || {}
+        // Copied, not aliased: `settings` is the cached document every other
+        // consumer is reading. Mutating it in place made a failed write leave the
+        // UI showing an unsaved theme as if it had persisted, and left nothing to
+        // compare the stored document against -- see `remove` above, which already
+        // builds its new document immutably via `R.dissoc`.
+        const prev = settings
+        const updatedSettings: CatalogSettings.CatalogSettings = { ...(prev || {}) }
         if (logoUrl) {
           updatedSettings.logo = {
             url: logoUrl,
@@ -345,7 +356,7 @@ export default function ThemeEditor() {
         } else {
           delete updatedSettings.theme
         }
-        await writeSettings(updatedSettings)
+        await writeSettings(updatedSettings, prev)
         setEditing(false)
         return undefined
       } catch (e) {
@@ -353,7 +364,12 @@ export default function ThemeEditor() {
         console.warn('Error saving settings:')
         // eslint-disable-next-line no-console
         console.error(e)
-        return { [FF.FORM_ERROR]: "Couldn't save settings, see console for details" }
+        return {
+          [FF.FORM_ERROR]:
+            e instanceof CatalogSettings.SettingsConflictError
+              ? e.message
+              : "Couldn't save settings, see console for details",
+        }
       }
     },
     [settings, writeSettings, uploadFile],
@@ -433,10 +449,10 @@ export default function ThemeEditor() {
                     initialValue={settings?.theme?.palette?.primary?.main || ''}
                     name="primaryColor"
                     label="Background color"
-                    placeholder="#282b50"
+                    placeholder="#19163b"
                     validate={validators.hexColor as FF.FieldValidator<string>}
                     errors={{
-                      hex: 'Enter 6-digit hex color, ex. #282b50',
+                      hex: 'Enter 6-digit hex color, ex. #19163b',
                     }}
                     disabled={submitting}
                     fullWidth

@@ -37,7 +37,7 @@ interface MetadataDiffProps {
 
 function MetadataDiff({
   revisions: [base, other],
-  changesOnly: changesOnly = false,
+  changesOnly = false,
 }: MetadataDiffProps) {
   const colors = useColors()
   const classes = useStyles()

@@ -40,6 +40,7 @@ Look for failed sign-ins and error codes:
 - **`redirect_uri` mismatch (Okta)**: The redirect URI in the app doesn't match. Note that wildcards only match one subdomain level (`*.example.com` does not match `app.dev.example.com`).
 - **"You are not allowed to access this app" (Okta)**: The user is not assigned to the app, or the authorization server's access policy has no rules. Check both the app Assignments tab and Security > API > Authorization Servers > default > Access Policies.
 - **"Unable to sign in with Okta" in the Quilt catalog**: The Okta login succeeded but the registry's token exchange failed. Check that `Refresh Token` is enabled under Grant type in the app's General settings, and that the authorization server's access policy has a rule granting tokens.
+- **SSO permissions mapping assigns everyone the `default_role`**: The ID token is likely missing the `groups` claim. See [SSO permissions mapping → Configuring your IdP to emit the required claims](advanced-features/sso-permissions.md#configuring-your-idp-to-emit-the-required-claims).
 - **403 or 400 errors (Google/Okta)**: Often indicate incorrect redirect URIs or token issues.
 
 ## Step 3: Inspect Browser Network Requests

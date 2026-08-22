@@ -134,7 +134,7 @@ describe('app/containers/Bucket/requests/object', () => {
   })
 
   describe('deleteObject', () => {
-    it('should call S3 deleteObject with correct parameters', async () => {
+    it('should not scope the delete to the handle version', async () => {
       const mockDeleteObject = vi.fn(() => ({
         promise: () => Promise.resolve(),
       }))
@@ -154,7 +154,6 @@ describe('app/containers/Bucket/requests/object', () => {
       expect(mockDeleteObject).toHaveBeenCalledWith({
         Bucket: 'test-bucket',
         Key: 'test-key',
-        VersionId: 'test-version',
       })
     })
   })
