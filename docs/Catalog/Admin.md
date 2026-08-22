@@ -11,6 +11,9 @@ through the panel. Only admins may create other admins.
 
 Quilt requires at least one admin account per stack.
 
+Many of the settings below can also be managed programmatically with the
+[`quilt3.admin` Python API](../api-reference/Admin.md).
+
 
 ## Users and roles
 
