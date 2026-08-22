@@ -20,11 +20,16 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
+* [Added] `Package.set_quilt_context(namespace="context")` — opt-in method that records what Quilt can observe about a commit (STS principal, authentication path, quilt3 client version, canonical UTC timestamp) and embeds it into package-level user metadata at `<namespace>.quilt` before workflow validation and top-hash calculation. Existing metadata and siblings such as `context.agent` and `context.inputs` are preserved; a pre-existing `<namespace>.quilt` key, non-object metadata, or an invalid namespace raises `QuiltException` before any AWS call ([#5192](https://github.com/quiltdata/quilt/pull/5192))
 * [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Changed] The `QuiltConflictException` raised by `Package.push()` now names the destination bucket and package name, and leads with the routes that satisfy the check — re-using the package returned by the previous `push()`, or calling `Package.browse()` (CLI: `quilt3 install`) — before offering `force=True`/`--force` ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Changed] `Package` no longer carries a `_origin` attribute or a `PackageRevInfo` class; the revision a package was read from or has published is tracked internally per package name. `Package.push()` returns the package it published, so `result.top_hash` is the published revision ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Changed] `Package.push(force=True, dedupe=True)` re-reads the destination before accepting an equal-hash match, so a revision published by another writer during transfer is overwritten rather than reported as a skip ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 * [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+
+### CLI
+
+* [Added] `quilt3 push --embed-quilt-context [NAMESPACE]` — thin caller of `Package.set_quilt_context()`: the bare flag writes Quilt-observed commit context to `context.quilt`, `--embed-quilt-context=provenance` writes to `provenance.quilt`; without the flag, behavior and package identity are unchanged ([#5192](https://github.com/quiltdata/quilt/pull/5192))
 
 ## 8.0.0 - 2026-08-04
 
