@@ -51,19 +51,41 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Microsoft Entra ID (Azure Active Directory)
 
+Quilt uses **OpenID Connect (OIDC)** with the **OAuth 2.0 authorization code
+flow** — not SAML.
+
+#### Delegated Setup
+
+If someone else is configuring Entra on your behalf, give them the
+following:
+
+| Field | Value |
+| --- | --- |
+| Protocol | OpenID Connect (OIDC) with the OAuth 2.0 authorization code flow. If the form only lists SAML/OAuth, pick **OAuth**; if neither fits, pick **Other** and link to this page. |
+| Platform | Web |
+| Redirect URI (Reply URL) | `<QuiltWebHost>/oauth-callback` (e.g. `https://quilt.example.com/oauth-callback`) |
+| Sign-in audience | Single tenant (unless you have a specific multi-tenant requirement) |
+| OAuth/OIDC scopes | `openid`, `email`, `offline_access`. Grant admin consent if your organization requires it or to avoid end-user consent prompts. Quilt does not request `profile` or `User.Read`. |
+| Groups claim (optional) | Emit **Group IDs** in the **ID token** only if your [SSO Permissions Mapping](./advanced-features/sso-permissions.md) matches Entra group IDs. For guest/multi-tenant users or users with many group memberships, prefer **App roles**. |
+| Client secret | Required. Have them share the secret **Value** (not the Secret ID) over a secure channel. |
+
+Ask them to send back: **Application (client) ID**, **Directory (tenant) ID**,
+and the client secret **Value**.
+
+#### Self-Service Configuration
+
 1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
 1. Name the app, select the supported account types, and click **Register**.
    Note the **Application (client) ID** and **Directory (tenant) ID**.
 1. Go to **Authentication → Add a platform → Web**. Add the redirect URI
-   `<QuiltWebHost>/oauth-callback`. Under **Implicit grant and hybrid flows**,
-   enable **ID tokens** (required — login will fail without it). Click **Save**.
+   `<QuiltWebHost>/oauth-callback`, then click **Save**. Do not enable
+   **Implicit grant and hybrid flows**; Quilt uses the authorization code flow.
 1. Go to **Certificates & secrets → New client secret**. Copy the **Value**
    immediately — it is not shown again. (Do not use the Secret ID.)
 1. Go to **API permissions → Add a permission → Microsoft Graph → Delegated**.
-   Add `openid`, `profile`, `email`, `offline_access`, and `User.Read`, then
-   click **Grant admin consent**. Without admin consent, each user is typically
-   prompted to grant these permissions on their first login; granting admin consent
-   approves them tenant-wide (subject to your org's policies) and avoids end-user prompts.
+   Add `openid`, `email`, and `offline_access`. Remove the default `User.Read`
+   permission if present; Quilt does not request it. Grant admin consent if your
+   organization requires it or to avoid end-user consent prompts.
 1. Your `AzureBaseUrl` is `https://login.microsoftonline.com/<TENANT_ID>/v2.0`.
    Reference [Microsoft identity platform and OpenID Connect protocol](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)
    and [National clouds](https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud)
