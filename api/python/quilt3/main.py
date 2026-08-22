@@ -251,6 +251,18 @@ def _normalize_embed_quilt_context_ordering(argv):
     `const="context"`) and matches NAME normally. The `--embed-quilt-context=
     NAMESPACE` form is already unambiguous regardless of position and is
     left untouched.
+
+    Known limitation, accepted deliberately to keep the single-flag UX:
+    because this runs before parsing, it cannot tell whether the flag token
+    itself is another option's missing value. In
+    `push --message --embed-quilt-context test/name` (the --message value was
+    forgotten), the flag is moved, --message consumes 'test/name', and
+    argparse reports the missing NAME positional instead of the missing
+    --message value. The rewrite can never cause a silent mis-parse — the
+    moved token must contain '/' and NAME still has to be filled — but the
+    error can point at the wrong argument. The alternative (a store_true flag
+    plus a separate --quilt-context-namespace option) was considered and
+    declined in favor of the spec'd single flag.
     """
     argv = list(argv)
     try:
@@ -503,8 +515,10 @@ def create_parser():
             Embed Quilt-observed commit context (STS principal, authentication
             path, client version, UTC timestamp) into package metadata at
             NAMESPACE.quilt before validation and top-hash calculation.
-            NAMESPACE defaults to 'context'; use --embed-quilt-context=
-            NAMESPACE to set an explicit one.
+            NAMESPACE defaults to 'context'; pass an explicit one as the next
+            argument, or attach it with '=' and no space. The embedded
+            timestamp gives every push a new top hash, so --dedupe no longer
+            skips, and any workflow metadata schema must allow the namespace.
             """,
         nargs="?",
         const="context",

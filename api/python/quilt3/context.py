@@ -46,13 +46,33 @@ def validate_namespace(namespace):
         )
 
 
+_QUILT_CONTEXT_KEYS = frozenset({"version", "timestamp", "client", "principal", "authentication"})
+
+
+def _is_quilt_shaped(value):
+    """
+    True when `value` looks exactly like this module's own output: an object
+    carrying precisely the keys `collect()` writes. Missing or extra keys
+    mean the value is not ours and must not be replaced.
+    """
+    return isinstance(value, dict) and value.keys() == _QUILT_CONTEXT_KEYS
+
+
 def _check_mergeable(meta, namespace):
     """
     Validate that `meta` can accept Quilt context at `<namespace>.quilt`.
 
+    A pre-existing `<namespace>.quilt` is allowed only when it is exactly
+    Quilt-shaped (see `_is_quilt_shaped`) — the value a previous embed wrote,
+    arriving legitimately via the package `push()` returns (which shares
+    `_meta`) or a `Package.browse()` round-trip. The merge replaces it with
+    freshly collected context. Anything else at that key is refused, so
+    caller-supplied content is never silently discarded.
+
     Raises:
         QuiltException: when `meta` is not an object, the namespace value is
-            not an object, or `<namespace>.quilt` already exists.
+            not an object, or `<namespace>.quilt` exists and is not
+            Quilt-shaped.
     """
     if meta is None:
         return
@@ -62,10 +82,11 @@ def _check_mergeable(meta, namespace):
         return
     if not isinstance(meta[namespace], dict):
         raise QuiltException(f"Cannot embed Quilt context: metadata key {namespace!r} is not an object.")
-    if QUILT_KEY in meta[namespace]:
+    if QUILT_KEY in meta[namespace] and not _is_quilt_shaped(meta[namespace][QUILT_KEY]):
         raise QuiltException(
-            f"Cannot embed Quilt context: {namespace}.{QUILT_KEY} already exists. "
-            "Quilt-observed context cannot be caller-supplied or overwritten."
+            f"Cannot embed Quilt context: {namespace}.{QUILT_KEY} already exists "
+            "and was not written by Quilt. Quilt-observed context cannot be "
+            "caller-supplied, and non-Quilt values are never overwritten."
         )
 
 
@@ -86,6 +107,15 @@ def _quilt_catalog_confirmed():
     entry for the *current* registry specifically confirms that a real
     catalog login happened for the registry now configured, closing the
     common versions of that gap using only existing session state.
+
+    One residual gap this does not close: the auth store *merges* across
+    registries while the credentials cache is a single global slot, so
+    "login to A, `config(B)` and login to B, `config(A)` back without
+    re-login" leaves A confirmed here while the cached credentials are still
+    B's — the recorded catalog misattributes the principal until those
+    credentials expire and refresh against A. Closing it would require
+    stamping cached credentials with their issuing registry, which the cache
+    format does not record today.
     """
     return session.get_registry_url() in session._load_auth()
 
@@ -96,20 +126,25 @@ def collect():
 
     Identity comes from STS `get_caller_identity()` on Quilt's effective Boto3
     session (`get_boto3_session(fallback=True)`). `authentication.type` is
-    `quilt-catalog` only when both cached Quilt credentials exist and the
-    currently configured registry is independently confirmed as logged in
-    (see `_quilt_catalog_confirmed`); otherwise `aws`. A catalog is never
-    reported without also being the reason `authentication.type` is
-    `quilt-catalog` (and vice versa), so the two invariants required by the
-    companion Agent Context schema — `catalog` present iff
-    `type == "quilt-catalog"` — always hold.
+    decided by the credential path alone: `quilt-catalog` when both cached
+    Quilt credentials exist and the currently configured registry is
+    independently confirmed as logged in (see `_quilt_catalog_confirmed`);
+    otherwise `aws`. `authentication.catalog` then identifies the deployment
+    that issued the credentials: the navigator URL from `logged_in()` when
+    the config carries one, else the registry URL that confirmed the login —
+    so a config holding `registryUrl` without `navigator_url` (reachable via
+    `quilt3.config(registryUrl=...)` or a `configure_from_default()`
+    fallback) still records the catalog path truthfully. `catalog` is present
+    iff `type == "quilt-catalog"`, the invariant required by the companion
+    Agent Context schema.
 
     Raises:
-        QuiltException: when STS identity cannot be resolved. The exception
-            resolving STS is not chained onto it (neither as `__cause__` nor
-            as the implicit `__context__`), so its text — which may contain
-            credential material — cannot reach a traceback, log, or error
-            reporter walking either chain.
+        QuiltException: when STS identity cannot be resolved, including a
+            response missing an expected field. The underlying exception is
+            not chained on (neither as `__cause__` nor as the implicit
+            `__context__`), so its text — which may contain credential
+            material — cannot reach a traceback, log, or error reporter
+            walking either chain.
     """
     import quilt3
 
@@ -117,32 +152,38 @@ def collect():
     quilt_credentials_cached = bool(session._load_credentials())
 
     sts_failure = None
-    identity = None
+    principal = None
     try:
         identity = session.get_boto3_session(fallback=True).client("sts").get_caller_identity()
+        principal = {
+            "account": identity["Account"],
+            "arn": identity["Arn"],
+            "user_id": identity["UserId"],
+        }
     except Exception as ex:
         sts_failure = QuiltException(
             "Failed to resolve AWS identity for Quilt context "
-            f"(STS get_caller_identity raised {type(ex).__name__}); nothing was pushed."
+            f"(resolving STS caller identity raised {type(ex).__name__}); nothing was pushed."
         )
+    # Raised outside the except block so the STS exception is not attached as
+    # the implicit __context__ (see Raises above) — `raise ... from None`
+    # inside the block would clear __cause__ but leave __context__ set.
     if sts_failure is not None:
         raise sts_failure
 
-    catalog = session.logged_in() if quilt_credentials_cached and _quilt_catalog_confirmed() else None
-    is_quilt_catalog = catalog is not None
+    is_quilt_catalog = quilt_credentials_cached and _quilt_catalog_confirmed()
     authentication = {"type": "quilt-catalog"} if is_quilt_catalog else {"type": "aws"}
     if is_quilt_catalog:
-        authentication["catalog"] = catalog
+        # logged_in() reads the display URL (navigator_url), which documented
+        # config paths can leave unset; the registry URL that confirmed the
+        # login always exists and identifies the same deployment.
+        authentication["catalog"] = session.logged_in() or session.get_registry_url()
 
     return {
         "version": CONTEXT_VERSION,
         "timestamp": timestamp,
         "client": f"quilt3/{quilt3.__version__}",
-        "principal": {
-            "account": identity["Account"],
-            "arn": identity["Arn"],
-            "user_id": identity["UserId"],
-        },
+        "principal": principal,
         "authentication": authentication,
     }
 
@@ -153,14 +194,18 @@ def merge_quilt_context(meta, namespace="context"):
     `<namespace>.quilt`, per the merge rules: missing metadata (`None`) is
     treated as an empty object, the caller's dict is copied before
     modification (never mutated in place), and every existing top-level key
-    and every existing sibling inside the namespace is preserved.
+    and every existing sibling inside the namespace is preserved. A
+    `<namespace>.quilt` value a previous embed wrote (see `_is_quilt_shaped`)
+    is replaced with freshly collected context; any other pre-existing value
+    at that key is refused.
 
     All validation failures raise before any AWS call is made.
 
     Raises:
         QuiltException: on an invalid namespace, non-object metadata, a
             non-object namespace value, a pre-existing `<namespace>.quilt`
-            key, or failure to resolve STS identity.
+            value that Quilt itself did not write, or failure to resolve STS
+            identity.
     """
     validate_namespace(namespace)
     _check_mergeable(meta, namespace)

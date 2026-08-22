@@ -6,7 +6,6 @@ at <namespace>.quilt in package-level user metadata.
 import contextlib
 import copy
 import datetime
-import hashlib
 import json
 import re
 from types import SimpleNamespace
@@ -35,7 +34,10 @@ FAKE_QUILT_CREDENTIALS = {
 }
 
 
-CURRENT_REGISTRY_URL = "https://registry.example.com"  # matches QuiltTestCase.setUp's registryUrl
+# mock_quilt_context patches session.get_registry_url() to return this and
+# keys the fake auth store by it when registry_confirmed=True; nothing here
+# depends on the registry QuiltTestCase configures.
+CURRENT_REGISTRY_URL = "https://registry.example.com"
 
 
 @contextlib.contextmanager
@@ -90,16 +92,7 @@ class QuiltContextTest(QuiltTestCase):
         ) as collect_mock:
             pkg = Package().set_meta(meta)
             assert pkg.meta is meta
-
-            # Independently re-derive the manifest top hash for an empty
-            # package: sha256 over the compact, key-sorted JSON of the
-            # package-level metadata (no entries).
-            expected = hashlib.sha256(
-                json.JSONEncoder(sort_keys=True, separators=(",", ":"))
-                .encode({"version": "v0", "user_meta": meta})
-                .encode()
-            ).hexdigest()
-            assert pkg.top_hash == expected
+            assert pkg.top_hash  # hashing must not trigger collection either
         collect_mock.assert_not_called()
 
     # 2. The default namespace writes context.quilt.
@@ -191,14 +184,27 @@ class QuiltContextTest(QuiltTestCase):
                         pkg.set_quilt_context()
                 mocks.get_boto3_session.assert_not_called()
 
-    # 8. A caller-supplied quilt key fails before push.
+    # 8. A caller-supplied quilt key fails before push unless it is exactly
+    # Quilt-shaped (the shaped case is replaced instead — see test 19).
+    # Near-miss shapes must not qualify: a missing or extra key means the
+    # value is not this module's output, and replacing it would silently
+    # discard caller data.
     def test_existing_quilt_key_fails_before_aws(self):
-        pkg = Package().set_meta({"context": {"quilt": {"version": 1}}})
-        with mock_quilt_context() as mocks:
-            with self.assertRaises(QuiltException):
-                pkg.set_quilt_context()
-        mocks.get_boto3_session.assert_not_called()
-        assert pkg.meta == {"context": {"quilt": {"version": 1}}}
+        near_misses = [
+            {"version": 1},
+            "not an object",
+            dict.fromkeys(quilt_context._QUILT_CONTEXT_KEYS - {"timestamp"}),
+            dict.fromkeys(quilt_context._QUILT_CONTEXT_KEYS) | {"extra": 1},
+        ]
+        for value in near_misses:
+            with self.subTest(value=value):
+                meta = {"context": {"quilt": value}}
+                pkg = Package().set_meta(copy.deepcopy(meta))
+                with mock_quilt_context() as mocks:
+                    with self.assertRaises(QuiltException):
+                        pkg.set_quilt_context()
+                mocks.get_boto3_session.assert_not_called()
+                assert pkg.meta == meta
 
     # 9. The caller's metadata object is not mutated in place.
     def test_caller_metadata_not_mutated(self):
@@ -302,13 +308,19 @@ class QuiltContextTest(QuiltTestCase):
     # 14. STS failure raises and prevents pkg.push from being called.
     def test_sts_failure_prevents_push(self):
         pkg = Package()
+
+        def documented_usage():
+            # Embed, then push — the raise from set_quilt_context is what
+            # must keep push() unreached; push_mock below proves it.
+            pkg.set_quilt_context()
+            pkg.push("test/pkg")
+
         with (
             mock.patch.object(Package, "push") as push_mock,
             mock_quilt_context(sts_error=Exception("identity lookup failed")),
         ):
             with self.assertRaises(QuiltException) as raised:
-                pkg.set_quilt_context()
-                pkg.push("test/pkg")
+                documented_usage()
         push_mock.assert_not_called()
         assert pkg.meta == {}
         assert "identity" in str(raised.exception).lower()
@@ -386,3 +398,49 @@ class QuiltContextTest(QuiltTestCase):
         assert raised.exception.__context__ is None
         for secret in secrets:
             assert secret not in str(raised.exception)
+
+    # 19. Re-embedding over context Quilt itself wrote replaces it. push()
+    # returns a package sharing _meta and browse() round-trips the same
+    # shape, so the second revision of a package pushed with the flag must
+    # not fail — each revision's context reflects its own observation, and
+    # the prior value survives in the prior revision's manifest.
+    def test_reembed_replaces_prior_quilt_context(self):
+        pkg = Package().set_meta({"context": {"agent": {"name": "claude"}}})
+        with mock_quilt_context():
+            pkg.set_quilt_context()
+        first = copy.deepcopy(pkg.meta["context"]["quilt"])
+        assert first["authentication"] == {"type": "aws"}
+
+        later = FIXED_NOW + datetime.timedelta(seconds=1)
+        with mock_quilt_context(credentials=FAKE_QUILT_CREDENTIALS, logged_in_url=CATALOG_URL, now=later):
+            pkg.set_quilt_context()
+        second = pkg.meta["context"]["quilt"]
+        assert second["timestamp"] != first["timestamp"]
+        assert second["authentication"] == {"type": "quilt-catalog", "catalog": CATALOG_URL}
+        assert pkg.meta["context"]["agent"] == {"name": "claude"}
+
+    # 20. A confirmed catalog login records quilt-catalog even when the
+    # config has no navigator_url (logged_in() -> None) — reachable via
+    # quilt3.config(registryUrl=...) or a configure_from_default() fallback.
+    # The credential path decides type; catalog falls back to the registry
+    # URL that confirmed the login, keeping catalog-iff-quilt-catalog intact.
+    def test_confirmed_login_without_navigator_url_records_quilt_catalog(self):
+        pkg = Package()
+        with mock_quilt_context(credentials=FAKE_QUILT_CREDENTIALS, logged_in_url=None):
+            pkg.set_quilt_context()
+        assert pkg.meta["context"]["quilt"]["authentication"] == {
+            "type": "quilt-catalog",
+            "catalog": CURRENT_REGISTRY_URL,
+        }
+
+    # 21. An STS response missing an expected field is the same failure
+    # class as an STS error: QuiltException with no exception chain, never
+    # a bare KeyError.
+    def test_malformed_sts_response_raises_quilt_exception(self):
+        pkg = Package()
+        with mock_quilt_context(identity={"Account": STS_IDENTITY["Account"]}):
+            with self.assertRaises(QuiltException) as raised:
+                pkg.set_quilt_context()
+        assert raised.exception.__cause__ is None
+        assert raised.exception.__context__ is None
+        assert pkg.meta == {}

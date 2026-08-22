@@ -209,10 +209,27 @@ before `push` to include the context in the published revision.
 Existing user metadata is augmented, never replaced: every top-level
 key and every sibling inside the namespace (such as `context.agent`
 and `context.inputs`) is preserved. The caller's metadata object is
-not mutated in place.
+not mutated in place. Calling this again — including on the package
+`push()` returns, or one read back via `Package.browse()` — replaces
+the previously embedded context with freshly observed values; only a
+`<namespace>.quilt` value that Quilt itself did not write is refused.
 
 Note: account IDs and principal ARNs become durable, queryable
 package metadata; nothing is collected unless this method is called.
+Two operational consequences follow from embedding before validation
+and hashing:
+
+- The embedded timestamp is part of the manifest, so every push gets
+  a new top hash even when payload bytes are identical — `dedupe`
+  (CLI `--dedupe`) will no longer skip.
+- Any workflow's package-metadata schema must allow the namespace; a
+  schema with `additionalProperties: false` that does not model it
+  will reject the push until the schema is updated.
+
+The embedded object is self-asserted client metadata, not an
+attestation: other metadata channels (such as `--meta`) can write
+arbitrary content at the same key, so consumers must not treat its
+presence alone as proof that Quilt produced it.
 
 __Arguments__
 
@@ -229,8 +246,8 @@ __Raises__
 * `QuiltException`:  before any AWS call, when the namespace is
     invalid, the existing user metadata is not an object, the
     namespace value exists but is not an object, or
-    `<namespace>.quilt` already exists; also when the STS
-    identity cannot be resolved.
+    `<namespace>.quilt` already exists and was not written by
+    Quilt; also when the STS identity cannot be resolved.
 
 
 ## Package.build(self, name, registry=None, message=None, \*, workflow=Ellipsis)  {#Package.build}

@@ -163,8 +163,11 @@ optional arguments:
                         authentication path, client version, UTC timestamp)
                         into package metadata at NAMESPACE.quilt before
                         validation and top-hash calculation. NAMESPACE
-                        defaults to 'context'; use --embed-quilt-context=
-                        NAMESPACE to set an explicit one.
+                        defaults to 'context'; pass an explicit one as the
+                        next argument, or attach it with '=' and no space. The
+                        embedded timestamp gives every push a new top hash, so
+                        --dedupe no longer skips, and any workflow metadata
+                        schema must allow the namespace.
   --workflow WORKFLOW   Workflow ID or empty string to skip workflow
                         validation. If not specified, the default workflow
                         will be used.
