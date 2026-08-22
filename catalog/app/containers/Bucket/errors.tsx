@@ -72,6 +72,17 @@ export class ManifestTooLarge extends BucketError {
   }
 }
 
+/** The revised package never loaded, so publishing would replace its contents. */
+export class SourceManifestNotLoaded extends BucketError {
+  static displayName = 'SourceManifestNotLoaded'
+
+  constructor() {
+    super(
+      'Existing package contents could not be loaded, so pushing is disabled to keep them from being replaced. Enter a name that does not exist yet to create a new package, or cancel and try again.',
+    )
+  }
+}
+
 interface WhenAuthCases {
   true: () => React.ReactElement
   false: () => React.ReactElement

@@ -25,6 +25,7 @@ const defaultPrefs = {
   downloadObject: true,
   downloadPackage: true,
   openInDesktop: true,
+  restore: true,
   revisePackage: true,
   writeFile: true,
 }

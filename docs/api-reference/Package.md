@@ -334,6 +334,11 @@ no matter what `selector_fn('entry_1', pkg["entry_1"])` returns.
 By default, push will not overwrite an existing package if its top hash does not match
 the parent hash of the package being pushed. Use `force=True` to skip the check.
 
+A successful push records the revision it published on the package it was called on, in
+addition to the package it returns. Either object can therefore push again -- as the next
+revision at the same destination, or as the same revision to another registry holding the
+parent -- without an intervening `browse()` and without `force=True`.
+
 __Arguments__
 
 * __name__:  name for package in registry

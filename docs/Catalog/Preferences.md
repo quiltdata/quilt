@@ -24,6 +24,7 @@ ui:
     deleteRevision: False
     downloadObject: True
     downloadPackage: True
+    restore: True
     revisePackage: True
     writeFile: True
   blocks:
@@ -62,6 +63,8 @@ drag-and-drop or from folders in S3
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.downloadObject: False` - hide download buttons under "Bucket" tab
 * `ui.actions.downloadPackage: False` - hide download buttons under "Packages" tab
+* `ui.actions.restore: False` - hide the button to restore (rehydrate) archived
+  S3 Glacier / Deep Archive objects
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page

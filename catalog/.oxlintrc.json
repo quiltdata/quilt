@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "jsx-a11y", "react"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true
+  },
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "args": "after-used",
+        "ignoreRestSiblings": true,
+        "caughtErrors": "none"
+      }
+    ],
+    "no-shadow": "error",
+    "no-redeclare": "error",
+    "no-console": "error",
+    "no-alert": "error",
+    "no-underscore-dangle": ["error", { "allow": ["_", "__", "__typename", "_tag"] }],
+    "react/rules-of-hooks": "error",
+    "import/no-duplicates": "error",
+    "no-restricted-globals": "off",
+    "react/no-children-prop": "off",
+    "jsx-a11y/label-has-associated-control": [
+      "error",
+      { "controlComponents": ["Input"] }
+    ],
+    "jsx-a11y/no-autofocus": "off",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/no-redundant-roles": "off",
+    "jsx-a11y/media-has-caption": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+    "jsx-a11y/interactive-supports-focus": "off",
+    "jsx-a11y/anchor-is-valid": "off",
+    "jsx-a11y/anchor-has-content": "off",
+    "jsx-a11y/alt-text": "off"
+  },
+  "settings": {
+    "react": {
+      "version": "17.0.2"
+    }
+  },
+  "ignorePatterns": ["**/*.generated.ts"]
+}

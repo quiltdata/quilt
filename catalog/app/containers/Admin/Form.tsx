@@ -43,7 +43,7 @@ const useCheckboxStyles = M.makeStyles({
 export interface CheckboxProps {
   errors?: ErrorMessageMap
   input?: RF.FieldInputProps<boolean>
-  meta: RF.FieldMetaState<string | Symbol>
+  meta: RF.FieldMetaState<string | symbol>
   label?: React.ReactNode
   FormControlLabelProps?: M.FormControlLabelProps
 }

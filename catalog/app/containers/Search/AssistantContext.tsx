@@ -43,7 +43,10 @@ type FirstPageResultSet = Extract<
   { __typename: 'ObjectsSearchResultSet' | 'PackagesSearchResultSet' }
 >
 
-type FirstPageHits = FirstPageResultSet['firstPage']['hits']
+type FirstPageHits = Extract<
+  FirstPageResultSet['firstPage'],
+  { __typename: 'ObjectsSearchResultSetPage' | 'PackagesSearchResultSetPage' }
+>['hits']
 
 interface SearchContext {
   resultType: SearchUIModel.ResultType
@@ -122,7 +125,20 @@ function getFirstPage(
             return Eff.Either.right({ hits: [], total: 0 })
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return Eff.Either.right({ hits: d.firstPage.hits, total: d.total })
+            // firstPage is a union: the page arm carries hits; the packages
+            // variant can also surface InvalidInput/OperationError (e.g. an
+            // unsupported sort) — treat those as an empty page here.
+            switch (d.firstPage.__typename) {
+              case 'ObjectsSearchResultSetPage':
+              case 'PackagesSearchResultSetPage':
+                return Eff.Either.right({ hits: d.firstPage.hits, total: d.total })
+              case 'InvalidInput':
+                return Eff.Either.left('InvalidInput')
+              case 'OperationError':
+                return Eff.Either.left(d.firstPage.name)
+              default:
+                return Eff.absurd<never>(d.firstPage)
+            }
           default:
             return Eff.absurd<never>(d)
         }

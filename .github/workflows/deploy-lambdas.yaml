@@ -30,7 +30,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build zip
         run: |
           BUILDER_IMAGE=amazon/aws-lambda-python:$(cat lambdas/${{ matrix.path }}/.python-version)
@@ -76,7 +76,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
         run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .

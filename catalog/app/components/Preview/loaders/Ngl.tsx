@@ -58,7 +58,10 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
       const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
       const files = await parseResponse(body, handle)
       return PreviewData.Ngl({
-        files: files.map(({ file, ...rest }) => ({ blob: new Blob([file]), ...rest })),
+        files: files.map(({ file, ...rest }) => ({
+          blob: new Blob([file as BlobPart]),
+          ...rest,
+        })),
         modes: [FileType.Ngl, FileType.Text],
       })
     },

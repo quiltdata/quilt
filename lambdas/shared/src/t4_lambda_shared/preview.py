@@ -5,7 +5,6 @@ import re
 import tempfile
 import zlib
 from io import BytesIO
-from typing import Tuple
 
 import fcsparser
 import pandas
@@ -128,7 +127,7 @@ def extract_fcs(file_, as_html=True):
     return body, info
 
 
-def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: int) -> Tuple[str, str]:
+def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: int) -> tuple[str, str]:
     """
     parse and extract key metadata from parquet files
 

@@ -18,11 +18,7 @@ module.exports = require('./webpack.base')({
     },
     historyApiFallback: {
       disableDotRule: true,
-      rewrites: [
-        { from: /^\/__embed$/, to: '/embed.html' },
-        { from: /^\/__embed-debug$/, to: '/embed-debug-harness.html' },
-        { from: /^\/oauth-callback$/, to: '/oauth-callback.html' },
-      ],
+      rewrites: [{ from: /^\/oauth-callback$/, to: '/oauth-callback.html' }],
     },
     watchFiles: ['app/**/*', 'static-dev/*'],
   },

@@ -110,4 +110,33 @@ describe('useFeatures', () => {
       qurator: true,
     })
   })
+
+  // Deleting an already-delete-marked object would only stack another marker. The flag
+  // is separate from notAvailable so a pinned version that still exists stays gettable.
+  it('should return delete as false when the object is already delete-marked', () => {
+    prefsHook.mockImplementationOnce(() => ({
+      prefs: BucketPreferences.Result.Ok(
+        extendDefaults({
+          ui: {
+            actions: {
+              downloadObject: true,
+              deleteObject: true,
+            },
+            blocks: {
+              code: true,
+              qurator: true,
+            },
+          },
+        }),
+      ),
+    }))
+
+    const { result } = renderHook(() => useFeatures(false, true))
+
+    expect(result.current).toEqual({
+      get: { code: true },
+      organize: { delete: false },
+      qurator: true,
+    })
+  })
 })

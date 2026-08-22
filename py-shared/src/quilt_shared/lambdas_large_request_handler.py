@@ -39,7 +39,7 @@ def request_from_file(
     version_id: str,
     s3: S3Client,
     max_size: int,
-    logger: T.Optional[logging.Logger],
+    logger: logging.Logger | None,
 ):
     user_request_key = const.USER_REQUESTS_PREFIX + request_type
 
@@ -84,7 +84,7 @@ def large_request_handler(
     bucket: str,
     s3: S3Client,
     max_size: int = const.LAMBDA_TMP_SPACE,
-    logger: T.Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
 ):
     def inner(f: T.Callable[[T.IO[bytes]], FnReturn]):
         @functools.wraps(f)

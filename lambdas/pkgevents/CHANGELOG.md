@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Drop `s3:TestEvent` messages and report other failures per message via `ReportBatchItemFailures`, instead of failing the whole SQS batch and dead-lettering the real package events in it ([#5162](https://github.com/quiltdata/quilt/pull/5162))
 - [Fixed] Process package pointers from year 2026+ ([#4683](https://github.com/quiltdata/quilt/pull/4683))
 - [Changed] Migrate to proper package structure ([#4647](https://github.com/quiltdata/quilt/pull/4647))
 - [Changed] Switch to uv ([#4647](https://github.com/quiltdata/quilt/pull/4647))

@@ -23,6 +23,7 @@ query ($buckets: [String!], $searchString: String) {
           __typename
           ... on IPackageUserMetaFacet {
             path
+            sortable
           }
           ... on NumberPackageUserMetaFacet {
             numberExtents: extents {

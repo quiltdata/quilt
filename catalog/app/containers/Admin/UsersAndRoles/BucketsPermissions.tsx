@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-import defaultBucketIcon from 'components/BucketIcon/bucket.svg'
+import BucketIcon from 'components/BucketIcon'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
@@ -66,10 +66,7 @@ function BucketAddDialog({ open, onClose, buckets, addBucket }: BucketAddDialogP
             {ordered.map((bucket) => (
               <M.ListItem key={bucket.name} button onClick={() => handleAdd(bucket)}>
                 <M.ListItemAvatar style={{ minWidth: 44 }}>
-                  <M.Avatar
-                    style={{ width: 32, height: 32 }}
-                    src={bucket.iconUrl || defaultBucketIcon}
-                  />
+                  <BucketIcon src={bucket.iconUrl} />
                 </M.ListItemAvatar>
                 <M.ListItemText>
                   s3://{bucket.name}{' '}
@@ -250,10 +247,7 @@ export default function BucketsPermissions({
             onClick={(event) => openPermissionMenu(event, perm)}
           >
             <M.ListItemAvatar style={{ minWidth: 44 }}>
-              <M.Avatar
-                style={{ width: 32, height: 32 }}
-                src={perm.bucket.iconUrl || defaultBucketIcon}
-              />
+              <BucketIcon src={perm.bucket.iconUrl} />
             </M.ListItemAvatar>
             <M.ListItemText
               primary={
