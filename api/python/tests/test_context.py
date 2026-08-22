@@ -163,18 +163,40 @@ class QuiltContextTest(QuiltTestCase):
                 assert pkg.meta == {}
 
     # 6. A caller-supplied agent_context.quilt fails before any AWS call
-    # unless it is exactly Quilt-shaped — the value a previous embed wrote,
-    # arriving when the metadata of the package push() returns (or a
-    # browse() round-trip) is passed back — in which case it is replaced
-    # with fresh context. Near-miss shapes (missing keys, extra keys,
-    # non-object) must not qualify: replacing them would silently discard
-    # caller data.
+    # unless it is structurally Quilt's own v1 output — the value a previous
+    # embed wrote, arriving when the metadata of the package push() returns
+    # (or a browse() round-trip) is passed back — in which case it is
+    # replaced with fresh context. Near-misses must not qualify: not just
+    # missing/extra keys or non-objects, but the right five keys carrying
+    # non-canonical values (caller data reusing the names, or a stamp from a
+    # future context version); replacing any of those would silently discard
+    # data this client did not write.
     def test_existing_quilt_key_fails_unless_quilt_shaped(self):
+        valid_stamp = {
+            "version": 1,
+            "timestamp": FIXED_TIMESTAMP,
+            "client": f"quilt3/{quilt3.__version__}",
+            "principal": {
+                "account": STS_IDENTITY["Account"],
+                "arn": STS_IDENTITY["Arn"],
+                "user_id": STS_IDENTITY["UserId"],
+            },
+            "authentication": {"type": "aws"},
+        }
+        assert quilt_context._is_quilt_shaped(valid_stamp)
         near_misses = [
             {"version": 1},
             "not an object",
             dict.fromkeys(quilt_context._QUILT_CONTEXT_KEYS - {"timestamp"}),
             dict.fromkeys(quilt_context._QUILT_CONTEXT_KEYS) | {"extra": 1},
+            dict(valid_stamp, version=2),
+            dict(valid_stamp, version=True),
+            dict(valid_stamp, timestamp="2026-08-22T01:02:03Z"),
+            dict(valid_stamp, client="boto3/1.34"),
+            dict(valid_stamp, principal=dict(valid_stamp["principal"], host="laptop")),
+            dict(valid_stamp, principal=dict(valid_stamp["principal"], account=123456789012)),
+            dict(valid_stamp, authentication={"type": "aws", "catalog": "https://x"}),
+            dict(valid_stamp, authentication={"type": "quilt-catalog"}),
         ]
         for value in near_misses:
             with self.subTest(value=value):

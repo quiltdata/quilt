@@ -18,6 +18,7 @@ artifacts stay interpretable regardless.
 
 import copy
 import datetime
+import re
 
 from . import session
 from .util import QuiltException
@@ -27,6 +28,8 @@ ROOT_KEY = "agent_context"
 QUILT_KEY = "quilt"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+_TIMESTAMP_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z")
+_CLIENT_RE = re.compile(r"quilt3/[A-Za-z0-9][A-Za-z0-9._+-]*")
 
 
 def _utc_now():
@@ -35,15 +38,44 @@ def _utc_now():
 
 
 _QUILT_CONTEXT_KEYS = frozenset({"version", "timestamp", "client", "principal", "authentication"})
+_PRINCIPAL_KEYS = frozenset({"account", "arn", "user_id"})
 
 
 def _is_quilt_shaped(value):
     """
-    True when `value` looks exactly like this module's own output: an object
-    carrying precisely the keys `collect()` writes. Missing or extra keys
-    mean the value is not ours and must not be replaced.
+    True when `value` is structurally this module's own v1 output: precisely
+    the keys `collect()` writes, with each field carrying its canonical type
+    and form. The key set alone is not enough — caller data that merely
+    reuses these five names must be refused, not replaced, so the whole
+    nested shape is checked. A stamp from a future context version fails
+    this check on purpose: an older client must not silently discard a
+    newer stamp it cannot faithfully reproduce.
     """
-    return isinstance(value, dict) and value.keys() == _QUILT_CONTEXT_KEYS
+    if not isinstance(value, dict) or value.keys() != _QUILT_CONTEXT_KEYS:
+        return False
+    principal = value["principal"]
+    authentication = value["authentication"]
+    return (
+        value["version"] == CONTEXT_VERSION
+        and not isinstance(value["version"], bool)
+        and isinstance(value["timestamp"], str)
+        and _TIMESTAMP_RE.fullmatch(value["timestamp"]) is not None
+        and isinstance(value["client"], str)
+        and _CLIENT_RE.fullmatch(value["client"]) is not None
+        and isinstance(principal, dict)
+        and principal.keys() == _PRINCIPAL_KEYS
+        and all(isinstance(principal[key], str) and principal[key] for key in _PRINCIPAL_KEYS)
+        and (
+            authentication == {"type": "aws"}
+            or (
+                isinstance(authentication, dict)
+                and authentication.keys() == {"type", "catalog"}
+                and authentication["type"] == "quilt-catalog"
+                and isinstance(authentication["catalog"], str)
+                and authentication["catalog"]
+            )
+        )
+    )
 
 
 def _check_mergeable(meta):
@@ -187,15 +219,19 @@ def merge_quilt_context(meta):
     `_is_quilt_shaped`) is replaced with freshly collected context; any other
     pre-existing value at that key is refused.
 
-    All validation failures raise before any AWS call is made.
+    All validation failures raise before any AWS call is made. The copy is
+    taken before validation, so the object validated, stamped, and returned
+    is one and the same — a caller mutating `meta` concurrently (for
+    example from another thread during the STS call) cannot make the stored
+    snapshot diverge from what was validated.
 
     Raises:
         QuiltException: on non-object metadata, a non-object `agent_context`
             value, a pre-existing `agent_context.quilt` value that Quilt
             itself did not write, or failure to resolve STS identity.
     """
-    _check_mergeable(meta)
-    quilt_context = collect()
     new_meta = copy.deepcopy(meta) if meta is not None else {}
+    _check_mergeable(new_meta)
+    quilt_context = collect()
     new_meta.setdefault(ROOT_KEY, {})[QUILT_KEY] = quilt_context
     return new_meta
