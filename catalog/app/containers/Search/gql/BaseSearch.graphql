@@ -23,6 +23,7 @@ query ($buckets: [String!], $searchString: String) {
           __typename
           ... on IPackageUserMetaFacet {
             path
+            sortable
           }
           ... on NumberPackageUserMetaFacet {
             numberExtents: extents {
@@ -52,6 +53,11 @@ query ($buckets: [String!], $searchString: String) {
         context
       }
     }
+    ... on OperationError {
+      name
+      message
+      context
+    }
   }
   searchObjects(buckets: $buckets, searchString: $searchString) {
     __typename
@@ -78,6 +84,11 @@ query ($buckets: [String!], $searchString: String) {
         name
         context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
 }

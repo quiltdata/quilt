@@ -1,5 +1,3 @@
-import typing as T
-
 from .backends import get_package_registry
 from .data_transfer import copy_file
 from .search_util import search_api
@@ -119,7 +117,7 @@ def config(*catalog_url, **config_values):
 
 
 def _config(*catalog_url, **config_values):
-    """   telemetry-free version of config()   """
+    """telemetry-free version of config()"""
     if catalog_url and config_values:
         raise QuiltException("Expected either an auto-config URL or key=value pairs, but got both.")
     # Total distinction of args and kwargs -- config(catalog_url='http://foo.com')
@@ -157,7 +155,7 @@ def _config(*catalog_url, **config_values):
 
 @ApiTelemetry("api.disable_telemetry")
 def disable_telemetry():
-    """ Permanently disable sending of anonymous usage metrics """
+    """Permanently disable sending of anonymous usage metrics"""
     _disable_telemetry()
 
 
@@ -166,7 +164,7 @@ def _disable_telemetry():
 
 
 @ApiTelemetry("api.search")
-def search(query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
+def search(query: str | dict, limit: int = 10) -> list[dict]:
     """
     Execute a search against the configured search endpoint.
 
@@ -176,8 +174,11 @@ def search(query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
 
     Query Syntax:
         [Query String Query](
-            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
-        [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
+            https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html)
+        [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl.html)
+
+    Index schemas and search examples can be found in the
+    [Quilt Search documentation](https://docs.quilt.bio/quilt-platform-catalog-user/search).
 
     Returns:
         search results

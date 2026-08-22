@@ -4,7 +4,7 @@ query (
   $filter: PackagesSearchFilter
   $userMetaFilters: [PackageUserMetaPredicate!]
   $latestOnly: Boolean!
-  $order: SearchResultOrder
+  $ordering: PackageOrdering
 ) {
   searchPackages(
     buckets: $buckets
@@ -16,45 +16,61 @@ query (
     __typename
     ... on PackagesSearchResultSet {
       total
-      firstPage(order: $order) {
-        cursor
-        hits {
-          __typename
-          id
+      firstPage(ordering: $ordering) {
+        __typename
+        ... on PackagesSearchResultSetPage {
+          cursor
+          hits {
+            __typename
+            id
 
-          bucket
-          name
-          pointer
-          hash
-          score
+            bucket
+            name
+            pointer
+            hash
+            score
 
-          size
-          modified
-          totalEntriesCount
+            size
+            modified
+            totalEntriesCount
 
-          comment
-          meta
-          workflow
-
-          matchLocations {
             comment
             meta
-            name
             workflow
-          }
 
-          matchingEntries {
-            logicalKey
-            physicalKey
-            size
-            meta
             matchLocations {
-              contents
-              logicalKey
+              comment
               meta
+              name
+              workflow
+            }
+
+            matchingEntries {
+              logicalKey
               physicalKey
+              size
+              meta
+              matchLocations {
+                contents
+                logicalKey
+                meta
+                physicalKey
+              }
             }
           }
+        }
+        ... on InvalidInput {
+          errors {
+            path
+            message
+            name
+            context
+          }
+        }
+        ... on OperationError {
+          name
+          message
+          context
         }
       }
     }
@@ -65,6 +81,11 @@ query (
         name
         context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
 }

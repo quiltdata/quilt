@@ -20,9 +20,11 @@ ui:
   actions:
     copyPackage: True
     createPackage: True
+    deleteObject: False
+    deleteRevision: False
     downloadObject: True
     downloadPackage: True
-    deleteRevision: False
+    restore: True
     revisePackage: True
     writeFile: True
   blocks:
@@ -56,9 +58,13 @@ ui:
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
+* `ui.actions.deleteObject: True` - show buttons to delete files and
+  directories (off by default since 1.66 to prevent accidental deletions)
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.downloadObject: False` - hide download buttons under "Bucket" tab
 * `ui.actions.downloadPackage: False` - hide download buttons under "Packages" tab
+* `ui.actions.restore: False` - hide the button to restore (rehydrate) archived
+  S3 Glacier / Deep Archive objects
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
@@ -79,8 +85,8 @@ is present
 * `ui.sourceBuckets` - a dictionary of S3 bucket names
 that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks
-Revise Package > Add files from Bucket; if the dictionary is not set
-or is empty the feature "Add files from Bucket" is disabled
+Revise Package > Add files from Bucket; by default, the current bucket
+is always available; set to an empty dictionary `{}` to disable this feature
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets`
 that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary
@@ -98,20 +104,17 @@ in the package list view.
 ui:
   sourceBuckets:
     s3://bucket-a: {}
-    s3://bucket-b: {}
+    bucket-b: {}  # "s3://" prefix is optional
     s3://bucket-c: {}
   defaultSourceBucket: s3://bucket-b
 ```
 
-Note that the `ui.sourceBuckets` is empty by default.
-As a result, when users create or revise a package in a new bucket
-they can't add files from any bucket, including that one.
-Instead, you need to manually add a configuration file,
-or click "auto-add current bucket"
-(which will create or edit the configuration file to add
-the current bucket to the list of `ui.sourceBuckets`)
-
-![Users can auto-add the current bucket to ui.sourceBuckets](../imgs/auto-add-source-bucket.png)
+By default, users can add files from the current bucket when creating
+or revising packages. The current bucket is automatically available
+in the file picker without requiring configuration.
+To restrict this functionality and disable adding files from any bucket
+(including the current one), set `ui.sourceBuckets` to an empty dictionary `{}`
+in your configuration file.
 
 #### `ui.package_description` example
 

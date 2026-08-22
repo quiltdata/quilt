@@ -16,17 +16,19 @@ class SearchTestCase(QuiltTestCase):
         registry_url = "https://registry.example.com"
         mock_search = {
             'hits': {
-                'hits': [{
-                    '_source': {
-                        'key': 'asdf',
-                        'version_id': 'asdf',
-                        'type': 'asdf',
-                        'user_meta': {},
-                        'size': 0,
-                        'text': '',
-                        'updated': '0'
+                'hits': [
+                    {
+                        '_source': {
+                            'key': 'asdf',
+                            'version_id': 'asdf',
+                            'type': 'asdf',
+                            'user_meta': {},
+                            'size': 0,
+                            'text': '',
+                            'updated': '0',
+                        }
                     }
-                }]
+                ]
             }
         }
 

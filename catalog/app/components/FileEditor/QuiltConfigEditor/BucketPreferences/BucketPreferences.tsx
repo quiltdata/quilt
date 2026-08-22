@@ -5,7 +5,8 @@ import * as Lab from '@material-ui/lab'
 
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import { docs } from 'constants/urls'
-import * as BucketConfig from 'utils/BucketConfig'
+import type * as Model from 'model'
+import * as Buckets from 'utils/Buckets'
 import StyledLink from 'utils/StyledLink'
 import { JsonInvalidAgainstSchema } from 'utils/error'
 
@@ -120,13 +121,10 @@ function InputSourceBuckets({
   onChange,
   ...props
 }: FieldProps<TypedValue<string[]>>) {
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const options = React.useMemo(
-    () => bucketConfigs.map((b) => `s3://${b.name}`),
-    [bucketConfigs],
-  )
+  const buckets = Buckets.useRelevantBuckets()
+  const options = React.useMemo(() => buckets.map((b) => `s3://${b.name}`), [buckets])
   const handleChange = React.useCallback(
-    (_e, buckets: string[]) => onChange({ isDefault: false, key, value: buckets }),
+    (_e, selected: string[]) => onChange({ isDefault: false, key, value: selected }),
     [key, onChange],
   )
   return (
@@ -169,9 +167,13 @@ const I18N_FIELDS = {
   'ui.actions.copyPackage': '"PUSH TO BUCKET" on the package page',
   'ui.actions.createPackage':
     '"CREATE PACKAGE" on the package list and bucket listing pages',
+  'ui.actions.deleteObject':
+    'Buttons to delete files and directories under the "BUCKET" tab',
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
   'ui.actions.downloadObject': 'Download buttons under the "BUCKET" tab',
   'ui.actions.downloadPackage': 'Download buttons under the "PACKAGES" tab',
+  'ui.actions.restore':
+    '"REHYDRATE" button for archived S3 Glacier / Deep Archive objects',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
   'ui.actions.writeFile': 'Buttons to create or edit files',
 
@@ -440,10 +442,17 @@ export default function BucketPreferences({
   error,
   initialValue,
   onChange,
-}: QuiltConfigEditorProps) {
+  handle,
+}: QuiltConfigEditorProps & { handle: Model.S3.S3ObjectLocation }) {
   const [errors, setErrors] = React.useState(() => (error ? [error] : []))
 
-  const [config, setConfig] = React.useState(parse(initialValue || '', {}))
+  const [config, setConfig] = React.useState(() =>
+    parse(initialValue || '', {
+      'ui.sourceBuckets': [handle.bucket],
+      'ui.defaultSourceBucket': handle.bucket,
+    }),
+  )
+
   const classes = useStyles()
   const grouped = React.useMemo(
     () =>

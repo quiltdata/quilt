@@ -1,36 +1,29 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import AsyncResult from 'utils/AsyncResult'
 
 import Render from './Render'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => {}),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-const useMarkdownRenderer = jest.fn()
-jest.mock('components/Preview/loaders/Markdown', () => ({
-  ...jest.requireActual('components/Preview/loaders/Markdown'),
-  useMarkdownRenderer: jest.fn(() => useMarkdownRenderer()),
+const useMarkdownRenderer = vi.fn()
+vi.mock('components/Preview/loaders/Markdown', async () => ({
+  ...(await vi.importActual('components/Preview/loaders/Markdown')),
+  useMarkdownRenderer: () => useMarkdownRenderer(),
 }))
 
-jest.mock(
-  'components/Preview/renderers/Markdown',
-  () =>
-    ({ rendered }: { rendered: string }) => (
-      // eslint-disable-next-line react/no-danger
-      <b dangerouslySetInnerHTML={{ __html: rendered }}>Markdown</b>
-    ),
-)
+vi.mock('components/Preview/renderers/Markdown', () => ({
+  default: ({ rendered }: { rendered: string }) => (
+    // eslint-disable-next-line react/no-danger
+    <section dangerouslySetInnerHTML={{ __html: rendered }} />
+  ),
+}))
 
-jest.mock(
-  '@material-ui/lab',
-  jest.fn(() => ({
-    Alert: ({ children }: { children: string }) => <div>Error: {children}</div>,
-  })),
-)
+vi.mock('@material-ui/lab', () => ({
+  Alert: ({ children }: { children: string }) => <p>Error: {children}</p>,
+}))
 
 const handle = {
   bucket: 'foo',
@@ -38,27 +31,29 @@ const handle = {
 }
 
 describe('app/components/Preview/quick/Render.spec.tsx', () => {
+  afterEach(cleanup)
+
   it('it shows the error for Init state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Init())
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('Error: Unexpected state')).toBeTruthy()
   })
 
   it('it shows the error for Pending state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Pending())
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('Error: Unexpected state')).toBeTruthy()
   })
 
   it('returns error on Err', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Err(new Error('some error')))
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('Error: some error')).toBeTruthy()
   })
 
   it('returns markdown on data', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Ok('<h1>It works</h1>'))
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { getByText } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(getByText('It works')).toBeTruthy()
   })
 })

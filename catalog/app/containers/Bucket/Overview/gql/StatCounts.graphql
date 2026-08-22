@@ -1,5 +1,5 @@
 query ($buckets: [String!]) {
-  searchPackages(buckets: $buckets) {
+  searchPackages(buckets: $buckets, latestOnly: true) {
     __typename
     ... on PackagesSearchResultSet {
       total
@@ -11,6 +11,11 @@ query ($buckets: [String!]) {
         name
         context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
   searchObjects(buckets: $buckets) {
@@ -25,6 +30,11 @@ query ($buckets: [String!]) {
         name
         context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
 }

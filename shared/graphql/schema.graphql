@@ -11,10 +11,77 @@ scalar PackageContentsFlatMap
 # bucket + key + version (aka physical key)
 scalar S3ObjectLocation
 
-enum SortDirection {
-  ASC
-  DESC
+"""
+A package ordering expression (packages `firstPage(ordering:)`). Nullable: null
+or absent = relevance (_score). Otherwise one expression, no combinations:
+
+    expression := system | usermeta
+    system     := "sys:" field ":" dir
+    usermeta   := "usr:" pointer ":" type ":" dir
+
+    field      := "name" | "modified" | "size" | "entries" | "hash"
+                | "workflow" | "comment"
+    pointer    := a JSON pointer (RFC 6901), e.g. /experiment/date
+    type       := "number" | "datetime" | "keyword" | "text" | "boolean"
+    dir        := "asc" | "desc"
+
+`type` names a FACET type, not a raw storage type — the registry maps it to the
+stored subfield privately. `text` is contingent best-effort: it sorts a pointer's
+keyword-backed storage and is rejected (as unsupported) when only analyzed text
+is stored.
+
+The prefix is `usr:` (not `user:`). `usr:` is parsed RIGHT-anchored — a JSON
+pointer may itself contain `:`, so the last two `:`-segments are the type and
+dir, and everything between `usr:` and `:<type>:<dir>` is the pointer, verbatim.
+`sys:` is a closed field set, parsed left-to-right. All tokens are lowercase and
+exact: no trimming, no aliases, no case-folding. A non-string wire value (a
+mistyped variable or inline literal) is unparseable.
+
+Examples: `sys:modified:desc` · `sys:name:asc` · `usr:/experiment/date:datetime:asc`
+· null (relevance).
+
+Two rejection classes, both surfaced as the typed InvalidInput arm of
+PackagesFirstPageResult (never a GraphQLError, never a silent _score fallback):
+  - unparseable — fails the grammar (bad prefix, wrong arity, unknown
+    field/type/dir, non-lowercase, non-string); name `ordering`, message quotes
+    the grammar;
+  - unsupported — well-formed but unhonorable: `comment` (no keyword subfield
+    yet), a `text` pointer with no keyword-backed storage, or a TYPE MISMATCH
+    where the type's mapped storage type is not among the pointer's indexed
+    stored types (membership-validated against the facet mapping, never
+    inferred); name `UnsupportedSort`, message states the reason.
+"""
+scalar PackageOrdering
+
+enum APIKeyStatus {
+  ACTIVE
+  EXPIRED
 }
+
+type APIKey {
+  id: ID!
+  name: String!
+  fingerprint: String!
+  createdAt: Datetime!
+  expiresAt: Datetime!
+  lastUsedAt: Datetime
+  userEmail: String!
+  status: APIKeyStatus!
+}
+
+type APIKeyCreated {
+  apiKey: APIKey!
+  secret: String!
+}
+
+input APIKeyCreateInput {
+  name: String!
+  expiresInDays: Int! = 90
+}
+
+union APIKeyCreateResult = APIKeyCreated | InvalidInput
+
+union APIKeyRevokeResult = Ok | InvalidInput
 
 type OperationError {
   message: String!
@@ -143,10 +210,25 @@ type BucketConfig {
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
   indexContentBytes: Int @admin
+  prefixes: [String!]! @admin
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
-  collaborators: [CollaboratorBucketConnection!]!
   tabulatorTables: [TabulatorTable!]!
+}
+
+# Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
+# Subject to the caller's active role — no admin bypass (unlike
+# `bucketConfigs` / `bucketConfig`). `ALLOW_ANONYMOUS_ACCESS` stacks and
+# unmanaged roles see every in-stack bucket, same as the admin-bypass path.
+type Bucket {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  tags: [String!]
+  relevanceScore: Int!
+  browsable: Boolean!
+  collaborators: [CollaboratorBucketConnection!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -331,29 +413,40 @@ type KeywordExtents {
 
 interface IPackageUserMetaFacet {
   path: String!
+  """
+  Whether ES can sort on this pointer's stored subfield. Independent of the
+  concrete facet type: a high-cardinality keyword is rendered as a
+  TextPackageUserMetaFacet (no bounded value picker) yet is `sortable: true`.
+  """
+  sortable: Boolean!
 }
 
 type NumberPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: NumberExtents!
 }
 
 type DatetimePackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: DatetimeExtents!
 }
 
 type KeywordPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
   extents: KeywordExtents!
 }
 
 type TextPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
 }
 
 type BooleanPackageUserMetaFacet implements IPackageUserMetaFacet {
   path: String!
+  sortable: Boolean!
 }
 
 union PackageUserMetaFacet =
@@ -459,20 +552,31 @@ type PackagesSearchResultSet {
   total: Int!
   stats: PackagesSearchStats!
   filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
-  firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
+  # `ordering` is a PackageOrdering wire expression (see that scalar for the
+  # grammar); null or absent = relevance (_score).
+  #
+  # Returns a union rather than the bare page: an `ordering` that is unparseable
+  # (fails the grammar) or unsupported (well-formed but a type mismatch against
+  # the pointer's stored types) is rejected as the typed InvalidInput arm, and a
+  # backend timeout as OperationError. A concrete non-null page has no error arm
+  # — returning an error object down it renders an empty page and 500s on `hits`
+  # (d-unsupported-error / qhq-obs.217).
+  firstPage(size: Int = 30, ordering: PackageOrdering): PackagesFirstPageResult!
 }
 
 type EmptySearchResultSet {
   _: Boolean
 }
 
-union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput
+union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
 
-union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput
+union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
 
-union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
+union PackagesFirstPageResult = PackagesSearchResultSetPage | InvalidInput | OperationError
 
-union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
+union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput | OperationError
+
+union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput | OperationError
 
 type SearchHitObject {
   id: ID!
@@ -527,6 +631,8 @@ type SearchHitPackageMatchingEntry {
   physicalKey: String!
   # 32-bit Int is too small to represent file size which quite often exceeds several GB
   size: Float!
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
   meta: String
   matchLocations: SearchHitPackageEntryMatchLocations!
 }
@@ -564,12 +670,18 @@ type PackagerAdminQueries {
   eventRule(name: String!): PackagerEventRule
 }
 
+type APIKeyAdminQueries {
+  list(email: String, name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
+  get(id: ID!): APIKey
+}
+
 type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
+  apiKeys: APIKeyAdminQueries!
 }
 
 type MyRole {
@@ -582,6 +694,8 @@ type Me {
   isAdmin: Boolean!
   role: MyRole!
   roles: [MyRole!]!
+  apiKeys(name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
+  apiKey(id: ID!): APIKey
 }
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
@@ -592,6 +706,8 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
+  buckets: [Bucket!]!
+  bucket(name: String!): Bucket
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
@@ -640,6 +756,7 @@ input BucketAddInput {
   indexContentBytes: Int
   delayScan: Boolean
   browsable: Boolean
+  prefixes: [String!]
 }
 
 input BucketUpdateInput {
@@ -656,6 +773,7 @@ input BucketUpdateInput {
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
   browsable: Boolean
+  prefixes: [String!]
 }
 
 type BucketAddSuccess {
@@ -695,7 +813,7 @@ type NotificationTopicNotFound {
 }
 
 type InsufficientPermissions {
-  _: Boolean
+  message: String!
 }
 
 type IndexingInProgress {
@@ -727,6 +845,7 @@ union BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
@@ -920,6 +1039,20 @@ union BrowsingSessionRefreshResult =
 
 union BrowsingSessionDisposeResult = Ok | OperationError
 
+enum GlacierRestoreTier {
+  STANDARD
+  BULK
+  EXPEDITED
+}
+
+type RestoreObjectSuccess {
+  # true: a restored copy already existed, so only its expiry was extended.
+  # false: a new restore was started and is now in progress.
+  alreadyRestored: Boolean!
+}
+
+union RestoreObjectResult = RestoreObjectSuccess | InvalidInput | OperationError
+
 input UserInput {
   name: String!
   email: String!
@@ -959,17 +1092,25 @@ type PackagerAdminMutations {
   toggleEventRule(name: String!, enabled: Boolean!): PackagerEventRuleToggleResult!
 }
 
+type APIKeyAdminMutations {
+  revoke(id: ID!): APIKeyRevokeResult!
+}
+
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
-  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
-  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult! @deprecated
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult! @deprecated
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
+  apiKeys: APIKeyAdminMutations!
 }
 
 type Mutation {
   switchRole(roleName: String!): SwitchRoleResult!
+
+  apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
+  apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
 
   packageConstruct(
     params: PackagePushParams!
@@ -992,6 +1133,9 @@ type Mutation {
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
     @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
+
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
 
   policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
   policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
@@ -1017,4 +1161,12 @@ type Mutation {
     ttl: Int! = 180
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
+
+  restoreObject(
+    bucket: String!
+    key: String!
+    version: String
+    tier: GlacierRestoreTier!
+    days: Int!
+  ): RestoreObjectResult!
 }

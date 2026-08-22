@@ -1,6 +1,5 @@
 import pLimit from 'p-limit'
 
-import cfg from 'constants/config'
 import * as Model from 'model'
 
 // 8 MiB -- boto3 default: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
@@ -9,7 +8,6 @@ export const MIN_PART_SIZE = 1024 ** 2 * 8
 const MAX_PARTS = 10000 // Maximum number of parts per upload supported by S3
 
 export function getPartSize(fileSize: number): number | null {
-  // use single-part upload (and plain SHA256 hash)
   if (fileSize < MIN_PART_SIZE) return null
 
   // NOTE: in the case where fileSize is exactly equal to MIN_PART_SIZE
@@ -25,12 +23,7 @@ export function getPartSize(fileSize: number): number | null {
   return partSize
 }
 
-const plain = (value: ArrayBuffer): Model.Checksum => ({
-  value: Buffer.from(value).toString('hex'),
-  type: Model.CHECKSUM_TYPE_SHA256,
-})
-
-const chunked = (value: ArrayBuffer): Model.Checksum => ({
+const sha256Chunked = (value: ArrayBuffer): Model.Checksum => ({
   value: Buffer.from(value).toString('base64'),
   type: Model.CHECKSUM_TYPE_SHA256_CHUNKED,
 })
@@ -60,8 +53,6 @@ const hashBlobLimit = (blob: Blob) => blobLimit(hashBlob, blob)
 async function computeFileChecksum(f: File): Promise<Model.Checksum> {
   if (!crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
 
-  if (!cfg.chunkedChecksums) return plain(await hashBlobLimit(f))
-
   const partSize = getPartSize(f.size) ?? f.size
   const parts: Blob[] = []
 
@@ -74,7 +65,7 @@ async function computeFileChecksum(f: File): Promise<Model.Checksum> {
 
   const checksums = await Promise.all(parts.map(hashBlobLimit))
   const value = await crypto.subtle.digest('SHA-256', mergeBuffers(checksums))
-  return chunked(value)
+  return sha256Chunked(value)
 }
 
 const computeFileChecksumLimit = (f: File) => fileLimit(computeFileChecksum, f)

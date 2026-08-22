@@ -1,10 +1,10 @@
 import cx from 'classnames'
-import jsonpath from 'jsonpath'
 import React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
+import * as jsonpath from 'utils/jsonpath'
 
 import type { KeyedValue } from './State'
 

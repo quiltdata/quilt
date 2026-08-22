@@ -1,0 +1,184 @@
+import * as React from 'react'
+import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach, Mock } from 'vitest'
+
+import * as BucketPreferences from 'utils/BucketPreferences'
+
+import * as FileToolbar from './Toolbar'
+
+vi.mock('constants/config', () => ({ default: {} }))
+
+vi.mock('./Get', () => ({
+  Options: ({ features }: { features?: { code: boolean } }) => (
+    <div>
+      "Get" popover
+      {features?.code && <div data-testid="code-samples" />}
+    </div>
+  ),
+}))
+
+vi.mock('./Organize', () => ({
+  Context: {
+    Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  },
+  Options: ({ features }: { features?: { delete: boolean } }) => (
+    <div>
+      "Organize" popover
+      {features?.delete && <div data-testid="delete-button" />}
+    </div>
+  ),
+}))
+
+vi.mock('@material-ui/lab', async () => ({
+  ...(await vi.importActual('@material-ui/lab')),
+  Skeleton: () => <i>⌛</i>,
+}))
+
+vi.mock('components/Buttons', async () => ({
+  ...(await vi.importActual('components/Buttons')),
+  WithPopover: ({
+    label,
+    children,
+    disabled,
+  }: {
+    disabled: boolean
+    label: string
+    children: React.ReactNode
+  }) => (
+    <button title={label} disabled={disabled}>
+      {children}
+    </button>
+  ),
+}))
+
+vi.mock('containers/Bucket/Toolbar', async () => ({
+  ...(await vi.importActual('containers/Bucket/Toolbar')),
+  Assist: () => <button>Assist</button>,
+}))
+
+const prefsHook: Mock<() => { prefs: BucketPreferences.Result }> = vi.fn(() => ({
+  prefs: BucketPreferences.Result.Init(),
+}))
+
+vi.mock('utils/BucketPreferences', async () => ({
+  ...(await vi.importActual('utils/BucketPreferences')),
+  use: () => prefsHook(),
+}))
+
+const viewModes = { modes: [], mode: null, handlePreviewResult: vi.fn() }
+
+const editorState = {
+  editing: null,
+  error: null,
+  onCancel: vi.fn(),
+  onChange: vi.fn(),
+  onEdit: vi.fn(),
+  onPreview: vi.fn(),
+  onSave: vi.fn(),
+  preview: false,
+  saving: false,
+  types: [],
+  value: 'test content',
+}
+
+const handle = FileToolbar.CreateHandle('test-bucket', 'test/file.txt')
+
+describe('Toolbar', () => {
+  afterEach(cleanup)
+
+  it('should render skeleton buttons when features is null', () => {
+    const { getAllByText } = render(
+      <FileToolbar.Toolbar
+        features={null}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+      />,
+    )
+    const skeletonTexts = getAllByText('⌛')
+    expect(skeletonTexts.length).toBeGreaterThan(0)
+  })
+
+  it('should render all buttons when all features are enabled', () => {
+    const { getByTitle, getByText } = render(
+      <FileToolbar.Toolbar
+        features={{ get: { code: true }, organize: { delete: true }, qurator: true }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(getByTitle('Get file').textContent).toBe('"Get" popover')
+    expect(getByTitle('Organize').textContent).toBe('"Organize" popover')
+    expect(getByText('Assist')).toBeTruthy()
+  })
+
+  it('should render nothing when all features are disabled', () => {
+    const { container, queryByTitle, queryByText } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: false, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+      />,
+    )
+    expect(queryByTitle('Get file')).toBeFalsy()
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(queryByText('Assist')).toBeFalsy()
+    expect((container.firstChild as HTMLElement).children).toHaveLength(0)
+  })
+
+  it('should render buttons for enabled features: get, qurator', () => {
+    const { getByTitle, queryByTitle, getByText } = render(
+      <FileToolbar.Toolbar
+        features={{ get: { code: true }, organize: false, qurator: true }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+      />,
+    )
+    expect(getByTitle('Get file').textContent).toBe('"Get" popover')
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect(getByText('Assist')).toBeTruthy()
+  })
+
+  it('should not render organize button when editorState is not provided', () => {
+    const { container, queryByTitle } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: true }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+      />,
+    )
+    expect(queryByTitle('Organize')).toBeFalsy()
+    expect((container.firstChild as HTMLElement).children).toHaveLength(0)
+  })
+
+  it('should show delete button in Organize.Options when delete feature is enabled', () => {
+    const { getByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: true }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(getByTestId('delete-button')).toBeTruthy()
+  })
+
+  it('should hide delete button in Organize.Options when delete feature is disabled', () => {
+    const { queryByTestId } = render(
+      <FileToolbar.Toolbar
+        features={{ get: false, organize: { delete: false }, qurator: false }}
+        handle={handle}
+        onReload={vi.fn()}
+        viewModes={viewModes}
+        editorState={editorState}
+      />,
+    )
+    expect(queryByTestId('delete-button')).toBeFalsy()
+  })
+})

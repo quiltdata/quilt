@@ -87,6 +87,21 @@ function NextPage({
             )
           case 'data':
             switch (r.data.__typename) {
+              case 'OperationError':
+                if (r.data.name === 'Timeout') {
+                  return (
+                    <NoResults.Error
+                      className={className}
+                      kind="timeout"
+                      onRefine={onRefine}
+                    />
+                  )
+                }
+                return (
+                  <NoResults.Error className={className} onRefine={onRefine}>
+                    Operation error: {r.data.message}
+                  </NoResults.Error>
+                )
               case 'InvalidInput':
                 // should not happen
                 const [err] = r.data.errors
@@ -199,10 +214,15 @@ function ResultsPage({
 
 interface ListResultsProps {
   className?: string
+  emptySlot: JSX.Element
   onRefine: (action: NoResults.Refine) => void
 }
 
-export default function ListResults({ className, onRefine }: ListResultsProps) {
+export default function ListResults({
+  className,
+  emptySlot,
+  onRefine,
+}: ListResultsProps) {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
 
@@ -218,7 +238,7 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <NoResults.Empty className={className} onRefine={onRefine} />
+          return emptySlot
         case 'InvalidInput':
           const [err] = r.data.errors
           if (err.name === 'QuerySyntaxError') {
@@ -235,6 +255,17 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
               {err.message}
             </NoResults.Error>
           )
+        case 'OperationError':
+          if (r.data.name === 'Timeout') {
+            return (
+              <NoResults.Error className={className} kind="timeout" onRefine={onRefine} />
+            )
+          }
+          return (
+            <NoResults.Error className={className} onRefine={onRefine}>
+              Operation error: {r.data.message}
+            </NoResults.Error>
+          )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           const latestOnly =
@@ -242,19 +273,53 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
               ? model.state.latestOnly
               : true
 
-          return (
-            <ResultsPage
-              className={className}
-              key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
-              resultType={model.state.resultType}
-              hits={r.data.firstPage.hits}
-              cursor={r.data.firstPage.cursor}
-              singleBucket={model.state.buckets.length === 1}
-              latestOnly={latestOnly}
-              onRefine={onRefine}
-              determinate={r.data.total > -1 /* `-1` == secure search */}
-            />
-          )
+          // firstPage is a union: the packages variant can reject an
+          // unsupported sort as InvalidInput or fail as OperationError
+          // (d-unsupported-error). Surface those like the outer errors.
+          const firstPage = r.data.firstPage
+          switch (firstPage.__typename) {
+            case 'ObjectsSearchResultSetPage':
+            case 'PackagesSearchResultSetPage':
+              return (
+                <ResultsPage
+                  className={className}
+                  key={`${model.state.resultType}:${firstPage.cursor}`}
+                  resultType={model.state.resultType}
+                  hits={firstPage.hits}
+                  cursor={firstPage.cursor}
+                  singleBucket={model.state.buckets.length === 1}
+                  latestOnly={latestOnly}
+                  onRefine={onRefine}
+                  determinate={r.data.total > -1 /* `-1` == secure search */}
+                />
+              )
+            case 'InvalidInput':
+              const [fpErr] = firstPage.errors
+              return (
+                <NoResults.Error className={className} onRefine={onRefine}>
+                  Invalid input at <code>{fpErr.path}</code>: {fpErr.name}
+                  <br />
+                  {fpErr.message}
+                </NoResults.Error>
+              )
+            case 'OperationError':
+              if (firstPage.name === 'Timeout') {
+                return (
+                  <NoResults.Error
+                    className={className}
+                    kind="timeout"
+                    onRefine={onRefine}
+                  />
+                )
+              }
+              return (
+                <NoResults.Error className={className} onRefine={onRefine}>
+                  Operation error: {firstPage.message}
+                </NoResults.Error>
+              )
+            default:
+              assertNever(firstPage)
+          }
         default:
           assertNever(r.data)
       }

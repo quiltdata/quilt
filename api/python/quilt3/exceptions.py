@@ -1,6 +1,7 @@
-""" Exceptions for Quilt """
+"""Exceptions for Quilt"""
 
 
 class PackageException(Exception):
-    """ Exception relating to package validity. """
+    """Exception relating to package validity."""
+
     pass

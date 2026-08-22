@@ -24,13 +24,13 @@ class ConfigDataVersion(typing.NamedTuple):
         """
         Parse valid version string.
         """
-        return cls._make(((*map(int, version_str.split('.')), 0, 0)[:3]))
+        return cls._make((*map(int, version_str.split('.')), 0, 0)[:3])
 
     def __str__(self):
         return '%s.%s.%s' % self
 
 
-JSONSchemaError = typing.Union[jsonschema.ValidationError, jsonschema.SchemaError]
+JSONSchemaError = jsonschema.ValidationError | jsonschema.SchemaError
 
 
 class WorkflowErrorBase(util.QuiltException):
@@ -57,7 +57,7 @@ class WorkflowValidationError(WorkflowErrorBase):
     pass
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _get_conf_validator():
     schema = json.loads(resources.read_text(__name__, 'config-1.schema.json'))
     return jsonschema.Draft7Validator(schema).validate
@@ -147,7 +147,7 @@ class WorkflowConfig:
         return schema_pk
 
     def load_schema(self, schema_pk: util.PhysicalKey) -> tuple[bytes, util.PhysicalKey]:
-        handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
+        handled_exception = OSError if schema_pk.is_local() else botocore.exceptions.ClientError
         try:
             return get_bytes_and_effective_pk(schema_pk)
         except handled_exception as e:
@@ -216,10 +216,7 @@ class WorkflowConfig:
             'config': str(self.physical_key),
         }
         if self.loaded_schemas:
-            data_to_store['schemas'] = {
-                schema_id: str(x[1])
-                for schema_id, x in self.loaded_schemas_by_id.items()
-            }
+            data_to_store['schemas'] = {schema_id: str(x[1]) for schema_id, x in self.loaded_schemas_by_id.items()}
 
         return WorkflowValidator(
             data_to_store=data_to_store,
@@ -233,7 +230,7 @@ class WorkflowConfig:
 class WorkflowValidator(typing.NamedTuple):
     data_to_store: dict
     is_message_required: bool
-    pkg_name_pattern: typing.Optional[typing.Pattern[str]]
+    pkg_name_pattern: typing.Pattern[str] | None
     metadata_validator: typing.Any
     entries_validator: typing.Any
 

@@ -75,7 +75,6 @@ a local machine or foreign region)—I/O is much faster.
 1. Use a larger instance with more vCPUs.
 
 1. Increase
-<!-- markdownlint-disable-next-line line-length -->
 [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
 
@@ -107,9 +106,9 @@ with your R scripts to create a unified workflow:
 
 <!--pytest.mark.skip-->
 ```bash
-quilt3 install my-package # download Quilt data package 
+quilt3 install my-package # download Quilt data package
 [Run R commands or scripts] # modify the data in Quilt data package using R
-quilt3 push --dir path/to/remote-registry my-package 
+quilt3 push --dir path/to/remote-registry my-package
 # upload Quilt data package to the remote registry
 ```
 
@@ -130,6 +129,11 @@ the entire package *and* its objects, *delete the objects first*.
 
 *Warning: the objects you delete will be lost forever. Ditto for the package
 revision.*
+
+Deleting a specific object version requires `s3:DeleteObjectVersion`, which
+Quilt read-write roles do not grant by default. Ask a Quilt admin to attach a
+custom policy granting this action to your role; otherwise `delete_object`
+below fails with `AccessDenied`.
 
 To delete, first browse the package then walk it, deleting its entry objects as
 follows:
@@ -157,7 +161,6 @@ top_hash=p.top_hash)`.
 
 ## How do I push to Quilt from a headless environment like a Docker container?
 
-<!-- markdownlint-disable-next-line line-length -->
 Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 and `quilt3` will use the same for its API calls.
 
@@ -170,12 +173,12 @@ export AWS_PROFILE=your_profile
 ```
 
 The S3 permissions needed by `quilt3` are similar to
-<!-- markdownlint-disable-next-line line-length -->
-[this bucket policy](https://docs.quilt.bio/advanced/crossaccount#bucket-policies)                                                                                                  but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
+[this bucket policy](https://docs.quilt.bio/advanced/crossaccount#bucket-policies)
+but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
 
-Amazon Athena supports a subset of Data Defintion Language (DDL) and Data
+Amazon Athena supports a subset of Data Definition Language (DDL) and Data
 Manipulation Language (DML) statements, functions, operators, and data types,
 based on [Presto](https://prestodb.io/) and [Trino](https://trino.io/).
 
@@ -198,16 +201,12 @@ SELECT regexp_extract_all('1a 2b 14m', '\d+');
 
 ### Considerations and limitations
 
-There are [many considerations and
-<!-- markdownlint-disable-next-line line-length -->
-limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
+There are [many considerations and limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
 when writing Amazon Athena queries.
 
 ### References
 
-<!-- markdownlint-disable-next-line line-length -->
 * [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
-<!-- markdownlint-disable-next-line line-length -->
 * [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
 
 ## Are there any limitations on characters in Quilt filenames?

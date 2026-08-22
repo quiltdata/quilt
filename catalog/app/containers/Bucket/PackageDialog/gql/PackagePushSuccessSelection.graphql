@@ -6,6 +6,7 @@ fragment PackagePushSuccessSelection on PackagePushSuccess {
     # update latest revision hash
     revision(hashOrTag: "latest") {
       hash
+      modified
     }
     revisions {
       total

@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produced JSON Schema should match the snapshot 1`] = `
+exports[`components/Assistant/Model/GlobalTools/navigation > NavigateSchema > produced JSON Schema > should match the snapshot 1`] = `
 {
   "$defs": {
     "BooleanPredicateState": {
@@ -286,47 +286,17 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                   "title": "Search buckets",
                   "type": "array",
                 },
-                "order": {
-                  "$comment": "/schemas/enums",
+                "ordering": {
                   "anyOf": [
                     {
-                      "enum": [
-                        "BEST_MATCH",
-                      ],
-                      "title": "BEST_MATCH",
                       "type": "string",
                     },
                     {
-                      "enum": [
-                        "NEWEST",
-                      ],
-                      "title": "NEWEST",
-                      "type": "string",
-                    },
-                    {
-                      "enum": [
-                        "OLDEST",
-                      ],
-                      "title": "OLDEST",
-                      "type": "string",
-                    },
-                    {
-                      "enum": [
-                        "LEX_ASC",
-                      ],
-                      "title": "LEX_ASC",
-                      "type": "string",
-                    },
-                    {
-                      "enum": [
-                        "LEX_DESC",
-                      ],
-                      "title": "LEX_DESC",
-                      "type": "string",
+                      "type": "null",
                     },
                   ],
-                  "description": "Order of search results",
-                  "title": "Search result order",
+                  "description": "Ordering expression for results. One of: a system-field sort \`sys:<field>:<dir>\` where field is name|modified|size|entries|hash|workflow and dir is asc|desc (e.g. \`sys:modified:desc\`); a user-metadata sort \`usr:<json-pointer>:<type>:<dir>\` where type is number|datetime|keyword|text|boolean (e.g. \`usr:/experiment/date:datetime:asc\`); or omit for relevance (best match). For object search only the system-field presets on name/modified are honored; anything else falls back to relevance.",
+                  "title": "Result ordering",
                 },
                 "params": {
                   "anyOf": [

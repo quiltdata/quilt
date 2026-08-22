@@ -1,0 +1,120 @@
+import cx from 'classnames'
+import * as React from 'react'
+import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
+
+import * as Toolbar from 'containers/Bucket/Toolbar'
+import { FromHandles, useCreateDialog } from 'containers/Bucket/PackageDialog'
+import * as Selection from 'containers/Bucket/Selection'
+import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
+
+import * as Add from './Add'
+import * as CreatePackage from './CreatePackage'
+import * as Get from './Get'
+import * as Organize from './Organize'
+import { useFeatures, type Features } from './useFeatures'
+
+export { DirHandleCreate as CreateHandle } from 'containers/Bucket/Toolbar'
+export { Add, CreatePackage, Get, Organize, useFeatures, type Features }
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: t.spacing(1),
+  },
+}))
+
+interface DirToolbarProps {
+  className?: string
+  features: Features | null
+  handle: Toolbar.DirHandle
+  onReload: () => void
+}
+
+function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) {
+  const classes = useStyles()
+  const slt = Selection.use()
+
+  const dst = React.useMemo(() => ({ bucket: handle.bucket }), [handle.bucket])
+  const packageDirectoryDialog = useCreateDialog({
+    delayHashing: true,
+    disableStateDisplay: true,
+    dst,
+  })
+
+  const openPackageCreationDialog = React.useCallback(
+    (successor) =>
+      packageDirectoryDialog.open({
+        files: FromHandles(Selection.toHandlesList(slt.selection)),
+        successor,
+      }),
+    [packageDirectoryDialog, slt.selection],
+  )
+
+  const successors = CreatePackage.useSuccessors(handle.bucket)
+
+  if (!features) {
+    return (
+      <div className={cx(classes.root, className)}>
+        <Lab.Skeleton variant="rect">
+          <M.Button size="small" variant="outlined">
+            Loading...
+          </M.Button>
+        </Lab.Skeleton>
+        <Lab.Skeleton variant="rect">
+          <M.Button size="small" variant="outlined">
+            Loading...
+          </M.Button>
+        </Lab.Skeleton>
+      </div>
+    )
+  }
+
+  return (
+    <div className={cx(classes.root, className)}>
+      <ToolbarErrorBoundary>
+        {packageDirectoryDialog.render({
+          successTitle: 'Package created',
+          successRenderMessage: ({ packageLink }) => (
+            <>Package {packageLink} successfully created</>
+          ),
+          title: 'Create package',
+        })}
+
+        {features.add && (
+          <Add.Context.Provider handle={handle}>
+            <Toolbar.Add>
+              <Add.Options />
+            </Toolbar.Add>
+          </Add.Context.Provider>
+        )}
+
+        {features.get && (
+          <Toolbar.Get>
+            <Get.Options handle={handle} features={features.get} />
+          </Toolbar.Get>
+        )}
+
+        {features.organize && (
+          <Organize.Context.Provider onReload={onReload}>
+            <Toolbar.Organize>
+              <Organize.Options features={features.organize} />
+            </Toolbar.Organize>
+          </Organize.Context.Provider>
+        )}
+
+        {features.createPackage && (
+          <Toolbar.CreatePackage>
+            <CreatePackage.Options
+              onChange={openPackageCreationDialog}
+              successors={successors}
+            />
+          </Toolbar.CreatePackage>
+        )}
+      </ToolbarErrorBoundary>
+    </div>
+  )
+}
+
+export { DirToolbar as Toolbar }

@@ -4,8 +4,8 @@ bucket.py
 Contains the Bucket class, which provides several useful functions
     over an s3 bucket.
 """
+
 import pathlib
-import typing as T
 
 from .data_transfer import (
     copy_file,
@@ -19,8 +19,8 @@ from .util import PhysicalKey, QuiltException, fix_url
 
 
 class Bucket:
-    """Bucket interface for Quilt.
-    """
+    """Bucket interface for Quilt."""
+
     def __init__(self, bucket_uri):
         """
         Creates a Bucket object.
@@ -37,7 +37,7 @@ class Bucket:
         if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
 
-    def search(self, query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
+    def search(self, query: str | dict, limit: int = 10) -> list[dict]:
         """
         Execute a search against the configured search endpoint.
 
@@ -47,8 +47,11 @@ class Bucket:
 
         Query Syntax:
             [Query String Query](
-                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
-            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
+                https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html)
+            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl.html)
+
+        Index schemas and search examples can be found in the
+        [Quilt Search documentation](https://docs.quilt.bio/quilt-platform-catalog-user/search).
 
         Returns:
             search results
@@ -137,7 +140,7 @@ class Bucket:
         """
         results = list_objects(self._pk.bucket, path)
         for result in results:
-            self.delete(result['Key'])
+            delete_object(self._pk.bucket, result['Key'])
 
     def ls(self, path=None, recursive=False):
         """List data from the specified path.

@@ -13,41 +13,46 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import * as Notifications from 'containers/Notifications'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import Log from 'utils/Logging'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as XML from 'utils/XML'
 import assertNever from 'utils/assertNever'
+import type { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
+import type { StorageClass } from 'utils/glacier'
 
-import AssistButton from '../AssistButton'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import * as Listing from '../Listing'
-import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
+import AssistButton from '../Toolbar/Assist'
 import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 
+import * as AssistantContext from './AssistantContext'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -157,6 +162,54 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   )
 }
 
+function parseFilesQueryString(qs: string) {
+  if (!qs) return undefined
+  const map = parseSearch(qs, true) as Record<string, string>
+  const value = Object.fromEntries(Object.entries(map).filter(([, p]) => !!p))
+  return PD.FromPhysicalKeys(value)
+}
+
+function useCreateDialog(packageHandle: PackageHandle) {
+  const history = RRDom.useHistory()
+  const { paths, urls } = NamedRoutes.use<RouteMap>()
+
+  const match = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
+
+  const { push } = history
+  const { bucket, name } = packageHandle
+  const onClose = React.useCallback(() => {
+    if (!match) return
+
+    // `bucketPackageDetail` only, because `bucketPackageAddFiles` is on top of "latest", not specific revision
+    push(urls.bucketPackageDetail(bucket, name))
+  }, [match, bucket, name, push, urls])
+
+  const location = RRDom.useLocation()
+  const createDialog = PD.useCreateDialog({
+    src: packageHandle,
+    dst: packageHandle,
+    onClose,
+  })
+
+  const { open, close } = createDialog
+
+  const shouldClose = !match
+  const shouldOpen = !!match
+
+  React.useEffect(() => {
+    if (shouldClose) {
+      close()
+    }
+  }, [shouldClose, close])
+  React.useEffect(() => {
+    if (shouldOpen) {
+      open({ files: parseFilesQueryString(location.search) })
+    }
+  }, [shouldOpen, open, location.search])
+
+  return createDialog
+}
+
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -167,49 +220,34 @@ const useDirDisplayStyles = M.makeStyles((t) => ({
 }))
 
 interface DirDisplayProps {
-  bucket: string
-  name: string
-  hash: string
+  packageHandle: PackageHandle
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
 }
 
-function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
-  const initialActions = PD.useInitialActions()
+function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
 
   const dirQuery = GQL.useQuery(DIR_QUERY, {
-    bucket,
-    name,
-    hash,
+    ...packageHandle,
     path: s3paths.ensureNoSlash(path),
   })
+
+  const { bucket, name, hash } = packageHandle
+
+  const updateDialog = useCreateDialog(packageHandle)
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
     [urls, bucket, name, hashOrTag],
   )
 
-  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
-
-  const updateDialog = PD.usePackageCreationDialog({
-    initialOpen,
-    bucket,
-    src: { name, hash },
-  })
-
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
-
-  const onPackageCopyDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-  }, [setSuccessor])
-
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
-    if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
+    if (prev && !R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
   const { prefs } = BucketPreferences.use()
@@ -262,11 +300,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     }
   }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
 
-  const packageHandle = React.useMemo(
-    () => ({ bucket, name, hash }),
-    [bucket, name, hash],
-  )
-
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
@@ -285,15 +318,16 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     [bucket, name, hash, path],
   )
 
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
+  const closeCopyDialog = React.useCallback(() => setSuccessor(null), [])
+
   return (
     <>
-      <PackageCopyDialog
-        bucket={bucket}
-        hash={hash}
-        name={name}
-        open={!!successor}
+      <PD.Copy
+        onClose={closeCopyDialog}
+        src={packageHandle}
         successor={successor}
-        onExited={onPackageCopyDialogExited}
+        key={successor?.slug || 'none'}
       />
 
       <RevisionDeleteDialog
@@ -398,7 +432,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             variant="contained"
                             color="primary"
                             size="small"
-                            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
                             onClick={() => updateDialog.open()}
                           >
                             Revise package
@@ -470,6 +503,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             )}
                             items={items}
                             key={hash}
+                            onReload={dirQuery.run}
                           />
                         )}
                         <Summary
@@ -494,7 +528,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
 }
 
 const withPreview = (
-  { archived, deleted }: ObjectAttrs,
+  { archived, deleted, restoring }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
@@ -503,17 +537,25 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
-    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+    return callback(
+      AsyncResult.Err(
+        Preview.PreviewError.Archived({
+          handle,
+          archive: { storageClass: archived, restoring },
+        }),
+      ),
+    )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
   return Preview.load(handle, callback, previewOptions)
 }
 
 interface ObjectAttrs {
-  archived: boolean
+  archived: StorageClass | false
   deleted: boolean
   lastModified?: Date
   size?: number
+  restoring: boolean
 }
 
 type CrumbProp = $TSFixMe
@@ -616,6 +658,7 @@ interface RouteMap {
   bucketFile: Routes.BucketFileArgs
   bucketPackageTree: Routes.BucketPackageTreeArgs
   bucketPackageDetail: Routes.BucketPackageDetailArgs
+  bucketPackageAddFiles: Routes.BucketPackageAddFilesArgs
   bucketPackageList: Routes.BucketPackageListArgs
 }
 
@@ -710,11 +753,16 @@ function FileDisplay({
     [file, packageHandle],
   )
 
+  const { push } = Notifications.use()
   const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
-  const handleEdit = React.useCallback(
-    () => history.push(editUrl(path)),
-    [editUrl, history, path],
-  )
+  const handleEdit = React.useCallback(() => {
+    try {
+      history.push(editUrl(path))
+    } catch (error) {
+      Log.error(error)
+      if (error instanceof Error) push(error.message)
+    }
+  }, [editUrl, history, path, push])
   const packageUri = React.useMemo(
     () => ({
       ...packageHandle,
@@ -723,6 +771,43 @@ function FileDisplay({
     }),
     [packageHandle, file.path],
   )
+
+  // Ensure the file bucket's region is cached for correct presigned URLs.
+  // For same-bucket files this is instant (already cached by BucketLayout).
+  const fileBucketExistence = useBucketExistence(handle.bucket)
+
+  const bucketNotReady = fileBucketExistence.case({
+    Ok: () => null,
+    Err: (e: $TSFixMe) => {
+      if (e instanceof errors.AccessDenied) {
+        return (
+          <FileDisplayError
+            headline="Access Denied"
+            detail={`You don't have access to bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      if (e instanceof errors.NoSuchBucket) {
+        return (
+          <FileDisplayError
+            headline="Bucket Not Found"
+            detail={`Could not find bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      return (
+        <FileDisplayError
+          headline="Error"
+          detail={`Could not access bucket "${handle.bucket}"`}
+          crumbs={crumbs}
+        />
+      )
+    },
+    _: () => <FileDisplaySkeleton crumbs={crumbs} />,
+  })
+  if (bucketNotReady) return bucketNotReady
 
   return (
     // @ts-expect-error
@@ -750,7 +835,7 @@ function FileDisplay({
           )
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
+          Exists: ({ archived, deleted, lastModified, size, restoring }: ObjectAttrs) => (
             <>
               <FileContext file={file} pkg={packageHandle} />
               <TopBar crumbs={crumbs}>
@@ -806,9 +891,7 @@ function FileDisplay({
                               />
                             </Download.Button>
                           )}
-                        {blocks.qurator && !deleted && !archived && (
-                          <AssistButton edge="end" />
-                        )}
+                        {blocks.qurator && !deleted && !archived && <AssistButton />}
                       </>
                     ),
                     Pending: () => (
@@ -835,7 +918,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {withPreview(
-                    { archived, deleted },
+                    { archived, deleted, restoring },
                     handle,
                     viewModes.mode,
                     renderPreview(viewModes.handlePreviewResult),
@@ -852,15 +935,11 @@ function FileDisplay({
 }
 
 interface ResolverProviderProps {
-  bucket: string
-  name: string
-  hash: string
+  packageHandle: PackageHandle
 }
 
 function ResolverProvider({
-  bucket,
-  name,
-  hash,
+  packageHandle,
   children,
 }: React.PropsWithChildren<ResolverProviderProps>) {
   const client = urql.useClient()
@@ -870,7 +949,7 @@ function ResolverProvider({
   const resolveLogicalKey = React.useCallback(
     (path: string) =>
       client
-        .query(FILE_QUERY, { bucket, name, hash, path })
+        .query(FILE_QUERY, { ...packageHandle, path })
         .toPromise()
         .then((r) => {
           const file = r.data?.package?.revision?.file
@@ -881,7 +960,7 @@ function ResolverProvider({
             size: file.size,
           }
         }),
-    [client, bucket, name, hash],
+    [client, packageHandle],
   )
 
   return (
@@ -891,6 +970,10 @@ function ResolverProvider({
   )
 }
 
+type RevisionData = NonNullable<
+  GQL.DataForDoc<typeof REVISION_QUERY>['package']
+>['revision']
+
 const useStyles = M.makeStyles({
   alertMsg: {
     overflow: 'hidden',
@@ -899,11 +982,57 @@ const useStyles = M.makeStyles({
   },
 })
 
+interface PackageRevisionProps {
+  packageHandle: PackageHandle
+  hashOrTag: string
+  path: string
+  crumbs: BreadCrumbs.Crumb[]
+  mode?: string
+  revision?: RevisionData
+}
+
+function PackageRevision({
+  packageHandle,
+  hashOrTag,
+  path,
+  crumbs,
+  mode,
+  revision,
+}: PackageRevisionProps) {
+  const isDir = path === '' || path.endsWith('/')
+
+  return (
+    <>
+      <ResolverProvider packageHandle={packageHandle}>
+        <AssistantContext.PackageContext
+          bucket={packageHandle.bucket}
+          name={packageHandle.name}
+          path={path}
+          revision={revision ?? null}
+        />
+        {isDir ? (
+          <DirDisplay
+            packageHandle={packageHandle}
+            {...{ hashOrTag, path }}
+            {...{ crumbs }}
+          />
+        ) : (
+          <FileDisplayQuery
+            {...packageHandle}
+            {...{ hashOrTag, path }}
+            {...{ crumbs, mode }}
+          />
+        )}
+      </ResolverProvider>
+    </>
+  )
+}
+
 interface PackageTreeProps {
   bucket: string
   name: string
   hashOrTag: string
-  hash?: string
+  revision?: RevisionData
   path: string
   mode?: string
   resolvedFrom?: string
@@ -914,12 +1043,13 @@ function PackageTree({
   bucket,
   name,
   hashOrTag,
-  hash,
+  revision,
   path,
   mode,
   resolvedFrom,
   revisionListQuery,
 }: PackageTreeProps) {
+  const hash = revision?.hash
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
 
@@ -930,8 +1060,6 @@ function PackageTree({
   //
   // const bucketCfg = data?.bucket.config
 
-  const isDir = s3paths.isDir(path)
-
   const getSegmentRoute = React.useCallback(
     (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
     [bucket, hashOrTag, name, urls],
@@ -939,6 +1067,11 @@ function PackageTree({
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, 'ROOT', {
     tailSeparator: path.endsWith('/'),
   })
+
+  const packageHandle = React.useMemo(
+    () => (hash ? { bucket, name, hash } : null),
+    [bucket, name, hash],
+  )
 
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
@@ -956,15 +1089,6 @@ function PackageTree({
   return (
     <FileView.Root>
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
-      {/* TODO: bring back linked data after re-implementing it using graphql
-      {!!bucketCfg &&
-        revisionData.case({
-          Ok: ({ hash, modified }) => (
-            <ExposeLinkedData {...{ bucketCfg, bucket, name, hash, modified }} />
-          ),
-          _: () => null,
-        })}
-      */}
       {!!resolvedFrom && (
         <M.Box mb={2}>
           <Lab.Alert
@@ -999,25 +1123,14 @@ function PackageTree({
         {' @ '}
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
-      {hash ? (
-        <ResolverProvider {...{ bucket, name, hash }}>
-          {isDir ? (
-            <DirDisplay
-              {...{
-                bucket,
-                name,
-                hash,
-                path,
-                hashOrTag,
-                crumbs,
-              }}
-            />
-          ) : (
-            <FileDisplayQuery
-              {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
-            />
-          )}
-        </ResolverProvider>
+      {packageHandle ? (
+        <PackageRevision
+          packageHandle={packageHandle}
+          hashOrTag={hashOrTag}
+          path={path}
+          crumbs={crumbs}
+          mode={mode}
+        />
       ) : (
         <>
           <TopBar crumbs={crumbs} />
@@ -1059,12 +1172,13 @@ function PackageTreeQueries({
 }: PackageTreeQueriesProps) {
   const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
+  const displayError = React.useMemo(() => errors.displayError(), [])
 
   return GQL.fold(revisionQuery, {
     fetching: () => <Placeholder color="text.secondary" />,
-    error: (e) => errors.displayError()(e),
-    data: (d) => {
-      if (!d.package) {
+    error: (error) => <>{displayError(error)}</>,
+    data: (revisionData) => {
+      if (!revisionData.package) {
         return (
           <Message headline="No Such Package">
             Package named{' '}
@@ -1073,7 +1187,6 @@ function PackageTreeQueries({
           </Message>
         )
       }
-
       return (
         <Selection.Provider>
           <PackageTree
@@ -1081,7 +1194,7 @@ function PackageTreeQueries({
               bucket,
               name,
               hashOrTag,
-              hash: d.package.revision?.hash,
+              revision: revisionData.package.revision,
               path,
               mode,
               resolvedFrom,

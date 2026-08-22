@@ -1,52 +1,100 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_Search_gql_PackageMetaFacetsFindQueryVariables = Types.Exact<{
-  buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
-  searchString: Types.Maybe<Types.Scalars['String']>
-  filter: Types.Maybe<Types.PackagesSearchFilter>
-  latestOnly: Types.Scalars['Boolean']
-  path: Types.Scalars['String']
+import type { JsonRecord } from 'utils/types'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+export interface DatetimeSearchPredicate {
+  readonly gte: Date | null | undefined
+  readonly lte: Date | null | undefined
+}
+
+export interface KeywordSearchPredicate {
+  readonly terms: Array<string> | null | undefined
+  readonly wildcard: string | null | undefined
+}
+
+export interface NumberSearchPredicate {
+  readonly gte: number | null | undefined
+  readonly lte: number | null | undefined
+}
+
+export interface PackagesSearchFilter {
+  readonly comment: TextSearchPredicate | null | undefined
+  readonly entries: NumberSearchPredicate | null | undefined
+  readonly hash: KeywordSearchPredicate | null | undefined
+  readonly modified: DatetimeSearchPredicate | null | undefined
+  readonly name: KeywordSearchPredicate | null | undefined
+  readonly size: NumberSearchPredicate | null | undefined
+  readonly workflow: KeywordSearchPredicate | null | undefined
+}
+
+export interface TextSearchPredicate {
+  readonly queryString: string
+}
+
+export type containers_Search_gql_PackageMetaFacetsFindQueryVariables = Exact<{
+  buckets: ReadonlyArray<string> | null | undefined
+  searchString: string | null | undefined
+  filter: Types.PackagesSearchFilter | null | undefined
+  latestOnly: boolean
+  path: string
 }>
 
-export type containers_Search_gql_PackageMetaFacetsFindQuery = {
+export interface containers_Search_gql_PackageMetaFacetsFindQuery {
   readonly __typename: 'Query'
-} & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly filteredUserMetaFacets: ReadonlyArray<
-          | ({ readonly __typename: 'NumberPackageUserMetaFacet' } & Pick<
-              Types.NumberPackageUserMetaFacet,
-              'path'
-            >)
-          | ({ readonly __typename: 'DatetimePackageUserMetaFacet' } & Pick<
-              Types.DatetimePackageUserMetaFacet,
-              'path'
-            >)
-          | ({ readonly __typename: 'KeywordPackageUserMetaFacet' } & Pick<
-              Types.KeywordPackageUserMetaFacet,
-              'path'
-            >)
-          | ({ readonly __typename: 'TextPackageUserMetaFacet' } & Pick<
-              Types.TextPackageUserMetaFacet,
-              'path'
-            >)
-          | ({ readonly __typename: 'BooleanPackageUserMetaFacet' } & Pick<
-              Types.BooleanPackageUserMetaFacet,
-              'path'
-            >)
-        >
-      })
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
+    | {
+        readonly __typename: 'PackagesSearchResultSet'
+        readonly filteredUserMetaFacets: ReadonlyArray<
+          | {
+              readonly __typename: 'BooleanPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'DatetimePackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'KeywordPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'NumberPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'TextPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
         >
-      })
+      }
 }
 
 export const containers_Search_gql_PackageMetaFacetsFindDocument = {
@@ -175,6 +223,10 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'path' },
                                   },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'sortable' },
+                                  },
                                 ],
                               },
                             },
@@ -206,6 +258,21 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

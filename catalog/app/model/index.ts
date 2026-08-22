@@ -50,8 +50,17 @@ export type EntryMeta = (Types.JsonRecord & { user_meta?: Types.JsonRecord }) | 
 
 export const CHECKSUM_TYPE_SHA256 = 'SHA256' as const
 export const CHECKSUM_TYPE_SHA256_CHUNKED = 'sha2-256-chunked' as const
+export const CHECKSUM_TYPE_CRC64NVME = 'CRC64NVME' as const
+export const CHECKSUM_TYPES = [
+  CHECKSUM_TYPE_SHA256,
+  CHECKSUM_TYPE_SHA256_CHUNKED,
+  CHECKSUM_TYPE_CRC64NVME,
+]
+
+export type ChecksumType = (typeof CHECKSUM_TYPES)[number]
+
 export interface Checksum {
-  type: typeof CHECKSUM_TYPE_SHA256 | typeof CHECKSUM_TYPE_SHA256_CHUNKED
+  type: ChecksumType
   value: string
 }
 

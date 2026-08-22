@@ -25,6 +25,8 @@ export class ESTimeout extends BucketError {}
 
 export class ESThrottle extends BucketError {}
 
+export class FailedResolvingFiles extends BucketError {}
+
 export class FileNotFound extends BucketError {}
 
 export class VersionNotFound extends BucketError {}
@@ -66,6 +68,17 @@ export class ManifestTooLarge extends BucketError {
     super(
       `Package manifest ${props.hash} at s3://${props.bucket} is too large (more than ${props.max} entries)`,
       props,
+    )
+  }
+}
+
+/** The revised package never loaded, so publishing would replace its contents. */
+export class SourceManifestNotLoaded extends BucketError {
+  static displayName = 'SourceManifestNotLoaded'
+
+  constructor() {
+    super(
+      'Existing package contents could not be loaded, so pushing is disabled to keep them from being replaced. Enter a name that does not exist yet to create a new package, or cancel and try again.',
     )
   }
 }

@@ -12,5 +12,10 @@ query ($buckets: [String!]!, $filter: PackagesSearchFilter!) {
         context
       }
     }
+    ... on OperationError {
+      name
+      message
+      context
+    }
   }
 }

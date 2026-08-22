@@ -2,17 +2,49 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useStyles = M.makeStyles({
-  icon: {
+import type * as SvgIcons from '@material-ui/icons'
+
+export type SvgIcon = typeof SvgIcons.AddOutlined | typeof SvgIcons.GetAppOutlined
+
+export type StrIcon =
+  | 'ac_unit'
+  | 'add'
+  | 'archive'
+  | 'edit'
+  | 'exit_to_app'
+  | 'save'
+  | 'undo'
+  | 'unfold_less'
+  | 'unfold_more'
+
+const useIconStyles = M.makeStyles({
+  root: {
     transition: 'ease transform .15s',
   },
-  iconRotated: {
+  rotated: {
     transform: `rotate(180deg)`,
   },
 })
 
+interface IconProps {
+  icon: StrIcon | SvgIcon
+  rotate?: boolean
+}
+
+function Icon({ icon, rotate }: IconProps) {
+  const classes = useIconStyles()
+  const IconComponent = React.useMemo(
+    () =>
+      typeof icon === 'string'
+        ? (iconProps: M.IconProps) => <M.Icon {...iconProps}>{icon}</M.Icon>
+        : icon,
+    [icon],
+  )
+  return <IconComponent className={cx(classes.root, { [classes.rotated]: rotate })} />
+}
+
 interface ButtonIconizedProps extends M.IconButtonProps {
-  icon: string
+  icon: StrIcon | SvgIcon
   label: string
   rotate?: boolean
   variant?: 'text' | 'outlined' | 'contained'
@@ -28,25 +60,19 @@ export default function ButtonIconized({
   variant = 'outlined',
   ...props
 }: ButtonIconizedProps) {
-  const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const iconElement = (
-    <M.Icon className={cx(classes.icon, { [classes.iconRotated]: rotate })}>
-      {icon}
-    </M.Icon>
-  )
 
   return sm ? (
     <M.IconButton className={className} edge="end" size="small" title={label} {...props}>
-      {iconElement}
+      <Icon icon={icon} rotate={rotate} />
     </M.IconButton>
   ) : (
     <M.Button
       className={className}
       endIcon={endIcon}
       size="small"
-      startIcon={iconElement}
+      startIcon={<Icon icon={icon} rotate={rotate} />}
       variant={variant}
       {...props}
     >

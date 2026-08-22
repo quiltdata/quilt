@@ -14,7 +14,7 @@ import * as workflows from 'utils/workflows'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
-function EmptySlot() {
+export function EmptySlot() {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>
@@ -38,7 +38,7 @@ interface ErrorSlotProps {
   error: Error
 }
 
-function ErrorSlot({ error }: ErrorSlotProps) {
+export function ErrorSlot({ error }: ErrorSlotProps) {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>
@@ -57,11 +57,9 @@ function ErrorSlot({ error }: ErrorSlotProps) {
 }
 
 const useMenuPlaceholderStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(22),
-  },
   item: {
     height: t.spacing(6),
+    minWidth: t.spacing(22),
     width: '100%',
   },
 }))
@@ -69,7 +67,7 @@ const useMenuPlaceholderStyles = M.makeStyles((t) => ({
 function MenuPlaceholder() {
   const classes = useMenuPlaceholderStyles()
   return (
-    <div className={classes.root}>
+    <>
       <M.MenuItem disabled>
         <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
@@ -79,67 +77,90 @@ function MenuPlaceholder() {
       <M.MenuItem disabled>
         <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
-    </div>
+    </>
   )
 }
 
 function useSuccessors(
   bucket: string,
-  {
-    currentBucketCanBeSuccessor,
-    noAutoFetch = false,
-  }: { currentBucketCanBeSuccessor: boolean; noAutoFetch?: boolean },
+  { strict = false, noAutoFetch = false }: { strict?: boolean; noAutoFetch?: boolean },
 ): workflows.Successor[] | Error | undefined {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch })
+  const data = useData(requests.workflowsConfig, { s3, bucket, strict }, { noAutoFetch })
   return React.useMemo(
     () =>
       data.case({
-        Ok: ({ successors }: { successors: workflows.Successor[] }) =>
-          currentBucketCanBeSuccessor && !successors.find(({ slug }) => slug === bucket)
-            ? [workflows.bucketToSuccessor(bucket), ...successors]
-            : successors,
+        Ok: ({ successors }: { successors: workflows.Successor[] }) => successors,
         Err: (error: Error) => error,
         _: () => undefined,
       }),
-    [bucket, currentBucketCanBeSuccessor, data],
+    [data],
   )
 }
 
+const ANCHOR_ORIGIN = { vertical: 'bottom', horizontal: 'left' } as const
+
 interface SuccessorsSelectProps {
   anchorEl: HTMLElement | null
-  bucket: string
   onChange: (x: workflows.Successor) => void
   onClose: () => void
-  open: boolean
+  successors: workflows.Successor[] | Error | undefined
 }
 
-function SuccessorsSelect({
+export function SuccessorsSelect({
   anchorEl,
-  bucket,
   onChange,
   onClose,
-  open,
+  successors,
 }: SuccessorsSelectProps) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsConfig, { s3, bucket })
+  const open = !!anchorEl
+
+  if (successors instanceof Error) {
+    return (
+      <M.Popover
+        anchorEl={anchorEl}
+        onClose={onClose}
+        open={open}
+        anchorOrigin={ANCHOR_ORIGIN}
+      >
+        <ErrorSlot error={successors} />
+      </M.Popover>
+    )
+  }
+
+  if (!successors) {
+    return (
+      <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
+        <MenuPlaceholder />
+      </M.Menu>
+    )
+  }
+
+  if (!successors.length) {
+    return (
+      <M.Popover
+        anchorEl={anchorEl}
+        onClose={onClose}
+        open={open}
+        anchorOrigin={ANCHOR_ORIGIN}
+      >
+        <EmptySlot />
+      </M.Popover>
+    )
+  }
 
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
-      {data.case({
-        Ok: ({ successors }: { successors: workflows.Successor[] }) =>
-          successors.length ? (
-            successors.map((successor) => (
-              <M.MenuItem key={successor.slug} onClick={() => onChange(successor)}>
-                <M.ListItemText primary={successor.name} secondary={successor.url} />
-              </M.MenuItem>
-            ))
+      <M.ListSubheader>Destination bucket</M.ListSubheader>
+      {successors.map((successor) => (
+        <M.MenuItem key={successor.slug} onClick={() => onChange(successor)}>
+          {successor.name !== successor.slug ? (
+            <M.ListItemText primary={successor.name} secondary={successor.url} />
           ) : (
-            <EmptySlot />
-          ),
-        _: () => <MenuPlaceholder />,
-        Err: (error: Error) => <ErrorSlot error={error} />,
-      })}
+            <M.ListItemText primary={successor.url} />
+          )}
+        </M.MenuItem>
+      ))}
     </M.Menu>
   )
 }
@@ -153,21 +174,22 @@ const useButtonStyles = M.makeStyles({
 interface InputProps {
   bucket: string
   className?: string
-  currentBucketCanBeSuccessor: boolean
   onChange?: (value: workflows.Successor) => void
   successor: workflows.Successor
 }
 
-export function Dropdown({
-  bucket,
-  className,
-  currentBucketCanBeSuccessor,
-  onChange,
-  successor,
-}: InputProps) {
+/**
+ * Dropdown component for selecting package destinations in Package Dialog.
+ *
+ * This is used when creating new packages or revising existing packages to allow
+ * users to change their mind about the destination bucket. It re-uses the
+ * `successors` configuration as a convenience/hack to determine available
+ * destination buckets.
+ */
+export function Dropdown({ bucket, className, onChange, successor }: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
-  const successors = useSuccessors(bucket, { currentBucketCanBeSuccessor, noAutoFetch })
+  const successors = useSuccessors(bucket, { noAutoFetch })
   const options = React.useMemo(
     () =>
       Array.isArray(successors)
@@ -224,13 +246,24 @@ export function Dropdown({
 
 interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
-  icon?: string
+  icon?: Buttons.StrIcon
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
   variant?: 'text' | 'outlined' | 'contained'
 }
 
+/**
+ * Button component for "Push to bucket" functionality (cross-bucket package push).
+ *
+ * This button is used exclusively for pushing existing packages from one bucket to
+ * another bucket - the cross-bucket package push feature.
+ * It uses `strict` mode for `successors`
+ * to respect explicit workflow configuration exactly.
+ *
+ * Documentation for this functionality can be found in:
+ * ../docs/advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog
+ */
 export function Button({
   bucket,
   className,
@@ -240,6 +273,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
+  const successors = useSuccessors(bucket, { strict: true })
 
   const onButtonClick = React.useCallback(
     (event) => setMenuAnchorEl(event.currentTarget),
@@ -274,10 +308,9 @@ export function Button({
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}
-        bucket={bucket}
-        open={!!menuAnchorEl}
         onChange={onMenuClick}
         onClose={onMenuClose}
+        successors={successors}
       />
     </>
   )

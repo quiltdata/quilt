@@ -18,7 +18,7 @@ class Vars:
 
 
 def pytest_sessionstart(session):
-    """ pytest_sessionstart hook
+    """pytest_sessionstart hook
 
     This runs *before* import and collection of tests.
 
@@ -40,17 +40,19 @@ def pytest_sessionstart(session):
         return str(d / args[0] if args else d)
 
     # Mockers that need to be loaded before any of our code
-    Vars.extrasession_mockers.extend([
-        mock.patch('platformdirs.user_data_dir', partial(get_dir, d=Vars.tmpdir_data)),
-        mock.patch('platformdirs.user_cache_dir', partial(get_dir, d=Vars.tmpdir_cache)),
-    ])
+    Vars.extrasession_mockers.extend(
+        [
+            mock.patch('platformdirs.user_data_dir', partial(get_dir, d=Vars.tmpdir_data)),
+            mock.patch('platformdirs.user_cache_dir', partial(get_dir, d=Vars.tmpdir_cache)),
+        ]
+    )
 
     for mocker in Vars.extrasession_mockers:
         mocker.start()
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """ pytest_sessionfinish hook
+    """pytest_sessionfinish hook
 
     This runs *after* any finalizers or other session activities.
 
@@ -96,10 +98,6 @@ def isolate_packages_cache(tmp_path):
 
 @pytest.fixture
 def clear_data_modules_cache():
-    to_remove = [
-        name
-        for name in sys.modules
-        if name.split('.')[:2] == ['quilt3', 'data']
-    ]
+    to_remove = [name for name in sys.modules if name.split('.')[:2] == ['quilt3', 'data']]
     for name in to_remove:
         del sys.modules[name]

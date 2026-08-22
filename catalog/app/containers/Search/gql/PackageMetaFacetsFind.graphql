@@ -17,6 +17,7 @@ query (
         __typename
         ... on IPackageUserMetaFacet {
           path
+          sortable
         }
       }
     }
@@ -27,6 +28,11 @@ query (
         name
         context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
 }

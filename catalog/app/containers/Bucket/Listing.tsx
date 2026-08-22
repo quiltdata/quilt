@@ -18,7 +18,7 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
-import { RowActions } from './ListingActions'
+import RowActions from './ListingActions'
 import * as Selection from './Selection'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -180,7 +180,9 @@ const usePrefixFilterStyles = M.makeStyles((t) => ({
     paddingTop: 2,
   },
   clearIcon: {
-    fontSize: '16px !important',
+    // `!important` beats MUI's own `.MuiSvgIcon-fontSizeSmall` rule on the
+    // adornment icon, which would otherwise win on specificity.
+    fontSize: `${t.typography.body1.fontSize} !important`,
     lineHeight: '15px',
     marginLeft: -6,
   },
@@ -380,7 +382,12 @@ function Pagination({
           ))}
         </M.Select>
       )}
-      <M.IconButton size="small" disabled={page === 1} onClick={() => setPage(page - 1)}>
+      <M.IconButton
+        size="small"
+        disabled={page === 1}
+        onClick={() => setPage(page - 1)}
+        aria-label="Previous page"
+      >
         <M.Icon fontSize="small">chevron_left</M.Icon>
       </M.IconButton>
       {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
@@ -398,6 +405,7 @@ function Pagination({
         size="small"
         disabled={page === pages}
         onClick={() => setPage(page + 1)}
+        aria-label="Next page"
       >
         <M.Icon fontSize="small">chevron_right</M.Icon>
       </M.IconButton>
@@ -405,7 +413,9 @@ function Pagination({
   )
 }
 
-function ActiveFilters() {
+// Exported for testing: this renders as tooltip content in three places, none
+// of which had a boundary above them.
+export function ActiveFilters() {
   const apiRef = React.useContext(DG.GridApiContext)
   const activeFilters = DG.useGridSelector(apiRef, DG.activeGridFilterItemsSelector)
   const lookup = DG.useGridSelector(apiRef, DG.gridColumnLookupSelector)
@@ -415,14 +425,24 @@ function ActiveFilters() {
     <>
       {apiRef!.current.getLocaleText('toolbarFiltersTooltipActive')(counter)}
       <ul>
-        {activeFilters.map((item) => ({
-          ...(lookup[item.columnField!] && (
+        {/* `columnField` is optional on GridFilterItem, so `lookup[...]` can be
+            undefined. This used to spread the conditional into an object
+            literal -- `{...(lookup[f!] && <li/>)}` -- which on the falsy branch
+            produced `{}`: not a valid element, so React threw "Objects are not
+            valid as a React child" from inside a tooltip with no boundary above
+            it, blanking the catalog. (The truthy branch only worked by accident,
+            object-spread copying an element's own enumerable props including
+            `$$typeof`.) Map to elements and drop the unmatched ones instead, so
+            the conditional yields a valid element or nothing. */}
+        {activeFilters.flatMap((item) => {
+          const column = item.columnField ? lookup[item.columnField] : undefined
+          if (!column) return []
+          return [
             <li key={item.id}>
-              {lookup[item.columnField!].headerName || item.columnField}{' '}
-              {item.operatorValue} {item.value}
-            </li>
-          )),
-        }))}
+              {column.headerName || item.columnField} {item.operatorValue} {item.value}
+            </li>,
+          ]
+        })}
       </ul>
     </>
   )
@@ -753,9 +773,18 @@ interface FooterProps {
   locked?: boolean
   loadMore?: () => void
   items: Item[]
+  // Suppress the aggregate size cell for listings whose items carry no size
+  // (it would otherwise total to a misleading "0 B").
+  hideSize?: boolean
 }
 
-function Footer({ truncated = false, locked = false, loadMore, items }: FooterProps) {
+function Footer({
+  truncated = false,
+  locked = false,
+  loadMore,
+  items,
+  hideSize = false,
+}: FooterProps) {
   const { state } = DG.useGridSlotComponentProps()
   const classes = useFooterStyles()
 
@@ -834,10 +863,12 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
           )}
         </div>
         <div className={classes.spacer} />
-        <div className={classes.cellSecond}>
-          {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
-          {readableBytes(stats.size, truncated ? '+' : '')}
-        </div>
+        {!hideSize && (
+          <div className={classes.cellSecond}>
+            {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
+            {readableBytes(stats.size, truncated ? '+' : '')}
+          </div>
+        )}
         {modified && (
           <div className={classes.cellLast}>
             {truncated ? '~' : ''}
@@ -1045,6 +1076,10 @@ interface ListingProps {
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
   dataGridProps?: Partial<DG.DataGridProps>
+  onReload: () => void
+  // Omit the size column and the footer size total (for listings whose items
+  // carry no size, where it would read as a misleading "0 B").
+  hideSize?: boolean
 }
 
 export function Listing({
@@ -1060,6 +1095,8 @@ export function Listing({
   RootComponent = M.Paper,
   className,
   dataGridProps,
+  onReload,
+  hideSize = false,
 }: ListingProps) {
   const classes = useStyles()
   const t = M.useTheme()
@@ -1145,7 +1182,7 @@ export function Listing({
         },
       },
     ]
-    if (items.some(({ size }) => size != null)) {
+    if (!hideSize && items.some(({ size }) => size != null)) {
       columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
@@ -1207,6 +1244,7 @@ export function Listing({
                   physicalKey={params.row.physicalKey}
                   prefs={actions}
                   to={params.row.to}
+                  onReload={onReload}
                 />
               ),
               _: () => <></>,
@@ -1216,7 +1254,7 @@ export function Listing({
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm, prefs])
+  }, [classes, CellComponent, items, sm, prefs, onReload, hideSize])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
@@ -1250,7 +1288,7 @@ export function Listing({
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
           toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
-          footer: { truncated, locked, loadMore, items },
+          footer: { truncated, locked, loadMore, items, hideSize },
         }}
         getRowId={(row) => row.name.replaceAll("'", "\\'")}
         pagination

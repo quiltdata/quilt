@@ -16,6 +16,58 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
+## unreleased - YYYY-MM-DD
+
+### Python API
+
+* [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] The `QuiltConflictException` raised by `Package.push()` now names the destination bucket and package name, and leads with the routes that satisfy the check — re-using the package returned by the previous `push()`, or calling `Package.browse()` (CLI: `quilt3 install`) — before offering `force=True`/`--force` ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] `Package` no longer carries a `_origin` attribute or a `PackageRevInfo` class; the revision a package was read from or has published is tracked internally per package name. `Package.push()` returns the package it published, so `result.top_hash` is the published revision ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] `Package.push(force=True, dedupe=True)` re-reads the destination before accepting an equal-hash match, so a revision published by another writer during transfer is overwritten rather than reported as a skip ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+
+## 8.0.0 - 2026-08-04
+
+### Python API
+
+* [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
+* [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
+* [Fixed] `quilt3.delete_package()` on a local registry no longer deletes other packages sharing the same namespace ([#5140](https://github.com/quiltdata/quilt/pull/5140))
+* [Fixed] `Package.push()` no longer fails after the data is uploaded when cleaning up a temporary file created by `Package.set()`: a file that is already gone is ignored, which is also what happens when two logical keys share one serialized object and its temporary file is deleted twice, and any other removal error is logged instead of raised ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Package.push()` no longer uses a process pool to delete temporary files, so it works from a daemonic process (e.g. a prefork worker) and no longer requires callers to guard their entry point with `if __name__ == "__main__":` ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Bucket.delete_dir()` no longer stops partway through on zero-byte directory markers, leaving the directory half deleted ([#5158](https://github.com/quiltdata/quilt/pull/5158))
+
+### CLI
+
+* [Changed] `quilt3 login` no longer echoes the pasted code to the terminal (it is a long-lived credential) ([#5138](https://github.com/quiltdata/quilt/pull/5138))
+
+## 7.3.0 - 2026-04-07
+
+### Python API
+
+* [Added] Admin role and policy management APIs: `quilt3.admin.roles` (list/get/get-default/create/update/patch/delete/set-default) and `quilt3.admin.policies` (list/get/create/update/patch/delete); all lookup and mutation methods accept name/title in addition to ID ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin.ManagedRole` now exposes `policies` and `permissions` fields ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+* [Added] `quilt3.admin` now exports `Policy`, `PolicySummary`, `Permission` (with `.read()` / `.read_write()` shorthand constructors), `BucketPermissionLevel` types and `RoleAssignedError`, `RoleSsoConfigConflictError`, `RoleTypeMismatchError` exceptions ([#4805](https://github.com/quiltdata/quilt/pull/4805))
+
+## 7.2.0 - 2026-01-28
+
+### Python API
+
+* [Added] Verification of packages with crc64nvme hashes ([#4696](https://github.com/quiltdata/quilt/pull/4696))
+* [Added] API key support (`quilt3.api_keys`, `quilt3.admin.api_keys`, `login_with_api_key()`) ([#4690](https://github.com/quiltdata/quilt/pull/4690), [#4705](https://github.com/quiltdata/quilt/pull/4705))
+
+## 7.1.0 - 2025-12-22
+
+### Python API
+
+* [Added] `quilt3.admin.buckets` sub-module for managing bucket configuration ([#4667](https://github.com/quiltdata/quilt/pull/4667))
+
+## 7.0.0 - 2025-08-25
+
+### Python API
+
+* [Changed] **BREAKING:** Change the default `selector_fn` for `Package.push`. Now, files in the same bucket as the destination registry are not copied by default. This change was requested by users who were inadvertently creating extra copies of files in packages that were created from files in S3. ([#4464](https://github.com/quiltdata/quilt/pull/4464))
+
 ## 6.3.1 - 2025-03-10
 
 ### Python API
@@ -156,7 +208,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
 * [Fixed] Hide filters in a sidebar drawer on mobile ([#3801](https://github.com/quiltdata/quilt/pull/3801))
 * [Fixed] Fix copying selected text in code samples ([#3803](https://github.com/quiltdata/quilt/pull/3803))
-* [Fixed] Add current bucket as a succesor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
+* [Fixed] Add current bucket as a successor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))

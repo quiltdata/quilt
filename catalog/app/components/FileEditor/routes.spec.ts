@@ -1,20 +1,21 @@
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook, suppressErrorOutput } from '@testing-library/react-hooks/pure'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   useAddFileInPackage,
   useAddFileInBucket,
   useEditFileInPackage,
+  useEditBucketFile,
   useParams,
 } from './routes'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({
+vi.mock('constants/config', () => ({
+  default: {
     packageRoot: 'ro/ot',
-  })),
-)
+  },
+}))
 
-const useParamsInternal = jest.fn(
+const useParamsInternal = vi.fn(
   () =>
     ({
       bucket: 'b',
@@ -22,22 +23,28 @@ const useParamsInternal = jest.fn(
     }) as Record<string, string>,
 )
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(() => useParamsInternal()),
-  Redirect: jest.fn(() => null),
+const useLocationInternal = vi.fn(() => ({
+  pathname: '/bucket/b/tree',
+  search: '?prefix=foo/',
+}))
+
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: () => useParamsInternal(),
+  useLocation: () => useLocationInternal(),
+  Redirect: () => null,
 }))
 
 const urls = {
-  bucketFile: jest.fn((a, b, c) => `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`),
-  bucketPackageDetail: jest.fn(
-    (a, b, c) => `bucketPackageDetail(${a}, ${b}, ${JSON.stringify(c)})`,
-  ),
+  bucketFile: (a: string, b: string, c: string) =>
+    `bucketFile(${a}, ${b}, ${JSON.stringify(c)})`,
+  bucketPackageDetail: (a: string, b: string, c: string) =>
+    `bucketPackageDetail(${a}, ${b}, ${JSON.stringify(c)})`,
 }
 
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: jest.fn(() => ({ urls })),
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: () => ({ urls }),
 }))
 
 describe('components/FileEditor/routes', () => {
@@ -50,7 +57,7 @@ describe('components/FileEditor/routes', () => {
         ),
       )
       expect(result.current('lk')).toBe(
-        'bucketFile(b, k, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+        'bucketFile(b, k, {"add":"quilt+s3://b#package=n&path=lk","edit":true})',
       )
     })
   })
@@ -61,7 +68,7 @@ describe('components/FileEditor/routes', () => {
         useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }),
       )
       expect(result.current('lk')).toBe(
-        'bucketFile(b, ro/ot/n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+        'bucketFile(b, ro/ot/n/lk, {"add":"quilt+s3://b#package=n&path=lk","edit":true})',
       )
     })
   })
@@ -73,11 +80,29 @@ describe('components/FileEditor/routes', () => {
     })
   })
 
+  describe('useEditBucketFile', () => {
+    it('should create url with edit flag and next redirect', () => {
+      const { result } = renderHook(() =>
+        useEditBucketFile({ bucket: 'test-bucket', key: 'config/file.yml' }),
+      )
+      expect(result.current).toBe(
+        'bucketFile(test-bucket, config/file.yml, {"edit":true,"next":"/bucket/b/tree?prefix=foo/"})',
+      )
+    })
+  })
+
   describe('useParams', () => {
     it('should throw error when no bucket', () => {
-      useParamsInternal.mockImplementationOnce(() => ({}))
-      const { result } = renderHook(() => useParams())
-      expect(result.error).toEqual(new Error('`bucket` must be defined'))
+      const restoreConsole = suppressErrorOutput()
+
+      try {
+        useParamsInternal.mockImplementationOnce(() => ({}))
+        const { result } = renderHook(() => useParams())
+
+        expect(result.error?.message).toBe('`bucket` must be defined')
+      } finally {
+        restoreConsole()
+      }
     })
 
     it('should return initial path', () => {

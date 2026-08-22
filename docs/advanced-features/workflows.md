@@ -565,7 +565,8 @@ length, then use "tuples" (using `"items"`, `"minItems"`, and `"maxItems"`):
 }
 ```
 
-With this Schema you can create strictly ordered lists, such as `["Any string", 123]`.
+With this Schema you can create strictly ordered lists,
+such as `["Any string", 123]`.
 
 An incorrect order will return an error `[123, "Any string"] // invalid`.
 

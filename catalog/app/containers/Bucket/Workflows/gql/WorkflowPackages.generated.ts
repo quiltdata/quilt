@@ -1,46 +1,89 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_Workflows_gql_WorkflowPackagesQueryVariables = Types.Exact<{
-  buckets: ReadonlyArray<Types.Scalars['String']>
+import type { JsonRecord } from 'utils/types'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+export interface DatetimeSearchPredicate {
+  readonly gte: Date | null | undefined
+  readonly lte: Date | null | undefined
+}
+
+export interface KeywordSearchPredicate {
+  readonly terms: Array<string> | null | undefined
+  readonly wildcard: string | null | undefined
+}
+
+export interface NumberSearchPredicate {
+  readonly gte: number | null | undefined
+  readonly lte: number | null | undefined
+}
+
+export interface PackagesSearchFilter {
+  readonly comment: TextSearchPredicate | null | undefined
+  readonly entries: NumberSearchPredicate | null | undefined
+  readonly hash: KeywordSearchPredicate | null | undefined
+  readonly modified: DatetimeSearchPredicate | null | undefined
+  readonly name: KeywordSearchPredicate | null | undefined
+  readonly size: NumberSearchPredicate | null | undefined
+  readonly workflow: KeywordSearchPredicate | null | undefined
+}
+
+export interface TextSearchPredicate {
+  readonly queryString: string
+}
+
+export type containers_Bucket_Workflows_gql_WorkflowPackagesQueryVariables = Exact<{
+  buckets: ReadonlyArray<string>
   filter: Types.PackagesSearchFilter
 }>
 
-export type containers_Bucket_Workflows_gql_WorkflowPackagesQuery = {
+export interface containers_Bucket_Workflows_gql_WorkflowPackagesQuery {
   readonly __typename: 'Query'
-} & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
-        Types.PackagesSearchResultSet,
-        'total'
-      > & {
-          readonly firstPage: { readonly __typename: 'PackagesSearchResultSetPage' } & {
-            readonly hits: ReadonlyArray<
-              { readonly __typename: 'SearchHitPackage' } & Pick<
-                Types.SearchHitPackage,
-                | 'id'
-                | 'bucket'
-                | 'size'
-                | 'modified'
-                | 'name'
-                | 'hash'
-                | 'comment'
-                | 'meta'
-                | 'workflow'
-              >
-            >
-          }
-        })
     | { readonly __typename: 'EmptySearchResultSet' }
-    | ({ readonly __typename: 'InvalidInput' } & {
-        readonly errors: ReadonlyArray<
-          { readonly __typename: 'InputError' } & Pick<
-            Types.InputError,
-            'path' | 'message' | 'name' | 'context'
-          >
-        >
-      })
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly path: string | null
+          readonly message: string
+          readonly name: string
+          readonly context: JsonRecord | null
+        }>
+      }
+    | {
+        readonly __typename: 'OperationError'
+        readonly name: string
+        readonly message: string
+        readonly context: JsonRecord | null
+      }
+    | {
+        readonly __typename: 'PackagesSearchResultSet'
+        readonly total: number
+        readonly firstPage:
+          | { readonly __typename: 'InvalidInput' }
+          | { readonly __typename: 'OperationError' }
+          | {
+              readonly __typename: 'PackagesSearchResultSetPage'
+              readonly hits: ReadonlyArray<{
+                readonly __typename: 'SearchHitPackage'
+                readonly id: string
+                readonly bucket: string
+                readonly size: number
+                readonly modified: Date
+                readonly name: string
+                readonly hash: string
+                readonly comment: string | null
+                readonly meta: string | null
+                readonly workflow: JsonRecord | null
+              }>
+            }
+      }
 }
 
 export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
@@ -125,8 +168,12 @@ export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
                           },
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
-                            value: { kind: 'EnumValue', value: 'NEWEST' },
+                            name: { kind: 'Name', value: 'ordering' },
+                            value: {
+                              kind: 'StringValue',
+                              value: 'sys:modified:desc',
+                              block: false,
+                            },
                           },
                         ],
                         selectionSet: {
@@ -134,46 +181,68 @@ export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
                           selections: [
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'hits' },
+                              name: { kind: 'Name', value: '__typename' },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: {
+                                  kind: 'Name',
+                                  value: 'PackagesSearchResultSetPage',
+                                },
+                              },
                               selectionSet: {
                                 kind: 'SelectionSet',
                                 selections: [
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: '__typename' },
-                                  },
-                                  { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'bucket' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'size' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'modified' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'name' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'hash' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'comment' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'meta' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'workflow' },
+                                    name: { kind: 'Name', value: 'hits' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: '__typename' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'id' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'bucket' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'size' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'modified' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'hash' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'comment' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'meta' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'workflow' },
+                                        },
+                                      ],
+                                    },
                                   },
                                 ],
                               },
@@ -206,6 +275,21 @@ export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

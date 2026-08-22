@@ -68,7 +68,7 @@ export default function SearchSettings() {
         const updatedSettings = v.valueOf()
           ? R.assocPath(['search', 'mode'], v.valueOf(), initialSettings)
           : R.dissoc('search', initialSettings)
-        await writeSettings(updatedSettings)
+        await writeSettings(updatedSettings, settings)
       } catch (e) {
         setError(e as Error)
       } finally {

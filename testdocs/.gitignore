@@ -1,0 +1,8 @@
+# Test artifacts
+*.json*
+test_workflow
+references
+notebooks
+scripts
+data.csv
+app-manifest.yaml

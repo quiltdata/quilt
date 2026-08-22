@@ -1,134 +1,147 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render, cleanup } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 
-import { ConfigureAppearance } from './Summarize'
+import { ConfigureAppearance, SummaryRoot } from './Summarize'
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Button: jest.fn(({ children }: { children: React.ReactNode }) => (
-      <div id="button">{children}</div>
-    )),
-    Tooltip: jest.fn(
-      ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
-        <div>
-          {title}
-          <hr />
-          {children}
-        </div>
-      ),
-    ),
-  })),
-)
+// Mutable result fed to the mocked `useData` so each test drives a different
+// `bucketSummary` outcome.
+const summary = vi.hoisted(() => ({
+  current: { entries: [] as any[], fromQuiltSummarize: false } as any,
+}))
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  'components/Preview',
-  jest.fn(() => ({})),
-)
-jest.mock(
-  'components/Preview/loaders/summarize',
-  jest.fn(() => ({})),
-)
-jest.mock(
-  './requests',
-  jest.fn(() => ({})),
-)
-jest.mock(
-  './errors',
-  jest.fn(() => ({})),
-)
-jest.mock(
-  'components/Markdown',
-  jest.fn(() => ({})),
-)
-jest.mock(
-  'components/FileEditor/FileEditor',
-  jest.fn(() => ({})),
-)
+vi.mock('utils/Data', () => ({
+  useData: () => ({ case: (handlers: any) => handlers.Ok(summary.current) }),
+}))
 
-jest.mock('utils/NamedRoutes', () => ({
-  ...jest.requireActual('utils/NamedRoutes'),
-  use: jest.fn(() => ({
+vi.mock('utils/APIConnector', () => ({ use: () => ({}) }))
+
+vi.mock('@material-ui/core', async () => ({
+  ...(await vi.importActual('@material-ui/core')),
+  Button: ({ children }: { children: React.ReactNode }) => (
+    <div id="button">{children}</div>
+  ),
+  Tooltip: ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
+    <div>
+      {title}
+      <hr />
+      {children}
+    </div>
+  ),
+}))
+
+vi.mock('components/Preview', () => ({}))
+vi.mock('components/Preview/loaders/summarize', () => ({}))
+vi.mock('./requests', () => ({ bucketSummary: () => {} }))
+vi.mock('./errors', () => ({}))
+vi.mock('components/Markdown', () => ({}))
+vi.mock('components/FileEditor/FileEditor', () => ({}))
+
+vi.mock('utils/NamedRoutes', async () => ({
+  ...(await vi.importActual('utils/NamedRoutes')),
+  use: () => ({
     urls: {
       bucketPackageDetail: (b: string, n: string, opts: any) =>
         `package: ${b}/${n} ${JSON.stringify(opts)}`,
       bucketFile: (b: string, k: string, opts: any) =>
         `file: ${b}/${k} ${JSON.stringify(opts)}`,
     },
-  })),
+  }),
 }))
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  Link: jest.fn(({ to, children }: React.PropsWithChildren<{ to: string }>) => (
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  Link: ({ to, children }: React.PropsWithChildren<{ to: string }>) => (
     <a href={to}>{children}</a>
-  )),
+  ),
 }))
 
 describe('containers/Buckets/Summarize', () => {
+  afterEach(cleanup)
+
+  describe('SummaryRoot quiltSummarizeOnly', () => {
+    const s3 = {} as any
+
+    it('renders nothing for auto-discovered summaries', () => {
+      summary.current = { entries: [], fromQuiltSummarize: false }
+      const { container } = render(
+        <SummaryRoot s3={s3} bucket="b" inStack quiltSummarizeOnly />,
+      )
+      expect(container.firstChild).toBeNull()
+    })
+
+    it('renders authored quilt_summarize.json layouts', () => {
+      summary.current = { entries: [], fromQuiltSummarize: true }
+      const { container } = render(
+        <SummaryRoot s3={s3} bucket="b" inStack quiltSummarizeOnly />,
+      )
+      expect(container.firstChild).not.toBeNull()
+    })
+  })
+
   describe('ConfigureAppearance', () => {
     const packageHandle = { bucket: 'b', name: 'n', hash: 'h' }
 
     it('should not render buttons when there are files out there', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme
-            hasSummarizeJson
-            packageHandle={packageHandle}
-            path=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container, queryByText } = render(
+        <ConfigureAppearance
+          hasReadme
+          hasSummarizeJson
+          packageHandle={packageHandle}
+          path=""
+        />,
+      )
+      expect(queryByText('Add README')).toBeFalsy()
+      expect(queryByText('Configure Summary')).toBeFalsy()
+      expect((container.firstChild as HTMLElement).children).toHaveLength(0)
     })
 
     it('should render readme link', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme={false}
-            hasSummarizeJson
-            packageHandle={packageHandle}
-            path=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { getByText } = render(
+        <ConfigureAppearance
+          hasReadme={false}
+          hasSummarizeJson
+          packageHandle={packageHandle}
+          path=""
+        />,
+      )
+      expect(getByText('Add README').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/README.md {"add":"quilt+s3://b#package=n&path=README.md","edit":true}',
+      )
     })
 
     it('should render quilt_summarize link', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme
-            hasSummarizeJson={false}
-            packageHandle={packageHandle}
-            path=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { getByText } = render(
+        <ConfigureAppearance
+          hasReadme
+          hasSummarizeJson={false}
+          packageHandle={packageHandle}
+          path=""
+        />,
+      )
+      expect(getByText('Configure Summary').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/quilt_summarize.json {"add":"quilt+s3://b#package=n&path=quilt_summarize.json","edit":true}',
+      )
     })
 
     it('should render both links', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme={false}
-            hasSummarizeJson={false}
-            packageHandle={packageHandle}
-            path="some/path"
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { getByText } = render(
+        <ConfigureAppearance
+          hasReadme={false}
+          hasSummarizeJson={false}
+          packageHandle={packageHandle}
+          path="some/path"
+        />,
+      )
+      expect(getByText('Configure Summary').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/some/path/quilt_summarize.json {"add":"quilt+s3://b#package=n&path=some%2Fpath%2Fquilt_summarize.json","edit":true}',
+      )
+
+      expect(getByText('Add README').closest('a')?.getAttribute('href')).toBe(
+        'file: b/n/some/path/README.md {"add":"quilt+s3://b#package=n&path=some%2Fpath%2FREADME.md","edit":true}',
+      )
     })
   })
 })

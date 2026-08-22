@@ -79,9 +79,10 @@ interface FilePickerProps {
   initialPath: string
   res: requests.BucketListingResult
   onCell: (item: Listing.Item) => void
+  onReload: () => void
 }
 
-function FilePicker({ initialPath, res, onCell }: FilePickerProps) {
+function FilePicker({ initialPath, res, onCell, onReload }: FilePickerProps) {
   const classes = useFilePickerStyles()
   const items = useFormattedListing(res, initialPath)
   const CellComponent = React.useCallback(
@@ -102,6 +103,7 @@ function FilePicker({ initialPath, res, onCell }: FilePickerProps) {
       className={classes.root}
       dataGridProps={{ autoHeight: false }}
       items={items}
+      onReload={onReload}
     />
   )
 }
@@ -183,12 +185,15 @@ function FilePickerDialog({
   const classes = useFilePickerDialogStyles()
   const [path, setPath] = React.useState(initialPath)
   const bucketListing = requests.useBucketListing()
+  const [key, setKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setKey((c) => c + 1), [])
   const data = useData(bucketListing, {
     bucket,
     path,
     prefix: '',
     prev: null,
     drain: true,
+    key,
   })
   const handleCellClick = React.useCallback(
     (item: Listing.Item) => {
@@ -207,7 +212,12 @@ function FilePickerDialog({
           {data.case({
             _: () => <FilePickerSkeleton />,
             Ok: (res: requests.BucketListingResult) => (
-              <FilePicker initialPath={initialPath} res={res} onCell={handleCellClick} />
+              <FilePicker
+                initialPath={initialPath}
+                res={res}
+                onCell={handleCellClick}
+                onReload={handleReload}
+              />
             ),
           })}
         </div>

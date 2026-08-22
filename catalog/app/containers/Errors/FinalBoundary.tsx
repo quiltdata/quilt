@@ -1,8 +1,10 @@
+import cx from 'classnames'
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import * as style from 'constants/style'
-import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
 import logout from 'utils/logout'
 import mkStorage from 'utils/storage'
@@ -18,6 +20,10 @@ const lastReloadAttempt = storage.get('reloadAttempt')
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
+    // Explicit midnight ground (matches the global html/body background in
+    // global-styles.tsx) rather than relying on a dark-type theme's
+    // background.default.
+    backgroundColor: t.palette.primary.main,
     display: 'flex',
     flexDirection: 'column',
     height: '90vh',
@@ -33,8 +39,20 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
   button: {
     marginBottom: t.spacing(2),
   },
+  restartButton: {
+    // The default outlined Button reads theme.palette.text.primary / a
+    // type-aware border color, both of which flip to dark-on-dark now that
+    // this screen renders under appTheme. Pin them to stay legible on the
+    // explicit midnight ground above.
+    color: fade(t.palette.common.white, 0.85),
+    borderColor: fade(t.palette.common.white, 0.23),
+  },
   header: {
-    color: t.palette.text.primary,
+    // Was theme.palette.text.primary, which a former dark-type theme overrode
+    // to a light color for legibility on dark. Pinned explicitly now that
+    // this screen renders under appTheme (light-type default text.primary is
+    // near-black).
+    color: fade(t.palette.common.white, 0.85),
   },
   headerIcon: {
     verticalAlign: '-2px',
@@ -114,7 +132,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
             }
           >
             <M.Button
-              className={classes.button}
+              className={cx(classes.button, classes.restartButton)}
               disabled={disabled}
               onClick={onLogout}
               startIcon={<M.Icon>power_settings_new</M.Icon>}
@@ -129,10 +147,14 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   )
 }
 
-const FinalBoundary = createBoundary(() => (error: Error /* , info */) => (
-  <M.MuiThemeProvider theme={style.navTheme}>
+const FallbackComponent = ({ error }: FallbackProps) => (
+  <M.MuiThemeProvider theme={style.appTheme}>
     <FinalBoundaryLayout error={error} />
   </M.MuiThemeProvider>
-))
+)
+
+const FinalBoundary = ({ children }: React.PropsWithChildren<{}>) => (
+  <ErrorBoundary {...{ children, FallbackComponent }} />
+)
 
 export default FinalBoundary

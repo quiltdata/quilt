@@ -5,6 +5,7 @@ import * as style from 'constants/style'
 
 import * as Model from '../Model'
 import Chat from './Chat'
+import * as InlinePresence from './InlinePresence'
 
 const useSidebarStyles = M.makeStyles({
   sidebar: {
@@ -20,47 +21,45 @@ function Sidebar() {
   const classes = useSidebarStyles()
 
   const api = Model.useAssistantAPI()
+  const inlined = InlinePresence.useInlined()
   if (!api) return null
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <M.Drawer anchor="right" open={api.visible} onClose={api.hide}>
+      <M.Drawer anchor="right" open={api.visible && !inlined} onClose={api.hide}>
         <div className={classes.sidebar}>
-          <Chat state={api.state} dispatch={api.dispatch} />
+          <Chat
+            state={api.state}
+            dispatch={api.dispatch}
+            devTools={api.devTools}
+            connectors={api.connectors}
+          />
         </div>
       </M.Drawer>
     </M.MuiThemeProvider>
   )
 }
 
-const useTriggerStyles = M.makeStyles({
-  trigger: {
-    bottom: '50px',
-    position: 'fixed',
-    right: '100px',
-    zIndex: 1,
-  },
-})
-
-function Trigger() {
-  const classes = useTriggerStyles()
+export function Trigger() {
   const api = Model.useAssistantAPI()
-  if (!api) return null
+  const inlined = InlinePresence.useInlined()
+  if (!api || inlined || api.visible) return null
   return (
-    <M.Zoom in={!api.visible}>
-      <M.Fab onClick={api.show} className={classes.trigger} color="primary">
-        <M.Icon>assistant</M.Icon>
-      </M.Fab>
-    </M.Zoom>
+    <M.IconButton
+      color="inherit"
+      onClick={api.show}
+      aria-label="Open Qurator AI assistant"
+    >
+      <M.Icon>assistant</M.Icon>
+    </M.IconButton>
   )
 }
 
 export function WithAssistantUI({ children }: React.PropsWithChildren<{}>) {
   return (
-    <>
+    <InlinePresence.Provider>
       {children}
-      <Trigger />
       <Sidebar />
-    </>
+    </InlinePresence.Provider>
   )
 }

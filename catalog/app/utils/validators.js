@@ -130,24 +130,21 @@ export const hexColor = (v) => {
   return matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)(v) ? undefined : 'hex'
 }
 
-export const url = (v) => {
+/**
+ * Validate that the string is a URL that can plausibly resolve to a logo
+ * image. Accepts http(s) URLs and `s3://bucket/key` URLs; rejects URLs
+ * without a hostname (e.g. `s3://`) and S3 URLs without a key
+ * (e.g. `s3://bucket`).
+ */
+export const logoUrl = (v) => {
   if (!v) return undefined
   try {
-    // if v is not valid URL, then URL will throws
-    new window.URL(v)
+    if (!new window.URL(v).hostname) return 'logoUrl'
+    if (s3paths.isS3Url(v) && !s3paths.parseS3Url(v).key) return 'logoUrl'
   } catch (e) {
-    return 'url'
+    return 'logoUrl'
   }
-}
-
-export const s3Url = (v) => {
-  if (!v) return undefined
-  try {
-    const { bucket, key } = s3paths.parseS3Url(v)
-    if (!bucket || !key) return 's3Url'
-  } catch (e) {
-    return 's3Url'
-  }
+  return undefined
 }
 
 export const file = (v) => {

@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 import * as JSONPointer from './JSONPointer'
 
 describe('utils/JSONPointer', () => {

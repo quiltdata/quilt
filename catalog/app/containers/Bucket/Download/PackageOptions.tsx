@@ -1,33 +1,30 @@
+// TODO: move to Bucket/Toolbar/Get/
+
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Icons from '@material-ui/icons'
 
 import * as urls from 'constants/urls'
-import * as Notifications from 'containers/Notifications'
+import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
-import copyToClipboard from 'utils/clipboard'
 
-import * as FileView from '../FileView'
+import { ZipDownloadForm } from '../FileView'
 import * as Selection from '../Selection'
 
-import { Tabs, TabPanel } from './OptionsTabs'
+import * as Buttons from './Buttons'
 import PackageCodeSamples from './PackageCodeSamples'
 
-interface DownloadFileProps {
-  fileHandle: Model.S3.S3ObjectLocation
-}
-
-function DownloadFile({ fileHandle }: DownloadFileProps) {
-  const url = AWS.Signer.useDownloadUrl(fileHandle)
-  return (
-    <M.Button startIcon={<M.Icon>arrow_downward</M.Icon>} href={url} download>
-      Download file
-    </M.Button>
-  )
-}
+const useDownloadButtonStyles = M.makeStyles({
+  root: {
+    justifyContent: 'flex-start',
+    lineHeight: '1.25rem',
+    width: '100%',
+  },
+})
 
 interface DownloadDirProps {
   selection?: Selection.ListingSelection
@@ -45,24 +42,54 @@ function DownloadDir({ selection, uri }: DownloadDirProps) {
     uri.path && isSelectionEmpty
       ? `package/${uri.bucket}/${uri.name}/${uri.hash}/${uri.path}`
       : `package/${uri.bucket}/${uri.name}/${uri.hash}`
+  const fileHandles = React.useMemo(
+    () => selection && Selection.toHandlesList(selection),
+    [selection],
+  )
+  const files = React.useMemo(
+    () => fileHandles && fileHandles.map(({ key }) => key),
+    [fileHandles],
+  )
+  const classes = useDownloadButtonStyles()
+  const feedback = Buttons.useDownloadFeedback()
   return (
-    <FileView.ZipDownloadForm
-      files={selection && Selection.toHandlesList(selection).map(({ key }) => key)}
-      suffix={downloadPath}
-    >
-      <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
-        {downloadLabel}
+    <ZipDownloadForm suffix={downloadPath} files={files}>
+      <M.Button
+        className={classes.root}
+        startIcon={<Icons.ArchiveOutlined />}
+        type="submit"
+        {...feedback}
+      >
+        <span>{downloadLabel}</span>
       </M.Button>
-    </FileView.ZipDownloadForm>
+    </ZipDownloadForm>
+  )
+}
+
+function DownloadFile({ fileHandle }: { fileHandle: Model.S3.S3ObjectLocation }) {
+  const url = AWS.Signer.useDownloadUrl(fileHandle)
+  const classes = useDownloadButtonStyles()
+  return (
+    <M.Button
+      className={classes.root}
+      download
+      href={url}
+      startIcon={<Icons.ArrowDownwardOutlined />}
+    >
+      Download file
+    </M.Button>
   )
 }
 
 const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
-    marginBottom: t.spacing(0.5),
+    marginBottom: t.spacing(1),
+    whiteSpace: 'nowrap',
+    width: '100%',
   },
-  copy: {
-    width: 'auto',
+  open: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
   },
 }))
 
@@ -73,25 +100,17 @@ interface QuiltSyncProps {
 
 function QuiltSync({ className, uri }: QuiltSyncProps) {
   const classes = useQuiltSyncStyles()
-  const { push } = Notifications.use()
   const uriString = PackageUri.stringify(uri)
-
-  const handleCopy = React.useCallback(() => {
-    copyToClipboard(uriString)
-    push('URI has been copied to clipboard')
-  }, [uriString, push])
 
   return (
     <div className={className}>
-      <M.ButtonGroup variant="outlined" fullWidth className={classes.link}>
-        <M.Button startIcon={<M.Icon>download</M.Icon>} href={uriString}>
+      <M.ButtonGroup variant="outlined" className={classes.link}>
+        <M.Button startIcon={<Icons.GetApp />} href={uriString} className={classes.open}>
           Open in QuiltSync
         </M.Button>
-        <M.Button className={classes.copy} onClick={handleCopy}>
-          <M.Icon fontSize="inherit">file_copy_outlined</M.Icon>
-        </M.Button>
+        <Buttons.CopyButton uri={uriString} />
       </M.ButtonGroup>
-      <M.Typography variant="caption">
+      <M.Typography variant="caption" component="p">
         Don't have QuiltSync?{' '}
         <StyledLink href={urls.quiltSync} target="_blank">
           Download it here
@@ -119,7 +138,7 @@ function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
   const classes = useDownloadPanelStyles()
   const { prefs } = BucketPreferences.use()
   return (
-    <TabPanel>
+    <>
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { actions } }) =>
@@ -135,7 +154,7 @@ function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
       ) : (
         <DownloadDir selection={selection} uri={uri} />
       )}
-    </TabPanel>
+    </>
   )
 }
 
@@ -145,11 +164,7 @@ interface CodePanelProps {
 }
 
 function CodePanel({ hashOrTag, uri }: CodePanelProps) {
-  return (
-    <TabPanel>
-      <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
-    </TabPanel>
-  )
+  return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
 }
 
 interface OptionsProps {
@@ -170,9 +185,7 @@ export default function Options({
   const download = (
     <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
   )
+  const code = hideCode ? undefined : <CodePanel hashOrTag={hashOrTag} uri={uri} />
 
-  if (hideCode) return download
-
-  const code = <CodePanel hashOrTag={hashOrTag} uri={uri} />
-  return <Tabs {...{ download, code }} />
+  return <GetOptions download={download} code={code} />
 }

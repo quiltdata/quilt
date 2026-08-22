@@ -43,7 +43,10 @@ type FirstPageResultSet = Extract<
   { __typename: 'ObjectsSearchResultSet' | 'PackagesSearchResultSet' }
 >
 
-type FirstPageHits = FirstPageResultSet['firstPage']['hits']
+type FirstPageHits = Extract<
+  FirstPageResultSet['firstPage'],
+  { __typename: 'ObjectsSearchResultSetPage' | 'PackagesSearchResultSetPage' }
+>['hits']
 
 interface SearchContext {
   resultType: SearchUIModel.ResultType
@@ -69,6 +72,8 @@ function getBase(
         switch (r.__typename) {
           case 'InvalidInput':
             return Eff.Either.left('InvalidInput')
+          case 'OperationError':
+            return Eff.Either.left(r.name)
           case 'EmptySearchResultSet':
             return Eff.Either.right(Eff.Option.none())
           case 'ObjectsSearchResultSet':
@@ -79,6 +84,8 @@ function getBase(
         switch (r.__typename) {
           case 'InvalidInput':
             return Eff.Either.left('InvalidInput')
+          case 'OperationError':
+            return Eff.Either.left(r.name)
           case 'EmptySearchResultSet':
             return Eff.Either.right(Eff.Option.none())
           case 'PackagesSearchResultSet':
@@ -112,11 +119,26 @@ function getFirstPage(
         switch (d.__typename) {
           case 'InvalidInput':
             return Eff.Either.left('InvalidInput')
+          case 'OperationError':
+            return Eff.Either.left(d.name)
           case 'EmptySearchResultSet':
             return Eff.Either.right({ hits: [], total: 0 })
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return Eff.Either.right({ hits: d.firstPage.hits, total: d.total })
+            // firstPage is a union: the page arm carries hits; the packages
+            // variant can also surface InvalidInput/OperationError (e.g. an
+            // unsupported sort) — treat those as an empty page here.
+            switch (d.firstPage.__typename) {
+              case 'ObjectsSearchResultSetPage':
+              case 'PackagesSearchResultSetPage':
+                return Eff.Either.right({ hits: d.firstPage.hits, total: d.total })
+              case 'InvalidInput':
+                return Eff.Either.left('InvalidInput')
+              case 'OperationError':
+                return Eff.Either.left(d.firstPage.name)
+              default:
+                return Eff.absurd<never>(d.firstPage)
+            }
           default:
             return Eff.absurd<never>(d)
         }
@@ -172,15 +194,16 @@ function useSearchContextModel(): MaybeEitherSearchContext {
   )
 }
 
-const MAX_CONTENT_LENGTH = 10_000
+const MAX_CONTENT_TOTAL_LENGTH = 100_000
 
-function truncateIndexedContent(hit: FirstPageHits[number]) {
+function truncateIndexedContent(hit: FirstPageHits[number], total: number) {
   switch (hit.__typename) {
     case 'SearchHitObject':
-      return (hit.indexedContent?.length ?? 0) > MAX_CONTENT_LENGTH
+      const limit = Math.floor(MAX_CONTENT_TOTAL_LENGTH / total)
+      return (hit.indexedContent?.length ?? 0) > limit
         ? {
             ...hit,
-            indexedContent: hit.indexedContent?.slice(0, MAX_CONTENT_LENGTH),
+            indexedContent: hit.indexedContent?.slice(0, limit),
             indexedContentTruncated: true,
           }
         : hit
@@ -243,7 +266,11 @@ function useSearchContext() {
               XML.tag(
                 'search-result',
                 { index },
-                JSON.stringify(truncateIndexedContent(hit), null, 2),
+                JSON.stringify(
+                  truncateIndexedContent(hit, ctx.firstPage.length),
+                  null,
+                  2,
+                ),
               ),
             ),
           )

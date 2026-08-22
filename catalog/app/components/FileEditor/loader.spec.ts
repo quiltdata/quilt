@@ -1,36 +1,28 @@
 import { renderHook } from '@testing-library/react-hooks'
+import { describe, expect, it, vi } from 'vitest'
 
 import { detect, isSupportedFileType, loadMode, useWriteData } from './loader'
 
-const putObject = jest.fn(async () => ({ VersionId: 'bar' }))
+const putObject = vi.fn(async () => ({ VersionId: 'bar' }))
 
-const headObject = jest.fn(async () => ({ VersionId: 'foo', ContentLength: 999 }))
+const headObject = vi.fn(async () => ({ VersionId: 'foo', ContentLength: 999 }))
 
-jest.mock(
-  'utils/AWS',
-  jest.fn(() => ({
-    S3: {
-      use: jest.fn(() => ({
-        putObject: () => ({
-          promise: putObject,
-        }),
-        headObject: () => ({
-          promise: headObject,
-        }),
-      })),
-    },
-  })),
-)
+vi.mock('utils/AWS', () => ({
+  S3: {
+    use: vi.fn(() => ({
+      putObject: () => ({
+        promise: putObject,
+      }),
+      headObject: () => ({
+        promise: headObject,
+      }),
+    })),
+  },
+}))
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
-jest.mock(
-  'brace/mode/json',
-  jest.fn(() => Promise.resolve(undefined)),
-)
+vi.mock('brace/mode/json', () => ({ default: Promise.resolve(undefined) }))
 
 describe('components/FileEditor/loader', () => {
   describe('isSupportedFileType', () => {
@@ -109,14 +101,18 @@ describe('components/FileEditor/loader', () => {
   })
 
   describe('loadMode', () => {
-    it('throws on the first call and resolves on the second', () => {
-      expect(() => loadMode('json')).toThrow()
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          expect(loadMode('json')).toBe('fulfilled')
-          resolve(null)
-        })
-      })
+    it('throws on the first call and resolves on the second', async () => {
+      let thrownPromise: Promise<void>
+      try {
+        loadMode('json')
+        throw new Error('Expected loadMode to throw')
+      } catch (error) {
+        expect(error).toBeInstanceOf(Promise)
+        thrownPromise = error as Promise<void>
+      }
+
+      await thrownPromise
+      expect(loadMode('json')).toBe('fulfilled')
     })
   })
 })

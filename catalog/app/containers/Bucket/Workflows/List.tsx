@@ -61,8 +61,13 @@ function PackagesLink({ bucket, workflow }: PackagesLinkProps) {
             </RR.Link>
           )
         case 'InvalidInput':
+        case 'OperationError':
+          const tip =
+            r.__typename === 'OperationError'
+              ? r.name
+              : `Invalid input: ${r.errors[0].message}`
           return (
-            <M.Tooltip arrow title={`Invalid input: ${r.errors[0].message}`}>
+            <M.Tooltip arrow title={tip}>
               <span className={classes.root}>? packages</span>
             </M.Tooltip>
           )

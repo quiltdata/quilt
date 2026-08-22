@@ -1,19 +1,18 @@
+import { describe, it, expect, test, vi } from 'vitest'
+
 import * as legacyBucketPreferences from 'utils/BucketPreferences/BucketPreferences'
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
 import { assocPath, parse, stringify } from './State'
 import type { Config } from './State'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+vi.mock('constants/config', () => ({ default: {} }))
 
 function getValueByPath(obj: Record<string, any>, path: string[]) {
   return path.reduce((memo, key) => memo[key], obj)
 }
 
-const legacyPrefs = legacyBucketPreferences.parse('')
+const legacyPrefs = legacyBucketPreferences.parse('', 'test-bucket')
 function getLegacyValue(key: keyof Config) {
   switch (key) {
     case 'ui.athena.defaultWorkgroup':
@@ -122,6 +121,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
   actions:
     copyPackage: false
     createPackage: false
+    deleteObject: false
     deleteRevision: true
     downloadObject: false
     downloadPackage: false
@@ -170,7 +170,10 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
 
   describe('parse', () => {
     describe('new implementation should have the same defaults as old one', () => {
-      const config = parse('', {})
+      const config = parse('', {
+        'ui.sourceBuckets': ['test-bucket'],
+        'ui.defaultSourceBucket': 'test-bucket',
+      })
 
       const configKeys = Object.keys(config)
       test.each(configKeys)(`%s`, (k) => {
@@ -228,6 +231,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
   actions:
     copyPackage: false
     createPackage: false
+    deleteObject: false
     deleteRevision: true
     downloadObject: false
     downloadPackage: false
@@ -282,10 +286,12 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       ).toStrictEqual({
         'ui.actions.copyPackage': false,
         'ui.actions.createPackage': false,
+        'ui.actions.deleteObject': false,
         'ui.actions.deleteRevision': true,
         'ui.actions.downloadObject': false,
         'ui.actions.downloadPackage': false,
         'ui.actions.openInDesktop': true,
+        'ui.actions.restore': true,
         'ui.actions.revisePackage': false,
         'ui.actions.writeFile': false,
 
