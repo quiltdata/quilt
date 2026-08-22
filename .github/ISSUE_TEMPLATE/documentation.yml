@@ -1,0 +1,51 @@
+name: Documentation issue
+description: Report missing, unclear, or incorrect documentation.
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for helping improve the Quilt docs! Small docs fixes are always
+        welcome as a direct pull request — you don't need to wait on this issue.
+        Use this form when you want to report a gap or aren't sure of the fix.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: What kind of docs problem is this?
+      options:
+        - Incorrect / outdated information
+        - Missing documentation
+        - Unclear or confusing explanation
+        - Broken link or example
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Where is it?
+      description: >-
+        Link to the page on https://docs.quilt.bio or the file path under
+        `docs/` (or a docstring in `api/python`).
+      placeholder: "https://docs.quilt.bio/... or docs/.../file.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong or missing?
+      description: Describe the problem and, if you can, what the docs should say instead.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to open a PR to fix this.
+          required: false
