@@ -42,12 +42,24 @@ const useStyles = M.makeStyles((t) => ({
     // The header wash bleeds to the card's edges, so the regions carry their
     // own insets rather than the card carrying one padding for all of them.
     overflow: 'hidden',
+    // Containing block for the header link's overlay (see `header::after`).
+    position: 'relative',
     transition: t.transitions.create(['background-color', 'border-color'], {
       duration: 150,
     }),
     '&:hover': {
       backgroundColor: t.palette.action.hover,
       borderColor: t.palette.text.secondary,
+    },
+    // Pressed: the wash deepens one step. No transform and no shadow — the
+    // Overlay-Only Rule reserves shadow for things that float and leave, and a
+    // card that scales under the cursor is the consumer-SaaS gloss PRODUCT.md
+    // names as an anti-reference. Tactility here is tonal, not spatial.
+    '&:active': {
+      backgroundColor: t.palette.action.selected,
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
     },
   },
   // The identity block: the icon sits beside a two-line text column (title
@@ -64,6 +76,36 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
     padding: t.spacing(2),
     textDecoration: 'none',
+    // The whole card is the navigation target, not just this header.
+    //
+    // The card washed on hover from edge to edge while only the header
+    // navigated, so the description, the tags' empty space, and the slack above
+    // the bottom row all looked interactive and did nothing — a dead affordance,
+    // which PRODUCT.md names as a legacy-lab-software anti-reference.
+    //
+    // Done as an overlay on the existing anchor rather than by wrapping the card
+    // in one: the card contains a `ButtonBase` (the collaborator readout) and
+    // clickable tag chips, and a button inside an anchor is invalid and breaks
+    // both keyboard and screen-reader behaviour. This keeps exactly one anchor
+    // with its real href and accessible name, stretched to the card's bounds.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      // Below the interactive children, which raise themselves above it.
+      zIndex: 0,
+    },
+    // The focus ring stays on the header rather than the stretched overlay: it
+    // marks what the reader is about to activate — the named identity — instead
+    // of outlining the whole card and losing the Focus Ring Rule's precision.
+    //
+    // Deliberately no `position` here. Positioning the header would make it the
+    // containing block for its own `::after`, collapsing the card-wide click
+    // target to the header's bounds for as long as it held focus. The overlay
+    // paints nothing, so it cannot cover the ring anyway.
     '&:focus-visible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: -2,
@@ -82,11 +124,19 @@ const useStyles = M.makeStyles((t) => ({
   },
   // Tags and the access readout share one line at the card's foot: the tags
   // run from the left, the readout closes the row on the right.
+  //
+  // Raised above the header's stretched overlay. Everything else on the card is
+  // beneath it (that is the point — the whole surface navigates), but these two
+  // are real controls with their own jobs: a tag filters the wall, the readout
+  // opens the collaborator dialog. Without this they would be unreachable by
+  // mouse, since the overlay would take every click first.
   bottomRow: {
     alignItems: 'center',
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 1,
   },
   // The icon is a fixed-size disc: without this it inherits `flex-shrink: 1`
   // and a long title squashes the circle into an ellipse.
