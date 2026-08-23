@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import { useFeature } from 'utils/features'
 import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
@@ -328,6 +329,30 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// Gated on the `data-products` preview feature, matching how `FeatureSettings` is
+// gated above: with the capability off, an admin offered a catalog-connection form
+// would be configuring something no reader can reach.
+//
+// Its own component because `useFeature` suspends and `Settings` does not,
+// so the read has to sit under a boundary of its own.
+export function DataProductCatalogs() {
+  const classes = useStyles()
+  const enabled = useFeature('data-products')
+  if (!enabled) return null
+  return (
+    <>
+      {/* Its own section rather than a cell in the grid above: a connection list
+          grows, and the add form needs the full width. */}
+      <M.Typography variant="h5" className={classes.title}>
+        Data Product Catalogs
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <DataProductConnections />
+      </M.Paper>
+    </>
+  )
+}
+
 export default function Settings() {
   const classes = useStyles()
   return (
@@ -391,14 +416,9 @@ export default function Settings() {
         )}
       </M.Grid>
 
-      {/* Its own section rather than a cell in the grid above: a connection list
-          grows, and the add form needs the full width. */}
-      <M.Typography variant="h5" className={classes.title}>
-        Data Product Catalogs
-      </M.Typography>
-      <M.Paper className={classes.group}>
-        <DataProductConnections />
-      </M.Paper>
+      <React.Suspense fallback={null}>
+        <DataProductCatalogs />
+      </React.Suspense>
 
       <M.Typography variant="h5" className={classes.title}>
         Packaging Engine Settings
