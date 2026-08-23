@@ -46,6 +46,19 @@ describe('website/pages/Landing/FrontDoor/FrontDoor', () => {
     expect(getByText('Unified bar')).toBeTruthy()
   })
 
+  // The end-to-end canaries wait on this hook to know login landed on a working
+  // landing page (quiltdata/e2e `shared/auth.ts`, `waitForHomePage`). The volume
+  // list carries the same one, so the check does not care which side of the
+  // `front-door` flag a stack is on -- and neither page's visible wording is
+  // pinned by it, which is what broke last time.
+  it('marks the greeting as the landing-page anchor the canaries wait on', () => {
+    const { getByTestId } = render(<FrontDoor />)
+
+    const anchor = getByTestId('landing-heading')
+    expect(anchor.tagName).toBe('H1')
+    expect(anchor.textContent).toBe('What are you looking for?')
+  })
+
   it('collapses a single failing tile without removing the rest of the page', () => {
     const { getByText } = render(
       <div>

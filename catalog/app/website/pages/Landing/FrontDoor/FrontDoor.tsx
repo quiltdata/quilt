@@ -258,12 +258,21 @@ export function FrontDoorContent() {
       <M.Collapse in={!active}>
         <div className={classes.greeting}>
           {/* The page's h1, sized as an h5: a working page heading, not a
-              marketing hero. */}
+              marketing hero.
+
+              `data-testid` is the canaries' "login landed" signal, matching the
+              volume list's h1 so `waitForHomePage` (quiltdata/e2e
+              `shared/auth.ts`) resolves whichever side of the `front-door` flag
+              a stack is on. Deliberately *not* on `PageFallback`'s h1 above: that
+              one means the front door failed to render, and a canary that
+              accepted it would report a broken landing page as a successful
+              login. */}
           <M.Typography
             variant="h5"
             component="h1"
             color="textPrimary"
             className={classes.greetingTitle}
+            data-testid="landing-heading"
           >
             What are you looking for?
           </M.Typography>
