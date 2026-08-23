@@ -303,15 +303,44 @@ describe('website/pages/Landing/Buckets', () => {
     expect(getByText('Relevance')).toBeTruthy()
   })
 
-  it('shows a teaching empty state with the add path for admins when there are no buckets', () => {
+  // The teaching state used to tell admins to add a volume while the button that
+  // does it sat in a controls row *below* the grid — the two halves of one
+  // instruction, separated by the empty space they described.
+  it('puts the add path inside the teaching state for admins', () => {
     mockBuckets = []
     meIsAdminData = { isAdmin: true }
-    const { queryByText } = renderBuckets()
+    const { queryByText, getAllByText } = renderBuckets()
+
     expect(queryByText('No volumes yet')).toBeTruthy()
     expect(
-      queryByText('Add a volume to make it searchable and browsable here.'),
+      queryByText(
+        'Connect an S3 bucket and its packages become searchable and browsable here.',
+      ),
     ).toBeTruthy()
-    expect(queryByText('Add Bucket')).toBeTruthy()
+    // Exactly one: the row below withholds its copy at zero volumes, so the same
+    // instruction never appears twice on one screen.
+    expect(getAllByText('Add Bucket')).toHaveLength(1)
+  })
+
+  it('keeps one add path once volumes exist', () => {
+    meIsAdminData = { isAdmin: true }
+    const { getAllByText, queryByText } = renderBuckets()
+
+    expect(queryByText('No volumes yet')).toBeFalsy()
+    expect(getAllByText('Add Bucket')).toHaveLength(1)
+  })
+
+  // Bucket-specific copy is safe despite a volume also being able to be a data
+  // product: `isEmpty` is zero buckets *and* zero products, so a products-only
+  // catalog never reaches this state. This pins that — with products present the
+  // teaching state stays away entirely.
+  it('stays away when products are the only content', () => {
+    mockBuckets = []
+    dataProductsEnabled = true
+    meIsAdminData = { isAdmin: true }
+    const { queryByText } = renderBuckets()
+
+    expect(queryByText('No volumes yet')).toBeFalsy()
   })
 
   // The no-match state used to be one line with nothing on it: the only way out
@@ -395,11 +424,27 @@ describe('website/pages/Landing/Buckets', () => {
     })
   })
 
-  it('shows a plain line (no add path) for non-admins when there are no buckets', () => {
+  // Non-admins cannot connect anything, so the honest next step is who can —
+  // plus the docs, for what a volume is before they go asking.
+  it('points non-admins at the person who can, not a closed door', () => {
     mockBuckets = []
     const { queryByText } = renderBuckets()
+
     expect(queryByText('No volumes yet')).toBeTruthy()
+    expect(
+      queryByText(
+        'Your workspace admin connects these. Ask them which bucket holds the data you need.',
+      ),
+    ).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeFalsy()
+
+    const help = queryByText('What is a volume?')
+    expect(help).toBeTruthy()
+    // A path the app already references, opened safely.
+    expect(help!.closest('a')!.getAttribute('href')).toBe(
+      'https://docs.quilt.bio/quilt-platform-administrator/technical-reference',
+    )
+    expect(help!.closest('a')!.getAttribute('rel')).toContain('noopener')
   })
 
   describe('the card/list view toggle', () => {

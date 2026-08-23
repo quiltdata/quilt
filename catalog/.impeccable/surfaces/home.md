@@ -60,7 +60,51 @@ internal word — routes, `s3://` names). Covered by tests in `Buckets.spec.tsx`
 
 ## States & ranges
 
-Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No buckets yet"; admins get the add path, non-admins a plain line), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
+Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No volumes yet"), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
+
+**Empty states carry their own recovery — added 2026-08-23 (`delight` pass).**
+Both were dead ends; on an Operate surface the delight budget belongs at first
+use and recovery, not on the card wall.
+
+- **First-run/zero.** The teaching copy and the action are one thing: admins get
+  the Add button *inside* the state, and the controls row below withholds its own
+  so the instruction never appears twice. Copy describes the real operation
+  ("Connect an S3 bucket…") rather than a UI gesture. Bucket-specific wording is
+  safe even though a volume can also be a data product — `isEmpty` is zero
+  buckets *and* zero products, so a products-only catalog never reaches this
+  state (pinned by a test). Connecting an external catalog is the other path and
+  lives in Admin > Settings; left out deliberately to keep one action on one
+  state. Non-admins previously got a closed door — now the honest next step (ask
+  the admin who can) plus a docs link for what a volume is.
+- **No-filter-match.** Reports the exact number of volumes searched and the fields
+  covered (trust rendered, not asserted), then hands back the controls that widen
+  it: one droppable chip per term, plus Clear filter. The count is *entries*, so a
+  data product counts as a volume here exactly as it does everywhere else on this
+  screen. Per-term chips are withheld for a single term, where dropping and
+  clearing are the same action. Terms are quoted in the casing the reader typed.
+
+**The card responds where it acts.** The card washed edge-to-edge on hover while
+only the icon+title header navigated, leaving the description and the slack as
+dead affordances. The whole card is the target now, via a stretched `::after` on
+the existing anchor — not a wrapping link, which would nest the tag chips and the
+collaborator `ButtonBase` inside an anchor and break keyboard and screen-reader
+behaviour. Press response is tonal (the wash deepens one step), never a transform
+or shadow: Overlay-Only reserves shadow for things that float and leave, and a
+card that scales under the cursor is the gloss PRODUCT.md rules out.
+
+**Deferred, not forgotten — withholding the controls row at zero volumes.** Three
+controls that cannot act (filter, sort, view toggle) over an empty grid is the
+cloud-console density this brief's anti-goals name, and the fix shipped on
+`master`. It is *not* on this branch: deciding it needs "are there volumes",
+which is buckets **plus** data products, and products arrive through
+`DP.useProducts` behind `useFeature('data-products')` — which suspends
+(`utils/features.ts`, via `CatalogSettings.use()`), with no non-suspending read
+exported. The controls row deliberately lives outside the grid's Suspense
+boundary so the filter stays usable while the grid loads, so gating it on a
+suspending read would remount the field and steal focus mid-keystroke. Gating on
+buckets alone would be wrong on a products-only catalog. Revisit when
+`features.ts` grows a non-suspending flag read; then the `master` implementation
+ports directly with `entries` in place of `buckets`.
 
 ## Interaction & layout
 

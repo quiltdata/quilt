@@ -9,6 +9,7 @@ import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
 import SelectDropdown from 'components/SelectDropdown'
+import { docs } from 'constants/urls'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -405,8 +406,28 @@ function BucketsSkeleton({ view }) {
   )
 }
 
+// First run: the teaching and the doing in one place.
+//
+// This told admins to "add a volume" while the button that does it sat in a
+// separate controls row *below* the grid -- the two halves of one instruction,
+// separated by the empty space they were describing. At zero volumes that row
+// holds nothing else (pagination needs more than one page), so the action moves
+// up here and the row withholds its own; there is never a second Add button.
+//
+// Bucket-specific copy is safe here even though a volume can also be a data
+// product. `isEmpty` is `!entries.length` -- zero buckets *and* zero products --
+// so a catalog whose products are its only content never reaches this state, and
+// an empty workspace genuinely has a bucket-shaped next step. (Connecting an
+// external catalog is the other path, and lives in Admin > Settings; it is left
+// out deliberately rather than overlooked, to keep one action on one state.)
+//
+// Non-admins get a real next step instead of a closed door. They cannot connect
+// anything, so the honest end of that sentence is who can -- plus the docs, for
+// what a volume is before they go asking. No invented claims about their
+// workspace.
 function ZeroState({ isAdmin }) {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
@@ -414,9 +435,32 @@ function ZeroState({ isAdmin }) {
       </M.Typography>
       <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
         {isAdmin
-          ? 'Add a volume to make it searchable and browsable here.'
-          : "Your workspace admin hasn't connected one yet."}
+          ? 'Connect an S3 bucket and its packages become searchable and browsable here.'
+          : 'Your workspace admin connects these. Ask them which bucket holds the data you need.'}
       </M.Typography>
+      <div className={classes.emptyActions}>
+        {isAdmin ? (
+          <M.Button
+            variant="outlined"
+            color="primary"
+            component={Link}
+            to={urls.adminBuckets({ add: true })}
+          >
+            Add Bucket
+          </M.Button>
+        ) : (
+          <M.Button
+            size="small"
+            color="primary"
+            // A path already referenced elsewhere in the app, not an invented one.
+            href={`${docs}/quilt-platform-administrator/technical-reference`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            What is a volume?
+          </M.Button>
+        )}
+      </div>
     </M.Paper>
   )
 }
@@ -643,7 +687,10 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
       )}
       <div className={classes.controls}>
         <M.Box>
-          {isAdmin && (
+          {/* Withheld at zero volumes, where `ZeroState` carries this same action
+              inside the teaching copy that asks for it. Two Add buttons on one
+              screen would be the same instruction twice. */}
+          {isAdmin && !isEmpty && (
             <M.Button
               variant="outlined"
               color="primary"
