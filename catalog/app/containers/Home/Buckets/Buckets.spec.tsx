@@ -151,6 +151,38 @@ describe('website/pages/Landing/Buckets', () => {
     expect(queryByText('bucket:bucket-one')).toBeTruthy()
   })
 
+  // This page is what `/` renders whenever the `front-door` flag is off, so it
+  // is the catalog's landing page for most stacks -- and it had no `h1` at all.
+  // Two things went wrong at once when the old `Explore your buckets` heading
+  // was dropped in the shell re-home: a page with no top-level heading is a
+  // WCAG 1.3.1 / 2.4.6 failure for anyone navigating by heading, and the
+  // end-to-end canaries used that heading as their "login landed" signal
+  // (quiltdata/e2e `shared/auth.ts`, `waitForHomePage`), so all four went red
+  // on deploy. Nothing in this spec asserted a heading, which is why neither
+  // was caught here.
+  it('gives the page a top-level heading, as an h1 sized to the ramp', () => {
+    const { getByRole } = renderBuckets()
+
+    const heading = getByRole('heading', { level: 1, name: 'Volumes' })
+    expect(heading).toBeTruthy()
+    // Semantically the page's h1; visually an h5. DESIGN.md's No-Display-Font
+    // Rule caps the app at Headline, so this must not come back as the old
+    // `variant="h1"` display size.
+    expect(heading.classList.contains('MuiTypography-h5')).toBe(true)
+  })
+
+  // A `data-testid` rather than the heading text, because the text is a product
+  // decision that has already moved twice ("Explore your buckets" -> nothing,
+  // "Volumes" <-> "Buckets"), while the canary only needs to know the landing
+  // page rendered. FrontDoor.tsx carries the same hook, so `waitForHomePage`
+  // works whichever side of the `front-door` flag a stack is on.
+  it('marks the heading as the landing-page anchor the canaries wait on', () => {
+    const { getByTestId } = renderBuckets()
+
+    const anchor = getByTestId('landing-heading')
+    expect(anchor.tagName).toBe('H1')
+  })
+
   it('treats a signed-out (null) me as not-admin instead of crashing', () => {
     // Reachable anonymously: this is the same component OpenLanding mounts,
     // and OPEN mode allows unauthenticated visitors.

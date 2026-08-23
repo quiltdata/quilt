@@ -79,6 +79,19 @@ describe('website/pages/Landing/FrontDoor page-level fallback', () => {
     expect(queryByText('This page could not be loaded')).toBeTruthy()
   })
 
+  // The fallback has an `h1` of its own, and it must not wear the canaries'
+  // landing-page hook. `waitForHomePage` (quiltdata/e2e `shared/auth.ts`) treats
+  // that hook as "login landed on a working page"; if the error state carried it,
+  // a front door that failed to render would report as a healthy login and the
+  // canaries would go green on a broken catalog. The whole point of a synthetic
+  // check is that it cannot be satisfied by the failure it exists to catch.
+  it('does not claim the landing-page anchor for its error state', () => {
+    const { queryByTestId, queryByText } = renderFailingPage()
+
+    expect(queryByText('This page could not be loaded')).toBeTruthy()
+    expect(queryByTestId('landing-heading')).toBeNull()
+  })
+
   it('does not re-enter the data path that failed', () => {
     renderFailingPage()
     // The whole point. A fallback that reads the same GraphQL as the page it is
