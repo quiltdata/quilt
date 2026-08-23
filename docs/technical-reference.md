@@ -126,7 +126,6 @@ and the client secret **Value**.
 
 1. Click the `Next` button.
 1. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
-1. Optionally upload the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
         > **Important:** `Refresh Token` must be checked. Without it, the Quilt registry cannot complete the sign-in flow and will return a 401 error.
@@ -137,6 +136,7 @@ and the client secret **Value**.
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization. Ensure at least one user or group is assigned to the app.
 1. Once you click the `Save` button you will have a new application integration to review.
     1. Scroll down to `General Settings` and click `Edit`.
+    1. Optionally upload the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
     1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
     1. Copy the `Client ID` and `Secret` to a safe place.
 1. **Configure the authentication policy.** Go to **Security > Authentication Policies** and check which policy your new app is assigned to. The default policy ("Any two factors") requires MFA, which will block sign-in unless all users have MFA enrolled. Create or use a policy that allows password-only authentication. When creating a new policy, also edit the **Catch-all Rule** — it defaults to 2 factor types.
