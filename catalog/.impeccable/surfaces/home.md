@@ -60,7 +60,39 @@ internal word — routes, `s3://` names). Covered by tests in `Buckets.spec.tsx`
 
 ## States & ranges
 
-Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No buckets yet"; admins get the add path, non-admins a plain line), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
+Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No volumes yet"), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
+
+**Empty states carry their own recovery — added 2026-08-22 (`delight` pass).**
+Both were dead ends; on an Operate surface the delight budget belongs at first
+use and recovery, not on the card wall.
+
+- **First-run/zero.** The teaching copy and the action are one thing. Admins get
+  the Add button *inside* the state, and the controls row below withholds its own
+  so the instruction never appears twice; copy describes the real operation
+  ("Connect an S3 bucket…"), not a UI gesture. Non-admins previously got a closed
+  door — now the honest next step (ask the admin who can) plus a docs link for
+  what a volume is. No invented claims about their workspace.
+- **No-filter-match.** Reports the exact count of volumes searched and the fields
+  covered (trust rendered, not asserted), then hands back the controls that widen
+  it: one droppable chip per term, plus Clear filter. Per-term chips are withheld
+  for a single term, where dropping and clearing are the same action. Terms are
+  quoted in the casing the reader typed.
+- **Zero-state chrome.** The filter, sort, and view toggle are withheld until the
+  workspace has a volume — three controls over nothing is the cloud-console
+  density this brief's anti-goals name. Gated on the workspace, not on the grid
+  being empty, so filtering to zero keeps the controls that undo it. The read is
+  non-suspending (`GQL.useQuery` against the same document) because the row
+  deliberately lives outside the grid's Suspense boundary; mid-load it assumes
+  there is something rather than tearing the field out mid-keystroke.
+
+**The card responds where it acts.** The card washed edge-to-edge on hover while
+only the icon+title header navigated, leaving the description and the slack as
+dead affordances. The whole card is the target now, via a stretched `::after` on
+the existing anchor — not a wrapping link, which would nest the tag chips and the
+collaborator `ButtonBase` inside an anchor and break keyboard and screen-reader
+behavior. Press response is tonal (the wash deepens one step), never a transform
+or shadow: Overlay-Only reserves shadow for things that float and leave, and a
+card that scales under the cursor is the gloss PRODUCT.md rules out.
 
 ## Interaction & layout
 
