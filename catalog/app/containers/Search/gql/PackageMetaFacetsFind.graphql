@@ -17,6 +17,7 @@ query (
         __typename
         ... on IPackageUserMetaFacet {
           path
+          sortable
         }
       }
     }

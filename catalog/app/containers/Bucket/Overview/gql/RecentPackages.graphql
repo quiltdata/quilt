@@ -1,17 +1,20 @@
-query ($buckets: [String!], $order: SearchResultOrder) {
+query ($buckets: [String!], $ordering: PackageOrdering) {
   searchPackages(buckets: $buckets, latestOnly: true) {
     __typename
     ... on PackagesSearchResultSet {
       total
-      firstPage(order: $order) {
-        hits {
-          id
-          bucket
-          name
-          pointer
-          hash
-          size
-          modified
+      firstPage(ordering: $ordering) {
+        __typename
+        ... on PackagesSearchResultSetPage {
+          hits {
+            id
+            bucket
+            name
+            pointer
+            hash
+            size
+            modified
+          }
         }
       }
     }

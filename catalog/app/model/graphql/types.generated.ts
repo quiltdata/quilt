@@ -1,7 +1,7 @@
-import type { Json, JsonRecord } from 'utils/types'
+import type { Json } from 'utils/types'
+import type { JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
-
 export type Maybe<T> = T | null
 export type InputMaybe<T> = Maybe<T>
 /** All built-in and custom scalars, mapped to their actual values */
@@ -18,6 +18,47 @@ export interface Scalars {
     input: PackageContentsFlatMap
     output: PackageContentsFlatMap
   }
+  /**
+   * A package ordering expression (packages `firstPage(ordering:)`). Nullable: null
+   * or absent = relevance (_score). Otherwise one expression, no combinations:
+   *
+   *     expression := system | usermeta
+   *     system     := "sys:" field ":" dir
+   *     usermeta   := "usr:" pointer ":" type ":" dir
+   *
+   *     field      := "name" | "modified" | "size" | "entries" | "hash"
+   *                 | "workflow" | "comment"
+   *     pointer    := a JSON pointer (RFC 6901), e.g. /experiment/date
+   *     type       := "number" | "datetime" | "keyword" | "text" | "boolean"
+   *     dir        := "asc" | "desc"
+   *
+   * `type` names a FACET type, not a raw storage type — the registry maps it to the
+   * stored subfield privately. `text` is contingent best-effort: it sorts a pointer's
+   * keyword-backed storage and is rejected (as unsupported) when only analyzed text
+   * is stored.
+   *
+   * The prefix is `usr:` (not `user:`). `usr:` is parsed RIGHT-anchored — a JSON
+   * pointer may itself contain `:`, so the last two `:`-segments are the type and
+   * dir, and everything between `usr:` and `:<type>:<dir>` is the pointer, verbatim.
+   * `sys:` is a closed field set, parsed left-to-right. All tokens are lowercase and
+   * exact: no trimming, no aliases, no case-folding. A non-string wire value (a
+   * mistyped variable or inline literal) is unparseable.
+   *
+   * Examples: `sys:modified:desc` · `sys:name:asc` · `usr:/experiment/date:datetime:asc`
+   * · null (relevance).
+   *
+   * Two rejection classes, both surfaced as the typed InvalidInput arm of
+   * PackagesFirstPageResult (never a GraphQLError, never a silent _score fallback):
+   *   - unparseable — fails the grammar (bad prefix, wrong arity, unknown
+   *     field/type/dir, non-lowercase, non-string); name `ordering`, message quotes
+   *     the grammar;
+   *   - unsupported — well-formed but unhonorable: `comment` (no keyword subfield
+   *     yet), a `text` pointer with no keyword-backed storage, or a TYPE MISMATCH
+   *     where the type's mapped storage type is not among the pointer's indexed
+   *     stored types (membership-validated against the facet mapping, never
+   *     inferred); name `UnsupportedSort`, message states the reason.
+   */
+  PackageOrdering: { input: string; output: string }
   S3ObjectLocation: { input: S3ObjectLocation; output: S3ObjectLocation }
 }
 
@@ -143,6 +184,7 @@ export interface AdminQueries {
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'BooleanPackageUserMetaFacet'
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface BooleanSearchPredicate {
@@ -366,6 +408,7 @@ export interface DatetimePackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'DatetimePackageUserMetaFacet'
   readonly extents: DatetimeExtents
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface DatetimeSearchPredicate {
@@ -386,6 +429,12 @@ export enum GlacierRestoreTier {
 
 export interface IPackageUserMetaFacet {
   readonly path: Scalars['String']['output']
+  /**
+   * Whether ES can sort on this pointer's stored subfield. Independent of the
+   * concrete facet type: a high-cardinality keyword is rendered as a
+   * TextPackageUserMetaFacet (no bounded value picker) yet is `sortable: true`.
+   */
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface IndexingInProgress {
@@ -420,6 +469,7 @@ export interface KeywordPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'KeywordPackageUserMetaFacet'
   readonly extents: KeywordExtents
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface KeywordSearchPredicate {
@@ -688,6 +738,7 @@ export interface NumberPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'NumberPackageUserMetaFacet'
   readonly extents: NumberExtents
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface NumberSearchPredicate {
@@ -959,6 +1010,11 @@ export type PackagerEventRuleToggleResult =
   | OperationError
   | PackagerEventRule
 
+export type PackagesFirstPageResult =
+  | InvalidInput
+  | OperationError
+  | PackagesSearchResultSetPage
+
 export interface PackagesSearchFilter {
   readonly comment: InputMaybe<TextSearchPredicate>
   readonly entries: InputMaybe<NumberSearchPredicate>
@@ -983,7 +1039,7 @@ export type PackagesSearchResult =
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
   readonly filteredUserMetaFacets: ReadonlyArray<PackageUserMetaFacet>
-  readonly firstPage: PackagesSearchResultSetPage
+  readonly firstPage: PackagesFirstPageResult
   readonly stats: PackagesSearchStats
   readonly total: Scalars['Int']['output']
 }
@@ -994,7 +1050,7 @@ export interface PackagesSearchResultSetfilteredUserMetaFacetsArgs {
 }
 
 export interface PackagesSearchResultSetfirstPageArgs {
-  order: InputMaybe<SearchResultOrder>
+  ordering: InputMaybe<Scalars['PackageOrdering']['input']>
   size?: InputMaybe<Scalars['Int']['input']>
 }
 
@@ -1309,11 +1365,6 @@ export interface SnsInvalid {
   readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
-export enum SortDirection {
-  ASC = 'ASC',
-  DESC = 'DESC',
-}
-
 export interface SsoConfig {
   readonly __typename: 'SsoConfig'
   readonly text: Scalars['String']['output']
@@ -1414,6 +1465,7 @@ export interface TestStatsTimeSeries {
 export interface TextPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'TextPackageUserMetaFacet'
   readonly path: Scalars['String']['output']
+  readonly sortable: Scalars['Boolean']['output']
 }
 
 export interface TextSearchPredicate {

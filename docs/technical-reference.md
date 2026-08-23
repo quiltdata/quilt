@@ -51,19 +51,41 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Microsoft Entra ID (Azure Active Directory)
 
+Quilt uses **OpenID Connect (OIDC)** with the **OAuth 2.0 authorization code
+flow** — not SAML.
+
+#### Delegated Setup
+
+If someone else is configuring Entra on your behalf, give them the
+following:
+
+| Field | Value |
+| --- | --- |
+| Protocol | OpenID Connect (OIDC) with the OAuth 2.0 authorization code flow. If the form only lists SAML/OAuth, pick **OAuth**; if neither fits, pick **Other** and link to this page. |
+| Platform | Web |
+| Redirect URI (Reply URL) | `<QuiltWebHost>/oauth-callback` (e.g. `https://quilt.example.com/oauth-callback`) |
+| Sign-in audience | Single tenant (unless you have a specific multi-tenant requirement) |
+| OAuth/OIDC scopes | `openid`, `email`, `offline_access`. Grant admin consent if your organization requires it or to avoid end-user consent prompts. Quilt does not request `profile` or `User.Read`. |
+| Groups claim (optional) | Emit **Group IDs** in the **ID token** only if your [SSO Permissions Mapping](./advanced-features/sso-permissions.md) matches Entra group IDs. For guest/multi-tenant users or users with many group memberships, prefer **App roles**. |
+| Client secret | Required. Have them share the secret **Value** (not the Secret ID) over a secure channel. |
+
+Ask them to send back: **Application (client) ID**, **Directory (tenant) ID**,
+and the client secret **Value**.
+
+#### Self-Service Configuration
+
 1. Go to [Microsoft Entra admin center](https://entra.microsoft.com) → **Microsoft Entra ID → Applications → App registrations → New registration**.
 1. Name the app, select the supported account types, and click **Register**.
    Note the **Application (client) ID** and **Directory (tenant) ID**.
 1. Go to **Authentication → Add a platform → Web**. Add the redirect URI
-   `<QuiltWebHost>/oauth-callback`. Under **Implicit grant and hybrid flows**,
-   enable **ID tokens** (required — login will fail without it). Click **Save**.
+   `<QuiltWebHost>/oauth-callback`, then click **Save**. Do not enable
+   **Implicit grant and hybrid flows**; Quilt uses the authorization code flow.
 1. Go to **Certificates & secrets → New client secret**. Copy the **Value**
    immediately — it is not shown again. (Do not use the Secret ID.)
 1. Go to **API permissions → Add a permission → Microsoft Graph → Delegated**.
-   Add `openid`, `profile`, `email`, `offline_access`, and `User.Read`, then
-   click **Grant admin consent**. Without admin consent, each user is typically
-   prompted to grant these permissions on their first login; granting admin consent
-   approves them tenant-wide (subject to your org's policies) and avoids end-user prompts.
+   Add `openid`, `email`, and `offline_access`. Remove the default `User.Read`
+   permission if present; Quilt does not request it. Grant admin consent if your
+   organization requires it or to avoid end-user consent prompts.
 1. Your `AzureBaseUrl` is `https://login.microsoftonline.com/<TENANT_ID>/v2.0`.
    Reference [Microsoft identity platform and OpenID Connect protocol](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)
    and [National clouds](https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud)
@@ -104,7 +126,6 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 1. Click the `Next` button.
 1. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
-1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
         > **Important:** `Refresh Token` must be checked. Without it, the Quilt registry cannot complete the sign-in flow and will return a 401 error.
@@ -114,20 +135,22 @@ Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
     1. **Uncheck "Enable immediate access"** (also called Federation Broker Mode). This setting is on by default and will cause SSO to fail with `access_denied — Identity Provider: Unknown`. When unchecked, you can assign users directly.
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization. Ensure at least one user or group is assigned to the app.
 1. Once you click the `Save` button you will have a new application integration to review.
+    1. Scroll down to `General Settings` and click `Edit`.
+    1. Optionally upload the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
     1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
-    1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
+    1. Copy the `Client ID` and `Secret` to a safe place.
 1. **Configure the authentication policy.** Go to **Security > Authentication Policies** and check which policy your new app is assigned to. The default policy ("Any two factors") requires MFA, which will block sign-in unless all users have MFA enrolled. Create or use a policy that allows password-only authentication. When creating a new policy, also edit the **Catch-all Rule** — it defaults to 2 factor types.
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
-    to `api://default`, and an `Issuer URI` that looks like the
-    following:
+    to `api://default`. Copy its `Issuer URI` to use as Quilt's Base URL
+    (`OktaBaseUrl` or `SingleSignOnBaseUrl`). It looks like the following:
 
         ```
-        <MY_COMPANY>.okta.com/oauth2/default
+        https://<MY_COMPANY>.okta.com/oauth2/default
         ```
 
     1. Click on the `default` authorization server. Go to the **Access Policies** tab and ensure there is at least one **rule** that grants tokens for Authorization Code flow. A policy with no rules will silently deny all token requests, causing sign-in to fail.
-    1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
+    1. See the [Okta authorization servers documentation](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more information.
 1. Proceed to [Enabling SSO](#enabling-sso)
 
 ### OneLogin
