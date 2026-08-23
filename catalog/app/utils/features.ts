@@ -38,6 +38,11 @@ export const FEATURES = {
     description:
       'Show the ElasticSearch tab on Queries. Off, Queries is Athena only and /queries/es redirects to it.',
   },
+  'data-products': {
+    label: 'Data products',
+    description:
+      'Browse data products defined in an enterprise catalog (AWS DataZone, Databricks Unity, Snowflake). Off, no data-product route or nav entry exists. Reads fixture data until catalog adapters land.',
+  },
 } satisfies Record<string, Feature>
 
 export type FeatureId = keyof typeof FEATURES

@@ -6,10 +6,12 @@ import { fade } from '@material-ui/core/styles'
 
 import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
+import type * as DP from 'model/DataProducts'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
 import type { Bucket } from './BucketCard'
+import type { VolumeEntry } from './entries'
 
 // The dense counterpart to the card grid: same buckets, same fields, one line
 // each. It exists so a long volume list can be scanned vertically without a
@@ -195,29 +197,132 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
   )
 }
 
+const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
+  datazone: 'AWS DataZone',
+  'unity-schema': 'Databricks Unity',
+  'unity-share': 'Databricks Unity',
+  'snowflake-listing': 'Snowflake',
+}
+
+/**
+ * How much of this product you can read, in the slot a bucket row gives its
+ * access readout.
+ *
+ * Zero members is the case worth wording carefully: on a discovery-only product
+ * (Unity `BROWSE`) that is a permission boundary, not an empty product, and
+ * "0 members" would misreport it as no data.
+ */
+function accessSummary(product: DP.DataProduct): string {
+  const total = product.members.length
+  if (!total) return 'Contents not visible to you'
+  const readable = product.members.filter((m) => m.readable).length
+  if (readable === total) return `${total} member${total === 1 ? '' : 's'}`
+  return `${readable} of ${total} members readable`
+}
+
+interface DataProductRowProps {
+  product: DP.DataProduct
+  divider: boolean
+}
+
+// The dense counterpart to DataProductCard, wearing BucketRow's markup: one
+// line, same avatar footprint, same single-tab-stop treatment. What differs is
+// the second line (the defining catalog, where a bucket has its `s3://` address)
+// and the right-hand slot (readability, where a bucket runs collaborators).
+function DataProductRow({ product, divider }: DataProductRowProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const to = urls.dataProduct(product.id)
+  const platform = PLATFORM_LABEL[product.binding.kind]
+
+  return (
+    <M.ListItem
+      className={cx(classes.row, classes.rowWithSecondary)}
+      divider={divider}
+      data-testid="bucket-grid--data-product"
+      data-data-product={product.id}
+    >
+      <M.ListItemAvatar className={classes.avatar}>
+        {/* No iconUrl to honor: an external product has no Quilt-side icon, so
+            this is a plain type glyph rather than a hashed identity tint. */}
+        <Link aria-hidden="true" tabIndex={-1} to={to}>
+          <M.Avatar>
+            <M.Icon>view_module</M.Icon>
+          </M.Avatar>
+        </Link>
+      </M.ListItemAvatar>
+      <M.ListItemText
+        className={classes.text}
+        disableTypography
+        primary={
+          <span className={classes.heading}>
+            <Link className={classes.title} to={to} title={product.name}>
+              {product.name}
+            </Link>
+            <span className={classes.name}>{platform}</span>
+          </span>
+        }
+        secondary={
+          product.description ? (
+            <M.Typography
+              className={classes.description}
+              variant="body2"
+              color="textSecondary"
+              component="span"
+            >
+              {product.description}
+            </M.Typography>
+          ) : null
+        }
+      />
+      <M.ListItemSecondaryAction>
+        <M.Typography variant="caption" color="textSecondary">
+          {accessSummary(product)}
+        </M.Typography>
+      </M.ListItemSecondaryAction>
+    </M.ListItem>
+  )
+}
+
 interface BucketRowsProps {
-  buckets: ReadonlyArray<Bucket>
+  // One sorted, paginated list of volumes — buckets and data products
+  // interleaved. Not two arrays: a caller able to pass them separately would be
+  // able to order them separately, which is the two-panes shape this replaced.
+  entries: ReadonlyArray<VolumeEntry>
   tagIsMatching?: (tag: string) => boolean
   onTagClick?: (tag: string) => void
 }
 
 export default function BucketRows({
-  buckets,
+  entries,
   tagIsMatching = () => false,
   onTagClick = () => {},
 }: BucketRowsProps) {
   return (
     <M.Paper elevation={0} variant="outlined">
       <M.List disablePadding>
-        {buckets.map((b, i) => (
-          <BucketRow
-            key={b.name}
-            bucket={b}
-            divider={i < buckets.length - 1}
-            tagIsMatching={tagIsMatching}
-            onTagClick={onTagClick}
-          />
-        ))}
+        {entries.map((e, i) => {
+          // Divider on every row but the last, whatever kind the neighbours are.
+          const divider = i < entries.length - 1
+          return e.kind === 'bucket' ? (
+            <BucketRow
+              // Kind-prefixed: a product id and a bucket name share one keyspace
+              // once they share a list, and a collision would make React reuse
+              // the wrong row.
+              key={`bucket:${e.bucket.name}`}
+              bucket={e.bucket}
+              divider={divider}
+              tagIsMatching={tagIsMatching}
+              onTagClick={onTagClick}
+            />
+          ) : (
+            <DataProductRow
+              key={`product:${e.product.id}`}
+              product={e.product}
+              divider={divider}
+            />
+          )
+        })}
       </M.List>
     </M.Paper>
   )

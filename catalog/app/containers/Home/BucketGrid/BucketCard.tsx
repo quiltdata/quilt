@@ -42,12 +42,24 @@ const useStyles = M.makeStyles((t) => ({
     // The header wash bleeds to the card's edges, so the regions carry their
     // own insets rather than the card carrying one padding for all of them.
     overflow: 'hidden',
+    // Containing block for the header link's overlay (see `header::after`).
+    position: 'relative',
     transition: t.transitions.create(['background-color', 'border-color'], {
       duration: 150,
     }),
     '&:hover': {
       backgroundColor: t.palette.action.hover,
       borderColor: t.palette.text.secondary,
+    },
+    // Pressed: the wash deepens one step. No transform and no shadow — the
+    // Overlay-Only Rule reserves shadow for things that float and leave, and a
+    // card that scales under the cursor is the consumer-SaaS gloss PRODUCT.md
+    // names as an anti-reference. Tactility here is tonal, not spatial.
+    '&:active': {
+      backgroundColor: t.palette.action.selected,
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
     },
   },
   // The identity block: the icon sits beside a two-line text column (title
@@ -64,6 +76,23 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
     padding: t.spacing(2),
     textDecoration: 'none',
+    // Stretches this anchor over the whole card, so the card navigates. An
+    // overlay rather than a wrapping link because the card contains a
+    // `ButtonBase` and clickable chips, and a button inside an anchor breaks
+    // keyboard and screen-reader behaviour.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      // Below the interactive children, which raise themselves above it.
+      zIndex: 0,
+    },
+    // No `position` here: it would make the header the containing block for its
+    // own `::after`, collapsing the card-wide click target to the header's bounds
+    // while focused.
     '&:focus-visible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: -2,
@@ -80,8 +109,9 @@ const useStyles = M.makeStyles((t) => ({
   bodySpacer: {
     flexGrow: 1,
   },
-  // Tags and the access readout share one line at the card's foot: the tags
-  // run from the left, the readout closes the row on the right.
+  // Not raised above the navigation overlay: raising the row lifts its
+  // `space-between` gap too, and clicks in that whitespace stop navigating. Only
+  // the controls themselves are raised (`tag`, `access`).
   bottomRow: {
     alignItems: 'center',
     display: 'flex',
@@ -126,7 +156,11 @@ const useStyles = M.makeStyles((t) => ({
   // ButtonBase (Chip's root when `clickable`) always stamps the global
   // `Mui-focusVisible` class alongside its own hashed one, so this is a
   // stable hook even though `.MuiChip-*` selectors are off-limits.
+  // Raised per-chip, not on the `tags` wrapper, so the wrapper's flex gaps stay
+  // under the navigation overlay.
   tag: {
+    position: 'relative',
+    zIndex: 1,
     '&.Mui-focusVisible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: -2,
@@ -145,10 +179,15 @@ const useStyles = M.makeStyles((t) => ({
     alignSelf: 'center',
     color: t.palette.text.secondary,
   },
+  // Raised for the same reason as `tag`: the readout opens the collaborator
+  // dialog. This wrapper hugs its button (`flexShrink: 0`, no padding), so
+  // raising it does not lift any whitespace with it.
   access: {
     alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
+    position: 'relative',
+    zIndex: 1,
   },
 }))
 

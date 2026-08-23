@@ -9,12 +9,16 @@ import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
 import SelectDropdown from 'components/SelectDropdown'
+import { docs } from 'constants/urls'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
+
+import * as DP from 'model/DataProducts'
+import { useFeature } from 'utils/features'
 
 import BucketList, { useGridStyles } from 'containers/Home/BucketGrid/BucketList'
 import BucketRows from 'containers/Home/BucketGrid/BucketRows'
@@ -52,18 +56,65 @@ const SORT_OPTIONS = [
 const DEFAULT_SORT = SORT_OPTIONS[0].valueOf()
 const SORT_VALUES = SORT_OPTIONS.map((o) => o.valueOf())
 
-// `buckets` is already relevance+name sorted (see useRelevantBuckets) and
-// has the admin curation filter (relevanceScore >= 0) applied; this just
-// re-orders that same list per the selected sort option.
-function sortBuckets(buckets, sort) {
+// A volume is a bucket or a data product. They share this list, this filter,
+// this sort, and this pagination — a reader is browsing "what is here", and
+// which backing kind an entry has is a property of the entry, not a reason to
+// put it in a different pane.
+//
+// The wrapper exists because the two carry different fields: a bucket sorts by
+// `title` and has a `relevanceScore`, a product has `name` and neither. Rather
+// than teach every comparator about both shapes, each entry is normalized once
+// to the two keys the list actually orders on.
+const asEntries = (buckets, products) => [
+  ...buckets.map((b) => ({
+    kind: 'bucket',
+    // Buckets always have a title; `name` is the s3 name and is the fallback a
+    // bucket card itself uses.
+    label: b.title || b.name,
+    // Relevance ties break on the s3 name, which is what `useRelevantBuckets`
+    // sorts by. Breaking on `label` instead silently reorders the default
+    // landing page for every deployment -- buckets whose title and name disagree
+    // swap places, and the 15-per-page boundaries move with them.
+    sortKey: b.name,
+    relevance: b.relevanceScore ?? 0,
+    bucket: b,
+  })),
+  ...products.map((p) => ({
+    kind: 'product',
+    label: p.name,
+    // A product's id is its stable identity; `name` is display text a catalog
+    // owner can change.
+    sortKey: p.id,
+    // No platform exposes anything relevance-like for a product, and inventing
+    // a score would silently decide ranking. 0 places them among buckets of
+    // default relevance rather than pinning them to either end.
+    relevance: 0,
+    product: p,
+  })),
+]
+
+// `buckets` arrives relevance+name sorted with the admin curation filter
+// (relevanceScore >= 0) applied; products have no such ordering of their own, so
+// relevance mode re-sorts the merged list rather than trusting arrival order.
+function sortEntries(entries, sort) {
+  const byLabel = R.pipe(R.prop('label'), R.toLower)
   switch (sort) {
     case 'name-asc':
-      return R.sortBy(R.pipe(R.prop('title'), R.toLower), buckets)
+      return R.sortBy(byLabel, entries)
     case 'name-desc':
-      return R.reverse(R.sortBy(R.pipe(R.prop('title'), R.toLower), buckets))
+      return R.reverse(R.sortBy(byLabel, entries))
     case 'relevance':
     default:
-      return buckets
+      // Descending relevance, then `sortKey` — the same rule `useRelevantBuckets`
+      // applies to buckets alone (`[descend(relevanceScore), ascend(name)]`),
+      // extended over the merged list so a product does not jump the queue for
+      // lacking a score. Tiebreaking on `label` here instead would reorder the
+      // default landing page on every deployment, flag off and no products
+      // present.
+      return R.sortWith(
+        [R.descend(R.prop('relevance')), R.ascend(R.prop('sortKey'))],
+        entries,
+      )
   }
 }
 
@@ -227,6 +278,26 @@ const useStyles = M.makeStyles((t) => ({
   emptyLine: {
     marginTop: t.spacing(1),
   },
+  // The recovery row under an empty state: droppable filter terms, then the
+  // clear-all. Centered to match the state's own `textAlign`, and wrapping
+  // rather than scrolling because a filter can hold more terms than fit.
+  emptyActions: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+    justifyContent: 'center',
+    marginTop: t.spacing(3),
+  },
+  // Same focus-ring hook the card's tags use: ButtonBase (Chip's root when
+  // `clickable`) always stamps the global `Mui-focusVisible` alongside its own
+  // hashed class, so this is stable without reaching for `.MuiChip-*`.
+  emptyTerm: {
+    '&.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
+  },
   // A skeleton CARD silhouette (not a row, not a spinner) so the loading
   // state previews the grid it's about to become.
   skeletonCard: {
@@ -349,8 +420,12 @@ function BucketsSkeleton({ view }) {
   )
 }
 
+// Bucket-specific copy is safe even though a volume can also be a data product:
+// `isEmpty` is zero buckets *and* zero products, so a products-only catalog never
+// reaches this state.
 function ZeroState({ isAdmin }) {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
@@ -358,20 +433,70 @@ function ZeroState({ isAdmin }) {
       </M.Typography>
       <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
         {isAdmin
-          ? 'Add a volume to make it searchable and browsable here.'
-          : "Your workspace admin hasn't connected one yet."}
+          ? 'Connect an S3 bucket and its packages become searchable and browsable here.'
+          : 'Your workspace admin connects these. Ask them which bucket holds the data you need.'}
       </M.Typography>
+      <div className={classes.emptyActions}>
+        {isAdmin ? (
+          <M.Button
+            variant="outlined"
+            color="primary"
+            component={Link}
+            to={urls.adminBuckets({ add: true })}
+          >
+            Add Bucket
+          </M.Button>
+        ) : (
+          <M.Button
+            size="small"
+            color="primary"
+            // A path already referenced elsewhere in the app, not an invented one.
+            href={`${docs}/quilt-platform-administrator/technical-reference`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            What is a volume?
+          </M.Button>
+        )}
+      </div>
     </M.Paper>
   )
 }
 
-function NoMatch({ filter }) {
+// `total` counts entries, not buckets: a data product is a volume here exactly as
+// it is everywhere else on this screen.
+function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   const classes = useStyles()
+  // Only worth offering per-term drops when there is a choice to make; with a
+  // single term "drop it" and "clear the filter" are the same action, and two
+  // buttons that do one thing is a worse state than one that does.
+  const droppable = terms.length > 1 ? terms : []
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
         No volumes matching <b>&quot;{filter}&quot;</b>
       </M.Typography>
+      <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
+        {total === 1
+          ? 'Searched the 1 volume you can reach, across name, description, and tags.'
+          : `Searched all ${total} volumes you can reach, across name, description, and tags.`}
+      </M.Typography>
+      <div className={classes.emptyActions}>
+        {droppable.map((tg) => (
+          <M.Chip
+            key={tg}
+            className={classes.emptyTerm}
+            label={`Without "${tg}"`}
+            size="small"
+            clickable
+            color="default"
+            onClick={() => onDropTerm(tg)}
+          />
+        ))}
+        <M.Button size="small" color="primary" onClick={onClear}>
+          Clear filter
+        </M.Button>
+      </div>
     </M.Paper>
   )
 }
@@ -421,31 +546,72 @@ function TagShortcuts({ filter, onTagClick }) {
 
 // Everything that needs bucket data lives below this line, inside the
 // Suspense boundary — filter text and sort order (owned by the parent) don't.
-function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
+function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scrollRef }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
   const [page, setPage] = React.useState(1)
+  // Suspending read — safe here because this component already renders inside a
+  // Suspense boundary (see the `BucketsSkeleton` fallback below).
+  const dataProductsEnabled = useFeature('data-products')
 
-  const terms = React.useMemo(
-    () => filter.toLowerCase().split(/\s+/).filter(Boolean),
-    [filter],
-  )
+  // `rawTerms` preserves the reader's casing for display; `terms` is lowercased
+  // for matching. Showing `terms` back would quote "Genomics" as "genomics".
+  const rawTerms = React.useMemo(() => filter.split(/\s+/).filter(Boolean), [filter])
+
+  const terms = React.useMemo(() => rawTerms.map((s) => s.toLowerCase()), [rawTerms])
 
   // Same one-liner as TagShortcuts (both derive it from `filter`, not from
   // bucket data) — kept local so each component's dependency is obvious.
   const tagIsMatching = React.useCallback((tg) => filter.includes(tg), [filter])
 
+  // Read through the adapter port, never `fixtures` directly. The flag is passed
+  // in rather than guarding the call: hooks cannot be called conditionally, so
+  // the disabled case resolves to [] inside the resource without reaching the
+  // adapter at all.
+  const dataProducts = DP.useProducts(dataProductsEnabled)
+
+  // One list from here down. Merging *before* filter/sort/pagination is what
+  // makes a volume a volume: a product is ranked against buckets, lands on
+  // whichever page it sorts onto, and answers the same filter box. Merging after
+  // (the previous shape) meant products trailed the buckets and only appeared on
+  // the last page — two lists wearing one heading.
+  const entries = React.useMemo(
+    () => asEntries(buckets, dataProducts),
+    [buckets, dataProducts],
+  )
+
   const filtered = React.useMemo(() => {
-    if (!terms.length) return buckets
+    if (!terms.length) return entries
     const matches = R.allPass(R.map(R.includes, terms))
     const anyFieldMatches = R.pipe(R.filter(Boolean), R.map(R.toLower), R.any(matches))
-    return buckets.filter((b) =>
-      anyFieldMatches([b.title, b.name, b.description, ...(b.tags || [])]),
+    // Each kind contributes the fields it actually has. A product has labels
+    // where a bucket has tags; neither borrows the other's vocabulary.
+    return entries.filter((e) =>
+      e.kind === 'bucket'
+        ? anyFieldMatches([
+            e.bucket.title,
+            e.bucket.name,
+            e.bucket.description,
+            ...(e.bucket.tags || []),
+          ])
+        : anyFieldMatches([
+            e.product.name,
+            e.product.description,
+            ...(e.product.labels || []),
+          ]),
     )
-  }, [terms, buckets])
+  }, [terms, entries])
 
-  const sorted = React.useMemo(() => sortBuckets(filtered, sort), [filtered, sort])
+  // Dropping a term is the parent's (`onDropTerm`): it must read the filter
+  // field's pending value, and `rawTerms` here only projects the debounced URL.
+
+  // `''`, not a bare `set()`: `undefined` hands the TextField `value={undefined}`,
+  // React stops controlling it, and the box keeps its old text while the filter
+  // clears underneath.
+  const onClearFilter = React.useCallback(() => onTagClick(''), [onTagClick])
+
+  const sorted = React.useMemo(() => sortEntries(filtered, sort), [filtered, sort])
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
 
@@ -466,25 +632,36 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     }
   })
 
-  const noBuckets = !buckets.length
-  const noMatch = !noBuckets && !sorted.length
+  // Empty means nothing of either kind. ZeroState teaches "add a bucket", which
+  // would be wrong on a catalog whose products are the only thing here.
+  const isEmpty = !entries.length
+  const noMatch = !isEmpty && !sorted.length
 
-  // Both views take the same props over the same page of buckets: the toggle
-  // swaps the renderer and nothing else.
+  // Both views take the same props over the same page: the toggle swaps the
+  // renderer and nothing else.
   const View = view === VIEW_LIST ? BucketRows : BucketList
 
   return (
     <>
-      {noBuckets ? (
+      {isEmpty ? (
         <ZeroState isAdmin={isAdmin} />
       ) : noMatch ? (
-        <NoMatch filter={filter} />
+        <NoMatch
+          filter={filter}
+          terms={rawTerms}
+          total={entries.length}
+          onDropTerm={onDropTerm}
+          onClear={onClearFilter}
+        />
       ) : (
-        <View buckets={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
+        <View entries={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
       )}
       <div className={classes.controls}>
         <M.Box>
-          {isAdmin && (
+          {/* Withheld at zero volumes, where `ZeroState` carries this same action
+              inside the teaching copy that asks for it. Two Add buttons on one
+              screen would be the same instruction twice. */}
+          {isAdmin && !isEmpty && (
             <M.Button
               variant="outlined"
               color="primary"
@@ -542,6 +719,22 @@ export default function Buckets() {
 
   const filtering = useDebouncedInput(filter, 500)
 
+  // The functional updater reads the *pending* field value, so two drops inside
+  // the 500ms debounce window compose. Computing from the URL-derived filter (or
+  // from `rawTerms`, which projects it) makes the second drop resurrect the term
+  // the first removed.
+  const dropTerm = React.useCallback(
+    (term) =>
+      filtering.set((current) =>
+        (current || '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .filter((t) => t !== term)
+          .join(' '),
+      ),
+    [filtering],
+  )
+
   React.useEffect(() => {
     if (filtering.value !== filter) {
       history.push({ search: search({ q: filtering.value || undefined }) })
@@ -549,7 +742,11 @@ export default function Buckets() {
   }, [history, search, filtering.value, filter])
 
   const clearFilter = React.useCallback(() => {
-    filtering.set()
+    // `set('')`, not `set()`. `set` is a `useState` setter, so a bare call stores
+    // `undefined`, which hands the TextField a `value` of `undefined` and makes
+    // React stop controlling it -- the box then keeps the text already in it
+    // while the filter clears underneath.
+    filtering.set('')
   }, [filtering])
 
   const sortButtonClasses = useSortButtonStyles()
@@ -675,6 +872,7 @@ export default function Buckets() {
             view={view}
             isAdmin={isAdmin}
             onTagClick={filtering.set}
+            onDropTerm={dropTerm}
             scrollRef={scrollRef}
           />
         </React.Suspense>
