@@ -19,6 +19,7 @@ import usePrevious from 'utils/usePrevious'
 import BucketList, { useGridStyles } from 'containers/Home/BucketGrid/BucketList'
 import BucketRows from 'containers/Home/BucketGrid/BucketRows'
 
+import BUCKETS_QUERY from 'utils/Buckets.generated'
 import IS_ADMIN_QUERY from 'website/pages/Landing/gql/IsAdmin.generated'
 
 const PER_PAGE = 15
@@ -37,6 +38,40 @@ function useIsAdmin() {
     data: ({ me }) => !!me?.isAdmin,
     fetching: R.F,
     error: R.F,
+  })
+}
+
+// Whether this workspace has any reachable volume at all, read *without*
+// suspending.
+//
+// The controls row needs this: at zero volumes the filter, sort, and view toggle
+// all render and none of them can do anything — a wall of controls with nothing
+// to act on, which is the cloud-console density PRODUCT.md names as an
+// anti-reference. But the row deliberately sits outside the grid's Suspense
+// boundary so it stays usable while the grid loads, and `useRelevantBuckets`
+// always suspends. Reading it up here would put the filter behind the fallback
+// and remount it when data landed, stealing focus mid-keystroke.
+//
+// So this goes through the non-suspending `GQL.useQuery` (which sets
+// `suspense: false`) against the same document `utils/Buckets` uses, exactly as
+// `useIsAdmin` above does. urql serves it from cache, so it is not a second
+// network round trip.
+//
+// `relevanceScore >= 0` mirrors `useRelevantBuckets`'s curation filter: a
+// workspace whose only volumes are admin-hidden reads as empty here too, which
+// is what the grid will show.
+//
+// While fetching, and on error, this answers `true` — "assume there is
+// something". Being wrong that way renders controls a moment early; being wrong
+// the other way would tear the filter row out from under someone on every load.
+function useHasBuckets() {
+  const data = GQL.useQuery(BUCKETS_QUERY, {
+    includeCollaborators: false,
+  })
+  return GQL.fold(data, {
+    data: ({ buckets }) => buckets.some((b) => b.relevanceScore >= 0),
+    fetching: R.T,
+    error: R.T,
   })
 }
 
@@ -678,6 +713,18 @@ export default function Buckets() {
 
   const isAdmin = useIsAdmin()
 
+  // A filter, a sort, and a view toggle over nothing are three controls that
+  // cannot act. Withheld until there is something to act on.
+  //
+  // Gated on the workspace having volumes, not on the grid being non-empty:
+  // filtering down to zero must keep the controls that undo it, and the no-match
+  // state's own recovery pushes through them. That falls out of `useHasBuckets`
+  // reading the unfiltered set — an `|| !!filter` escape looks like it belongs
+  // here, but it is unreachable. Both reads apply the same `relevanceScore >= 0`
+  // curation filter, so "no volumes" makes the grid render `ZeroState` rather
+  // than `NoMatch` regardless of the filter, and mid-load already answers true.
+  const showControls = useHasBuckets()
+
   return (
     <M.Container maxWidth={false} disableGutters className={classes.container}>
       <div className={classes.wrapper} ref={scrollRef}>
@@ -701,67 +748,69 @@ export default function Buckets() {
         >
           Volumes
         </M.Typography>
-        <div className={classes.filterRow}>
-          <M.TextField
-            className={classes.filter}
-            placeholder="Filter volumes"
-            variant="outlined"
-            margin="dense"
-            fullWidth
-            InputProps={{
-              className: classes.filterInput,
-              classes: { notchedOutline: classes.filterOutline },
-              startAdornment: (
-                <M.InputAdornment position="start">
-                  <Icons.FilterList className={classes.filterIcon} />
-                </M.InputAdornment>
-              ),
-              endAdornment: filter ? (
-                <M.InputAdornment position="end">
-                  <M.IconButton edge="end" onClick={clearFilter}>
-                    <M.Icon>clear</M.Icon>
-                  </M.IconButton>
-                </M.InputAdornment>
-              ) : undefined,
-            }}
-            {...filtering.input}
-          />
-          <React.Suspense fallback={null}>
-            <TagShortcuts filter={filter} onTagClick={filtering.set} />
-          </React.Suspense>
-          <SelectDropdown
-            className={classes.sort}
-            classes={sortClasses}
-            options={SORT_OPTIONS}
-            value={sortValue}
-            onChange={changeSort}
-            ButtonProps={{ classes: sortButtonClasses, size: 'medium' }}
-          >
-            Sort by:
-          </SelectDropdown>
-          <Lab.ToggleButtonGroup
-            className={classes.viewToggle}
-            value={view}
-            exclusive
-            size="small"
-            onChange={changeView}
-          >
-            <Lab.ToggleButton
-              value={VIEW_CARDS}
-              classes={viewToggleButtonClasses}
-              aria-label="Card view"
+        {showControls && (
+          <div className={classes.filterRow}>
+            <M.TextField
+              className={classes.filter}
+              placeholder="Filter volumes"
+              variant="outlined"
+              margin="dense"
+              fullWidth
+              InputProps={{
+                className: classes.filterInput,
+                classes: { notchedOutline: classes.filterOutline },
+                startAdornment: (
+                  <M.InputAdornment position="start">
+                    <Icons.FilterList className={classes.filterIcon} />
+                  </M.InputAdornment>
+                ),
+                endAdornment: filter ? (
+                  <M.InputAdornment position="end">
+                    <M.IconButton edge="end" onClick={clearFilter}>
+                      <M.Icon>clear</M.Icon>
+                    </M.IconButton>
+                  </M.InputAdornment>
+                ) : undefined,
+              }}
+              {...filtering.input}
+            />
+            <React.Suspense fallback={null}>
+              <TagShortcuts filter={filter} onTagClick={filtering.set} />
+            </React.Suspense>
+            <SelectDropdown
+              className={classes.sort}
+              classes={sortClasses}
+              options={SORT_OPTIONS}
+              value={sortValue}
+              onChange={changeSort}
+              ButtonProps={{ classes: sortButtonClasses, size: 'medium' }}
             >
-              <Icons.GridOn />
-            </Lab.ToggleButton>
-            <Lab.ToggleButton
-              value={VIEW_LIST}
-              classes={viewToggleButtonClasses}
-              aria-label="List view"
+              Sort by:
+            </SelectDropdown>
+            <Lab.ToggleButtonGroup
+              className={classes.viewToggle}
+              value={view}
+              exclusive
+              size="small"
+              onChange={changeView}
             >
-              <Icons.List />
-            </Lab.ToggleButton>
-          </Lab.ToggleButtonGroup>
-        </div>
+              <Lab.ToggleButton
+                value={VIEW_CARDS}
+                classes={viewToggleButtonClasses}
+                aria-label="Card view"
+              >
+                <Icons.GridOn />
+              </Lab.ToggleButton>
+              <Lab.ToggleButton
+                value={VIEW_LIST}
+                classes={viewToggleButtonClasses}
+                aria-label="List view"
+              >
+                <Icons.List />
+              </Lab.ToggleButton>
+            </Lab.ToggleButtonGroup>
+          </div>
+        )}
         <React.Suspense fallback={<BucketsSkeleton view={view} />}>
           <BucketsBody
             filter={filter}

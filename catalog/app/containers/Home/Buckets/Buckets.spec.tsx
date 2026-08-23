@@ -54,10 +54,18 @@ vi.mock('utils/NamedRoutes', async () => ({
   }),
 }))
 
-// Sentinel standing in for the generated query document, so the mocked
+// Sentinels standing in for the generated query documents, so the mocked
 // `useQuery` below can dispatch on query identity.
 vi.mock('website/pages/Landing/gql/IsAdmin.generated', () => ({
   default: 'IS_ADMIN_QUERY',
+}))
+
+// `useHasBuckets` reads this one non-suspending, to decide whether the controls
+// row has anything to act on. Same document `utils/Buckets` uses, which is why
+// the suspending `useRelevantBuckets` above is mocked separately: the two reads
+// of the same data serve different purposes here.
+vi.mock('utils/Buckets.generated', () => ({
+  default: 'BUCKETS_QUERY',
 }))
 
 interface QueryState {
@@ -70,10 +78,19 @@ interface QueryState {
 // on the OPEN-mode landing.
 let meIsAdminData: { isAdmin: boolean } | null = { isAdmin: false }
 
+// Overrides the BUCKETS_QUERY result so a test can exercise the fold's
+// `fetching` and `error` arms. `null` means "serve `mockBuckets` as data", which
+// is what every test that does not care about load state gets.
+let bucketsQueryState: QueryState | null = null
+
 const useQueryMock = vi.fn((query: string): QueryState => {
   switch (query) {
     case 'IS_ADMIN_QUERY':
       return { data: { me: meIsAdminData }, fetching: false }
+    // Served from the same `mockBuckets` the suspending read uses, so a test
+    // setting `mockBuckets = []` gets a consistent answer from both.
+    case 'BUCKETS_QUERY':
+      return bucketsQueryState ?? { data: { buckets: mockBuckets }, fetching: false }
     default:
       throw new Error(`unexpected query: ${query}`)
   }
@@ -147,6 +164,7 @@ describe('website/pages/Landing/Buckets', () => {
   afterEach(cleanup)
   afterEach(() => {
     useQueryMock.mockClear()
+    bucketsQueryState = null
     meIsAdminData = { isAdmin: false }
     mockBuckets = [
       {
@@ -228,6 +246,60 @@ describe('website/pages/Landing/Buckets', () => {
     const { queryByText } = renderBuckets()
     expect(queryByText('No volumes yet')).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeFalsy()
+  })
+
+  // A filter, a sort, and a view toggle over nothing are three controls that
+  // cannot act — the cloud-console density PRODUCT.md names as an anti-reference.
+  describe('the controls row', () => {
+    it('is withheld when there is nothing to act on', () => {
+      mockBuckets = []
+      const { queryByPlaceholderText, queryAllByText } = renderBuckets()
+
+      expect(queryByPlaceholderText('Filter volumes')).toBeNull()
+      expect(queryAllByText('Sort by:')).toHaveLength(0)
+      // The teaching state still shows: withholding the controls is not
+      // withholding the page.
+      expect(queryAllByText('No volumes yet').length).toBeGreaterThan(0)
+    })
+
+    it('renders once there is a volume', () => {
+      const { getByPlaceholderText, getAllByText } = renderBuckets()
+
+      expect(getByPlaceholderText('Filter volumes')).toBeTruthy()
+      expect(getAllByText('Sort by:').length).toBeGreaterThan(0)
+    })
+
+    // The case that makes this more than "is the grid empty": filtering to zero
+    // also empties the grid, but the controls are exactly what undo it — and the
+    // no-match state's own recovery pushes through them. Withholding them here
+    // would strand the reader with no filter field and no way back.
+    it('stays when a filter narrowed the grid to nothing', () => {
+      const { getByPlaceholderText, queryByText } = renderBuckets('?q=nomatchxyz')
+
+      expect(getByPlaceholderText('Filter volumes')).toBeTruthy()
+      expect(queryByText('Clear filter')).toBeTruthy()
+    })
+
+    // While the read is in flight the answer is "assume there is something".
+    // Being wrong that way renders the controls a moment early; being wrong the
+    // other way would tear the filter row out from under someone on every load,
+    // mid-keystroke. Both this and the error case below were surviving mutations
+    // — nothing exercised the non-`data` arms of the fold.
+    it('assumes there is something while the read is in flight', () => {
+      mockBuckets = []
+      bucketsQueryState = { fetching: true }
+      const { getByPlaceholderText } = renderBuckets()
+
+      expect(getByPlaceholderText('Filter volumes')).toBeTruthy()
+    })
+
+    it('assumes there is something when the read fails', () => {
+      mockBuckets = []
+      bucketsQueryState = { fetching: false, error: new Error('read failed') }
+      const { getByPlaceholderText } = renderBuckets()
+
+      expect(getByPlaceholderText('Filter volumes')).toBeTruthy()
+    })
   })
 
   // The no-match state used to be one line with nothing on it: the only way out
