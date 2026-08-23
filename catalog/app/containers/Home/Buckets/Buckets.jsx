@@ -263,6 +263,26 @@ const useStyles = M.makeStyles((t) => ({
   emptyLine: {
     marginTop: t.spacing(1),
   },
+  // The recovery row under an empty state: droppable filter terms, then the
+  // clear-all. Centered to match the state's own `textAlign`, and wrapping
+  // rather than scrolling because a filter can hold more terms than fit.
+  emptyActions: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+    justifyContent: 'center',
+    marginTop: t.spacing(3),
+  },
+  // Same focus-ring hook the card's tags use: ButtonBase (Chip's root when
+  // `clickable`) always stamps the global `Mui-focusVisible` alongside its own
+  // hashed class, so this is stable without reaching for `.MuiChip-*`.
+  emptyTerm: {
+    '&.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
+  },
   // A skeleton CARD silhouette (not a row, not a spinner) so the loading
   // state previews the grid it's about to become.
   skeletonCard: {
@@ -401,13 +421,55 @@ function ZeroState({ isAdmin }) {
   )
 }
 
-function NoMatch({ filter }) {
+// No filter match: a readout, not a wall.
+//
+// This used to be one line -- `No volumes matching "foo"` -- with no action on
+// it. The only way out was noticing the small clear button up in the filter
+// field, so the more terms someone had stacked, the more stuck they were.
+//
+// Three things instead, in the order a reader needs them: what happened, what
+// was actually searched, and the controls that widen it. `total` is the exact
+// number of volumes the filter ran against -- PRODUCT.md's "trust is rendered,
+// not asserted" applied to an empty state: the instrument says how many volumes
+// it looked at rather than implying there are none. It counts *entries*, so a
+// data product is a volume here exactly as it is everywhere else on this screen.
+//
+// Each term is individually droppable because over-narrowing is usually one
+// term's fault, and a reader can see which. Clearing everything stays available
+// as the blunt instrument beside them. Both are the same controls the filter
+// row owns; nothing new is invented here.
+function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   const classes = useStyles()
+  // Only worth offering per-term drops when there is a choice to make; with a
+  // single term "drop it" and "clear the filter" are the same action, and two
+  // buttons that do one thing is a worse state than one that does.
+  const droppable = terms.length > 1 ? terms : []
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
         No volumes matching <b>&quot;{filter}&quot;</b>
       </M.Typography>
+      <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
+        {total === 1
+          ? 'Searched the 1 volume you can reach, across name, description, and tags.'
+          : `Searched all ${total} volumes you can reach, across name, description, and tags.`}
+      </M.Typography>
+      <div className={classes.emptyActions}>
+        {droppable.map((tg) => (
+          <M.Chip
+            key={tg}
+            className={classes.emptyTerm}
+            label={`Without "${tg}"`}
+            size="small"
+            clickable
+            color="default"
+            onClick={() => onDropTerm(tg)}
+          />
+        ))}
+        <M.Button size="small" color="primary" onClick={onClear}>
+          Clear filter
+        </M.Button>
+      </div>
     </M.Paper>
   )
 }
@@ -466,10 +528,16 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   // Suspense boundary (see the `BucketsSkeleton` fallback below).
   const dataProductsEnabled = useFeature('data-products')
 
-  const terms = React.useMemo(
-    () => filter.toLowerCase().split(/\s+/).filter(Boolean),
-    [filter],
-  )
+  // Two splits of the same filter, deliberately.
+  //
+  // `terms` is lowercased because matching is case-insensitive. `rawTerms` keeps
+  // what the reader actually typed, for showing back to them: a filter of
+  // "Genomics RNA" must not be quoted back as "genomics" in the empty state, and
+  // dropping a term has to rebuild the filter from the original casing or the
+  // field would silently rewrite itself on every drop.
+  const rawTerms = React.useMemo(() => filter.split(/\s+/).filter(Boolean), [filter])
+
+  const terms = React.useMemo(() => rawTerms.map((s) => s.toLowerCase()), [rawTerms])
 
   // Same one-liner as TagShortcuts (both derive it from `filter`, not from
   // bucket data) — kept local so each component's dependency is obvious.
@@ -513,6 +581,21 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     )
   }, [terms, entries])
 
+  // Rebuilt from `rawTerms`, so a drop preserves the casing the reader typed and
+  // normalizes only the whitespace they used to separate terms.
+  const dropTerm = React.useCallback(
+    (term) => onTagClick(rawTerms.filter((t) => t !== term).join(' ')),
+    [onTagClick, rawTerms],
+  )
+
+  // `''`, not a bare `set()`. `set` is a `useState` setter, so calling it with no
+  // argument stores `undefined` and hands the TextField `value={undefined}` --
+  // React stops controlling the input, which then keeps the text already in it,
+  // so the box reads "alpha beta" while the filter clears underneath. Transient
+  // (the URL round-trip repairs it a tick later), which is why it went unnoticed.
+  // `clearFilter` in the parent is fixed the same way.
+  const onClearFilter = React.useCallback(() => onTagClick(''), [onTagClick])
+
   const sorted = React.useMemo(() => sortEntries(filtered, sort), [filtered, sort])
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
@@ -548,7 +631,13 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
       {isEmpty ? (
         <ZeroState isAdmin={isAdmin} />
       ) : noMatch ? (
-        <NoMatch filter={filter} />
+        <NoMatch
+          filter={filter}
+          terms={rawTerms}
+          total={entries.length}
+          onDropTerm={dropTerm}
+          onClear={onClearFilter}
+        />
       ) : (
         <View entries={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
       )}
@@ -619,7 +708,11 @@ export default function Buckets() {
   }, [history, search, filtering.value, filter])
 
   const clearFilter = React.useCallback(() => {
-    filtering.set()
+    // `set('')`, not `set()`. `set` is a `useState` setter, so a bare call stores
+    // `undefined`, which hands the TextField a `value` of `undefined` and makes
+    // React stop controlling it -- the box then keeps the text already in it
+    // while the filter clears underneath.
+    filtering.set('')
   }, [filtering])
 
   const sortButtonClasses = useSortButtonStyles()
