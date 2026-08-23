@@ -239,6 +239,34 @@ describe('website/pages/Landing/Buckets', () => {
     expect(anchor.tagName).toBe('H1')
   })
 
+  // Master's relevance case was `return buckets` -- a deliberate no-op that
+  // preserved `useRelevantBuckets`' `[descend(relevanceScore), ascend(name)]`.
+  // Re-sorting the merged list must keep that tiebreak: breaking on the display
+  // label instead reorders the default landing page on every deployment, with
+  // the flag off and no products present, and moves the 15-per-page boundaries.
+  it('breaks relevance ties on the s3 name, not the display title', () => {
+    mockBuckets = [
+      {
+        name: 'alpha-data',
+        title: 'Zebra Project',
+        description: null,
+        tags: null,
+        relevanceScore: 5,
+      },
+      {
+        name: 'zulu-data',
+        title: 'Alpha Project',
+        description: null,
+        tags: null,
+        relevanceScore: 5,
+      },
+    ]
+    const { getAllByTestId } = renderBuckets()
+
+    const order = getAllByTestId('entry').map((d) => d.textContent)
+    expect(order).toEqual(['bucket:alpha-data', 'bucket:zulu-data'])
+  })
+
   describe('data products in the volume list', () => {
     it('shows none while the feature is off', () => {
       // The flag is the whole gate: with it off the volume list must look

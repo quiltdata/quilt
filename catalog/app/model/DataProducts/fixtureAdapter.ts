@@ -16,6 +16,7 @@
 import type { ContentsResult, EntryBodyResult, FetchingAdapter } from './adapter'
 import * as fixtures from './fixtures'
 import type { AccessRequest } from './requests'
+import type { Connection } from './connections'
 import type { DataProduct } from './types'
 
 /**
@@ -45,6 +46,10 @@ export const fixtureAdapter: FetchingAdapter = {
 
   async listRequests(productId: string): Promise<AccessRequest[]> {
     return fixtures.ALL_REQUESTS.filter((r) => r.dataProductId === productId)
+  },
+
+  async listConnections(): Promise<Connection[]> {
+    return fixtures.ALL_CONNECTIONS
   },
 
   /**

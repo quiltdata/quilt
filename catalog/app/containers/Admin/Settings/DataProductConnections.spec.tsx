@@ -1,11 +1,29 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent } from '@testing-library/react'
 import * as M from '@material-ui/core'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as style from 'constants/style'
+import type * as DP from 'model/DataProducts'
+import { fixtures } from 'model/DataProducts'
 
 import DataProductConnections from './DataProductConnections'
+
+// `useConnections` goes through ResourceCache, which needs a Provider this spec
+// does not mount. Stub only that read, serving the same fixtures the fixture
+// adapter resolves to, so the list assertions below still exercise real data.
+vi.mock('model/DataProducts', async () => {
+  const actual =
+    await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
+  return {
+    ...actual,
+    useConnections: () => connectionsForTest ?? actual.fixtures.ALL_CONNECTIONS,
+  }
+})
+
+// `null` means "serve the fixtures", which is what every list assertion below
+// wants; a test that needs to prove the hook is the source sets it.
+let connectionsForTest: DP.Connection[] | null = null
 
 // The endpoint styling reads the app-theme `typography.monospace` extension, so
 // render under the theme the app provides rather than MUI's default.
@@ -18,6 +36,9 @@ function mount() {
 }
 
 afterEach(cleanup)
+afterEach(() => {
+  connectionsForTest = null
+})
 
 describe('containers/Admin/Settings/DataProductConnections', () => {
   describe('the connection list', () => {
@@ -60,6 +81,25 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       expect(buttons.length).toBeGreaterThan(0)
       expect(buttons.every((b) => b?.disabled)).toBe(true)
     })
+  })
+
+  // The list reports live integration status, including failures. Reading
+  // `DP.fixtures` directly -- the one port bypass the review found -- would keep
+  // showing three invented connections, one with a fabricated auth error, as the
+  // operator's own after a real adapter lands.
+  //
+  // Asserted behaviourally: the mock above replaces only `useConnections`, so if
+  // the component still read `fixtures` it would ignore this and render the
+  // fixture rows regardless. Serving a single distinctive connection proves the
+  // hook is the source.
+  it('reads connections through the adapter port, not fixtures', () => {
+    // Built from a real fixture so every field the row renders is present; only
+    // the identifying text differs.
+    connectionsForTest = [{ ...fixtures.ALL_CONNECTIONS[0], title: 'Only Via The Port' }]
+    const { getByText, queryByText } = mount()
+    expect(getByText(/Only Via The Port/)).toBeTruthy()
+    // A fixture row that would appear if the component bypassed the hook.
+    expect(queryByText(/Clinical DataZone/)).toBeNull()
   })
 
   describe('adding a catalog', () => {

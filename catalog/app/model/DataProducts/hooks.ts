@@ -22,6 +22,7 @@ import type { ContentsResult, DataProductAdapter, EntryBodyResult } from './adap
 import { supportsBrowsing, supportsFetching } from './adapter'
 import { fixtureAdapter } from './fixtureAdapter'
 import type { AccessRequest } from './requests'
+import type { Connection } from './connections'
 import type { DataProduct } from './types'
 
 /**
@@ -55,6 +56,14 @@ const ProductsResource = Cache.createResource({
   name: 'DataProducts.list',
   fetch: ({ enabled }: { enabled: boolean }) =>
     enabled ? adapter.listProducts() : Promise.resolve([]),
+  // @ts-expect-error
+  key: ({ enabled }: { enabled: boolean }) => enabled,
+})
+
+const ConnectionsResource = Cache.createResource({
+  name: 'DataProducts.connections',
+  fetch: ({ enabled }: { enabled: boolean }) =>
+    enabled ? adapter.listConnections() : Promise.resolve([]),
   // @ts-expect-error
   key: ({ enabled }: { enabled: boolean }) => enabled,
 })
@@ -118,6 +127,22 @@ const EntryBodyResource = Cache.createResource({
  */
 export function useProducts(enabled = true): DataProduct[] {
   return Cache.useData(ProductsResource, { enabled }, { suspend: true }) as DataProduct[]
+}
+
+/**
+ * Catalog connections an admin has configured.
+ *
+ * Through the port for the same reason as everything else here: the admin screen
+ * reads live integration status, so a container reaching into `fixtures` would
+ * keep reporting invented connections -- including a fabricated auth failure --
+ * after a real adapter lands.
+ */
+export function useConnections(enabled = true): Connection[] {
+  return Cache.useData(
+    ConnectionsResource,
+    { enabled },
+    { suspend: true },
+  ) as Connection[]
 }
 
 /**

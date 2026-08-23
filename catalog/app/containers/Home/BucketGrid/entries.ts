@@ -23,8 +23,10 @@ import type { Bucket } from './BucketCard'
 export type VolumeEntry =
   | {
       kind: 'bucket'
-      /** What the list sorts and matches on: the bucket's title. */
+      /** What the list matches on and displays: the bucket's title. */
       label: string
+      /** Relevance tiebreak: the s3 name, matching `useRelevantBuckets`. */
+      sortKey: string
       relevance: number
       bucket: Bucket
     }
@@ -32,6 +34,8 @@ export type VolumeEntry =
       kind: 'product'
       /** A product has no title distinct from its name. */
       label: string
+      /** Relevance tiebreak: the product's stable id, not its display name. */
+      sortKey: string
       /**
        * Always 0. No platform exposes anything relevance-like for a product, and
        * inventing a score would silently decide ranking; 0 places products among

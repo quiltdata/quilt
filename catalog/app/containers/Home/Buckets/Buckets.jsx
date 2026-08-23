@@ -71,12 +71,20 @@ const asEntries = (buckets, products) => [
     // Buckets always have a title; `name` is the s3 name and is the fallback a
     // bucket card itself uses.
     label: b.title || b.name,
+    // Relevance ties break on the s3 name, which is what `useRelevantBuckets`
+    // sorts by. Breaking on `label` instead silently reorders the default
+    // landing page for every deployment -- buckets whose title and name disagree
+    // swap places, and the 15-per-page boundaries move with them.
+    sortKey: b.name,
     relevance: b.relevanceScore ?? 0,
     bucket: b,
   })),
   ...products.map((p) => ({
     kind: 'product',
     label: p.name,
+    // A product's id is its stable identity; `name` is display text a catalog
+    // owner can change.
+    sortKey: p.id,
     // No platform exposes anything relevance-like for a product, and inventing
     // a score would silently decide ranking. 0 places them among buckets of
     // default relevance rather than pinning them to either end.
@@ -97,10 +105,16 @@ function sortEntries(entries, sort) {
       return R.reverse(R.sortBy(byLabel, entries))
     case 'relevance':
     default:
-      // Descending relevance, then label — the same rule `useRelevantBuckets`
-      // applies to buckets alone, extended over the merged list so a product
-      // does not jump the queue for lacking a score.
-      return R.sortWith([R.descend(R.prop('relevance')), R.ascend(byLabel)], entries)
+      // Descending relevance, then `sortKey` — the same rule `useRelevantBuckets`
+      // applies to buckets alone (`[descend(relevanceScore), ascend(name)]`),
+      // extended over the merged list so a product does not jump the queue for
+      // lacking a score. Tiebreaking on `label` here instead would reorder the
+      // default landing page on every deployment, flag off and no products
+      // present.
+      return R.sortWith(
+        [R.descend(R.prop('relevance')), R.ascend(R.prop('sortKey'))],
+        entries,
+      )
   }
 }
 
