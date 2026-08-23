@@ -214,15 +214,8 @@ describe('website/pages/Landing/Buckets', () => {
     expect(queryByText('bucket:bucket-one')).toBeTruthy()
   })
 
-  // This page is what `/` renders whenever the `front-door` flag is off, so it
-  // is the catalog's landing page for most stacks -- and it had no `h1` at all.
-  // Two things went wrong at once when the old `Explore your buckets` heading
-  // was dropped in the shell re-home: a page with no top-level heading is a
-  // WCAG 1.3.1 / 2.4.6 failure for anyone navigating by heading, and the
-  // end-to-end canaries used that heading as their "login landed" signal
-  // (quiltdata/e2e `shared/auth.ts`, `waitForHomePage`), so all four went red
-  // on deploy. Nothing in this spec asserted a heading, which is why neither
-  // was caught here.
+  // `/` renders this whenever the `front-door` flag is off, so it is the landing
+  // page for most stacks and needs a top-level heading (WCAG 1.3.1 / 2.4.6).
   it('gives the page a top-level heading, as an h1 sized to the ramp', () => {
     const { getByRole } = renderBuckets()
 
@@ -447,13 +440,9 @@ describe('website/pages/Landing/Buckets', () => {
       expect(queryByText('Clear filter')).toBeTruthy()
     })
 
-    // Clearing empties the field on the click, not a tick later. A bare
-    // `filtering.set()` stores `undefined`, which hands the TextField
-    // `value={undefined}` — React stops controlling it and the box keeps the text
-    // already in it, so the filter looks applied while it is being cleared. The
-    // staleness is transient (`usePrevious(init, …)` repairs it from the URL a
-    // tick later), which is exactly why this asserts synchronously: an assertion
-    // after `waitFor` cannot tell the two variants apart.
+    // Asserts synchronously on purpose: a bare `set()` leaves the field stale only
+    // until the URL round-trip repairs it, so after `waitFor` both variants look
+    // identical.
     it('empties the filter field on the click, not a tick later', async () => {
       const { getByText, getByPlaceholderText, getByTestId } =
         renderBuckets('?q=alpha+beta')

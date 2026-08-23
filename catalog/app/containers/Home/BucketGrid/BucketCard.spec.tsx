@@ -101,17 +101,10 @@ describe('containers/Home/BucketGrid/BucketCard', () => {
     expect(collaboratorsClicked).toEqual(['genomics-raw'])
   })
 
-  // The card-wide target is a `::after` on the header, absolutely positioned to
-  // the *card* — so the card must be the nearest positioned ancestor and the
-  // header must not be. Positioning the header (a plausible "add a focus ring
-  // z-index" edit) would make it the containing block for its own overlay and
-  // silently shrink the click target back to the header's bounds.
-  //
-  // Read off the injected JSS text rather than `getComputedStyle`: jsdom does
-  // not resolve JSS-authored rules into computed values (it returns '' for
-  // `position` here), but the rules themselves are present as stylesheet
-  // content. Pseudo-element geometry is not hit-testable in jsdom at all, so
-  // this pins the structure; the actual click behaviour needs a browser.
+  // Asserted against the injected JSS text, not `getComputedStyle`: jsdom does not
+  // resolve JSS-authored rules into computed values, and cannot hit-test a
+  // pseudo-element at all. This pins the structure; the click surface needs a
+  // browser.
   it('stretches its overlay to the card, not the header', () => {
     const { container } = renderCard()
 
@@ -133,18 +126,10 @@ describe('containers/Home/BucketGrid/BucketCard', () => {
     expect(overlayRule).toMatch(/position:\s*absolute/)
   })
 
-  // The two tests above prove the tag chips and the collaborator readout still
-  // *respond*, but they cannot prove they are still *reachable*: jsdom's
-  // `fireEvent.click` dispatches straight onto the node and does no hit-testing,
-  // so a control buried under the navigation overlay would pass them both. Found
-  // by mutation — deleting the raise left all five green.
-  //
-  // So the stacking contract is asserted directly, and it is narrower than "raise
-  // the row": each control is raised on its own. Raising the whole `bottomRow`
-  // lifted its whitespace too — the `space-between` gap and the slack around the
-  // chips — turning the middle of the card into a dead zone that swallowed clicks
-  // instead of navigating. That was the review finding, and it is the same defect
-  // the overlay exists to remove, so the containers must stay *down*.
+  // `fireEvent.click` does no hit-testing, so the behavioural tests above pass
+  // even with a control buried under the overlay. Hence asserting the stacking
+  // directly — and asserting the containers stay *down*, since raising a row
+  // lifts its whitespace and creates dead zones.
   it('raises each real control, and nothing else, above the navigation overlay', () => {
     const { getByText, container } = renderCard()
 
