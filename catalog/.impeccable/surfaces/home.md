@@ -31,13 +31,84 @@ Inside the committed instrument world (DESIGN.md — midnight chrome, white surf
 
 ## Scope & boundaries
 
-Production-ready; one surface (`/` home body). **Kept from the list build:** no "Explore your buckets" heading, funnel filter icon, the sort selector, empty/skeleton states, the admin-only "Add bucket" button beneath the grid, `BucketGrid.tsx` deletion (the new cards are the redesigned `BucketList.tsx` family, not Simon's reverted card grid). **Untouched:** the shell (rail, top bar), pagination (15/page), routing into buckets. **Anti-goals:** consumer-SaaS gloss (no gradient/hero cards), the identical-card-grid slop (icon+heading+text tiles repeated with no product signal), and empty cards that browse worse than a row.
+Production-ready; one surface (`/` home body). **Kept from the list build:** funnel filter icon, the sort selector, empty/skeleton states, the admin-only "Add bucket" button beneath the grid, `BucketGrid.tsx` deletion (the new cards are the redesigned `BucketList.tsx` family, not Simon's reverted card grid). **Untouched:** the shell (rail, top bar), pagination (15/page), routing into buckets. **Anti-goals:** consumer-SaaS gloss (no gradient/hero cards), the identical-card-grid slop (icon+heading+text tiles repeated with no product signal), and empty cards that browse worse than a row.
+
+**Page heading — reversed 2026-08-22 (operator ruling).** This brief previously
+kept "no 'Explore your buckets' heading" from the list build. The page now
+carries a visible `h1` reading **Volumes**. Two things forced the reversal:
+
+- **A11y.** With the heading omitted the page had no top-level heading at all —
+  and this is what `/` renders whenever the `front-door` flag is off, so it is
+  the landing page for most stacks. No `h1` is a WCAG 1.3.1 / 2.4.6 failure for
+  anyone navigating by heading. The omission was a deliberate composition
+  decision; its accessibility cost was not weighed at the time.
+- **The end-to-end canaries.** `waitForHomePage` (quiltdata/e2e `shared/auth.ts`)
+  used the old heading's text as its "login landed" signal, so all four canaries
+  failed at `serviceLogin` the moment it disappeared. Fixed properly by keying
+  the check to `data-testid="landing-heading"` rather than any wording — the
+  anchor is now the contract, so this copy stays free to change. That id is on
+  the front door's greeting `h1` too, and deliberately *not* on its error
+  fallback: a page that failed to load must not read as a healthy login.
+
+Treatment, so this does not drift back toward the marketing heading it replaces:
+`variant="h5" component="h1"` — semantically the page's h1, visually a Headline,
+matching FrontDoor's greeting. **Not** the old `variant="h1"` display size, which
+the No-Display-Font Rule now forbids. One quiet line above the controls row; it
+labels the surface, it is not a hero. Copy is "Volumes", consistent with the rail
+nav, the `/buckets` tab title, and the front-door tile ("Bucket" stays the
+internal word — routes, `s3://` names). Covered by tests in `Buckets.spec.tsx`.
 
 ## States & ranges
 
-Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No buckets yet"; admins get the add path, non-admins a plain line), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
+Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No volumes yet"), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
+
+**Empty states carry their own recovery — added 2026-08-23 (`delight` pass).**
+Both were dead ends; on an Operate surface the delight budget belongs at first
+use and recovery, not on the card wall.
+
+- **First-run/zero.** The teaching copy and the action are one thing: admins get
+  the Add button *inside* the state, and the controls row below withholds its own
+  so the instruction never appears twice. Copy describes the real operation
+  ("Connect an S3 bucket…") rather than a UI gesture. Bucket-specific wording is
+  safe even though a volume can also be a data product — `isEmpty` is zero
+  buckets *and* zero products, so a products-only catalog never reaches this
+  state (pinned by a test). Connecting an external catalog is the other path and
+  lives in Admin > Settings; left out deliberately to keep one action on one
+  state. Non-admins previously got a closed door — now the honest next step (ask
+  the admin who can) plus a docs link for what a volume is.
+- **No-filter-match.** Reports the exact number of volumes searched and the fields
+  covered (trust rendered, not asserted), then hands back the controls that widen
+  it: one droppable chip per term, plus Clear filter. The count is *entries*, so a
+  data product counts as a volume here exactly as it does everywhere else on this
+  screen. Per-term chips are withheld for a single term, where dropping and
+  clearing are the same action. Terms are quoted in the casing the reader typed.
+
+**The card responds where it acts.** The card washed edge-to-edge on hover while
+only the icon+title header navigated, leaving the description and the slack as
+dead affordances. The whole card is the target now, via a stretched `::after` on
+the existing anchor — not a wrapping link, which would nest the tag chips and the
+collaborator `ButtonBase` inside an anchor and break keyboard and screen-reader
+behaviour. Press response is tonal (the wash deepens one step), never a transform
+or shadow: Overlay-Only reserves shadow for things that float and leave, and a
+card that scales under the cursor is the gloss PRODUCT.md rules out.
+
+**Deferred, not forgotten — withholding the controls row at zero volumes.** Three
+controls that cannot act (filter, sort, view toggle) over an empty grid is the
+cloud-console density this brief's anti-goals name, and the fix shipped on
+`master`. It is *not* on this branch: deciding it needs "are there volumes",
+which is buckets **plus** data products, and products arrive through
+`DP.useProducts` behind `useFeature('data-products')` — which suspends
+(`utils/features.ts`, via `CatalogSettings.use()`), with no non-suspending read
+exported. The controls row deliberately lives outside the grid's Suspense
+boundary so the filter stays usable while the grid loads, so gating it on a
+suspending read would remount the field and steal focus mid-keystroke. Gating on
+buckets alone would be wrong on a products-only catalog. Revisit when
+`features.ts` grows a non-suspending flag read; then the `master` implementation
+ports directly with `entries` in place of `buckets`.
 
 ## Interaction & layout
+
+Page order: `h1` ("Volumes") → controls row (filter, tag shortcuts, sort, view toggle) → card grid → admin add path. The heading is the page's only h1; cards carry no heading element, so the document outline stays one level deep and a card title never competes with the page label.
 
 Hierarchy within a card: icon + title loudest; `s3://` quiet beneath; description small/muted; tags a calm interactive band; collaborator count a quiet footer. Funnel-filter narrows live (debounced); tag chips (shortcuts and in-card) quick-filter; sort selector reorders; visible keyboard focus per the Focus Ring Rule on the card link and every chip; reduced motion respected. Card heights equalize per row; titles never wrap.
 

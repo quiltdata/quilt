@@ -9,6 +9,7 @@ import * as Lab from '@material-ui/lab'
 
 import Pagination from 'components/Pagination2'
 import SelectDropdown from 'components/SelectDropdown'
+import { docs } from 'constants/urls'
 import { useRelevantBuckets } from 'utils/Buckets'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -263,6 +264,26 @@ const useStyles = M.makeStyles((t) => ({
   emptyLine: {
     marginTop: t.spacing(1),
   },
+  // The recovery row under an empty state: droppable filter terms, then the
+  // clear-all. Centered to match the state's own `textAlign`, and wrapping
+  // rather than scrolling because a filter can hold more terms than fit.
+  emptyActions: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+    justifyContent: 'center',
+    marginTop: t.spacing(3),
+  },
+  // Same focus-ring hook the card's tags use: ButtonBase (Chip's root when
+  // `clickable`) always stamps the global `Mui-focusVisible` alongside its own
+  // hashed class, so this is stable without reaching for `.MuiChip-*`.
+  emptyTerm: {
+    '&.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
+  },
   // A skeleton CARD silhouette (not a row, not a spinner) so the loading
   // state previews the grid it's about to become.
   skeletonCard: {
@@ -385,8 +406,28 @@ function BucketsSkeleton({ view }) {
   )
 }
 
+// First run: the teaching and the doing in one place.
+//
+// This told admins to "add a volume" while the button that does it sat in a
+// separate controls row *below* the grid -- the two halves of one instruction,
+// separated by the empty space they were describing. At zero volumes that row
+// holds nothing else (pagination needs more than one page), so the action moves
+// up here and the row withholds its own; there is never a second Add button.
+//
+// Bucket-specific copy is safe here even though a volume can also be a data
+// product. `isEmpty` is `!entries.length` -- zero buckets *and* zero products --
+// so a catalog whose products are its only content never reaches this state, and
+// an empty workspace genuinely has a bucket-shaped next step. (Connecting an
+// external catalog is the other path, and lives in Admin > Settings; it is left
+// out deliberately rather than overlooked, to keep one action on one state.)
+//
+// Non-admins get a real next step instead of a closed door. They cannot connect
+// anything, so the honest end of that sentence is who can -- plus the docs, for
+// what a volume is before they go asking. No invented claims about their
+// workspace.
 function ZeroState({ isAdmin }) {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
@@ -394,20 +435,85 @@ function ZeroState({ isAdmin }) {
       </M.Typography>
       <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
         {isAdmin
-          ? 'Add a volume to make it searchable and browsable here.'
-          : "Your workspace admin hasn't connected one yet."}
+          ? 'Connect an S3 bucket and its packages become searchable and browsable here.'
+          : 'Your workspace admin connects these. Ask them which bucket holds the data you need.'}
       </M.Typography>
+      <div className={classes.emptyActions}>
+        {isAdmin ? (
+          <M.Button
+            variant="outlined"
+            color="primary"
+            component={Link}
+            to={urls.adminBuckets({ add: true })}
+          >
+            Add Bucket
+          </M.Button>
+        ) : (
+          <M.Button
+            size="small"
+            color="primary"
+            // A path already referenced elsewhere in the app, not an invented one.
+            href={`${docs}/quilt-platform-administrator/technical-reference`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            What is a volume?
+          </M.Button>
+        )}
+      </div>
     </M.Paper>
   )
 }
 
-function NoMatch({ filter }) {
+// No filter match: a readout, not a wall.
+//
+// This used to be one line -- `No volumes matching "foo"` -- with no action on
+// it. The only way out was noticing the small clear button up in the filter
+// field, so the more terms someone had stacked, the more stuck they were.
+//
+// Three things instead, in the order a reader needs them: what happened, what
+// was actually searched, and the controls that widen it. `total` is the exact
+// number of volumes the filter ran against -- PRODUCT.md's "trust is rendered,
+// not asserted" applied to an empty state: the instrument says how many volumes
+// it looked at rather than implying there are none. It counts *entries*, so a
+// data product is a volume here exactly as it is everywhere else on this screen.
+//
+// Each term is individually droppable because over-narrowing is usually one
+// term's fault, and a reader can see which. Clearing everything stays available
+// as the blunt instrument beside them. Both are the same controls the filter
+// row owns; nothing new is invented here.
+function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   const classes = useStyles()
+  // Only worth offering per-term drops when there is a choice to make; with a
+  // single term "drop it" and "clear the filter" are the same action, and two
+  // buttons that do one thing is a worse state than one that does.
+  const droppable = terms.length > 1 ? terms : []
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
         No volumes matching <b>&quot;{filter}&quot;</b>
       </M.Typography>
+      <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
+        {total === 1
+          ? 'Searched the 1 volume you can reach, across name, description, and tags.'
+          : `Searched all ${total} volumes you can reach, across name, description, and tags.`}
+      </M.Typography>
+      <div className={classes.emptyActions}>
+        {droppable.map((tg) => (
+          <M.Chip
+            key={tg}
+            className={classes.emptyTerm}
+            label={`Without "${tg}"`}
+            size="small"
+            clickable
+            color="default"
+            onClick={() => onDropTerm(tg)}
+          />
+        ))}
+        <M.Button size="small" color="primary" onClick={onClear}>
+          Clear filter
+        </M.Button>
+      </div>
     </M.Paper>
   )
 }
@@ -457,7 +563,7 @@ function TagShortcuts({ filter, onTagClick }) {
 
 // Everything that needs bucket data lives below this line, inside the
 // Suspense boundary — filter text and sort order (owned by the parent) don't.
-function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
+function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scrollRef }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
@@ -466,10 +572,16 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
   // Suspense boundary (see the `BucketsSkeleton` fallback below).
   const dataProductsEnabled = useFeature('data-products')
 
-  const terms = React.useMemo(
-    () => filter.toLowerCase().split(/\s+/).filter(Boolean),
-    [filter],
-  )
+  // Two splits of the same filter, deliberately.
+  //
+  // `terms` is lowercased because matching is case-insensitive. `rawTerms` keeps
+  // what the reader actually typed, for showing back to them: a filter of
+  // "Genomics RNA" must not be quoted back as "genomics" in the empty state, and
+  // dropping a term has to rebuild the filter from the original casing or the
+  // field would silently rewrite itself on every drop.
+  const rawTerms = React.useMemo(() => filter.split(/\s+/).filter(Boolean), [filter])
+
+  const terms = React.useMemo(() => rawTerms.map((s) => s.toLowerCase()), [rawTerms])
 
   // Same one-liner as TagShortcuts (both derive it from `filter`, not from
   // bucket data) — kept local so each component's dependency is obvious.
@@ -513,6 +625,23 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     )
   }, [terms, entries])
 
+  // Dropping a term is owned by the parent (`onDropTerm`), because it has to read
+  // the filter field's *pending* value rather than the URL.
+  //
+  // `rawTerms` here is derived from `filter`, which is the URL, which only catches
+  // up after the field's 500ms debounce. Rebuilding from it meant two chips
+  // clicked inside that window both computed from the same pre-click terms, so the
+  // second overwrote the first and resurrected the term it had just removed.
+  // Caught in review; there is a test for the two-drop sequence.
+
+  // `''`, not a bare `set()`. `set` is a `useState` setter, so calling it with no
+  // argument stores `undefined` and hands the TextField `value={undefined}` --
+  // React stops controlling the input, which then keeps the text already in it,
+  // so the box reads "alpha beta" while the filter clears underneath. Transient
+  // (the URL round-trip repairs it a tick later), which is why it went unnoticed.
+  // `clearFilter` in the parent is fixed the same way.
+  const onClearFilter = React.useCallback(() => onTagClick(''), [onTagClick])
+
   const sorted = React.useMemo(() => sortEntries(filtered, sort), [filtered, sort])
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
@@ -548,13 +677,22 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
       {isEmpty ? (
         <ZeroState isAdmin={isAdmin} />
       ) : noMatch ? (
-        <NoMatch filter={filter} />
+        <NoMatch
+          filter={filter}
+          terms={rawTerms}
+          total={entries.length}
+          onDropTerm={onDropTerm}
+          onClear={onClearFilter}
+        />
       ) : (
         <View entries={paginated} tagIsMatching={tagIsMatching} onTagClick={onTagClick} />
       )}
       <div className={classes.controls}>
         <M.Box>
-          {isAdmin && (
+          {/* Withheld at zero volumes, where `ZeroState` carries this same action
+              inside the teaching copy that asks for it. Two Add buttons on one
+              screen would be the same instruction twice. */}
+          {isAdmin && !isEmpty && (
             <M.Button
               variant="outlined"
               color="primary"
@@ -612,6 +750,30 @@ export default function Buckets() {
 
   const filtering = useDebouncedInput(filter, 500)
 
+  // Drop one term from the filter, composing correctly when several are dropped in
+  // quick succession.
+  //
+  // The functional updater is the whole point: `filtering.set` is a `useState`
+  // setter, so this reads the *pending* field value. Computing from the
+  // URL-derived filter instead meant two chips clicked inside the 500ms debounce
+  // window both started from the same pre-click terms, and the second write
+  // resurrected the term the first had removed.
+  //
+  // Splits on whitespace here rather than reusing the body's `rawTerms` for the
+  // same reason -- `rawTerms` is a projection of the URL, and this needs the
+  // field.
+  const dropTerm = React.useCallback(
+    (term) =>
+      filtering.set((current) =>
+        (current || '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .filter((t) => t !== term)
+          .join(' '),
+      ),
+    [filtering],
+  )
+
   React.useEffect(() => {
     if (filtering.value !== filter) {
       history.push({ search: search({ q: filtering.value || undefined }) })
@@ -619,7 +781,11 @@ export default function Buckets() {
   }, [history, search, filtering.value, filter])
 
   const clearFilter = React.useCallback(() => {
-    filtering.set()
+    // `set('')`, not `set()`. `set` is a `useState` setter, so a bare call stores
+    // `undefined`, which hands the TextField a `value` of `undefined` and makes
+    // React stop controlling it -- the box then keeps the text already in it
+    // while the filter clears underneath.
+    filtering.set('')
   }, [filtering])
 
   const sortButtonClasses = useSortButtonStyles()
@@ -725,6 +891,7 @@ export default function Buckets() {
             view={view}
             isAdmin={isAdmin}
             onTagClick={filtering.set}
+            onDropTerm={dropTerm}
             scrollRef={scrollRef}
           />
         </React.Suspense>
