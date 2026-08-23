@@ -188,9 +188,73 @@ The README is the entry with the logical key 'README.md' (case-sensitive). Will 
 no such entry exists.
 
 
-## Package.set\_meta(self, meta)  {#Package.set\_meta}
+## Package.set\_meta(self, meta, \*, agent\_context=False)  {#Package.set\_meta}
 
 Sets user metadata on this Package.
+
+With `agent_context=False` (the default) this is a plain assignment,
+exactly as before the keyword existed.
+
+With `agent_context=True` (experimental, pre-release; the keyword and
+its behavior may change), the stored metadata is a copy of `meta`
+with Quilt-observed commit context — the effective AWS principal
+(from STS `get_caller_identity()`), the authentication path
+(`quilt-catalog` or `aws`), the quilt3 client version, and a UTC
+timestamp — embedded at `agent_context.quilt`. Context is resolved
+exactly once, at this call, and frozen into the manifest, so workflow
+validation, top-hash calculation, and publication all observe
+identical bytes. Call it before `push` to include the context in the
+published revision.
+
+Every top-level key in `meta` and every sibling inside
+`agent_context` (such as `agent_context.agent` and
+`agent_context.inputs`) is preserved; the caller's object is never
+mutated, and on any failure the package's metadata is left untouched.
+Like every `set_meta` call, this replaces what is stored (last write
+wins): metadata set earlier — for example via
+`set_dir(".", path, meta=...)` — is not merged in, so pass it back:
+`set_meta(pkg.meta, agent_context=True)`.
+Passing back metadata that already carries a previous embed — from
+the package `push()` returns, or one read back via
+`Package.browse()` — replaces the previously embedded context with
+freshly observed values; only an `agent_context.quilt` value that
+Quilt itself did not write is refused.
+
+Note: account IDs and principal ARNs become durable, queryable
+package metadata; nothing is collected unless the keyword is passed.
+Two operational consequences follow from embedding before validation
+and hashing:
+
+- The embedded timestamp is part of the manifest, so every push gets
+  a new top hash even when payload bytes are identical — `dedupe`
+  (CLI `--dedupe`) will no longer skip.
+- Any workflow's package-metadata schema must allow the
+  `agent_context` key; a schema with `additionalProperties: false`
+  that does not model it will reject the push until the schema is
+  updated.
+
+The embedded object is self-asserted client metadata, not an
+attestation: other metadata channels can write arbitrary content at
+the same key, so consumers must not treat its presence alone as
+proof that Quilt produced it.
+
+__Arguments__
+
+* __meta__:  user metadata to store, or None.
+* __agent_context__:  experimental — when True, embed Quilt-observed
+    commit context at `agent_context.quilt` in a copy of `meta`.
+
+__Returns__
+
+self
+
+__Raises__
+
+* `QuiltException`:  only with `agent_context=True` — before any AWS
+    call, when `meta` is not an object or None, the
+    `agent_context` value is not an object, or
+    `agent_context.quilt` already exists and was not written by
+    Quilt; also when the STS identity cannot be resolved.
 
 
 ## Package.build(self, name, registry=None, message=None, \*, workflow=Ellipsis)  {#Package.build}
@@ -333,6 +397,11 @@ no matter what `selector_fn('entry_1', pkg["entry_1"])` returns.
 
 By default, push will not overwrite an existing package if its top hash does not match
 the parent hash of the package being pushed. Use `force=True` to skip the check.
+
+A successful push records the revision it published on the package it was called on, in
+addition to the package it returns. Either object can therefore push again -- as the next
+revision at the same destination, or as the same revision to another registry holding the
+parent -- without an intervening `browse()` and without `force=True`.
 
 __Arguments__
 

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { render, cleanup, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from 'vitest'
 import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
 import { bucketDir, bucketFile } from 'constants/routes'
@@ -152,10 +152,20 @@ const exists = () =>
     archived: false,
   })
 
-async function importFile() {
-  const mod = await import('./File')
-  return mod.default
-}
+// Imported once in `beforeAll` rather than per-test.
+//
+// `File.jsx` pulls in a large dependency graph, and the dynamic import must come
+// after the `vi.mock` calls above, so it cannot be a top-level static import.
+// Awaiting it inside the first `it` charged the whole ~2.7s module load to that
+// one test's 5s timeout while the other four ran in under 20ms each -- so the
+// suite sat at ~91% of the budget on CI (4567ms on #5178) and tipped over as
+// soon as `File.jsx` grew. Module setup belongs in a hook, where `hookTimeout`
+// governs and the cost is not attributed to whichever test happens to run first.
+let File: React.ComponentType
+
+beforeAll(async () => {
+  File = (await import('./File')).default
+})
 
 // File.jsx reads t.typography.monospace.fontFamily, a custom theme token absent
 // from the default MUI theme; provide it so makeStyles doesn't throw in tests.
@@ -163,7 +173,7 @@ const theme = createMuiTheme({
   typography: { monospace: { fontFamily: 'monospace' } } as ThemeOptions['typography'],
 })
 
-function renderFile(File: React.ComponentType) {
+function renderFile() {
   return render(
     <ThemeProvider theme={theme}>
       <MemoryRouter>
@@ -188,9 +198,8 @@ describe('containers/Bucket/File containment', () => {
 
   it('contains an object-head failure to the page body, keeping the toolbar', async () => {
     headResult.mockReturnValue(AsyncResult.Err(new Error('head request failed')))
-    const File = await importFile()
 
-    const { getByText, getByTestId } = renderFile(File)
+    const { getByText, getByTestId } = renderFile()
 
     // The body that failed says so, in place...
     expect(getByText('This object could not be loaded')).toBeTruthy()
@@ -202,9 +211,8 @@ describe('containers/Bucket/File containment', () => {
 
   it('contains a preview failure to the Preview section', async () => {
     versionResult.mockReturnValue(AsyncResult.Err(new Error('preview load failed')))
-    const File = await importFile()
 
-    const { getByText, getByTestId, queryByTestId } = renderFile(File)
+    const { getByText, getByTestId, queryByTestId } = renderFile()
 
     expect(getByText('Preview unavailable')).toBeTruthy()
     expect(queryByTestId('preview-body')).toBeNull()
@@ -218,9 +226,8 @@ describe('containers/Bucket/File containment', () => {
 
   it('offers a retry on the failed preview', async () => {
     versionResult.mockReturnValue(AsyncResult.Err(new Error('preview load failed')))
-    const File = await importFile()
 
-    const { getByText } = renderFile(File)
+    const { getByText } = renderFile()
 
     // The retry is wired to File's own `handleReload` (bumping `resetKey`), not
     // `resetErrorBoundary`: the failed result is held in `useData` state above
@@ -236,9 +243,8 @@ describe('containers/Bucket/File containment', () => {
   it('still shows Access Denied for a Forbidden head, not the generic panel error', async () => {
     const forbidden = Object.assign(new Error('Forbidden'), { code: 'Forbidden' })
     headResult.mockReturnValue(AsyncResult.Err(forbidden))
-    const File = await importFile()
 
-    const { getByText, queryByText } = renderFile(File)
+    const { getByText, queryByText } = renderFile()
 
     expect(getByText('Access Denied')).toBeTruthy()
     expect(queryByText('This object could not be loaded')).toBeNull()
@@ -246,9 +252,7 @@ describe('containers/Bucket/File containment', () => {
 
   // Control, not evidence: the happy path. Passes with or without the fix.
   it('renders the preview when both reads succeed', async () => {
-    const File = await importFile()
-
-    const { getByTestId, queryByText } = renderFile(File)
+    const { getByTestId, queryByText } = renderFile()
 
     expect(getByTestId('preview-body')).toBeTruthy()
     expect(queryByText('Preview unavailable')).toBeNull()
