@@ -31,13 +31,40 @@ Inside the committed instrument world (DESIGN.md — midnight chrome, white surf
 
 ## Scope & boundaries
 
-Production-ready; one surface (`/` home body). **Kept from the list build:** no "Explore your buckets" heading, funnel filter icon, the sort selector, empty/skeleton states, the admin-only "Add bucket" button beneath the grid, `BucketGrid.tsx` deletion (the new cards are the redesigned `BucketList.tsx` family, not Simon's reverted card grid). **Untouched:** the shell (rail, top bar), pagination (15/page), routing into buckets. **Anti-goals:** consumer-SaaS gloss (no gradient/hero cards), the identical-card-grid slop (icon+heading+text tiles repeated with no product signal), and empty cards that browse worse than a row.
+Production-ready; one surface (`/` home body). **Kept from the list build:** funnel filter icon, the sort selector, empty/skeleton states, the admin-only "Add bucket" button beneath the grid, `BucketGrid.tsx` deletion (the new cards are the redesigned `BucketList.tsx` family, not Simon's reverted card grid). **Untouched:** the shell (rail, top bar), pagination (15/page), routing into buckets. **Anti-goals:** consumer-SaaS gloss (no gradient/hero cards), the identical-card-grid slop (icon+heading+text tiles repeated with no product signal), and empty cards that browse worse than a row.
+
+**Page heading — reversed 2026-08-22 (operator ruling).** This brief previously
+kept "no 'Explore your buckets' heading" from the list build. The page now
+carries a visible `h1` reading **Volumes**. Two things forced the reversal:
+
+- **A11y.** With the heading omitted the page had no top-level heading at all —
+  and this is what `/` renders whenever the `front-door` flag is off, so it is
+  the landing page for most stacks. No `h1` is a WCAG 1.3.1 / 2.4.6 failure for
+  anyone navigating by heading. The omission was a deliberate composition
+  decision; its accessibility cost was not weighed at the time.
+- **The end-to-end canaries.** `waitForHomePage` (quiltdata/e2e `shared/auth.ts`)
+  used the old heading's text as its "login landed" signal, so all four canaries
+  failed at `serviceLogin` the moment it disappeared. Fixed properly by keying
+  the check to `data-testid="landing-heading"` rather than any wording — the
+  anchor is now the contract, so this copy stays free to change. That id is on
+  the front door's greeting `h1` too, and deliberately *not* on its error
+  fallback: a page that failed to load must not read as a healthy login.
+
+Treatment, so this does not drift back toward the marketing heading it replaces:
+`variant="h5" component="h1"` — semantically the page's h1, visually a Headline,
+matching FrontDoor's greeting. **Not** the old `variant="h1"` display size, which
+the No-Display-Font Rule now forbids. One quiet line above the controls row; it
+labels the surface, it is not a hero. Copy is "Volumes", consistent with the rail
+nav, the `/buckets` tab title, and the front-door tile ("Bucket" stays the
+internal word — routes, `s3://` names). Covered by tests in `Buckets.spec.tsx`.
 
 ## States & ranges
 
 Buckets: 1 (first-run) · dozens (typical) · hundreds (paginated 15/page). Cover: **first-run/zero** (teaching empty state — "No buckets yet"; admins get the add path, non-admins a plain line), **no-filter-match**, **loading** (skeleton cards, not a spinner), **sparse card** (missing description/tags/custom icon — must still look intentional), **anonymous OPEN** (public buckets, no add button).
 
 ## Interaction & layout
+
+Page order: `h1` ("Volumes") → controls row (filter, tag shortcuts, sort, view toggle) → card grid → admin add path. The heading is the page's only h1; cards carry no heading element, so the document outline stays one level deep and a card title never competes with the page label.
 
 Hierarchy within a card: icon + title loudest; `s3://` quiet beneath; description small/muted; tags a calm interactive band; collaborator count a quiet footer. Funnel-filter narrows live (debounced); tag chips (shortcuts and in-card) quick-filter; sort selector reorders; visible keyboard focus per the Focus Ring Rule on the card link and every chip; reduced motion respected. Card heights equalize per row; titles never wrap.
 
