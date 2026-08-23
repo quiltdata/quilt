@@ -1,5 +1,6 @@
 """Integration tests for Quilt Packages."""
 
+import hashlib
 import io
 import locale
 import math
@@ -874,7 +875,7 @@ class PackageTest(QuiltTestCase):
     S3PackageRegistryDefault = S3PackageRegistryV1
     LocalPackageRegistryDefault = LocalPackageRegistryV1
 
-    default_test_top_hash = 'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'
+    default_test_top_hash = '4cf8b52e3647c21207c1f60394f394f7dbf1a04a89d94aeb6c28a9bf09688f2b'
 
     def setUp(self):
         super().setUp()
@@ -1152,7 +1153,7 @@ class PackageTest(QuiltTestCase):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
         pkg_name = 'Quilt/test'
 
-        top_hash = 'abcdefgh' * 8
+        top_hash = self.default_test_top_hash
 
         # Make the first request.
         self.setup_s3_stubber_pkg_install(
@@ -1178,7 +1179,7 @@ class PackageTest(QuiltTestCase):
 
         # Make a request with a short hash.
         self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
-        pkg3 = Package.browse(pkg_name, top_hash='abcdef', registry=registry)
+        pkg3 = Package.browse(pkg_name, top_hash=top_hash[:6], registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a bad short hash.
@@ -1193,6 +1194,40 @@ class PackageTest(QuiltTestCase):
 
         with pytest.raises(QuiltException, match='Found zero matches'):
             Package.browse(pkg_name, top_hash='123456', registry=registry)
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_rejects_manifest_top_hash_mismatch(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+        expected_top_hash = '0' * 64
+        actual_top_hash = self.default_test_top_hash
+
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            pkg_name,
+            top_hash=expected_top_hash,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        with pytest.raises(PackageException) as exc_info:
+            Package.browse(pkg_name, registry=registry)
+
+        assert expected_top_hash in str(exc_info.value)
+        assert actual_top_hash in str(exc_info.value)
+
+        cache_dir = quilt3.packages.CACHE_PATH / 'manifest'
+        assert not any(cache_dir.iterdir())
+
+        cache_path = (
+            cache_dir / hashlib.sha256(str(pkg_registry.manifest_pk(pkg_name, expected_top_hash)).encode()).hexdigest()
+        )
+        cache_path.write_bytes(REMOTE_MANIFEST.read_bytes())
+
+        with pytest.raises(PackageException):
+            Package.browse(pkg_name, registry=registry, top_hash=expected_top_hash)
+
+        assert not cache_path.exists()
 
     def test_install_restrictions(self):
         """Verify that install can only operate remote -> local."""
@@ -1917,35 +1952,35 @@ class PackageTest(QuiltTestCase):
 
     def test_local_delete_package_revision(self):
         pkg_name = 'Quilt/Test'
-        top_hash1 = 'top_hash1'
-        top_hash2 = 'top_hash2'
-        top_hash3 = 'top_hash3'
-        top_hashes = (top_hash1, top_hash2, top_hash3)
+        logical_key1 = 'revision1'
+        logical_key2 = 'revision2'
+        logical_key3 = 'revision3'
+        logical_keys = (logical_key1, logical_key2, logical_key3)
+        top_hashes = []
 
-        for i, top_hash in enumerate(top_hashes):
-            with (
-                patch('quilt3.Package.top_hash', top_hash),
-                patch('time.time', return_value=i),
-            ):
-                Path(top_hash).write_text(top_hash)
-                Package().set(top_hash, top_hash).build(pkg_name)
+        for i, logical_key in enumerate(logical_keys):
+            with patch('time.time', return_value=i):
+                Path(logical_key).write_text(logical_key)
+                top_hashes.append(Package().set(logical_key, logical_key).build(pkg_name))
+
+        top_hash1, top_hash2, top_hash3 = top_hashes
 
         # All is set up correctly.
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == set(top_hashes)
-        assert Package.browse(pkg_name)[top_hash3].get_as_string() == top_hash3
+        assert Package.browse(pkg_name)[logical_key3].get_as_string() == logical_key3
 
         # Remove latest revision, latest now points to the previous one.
         quilt3.delete_package(pkg_name, top_hash=top_hash3)
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1, top_hash2}
-        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
+        assert Package.browse(pkg_name)[logical_key2].get_as_string() == logical_key2
 
         # Remove non-latest revision, latest stays the same.
         quilt3.delete_package(pkg_name, top_hash=top_hash1)
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash2}
-        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
+        assert Package.browse(pkg_name)[logical_key2].get_as_string() == logical_key2
 
         # Remove the last revision, package is not listed anymore.
         quilt3.delete_package(pkg_name, top_hash=top_hash2)
