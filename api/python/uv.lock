@@ -2969,7 +2969,7 @@ wheels = [
 
 [[package]]
 name = "quilt3"
-version = "8.0.0"
+version = "8.1.0a1"
 source = { editable = "." }
 dependencies = [
     { name = "awscrt" },
