@@ -398,6 +398,17 @@ describe('website/pages/Landing/Buckets', () => {
       await waitFor(() => expect(getByTestId('search').textContent).toBe('?q=RNA'))
     })
 
+    // Greptile P1: two drops inside the 500ms debounce window both rebuild from
+    // the URL-derived terms, so the second overwrites the first.
+    it('applies two drops in a row without resurrecting the first term', async () => {
+      const { getByText, getByTestId } = renderBuckets('?q=alpha+beta+gamma')
+
+      fireEvent.click(getByText('Without "alpha"'))
+      fireEvent.click(getByText('Without "beta"'))
+
+      await waitFor(() => expect(getByTestId('search').textContent).toBe('?q=gamma'))
+    })
+
     it('offers no per-term drops for a single term, where it would duplicate Clear', () => {
       const { queryByText } = renderBuckets('?q=onlyterm')
       expect(queryByText('Without "onlyterm"')).toBeFalsy()

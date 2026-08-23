@@ -137,33 +137,45 @@ describe('containers/Home/BucketGrid/BucketCard', () => {
   // *respond*, but they cannot prove they are still *reachable*: jsdom's
   // `fireEvent.click` dispatches straight onto the node and does no hit-testing,
   // so a control buried under the navigation overlay would pass them both. Found
-  // by mutation — deleting the raise below left all five green.
+  // by mutation — deleting the raise left all five green.
   //
-  // So the stacking contract is asserted directly. Anything the reader is meant
-  // to click for a reason other than "open this bucket" has to sit above the
-  // overlay; the overlay is at z-index 0, so the row carrying those controls
-  // needs its own positioned context and a higher index.
-  it('raises its real controls above the navigation overlay', () => {
-    const { getByText } = renderCard()
-
-    // Walk up from the chip's label to the row that carries the raise. Explicit
-    // rather than `closest('div').parentElement`: the label is a span inside
-    // Chip's own root div, so a fixed number of hops lands on the tag wrapper
-    // instead — measured, not assumed.
-    let row: HTMLElement | null = getByText('rna')
-    while (row && !/bottomRow/.test(row.className)) row = row.parentElement
-    expect(row).toBeTruthy()
-    const rowClass = row!.className.split(/\s+/).find((c) => c.includes('bottomRow'))
+  // So the stacking contract is asserted directly, and it is narrower than "raise
+  // the row": each control is raised on its own. Raising the whole `bottomRow`
+  // lifted its whitespace too — the `space-between` gap and the slack around the
+  // chips — turning the middle of the card into a dead zone that swallowed clicks
+  // instead of navigating. That was the review finding, and it is the same defect
+  // the overlay exists to remove, so the containers must stay *down*.
+  it('raises each real control, and nothing else, above the navigation overlay', () => {
+    const { getByText, container } = renderCard()
 
     const css = Array.from(document.querySelectorAll('style'))
       .map((s) => s.textContent || '')
       .join('\n')
-    const start = css.indexOf(`.${rowClass} {`)
-    const rule = css.slice(start, css.indexOf('}', start))
 
-    expect(rule).toMatch(/position:\s*relative/)
-    // Strictly above the overlay's 0, or the clicks never arrive.
-    const zIndex = Number(/z-index:\s*(-?\d+)/.exec(rule)?.[1])
-    expect(zIndex).toBeGreaterThan(0)
+    const ruleFor = (cls: string) => {
+      const start = css.indexOf(`.${cls} {`)
+      return start < 0 ? '' : css.slice(start, css.indexOf('}', start))
+    }
+    const classOf = (el: HTMLElement, needle: string) =>
+      el.className.split(/\s+/).find((c) => c.includes(needle))!
+    const raised = (rule: string) =>
+      /position:\s*relative/.test(rule) &&
+      Number(/z-index:\s*(-?\d+)/.exec(rule)?.[1] ?? 0) > 0
+
+    // A chip is a control: it filters the wall rather than opening the bucket.
+    const chip = getByText('rna').closest('.MuiChip-root') as HTMLElement
+    expect(raised(ruleFor(classOf(chip, 'tag')))).toBe(true)
+
+    // So is the collaborator readout's wrapper, which hugs its button.
+    const access = container.querySelector('[class*="access"]') as HTMLElement
+    expect(raised(ruleFor(classOf(access, 'access')))).toBe(true)
+
+    // The containers are not. Their gaps belong to the card-wide link.
+    let row: HTMLElement | null = getByText('rna')
+    while (row && !/bottomRow/.test(row.className)) row = row.parentElement
+    expect(raised(ruleFor(classOf(row!, 'bottomRow')))).toBe(false)
+
+    const tagsWrapper = chip.parentElement as HTMLElement
+    expect(raised(ruleFor(classOf(tagsWrapper, 'tags')))).toBe(false)
   })
 })

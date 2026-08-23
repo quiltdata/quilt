@@ -563,7 +563,7 @@ function TagShortcuts({ filter, onTagClick }) {
 
 // Everything that needs bucket data lives below this line, inside the
 // Suspense boundary — filter text and sort order (owned by the parent) don't.
-function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
+function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scrollRef }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const buckets = useRelevantBuckets()
@@ -625,12 +625,14 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
     )
   }, [terms, entries])
 
-  // Rebuilt from `rawTerms`, so a drop preserves the casing the reader typed and
-  // normalizes only the whitespace they used to separate terms.
-  const dropTerm = React.useCallback(
-    (term) => onTagClick(rawTerms.filter((t) => t !== term).join(' ')),
-    [onTagClick, rawTerms],
-  )
+  // Dropping a term is owned by the parent (`onDropTerm`), because it has to read
+  // the filter field's *pending* value rather than the URL.
+  //
+  // `rawTerms` here is derived from `filter`, which is the URL, which only catches
+  // up after the field's 500ms debounce. Rebuilding from it meant two chips
+  // clicked inside that window both computed from the same pre-click terms, so the
+  // second overwrote the first and resurrected the term it had just removed.
+  // Caught in review; there is a test for the two-drop sequence.
 
   // `''`, not a bare `set()`. `set` is a `useState` setter, so calling it with no
   // argument stores `undefined` and hands the TextField `value={undefined}` --
@@ -679,7 +681,7 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, scrollRef }) {
           filter={filter}
           terms={rawTerms}
           total={entries.length}
-          onDropTerm={dropTerm}
+          onDropTerm={onDropTerm}
           onClear={onClearFilter}
         />
       ) : (
@@ -747,6 +749,30 @@ export default function Buckets() {
   )
 
   const filtering = useDebouncedInput(filter, 500)
+
+  // Drop one term from the filter, composing correctly when several are dropped in
+  // quick succession.
+  //
+  // The functional updater is the whole point: `filtering.set` is a `useState`
+  // setter, so this reads the *pending* field value. Computing from the
+  // URL-derived filter instead meant two chips clicked inside the 500ms debounce
+  // window both started from the same pre-click terms, and the second write
+  // resurrected the term the first had removed.
+  //
+  // Splits on whitespace here rather than reusing the body's `rawTerms` for the
+  // same reason -- `rawTerms` is a projection of the URL, and this needs the
+  // field.
+  const dropTerm = React.useCallback(
+    (term) =>
+      filtering.set((current) =>
+        (current || '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .filter((t) => t !== term)
+          .join(' '),
+      ),
+    [filtering],
+  )
 
   React.useEffect(() => {
     if (filtering.value !== filter) {
@@ -865,6 +891,7 @@ export default function Buckets() {
             view={view}
             isAdmin={isAdmin}
             onTagClick={filtering.set}
+            onDropTerm={dropTerm}
             scrollRef={scrollRef}
           />
         </React.Suspense>

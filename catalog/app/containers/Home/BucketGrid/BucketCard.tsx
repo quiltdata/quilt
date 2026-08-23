@@ -125,18 +125,18 @@ const useStyles = M.makeStyles((t) => ({
   // Tags and the access readout share one line at the card's foot: the tags
   // run from the left, the readout closes the row on the right.
   //
-  // Raised above the header's stretched overlay. Everything else on the card is
-  // beneath it (that is the point — the whole surface navigates), but these two
-  // are real controls with their own jobs: a tag filters the wall, the readout
-  // opens the collaborator dialog. Without this they would be unreachable by
-  // mouse, since the overlay would take every click first.
+  // Deliberately *not* raised above the header's stretched overlay. Raising the
+  // row lifted its whitespace too -- the `space-between` gap and the slack around
+  // the chips -- so clicks there landed on a non-interactive container instead of
+  // navigating: a dead zone in the middle of the card, which is the same defect
+  // the overlay exists to remove. Caught in review. Only the real controls are
+  // raised now, each on its own (`tag`, `access`); everything between them stays
+  // under the overlay and navigates.
   bottomRow: {
     alignItems: 'center',
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'space-between',
-    position: 'relative',
-    zIndex: 1,
   },
   // The icon is a fixed-size disc: without this it inherits `flex-shrink: 1`
   // and a long title squashes the circle into an ellipse.
@@ -176,7 +176,12 @@ const useStyles = M.makeStyles((t) => ({
   // ButtonBase (Chip's root when `clickable`) always stamps the global
   // `Mui-focusVisible` class alongside its own hashed one, so this is a
   // stable hook even though `.MuiChip-*` selectors are off-limits.
+  // Raised above the navigation overlay: a chip filters the wall, which is not
+  // "open this bucket". Raised per-chip rather than on the `tags` wrapper so the
+  // wrapper's flex gaps stay under the overlay and still navigate.
   tag: {
+    position: 'relative',
+    zIndex: 1,
     '&.Mui-focusVisible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: -2,
@@ -195,10 +200,15 @@ const useStyles = M.makeStyles((t) => ({
     alignSelf: 'center',
     color: t.palette.text.secondary,
   },
+  // Raised for the same reason as `tag`: the readout opens the collaborator
+  // dialog. This wrapper hugs its button (`flexShrink: 0`, no padding), so
+  // raising it does not lift any whitespace with it.
   access: {
     alignItems: 'center',
     display: 'flex',
     flexShrink: 0,
+    position: 'relative',
+    zIndex: 1,
   },
 }))
 
