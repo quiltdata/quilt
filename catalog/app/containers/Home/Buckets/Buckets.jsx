@@ -71,12 +71,20 @@ const asEntries = (buckets, products) => [
     // Buckets always have a title; `name` is the s3 name and is the fallback a
     // bucket card itself uses.
     label: b.title || b.name,
+    // Relevance ties break on the s3 name, which is what `useRelevantBuckets`
+    // sorts by. Breaking on `label` instead silently reorders the default
+    // landing page for every deployment -- buckets whose title and name disagree
+    // swap places, and the 15-per-page boundaries move with them.
+    sortKey: b.name,
     relevance: b.relevanceScore ?? 0,
     bucket: b,
   })),
   ...products.map((p) => ({
     kind: 'product',
     label: p.name,
+    // A product's id is its stable identity; `name` is display text a catalog
+    // owner can change.
+    sortKey: p.id,
     // No platform exposes anything relevance-like for a product, and inventing
     // a score would silently decide ranking. 0 places them among buckets of
     // default relevance rather than pinning them to either end.
@@ -97,10 +105,16 @@ function sortEntries(entries, sort) {
       return R.reverse(R.sortBy(byLabel, entries))
     case 'relevance':
     default:
-      // Descending relevance, then label — the same rule `useRelevantBuckets`
-      // applies to buckets alone, extended over the merged list so a product
-      // does not jump the queue for lacking a score.
-      return R.sortWith([R.descend(R.prop('relevance')), R.ascend(byLabel)], entries)
+      // Descending relevance, then `sortKey` — the same rule `useRelevantBuckets`
+      // applies to buckets alone (`[descend(relevanceScore), ascend(name)]`),
+      // extended over the merged list so a product does not jump the queue for
+      // lacking a score. Tiebreaking on `label` here instead would reorder the
+      // default landing page on every deployment, flag off and no products
+      // present.
+      return R.sortWith(
+        [R.descend(R.prop('relevance')), R.ascend(R.prop('sortKey'))],
+        entries,
+      )
   }
 }
 
@@ -406,25 +420,9 @@ function BucketsSkeleton({ view }) {
   )
 }
 
-// First run: the teaching and the doing in one place.
-//
-// This told admins to "add a volume" while the button that does it sat in a
-// separate controls row *below* the grid -- the two halves of one instruction,
-// separated by the empty space they were describing. At zero volumes that row
-// holds nothing else (pagination needs more than one page), so the action moves
-// up here and the row withholds its own; there is never a second Add button.
-//
-// Bucket-specific copy is safe here even though a volume can also be a data
-// product. `isEmpty` is `!entries.length` -- zero buckets *and* zero products --
-// so a catalog whose products are its only content never reaches this state, and
-// an empty workspace genuinely has a bucket-shaped next step. (Connecting an
-// external catalog is the other path, and lives in Admin > Settings; it is left
-// out deliberately rather than overlooked, to keep one action on one state.)
-//
-// Non-admins get a real next step instead of a closed door. They cannot connect
-// anything, so the honest end of that sentence is who can -- plus the docs, for
-// what a volume is before they go asking. No invented claims about their
-// workspace.
+// Bucket-specific copy is safe even though a volume can also be a data product:
+// `isEmpty` is zero buckets *and* zero products, so a products-only catalog never
+// reaches this state.
 function ZeroState({ isAdmin }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -465,23 +463,8 @@ function ZeroState({ isAdmin }) {
   )
 }
 
-// No filter match: a readout, not a wall.
-//
-// This used to be one line -- `No volumes matching "foo"` -- with no action on
-// it. The only way out was noticing the small clear button up in the filter
-// field, so the more terms someone had stacked, the more stuck they were.
-//
-// Three things instead, in the order a reader needs them: what happened, what
-// was actually searched, and the controls that widen it. `total` is the exact
-// number of volumes the filter ran against -- PRODUCT.md's "trust is rendered,
-// not asserted" applied to an empty state: the instrument says how many volumes
-// it looked at rather than implying there are none. It counts *entries*, so a
-// data product is a volume here exactly as it is everywhere else on this screen.
-//
-// Each term is individually droppable because over-narrowing is usually one
-// term's fault, and a reader can see which. Clearing everything stays available
-// as the blunt instrument beside them. Both are the same controls the filter
-// row owns; nothing new is invented here.
+// `total` counts entries, not buckets: a data product is a volume here exactly as
+// it is everywhere else on this screen.
 function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   const classes = useStyles()
   // Only worth offering per-term drops when there is a choice to make; with a
@@ -572,13 +555,8 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
   // Suspense boundary (see the `BucketsSkeleton` fallback below).
   const dataProductsEnabled = useFeature('data-products')
 
-  // Two splits of the same filter, deliberately.
-  //
-  // `terms` is lowercased because matching is case-insensitive. `rawTerms` keeps
-  // what the reader actually typed, for showing back to them: a filter of
-  // "Genomics RNA" must not be quoted back as "genomics" in the empty state, and
-  // dropping a term has to rebuild the filter from the original casing or the
-  // field would silently rewrite itself on every drop.
+  // `rawTerms` preserves the reader's casing for display; `terms` is lowercased
+  // for matching. Showing `terms` back would quote "Genomics" as "genomics".
   const rawTerms = React.useMemo(() => filter.split(/\s+/).filter(Boolean), [filter])
 
   const terms = React.useMemo(() => rawTerms.map((s) => s.toLowerCase()), [rawTerms])
@@ -625,21 +603,12 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
     )
   }, [terms, entries])
 
-  // Dropping a term is owned by the parent (`onDropTerm`), because it has to read
-  // the filter field's *pending* value rather than the URL.
-  //
-  // `rawTerms` here is derived from `filter`, which is the URL, which only catches
-  // up after the field's 500ms debounce. Rebuilding from it meant two chips
-  // clicked inside that window both computed from the same pre-click terms, so the
-  // second overwrote the first and resurrected the term it had just removed.
-  // Caught in review; there is a test for the two-drop sequence.
+  // Dropping a term is the parent's (`onDropTerm`): it must read the filter
+  // field's pending value, and `rawTerms` here only projects the debounced URL.
 
-  // `''`, not a bare `set()`. `set` is a `useState` setter, so calling it with no
-  // argument stores `undefined` and hands the TextField `value={undefined}` --
-  // React stops controlling the input, which then keeps the text already in it,
-  // so the box reads "alpha beta" while the filter clears underneath. Transient
-  // (the URL round-trip repairs it a tick later), which is why it went unnoticed.
-  // `clearFilter` in the parent is fixed the same way.
+  // `''`, not a bare `set()`: `undefined` hands the TextField `value={undefined}`,
+  // React stops controlling it, and the box keeps its old text while the filter
+  // clears underneath.
   const onClearFilter = React.useCallback(() => onTagClick(''), [onTagClick])
 
   const sorted = React.useMemo(() => sortEntries(filtered, sort), [filtered, sort])
@@ -750,18 +719,10 @@ export default function Buckets() {
 
   const filtering = useDebouncedInput(filter, 500)
 
-  // Drop one term from the filter, composing correctly when several are dropped in
-  // quick succession.
-  //
-  // The functional updater is the whole point: `filtering.set` is a `useState`
-  // setter, so this reads the *pending* field value. Computing from the
-  // URL-derived filter instead meant two chips clicked inside the 500ms debounce
-  // window both started from the same pre-click terms, and the second write
-  // resurrected the term the first had removed.
-  //
-  // Splits on whitespace here rather than reusing the body's `rawTerms` for the
-  // same reason -- `rawTerms` is a projection of the URL, and this needs the
-  // field.
+  // The functional updater reads the *pending* field value, so two drops inside
+  // the 500ms debounce window compose. Computing from the URL-derived filter (or
+  // from `rawTerms`, which projects it) makes the second drop resurrect the term
+  // the first removed.
   const dropTerm = React.useCallback(
     (term) =>
       filtering.set((current) =>

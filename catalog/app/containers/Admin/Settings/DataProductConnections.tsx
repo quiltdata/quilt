@@ -260,8 +260,12 @@ function AddConnection({ onClose }: { onClose: () => void }) {
 export default function DataProductConnections() {
   const classes = useStyles()
   const [adding, setAdding] = React.useState(false)
-  // Fixture-backed: `Query.dataProductConnections` has no resolver yet.
-  const connections = DP.fixtures.ALL_CONNECTIONS
+  // Through the port, not `DP.fixtures`: this list reports live integration
+  // status, so reading fixtures directly would keep showing three invented
+  // connections -- one of them a fabricated auth failure -- as the operator's own
+  // once a real adapter lands. Fixture-backed today only because that is what the
+  // adapter resolves to; `Query.dataProductConnections` has no resolver yet.
+  const connections = DP.useConnections()
 
   return (
     <>

@@ -28,6 +28,7 @@
 import type { DataProduct, UnavailableReason } from './types'
 import type { ContentEntry } from './contents'
 import type { AccessRequest } from './requests'
+import type { Connection } from './connections'
 
 /**
  * What an adapter can be asked.
@@ -64,6 +65,17 @@ export interface DataProductAdapter {
    * Unity, not a pending sync.
    */
   listRequests(productId: string): Promise<AccessRequest[]>
+
+  /**
+   * The catalog connections an admin has configured.
+   *
+   * On the port rather than read from `fixtures` by the admin screen: a
+   * connection list reports live integration status, including failures, and a
+   * container reading fixtures directly would keep showing invented ones after a
+   * real adapter lands -- three plausible rows, one of them a fabricated auth
+   * error, presented as the operator's own stack.
+   */
+  listConnections(): Promise<Connection[]>
 }
 
 /**

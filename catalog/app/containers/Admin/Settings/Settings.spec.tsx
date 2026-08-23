@@ -40,12 +40,18 @@ vi.mock('./PackagerSettings', () => ({ default: () => null }))
 vi.mock('./SearchSettings', () => ({ default: () => null }))
 vi.mock('./TabulatorSettings', () => ({ default: () => null }))
 vi.mock('./ThemeEditor', () => ({ default: () => null }))
+vi.mock('./DataProductConnections', () => ({
+  default: () => <div>catalog connection form</div>,
+}))
+
+let dataProductsEnabled = false
+vi.mock('utils/features', () => ({ useFeature: () => dataProductsEnabled }))
 
 // The mocked constructor, so the rejection below is the same class the component
 // narrows on with `instanceof`.
 import { SettingsConflictError } from 'utils/CatalogSettings'
 
-import { BetaSwitch } from './Settings'
+import { BetaSwitch, DataProductCatalogs } from './Settings'
 
 const theme = createMuiTheme()
 
@@ -61,6 +67,37 @@ const checkbox = (c: HTMLElement) =>
 
 describe('containers/Admin/Settings', () => {
   afterEach(cleanup)
+
+  // The section renders an admin-facing form for connecting external catalogs.
+  // With the capability off nothing can reach a data product, so offering the form
+  // advertises a feature that is not there. Caught in review on #5203; the sibling
+  // Preview-features card was already gated this way.
+  describe('DataProductCatalogs', () => {
+    afterEach(() => {
+      dataProductsEnabled = false
+    })
+
+    it('is absent while the data-products feature is off', () => {
+      const { queryByText } = render(
+        <ThemeProvider theme={theme}>
+          <DataProductCatalogs />
+        </ThemeProvider>,
+      )
+      expect(queryByText('Data Product Catalogs')).toBeNull()
+      expect(queryByText('catalog connection form')).toBeNull()
+    })
+
+    it('renders once the feature is on', () => {
+      dataProductsEnabled = true
+      const { queryByText } = render(
+        <ThemeProvider theme={theme}>
+          <DataProductCatalogs />
+        </ThemeProvider>,
+      )
+      expect(queryByText('Data Product Catalogs')).toBeTruthy()
+      expect(queryByText('catalog connection form')).toBeTruthy()
+    })
+  })
 
   // A toggle is the one control where displaying an unsaved value reads as saved:
   // there is no separate "Save" to still be pending, so `checked` IS the claim

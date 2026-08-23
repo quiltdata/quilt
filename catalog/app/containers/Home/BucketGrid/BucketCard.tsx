@@ -76,18 +76,10 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
     padding: t.spacing(2),
     textDecoration: 'none',
-    // The whole card is the navigation target, not just this header.
-    //
-    // The card washed on hover from edge to edge while only the header
-    // navigated, so the description, the tags' empty space, and the slack above
-    // the bottom row all looked interactive and did nothing — a dead affordance,
-    // which PRODUCT.md names as a legacy-lab-software anti-reference.
-    //
-    // Done as an overlay on the existing anchor rather than by wrapping the card
-    // in one: the card contains a `ButtonBase` (the collaborator readout) and
-    // clickable tag chips, and a button inside an anchor is invalid and breaks
-    // both keyboard and screen-reader behaviour. This keeps exactly one anchor
-    // with its real href and accessible name, stretched to the card's bounds.
+    // Stretches this anchor over the whole card, so the card navigates. An
+    // overlay rather than a wrapping link because the card contains a
+    // `ButtonBase` and clickable chips, and a button inside an anchor breaks
+    // keyboard and screen-reader behaviour.
     '&::after': {
       content: '""',
       position: 'absolute',
@@ -98,14 +90,9 @@ const useStyles = M.makeStyles((t) => ({
       // Below the interactive children, which raise themselves above it.
       zIndex: 0,
     },
-    // The focus ring stays on the header rather than the stretched overlay: it
-    // marks what the reader is about to activate — the named identity — instead
-    // of outlining the whole card and losing the Focus Ring Rule's precision.
-    //
-    // Deliberately no `position` here. Positioning the header would make it the
-    // containing block for its own `::after`, collapsing the card-wide click
-    // target to the header's bounds for as long as it held focus. The overlay
-    // paints nothing, so it cannot cover the ring anyway.
+    // No `position` here: it would make the header the containing block for its
+    // own `::after`, collapsing the card-wide click target to the header's bounds
+    // while focused.
     '&:focus-visible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: -2,
@@ -122,16 +109,9 @@ const useStyles = M.makeStyles((t) => ({
   bodySpacer: {
     flexGrow: 1,
   },
-  // Tags and the access readout share one line at the card's foot: the tags
-  // run from the left, the readout closes the row on the right.
-  //
-  // Deliberately *not* raised above the header's stretched overlay. Raising the
-  // row lifted its whitespace too -- the `space-between` gap and the slack around
-  // the chips -- so clicks there landed on a non-interactive container instead of
-  // navigating: a dead zone in the middle of the card, which is the same defect
-  // the overlay exists to remove. Caught in review. Only the real controls are
-  // raised now, each on its own (`tag`, `access`); everything between them stays
-  // under the overlay and navigates.
+  // Not raised above the navigation overlay: raising the row lifts its
+  // `space-between` gap too, and clicks in that whitespace stop navigating. Only
+  // the controls themselves are raised (`tag`, `access`).
   bottomRow: {
     alignItems: 'center',
     display: 'flex',
@@ -176,9 +156,8 @@ const useStyles = M.makeStyles((t) => ({
   // ButtonBase (Chip's root when `clickable`) always stamps the global
   // `Mui-focusVisible` class alongside its own hashed one, so this is a
   // stable hook even though `.MuiChip-*` selectors are off-limits.
-  // Raised above the navigation overlay: a chip filters the wall, which is not
-  // "open this bucket". Raised per-chip rather than on the `tags` wrapper so the
-  // wrapper's flex gaps stay under the overlay and still navigate.
+  // Raised per-chip, not on the `tags` wrapper, so the wrapper's flex gaps stay
+  // under the navigation overlay.
   tag: {
     position: 'relative',
     zIndex: 1,
