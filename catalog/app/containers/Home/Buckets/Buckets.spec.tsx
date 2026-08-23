@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { render, cleanup, fireEvent } from '@testing-library/react'
+import { render, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import * as M from '@material-ui/core'
 
@@ -17,6 +17,19 @@ interface MockBucket {
   tags: ReadonlyArray<string> | null
   relevanceScore: number
 }
+
+// Named `bucket-N` with a title of `Bucket N`, matching the default below, so a
+// test that only cares about *how many* buckets exist can say so in one line.
+const bucket = (name: string): MockBucket => ({
+  name,
+  title: name.replace(
+    /(^|-)([a-z])/g,
+    (_m, sep, c) => (sep ? ' ' : '') + c.toUpperCase(),
+  ),
+  description: null,
+  tags: null,
+  relevanceScore: 1,
+})
 
 let mockBuckets: MockBucket[] = [
   {
@@ -215,6 +228,88 @@ describe('website/pages/Landing/Buckets', () => {
     const { queryByText } = renderBuckets()
     expect(queryByText('No volumes yet')).toBeTruthy()
     expect(queryByText('Add Bucket')).toBeFalsy()
+  })
+
+  // The no-match state used to be one line with nothing on it: the only way out
+  // was noticing the small clear button up in the filter field, so the more terms
+  // someone stacked the more stuck they were. These pin the recovery.
+  describe('when the filter matches nothing', () => {
+    it('reports how many volumes it actually searched', () => {
+      mockBuckets = [bucket('bucket-one'), bucket('bucket-two'), bucket('bucket-three')]
+      const { queryByText } = renderBuckets('?q=nomatchxyz')
+      // The exact count, not "no volumes" -- the filter ran against 3.
+      expect(
+        queryByText(
+          'Searched all 3 volumes you can reach, across title, name, description, and tags.',
+        ),
+      ).toBeTruthy()
+    })
+
+    it('offers to drop each term when more than one narrowed it', () => {
+      const { queryByText } = renderBuckets('?q=alpha+beta')
+      expect(queryByText('Without "alpha"')).toBeTruthy()
+      expect(queryByText('Without "beta"')).toBeTruthy()
+    })
+
+    it('quotes terms back in the casing they were typed', () => {
+      // `terms` is lowercased for matching; showing that back would rewrite the
+      // reader's own input at them.
+      const { queryByText } = renderBuckets('?q=Genomics+RNA')
+      expect(queryByText('Without "Genomics"')).toBeTruthy()
+      expect(queryByText('Without "alpha"')).toBeFalsy()
+    })
+
+    // `set` updates local input state; the URL push happens in an effect gated on
+    // the field's 500ms debounce, so these assertions have to wait for it rather
+    // than read the location synchronously after the click.
+    it('drops one term and keeps the rest, preserving their casing', async () => {
+      const { getByText, getByTestId } = renderBuckets('?q=Genomics+RNA')
+      fireEvent.click(getByText('Without "Genomics"'))
+      await waitFor(() => expect(getByTestId('search').textContent).toBe('?q=RNA'))
+    })
+
+    it('offers no per-term drops for a single term, where it would duplicate Clear', () => {
+      const { queryByText } = renderBuckets('?q=onlyterm')
+      expect(queryByText('Without "onlyterm"')).toBeFalsy()
+      expect(queryByText('Clear filter')).toBeTruthy()
+    })
+
+    it('clears the whole filter, dropping `q` from the URL', async () => {
+      const { getByText, getByTestId } = renderBuckets('?q=alpha+beta')
+      fireEvent.click(getByText('Clear filter'))
+      await waitFor(() => expect(getByTestId('search').textContent).toBe(''))
+    })
+
+    // Clearing empties the field on the click, not a tick later.
+    //
+    // `set` is a `useState` setter, so a bare `set()` stores `undefined`, handing
+    // the TextField `value={undefined}` — and an input React has stopped
+    // controlling keeps whatever text is already in it. The field goes stale: it
+    // still reads "alpha beta" while the filter is being cleared underneath it.
+    //
+    // The staleness is transient — `useDebouncedInput`'s `usePrevious(init, …)`
+    // re-syncs from the URL and repairs the value a tick later — which is exactly
+    // why this asserts *synchronously* after the click. Measured on a probe
+    // mirroring this component: bare `set()` reads "alpha beta" immediately after
+    // the click and "" after the round-trip, while `set('')` reads "" at both
+    // points. An assertion placed after `waitFor` cannot tell them apart.
+    //
+    // Not asserted via React's "controlled input to be uncontrolled" warning:
+    // `didWarnControlledToUncontrolled` (react-dom.development.js) is a
+    // module-scoped one-shot, so the first test to trip it consumes it and every
+    // later one passes regardless. Mutation testing caught both dead ends.
+    it('empties the filter field on the click, not a tick later', async () => {
+      const { getByText, getByPlaceholderText, getByTestId } =
+        renderBuckets('?q=alpha+beta')
+      const field = getByPlaceholderText('Filter volumes') as HTMLInputElement
+      expect(field.value).toBe('alpha beta')
+
+      fireEvent.click(getByText('Clear filter'))
+
+      // Synchronous: the window where a bare `set()` leaves the box stale.
+      expect(field.value).toBe('')
+      await waitFor(() => expect(getByTestId('search').textContent).toBe(''))
+    })
   })
 
   describe('the card/list view toggle', () => {
