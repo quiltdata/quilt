@@ -10,6 +10,8 @@ interface AbstractQuery {
 interface QuerySelectProps<T> {
   className?: string
   disabled?: boolean
+  error?: boolean
+  helperText?: React.ReactNode
   label: React.ReactNode
   onChange: (value: T | null) => void
   onLoadMore?: () => void
@@ -22,6 +24,8 @@ const LOAD_MORE = 'load-more'
 export default function QuerySelect<T>({
   className,
   disabled,
+  error,
+  helperText,
   label,
   onChange,
   onLoadMore,
@@ -40,11 +44,18 @@ export default function QuerySelect<T>({
   )
 
   return (
-    <M.FormControl className={className} fullWidth>
+    <M.FormControl className={className} error={error} fullWidth>
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select
         disabled={disabled || !queries.length}
         onChange={handleChange}
+        // The menu rows need `ListItemText` for the name + description pair, but
+        // `Select` reuses the selected row's children as the field's display
+        // value -- so without this the input inherits a list row's 24px
+        // line-height and renders 5px taller than a plain-text Select beside it,
+        // leaving the two underlines misaligned. Same trap `Workgroups` avoids by
+        // using bare text in its rows.
+        renderValue={() => value?.name ?? 'Custom'}
         value={value?.key || 'none'}
       >
         <M.MenuItem disabled value="none">
@@ -63,6 +74,11 @@ export default function QuerySelect<T>({
           </M.MenuItem>
         )}
       </M.Select>
+      {/* Inside the FormControl, so it inherits the field's disabled and error
+          state and is wired to the input for assistive tech -- a sibling below
+          the control reads at full strength beside a disabled field, and adds its
+          height to the row rather than to the field. */}
+      {!!helperText && <M.FormHelperText>{helperText}</M.FormHelperText>}
     </M.FormControl>
   )
 }

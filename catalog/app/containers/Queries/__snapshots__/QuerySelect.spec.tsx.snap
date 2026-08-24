@@ -19,15 +19,7 @@ exports[`containers/Queries/QuerySelect > should render 1`] = `
       class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
       role="button"
     >
-      <div
-        class="MuiListItemText-root"
-      >
-        <span
-          class="MuiTypography-root MuiListItemText-primary MuiTypography-body1 MuiTypography-displayBlock"
-        >
-          Custom
-        </span>
-      </div>
+      Custom
     </div>
     <input
       aria-hidden="true"
@@ -68,15 +60,7 @@ exports[`containers/Queries/QuerySelect > should render with selected value 1`] 
       role="button"
       tabindex="0"
     >
-      <div
-        class="MuiListItemText-root"
-      >
-        <span
-          class="MuiTypography-root MuiListItemText-primary MuiTypography-body1 MuiTypography-displayBlock"
-        >
-          name2
-        </span>
-      </div>
+      name2
     </div>
     <input
       aria-hidden="true"
