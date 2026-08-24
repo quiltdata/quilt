@@ -480,7 +480,7 @@ function MemberSection(props: BrowserProps) {
   const classes = useSectionStyles()
   const provenance = provenanceFor(
     member.contentsSource,
-    PLATFORM_LABEL[product.binding.kind],
+    DP.platformLabelFor(product.binding.kind),
   )
 
   return (
@@ -502,13 +502,6 @@ function MemberSection(props: BrowserProps) {
       </React.Suspense>
     </section>
   )
-}
-
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
-  'unity-share': 'Databricks Unity',
-  'snowflake-listing': 'Snowflake',
 }
 
 /**

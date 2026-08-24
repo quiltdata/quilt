@@ -144,9 +144,14 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  // Raised above the navigation overlay so the blurb stays selectable: as
+  // non-positioned content it painted under the overlay, and a drag to select it
+  // navigated instead. Costs the click-to-navigate area over these two lines.
   description: {
     ...(t.mixins as $TSFixMe).lineClamp(2),
     color: t.palette.text.secondary,
+    position: 'relative',
+    zIndex: 1,
   },
   tags: {
     display: 'flex',
