@@ -155,8 +155,8 @@ describe('containers/Home/BucketGrid/BucketCard', () => {
     const access = container.querySelector('[class*="access"]') as HTMLElement
     expect(raised(ruleFor(classOf(access, 'access')))).toBe(true)
 
-    // So is the description: not a control, but text a reader selects and copies,
-    // which the overlay swallowed while it painted above this paragraph.
+    // The description too: not a control, but text a reader selects and copies, so
+    // it has to sit above the card-wide navigation overlay.
     const description = container.querySelector('[class*="description"]') as HTMLElement
     expect(raised(ruleFor(classOf(description, 'description')))).toBe(true)
 

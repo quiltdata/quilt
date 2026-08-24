@@ -45,6 +45,7 @@ export {
   INTERSECTION,
   PLATFORM_LABEL,
   accessSummary,
+  platformLabelFor,
   capabilitiesFor,
   forMode,
   mayBranchOn,

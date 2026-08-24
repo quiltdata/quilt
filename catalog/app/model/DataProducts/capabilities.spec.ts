@@ -100,13 +100,35 @@ describe('model/DataProducts/capabilities', () => {
     })
 
     it('claims nothing for a kind added server-side first', () => {
-      // `binding.kind` is typed but arrives over the wire. Reading a capability off
-      // `undefined` threw inside a card in the shared volume grid, blanking the
-      // whole grid for one product -- so an unmapped kind resolves to the
-      // all-false intersection instead.
+      // `binding.kind` is typed but arrives over the wire, so an unmapped kind is
+      // reachable; the all-false intersection means it claims no capability rather
+      // than throwing on the first read.
       const caps = DP.capabilitiesFor('bigquery-listing' as DP.PlatformKind)
       expect(caps).toEqual(DP.INTERSECTION)
       expect(caps.curationStatus).toBe(false)
+    })
+  })
+
+  describe('platformLabelFor', () => {
+    it('names a known kind the way readers see it', () => {
+      expect(DP.platformLabelFor('datazone')).toBe('AWS DataZone')
+    })
+
+    // The same wire value indexes both tables, and callers interpolate the label
+    // into sentences -- so a missing entry has to yield a word, never `undefined`.
+    it('never resolves to undefined for an unmapped kind', () => {
+      const label = DP.platformLabelFor('bigquery-listing' as DP.PlatformKind)
+      expect(label).toBe('bigquery-listing')
+      expect(`${label} has no request flow`).not.toContain('undefined')
+    })
+
+    it('covers every kind the capability table knows', () => {
+      // The two tables are keyed by the same union; a kind in one and not the other
+      // is how the label fell back to a bare index in the first place.
+      ;(Object.keys(DP.CAPABILITIES) as DP.PlatformKind[]).forEach((kind) => {
+        expect(DP.PLATFORM_LABEL[kind]).toBeTruthy()
+        expect(DP.platformLabelFor(kind)).toBe(DP.PLATFORM_LABEL[kind])
+      })
     })
   })
 })

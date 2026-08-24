@@ -80,7 +80,7 @@ function RequestRow({
 }) {
   const classes = useStyles()
   const caps = DP.capabilitiesFor(product.binding.kind)
-  const platform = DP.PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
   const collective = widening(request.beneficiary)
 
   return (
@@ -150,7 +150,7 @@ function RequestDialog({
   onClose: () => void
 }) {
   const caps = DP.capabilitiesFor(product.binding.kind)
-  const platform = DP.PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
   const toProject = product.binding.kind === 'datazone'
 
   return (
@@ -254,7 +254,7 @@ export default function Requests({ product }: { product: DP.DataProduct }) {
           there is nothing to offer and saying why beats an absent control. */}
       {wantsMoreAccess && !caps.initiableRequests && (
         <M.Typography className={classes.note} variant="body2" color="textSecondary">
-          {DP.PLATFORM_LABEL[product.binding.kind]} has no request flow Quilt can start
+          {DP.platformLabelFor(product.binding.kind)} has no request flow Quilt can start
           for this product. Ask a catalog administrator directly.
         </M.Typography>
       )}

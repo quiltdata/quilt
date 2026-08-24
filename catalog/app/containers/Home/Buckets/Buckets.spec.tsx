@@ -465,9 +465,8 @@ describe('website/pages/Landing/Buckets', () => {
       await waitFor(() => expect(getByTestId('search').textContent).toBe('?q=gamma'))
     })
 
-    // A repeated word gave two chips sharing one React key, so the row rendered
-    // fewer chips than terms while `Without "alpha"` stripped both occurrences --
-    // one click doing more than its label said.
+    // Chips key on the term, and dropping one strips every occurrence of that word,
+    // so a repeat must not produce a second chip.
     it('offers one chip per distinct term, however often it was typed', () => {
       const { getAllByText, getByText, getByTestId } =
         renderBuckets('?q=alpha+alpha+beta')

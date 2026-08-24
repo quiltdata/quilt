@@ -470,9 +470,8 @@ function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   // Only worth offering per-term drops when there is a choice to make; with a
   // single term "drop it" and "clear the filter" are the same action, and two
   // buttons that do one thing is a worse state than one that does.
-  // Deduped: a repeated word gives two chips with one key, so React reconciles
-  // them as one and the row shows fewer chips than terms -- while `onDropTerm`
-  // strips every occurrence, making `Without "x"` do more than it says.
+  // One chip per distinct term: chips key on the term, and `onDropTerm` strips
+  // every occurrence of the word it names.
   const unique = React.useMemo(() => R.uniq(terms), [terms])
   const droppable = unique.length > 1 ? unique : []
   return (
@@ -622,10 +621,9 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
 
-  // Clamped during render, not corrected after. The `setPage(1)` effect below runs
-  // only once the browser can paint, so typing a filter while deep in the pager
-  // slices past the end of the shorter list for one frame -- a blank grid matching
-  // neither empty state, since entries exist and the filter did match.
+  // Clamped during render: `page` is the reader's request, `currentPage` is what the
+  // list can honor. The reset effect below runs post-paint, too late to keep a
+  // shrunk list from slicing past its end.
   const currentPage = Math.min(page, Math.max(pages, 1))
 
   const paginated = React.useMemo(

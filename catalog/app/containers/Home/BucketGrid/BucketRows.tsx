@@ -210,7 +210,7 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const to = urls.dataProduct(product.id)
-  const platform = DP.PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
 
   return (
     <M.ListItem

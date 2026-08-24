@@ -79,15 +79,9 @@ const DataProducts = requireAuth()(
 )
 
 /**
- * The flag decides whether the surface exists; auth decides who may enter it.
- *
- * Ahead of `requireAuth` because inverting that order leaks: auth redirects to
- * sign-in before the screen can read the flag, so on an OPEN stack with
- * `data-products` off an anonymous visitor got a login prompt -- disclosing that
- * the surface exists on a deployment where the feature is off.
- *
- * Redirects home rather than 404ing, matching what the screen does, so flag-off
- * lands in the same place whether or not the visitor is signed in.
+ * The flag must be read ahead of `requireAuth`: auth redirects to sign-in first,
+ * which discloses a flagged-off surface to an anonymous visitor on an OPEN stack.
+ * Redirects home, matching the screen, so flag-off lands in one place either way.
  */
 function DataProductsRoute() {
   const { urls } = NamedRoutes.use()

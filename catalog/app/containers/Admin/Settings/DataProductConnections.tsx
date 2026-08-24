@@ -59,14 +59,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// The picker offers both Unity bindings as separate choices, and the reader-facing
-// name is the same vendor for both -- so it alone distinguishes them. Derived from
-// the shared table rather than restated, so a new platform cannot reach this
-// dropdown unlabelled.
-const PICKER_LABEL: Record<DP.PlatformKind, string> = {
+// Admin is the one surface that offers both Unity bindings as separate choices, so
+// the label has to distinguish them where every reader screen says just the vendor.
+// Used for the picker options and the connection rows alike, which is why it is not
+// named for the picker.
+const CONNECTION_LABEL: Record<DP.PlatformKind, string> = {
   ...DP.PLATFORM_LABEL,
   'unity-share': 'Databricks Unity (Delta Sharing)',
 }
+
+const connectionLabelFor = (kind: DP.PlatformKind) => CONNECTION_LABEL[kind] ?? kind
 
 const STATE_LABEL: Record<DP.ConnectionState, string> = {
   READY: 'Connected',
@@ -76,14 +78,17 @@ const STATE_LABEL: Record<DP.ConnectionState, string> = {
 
 function ConnectionRow({ connection }: { connection: DP.Connection }) {
   const classes = useStyles()
-  const methods = DP.AUTH_METHODS[connection.platform]
+  // A connection's platform comes from stored settings, so it can name a kind this
+  // build does not know; indexing bare and calling `.find` on the result would take
+  // the whole connections list down with it.
+  const methods = DP.AUTH_METHODS[connection.platform] ?? []
   const method = methods.find((m) => m.method === connection.authMethod)
 
   return (
     <div className={classes.row}>
       <div className={classes.rowBody}>
         <M.Typography variant="subtitle2">
-          {connection.title} · {PICKER_LABEL[connection.platform]}
+          {connection.title} · {connectionLabelFor(connection.platform)}
         </M.Typography>
         <M.Typography className={classes.endpoint} color="textSecondary">
           {connection.endpoint}
@@ -162,9 +167,9 @@ function AddConnection({ onClose }: { onClose: () => void }) {
         // with, so a testid on the visible trigger is the stable handle.
         SelectProps={{ 'data-testid': 'dpc-platform' } as $TSFixMe}
       >
-        {(Object.keys(PICKER_LABEL) as DP.PlatformKind[]).map((k) => (
+        {(Object.keys(CONNECTION_LABEL) as DP.PlatformKind[]).map((k) => (
           <M.MenuItem key={k} value={k}>
-            {PICKER_LABEL[k]}
+            {connectionLabelFor(k)}
           </M.MenuItem>
         ))}
       </M.TextField>

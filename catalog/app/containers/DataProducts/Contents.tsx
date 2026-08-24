@@ -480,7 +480,7 @@ function MemberSection(props: BrowserProps) {
   const classes = useSectionStyles()
   const provenance = provenanceFor(
     member.contentsSource,
-    DP.PLATFORM_LABEL[product.binding.kind],
+    DP.platformLabelFor(product.binding.kind),
   )
 
   return (

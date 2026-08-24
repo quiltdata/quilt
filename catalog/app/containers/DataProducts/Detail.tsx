@@ -82,7 +82,7 @@ function Stat({ label, children }: React.PropsWithChildren<{ label: string }>) {
 
 function Header({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
-  const platform = DP.PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
   const summary = [
     platform,
     product.owningEntity?.label,
@@ -142,7 +142,7 @@ function Tabs({ id, section }: { id: string; section: string }) {
 function OverviewTab({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
   const caps = DP.capabilitiesFor(product.binding.kind)
-  const platform = DP.PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
   const readable = product.members.filter((m) => m.readable).length
 
   return (

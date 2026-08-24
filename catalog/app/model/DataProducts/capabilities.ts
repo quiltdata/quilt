@@ -153,6 +153,17 @@ export const PLATFORM_LABEL: Record<PlatformKind, string> = {
 }
 
 /**
+ * The reader-facing name for a `kind` that may not be one we know.
+ *
+ * Falls back to the kind itself: it is exact, never empty, and names something a
+ * support engineer can act on. Callers interpolate this into sentences, so an
+ * unmapped kind read through the bare table renders the word "undefined" as prose.
+ */
+export function platformLabelFor(kind: PlatformKind): string {
+  return PLATFORM_LABEL[kind] ?? kind
+}
+
+/**
  * How much of a product the reader can actually read.
  *
  * Zero readable members is the case worth wording carefully. On a
@@ -168,16 +179,8 @@ export function accessSummary(product: DataProduct): string {
 }
 
 /**
- * Capabilities for a `kind` that may not be one we know.
- *
- * `binding.kind` is typed `PlatformKind` but arrives over the wire, so a platform
- * added server-side first lands here as an unmapped string. Indexing
- * `CAPABILITIES` directly then yields `undefined`, and the first `caps.x` read
- * throws inside a card rendered in the shared volume grid -- taking the whole
- * grid down for one product.
- *
- * Falls back to `INTERSECTION`, where every discretionary capability is false, so
- * an unknown platform claims nothing and its optional chips are simply absent.
+ * `binding.kind` is typed but arrives over the wire, so it may be unmapped.
+ * `INTERSECTION` claims nothing rather than letting the first `caps.x` read throw.
  */
 export function capabilitiesFor(kind: PlatformKind): Capabilities {
   return CAPABILITIES[kind] ?? INTERSECTION

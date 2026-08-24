@@ -111,7 +111,7 @@ export default function DataProductCard({ product }: DataProductCardProps) {
   const { urls } = NamedRoutes.use()
   const to = urls.dataProduct(product.id)
   const caps = DP.capabilitiesFor(product.binding.kind)
-  const platform = DP.PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
 
   return (
     <div
