@@ -62,13 +62,32 @@ export function getInitials(label: string): string {
 // DESIGN.md > Colors > Identity Tints. A closed set: it excludes the Amber
 // Indicator's hue (an identity must never read as a selection) and the
 // semantic Info/Warning pairs.
-const IDENTITY_TINTS = [
+//
+// One scheme throughout -- a pale Material ground carrying a dark ink of its own
+// hue -- in two tiers, 50/800 and 100/900, so a family can contribute twice
+// without a second visual language. Every pair clears AA for the initials, and no
+// two grounds sit closer than the incumbent teal/green pair did.
+//
+// Four families stay out, and the exclusions are the load-bearing part: light
+// blue's 50 *is* the documented Info Blue wash, red and deep orange are the error
+// register, amber/orange/yellow are the Indicator's hue, and lime cannot clear AA
+// against any same-hue ink.
+export const IDENTITY_TINTS = [
   { bg: '#e8eaf6', fg: '#283593' }, // indigo
+  { bg: '#c5cae9', fg: '#1a237e' }, // indigo deep
   { bg: '#e0f2f1', fg: '#00695c' }, // teal
+  { bg: '#b2dfdb', fg: '#004d40' }, // teal deep
   { bg: '#e8f5e9', fg: '#2e7d32' }, // green
+  { bg: '#dcedc8', fg: '#33691e' }, // light green
   { bg: '#f3e5f5', fg: '#6a1b9a' }, // purple
+  { bg: '#d1c4e9', fg: '#4527a0' }, // deep purple
   { bg: '#fce4ec', fg: '#ad1457' }, // pink
+  { bg: '#f8bbd0', fg: '#880e4f' }, // pink deep
   { bg: '#efebe9', fg: '#4e342e' }, // brown
+  { bg: '#d7ccc8', fg: '#3e2723' }, // brown deep
+  { bg: '#e3f2fd', fg: '#1565c0' }, // blue
+  { bg: '#b2ebf2', fg: '#006064' }, // cyan deep
+  { bg: '#cfd8dc', fg: '#37474f' }, // blue grey
 ]
 
 // Hash the object's stable identifier (never its position in a list), so a

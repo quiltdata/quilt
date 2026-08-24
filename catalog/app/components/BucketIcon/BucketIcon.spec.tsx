@@ -4,6 +4,7 @@ import { render, cleanup } from '@testing-library/react'
 import { describe, expect, it, afterEach } from 'vitest'
 
 import BucketIcon from './'
+import { IDENTITY_TINTS, getIdentityTint } from './BucketIcon'
 
 const darkTheme = createMuiTheme({ palette: { type: 'dark' } })
 
@@ -57,6 +58,46 @@ describe('components/BucketIcon', () => {
     expect(getByTitle('Default icon').closest('svg')).not.toBeNull()
   })
 
+  // DESIGN.md > Colors > Identity Tints declares the properties every pair must
+  // hold. Asserted here so adding a tint cannot quietly ship an illegible disc or
+  // borrow a reserved hue -- the two ways this palette degrades.
+  describe('the identity tint palette', () => {
+    const lum = (hex: string) => {
+      const ch = (i: number) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+      }
+      return 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5)
+    }
+    const contrast = (a: string, b: string) => {
+      const [l1, l2] = [lum(a), lum(b)]
+      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
+    }
+
+    it('carries enough tints to tell a wall of volumes apart', () => {
+      expect(IDENTITY_TINTS.length).toBeGreaterThanOrEqual(12)
+    })
+
+    it('clears AA for the initials on every ground', () => {
+      const failures = IDENTITY_TINTS.filter(({ bg, fg }) => contrast(bg, fg) < 4.5)
+      expect(failures).toEqual([])
+    })
+
+    it('excludes the reserved accent and semantic hues', () => {
+      // The Amber Indicator (an identity must never read as a selection), the
+      // Info Blue wash, and the Warning Amber pair. `#e1f5fe` is the trap: it is
+      // Material Light Blue 50 *and* the documented Info wash.
+      const reserved = ['#fb8c00', '#039be5', '#e1f5fe', '#fff59d', '#f57f17']
+      const used = IDENTITY_TINTS.flatMap(({ bg, fg }) => [bg, fg])
+      expect(used.filter((c) => reserved.includes(c))).toEqual([])
+    })
+
+    it('has no duplicate grounds', () => {
+      const grounds = IDENTITY_TINTS.map((t) => t.bg)
+      expect(new Set(grounds).size).toBe(grounds.length)
+    })
+  })
+
   describe('initials-avatar fallback', () => {
     it('renders initials derived from `label` when there is no src', () => {
       const { getByText } = render(<BucketIcon src={null} label="Genomics Data" />)
@@ -101,10 +142,31 @@ describe('components/BucketIcon', () => {
       expect(bg(landing.container)).not.toBe('')
     })
 
-    // Not "different buckets get different tints" -- with a 6-entry table
-    // collisions are inevitable and intended. What matters is that the same
-    // initials do not force the same tint, so a `quilt-*` wall spreads rather
-    // than rendering as one flat color.
+    // Collisions are still possible -- the table is finite -- but the point of
+    // its size is that a realistic shared-prefix wall stops reading as a few
+    // colors repeating. At six entries these twelve resolved to five tints.
+    it('spreads a realistic shared-prefix wall across many tints', () => {
+      const names = [
+        'quilt-bake',
+        'quilt-cellarity',
+        'quilt-dev',
+        'quilt-exec',
+        'quilt-bio-prod',
+        'quilt-bio-staging',
+        'quilt-ml',
+        'quilt-raw',
+        'quilt-curated',
+        'quilt-archive',
+        'quilt-sandbox',
+        'quilt-demo',
+      ]
+      const tints = new Set(names.map((n) => getIdentityTint(n).bg))
+      expect(tints.size).toBeGreaterThanOrEqual(8)
+    })
+
+    // Not "different buckets get different tints" -- collisions are inevitable
+    // and intended. What matters is that the same initials do not force the same
+    // tint, so a `quilt-*` wall spreads rather than rendering as one flat color.
     it('spreads shared-prefix buckets across the palette', () => {
       const bg = (label: string, tintKey: string) => {
         const { container } = render(
