@@ -14,6 +14,7 @@ import {
 } from 'constants/routes'
 import * as style from 'constants/style'
 import * as DP from 'model/DataProducts'
+import * as fixtures from 'model/DataProducts/fixtures'
 import type { CatalogSettings } from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -68,13 +69,15 @@ vi.stubGlobal(
 vi.mock('model/DataProducts', async () => {
   const actual =
     await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
+  const fx = await vi.importActual<typeof import('model/DataProducts/fixtures')>(
+    'model/DataProducts/fixtures',
+  )
   return {
     ...actual,
-    useProducts: (enabled = true) => (enabled ? actual.fixtures.ALL_PRODUCTS : []),
-    useProduct: (id: string) =>
-      actual.fixtures.ALL_PRODUCTS.find((p) => p.id === id) ?? null,
+    useProducts: (enabled = true) => (enabled ? fx.ALL_PRODUCTS : []),
+    useProduct: (id: string) => fx.ALL_PRODUCTS.find((p) => p.id === id) ?? null,
     useRequests: (productId: string) =>
-      actual.fixtures.ALL_REQUESTS.filter((r) => r.dataProductId === productId),
+      fx.ALL_REQUESTS.filter((r) => r.dataProductId === productId),
     // Mirrors fixtureAdapter.listContents rather than reaching for the adapter,
     // for the same reason as the hooks above: the real one goes through
     // ResourceCache, which needs a provider these tests do not mount (it
@@ -85,7 +88,7 @@ vi.mock('model/DataProducts', async () => {
     // own version is covered directly in model/DataProducts/adapter.spec.ts, so
     // this copy only has to be faithful enough to drive the four rendering paths.
     useContents: (productId: string, memberName: string): DP.ContentsResult => {
-      const product = actual.fixtures.ALL_PRODUCTS.find((p) => p.id === productId)
+      const product = fx.ALL_PRODUCTS.find((p) => p.id === productId)
       const member = product?.members.find((m) => m.logicalName === memberName)
       if (!member) return { ok: false, reason: 'NOT_FOUND' }
       if (member.contentsSource === 'UNAVAILABLE') {
@@ -94,7 +97,7 @@ vi.mock('model/DataProducts', async () => {
       if (!member.readable) return { ok: false, reason: 'NOT_A_MEMBER' }
       return {
         ok: true,
-        entries: actual.fixtures.PACKAGE_CONTENTS[`${productId}::${memberName}`] ?? [],
+        entries: fx.PACKAGE_CONTENTS[`${productId}::${memberName}`] ?? [],
       }
     },
     // Mirrors fixtureAdapter.fetchEntry, for the same reason as useContents above.
@@ -104,11 +107,11 @@ vi.mock('model/DataProducts', async () => {
       memberName: string,
       logicalKey: string,
     ): DP.EntryBodyResult => {
-      const entries = actual.fixtures.PACKAGE_CONTENTS[`${productId}::${memberName}`]
+      const entries = fx.PACKAGE_CONTENTS[`${productId}::${memberName}`]
       const entry = entries?.find((e) => e.logicalKey === logicalKey)
       if (!entry) return { ok: false, reason: 'NOT_FOUND' }
       if (entry.readable === false) return { ok: false, reason: 'NOT_A_MEMBER' }
-      const text = actual.fixtures.ENTRY_TEXT[logicalKey]
+      const text = fx.ENTRY_TEXT[logicalKey]
       if (text === undefined) {
         return {
           ok: true,
@@ -294,8 +297,7 @@ describe('containers/DataProducts', () => {
       // was written as a literal 8, and adding one fixture entry broke the test
       // for a reason that had nothing to do with the behaviour being pinned.
       const total =
-        DP.fixtures.PACKAGE_CONTENTS[`${DP.fixtures.PACKAGE_PRODUCT.id}::alpha/home`]!
-          .length
+        fixtures.PACKAGE_CONTENTS[`${fixtures.PACKAGE_PRODUCT.id}::alpha/home`]!.length
       expect(getByText(/^1 file · /)).toBeTruthy()
       expect(getByText(new RegExp(`${total} in package`))).toBeTruthy()
     })
@@ -605,8 +607,8 @@ describe('containers/DataProducts', () => {
         // fixture covers this (the shipped one is readable), so the product is
         // built here — the branch is real code and would otherwise go untested.
         const unreadable: DP.DataProduct = {
-          ...DP.fixtures.SNOWFLAKE_PRODUCT,
-          members: DP.fixtures.SNOWFLAKE_PRODUCT.members.map((m) => ({
+          ...fixtures.SNOWFLAKE_PRODUCT,
+          members: fixtures.SNOWFLAKE_PRODUCT.members.map((m) => ({
             ...m,
             readable: false,
           })),

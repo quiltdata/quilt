@@ -6,7 +6,7 @@ import { fade } from '@material-ui/core/styles'
 
 import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
-import type * as DP from 'model/DataProducts'
+import * as DP from 'model/DataProducts'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
@@ -197,29 +197,6 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
   )
 }
 
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
-  'unity-share': 'Databricks Unity',
-  'snowflake-listing': 'Snowflake',
-}
-
-/**
- * How much of this product you can read, in the slot a bucket row gives its
- * access readout.
- *
- * Zero members is the case worth wording carefully: on a discovery-only product
- * (Unity `BROWSE`) that is a permission boundary, not an empty product, and
- * "0 members" would misreport it as no data.
- */
-function accessSummary(product: DP.DataProduct): string {
-  const total = product.members.length
-  if (!total) return 'Contents not visible to you'
-  const readable = product.members.filter((m) => m.readable).length
-  if (readable === total) return `${total} member${total === 1 ? '' : 's'}`
-  return `${readable} of ${total} members readable`
-}
-
 interface DataProductRowProps {
   product: DP.DataProduct
   divider: boolean
@@ -233,7 +210,7 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const to = urls.dataProduct(product.id)
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
 
   return (
     <M.ListItem
@@ -277,7 +254,7 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
       />
       <M.ListItemSecondaryAction>
         <M.Typography variant="caption" color="textSecondary">
-          {accessSummary(product)}
+          {DP.accessSummary(product)}
         </M.Typography>
       </M.ListItemSecondaryAction>
     </M.ListItem>

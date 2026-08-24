@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as style from 'constants/style'
 import type * as DP from 'model/DataProducts'
-import { fixtures } from 'model/DataProducts'
+import * as fixtures from 'model/DataProducts/fixtures'
 
 import DataProductConnections from './DataProductConnections'
 
@@ -15,9 +15,12 @@ import DataProductConnections from './DataProductConnections'
 vi.mock('model/DataProducts', async () => {
   const actual =
     await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
+  const fx = await vi.importActual<typeof import('model/DataProducts/fixtures')>(
+    'model/DataProducts/fixtures',
+  )
   return {
     ...actual,
-    useConnections: () => connectionsForTest ?? actual.fixtures.ALL_CONNECTIONS,
+    useConnections: () => connectionsForTest ?? fx.ALL_CONNECTIONS,
   }
 })
 

@@ -133,7 +133,9 @@ export function groupForPath(entries: ContentEntry[], path: string = ''): Groupe
   for (const entry of entries) {
     if (prefix && !entry.logicalKey.startsWith(prefix)) continue
     const rest = entry.logicalKey.slice(prefix.length)
-    // A key equal to the prefix is the folder itself, not a file in it.
+    // A key equal to the prefix is the folder itself, not a file in it. Also the
+    // guard for an empty logical key at the root, which would otherwise render as
+    // a nameless row nothing can open.
     if (!rest) continue
 
     const slash = rest.indexOf('/')
@@ -146,9 +148,16 @@ export function groupForPath(entries: ContentEntry[], path: string = ''): Groupe
     // Guards `a//b`, which would otherwise produce a nameless folder row.
     if (!name) continue
     const acc = dirs.get(name) ?? { fileCount: 0, sizeBytes: 0, allSized: true }
-    acc.fileCount += 1
-    if (typeof entry.sizeBytes === 'number') acc.sizeBytes += entry.sizeBytes
-    else acc.allSized = false
+    // A marker declares its directory without being an object in it, so it earns
+    // the row but not a place in the counts -- the distinction the total functions
+    // make with the same predicate. Skipping it outright instead would hide a
+    // directory whose only manifest entry is its own marker, and would leave a
+    // file colliding with that name unreported in `shadowed`.
+    if (!isDirMarker(entry.logicalKey)) {
+      acc.fileCount += 1
+      if (typeof entry.sizeBytes === 'number') acc.sizeBytes += entry.sizeBytes
+      else acc.allSized = false
+    }
     dirs.set(name, acc)
   }
 
