@@ -174,6 +174,7 @@ interface AvailablePackagesMetaFiltersProps {
   ordering: {
     value: SearchUIModel.FacetOrdering
     set: (value: SearchUIModel.FacetOrdering) => void
+    offered: boolean
   }
   fetching: boolean
 }
@@ -190,14 +191,12 @@ function AvailablePackagesMetaFilters({
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
-  // Withheld below a handful of fields: with three filters on screen the order
-  // they are in is self-evident, and a control that cannot change anything a
-  // reader would notice is the dead affordance PRODUCT.md rules out.
-  const showOrdering = facets.available.length >= SearchUIModel.FACET_ORDERING_THRESHOLD
-
   return (
     <div className={className}>
-      {showOrdering && (
+      {/* `offered` rather than a count taken here: withholding it turns on how many
+          fields exist, and `facets.available` is already narrowed by the filter box
+          on the client-filter path. */}
+      {ordering.offered && (
         <div className={classes.order}>
           <span className={classes.orderLabel} id="meta-order-label">
             Order by

@@ -1078,6 +1078,12 @@ export const AvailableFiltersState = tagged.create(
       ordering: {
         value: FacetOrdering
         set: (value: FacetOrdering) => void
+        // Whether to offer the control at all. Decided here because it turns on how
+        // many fields *exist*, not how many currently match the filter box --
+        // `facets.available` is the post-filter list on the client-filter path, so
+        // gating on it would unmount the control mid-search, exactly while a reader
+        // is hunting for a field.
+        offered: boolean
       }
       fetching: boolean
     }) => x,
@@ -1170,6 +1176,7 @@ function AvailablePackagesMetaFiltersReady({
 
   // no filtering required
   return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    totalAvailable: available.length,
     state: AvailableFiltersState.Ready({
       filtering: FacetsFilteringState.Disabled(),
       facets: {
@@ -1223,7 +1230,11 @@ function AvailablePackagesMetaFiltersServerFilter({
     fetching: false,
   })
 
-  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state,
+    children,
+    totalAvailable: available.length,
+  })
 }
 
 function AvailablePackagesMetaFiltersServerFilterQuery({
@@ -1287,7 +1298,11 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
     fetching: query.fetching,
   })
 
-  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state,
+    children,
+    totalAvailable: available.length,
+  })
 }
 
 function AvailablePackagesMetaFiltersClientFilter({
@@ -1327,7 +1342,11 @@ function AvailablePackagesMetaFiltersClientFilter({
     fetching: false,
   })
 
-  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state,
+    children,
+    totalAvailable: available.length,
+  })
 }
 
 // Every `Ready` path funnels through here before the tree reaches the panel, so
@@ -1335,8 +1354,12 @@ function AvailablePackagesMetaFiltersClientFilter({
 function AvailablePackagesMetaFiltersGroup({
   children,
   state,
+  totalAvailable,
 }: RenderProps<AvailableFiltersStateInstance> & {
   state: AvailableFiltersStateInstance
+  // The count *before* any filtering, which the caller still has. `state.facets
+  // .available` is already narrowed on the client-filter path.
+  totalAvailable: number
 }) {
   // From the URL, not local state, so a shared link reproduces the panel the
   // sender was looking at and a reload does not silently reorder it.
@@ -1354,9 +1377,11 @@ function AvailablePackagesMetaFiltersGroup({
     [available, ordering],
   )
 
+  const offered = totalAvailable >= FACET_ORDERING_THRESHOLD
+
   const orderingState = React.useMemo(
-    () => ({ value: ordering, set: setOrdering }),
-    [ordering, setOrdering],
+    () => ({ value: ordering, set: setOrdering, offered }),
+    [ordering, setOrdering, offered],
   )
 
   const stateOut = React.useMemo(
@@ -1434,6 +1459,7 @@ export const EMPTY_FACET_TREE = KTree.Tree<PackageUserMetaFacet, string>([])
 const PLACEHOLDER_ORDERING = {
   value: DEFAULT_FACET_ORDERING,
   set: () => {},
+  offered: false,
 }
 
 function normalizeFacetNode(node: FacetNode): FacetTree {
