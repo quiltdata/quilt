@@ -59,11 +59,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
+// The picker offers both Unity bindings as separate choices, and the reader-facing
+// name is the same vendor for both -- so it alone distinguishes them. Derived from
+// the shared table rather than restated, so a new platform cannot reach this
+// dropdown unlabelled.
+const PICKER_LABEL: Record<DP.PlatformKind, string> = {
+  ...DP.PLATFORM_LABEL,
   'unity-share': 'Databricks Unity (Delta Sharing)',
-  'snowflake-listing': 'Snowflake',
 }
 
 const STATE_LABEL: Record<DP.ConnectionState, string> = {
@@ -81,7 +83,7 @@ function ConnectionRow({ connection }: { connection: DP.Connection }) {
     <div className={classes.row}>
       <div className={classes.rowBody}>
         <M.Typography variant="subtitle2">
-          {connection.title} · {PLATFORM_LABEL[connection.platform]}
+          {connection.title} · {PICKER_LABEL[connection.platform]}
         </M.Typography>
         <M.Typography className={classes.endpoint} color="textSecondary">
           {connection.endpoint}
@@ -160,9 +162,9 @@ function AddConnection({ onClose }: { onClose: () => void }) {
         // with, so a testid on the visible trigger is the stable handle.
         SelectProps={{ 'data-testid': 'dpc-platform' } as $TSFixMe}
       >
-        {(Object.keys(PLATFORM_LABEL) as DP.PlatformKind[]).map((k) => (
+        {(Object.keys(PICKER_LABEL) as DP.PlatformKind[]).map((k) => (
           <M.MenuItem key={k} value={k}>
-            {PLATFORM_LABEL[k]}
+            {PICKER_LABEL[k]}
           </M.MenuItem>
         ))}
       </M.TextField>

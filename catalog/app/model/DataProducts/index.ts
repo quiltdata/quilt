@@ -43,8 +43,10 @@ export {
 export {
   CAPABILITIES,
   INTERSECTION,
+  PLATFORM_LABEL,
+  accessSummary,
+  capabilitiesFor,
   forMode,
   mayBranchOn,
   supportingPlatformCount,
 } from './capabilities'
-export * as fixtures from './fixtures'

@@ -93,6 +93,22 @@ describe('model/DataProducts/capabilities', () => {
       expect(DP.supportingPlatformCount('effectivePermissions')).toBe(1)
     })
   })
+
+  describe('capabilitiesFor', () => {
+    it('returns the platform capabilities for a known kind', () => {
+      expect(DP.capabilitiesFor('datazone')).toBe(DP.CAPABILITIES.datazone)
+    })
+
+    it('claims nothing for a kind added server-side first', () => {
+      // `binding.kind` is typed but arrives over the wire. Reading a capability off
+      // `undefined` threw inside a card in the shared volume grid, blanking the
+      // whole grid for one product -- so an unmapped kind resolves to the
+      // all-false intersection instead.
+      const caps = DP.capabilitiesFor('bigquery-listing' as DP.PlatformKind)
+      expect(caps).toEqual(DP.INTERSECTION)
+      expect(caps.curationStatus).toBe(false)
+    })
+  })
 })
 
 describe('model/DataProducts/fixtures', () => {

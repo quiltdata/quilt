@@ -470,16 +470,23 @@ function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   // Only worth offering per-term drops when there is a choice to make; with a
   // single term "drop it" and "clear the filter" are the same action, and two
   // buttons that do one thing is a worse state than one that does.
-  const droppable = terms.length > 1 ? terms : []
+  // Deduped: a repeated word gives two chips with one key, so React reconciles
+  // them as one and the row shows fewer chips than terms -- while `onDropTerm`
+  // strips every occurrence, making `Without "x"` do more than it says.
+  const unique = React.useMemo(() => R.uniq(terms), [terms])
+  const droppable = unique.length > 1 ? unique : []
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
         No volumes matching <b>&quot;{filter}&quot;</b>
       </M.Typography>
       <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
+        {/* Names what is actually matched, for both kinds. Buckets carry tags and a
+            product carries labels, and claiming only "tags" left a product matched
+            on a label looking like a match on nothing. */}
         {total === 1
-          ? 'Searched the 1 volume you can reach, across name, description, and tags.'
-          : `Searched all ${total} volumes you can reach, across name, description, and tags.`}
+          ? 'Searched the 1 volume you can reach, across name, description, and tags or labels.'
+          : `Searched all ${total} volumes you can reach, across name, description, and tags or labels.`}
       </M.Typography>
       <div className={classes.emptyActions}>
         {droppable.map((tg) => (
@@ -615,9 +622,18 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
 
+  // Clamped during render, not corrected after. The `setPage(1)` effect below runs
+  // only once the browser can paint, so typing a filter while deep in the pager
+  // slices past the end of the shorter list for one frame -- a blank grid matching
+  // neither empty state, since entries exist and the filter did match.
+  const currentPage = Math.min(page, Math.max(pages, 1))
+
   const paginated = React.useMemo(
-    () => (pages <= 1 ? sorted : sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE)),
-    [sorted, pages, page],
+    () =>
+      pages <= 1
+        ? sorted
+        : sorted.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE),
+    [sorted, pages, currentPage],
   )
 
   usePrevious(page, (prev) => {
@@ -674,7 +690,7 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
         </M.Box>
         {pages > 1 && (
           <Pagination
-            {...{ pages, page, onChange: setPage }}
+            {...{ pages, page: currentPage, onChange: setPage }}
             mt={0}
             mb={0}
             classes={{ button: classes.pgBtn, current: classes.pgCurrent }}

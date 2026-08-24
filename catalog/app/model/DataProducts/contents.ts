@@ -132,9 +132,11 @@ export function groupForPath(entries: ContentEntry[], path: string = ''): Groupe
 
   for (const entry of entries) {
     if (prefix && !entry.logicalKey.startsWith(prefix)) continue
+    // Same dir-marker predicate as the total functions, so all four agree on what
+    // counts as a file. Subsumes a key equal to the prefix, which is the folder
+    // itself rather than a file in it.
+    if (isDirMarker(entry.logicalKey)) continue
     const rest = entry.logicalKey.slice(prefix.length)
-    // A key equal to the prefix is the folder itself, not a file in it.
-    if (!rest) continue
 
     const slash = rest.indexOf('/')
     if (slash === -1) {

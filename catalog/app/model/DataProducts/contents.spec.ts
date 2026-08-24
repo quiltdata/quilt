@@ -111,6 +111,20 @@ describe('model/DataProducts/contents', () => {
       expect(totalsForPath(e, 'raw/').fileCount).toBe(1)
     })
 
+    it('excludes a nested directory marker from the folder row it sits in', () => {
+      // The folder row and the header read the same manifest, so counting the
+      // marker made them disagree -- and because a marker carries no size, it also
+      // cleared `allSized` and blanked a total the folder fully knew.
+      const e = [
+        { logicalKey: 'raw/sub/' },
+        { logicalKey: 'raw/sub/a.txt', sizeBytes: 10 },
+        { logicalKey: 'raw/sub/b.txt', sizeBytes: 20 },
+      ]
+      const { dirs } = groupForPath(e, 'raw/')
+      expect(dirs[0]).toMatchObject({ fileCount: 2, sizeBytes: 30 })
+      expect(totalsForPath(e, 'raw/')).toEqual({ fileCount: 2, sizeBytes: 30 })
+    })
+
     it('ignores a key equal to the prefix rather than showing a nameless row', () => {
       const { dirs, files } = groupForPath(
         [{ logicalKey: 'raw/', sizeBytes: 0 }, { logicalKey: 'raw/a.tiff' }],

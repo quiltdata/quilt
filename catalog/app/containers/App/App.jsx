@@ -10,6 +10,7 @@ import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { NotFoundPage } from 'containers/NotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { useFeature } from 'utils/features'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 
@@ -76,6 +77,24 @@ const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder)
 const DataProducts = requireAuth()(
   RT.mkLazy(() => import('containers/DataProducts'), Placeholder),
 )
+
+/**
+ * The flag decides whether the surface exists; auth decides who may enter it.
+ *
+ * Ahead of `requireAuth` because inverting that order leaks: auth redirects to
+ * sign-in before the screen can read the flag, so on an OPEN stack with
+ * `data-products` off an anonymous visitor got a login prompt -- disclosing that
+ * the surface exists on a deployment where the feature is off.
+ *
+ * Redirects home rather than 404ing, matching what the screen does, so flag-off
+ * lands in the same place whether or not the visitor is signed in.
+ */
+function DataProductsRoute() {
+  const { urls } = NamedRoutes.use()
+  const enabled = useFeature('data-products')
+  if (!enabled) return <Redirect to={urls.home()} />
+  return <DataProducts />
+}
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
@@ -179,12 +198,10 @@ export default function App() {
         <BucketSearchRedirect />
       </Route>
 
-      {/* The screen itself reads the `data-products` feature flag and redirects
-          home when it is off, so the route stays registered unconditionally —
-          the gate lives in one place rather than being split between here and
-          the container. */}
+      {/* Registered unconditionally; `DataProductsRoute` reads the flag before
+          auth can redirect to sign-in. */}
       <Route path={paths.dataProducts}>
-        <DataProducts />
+        <DataProductsRoute />
       </Route>
 
       <Route path={paths.queries}>

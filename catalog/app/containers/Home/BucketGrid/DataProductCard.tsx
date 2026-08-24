@@ -19,13 +19,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 const ICON_SIZE = 44
 
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
-  'unity-share': 'Databricks Unity',
-  'snowflake-listing': 'Snowflake',
-}
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
@@ -109,22 +102,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-/**
- * What a reader most needs to know before clicking: how much of this they can
- * actually read.
- *
- * Zero readable members is the case worth wording carefully. On a
- * discovery-only product (Unity `BROWSE`) that is a permission boundary, not an
- * empty product, and "0 members" would misreport it as no data.
- */
-function accessSummary(product: DP.DataProduct): string {
-  const total = product.members.length
-  if (!total) return 'Contents not visible to you'
-  const readable = product.members.filter((m) => m.readable).length
-  if (readable === total) return `${total} member${total === 1 ? '' : 's'}`
-  return `${readable} of ${total} members readable`
-}
-
 interface DataProductCardProps {
   product: DP.DataProduct
 }
@@ -133,8 +110,8 @@ export default function DataProductCard({ product }: DataProductCardProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const to = urls.dataProduct(product.id)
-  const caps = DP.CAPABILITIES[product.binding.kind]
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const caps = DP.capabilitiesFor(product.binding.kind)
+  const platform = DP.PLATFORM_LABEL[product.binding.kind]
 
   return (
     <div
@@ -180,7 +157,7 @@ export default function DataProductCard({ product }: DataProductCardProps) {
           ) : (
             <M.Chip label="Data product" size="small" />
           )}
-          <span className={classes.access}>{accessSummary(product)}</span>
+          <span className={classes.access}>{DP.accessSummary(product)}</span>
         </div>
       </div>
     </div>
