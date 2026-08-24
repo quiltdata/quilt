@@ -199,7 +199,7 @@ contribute twice without introducing a second visual language:
 | Pink Deep | #f8bbd0 | #880e4f | 100/900 |
 | Brown | #efebe9 | #4e342e | 50/800 |
 | Brown Deep | #d7ccc8 | #3e2723 | 100/900 |
-| Blue | #e3f2fd | #1565c0 | 50/800 |
+| Blue | #bbdefb | #0d47a1 | 100/900 |
 | Cyan Deep | #b2ebf2 | #006064 | 100/900 |
 | Blue Grey | #cfd8dc | #37474f | 100/800 |
 

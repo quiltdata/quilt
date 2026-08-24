@@ -59,19 +59,13 @@ export function getInitials(label: string): string {
   return (words[0][0] + words[1][0]).toUpperCase()
 }
 
-// DESIGN.md > Colors > Identity Tints. A closed set: it excludes the Amber
-// Indicator's hue (an identity must never read as a selection) and the
-// semantic Info/Warning pairs.
-//
-// One scheme throughout -- a pale Material ground carrying a dark ink of its own
-// hue -- in two tiers, 50/800 and 100/900, so a family can contribute twice
-// without a second visual language. Every pair clears AA for the initials, and no
-// two grounds sit closer than the incumbent teal/green pair did.
-//
-// Four families stay out, and the exclusions are the load-bearing part: light
-// blue's 50 *is* the documented Info Blue wash, red and deep orange are the error
-// register, amber/orange/yellow are the Indicator's hue, and lime cannot clear AA
-// against any same-hue ink.
+// DESIGN.md > Colors > Identity Tints, which this array must match exactly.
+// Each pair is a pale Material ground carrying a dark ink of its own hue, so the
+// initials clear AA on the disc at full strength. The excluded families are the
+// load-bearing part: the error register (red, deep orange), the Indicator's hue
+// (amber/orange/yellow), light blue -- whose 50 *is* the Info Blue wash -- and
+// lime, which clears AA against no ink of its own hue. The spec asserts the
+// properties a new pair has to hold.
 export const IDENTITY_TINTS = [
   { bg: '#e8eaf6', fg: '#283593' }, // indigo
   { bg: '#c5cae9', fg: '#1a237e' }, // indigo deep
@@ -85,7 +79,7 @@ export const IDENTITY_TINTS = [
   { bg: '#f8bbd0', fg: '#880e4f' }, // pink deep
   { bg: '#efebe9', fg: '#4e342e' }, // brown
   { bg: '#d7ccc8', fg: '#3e2723' }, // brown deep
-  { bg: '#e3f2fd', fg: '#1565c0' }, // blue
+  { bg: '#bbdefb', fg: '#0d47a1' }, // blue
   { bg: '#b2ebf2', fg: '#006064' }, // cyan deep
   { bg: '#cfd8dc', fg: '#37474f' }, // blue grey
 ]
@@ -171,8 +165,12 @@ export default function BucketIcon({
   if (initials) {
     const tint = getIdentityTint(tintKey || label)
     return (
+      // Deliberately not `optClasses?.stub`: that slot styles the decorative
+      // glyph, where dimming is free. The tints clear AA at full strength only,
+      // so an opacity meant for artwork would composite the ink toward the row
+      // and drop the initials below the 4.5 floor.
       <div
-        className={cx(classes.root, classes.initials, optClasses?.stub, optClassName)}
+        className={cx(classes.root, classes.initials, optClassName)}
         style={{
           ...style,
           backgroundColor: tint.bg,

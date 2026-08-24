@@ -89,35 +89,6 @@ function useLegacyBucketNameParam() {
   return Array.isArray(params.bucket) ? params.bucket[0] : params.bucket
 }
 
-const useCustomBucketIconStyles = M.makeStyles({
-  stub: {
-    opacity: 0.7,
-  },
-})
-
-interface CustomBucketIconProps {
-  src: string
-  // Passed through so a bucket with no custom icon wears the same initials disc
-  // it wears on the volumes landing, rather than an anonymous glyph stub -- one
-  // bucket, one mark, on every screen.
-  label: string
-  tintKey: string
-}
-
-function CustomBucketIcon({ src, label, tintKey }: CustomBucketIconProps) {
-  const classes = useCustomBucketIconStyles()
-
-  return (
-    <BucketIcon
-      classes={classes}
-      src={src}
-      label={label}
-      tintKey={tintKey}
-      title="Default icon"
-    />
-  )
-}
-
 const columns: Table.Column<BucketConfig>[] = [
   {
     id: 'name',
@@ -140,8 +111,10 @@ const columns: Table.Column<BucketConfig>[] = [
     sortable: false,
     align: 'center',
     getValue: R.prop('iconUrl'),
+    // `label`/`tintKey` so a bucket with no custom icon wears the same initials
+    // disc it wears on the volumes landing -- one bucket, one mark, everywhere.
     getDisplay: (v: string, b: BucketConfig) => (
-      <CustomBucketIcon src={v} label={b.title} tintKey={b.name} />
+      <BucketIcon src={v} label={b.title} tintKey={b.name} title="Default icon" />
     ),
   },
   {

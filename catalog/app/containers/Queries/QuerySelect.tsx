@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import useId from 'utils/useId'
+
 interface AbstractQuery {
   key: string
   name: string
@@ -32,6 +34,7 @@ export default function QuerySelect<T>({
   queries,
   value,
 }: QuerySelectProps<T & AbstractQuery>) {
+  const helperId = useId()
   const handleChange = React.useCallback(
     (event) => {
       if (event.target.value === LOAD_MORE && onLoadMore) {
@@ -44,10 +47,17 @@ export default function QuerySelect<T>({
   )
 
   return (
-    <M.FormControl className={className} error={error} fullWidth>
+    // `disabled` belongs on the FormControl, not the Select: MUI propagates it
+    // down through context, and only from here do the label and helper text pick
+    // it up too.
+    <M.FormControl
+      className={className}
+      disabled={disabled || !queries.length}
+      error={error}
+      fullWidth
+    >
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select
-        disabled={disabled || !queries.length}
         onChange={handleChange}
         // The menu rows need `ListItemText` for the name + description pair, but
         // `Select` reuses the selected row's children as the field's display
@@ -56,6 +66,10 @@ export default function QuerySelect<T>({
         // leaving the two underlines misaligned. Same trap `Workgroups` avoids by
         // using bare text in its rows.
         renderValue={() => value?.name ?? 'Custom'}
+        // Not `aria-describedby` on the Select: that lands on the hidden native
+        // input. The focusable node is the `role="button"` display div, which is
+        // only reachable through `SelectDisplayProps`.
+        SelectDisplayProps={helperText ? { 'aria-describedby': helperId } : undefined}
         value={value?.key || 'none'}
       >
         <M.MenuItem disabled value="none">
@@ -74,11 +88,10 @@ export default function QuerySelect<T>({
           </M.MenuItem>
         )}
       </M.Select>
-      {/* Inside the FormControl, so it inherits the field's disabled and error
-          state and is wired to the input for assistive tech -- a sibling below
-          the control reads at full strength beside a disabled field, and adds its
-          height to the row rather than to the field. */}
-      {!!helperText && <M.FormHelperText>{helperText}</M.FormHelperText>}
+      {/* Inside the FormControl so its height lands on the field rather than on
+          the flex row, which would push this field's underline below the
+          workgroup Select's. */}
+      {!!helperText && <M.FormHelperText id={helperId}>{helperText}</M.FormHelperText>}
     </M.FormControl>
   )
 }

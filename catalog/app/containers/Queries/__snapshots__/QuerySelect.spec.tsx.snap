@@ -5,7 +5,7 @@ exports[`containers/Queries/QuerySelect > should render 1`] = `
   class="MuiFormControl-root MuiFormControl-fullWidth"
 >
   <label
-    class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+    class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink Mui-disabled Mui-disabled MuiFormLabel-filled"
     data-shrink="true"
   >
     Label

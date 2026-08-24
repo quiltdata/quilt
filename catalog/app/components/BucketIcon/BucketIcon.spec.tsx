@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as M from '@material-ui/core'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 import { render, cleanup } from '@testing-library/react'
 import { describe, expect, it, afterEach } from 'vitest'
@@ -62,34 +63,69 @@ describe('components/BucketIcon', () => {
   // hold. Asserted here so adding a tint cannot quietly ship an illegible disc or
   // borrow a reserved hue -- the two ways this palette degrades.
   describe('the identity tint palette', () => {
-    const lum = (hex: string) => {
-      const ch = (i: number) => {
-        const c = parseInt(hex.slice(i, i + 2), 16) / 255
-        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-      }
-      return 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5)
+    const HEX = /^#[0-9a-f]{6}$/
+    const channels = (hex: string) => {
+      // Assert the format rather than trusting `parseInt`: it yields NaN on bad
+      // input, and every comparison against NaN is false, so an illegible pair
+      // would filter *out* of a failures list instead of failing the test.
+      expect(hex).toMatch(HEX)
+      return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
     }
+    const lum = (hex: string) =>
+      channels(hex)
+        .map((v) => {
+          const c = v / 255
+          return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+        })
+        .reduce((acc, c, i) => acc + [0.2126, 0.7152, 0.0722][i] * c, 0)
     const contrast = (a: string, b: string) => {
       const [l1, l2] = [lum(a), lum(b)]
       return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
     }
+    const distance = (a: string, b: string) => {
+      const [ca, cb] = [channels(a), channels(b)]
+      return Math.hypot(...ca.map((v, i) => v - cb[i]))
+    }
+
+    // The Amber Indicator (an identity must never read as a selection), the Info
+    // Blue pair, and the Warning Amber pair.
+    const RESERVED = ['#fb8c00', '#039be5', '#e1f5fe', '#fff59d', '#f57f17']
 
     it('carries enough tints to tell a wall of volumes apart', () => {
       expect(IDENTITY_TINTS.length).toBeGreaterThanOrEqual(12)
     })
 
     it('clears AA for the initials on every ground', () => {
-      const failures = IDENTITY_TINTS.filter(({ bg, fg }) => contrast(bg, fg) < 4.5)
-      expect(failures).toEqual([])
+      const ratios = IDENTITY_TINTS.map(({ bg, fg }) => ({
+        bg,
+        fg,
+        ratio: contrast(bg, fg),
+      }))
+      // Finiteness asserted alongside the floor: a NaN ratio compares false
+      // against 4.5 and would otherwise pass as legible.
+      ratios.forEach(({ ratio }) => expect(Number.isFinite(ratio)).toBe(true))
+      expect(ratios.filter(({ ratio }) => ratio < 4.5)).toEqual([])
     })
 
-    it('excludes the reserved accent and semantic hues', () => {
-      // The Amber Indicator (an identity must never read as a selection), the
-      // Info Blue wash, and the Warning Amber pair. `#e1f5fe` is the trap: it is
-      // Material Light Blue 50 *and* the documented Info wash.
-      const reserved = ['#fb8c00', '#039be5', '#e1f5fe', '#fff59d', '#f57f17']
-      const used = IDENTITY_TINTS.flatMap(({ bg, fg }) => [bg, fg])
-      expect(used.filter((c) => reserved.includes(c))).toEqual([])
+    // Not an exact-string match: `#e3f2fd` sat 3.74 from the Info wash and read
+    // as it, while the palette's own closest legitimate grounds are 11.70 apart.
+    // Distance is the property that keeps an identity from borrowing a meaning.
+    it('keeps every tint visibly clear of the reserved hues', () => {
+      const tooClose = IDENTITY_TINTS.flatMap(({ bg, fg }) =>
+        [bg, fg].flatMap((c) =>
+          RESERVED.filter((r) => distance(c, r) < 10).map((r) => ({
+            color: c,
+            reserved: r,
+          })),
+        ),
+      )
+      expect(tooClose).toEqual([])
+    })
+
+    // A ground indistinguishable from the app canvas reads as no disc at all.
+    it('keeps every ground clear of the app canvas', () => {
+      const canvas = '#fafafa'
+      expect(IDENTITY_TINTS.filter(({ bg }) => distance(bg, canvas) < 10)).toEqual([])
     })
 
     it('has no duplicate grounds', () => {
@@ -187,6 +223,33 @@ describe('components/BucketIcon', () => {
       custom: 'CUSTOM',
       stub: 'STUB',
     }
+
+    // The palette clears AA at full strength only. The `stub` slot styles the
+    // decorative glyph, so a consumer may legitimately dim it; routed onto the
+    // initials it would composite the ink toward the row and drop the disc below
+    // the floor the palette test certifies. Rendered here the way the admin
+    // table renders it, because the array-level AA test cannot see this.
+    it('does not dim the initials disc when a consumer dims the glyph slot', () => {
+      const useDimmedStub = M.makeStyles({ stub: { opacity: 0.7 } })
+      function AdminStyleIcon() {
+        return (
+          <BucketIcon
+            classes={useDimmedStub()}
+            src=""
+            label="Bake Testing"
+            tintKey="quilt-bake"
+            title="Default icon"
+          />
+        )
+      }
+
+      const { container } = render(<AdminStyleIcon />)
+      const disc = container.querySelector('[class*="initials"]') as HTMLElement
+      expect(disc).not.toBeNull()
+      expect(disc.className).not.toContain('stub')
+      // Unset reads as '' rather than '1' in jsdom, and unset is the passing case.
+      expect(window.getComputedStyle(disc).opacity || '1').toBe('1')
+    })
 
     it('should apply className', () => {
       const { getByAltText } = render(
