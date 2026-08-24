@@ -143,6 +143,24 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   more: {
     marginTop: t.spacing(0.5),
   },
+  // A quiet row above the list, not a titled control: the label sits inline with
+  // the select so the pair reads as one caption-scale line rather than adding a
+  // second heading over a panel that already has one.
+  order: {
+    alignItems: 'baseline',
+    display: 'flex',
+    gap: t.spacing(0.5),
+    justifyContent: 'flex-end',
+    marginBottom: t.spacing(0.5),
+  },
+  orderLabel: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+  },
+  orderSelect: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+  },
 }))
 
 interface AvailablePackagesMetaFiltersProps {
@@ -153,6 +171,10 @@ interface AvailablePackagesMetaFiltersProps {
     visible: SearchUIModel.FacetTree
     hidden: SearchUIModel.FacetTree
   }
+  ordering: {
+    value: SearchUIModel.FacetOrdering
+    set: (value: SearchUIModel.FacetOrdering) => void
+  }
   fetching: boolean
 }
 
@@ -160,6 +182,7 @@ function AvailablePackagesMetaFilters({
   className,
   filtering,
   facets,
+  ordering,
   fetching,
 }: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
@@ -167,8 +190,40 @@ function AvailablePackagesMetaFilters({
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
+  // Withheld below a handful of fields: with three filters on screen the order
+  // they are in is self-evident, and a control that cannot change anything a
+  // reader would notice is the dead affordance PRODUCT.md rules out.
+  const showOrdering = facets.available.length >= SearchUIModel.FACET_ORDERING_THRESHOLD
+
   return (
     <div className={className}>
+      {showOrdering && (
+        <div className={classes.order}>
+          <span className={classes.orderLabel} id="meta-order-label">
+            Order by
+          </span>
+          <FiltersUI.Select<SearchUIModel.FacetOrderBy>
+            className={classes.orderSelect}
+            disableUnderline
+            disabled={fetching}
+            extents={[...SearchUIModel.FACET_ORDER_BY]}
+            getOptionLabel={(o) => SearchUIModel.FACET_ORDER_BY_LABELS[o]}
+            inputProps={{ 'aria-labelledby': 'meta-order-label' }}
+            onChange={(by) => ordering.set({ ...ordering.value, by })}
+            value={ordering.value.by}
+          />
+          <FiltersUI.Select<SearchUIModel.FacetOrderDirection>
+            className={classes.orderSelect}
+            disableUnderline
+            disabled={fetching}
+            extents={[...SearchUIModel.FACET_ORDER_DIRECTIONS]}
+            getOptionLabel={(d) => SearchUIModel.FACET_ORDER_DIRECTION_LABELS[d]}
+            inputProps={{ 'aria-label': 'Order direction' }}
+            onChange={(direction) => ordering.set({ ...ordering.value, direction })}
+            value={ordering.value.direction}
+          />
+        </div>
+      )}
       {SearchUIModel.FacetsFilteringState.match({
         Enabled: ({ value, set }) => (
           <FiltersUI.TinyTextField
