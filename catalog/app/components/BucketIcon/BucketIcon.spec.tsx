@@ -80,6 +80,43 @@ describe('components/BucketIcon', () => {
       expect(getByAltText('Custom')).toBeTruthy()
       expect(container.querySelector('svg')).toBeNull()
     })
+
+    // The property the admin screens depend on: they render the same bucket the
+    // volumes landing does, at a different size and from a different title, so
+    // the tint has to key off `tintKey` alone or one bucket wears two marks.
+    it('tints from `tintKey`, so one bucket keeps its mark across surfaces', () => {
+      const bg = (c: HTMLElement) =>
+        (c.querySelector('[class*="initials"]') as HTMLElement).style.backgroundColor
+
+      const landing = render(
+        <BucketIcon src={null} label="quilt-bake" tintKey="quilt-bake" size={44} />,
+      )
+      // The admin table sizes it smaller and the row's title may differ from the
+      // name; neither may move the tint.
+      const admin = render(
+        <BucketIcon src={null} label="Bake Testing" tintKey="quilt-bake" size={32} />,
+      )
+
+      expect(bg(landing.container)).toBe(bg(admin.container))
+      expect(bg(landing.container)).not.toBe('')
+    })
+
+    // Not "different buckets get different tints" -- with a 6-entry table
+    // collisions are inevitable and intended. What matters is that the same
+    // initials do not force the same tint, so a `quilt-*` wall spreads rather
+    // than rendering as one flat color.
+    it('spreads shared-prefix buckets across the palette', () => {
+      const bg = (label: string, tintKey: string) => {
+        const { container } = render(
+          <BucketIcon src={null} label={label} tintKey={tintKey} />,
+        )
+        return (container.querySelector('[class*="initials"]') as HTMLElement).style
+          .backgroundColor
+      }
+      const names = ['quilt-bake', 'quilt-cellarity', 'quilt-dev', 'quilt-exec']
+      const tints = new Set(names.map((n) => bg('Quilt Thing', n)))
+      expect(tints.size).toBeGreaterThan(1)
+    })
   })
 
   describe('class names', () => {

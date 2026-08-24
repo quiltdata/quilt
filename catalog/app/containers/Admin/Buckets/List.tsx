@@ -97,12 +97,25 @@ const useCustomBucketIconStyles = M.makeStyles({
 
 interface CustomBucketIconProps {
   src: string
+  // Passed through so a bucket with no custom icon wears the same initials disc
+  // it wears on the volumes landing, rather than an anonymous glyph stub -- one
+  // bucket, one mark, on every screen.
+  label: string
+  tintKey: string
 }
 
-function CustomBucketIcon({ src }: CustomBucketIconProps) {
+function CustomBucketIcon({ src, label, tintKey }: CustomBucketIconProps) {
   const classes = useCustomBucketIconStyles()
 
-  return <BucketIcon classes={classes} src={src} title="Default icon" />
+  return (
+    <BucketIcon
+      classes={classes}
+      src={src}
+      label={label}
+      tintKey={tintKey}
+      title="Default icon"
+    />
+  )
 }
 
 const columns: Table.Column<BucketConfig>[] = [
@@ -127,7 +140,9 @@ const columns: Table.Column<BucketConfig>[] = [
     sortable: false,
     align: 'center',
     getValue: R.prop('iconUrl'),
-    getDisplay: (v: string) => <CustomBucketIcon src={v} />,
+    getDisplay: (v: string, b: BucketConfig) => (
+      <CustomBucketIcon src={v} label={b.title} tintKey={b.name} />
+    ),
   },
   {
     id: 'title',
