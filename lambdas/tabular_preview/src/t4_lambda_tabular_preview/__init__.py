@@ -120,8 +120,8 @@ def write_data_as_arrow(data, schema, max_size):
 
             if not writer.stats.num_record_batches:
                 # perspective's arrow_loader.cpp calls Table::FromRecordBatches
-                # without a schema, so it rejects a batch-less file. Fixed in v3,
-                # not v2.
+                # without a schema, so it rejects a batch-less file. Fixed in
+                # 3.2.0 by finos/perspective#2854; the catalog pins 1.9.4.
                 writer.write(pyarrow.RecordBatch.from_pylist([], schema=schema))
 
     return memoryview(buf.getvalue()), truncated
