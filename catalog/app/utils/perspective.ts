@@ -52,6 +52,10 @@ function usePerspective(
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
     let table: Table | null = null
     let viewer: HTMLPerspectiveViewerElement | null = null
+    // NOTE: `data` is a dep, so "Load more" re-runs this effect. Without the
+    //       flag, the aborted run's outcome would land on the run that replaced
+    //       it -- an error over a preview that is loading fine.
+    let cancelled = false
 
     async function renderData() {
       if (!container) return
@@ -71,6 +75,7 @@ function usePerspective(
       }
 
       const size = await table.size()
+      if (cancelled) return
       setState({
         rotateThemes: async () => {
           const settings = await viewer?.save()
@@ -95,12 +100,14 @@ function usePerspective(
     //       `size()` and `onRender` reject too, and an unhandled rejection here
     //       leaves the preview blank with nothing to show for it
     renderData().catch((e) => {
+      if (cancelled) return
       const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
       setState(error)
       log.error(error)
     })
 
     return () => {
+      cancelled = true
       disposeTable()
     }
   }, [attrs, config, container, data, onRender])
