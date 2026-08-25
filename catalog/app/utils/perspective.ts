@@ -56,15 +56,8 @@ function usePerspective(
     async function renderData() {
       if (!container) return
 
-      try {
-        viewer = renderViewer(container, attrs)
-        table = await renderTable(data, viewer)
-      } catch (e) {
-        const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
-        setState(error)
-        log.error(error)
-        return
-      }
+      viewer = renderViewer(container, attrs)
+      table = await renderTable(data, viewer)
 
       const regularTable: RegularTableElement | null =
         viewer.querySelector('regular-table')
@@ -98,7 +91,14 @@ function usePerspective(
       await table?.delete()
     }
 
-    renderData()
+    // NOTE: catch the whole thing, not just the load: `restore(config)`,
+    //       `size()` and `onRender` reject too, and an unhandled rejection here
+    //       leaves the preview blank with nothing to show for it
+    renderData().catch((e) => {
+      const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
+      setState(error)
+      log.error(error)
+    })
 
     return () => {
       disposeTable()
