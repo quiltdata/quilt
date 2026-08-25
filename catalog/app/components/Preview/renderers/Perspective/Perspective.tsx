@@ -40,7 +40,7 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface ToolbarProps {
   className: string
   onLoadMore?: () => void
-  state: perspective.Model
+  state: perspective.State | null
   truncated: boolean
 }
 
@@ -94,30 +94,27 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: t.spacing(60),
+    overflow: 'hidden',
+    // NOTE: padding is required because perspective-viewer covers resize handle
+    padding: '0 0 8px',
+    resize: 'vertical',
+  },
+  fullHeight: {
+    minHeight: t.spacing(120),
+  },
   meta: {
-    marginBottom: t.spacing(2),
+    marginBottom: t.spacing(1),
   },
   viewer: {
-    background: '#f2f4f6',
     flexGrow: 1,
     zIndex: 1,
   },
   toolbar: {
     marginBottom: t.spacing(1),
-  },
-  table: {
-    flexGrow: 1,
-    minHeight: t.spacing(60),
-
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-
-    // NOTE: padding is required because perspective-viewer covers resize handle
-    //       and for inset shadows
-    padding: t.spacing(0.5, 0.5, 1),
-    boxShadow: `inset 0 0 ${t.spacing(0.5)}px rgba(0, 0, 0, 0.2)`,
-    resize: 'vertical',
   },
   warning: {
     marginTop: t.spacing(2),
@@ -127,14 +124,17 @@ const useStyles = M.makeStyles((t) => ({
 export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>, PerspectiveOptions {
   data: perspective.PerspectiveInput
+  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
 }
 
-function Perspective({
+function PerspectiveTable({
+  children,
   className,
   data,
+  meta,
   onLoadMore,
   onRender,
   truncated,
@@ -143,46 +143,57 @@ function Perspective({
 }: PerspectiveProps) {
   const classes = useStyles()
 
-  const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
-  const state = perspective.use(anchorEl, data, classes.viewer, config, onRender)
+  const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
+
+  const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
+  const state = perspective.use(root, data, attrs, config, onRender)
 
   return (
-    <div className={className} {...props}>
-      {state && (
-        <Toolbar
-          className={classes.toolbar}
-          state={state}
-          onLoadMore={onLoadMore}
-          truncated={truncated}
-        />
-      )}
-      <div ref={setAnchorEl} className={classes.table} />
+    <div
+      className={cx(className, classes.root, classes.fullHeight)}
+      ref={setRoot}
+      {...props}
+    >
+      <Toolbar
+        className={classes.toolbar}
+        state={state}
+        onLoadMore={onLoadMore}
+        truncated={truncated}
+      />
+      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+      {children}
     </div>
   )
 }
 
-interface TabularProps extends PerspectiveProps {
+interface ErrorFallbackProps {
+  className?: string
   meta?: ParquetMetadata | H5adMetadata | PackageMetadata
 }
 
-function ErrorFallback() {
+// NOTE: this mirrors the markup the inline error branch used to render, metadata
+//       included. `react-error-boundary` does not catch what its own fallback
+//       throws, so an error originating in `Metadata` still escalates to the
+//       app-level boundary -- as it did before there was a boundary here.
+function ErrorFallback({ className, meta }: ErrorFallbackProps) {
   const classes = useStyles()
   return (
-    <Lab.Alert className={classes.warning} severity="info" icon={false}>
-      Could not render tabular data
-    </Lab.Alert>
+    <div className={cx(className, classes.root)}>
+      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+      <Lab.Alert className={classes.warning} severity="info" icon={false}>
+        Could not render tabular data
+      </Lab.Alert>
+    </div>
   )
 }
 
-export default function Tabular({ meta, ...props }: TabularProps) {
-  const classes = useStyles()
-
+export default function Perspective({ className, meta, ...props }: PerspectiveProps) {
   return (
-    <>
-      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <Perspective {...props} />
-      </ErrorBoundary>
-    </>
+    <ErrorBoundary
+      resetKeys={[props.data]}
+      fallbackRender={() => <ErrorFallback className={className} meta={meta} />}
+    >
+      <PerspectiveTable className={className} meta={meta} {...props} />
+    </ErrorBoundary>
   )
 }
