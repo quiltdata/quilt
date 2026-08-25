@@ -119,12 +119,7 @@ def write_data_as_arrow(data, schema, max_size):
                 writer.write(batch)
 
             if not writer.stats.num_record_batches:
-                # A file carrying a schema and no record batches is not loadable:
-                # perspective builds its table from the batches and rejects one with
-                # none ("Must pass at least one record batch or an explicit Schema"),
-                # so the preview fails instead of showing an empty table. Reached by
-                # a header-only file, one whose every data row was skipped as
-                # invalid, or a first batch already too large for max_size.
+                # perspective rejects an IPC file with a schema and no batches
                 writer.write(pyarrow.RecordBatch.from_pylist([], schema=schema))
 
     return memoryview(buf.getvalue()), truncated
