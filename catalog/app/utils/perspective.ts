@@ -39,46 +39,6 @@ export async function renderTable(
   return table
 }
 
-function listenOnRender(
-  viewer: HTMLPerspectiveViewerElement,
-  onRender?: (tableEl: RegularTableElement) => void,
-) {
-  const regularTable: RegularTableElement | null = viewer.querySelector('regular-table')
-  if (!onRender || !regularTable?.addStyleListener) return
-  onRender(regularTable)
-  regularTable.addStyleListener(({ detail }) => onRender(detail))
-}
-
-function mkRotateThemes(viewer: HTMLPerspectiveViewerElement) {
-  return async () => {
-    const settings = await viewer.save()
-    // @ts-expect-error `ViewConfig` type doesn't have `theme`
-    const themeIndex = themes.findIndex((t) => t === settings?.theme)
-    const theme = themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
-    viewer.restore({ theme } as ViewConfig)
-  }
-}
-
-async function mkState(
-  viewer: HTMLPerspectiveViewerElement,
-  table: Table,
-): Promise<State> {
-  return {
-    rotateThemes: mkRotateThemes(viewer),
-    size: await table.size(),
-    toggleConfig: () => viewer.toggleConfig(),
-  }
-}
-
-async function disposeViewer(
-  viewer: HTMLPerspectiveViewerElement | null,
-  table: Table | null,
-) {
-  viewer?.parentNode?.removeChild(viewer)
-  await viewer?.delete()
-  await table?.delete()
-}
-
 function usePerspective(
   container: HTMLDivElement | null,
   data: PerspectiveInput,
@@ -103,15 +63,37 @@ function usePerspective(
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
 
-      listenOnRender(viewer, onRender)
+      const regularTable: RegularTableElement | null =
+        viewer.querySelector('regular-table')
+      if (onRender && regularTable?.addStyleListener) {
+        onRender(regularTable)
+        regularTable.addStyleListener(({ detail }) => onRender(detail))
+      }
 
       if (config) {
         await viewer.restore(config)
       }
 
-      const next = await mkState(viewer, table)
+      const size = await table.size()
       if (cancelled) return
-      setState(next)
+      setState({
+        rotateThemes: async () => {
+          const settings = await viewer?.save()
+          // @ts-expect-error `ViewConfig` type doesn't have `theme`
+          const themeIndex = themes.findIndex((t) => t === settings?.theme)
+          const theme =
+            themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
+          viewer?.restore({ theme } as ViewConfig)
+        },
+        size,
+        toggleConfig: () => viewer?.toggleConfig(),
+      })
+    }
+
+    async function disposeTable() {
+      viewer?.parentNode?.removeChild(viewer)
+      await viewer?.delete()
+      await table?.delete()
     }
 
     // NOTE: catch the whole thing, not just the load: `restore(config)`,
@@ -126,7 +108,7 @@ function usePerspective(
 
     return () => {
       cancelled = true
-      disposeViewer(viewer, table)
+      disposeTable()
     }
   }, [attrs, config, container, data, onRender])
 
