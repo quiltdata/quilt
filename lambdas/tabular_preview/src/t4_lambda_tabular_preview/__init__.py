@@ -119,7 +119,9 @@ def write_data_as_arrow(data, schema, max_size):
                 writer.write(batch)
 
             if not writer.stats.num_record_batches:
-                # perspective rejects an IPC file with a schema and no batches
+                # perspective rejects an IPC file with a schema and no batches. Fixed
+                # in the v3 Rust engine, still broken in v2, so this goes when the
+                # catalog reaches v3 -- not on a v2 upgrade.
                 writer.write(pyarrow.RecordBatch.from_pylist([], schema=schema))
 
     return memoryview(buf.getvalue()), truncated
