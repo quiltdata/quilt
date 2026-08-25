@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] A preview with no rows is now a loadable Arrow file: a 0-row table yields no record batches, and a batch-less IPC file cannot be loaded, so a header-only file or one whose every data row was skipped as invalid failed to render instead of showing an empty table (PR-NUMBER)
 - [Added] Preview h5ad (anndata) files ([#4636](https://github.com/quiltdata/quilt/pull/4636))
 - [Changed] Switch to uv ([#4654](https://github.com/quiltdata/quilt/pull/4654))
 - [Changed] Upgrade to Python 3.13 ([#4654](https://github.com/quiltdata/quilt/pull/4654))
