@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import json
 import locale
 import math
 import os
@@ -1227,6 +1228,80 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(PackageException):
             Package.browse(pkg_name, registry=registry, top_hash=expected_top_hash)
 
+        assert not cache_path.exists()
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_recovers_from_corrupt_cached_manifest(self):
+        """A cached manifest that won't parse is evicted and re-downloaded, not fatal forever.
+
+        Nothing re-downloads a file that exists, so without eviction one truncated
+        cache entry (e.g. written by a pre-fix quilt3 racing on the shared .tmp name)
+        fails every future browse of that revision with no way back but rm -rf.
+        """
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+        top_hash = self.default_test_top_hash
+
+        cache_dir = quilt3.packages.CACHE_PATH / 'manifest'
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = (
+            cache_dir / hashlib.sha256(str(pkg_registry.manifest_pk(pkg_name, top_hash)).encode()).hexdigest()
+        )
+        # Truncated mid-line: valid JSONL prefix, unparseable as a whole.
+        cache_path.write_bytes(REMOTE_MANIFEST.read_bytes()[:40])
+
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            pkg_name,
+            top_hash=top_hash,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        pkg = Package.browse(pkg_name, registry=registry)
+        assert 'foo' in pkg
+        # Repaired in place, so the next browse is a cache hit again.
+        assert cache_path.exists()
+        assert cache_path.read_bytes() == REMOTE_MANIFEST.read_bytes()
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_reports_unverifiable_manifest_actionably(self):
+        """An entry without hash/size makes verification impossible; say so in those terms.
+
+        The bare QuiltException names a physical key and nothing about manifests,
+        hashes, or what to do -- and since verification cannot be skipped, that
+        message is the user's only lead.
+        """
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+        top_hash = self.default_test_top_hash
+
+        lines = REMOTE_MANIFEST.read_bytes().splitlines()
+        entry = json.loads(lines[1])
+        entry['hash'] = None
+        lines[1] = json.dumps(entry).encode()
+        manifest = b'\n'.join(lines) + b'\n'
+
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry, pkg_name, top_hash=top_hash, manifest=manifest
+        )
+
+        with pytest.raises(PackageException) as exc_info:
+            Package.browse(pkg_name, registry=registry)
+
+        message = str(exc_info.value)
+        assert pkg_name in message
+        assert top_hash in message
+        assert 'verify' in message.lower()
+
+        # The failed manifest is never promoted into the cache, so a later fix
+        # server-side is picked up by the next browse.
+        cache_path = (
+            quilt3.packages.CACHE_PATH
+            / 'manifest'
+            / hashlib.sha256(str(pkg_registry.manifest_pk(pkg_name, top_hash)).encode()).hexdigest()
+        )
         assert not cache_path.exists()
 
     def test_install_restrictions(self):

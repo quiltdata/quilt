@@ -649,8 +649,34 @@ class Package:
                     stack.callback(os.unlink, local_pkg_manifest)
                 download_manifest(local_pkg_manifest)
 
-            pkg = cls._from_path(local_pkg_manifest)
-            actual_top_hash = pkg.top_hash
+            try:
+                pkg = cls._from_path(local_pkg_manifest)
+            except Exception:
+                # A manifest that cannot be parsed must not survive in the cache:
+                # nothing re-downloads a file that exists, so a bad cached copy would
+                # otherwise fail every future browse of this revision. Evict, re-download
+                # once, and re-parse; a fresh copy that is also bad raises as-is.
+                if cache_path != local_pkg_manifest:
+                    raise
+                cache_path.unlink(missing_ok=True)
+                local_pkg_manifest = cache_path.with_name(f'{cache_path.name}.{uuid.uuid4().hex}.tmp')
+                stack.callback(local_pkg_manifest.unlink, missing_ok=True)
+                download_manifest(local_pkg_manifest)
+                pkg = cls._from_path(local_pkg_manifest)
+            try:
+                actual_top_hash = pkg.top_hash
+            except QuiltException as ex:
+                # Not a cache problem -- the manifest itself cannot be hashed (an
+                # entry lacks 'hash' or 'size', typically from a non-quilt3
+                # producer), so verification is impossible. Name the package and
+                # revision instead of surfacing a bare physical key.
+                raise PackageException(
+                    f"Cannot verify the manifest for {name!r} @ {top_hash!r}: {ex} "
+                    "quilt3 verifies every manifest it reads, which requires 'hash' "
+                    "and 'size' on each entry. If this manifest came from an "
+                    "external producer, re-push the package with quilt3 to "
+                    "normalize it."
+                ) from ex
             if actual_top_hash != top_hash:
                 if cache_path == local_pkg_manifest:
                     cache_path.unlink(missing_ok=True)
