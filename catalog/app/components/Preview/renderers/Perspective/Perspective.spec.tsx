@@ -50,10 +50,10 @@ const meta: ParquetMetadata = {
   shape: [10000, 3],
 }
 
-function renderPerspective() {
+function renderPerspective(props?: Partial<React.ComponentProps<typeof Perspective>>) {
   return render(
     <ThemeProvider theme={theme}>
-      <Perspective data="a,b\n1,2" meta={meta} truncated={false} />
+      <Perspective data="a,b\n1,2" meta={meta} truncated={false} {...props} />
     </ThemeProvider>,
   )
 }
@@ -81,6 +81,18 @@ describe('components/Preview/renderers/Perspective boundary', () => {
     expect(getByText('Could not render tabular data')).toBeTruthy()
     // the metadata panel does not depend on the table, so it must survive
     expect(getByTestId('json')).toBeTruthy()
+  })
+
+  it('keeps the container attributes the caller passed', () => {
+    use.mockImplementation(() => {
+      throw new Error('could not parse')
+    })
+
+    // the fallback replaces the container, so anything the caller put on it --
+    // accessibility attributes, handlers, styling hooks -- has to survive
+    const { getByLabelText } = renderPerspective({ 'aria-label': 'Tabular preview' })
+
+    expect(getByLabelText('Tabular preview')).toBeTruthy()
   })
 
   it('renders the toolbar when the table loads', () => {

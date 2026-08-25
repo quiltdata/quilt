@@ -166,17 +166,26 @@ function PerspectiveTable({
   )
 }
 
-interface ErrorFallbackProps {
-  className?: string
-  meta?: ParquetMetadata | H5adMetadata | PackageMetadata
-}
-
 // NOTE: `react-error-boundary` does not catch what its own fallback throws, so
 //       an error originating in `Metadata` escapes this boundary.
-function ErrorFallback({ className, meta }: ErrorFallbackProps) {
+//
+// NOTE: the destructuring mirrors `PerspectiveTable`'s, so that what is left in
+//       `props` is what belongs on the container -- callers pass DOM attributes
+//       and handlers through, and they have to survive a failed load.
+function ErrorFallback({
+  children,
+  className,
+  config,
+  data,
+  meta,
+  onLoadMore,
+  onRender,
+  truncated,
+  ...props
+}: PerspectiveProps) {
   const classes = useStyles()
   return (
-    <div className={cx(className, classes.root)}>
+    <div className={cx(className, classes.root)} {...props}>
       {!!meta && <Metadata className={classes.meta} metadata={meta} />}
       <Lab.Alert className={classes.warning} severity="info" icon={false}>
         Could not render tabular data
@@ -185,13 +194,13 @@ function ErrorFallback({ className, meta }: ErrorFallbackProps) {
   )
 }
 
-export default function Perspective({ className, meta, ...props }: PerspectiveProps) {
+export default function Perspective(props: PerspectiveProps) {
   return (
     <ErrorBoundary
       resetKeys={[props.data]}
-      fallbackRender={() => <ErrorFallback className={className} meta={meta} />}
+      fallbackRender={() => <ErrorFallback {...props} />}
     >
-      <PerspectiveTable className={className} meta={meta} {...props} />
+      <PerspectiveTable {...props} />
     </ErrorBoundary>
   )
 }
