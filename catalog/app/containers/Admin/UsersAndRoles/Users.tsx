@@ -680,10 +680,14 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelect.Value> name="roles" validate={RoleSelect.validate}>
                 {(props) => (
+                  // `|| isService` locally, not via the registry's coupling of the
+                  // two flags: a registry that reports isService without
+                  // isRoleAssignmentDisabled would otherwise offer a Save the
+                  // registry then refuses.
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
-                    nonAssignable={user.isRoleAssignmentDisabled}
+                    nonAssignable={user.isRoleAssignmentDisabled || user.isService}
                     nonAssignableReason={user.isService ? 'service' : 'sso'}
                     {...props}
                   />
@@ -775,21 +779,38 @@ const useEditableStyles = M.makeStyles((t) => ({
 
 interface EditableSwitchProps {
   disabled?: boolean
+  /** Why the control is disabled — a disabled switch with no cause is
+   * indistinguishable from a rendering bug, and two different causes (self,
+   * service user) sit in the same column. */
+  disabledReason?: NonNullable<React.ReactNode>
   checked: boolean
   onChange: (v: boolean) => void
   hint: NonNullable<React.ReactNode>
 }
 
-function EditableSwitch({
+// Exported for testing: the disabled branch must keep explaining itself, and
+// only a render proves the tooltip survives the disabled element's dead events.
+export function EditableSwitch({
   disabled = false,
+  disabledReason,
   checked,
   onChange,
   hint,
 }: EditableSwitchProps) {
   const classes = useEditableStyles()
-  return disabled ? (
-    <M.Switch className={classes.root} checked={checked} disabled color="default" />
-  ) : (
+  if (disabled) {
+    const sw = (
+      <M.Switch className={classes.root} checked={checked} disabled color="default" />
+    )
+    if (!disabledReason) return sw
+    return (
+      <M.Tooltip title={disabledReason}>
+        {/* a disabled element fires no events, so the tooltip needs a live wrapper */}
+        <span>{sw}</span>
+      </M.Tooltip>
+    )
+  }
+  return (
     <Editable value={checked} onChange={onChange}>
       {({ change, busy, value }) => (
         <M.Tooltip title={hint}>
@@ -879,6 +900,13 @@ const columns: Table.Column<User>[] = [
       <EditableSwitch
         hint="Deactivated users can't sign in and use the Catalog"
         disabled={isSelf || u.isService}
+        disabledReason={
+          isSelf
+            ? 'You cannot deactivate your own account'
+            : u.isService
+              ? 'This service user is managed by the stack'
+              : undefined
+        }
         checked={u.isActive}
         onChange={(active) => setActive(u.name, active)}
       />
