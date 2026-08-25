@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Fixed] A preview with no rows renders as an empty table instead of failing ([#5214](https://github.com/quiltdata/quilt/pull/5214))
+- [Fixed] A zero-row preview now carries an empty record batch, without which the catalog cannot load it ([#5214](https://github.com/quiltdata/quilt/pull/5214))
 - [Added] Preview h5ad (anndata) files ([#4636](https://github.com/quiltdata/quilt/pull/4636))
 - [Changed] Switch to uv ([#4654](https://github.com/quiltdata/quilt/pull/4654))
 - [Changed] Upgrade to Python 3.13 ([#4654](https://github.com/quiltdata/quilt/pull/4654))
