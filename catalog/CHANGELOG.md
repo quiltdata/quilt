@@ -21,7 +21,6 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Tabular preview: a table that fails to render no longer takes the whole catalog page down with it ([#4671](https://github.com/quiltdata/quilt/pull/4671))
 - [Added] Data products: browse products defined in an enterprise catalog (AWS DataZone, Databricks Unity, Snowflake) alongside buckets in one volume list, with per-member contents, access requests, and admin catalog connections — gated behind the `data-products` preview feature (Admin Settings), off by default, and reading fixture data until catalog adapters land ([#5201](https://github.com/quiltdata/quilt/pull/5201))
 - [Fixed] Volumes landing: filtering to no matches now reports how many volumes were searched and offers to drop individual filter terms or clear the filter, instead of a dead end whose only exit was the field's clear button; the first-run empty state carries its own add path; and the whole bucket card navigates rather than washing on hover while only its header was a link ([#5201](https://github.com/quiltdata/quilt/pull/5201))
 - [Fixed] Volumes landing: restore the page's top-level heading, absent since the shell re-home — a landing page with no `h1` fails WCAG 1.3.1 / 2.4.6 for heading navigation ([#5193](https://github.com/quiltdata/quilt/pull/5193))
