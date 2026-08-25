@@ -104,7 +104,6 @@ def write_data_as_arrow(data, schema, max_size):
         data = data.to_batches(OUT_BATCH_SIZE)
 
     truncated = False
-    written = False
     buf = pyarrow.BufferOutputStream()
     with pyarrow.CompressedOutputStream(buf, "gzip") as sink:
         with pyarrow.ipc.new_file(sink, schema) as writer:
@@ -118,17 +117,14 @@ def write_data_as_arrow(data, schema, max_size):
                     truncated = True
                     break
                 writer.write(batch)
-                written = True
 
-            if not written:
-                # A file carrying a schema and no record batches is not loadable by
-                # the consumer: perspective builds its table from the batches and
-                # rejects a batch-less file outright ("Must pass at least one record
-                # batch or an explicit Schema"), so the preview fails instead of
-                # showing an empty table. Reachable whenever nothing gets written --
-                # a header-only CSV, one whose every data row was skipped as invalid,
-                # or a first batch already too large for max_size. Emit one empty
-                # batch so the schema arrives in a form that loads.
+            if not writer.stats.num_record_batches:
+                # A file carrying a schema and no record batches is not loadable:
+                # perspective builds its table from the batches and rejects one with
+                # none ("Must pass at least one record batch or an explicit Schema"),
+                # so the preview fails instead of showing an empty table. Reached by
+                # a header-only file, one whose every data row was skipped as
+                # invalid, or a first batch already too large for max_size.
                 writer.write(pyarrow.RecordBatch.from_pylist([], schema=schema))
 
     return memoryview(buf.getvalue()), truncated
