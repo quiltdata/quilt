@@ -7,15 +7,13 @@ import type { Json } from 'utils/types'
 
 import type { ParquetMetadata } from '../../loaders/Tabular'
 
-// Containment spec for the Perspective renderer's boundary.
-//
 // `utils/perspective` loads the table inside an async effect, so a parse or
 // worker failure cannot surface as a return value -- it is rethrown during the
-// next render. Without a boundary between that throw and `Errors.ErrorBoundary`
-// in app.tsx, one unreadable Parquet file replaced the whole catalog with the
-// app-level error screen. These tests fail the load and assert the renderer
-// keeps the failure local, and that the metadata panel -- which does not depend
-// on the table at all -- still renders.
+// next render. Absent a boundary between that throw and `Errors.ErrorBoundary`
+// in app.tsx, one unreadable file replaces the whole catalog with the app-level
+// error screen. These tests fail the load and assert the failure stays local,
+// and that the metadata panel -- which does not depend on the table -- renders
+// either way.
 
 vi.mock('constants/config', () => ({ default: {} }))
 

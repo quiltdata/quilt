@@ -171,10 +171,8 @@ interface ErrorFallbackProps {
   meta?: ParquetMetadata | H5adMetadata | PackageMetadata
 }
 
-// NOTE: this mirrors the markup the inline error branch used to render, metadata
-//       included. `react-error-boundary` does not catch what its own fallback
-//       throws, so an error originating in `Metadata` still escalates to the
-//       app-level boundary -- as it did before there was a boundary here.
+// NOTE: `react-error-boundary` does not catch what its own fallback throws, so
+//       an error originating in `Metadata` escapes this boundary.
 function ErrorFallback({ className, meta }: ErrorFallbackProps) {
   const classes = useStyles()
   return (
