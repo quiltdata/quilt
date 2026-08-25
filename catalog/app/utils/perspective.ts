@@ -6,6 +6,8 @@ import perspective from '@finos/perspective'
 import type { Table, TableData, ViewConfig } from '@finos/perspective'
 import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
+import * as Sentry from '@sentry/react'
+
 import log from 'utils/Logging'
 import { themes } from 'utils/perspective-pollution'
 
@@ -101,14 +103,18 @@ function usePerspective(
     //       leaves the preview blank with nothing to show for it
     renderData().catch((e) => {
       if (cancelled) return
-      const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
+      const error = e instanceof Error ? e : new Error((e as any)?.message || `${e}`)
       setState(error)
       log.error(error)
+      // NOTE: the catch covers the whole of `renderData`, so a bug in here
+      //       reaches the user as the same alert an unreadable file does;
+      //       without reporting there would be nothing to tell them apart
+      Sentry.captureException(error)
     })
 
     return () => {
       cancelled = true
-      disposeTable()
+      disposeTable().catch((e) => log.error(e))
     }
   }, [attrs, config, container, data, onRender])
 

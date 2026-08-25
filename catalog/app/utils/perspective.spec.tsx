@@ -29,6 +29,10 @@ vi.mock('@finos/perspective', () => ({
 
 vi.mock('utils/perspective-pollution', () => ({ themes: ['material'] }))
 
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
+
+import * as Sentry from '@sentry/react'
+
 import * as perspective from './perspective'
 
 const size = vi.fn(async () => 2)
@@ -76,6 +80,7 @@ describe('utils/perspective', () => {
 
   beforeEach(() => {
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(Sentry.captureException).mockClear()
     tableCalls.length = 0
     restore.mockReset()
     restore.mockImplementation(async () => {})
@@ -106,6 +111,8 @@ describe('utils/perspective', () => {
     tableCalls[0].resolve(fakeTable)
 
     await waitFor(() => expect(getByTestId('fallback')).toBeTruthy())
+    // the alert alone cannot be told apart from an unreadable file
+    expect(Sentry.captureException).toHaveBeenCalled()
   })
 
   it('surfaces a rejected size()', async () => {
@@ -132,6 +139,7 @@ describe('utils/perspective', () => {
     tableCalls[0].reject(new Error('abandoned'))
     await settle()
     expect(queryByTestId('fallback')).toBeNull()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
 
     tableCalls[1].resolve(fakeTable)
     await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
