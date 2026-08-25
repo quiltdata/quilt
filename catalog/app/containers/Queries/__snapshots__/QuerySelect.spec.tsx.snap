@@ -7,6 +7,7 @@ exports[`containers/Queries/QuerySelect > should render 1`] = `
   <label
     class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink Mui-disabled Mui-disabled MuiFormLabel-filled"
     data-shrink="true"
+    id="test-id-2"
   >
     Label
   </label>
@@ -16,6 +17,7 @@ exports[`containers/Queries/QuerySelect > should render 1`] = `
     <div
       aria-disabled="true"
       aria-haspopup="listbox"
+      aria-labelledby="test-id-2"
       class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
       role="button"
     >
@@ -48,6 +50,7 @@ exports[`containers/Queries/QuerySelect > should render with selected value 1`] 
   <label
     class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
     data-shrink="true"
+    id="test-id-2"
   >
     Label
   </label>
@@ -56,6 +59,7 @@ exports[`containers/Queries/QuerySelect > should render with selected value 1`] 
   >
     <div
       aria-haspopup="listbox"
+      aria-labelledby="test-id-2"
       class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
       role="button"
       tabindex="0"
