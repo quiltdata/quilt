@@ -3,7 +3,7 @@ import { render, fireEvent, screen, cleanup } from '@testing-library/react'
 import * as Icons from '@material-ui/icons'
 import { describe, it, expect, afterEach } from 'vitest'
 
-import WithPopover from './WithPopover'
+import WithPopover, { CloseOnClick } from './WithPopover'
 
 describe('components/Buttons/WithPopover', () => {
   afterEach(cleanup)
@@ -87,8 +87,8 @@ describe('components/Buttons/WithPopover', () => {
     expect(screen.queryByTestId('popup-content')).toBeNull()
   })
 
-  it('should close popup when paper is clicked', () => {
-    const { container } = render(
+  it('should keep popup open when content inside it is clicked', () => {
+    render(
       <WithPopover label="Test Button">
         <div data-testid="popup-content">Popup Content</div>
       </WithPopover>,
@@ -96,15 +96,27 @@ describe('components/Buttons/WithPopover', () => {
 
     const button = screen.getByRole('button', { name: /test button/i })
     fireEvent.click(button)
-
     expect(screen.getByTestId('popup-content')).toBeTruthy()
 
-    const paper = container.querySelector('.MuiPaper-root')
-    if (paper) {
-      fireEvent.click(paper)
-    }
+    fireEvent.click(screen.getByTestId('popup-content'))
+    expect(screen.getByTestId('popup-content')).toBeTruthy()
+  })
 
-    expect(screen.queryByTestId('popup-content')).toBeNull()
+  it('should close popup when CloseOnClick child is clicked', () => {
+    render(
+      <WithPopover label="Test Button">
+        <CloseOnClick>
+          <button data-testid="action-button">Do something</button>
+        </CloseOnClick>
+      </WithPopover>,
+    )
+
+    const trigger = screen.getByRole('button', { name: /test button/i })
+    fireEvent.click(trigger)
+    expect(screen.getByTestId('action-button')).toBeTruthy()
+
+    fireEvent.click(screen.getByTestId('action-button'))
+    expect(screen.queryByTestId('action-button')).toBeNull()
   })
 
   it('should toggle popup state on button click', () => {

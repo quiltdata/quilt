@@ -130,6 +130,11 @@ the entire package *and* its objects, *delete the objects first*.
 *Warning: the objects you delete will be lost forever. Ditto for the package
 revision.*
 
+Deleting a specific object version requires `s3:DeleteObjectVersion`, which
+Quilt read-write roles do not grant by default. Ask a Quilt admin to attach a
+custom policy granting this action to your role; otherwise `delete_object`
+below fails with `AccessDenied`.
+
 To delete, first browse the package then walk it, deleting its entry objects as
 follows:
 

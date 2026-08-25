@@ -1,6 +1,6 @@
 ARG FUNCTION_DIR="/function"
 
-FROM public.ecr.aws/lambda/python:3.12.2025.10.27.11@sha256:503e2bbd691d900f44b965b4accb589fb3cf3e331cc8d091ca56bc0fc6e2afd3 AS base
+FROM public.ecr.aws/lambda/python:3.12.2026.06.21.12@sha256:e5d193e114642db0aefc860339bcfa80a20b3c6e1c178592c9da060b940808fc AS base
 
 FROM base AS build
 

@@ -5,6 +5,7 @@ import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-do
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
 import cfg from 'constants/config'
+import * as URLS from 'constants/urls'
 import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { NotFoundPage } from 'containers/NotFound'
@@ -12,11 +13,22 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 
+import { BucketQueriesRedirect } from './queryRedirects'
+
 const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 function RedirectTo({ path }) {
   const { search } = useLocation()
   return <Redirect to={`${path}${search}`} />
+}
+
+// /install leaves the SPA for the installation docs — react-router's
+// <Redirect> can't navigate off-app, so this hits the browser API directly.
+function InstallDocsRedirect() {
+  React.useEffect(() => {
+    window.location.replace(URLS.install)
+  }, [])
+  return null
 }
 
 const Activate = () => {
@@ -55,7 +67,16 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
+const ConnectAuthorize = requireAuth()(
+  RT.mkLazy(() => import('containers/Connect'), Placeholder),
+)
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+// The query consoles always required an authenticated actor, so gate on auth
+// regardless of the app-level protect mode.
+const DataProducts = requireAuth()(
+  RT.mkLazy(() => import('containers/DataProducts'), Placeholder),
+)
+const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -67,7 +88,10 @@ const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeho
 const OpenProfile = requireAuth()(
   RT.mkLazy(() => import('website/pages/OpenProfile'), Placeholder),
 )
-const Install = RT.mkLazy(() => import('website/pages/Install'), Placeholder)
+
+const BucketList = protect(
+  RT.mkLazy(() => import('website/pages/Landing/BucketList'), Placeholder),
+)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
@@ -80,8 +104,12 @@ export default function App() {
         <Home />
       </Route>
 
+      <Route path={paths.buckets} exact>
+        <BucketList />
+      </Route>
+
       <Route path={paths.install} exact>
-        <Install />
+        <InstallDocsRedirect />
       </Route>
 
       {!!cfg.legacyPackagesRedirect && (
@@ -131,12 +159,13 @@ export default function App() {
         <AuthActivationError />
       </Route>
 
-      {cfg.mode === 'OPEN' && (
-        // XXX: show profile in all modes?
-        <Route path={paths.profile} exact>
-          <OpenProfile />
-        </Route>
-      )}
+      <Route path={paths.connectAuthorize} exact>
+        <ConnectAuthorize />
+      </Route>
+
+      <Route path={paths.profile} exact>
+        <OpenProfile />
+      </Route>
 
       <Route path={paths.admin}>
         <Admin />
@@ -148,6 +177,22 @@ export default function App() {
 
       <Route path={paths.bucketSearch} exact>
         <BucketSearchRedirect />
+      </Route>
+
+      {/* The screen itself reads the `data-products` feature flag and redirects
+          home when it is off, so the route stays registered unconditionally —
+          the gate lives in one place rather than being split between here and
+          the container. */}
+      <Route path={paths.dataProducts}>
+        <DataProducts />
+      </Route>
+
+      <Route path={paths.queries}>
+        <Queries />
+      </Route>
+
+      <Route path={paths.bucketQueries}>
+        <BucketQueriesRedirect />
       </Route>
 
       <Route path={paths.bucketRoot}>

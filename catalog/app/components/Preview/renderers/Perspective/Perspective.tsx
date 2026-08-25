@@ -125,8 +125,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export interface PerspectiveProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    PerspectiveOptions {
+  extends React.HTMLAttributes<HTMLDivElement>, PerspectiveOptions {
   data: perspective.PerspectiveInput
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void

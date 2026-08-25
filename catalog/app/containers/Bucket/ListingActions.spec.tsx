@@ -21,9 +21,11 @@ const defaultPrefs = {
   copyPackage: true,
   createPackage: true,
   deleteRevision: true,
+  deleteObject: true,
   downloadObject: true,
   downloadPackage: true,
   openInDesktop: true,
+  restore: true,
   revisePackage: true,
   writeFile: true,
 }
@@ -54,6 +56,14 @@ vi.mock('utils/AWS', () => ({
   Signer: {
     useDownloadUrl: (h: Model.S3.S3ObjectLocation) => `s3://${h.bucket}/${h.key}`,
   },
+}))
+
+const mockUseBucketExistence = vi.fn(() => ({
+  case: (cases: Record<string, Function>) => cases.Ok(),
+}))
+
+vi.mock('utils/BucketCache', () => ({
+  useBucketExistence: () => mockUseBucketExistence(),
 }))
 
 vi.mock('react-redux', () => ({
@@ -168,6 +178,40 @@ describe('components/ListingActions', () => {
       expect(downloadLink.getAttribute('download')).toBe('')
     })
 
+    it('should render no download for Package file when bucket region is pending', () => {
+      mockUseBucketExistence.mockReturnValueOnce({
+        case: (cases: Record<string, Function>) => cases._(),
+      })
+      const { queryByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+            physicalKey="s3://bucketA/pathB/fileB"
+            prefs={defaultPrefs}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Download')).toBeFalsy()
+    })
+
+    it('should render no download for Package file when bucket does not exist', () => {
+      mockUseBucketExistence.mockReturnValueOnce({
+        case: (cases: Record<string, Function>) => (cases.Err || cases._)(),
+      })
+      const { queryByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+            physicalKey="s3://bucketA/pathB/fileB"
+            prefs={defaultPrefs}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Download')).toBeFalsy()
+    })
+
     it('should render Bucket file without download button', () => {
       const { getByTitle, queryByTitle } = render(
         <TestBucket>
@@ -181,6 +225,36 @@ describe('components/ListingActions', () => {
       expect(getByTitle('Delete')).toBeTruthy()
       expect(getByTitle('Bookmark')).toBeTruthy()
       expect(queryByTitle('Download')).toBeFalsy()
+    })
+
+    it('should render Bucket file without delete button', () => {
+      const { queryByTitle, getByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/tree/fileB"
+            prefs={{ ...defaultPrefs, deleteObject: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Delete')).toBeFalsy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      expect(getByTitle('Download')).toBeTruthy()
+    })
+
+    it('should render Bucket directory without delete button', () => {
+      const { queryByTitle, getByTitle } = render(
+        <TestBucket>
+          <RowActions
+            to="/b/bucketA/tree/dirB/"
+            prefs={{ ...defaultPrefs, deleteObject: false }}
+            onReload={noop}
+          />
+        </TestBucket>,
+      )
+      expect(queryByTitle('Delete')).toBeFalsy()
+      expect(getByTitle('Bookmark')).toBeTruthy()
+      expect(getByTitle('Download')).toBeTruthy()
     })
 
     it('should render Package directory without download button', () => {

@@ -153,7 +153,16 @@ export function useProcessing(asyncResult, process, deps = []) {
   return useMemoEq([asyncResult, deps], () =>
     AsyncResult.case(
       {
-        Ok: R.tryCatch(R.pipe(process, AsyncResult.Ok), AsyncResult.Err),
+        Ok: (value) => {
+          try {
+            return AsyncResult.Ok(process(value))
+          } catch (e) {
+            // Re-throw thenables: a Suspense signal (lazy grammar load) must reach
+            // the boundary, not become an Err.
+            if (e && typeof e.then === 'function') throw e
+            return AsyncResult.Err(e)
+          }
+        },
         _: R.identity,
       },
       asyncResult,

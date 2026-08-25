@@ -49,7 +49,10 @@ export function useManifest({
     // XXX: use RemoteData?
     if (!res.data && pause) return AR.Pending()
     return GQL.fold(res, {
-      data: (data) => {
+      data: (data, { error }) => {
+        // A partial response resolves some fields and nulls others; accepting it would
+        // build a revision out of whatever survived, silently dropping the rest.
+        if (error) return AR.Err(error)
         const r = data.package?.revision
         // TODO: more appropriate error?
         if (!r) return AR.Err(new Error('no data'))

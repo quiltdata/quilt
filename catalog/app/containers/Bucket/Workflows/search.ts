@@ -9,7 +9,7 @@ const encode = S.encodeSync(SearchRoute.paramsSchema)
 export const makeUrl = (bucket: string, workflow: string) =>
   encode({
     buckets: [bucket],
-    order: SearchModel.ResultOrder.NEWEST,
+    ordering: 'sys:modified:desc',
     params: {
       resultType: SearchModel.ResultType.QuiltPackage,
       filter: [

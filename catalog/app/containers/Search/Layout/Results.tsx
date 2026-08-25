@@ -36,7 +36,10 @@ function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return xs ? (
+    // The label is dropped at xs to save width, which leaves an aria-hidden
+    // glyph and therefore no accessible name at all. Carry the wide label here.
     <M.Button
+      aria-label="Create new package"
       className={className}
       color="primary"
       onClick={onClick}
@@ -96,14 +99,23 @@ const I18_COUNT_PACKAGES = {
   other: (n: number) => (n > 0 ? `${n} packages` : 'Packages'),
 }
 
+const I18_COUNT_OBJECTS = {
+  one: '1 object',
+  other: (n: number) => (n > 0 ? `${n} objects` : 'Objects'),
+}
+
+// Name the count after what's being counted, matching the DP tab's "N
+// packages": packages for QuiltPackage, objects for S3Object (regardless of
+// list/table view).
 function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
-  if (
-    state.resultType === SearchUIModel.ResultType.QuiltPackage &&
-    state.view === SearchUIModel.View.Table
-  ) {
-    return Format.pluralify(n, I18_COUNT_PACKAGES)
+  switch (state.resultType) {
+    case SearchUIModel.ResultType.QuiltPackage:
+      return Format.pluralify(n, I18_COUNT_PACKAGES)
+    case SearchUIModel.ResultType.S3Object:
+      return Format.pluralify(n, I18_COUNT_OBJECTS)
+    default:
+      return Format.pluralify(n, I18_COUNT_RESULTS)
   }
-  return Format.pluralify(n, I18_COUNT_RESULTS)
 }
 
 function ResultsCount() {
@@ -180,17 +192,29 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
     [model.actions],
   )
   return (
+    // The group needs its own name: the two buttons announce what each does, but
+    // nothing says what the pair is for. The icons are aria-hidden SvgIcons, so
+    // without these labels both buttons compute an empty accessible name.
     <Lab.ToggleButtonGroup
+      aria-label="Results view"
       value={model.state.view}
       className={className}
       exclusive
       onChange={handleChange}
       size="small"
     >
-      <Lab.ToggleButton value={SearchUIModel.View.Table} classes={classes}>
+      <Lab.ToggleButton
+        aria-label="Table view"
+        value={SearchUIModel.View.Table}
+        classes={classes}
+      >
         <Icons.GridOn />
       </Lab.ToggleButton>
-      <Lab.ToggleButton value={SearchUIModel.View.List} classes={classes}>
+      <Lab.ToggleButton
+        aria-label="List view"
+        value={SearchUIModel.View.List}
+        classes={classes}
+      >
         <Icons.List />
       </Lab.ToggleButton>
     </Lab.ToggleButtonGroup>

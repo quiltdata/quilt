@@ -1,4 +1,3 @@
-import hljs from 'highlight.js'
 import * as Papa from 'papaparse'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -7,6 +6,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
+import hljs, { loadLanguages } from 'utils/hljs'
 import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
@@ -133,6 +133,7 @@ function EChartsLoader({ gated, handle, children }) {
         console.error(e)
         if (e instanceof SyntaxError) {
           const lang = 'json'
+          await loadLanguages([lang])
           const highlighted = R.map(hl(lang), { head, tail })
           return PreviewData.Text({
             head,

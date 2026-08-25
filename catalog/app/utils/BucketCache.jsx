@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as errors from 'containers/Bucket/errors'
 import * as S3 from 'utils/AWS/S3'
 import * as Data from 'utils/Data'
+import log from 'utils/Logging'
 
 const CacheCtx = React.createContext()
 
@@ -45,5 +46,17 @@ export { BucketCacheProvider as Provider }
 
 export function useGetCachedBucketRegion() {
   const cache = React.useContext(CacheCtx)
-  return React.useCallback((bucket) => cache.region[bucket], [cache.region])
+  return React.useCallback(
+    (bucket) => {
+      const region = cache.region[bucket]
+      if (!region) {
+        log.warn(
+          `useGetCachedBucketRegion: region not cached for bucket "${bucket}".`,
+          'useBucketExistence(bucket) must be called first — its headBucket call populates the region cache.',
+        )
+      }
+      return region
+    },
+    [cache.region],
+  )
 }

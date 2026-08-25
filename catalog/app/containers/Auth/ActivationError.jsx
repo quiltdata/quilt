@@ -2,7 +2,7 @@ import React from 'react'
 
 import * as Layout from './Layout'
 
-const SUPPORT_EMAIL = 'support@quiltdata.io'
+const SUPPORT_EMAIL = 'support@quilt.bio'
 
 const Container = Layout.mkLayout('Activation Error')
 

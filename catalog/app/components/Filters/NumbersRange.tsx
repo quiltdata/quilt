@@ -2,7 +2,7 @@ import * as IO from 'io-ts'
 import * as React from 'react'
 
 import Log from 'utils/Logging'
-import { formatQuantity } from 'utils/string'
+import { mkFormatQuantity } from 'utils/string'
 
 import * as Range from './Range'
 import * as RangeField from './RangeField'
@@ -24,8 +24,9 @@ function stringify(num?: number | null): RangeField.InputState<number> {
   return RangeField.Ok(num.toString(), num)
 }
 
-const formatLabel = (number: number) =>
-  formatQuantity(number, { fallback: (n: number) => Math.round(n * 100) / 100 })
+const formatLabel = mkFormatQuantity({
+  fallback: (n) => (n == null ? n : Math.round(n * 100) / 100),
+})
 
 type NumbersRangeProps = Pick<
   Range.FormControlProps<number>,

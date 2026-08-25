@@ -1,0 +1,6 @@
+query ($bucket: String!) {
+  bucket(name: $bucket) {
+    name
+    description
+  }
+}

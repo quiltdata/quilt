@@ -54,7 +54,9 @@ export default function Empty({
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
-      {title && <M.Typography variant="h4">{title}</M.Typography>}
+      {/* Headline, not Display: nothing in the app outranks h5 (No-Display-Font
+          Rule), and an empty state is a page-level heading, not a hero. */}
+      {title && <M.Typography variant="h5">{title}</M.Typography>}
 
       {(primary || secondary) && (
         <div className={classes.actions}>

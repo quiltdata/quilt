@@ -73,7 +73,7 @@ def test_formats_serdes():
     ]
     metadata = [{} for o in objects]
 
-    for obj, meta in zip(objects, metadata):
+    for obj, meta in zip(objects, metadata, strict=True):
         data, format_meta = FormatRegistry.serialize(obj, meta)
         meta.update(format_meta)
         assert FormatRegistry.deserialize(data, meta) == obj

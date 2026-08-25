@@ -8,7 +8,7 @@ import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
 import { docs } from 'constants/urls'
-import * as BucketConfig from 'utils/BucketConfig'
+import * as Buckets from 'utils/Buckets'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
@@ -22,6 +22,7 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
+import { columnSortState, getColumnOrderingBase, orderingForColumn } from './sort'
 import { ColumnTag, useColumns, ColumnUserMetaCreate } from './useColumns'
 import type {
   Column,
@@ -204,9 +205,17 @@ const useUnfoldPackageEntriesStyles = M.makeStyles((t) => ({
   expanded: {
     opacity: 1,
     animation: t.transitions.create('$expanded'),
+    // Both keyframes settle at rotate(0deg), so collapsing the duration
+    // lands the chevron there instantly rather than freezing it mid-turn.
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   collapsed: {
     animation: t.transitions.create('$collapsed'),
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   '@keyframes expanded': {
     '0%': {
@@ -238,8 +247,13 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
     ? 'Hide entries'
     : `Show ${size} matching ${size === 1 ? 'entry' : 'entries'}`
   return (
+    // aria-label as well as the tooltip: MUI v4's Tooltip puts its title in the
+    // native `title` attribute while closed and REMOVES it when it opens, so a
+    // tooltip-only name disappears at the moment a keyboard user focuses the
+    // control. The badge count is inside the button, and M.Icon is aria-hidden,
+    // so without this the accessible name is just the number.
     <M.Tooltip arrow title={title}>
-      <M.IconButton className={className}>
+      <M.IconButton className={className} aria-label={title}>
         <M.Badge badgeContent={size} color="default" classes={{ badge: classes.badge }}>
           <M.Icon className={open ? classes.expanded : classes.collapsed}>
             {open ? 'expand_more' : 'chevron_right'}
@@ -337,7 +351,9 @@ function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
             <CellValue hit={hit} column={column} />
           </M.TableCell>
         ))}
-        {skeletons?.map(({ key, width }) => <Skeleton.Cell key={key} width={width} />)}
+        {skeletons?.map(({ key, width }) => (
+          <Skeleton.Cell key={key} width={width} />
+        ))}
         {/* TODO: use second table for placeholder  */}
         <M.TableCell className={classes.placeholder} />
       </M.TableRow>
@@ -620,8 +636,8 @@ function BucketsFilter({ onChange, value }: BucketsFilterProps) {
   const initialValue = model.state.buckets
   invariant(initialValue, 'Filter not active')
 
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const buckets = Buckets.useRelevantBuckets()
+  const extents = React.useMemo(() => buckets.map((b) => b.name), [buckets])
   return <List extents={extents} value={value || initialValue} onChange={onChange} />
 }
 
@@ -696,6 +712,7 @@ function AvailableUserMetaColumnsTree({
                     ColumnUserMetaCreate(
                       node.value.path,
                       SearchUIModel.PackageUserMetaFacetMap[node.value.__typename],
+                      node.value.sortable,
                     )
                   }
                   {...getLabel(p)}
@@ -758,6 +775,10 @@ function useAvailableUserMetaFacets(
           .map(([path, f]) => ({
             __typename: ReversPackageUserMetaTypename[f._tag],
             path,
+            // Selected filters carry a predicate, not a facet — derive sortability
+            // from the predicate type (only 'Text' is unsortable), matching the
+            // policy in useColumns for selected user-meta columns.
+            sortable: f._tag !== 'Text',
           })),
       )[0].children,
     [model.state.userMetaFilters.filters, filterValue],
@@ -790,6 +811,10 @@ const useAvailableColumnsStyles = M.makeStyles((t) => ({
     background: t.palette.background.paper,
     overflowY: 'auto',
     flexGrow: 1,
+    // Settles at opacity 1, so collapsing the duration lands there instantly.
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms',
+    },
   },
   divider: {
     marginTop: t.spacing(1),
@@ -984,7 +1009,11 @@ function ConfigureColumns({ open, columns, state, onClose }: ConfigureColumnsPro
       >
         <div className={classes.head}>
           <M.Typography variant="subtitle2">Configure columns:</M.Typography>
-          <M.IconButton onClick={onClose} className={classes.close}>
+          <M.IconButton
+            aria-label="Close column settings"
+            onClick={onClose}
+            className={classes.close}
+          >
             <M.Icon>close</M.Icon>
           </M.IconButton>
         </div>
@@ -1057,7 +1086,10 @@ function ColumnHeadOpen({ className, column }: ColumnHeadOpenProps) {
     open(column)
   }, [column, activatePackagesMetaFilter, activatePackagesFilter, open])
   return (
+    // Names the column, not just the action: one of these sits in every column
+    // head, so a bare "Filter" repeats N times with nothing to distinguish them.
     <M.IconButton
+      aria-label={`Filter ${column.title}`}
       className={className}
       size="small"
       color={column.state.filtered ? 'primary' : 'inherit'}
@@ -1108,7 +1140,14 @@ function ColumnHeadHide({ className, column }: ColumnHeadHideProps) {
     }
   }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter])
   return (
-    <M.IconButton className={className} size="small" color="inherit" onClick={handleHide}>
+    // Names the column: one per column head, so a bare "Hide" is ambiguous.
+    <M.IconButton
+      aria-label={`Hide ${column.title}`}
+      className={className}
+      size="small"
+      color="inherit"
+      onClick={handleHide}
+    >
       <Icons.VisibilityOffOutlined color="inherit" fontSize="inherit" />
     </M.IconButton>
   )
@@ -1153,6 +1192,114 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ColumnHeadTitleProps {
+  column: Column
+}
+
+// The column title. Sorting is driven by the always-visible ColumnHeadSort icon
+// in the actions cluster (below), not by the title, so this is plain text.
+function ColumnHeadTitle({ column }: ColumnHeadTitleProps) {
+  return (
+    <M.Tooltip arrow title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}>
+      <span>{column.title}</span>
+    </M.Tooltip>
+  )
+}
+
+// Sort state + cycle logic for a column. Wave 2's MNFST sort-locus honors field
+// sort in all-revisions mode too, so there is no longer a `latestOnly` gate —
+// sortability is purely a property of the column (see Table/sort.ts).
+function useColumnSort(column: Column) {
+  const {
+    state: { ordering },
+    actions: { setOrdering },
+  } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const base = getColumnOrderingBase(column)
+  const sortable = !!base
+
+  const { active, descending } = columnSortState(base, ordering)
+
+  const handleSort = React.useCallback(() => {
+    if (!base) return
+    // ASC → DESC → cleared. Cleared sets relevance (null); the global dropdown
+    // and the column headers share the one `ordering`, so whichever acts last
+    // wins with no reconciliation.
+    if (!active) {
+      setOrdering(orderingForColumn(base, 'asc'))
+    } else if (!descending) {
+      setOrdering(orderingForColumn(base, 'desc'))
+    } else {
+      setOrdering(null)
+    }
+  }, [active, base, descending, setOrdering])
+
+  return { sortable, active, descending, handleSort }
+}
+
+const useColumnHeadSortStyles = M.makeStyles({
+  // Rest: dim bidirectional arrow signals "sortable" without a hover. Hover:
+  // swap to the unidirectional ASC-preview arrow (what the first click applies),
+  // matching the directional arrow shown while actively sorted. When active, the
+  // directional icon is rendered directly (in primary), so this swap is only
+  // wired for the inactive state.
+  button: {
+    '&:hover $rest': { display: 'none' },
+    '&:hover $hover': { display: 'inline-flex' },
+  },
+  rest: {},
+  hover: { display: 'none' },
+})
+
+interface ColumnHeadSortProps {
+  className: string
+  column: Column
+}
+
+function ColumnHeadSort({ className, column }: ColumnHeadSortProps) {
+  const classes = useColumnHeadSortStyles()
+  const { sortable, active, descending, handleSort } = useColumnSort(column)
+
+  if (!sortable) return null
+
+  const title = active
+    ? `Sorted ${descending ? 'descending' : 'ascending'} — click to ${
+        descending ? 'clear sort' : 'sort descending'
+      }`
+    : 'Sort ascending'
+
+  return (
+    // See UnfoldPackageEntries: the tooltip's name evaporates on focus, so the
+    // label is set explicitly. It names the column too -- every column head
+    // carries one of these, so "Sort ascending" alone repeats N times with
+    // nothing to tell them apart.
+    <M.Tooltip arrow title={title}>
+      <M.IconButton
+        aria-label={`${title}: ${column.title}`}
+        className={cx(className, classes.button)}
+        size="small"
+        color={active ? 'primary' : 'inherit'}
+        onClick={handleSort}
+      >
+        {active ? (
+          <M.Icon color="inherit" fontSize="inherit">
+            {descending ? 'arrow_downward' : 'arrow_upward'}
+          </M.Icon>
+        ) : (
+          <>
+            <M.Icon className={classes.rest} color="inherit" fontSize="inherit">
+              unfold_more
+            </M.Icon>
+            <M.Icon className={classes.hover} color="inherit" fontSize="inherit">
+              arrow_upward
+            </M.Icon>
+          </>
+        )}
+      </M.IconButton>
+    </M.Tooltip>
+  )
+}
+
 interface ColumnHeadProps {
   column: Column
   single: boolean
@@ -1163,14 +1310,10 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   return (
     <div className={cx(classes.root, classes[getColumnAlign(column)])}>
       <p className={classes.title}>
-        <M.Tooltip
-          arrow
-          title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}
-        >
-          <span>{column.title}</span>
-        </M.Tooltip>
+        <ColumnHeadTitle column={column} />
       </p>
       <div className={classes.actions}>
+        <ColumnHeadSort column={column} className={classes.button} />
         <ColumnHeadOpen column={column} className={classes.button} />
         {!single && <ColumnHeadHide column={column} className={classes.button} />}
       </div>

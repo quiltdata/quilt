@@ -94,7 +94,6 @@ export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
               {AsyncResult.case({
                 _: () => null,
                 Ok: (resolved: LogicalKeyResolver.S3SummarizeHandle) => (
-                  // @ts-expect-error
                   <Thumbnail
                     handle={resolved}
                     className={classes.img}

@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 
+import log from 'utils/Logging'
+
 import Iconized from './Iconized'
 import type { StrIcon, SvgIcon } from './Iconized'
 
@@ -49,6 +51,21 @@ interface WithPopoverPropsOwn {
 export type WithPopoverProps = WithPopoverPropsOwn &
   Omit<Parameters<typeof Iconized>[0], 'icon'>
 
+const CloseContext = React.createContext<() => void>(() =>
+  log.warn('usePopoverClose() called outside of a WithPopover'),
+)
+
+export const useClose = () => React.useContext(CloseContext)
+
+interface CloseOnClickProps {
+  children: React.ReactNode
+}
+
+export function CloseOnClick({ children }: CloseOnClickProps) {
+  const close = useClose()
+  return <div onClick={close}>{children}</div>
+}
+
 export default function WithPopover({
   children,
   icon,
@@ -86,9 +103,11 @@ export default function WithPopover({
 
       <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
       {opened && (
-        <M.Paper className={classes.popup} elevation={4} onClick={handleClose}>
-          {children}
-        </M.Paper>
+        <CloseContext.Provider value={handleClose}>
+          <M.Paper className={classes.popup} elevation={4}>
+            {children}
+          </M.Paper>
+        </CloseContext.Provider>
       )}
     </div>
   )

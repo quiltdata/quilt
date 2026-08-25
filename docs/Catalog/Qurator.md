@@ -20,11 +20,43 @@ or request key insights from a specific dataset.
   asthma treatments?” or “Summarize research on BRCA1 mutations.”
 - **Instant Summaries**: Quickly digest scientific papers, datasets, or reports
   without reading everything.
+- **Platform Tools via MCP**: Search packages and S3 objects, browse and create
+  packages, read objects, run Athena SQL, and manage Tabulator tables — all
+  through the same [Quilt Platform MCP Server](MCP-Server.md) used by external
+  MCP clients. Available in-catalog without enabling Quilt Connect; tools
+  execute under the user's catalog session and respect existing role and
+  bucket permissions.
 - **Fine-Grained Permissions with RAG**: Ensure Retrieval-Augmented Generation
   only queries the data you're authorized to access, ensuring compliance with
   strict organizational policies
 - **Secure Cloud Environment**: Work within your private AWS cloud, ensuring
   data stays secure while using state-of-the-art AI models.
+
+### Developer Tools
+
+The Developer Tools menu (upper right of the Qurator chat window) provides:
+
+- **Swappable Models**: Override the default Bedrock model for the current
+  session by pasting a Bedrock Model ID or Inference Profile ID. The model
+  must be enabled in the same region as your Quilt stack and support text,
+  document, and image inputs.
+- **Session Recordings**: Record a portion of a Qurator session and download
+  (or clear) the resulting JSON log. Useful for tuning or debugging prompts
+  and capturing structured results.
+
+### Connector Status
+
+Qurator's chat input shows the live connection status of each tool backend
+(e.g. the Platform MCP Server). When a backend is unhealthy the input is
+gated and inline actions appear in the helper-text region:
+
+- `connecting…` / `reconnecting…` — auto-progressing, no action required.
+- `couldn't connect` — click **reconnect** to retry, or **continue without**
+  to proceed with reduced tool access for the rest of the conversation. The
+  latter dismisses the error and moves the connector to `unavailable`.
+- `unavailable` — sticky; click **reconnect** to try again at any time.
+
+![Qurator platform tools connector ready](../imgs/qurator-tools.png)
 
 ## Getting Started
 
@@ -35,15 +67,17 @@ To enable Qurator Omni:
    - Set the `Qurator` parameter to `Enabled` in the CloudFormation template to
      enable the Qurator chatbot.
 
-2. **Configure Claude Model**:  
-   - Login to the Amazon Bedrock console.
-   - Ensure that the Claude 3.7 Sonnet
-     (`us.anthropic.claude-3-7-sonnet-20250219-v1:0`) inference profile is
+2. **Configure Claude Model**:
+   - Log in to the Amazon Bedrock console.
+   - Ensure that the Claude Sonnet 4.5
+     (`us.anthropic.claude-sonnet-4-5-20250929-v1:0`) inference profile is
      available in the same region as your Quilt deployment. Check [Model support
      by AWS
      Region](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html)
      for details.
    - Enable the model by configuring it within your Bedrock environment.
+   - Optionally, set the `QuratorDefaultModel` stack parameter to a different
+     Bedrock model ID to override the built-in default.
    - Carefully monitor the model's cost implications. The Claude model is
      charged based on usage, so ensure that you have the necessary budget
      allocated. Initial estimates are roughly a penny per page for complex documents.

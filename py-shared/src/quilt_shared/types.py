@@ -2,7 +2,6 @@ import functools
 import typing as T
 
 import pydantic.v1
-import typing_extensions as TX
 
 
 class NonEmptyStr(pydantic.v1.ConstrainedStr):
@@ -10,7 +9,7 @@ class NonEmptyStr(pydantic.v1.ConstrainedStr):
     strip_whitespace = True
 
 
-ConsParams = TX.ParamSpec("ConsParams")
+ConsParams = T.ParamSpec("ConsParams")
 ConsReturn = T.TypeVar("ConsReturn")
 FnReturn = T.TypeVar("FnReturn")
 

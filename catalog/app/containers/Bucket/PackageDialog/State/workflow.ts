@@ -6,15 +6,16 @@ import * as workflows from 'utils/workflows'
 
 import * as requests from '../../requests'
 
+import type { FormStatus } from './form'
 import { ManifestStatus } from './manifest'
 
 export type WorkflowsConfigStatus =
   | { _tag: 'idle' }
-  | { _tag: 'loading'; config: /*empty config as fallback*/ workflows.WorkflowsConfig }
+  | { _tag: 'loading'; config: /* null config as fallback */ workflows.WorkflowsConfig }
   | {
       _tag: 'error'
       error: Error
-      config: /*empty config as fallback*/ workflows.WorkflowsConfig
+      config: /* null config as fallback */ workflows.WorkflowsConfig
     }
   | { _tag: 'ready'; config: workflows.WorkflowsConfig }
 
@@ -49,10 +50,10 @@ export function useWorkflowsConfig(
     return { _tag: 'idle' }
   }
   if (result === Request.Loading) {
-    return { _tag: 'loading', config: workflows.emptyConfig }
+    return { _tag: 'loading', config: workflows.nullConfig }
   }
   if (result instanceof Error) {
-    return { _tag: 'error', error: result, config: workflows.emptyConfig }
+    return { _tag: 'error', error: result, config: workflows.nullConfig }
   }
 
   return { _tag: 'ready', config: result }
@@ -71,6 +72,7 @@ function getWorkflowFallback(manifest: ManifestStatus, config: WorkflowsConfigSt
 }
 
 export function useWorkflow(
+  form: FormStatus,
   manifest: ManifestStatus,
   config: WorkflowsConfigStatus,
 ): WorkflowState {
@@ -80,6 +82,9 @@ export function useWorkflow(
     [config, manifest, workflow],
   )
   const status: WorkflowStatus = React.useMemo(() => {
+    if (form._tag === 'error' && form.fields?.workflow) {
+      return { _tag: 'error', error: form.fields.workflow }
+    }
     if (config._tag !== 'ready') return { _tag: 'loading' }
     if (
       config.config.isWorkflowRequired &&
@@ -88,6 +93,6 @@ export function useWorkflow(
       return { _tag: 'error', error: new Error('Workflow is required for this bucket.') }
     }
     return { _tag: 'ok' }
-  }, [config, value])
+  }, [config, form, value])
   return React.useMemo(() => ({ onChange: setWorkflow, status, value }), [status, value])
 }

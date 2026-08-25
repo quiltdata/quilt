@@ -6,8 +6,8 @@ import * as style from 'constants/style'
 
 export default function WebsiteLayout({ children, ...props }: Layout.LayoutProps) {
   return (
-    <ThemeProvider theme={style.websiteTheme}>
-      <Layout.Layout pre={children} {...props} />
+    <ThemeProvider theme={style.appTheme}>
+      <Layout.Layout pre={children} flush {...props} />
     </ThemeProvider>
   )
 }

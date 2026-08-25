@@ -20,9 +20,11 @@ ui:
   actions:
     copyPackage: True
     createPackage: True
+    deleteObject: False
+    deleteRevision: False
     downloadObject: True
     downloadPackage: True
-    deleteRevision: False
+    restore: True
     revisePackage: True
     writeFile: True
   blocks:
@@ -56,9 +58,13 @@ ui:
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
+* `ui.actions.deleteObject: True` - show buttons to delete files and
+  directories (off by default since 1.66 to prevent accidental deletions)
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.downloadObject: False` - hide download buttons under "Bucket" tab
 * `ui.actions.downloadPackage: False` - hide download buttons under "Packages" tab
+* `ui.actions.restore: False` - hide the button to restore (rehydrate) archived
+  S3 Glacier / Deep Archive objects
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
@@ -98,7 +104,7 @@ in the package list view.
 ui:
   sourceBuckets:
     s3://bucket-a: {}
-    s3://bucket-b: {}
+    bucket-b: {}  # "s3://" prefix is optional
     s3://bucket-c: {}
   defaultSourceBucket: s3://bucket-b
 ```

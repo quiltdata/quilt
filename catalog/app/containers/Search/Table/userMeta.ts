@@ -157,7 +157,15 @@ function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
   return getSchemaItemKeysOr(schema, noKeys)
 }
 
-type UserMetaFacets = Map<string, SearchUIModel.PackageUserMetaFacet['__typename']>
+// Per-path facet render type plus its authoritative `sortable` signal. Keeping
+// `sortable` here (rather than re-deriving from __typename) is the whole point:
+// a high-cardinality keyword arrives as a TextPackageUserMetaFacet but is
+// sortable: true, which __typename alone can't express.
+interface InferredFacet {
+  typename: SearchUIModel.PackageUserMetaFacet['__typename']
+  sortable: boolean
+}
+type UserMetaFacets = Map<string, InferredFacet>
 
 export default function useInferredUserMetaFacets(): Request.Result<UserMetaFacets> {
   const facets = useAvailableUserMetaFacets()
@@ -191,20 +199,22 @@ export default function useInferredUserMetaFacets(): Request.Result<UserMetaFace
     }
     const allFacets: UserMetaFacets = new Map()
     const workflowFacets: UserMetaFacets = new Map()
-    facets.facets.forEach(({ __typename, path }) => {
+    facets.facets.forEach(({ __typename, path, sortable }) => {
       // Already selected
       if (state.userMetaFilters.filters.has(path)) {
         return
       }
+
+      const facet: InferredFacet = { typename: __typename, sortable }
 
       if (
         workflowRootKeys !== Request.Idle &&
         workflowRootKeys.includes(path.replace(/^\//, ''), 0)
       ) {
         // Use keywords when possible
-        if (workflowFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
+        if (workflowFacets.get(path)?.typename !== 'KeywordPackageUserMetaFacet') {
           // TODO: keep sort order from workflow
-          workflowFacets.set(path, __typename)
+          workflowFacets.set(path, facet)
         }
       }
 
@@ -213,8 +223,8 @@ export default function useInferredUserMetaFacets(): Request.Result<UserMetaFace
       if (workflowFacets.size) return
 
       // Use keywords when possible
-      if (allFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
-        allFacets.set(path, __typename)
+      if (allFacets.get(path)?.typename !== 'KeywordPackageUserMetaFacet') {
+        allFacets.set(path, facet)
       }
     })
     return workflowFacets.size ? workflowFacets : allFacets

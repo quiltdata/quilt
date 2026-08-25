@@ -15,7 +15,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Lint
         run: uv run poe lint
@@ -26,7 +26,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Check formatting (quilt3)
         run: uv run poe fmt --check
@@ -34,19 +34,19 @@ jobs:
   lint-rest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Run Ruff linter on entire codebase
-        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+        run: uvx ruff@0.16.0 check . --exclude catalog/ --exclude api/python/
 
   # Enable once the rest of the codebase is formatted
   # format-rest:
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@v7
   #     - uses: astral-sh/setup-uv@v7
   #     - name: Check formatting (rest of codebase)
-  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
+  #       run: uvx ruff@0.16.0 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
@@ -56,7 +56,7 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Check generated docs are up-to-date
         run: uv run poe gendocs-check
@@ -69,7 +69,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Test codeblocks
         run: uv run poe testdocs
@@ -78,7 +78,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -86,11 +86,11 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           OS: ${{ matrix.os }}
@@ -122,7 +122,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: verify git tag vs. version
         run: uv run poe verify-release-tag "${{ github.ref_name }}"
@@ -156,33 +156,21 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
-      PYTHONPATH: deps
-      JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
+    defaults:
+      run:
+        working-directory: lambdas/${{ matrix.path }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version-file: lambdas/${{ matrix.path }}/.python-version
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
-      - name: Export requirements.txt from uv.lock
-        run: |
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt --no-default-groups
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o test-requirements.txt --only-group test
-      - name: Install dependencies
-        run: |
-          # Try to simulate the lambda .zip file:
-          # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
-          # - Remove "tests" directories
-          # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
-          find deps -name tests -type d -exec rm -r \{} \+
-          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
-
-          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
-        run: |
-          python -m pytest --cov=lambdas lambdas/${{ matrix.path }}
-      - uses: codecov/codecov-action@v5
+        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml
+      - name: Check the built package is importable
+        # The run above imports the sources, so it cannot catch files missing
+        # from the distribution. --no-editable installs the built wheel, which
+        # is how build_zip.sh and the Dockerfiles install the lambda, so
+        # collection fails if the wheel is incomplete.
+        run: uv run --no-editable pytest --collect-only -q
+      - uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           LAMBDA: ${{ matrix.path }}
@@ -197,11 +185,11 @@ jobs:
       run:
         working-directory: py-shared
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - name: test
         run: uv run --only-group test pytest --cov=. --cov-report=xml
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:

@@ -76,8 +76,8 @@ similar to the following:
                 "s3:GetObjectVersionTagging",
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
+                "s3:RestoreObject",
                 "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
                 "s3:PutObject",
                 "s3:PutObjectTagging"
             ],
@@ -94,3 +94,7 @@ similar to the following:
 > The `.quilt` folder is where Quilt Package Manifests are stored for all
 packages in a bucket registry. Users must have access to this directory
 to view Packages.
+
+`s3:DeleteObject` writes a delete marker, so prior versions remain
+recoverable. To let a role permanently erase a specific object version, add
+`s3:DeleteObjectVersion` to the `Action` list above.

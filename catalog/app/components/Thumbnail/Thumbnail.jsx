@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import Skeleton from 'components/Skeleton'
 import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import AsyncResult from 'utils/AsyncResult'
 import { mkSearch } from 'utils/NamedRoutes'
 import { HTTPError } from 'utils/APIConnector'
@@ -103,11 +104,10 @@ const useStyles = M.makeStyles({
   },
 })
 
-export default function Thumbnail({
+function ThumbnailInner({
   handle,
   size = 'sm', // sm | lg
   alt = '',
-  skeletonProps,
   className,
   ...props
 }) {
@@ -146,7 +146,7 @@ export default function Thumbnail({
 
   return pipeThru(state)(
     AsyncResult.case({
-      _: () => <ThumbnailSkeleton {...skeletonProps} {...props} />,
+      _: () => <ThumbnailSkeleton {...props} />,
       Ok: (src) => (
         <M.Box
           className={cx(classes.root, className)}
@@ -175,7 +175,6 @@ export default function Thumbnail({
         return (
           <ThumbnailSkeleton
             icon={icon}
-            {...skeletonProps}
             {...props}
             title={props.title ? `${props.title}: ${title}` : title}
           />
@@ -183,4 +182,15 @@ export default function Thumbnail({
       },
     }),
   )
+}
+
+// Ensure the file bucket's region is cached for correct presigned URLs.
+// For same-bucket files this is instant (already cached by BucketLayout).
+export default function Thumbnail({ handle, ...props }) {
+  // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
+  return useBucketExistence(handle.bucket).case({
+    Ok: () => <ThumbnailInner handle={handle} {...props} />,
+    Err: () => <ThumbnailSkeleton icon="error" {...props} />,
+    _: () => <ThumbnailSkeleton {...props} />,
+  })
 }

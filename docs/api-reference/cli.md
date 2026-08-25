@@ -15,7 +15,7 @@ positional arguments:
                         or pass in a package name in the form
                         'BUCKET:USER/PKG' to go to the package viewer.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --detailed-help, --detailed_help
                         Display detailed information about this command and
@@ -50,7 +50,7 @@ positional arguments:
   catalog_url           URL of catalog to config with, or empty string to
                         reset the config
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --set KEY=VALUE [KEY=VALUE ...]
                         Set a number of key-value pairs for config_values(do
@@ -69,7 +69,7 @@ positional arguments:
   default_remote_registry
                         The default remote registry to use, e.g. s3://quilt-ml
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 ```
 ## `disable-telemetry`
@@ -78,7 +78,7 @@ usage: quilt3 disable-telemetry [-h]
 
 Disable anonymous usage metrics
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `install`
@@ -93,7 +93,7 @@ Install a package
 positional arguments:
   name                  Name of package, in the USER/PKG format
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --registry REGISTRY   Registry where package is located, usually s3://MY-
                         BUCKET. Defaults to the default remote registry.
@@ -113,7 +113,7 @@ List all packages in a registry
 positional arguments:
   registry    Registry for packages, e.g. s3://quilt-example
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `login`
@@ -122,7 +122,7 @@ usage: quilt3 login [-h]
 
 Log in to configured Quilt server
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `logout`
@@ -131,14 +131,14 @@ usage: quilt3 logout [-h]
 
 Log out of current Quilt server
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
-                   [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy]
+                   [--message MESSAGE] [--meta META] [--agent-context]
+                   [--workflow WORKFLOW] [--force] [--dedupe] [--no-copy]
                    name
 
 Pushes the new package to the remote registry
@@ -157,6 +157,13 @@ optional arguments:
   --message MESSAGE    The commit message for the new package
   --meta META          Sets package-level metadata. Format: A json string with
                        keys in double quotes '{"key": "value"}'
+  --agent-context      Experimental: record Quilt-observed commit context (STS
+                       principal, authentication path, client version, UTC
+                       timestamp) at agent_context.quilt in package metadata,
+                       before validation and top-hash calculation. The
+                       embedded timestamp gives every push a new top hash, so
+                       --dedupe no longer skips, and any workflow metadata
+                       schema must allow the agent_context key.
   --workflow WORKFLOW  Workflow ID or empty string to skip workflow
                        validation. If not specified, the default workflow will
                        be used.
@@ -179,7 +186,7 @@ Verify that package contents matches a given directory
 positional arguments:
   name                 Name of package, in the USER/PKG format
 
-optional arguments:
+options:
   -h, --help           show this help message and exit
   --registry REGISTRY  Registry where package is located, usually s3://MY-
                        BUCKET

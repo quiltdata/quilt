@@ -557,28 +557,3 @@ export default function PackageRevisionsWrapper() {
     </>
   )
 }
-
-// TODO: restore linked data
-/*
-{!!bucketCfg &&
-  AsyncResult.case(
-    {
-      _: () => null,
-      Ok: ({ hash, modified, header }) => (
-        <React.Suspense fallback={null}>
-          <LinkedData.PackageData
-            {...{
-              bucket: bucketCfg,
-              name,
-              revision: r,
-              hash,
-              modified,
-              header,
-            }}
-          />
-        </React.Suspense>
-      ),
-    },
-    res,
-  )}
-*/

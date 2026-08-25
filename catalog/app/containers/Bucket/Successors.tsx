@@ -83,24 +83,18 @@ function MenuPlaceholder() {
 
 function useSuccessors(
   bucket: string,
-  {
-    currentBucketCanBeSuccessor,
-    noAutoFetch = false,
-  }: { currentBucketCanBeSuccessor: boolean; noAutoFetch?: boolean },
+  { strict = false, noAutoFetch = false }: { strict?: boolean; noAutoFetch?: boolean },
 ): workflows.Successor[] | Error | undefined {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch })
+  const data = useData(requests.workflowsConfig, { s3, bucket, strict }, { noAutoFetch })
   return React.useMemo(
     () =>
       data.case({
-        Ok: ({ successors }: { successors: workflows.Successor[] }) =>
-          currentBucketCanBeSuccessor && !successors.find(({ slug }) => slug === bucket)
-            ? [workflows.bucketToSuccessor(bucket), ...successors]
-            : successors,
+        Ok: ({ successors }: { successors: workflows.Successor[] }) => successors,
         Err: (error: Error) => error,
         _: () => undefined,
       }),
-    [bucket, currentBucketCanBeSuccessor, data],
+    [data],
   )
 }
 
@@ -180,21 +174,22 @@ const useButtonStyles = M.makeStyles({
 interface InputProps {
   bucket: string
   className?: string
-  currentBucketCanBeSuccessor: boolean
   onChange?: (value: workflows.Successor) => void
   successor: workflows.Successor
 }
 
-export function Dropdown({
-  bucket,
-  className,
-  currentBucketCanBeSuccessor,
-  onChange,
-  successor,
-}: InputProps) {
+/**
+ * Dropdown component for selecting package destinations in Package Dialog.
+ *
+ * This is used when creating new packages or revising existing packages to allow
+ * users to change their mind about the destination bucket. It re-uses the
+ * `successors` configuration as a convenience/hack to determine available
+ * destination buckets.
+ */
+export function Dropdown({ bucket, className, onChange, successor }: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
-  const successors = useSuccessors(bucket, { currentBucketCanBeSuccessor, noAutoFetch })
+  const successors = useSuccessors(bucket, { noAutoFetch })
   const options = React.useMemo(
     () =>
       Array.isArray(successors)
@@ -252,24 +247,33 @@ export function Dropdown({
 interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
   icon?: Buttons.StrIcon
-  currentBucketCanBeSuccessor?: boolean
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
   variant?: 'text' | 'outlined' | 'contained'
 }
 
+/**
+ * Button component for "Push to bucket" functionality (cross-bucket package push).
+ *
+ * This button is used exclusively for pushing existing packages from one bucket to
+ * another bucket - the cross-bucket package push feature.
+ * It uses `strict` mode for `successors`
+ * to respect explicit workflow configuration exactly.
+ *
+ * Documentation for this functionality can be found in:
+ * ../docs/advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog
+ */
 export function Button({
   bucket,
   className,
   children,
-  currentBucketCanBeSuccessor = false,
   icon,
   onChange,
   ...props
 }: ButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
-  const successors = useSuccessors(bucket, { currentBucketCanBeSuccessor })
+  const successors = useSuccessors(bucket, { strict: true })
 
   const onButtonClick = React.useCallback(
     (event) => setMenuAnchorEl(event.currentTarget),

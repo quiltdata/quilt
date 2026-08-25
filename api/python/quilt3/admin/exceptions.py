@@ -12,3 +12,57 @@ class UserNotFoundError(Quilt3AdminError):
 class BucketNotFoundError(Quilt3AdminError):
     def __init__(self):
         super().__init__(None)
+
+
+class RoleNotFoundError(Quilt3AdminError):
+    def __init__(self):
+        super().__init__(None)
+
+
+class RoleNameReservedError(Quilt3AdminError):
+    pass
+
+
+class RoleNameExistsError(Quilt3AdminError):
+    pass
+
+
+class RoleNameInvalidError(Quilt3AdminError):
+    pass
+
+
+class RoleTooManyPoliciesError(Quilt3AdminError):
+    pass
+
+
+class RoleAssignedError(Quilt3AdminError):
+    pass
+
+
+class RoleSsoConfigConflictError(Quilt3AdminError):
+    pass
+
+
+class RoleTypeMismatchError(Quilt3AdminError):
+    pass
+
+
+class PolicyNotFoundError(Quilt3AdminError):
+    def __init__(self):
+        super().__init__(None)
+
+
+class PolicyTitleExistsError(Quilt3AdminError):
+    pass
+
+
+class PolicyArnExistsError(Quilt3AdminError):
+    pass
+
+
+class InvalidInputError(Quilt3AdminError):
+    pass
+
+
+class OperationError(Quilt3AdminError):
+    pass

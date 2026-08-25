@@ -19,6 +19,7 @@ import type * as Routes from 'constants/routes'
 import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
@@ -33,6 +34,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
+import type { StorageClass } from 'utils/glacier'
 
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
@@ -526,7 +528,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
 }
 
 const withPreview = (
-  { archived, deleted }: ObjectAttrs,
+  { archived, deleted, restoring }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
@@ -535,17 +537,25 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
   }
   if (archived) {
-    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+    return callback(
+      AsyncResult.Err(
+        Preview.PreviewError.Archived({
+          handle,
+          archive: { storageClass: archived, restoring },
+        }),
+      ),
+    )
   }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
   return Preview.load(handle, callback, previewOptions)
 }
 
 interface ObjectAttrs {
-  archived: boolean
+  archived: StorageClass | false
   deleted: boolean
   lastModified?: Date
   size?: number
+  restoring: boolean
 }
 
 type CrumbProp = $TSFixMe
@@ -762,6 +772,43 @@ function FileDisplay({
     [packageHandle, file.path],
   )
 
+  // Ensure the file bucket's region is cached for correct presigned URLs.
+  // For same-bucket files this is instant (already cached by BucketLayout).
+  const fileBucketExistence = useBucketExistence(handle.bucket)
+
+  const bucketNotReady = fileBucketExistence.case({
+    Ok: () => null,
+    Err: (e: $TSFixMe) => {
+      if (e instanceof errors.AccessDenied) {
+        return (
+          <FileDisplayError
+            headline="Access Denied"
+            detail={`You don't have access to bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      if (e instanceof errors.NoSuchBucket) {
+        return (
+          <FileDisplayError
+            headline="Bucket Not Found"
+            detail={`Could not find bucket "${handle.bucket}"`}
+            crumbs={crumbs}
+          />
+        )
+      }
+      return (
+        <FileDisplayError
+          headline="Error"
+          detail={`Could not access bucket "${handle.bucket}"`}
+          crumbs={crumbs}
+        />
+      )
+    },
+    _: () => <FileDisplaySkeleton crumbs={crumbs} />,
+  })
+  if (bucketNotReady) return bucketNotReady
+
   return (
     // @ts-expect-error
     <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
@@ -788,7 +835,7 @@ function FileDisplay({
           )
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
+          Exists: ({ archived, deleted, lastModified, size, restoring }: ObjectAttrs) => (
             <>
               <FileContext file={file} pkg={packageHandle} />
               <TopBar crumbs={crumbs}>
@@ -871,7 +918,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {withPreview(
-                    { archived, deleted },
+                    { archived, deleted, restoring },
                     handle,
                     viewModes.mode,
                     renderPreview(viewModes.handlePreviewResult),
@@ -1042,15 +1089,6 @@ function PackageTree({
   return (
     <FileView.Root>
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
-      {/* TODO: bring back linked data after re-implementing it using graphql
-      {!!bucketCfg &&
-        revisionData.case({
-          Ok: ({ hash, modified }) => (
-            <ExposeLinkedData {...{ bucketCfg, bucket, name, hash, modified }} />
-          ),
-          _: () => null,
-        })}
-      */}
       {!!resolvedFrom && (
         <M.Box mb={2}>
           <Lab.Alert
@@ -1132,43 +1170,41 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const {
-    fetching,
-    error,
-    data: revisionData,
-  } = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
   const displayError = React.useMemo(() => errors.displayError(), [])
 
-  if (fetching) return <Placeholder color="text.secondary" />
-  if (error) return <>{displayError(error)}</>
-
-  if (!revisionData?.package) {
-    return (
-      <Message headline="No Such Package">
-        Package named{' '}
-        <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box> could
-        not be found in this bucket.
-      </Message>
-    )
-  }
-
-  return (
-    <Selection.Provider>
-      <PackageTree
-        {...{
-          bucket,
-          name,
-          hashOrTag,
-          revision: revisionData.package.revision,
-          path,
-          mode,
-          resolvedFrom,
-          revisionListQuery,
-        }}
-      />
-    </Selection.Provider>
-  )
+  return GQL.fold(revisionQuery, {
+    fetching: () => <Placeholder color="text.secondary" />,
+    error: (error) => <>{displayError(error)}</>,
+    data: (revisionData) => {
+      if (!revisionData.package) {
+        return (
+          <Message headline="No Such Package">
+            Package named{' '}
+            <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box>{' '}
+            could not be found in this bucket.
+          </Message>
+        )
+      }
+      return (
+        <Selection.Provider>
+          <PackageTree
+            {...{
+              bucket,
+              name,
+              hashOrTag,
+              revision: revisionData.package.revision,
+              path,
+              mode,
+              resolvedFrom,
+              revisionListQuery,
+            }}
+          />
+        </Selection.Provider>
+      )
+    },
+  })
 }
 
 interface PackageTreeRouteParams {

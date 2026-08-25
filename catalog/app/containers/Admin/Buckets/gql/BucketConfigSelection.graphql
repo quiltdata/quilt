@@ -4,9 +4,7 @@ fragment BucketConfigSelection on BucketConfig {
   iconUrl
   description
   relevanceScore
-  overviewUrl
   tags
-  linkedData
   fileExtensionsToIndex
   indexContentBytes
   scannerParallelShardsDepth

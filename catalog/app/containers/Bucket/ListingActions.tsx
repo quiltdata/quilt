@@ -7,6 +7,7 @@ import * as Icons from '@material-ui/icons'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -146,7 +147,13 @@ interface PackageFileProps {
 
 function PackageFile({ className, physicalKey }: PackageFileProps) {
   const location = React.useMemo(() => s3paths.parseS3Url(physicalKey), [physicalKey])
-  return <BucketFile className={className} location={location} />
+  // Ensure the file bucket's region is cached for correct presigned URLs.
+  // For same-bucket files this is instant (already cached by BucketLayout).
+  // Be not afraid: both useBucketExistence and .case() are memoized (see Data.js).
+  return useBucketExistence(location.bucket).case({
+    Ok: () => <BucketFile className={className} location={location} />,
+    _: () => null,
+  })
 }
 
 const useRowActionsStyles = M.makeStyles((t) => ({
@@ -280,7 +287,9 @@ export default function ListingRowActions({
       <div className={classes.root}>
         <div className={classes.wrapper}>
           <div className={classes.container}>
-            <Delete className={classes.item} location={location} onDelete={onReload} />
+            {prefs.deleteObject && (
+              <Delete className={classes.item} location={location} onDelete={onReload} />
+            )}
             <Bookmark className={classes.item} location={location} />
             {prefs.downloadObject && (
               <DownloadButton className={classes.item} location={location} />

@@ -1,24 +1,27 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Buckets_gql_TabulatorTablesQueryVariables = Types.Exact<{
-  bucket: Types.Scalars['String']
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+export type containers_Admin_Buckets_gql_TabulatorTablesQueryVariables = Exact<{
+  bucket: string
 }>
 
-export type containers_Admin_Buckets_gql_TabulatorTablesQuery = {
+export interface containers_Admin_Buckets_gql_TabulatorTablesQuery {
   readonly __typename: 'Query'
-} & {
-  readonly bucketConfig: Types.Maybe<
-    { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
-        readonly tabulatorTables: ReadonlyArray<
-          { readonly __typename: 'TabulatorTable' } & Pick<
-            Types.TabulatorTable,
-            'name' | 'config'
-          >
-        >
-      }
-  >
+  readonly bucketConfig: {
+    readonly __typename: 'BucketConfig'
+    readonly name: string
+    readonly tabulatorTables: ReadonlyArray<{
+      readonly __typename: 'TabulatorTable'
+      readonly name: string
+      readonly config: string
+    }>
+  } | null
 }
 
 export const containers_Admin_Buckets_gql_TabulatorTablesDocument = {

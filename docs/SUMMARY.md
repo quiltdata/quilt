@@ -11,10 +11,10 @@
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
-* [Embeddable iFrames](Catalog/Embed.md)
 * [Packaging Engine](Catalog/Packaging.md)
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
+* [Platform MCP Server](Catalog/MCP-Server.md) AI Assistant Integration
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
 * [Search](Catalog/Search.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
@@ -29,6 +29,7 @@
 * [Catalog Installation](Catalog/Installation.md)
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
+* [Quilt Connect Server](Catalog/Connect.md)
 * [Cross-Account Access](CrossAccount.md)
 * [Enterprise Installs](technical-reference.md)
 * [quilt3.admin Python API](api-reference/Admin.md)
@@ -59,9 +60,11 @@
   * [quilt3.Package](api-reference/Package.md)
   * [quilt3.Bucket](api-reference/Bucket.md)
   * [quilt3.hooks](api-reference/Hooks.md)
+  * [quilt3.admin](api-reference/Admin.md)
   * [Local Catalog](Catalog/LocalMode.md)
   * [CLI, Environment](api-reference/cli.md)
   * [Known Limitations](api-reference/limitations.md)
+  * [Authentication Guide](api-reference/authentication.md)
   * [Custom SSL Certificates](api-reference/custom-ssl-certificates.md)
 * **Advanced**
   * [Browsing Buckets](walkthrough/working-with-a-bucket.md)
@@ -81,3 +84,5 @@
 * [Benchling Packager](examples/benchling.md)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
+* [Platform MCP Server](Catalog/MCP-Server.md)
+* [QuiltSync Desktop Application](examples/quiltsync.md)
