@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // The load itself was always guarded. These cover what runs *after* it --
 // `restore(config)`, `size()`, the `onRender` callback -- which used to reject
 // into nothing: `setState` never ran, so the preview stayed blank with no message.
+// The last two cover teardown: whatever the run got hold of has to be released.
 
 interface Deferred {
   resolve: (table: unknown) => void
@@ -37,6 +38,7 @@ const fakeTable = { size, delete: vi.fn(async () => {}) }
 // `renderViewer` does `document.createElement('perspective-viewer')`, so the
 // element has to exist for the code under test to have anything to call.
 const restore = vi.fn(async () => {})
+const viewerDelete = vi.fn(async () => {})
 
 class FakeViewer extends HTMLElement {
   restore = restore
@@ -47,7 +49,7 @@ class FakeViewer extends HTMLElement {
 
   toggleConfig = vi.fn()
 
-  delete = vi.fn(async () => {})
+  delete = viewerDelete
 }
 
 if (!customElements.get('perspective-viewer')) {
@@ -81,6 +83,8 @@ describe('utils/perspective', () => {
     restore.mockImplementation(async () => {})
     size.mockReset()
     size.mockImplementation(async () => 2)
+    viewerDelete.mockReset()
+    viewerDelete.mockImplementation(async () => {})
     fakeTable.delete.mockClear()
   })
 
@@ -147,6 +151,21 @@ describe('utils/perspective', () => {
 
     unmount()
     tableCalls[0].resolve(fakeTable)
+
+    await waitFor(() => expect(fakeTable.delete).toHaveBeenCalled())
+  })
+
+  it('releases the table even when the viewer delete rejects', async () => {
+    viewerDelete.mockImplementation(async () => {
+      throw new Error('View is not initialized')
+    })
+
+    const { getByTestId, unmount } = render(subject('a,b\n1,2\n'))
+    await waitFor(() => expect(tableCalls).toHaveLength(1))
+    tableCalls[0].resolve(fakeTable)
+    await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
+
+    unmount()
 
     await waitFor(() => expect(fakeTable.delete).toHaveBeenCalled())
   })

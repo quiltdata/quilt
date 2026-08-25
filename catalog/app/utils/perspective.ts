@@ -98,8 +98,13 @@ function usePerspective(
 
     async function disposeTable() {
       viewer?.parentNode?.removeChild(viewer)
-      await viewer?.delete()
-      await table?.delete()
+      // NOTE: a viewer whose `load` never finished rejects on `delete` -- that
+      //       must not strand the table
+      try {
+        await viewer?.delete()
+      } finally {
+        await table?.delete()
+      }
     }
 
     // NOTE: catch the whole thing, not just the load: `restore(config)`,
