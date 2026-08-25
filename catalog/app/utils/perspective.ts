@@ -62,6 +62,12 @@ function usePerspective(
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
+      // NOTE: a cleanup that ran during the load saw `table` as null and had
+      //       nothing to release, so release it here -- the viewer is gone
+      if (cancelled) {
+        await table.delete()
+        return
+      }
 
       const regularTable: RegularTableElement | null =
         viewer.querySelector('regular-table')

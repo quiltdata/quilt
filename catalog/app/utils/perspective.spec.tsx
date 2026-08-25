@@ -81,6 +81,7 @@ describe('utils/perspective', () => {
     restore.mockImplementation(async () => {})
     size.mockReset()
     size.mockImplementation(async () => 2)
+    fakeTable.delete.mockClear()
   })
 
   afterEach(() => {
@@ -135,5 +136,18 @@ describe('utils/perspective', () => {
 
     tableCalls[1].resolve(fakeTable)
     await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
+  })
+
+  it('releases a table that arrived after the cleanup', async () => {
+    // The teardown runs while `worker.table()` is still in flight, so it finds
+    // no table to delete -- unreleased, the dataset sits in the worker for the
+    // lifetime of the tab.
+    const { unmount } = render(subject('a,b\n1,2\n'))
+    await waitFor(() => expect(tableCalls).toHaveLength(1))
+
+    unmount()
+    tableCalls[0].resolve(fakeTable)
+
+    await waitFor(() => expect(fakeTable.delete).toHaveBeenCalled())
   })
 })
