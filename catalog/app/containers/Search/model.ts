@@ -1299,7 +1299,10 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
   return React.createElement(AvailablePackagesMetaFiltersGroup, {
     state,
     children,
-    totalAvailable: available.length,
+    // `initial`, not `available`: `available` is the server-filtered result, and
+    // the pre-filter count is what keeps `ordering.offered` stable while the
+    // user types — otherwise the Order-by control vanishes as matches narrow.
+    totalAvailable: initial.length,
   })
 }
 
