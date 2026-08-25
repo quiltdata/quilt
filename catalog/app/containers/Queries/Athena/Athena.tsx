@@ -124,34 +124,30 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     // lines up with the workgroup Select beside it (label + input row) instead
     // of floating at the top of the flex row.
     return (
-      <div className={className}>
-        <QuerySelect<Model.Query | null>
-          label="Select a query"
-          disabled
-          onChange={query.setValue}
-          queries={[]}
-          value={null}
-        />
-        <M.FormHelperText>No saved queries</M.FormHelperText>
-      </div>
+      <QuerySelect<Model.Query | null>
+        label="Select a query"
+        className={className}
+        disabled
+        helperText="No saved queries"
+        onChange={query.setValue}
+        queries={[]}
+        value={null}
+      />
     )
   }
 
   return (
-    <>
-      <QuerySelect<Model.Query | null>
-        label="Select a query"
-        className={className}
-        disabled={Model.isLoading(queryRun)}
-        onChange={query.setValue}
-        onLoadMore={queries.data.next ? queries.loadMore : undefined}
-        queries={queries.data.list}
-        value={Model.isError(query.value) ? null : query.value}
-      />
-      {Model.isError(query.value) && (
-        <M.FormHelperText error>{query.value.message}</M.FormHelperText>
-      )}
-    </>
+    <QuerySelect<Model.Query | null>
+      label="Select a query"
+      className={className}
+      disabled={Model.isLoading(queryRun)}
+      error={Model.isError(query.value)}
+      helperText={Model.isError(query.value) ? query.value.message : undefined}
+      onChange={query.setValue}
+      onLoadMore={queries.data.next ? queries.loadMore : undefined}
+      queries={queries.data.list}
+      value={Model.isError(query.value) ? null : query.value}
+    />
   )
 }
 

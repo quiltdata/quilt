@@ -12,7 +12,7 @@
  * cannot be recovered by flipping a switch later.
  */
 
-import type { Capabilities, PlatformKind } from './types'
+import type { Capabilities, DataProduct, PlatformKind } from './types'
 
 /**
  * AWS DataZone.
@@ -138,6 +138,55 @@ export const CAPABILITIES: Record<PlatformKind, Capabilities> = {
 }
 
 /**
+ * What to call each platform in reader-facing copy.
+ *
+ * Names the vendor, not the binding: `unity-schema` and `unity-share` are
+ * different bindings but the same product to a reader, so both read "Databricks
+ * Unity". A picker that offers both as choices needs them distinguishable and
+ * overrides this per key -- see `DataProductConnections`.
+ */
+export const PLATFORM_LABEL: Record<PlatformKind, string> = {
+  datazone: 'AWS DataZone',
+  'unity-schema': 'Databricks Unity',
+  'unity-share': 'Databricks Unity',
+  'snowflake-listing': 'Snowflake',
+}
+
+/**
+ * The reader-facing name for a `kind` that may not be one we know.
+ *
+ * Falls back to the kind itself: it is exact, never empty, and names something a
+ * support engineer can act on. Callers interpolate this into sentences, so an
+ * unmapped kind read through the bare table renders the word "undefined" as prose.
+ */
+export function platformLabelFor(kind: PlatformKind): string {
+  return PLATFORM_LABEL[kind] ?? kind
+}
+
+/**
+ * How much of a product the reader can actually read.
+ *
+ * Zero readable members is the case worth wording carefully. On a
+ * discovery-only product (Unity `BROWSE`) that is a permission boundary, not an
+ * empty product, and "0 members" would misreport it as no data.
+ */
+export function accessSummary(product: DataProduct): string {
+  const total = product.members.length
+  if (!total) return 'Contents not visible to you'
+  const readable = product.members.filter((m) => m.readable).length
+  if (readable === total) return `${total} member${total === 1 ? '' : 's'}`
+  return `${readable} of ${total} members readable`
+}
+
+/**
+ * `binding.kind` is typed but arrives over the wire, so it may be unmapped.
+ * `INTERSECTION` claims nothing rather than letting the first `caps.x` read throw.
+ */
+export function capabilitiesFor(kind: PlatformKind): Capabilities {
+  return CAPABILITIES[kind] ?? INTERSECTION
+}
+
+/**
  * The intersection: capabilities every platform supports.
  *
  * This is what `intersection` render mode may rely on. Note that every
@@ -163,9 +212,9 @@ export const INTERSECTION: Capabilities = {
  * "ship the intersection surface, build capability-aware underneath, one flag
  * between them". The 2026-08-18 decision replaced that with capability-aware
  * only, for a reason the build surfaced: intersection mode was never wired, and
- * nothing missed it. Every capability read site in the containers calls
- * `CAPABILITIES[binding.kind]` directly; this function and `INTERSECTION` have no
- * production consumer.
+ * nothing missed it. Every capability read site in the containers goes through
+ * `capabilitiesFor`; this function has no production consumer. (`INTERSECTION`
+ * does: it is the fallback for an unknown platform kind.)
  *
  * Retained rather than deleted so the reasoning survives for whoever later asks
  * why the UI is not intersection-rendered — and because the specs that exercise

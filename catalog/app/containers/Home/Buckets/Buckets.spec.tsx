@@ -61,9 +61,12 @@ vi.mock('utils/features', () => ({
 vi.mock('model/DataProducts', async () => {
   const actual =
     await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
+  const fx = await vi.importActual<typeof import('model/DataProducts/fixtures')>(
+    'model/DataProducts/fixtures',
+  )
   return {
     ...actual,
-    useProducts: (enabled = true) => (enabled ? actual.fixtures.ALL_PRODUCTS : []),
+    useProducts: (enabled = true) => (enabled ? fx.ALL_PRODUCTS : []),
   }
 })
 
@@ -409,7 +412,7 @@ describe('website/pages/Landing/Buckets', () => {
       const { queryByText } = renderBuckets('?q=nomatchxyz')
       expect(
         queryByText(
-          'Searched all 3 volumes you can reach, across name, description, and tags.',
+          'Searched all 3 volumes you can reach, across name, description, and tags or labels.',
         ),
       ).toBeTruthy()
     })
@@ -423,7 +426,7 @@ describe('website/pages/Landing/Buckets', () => {
       // 1 bucket + the 7 fixture products.
       expect(
         queryByText(
-          'Searched all 8 volumes you can reach, across name, description, and tags.',
+          'Searched all 8 volumes you can reach, across name, description, and tags or labels.',
         ),
       ).toBeTruthy()
     })
@@ -460,6 +463,27 @@ describe('website/pages/Landing/Buckets', () => {
       fireEvent.click(getByText('Without "beta"'))
 
       await waitFor(() => expect(getByTestId('search').textContent).toBe('?q=gamma'))
+    })
+
+    // Chips key on the term, and dropping one strips every occurrence of that word,
+    // so a repeat must not produce a second chip.
+    it('offers one chip per distinct term, however often it was typed', () => {
+      const { getAllByText, getByText, getByTestId } =
+        renderBuckets('?q=alpha+alpha+beta')
+
+      expect(getAllByText('Without "alpha"')).toHaveLength(1)
+      expect(getByText('Without "beta"')).toBeTruthy()
+
+      fireEvent.click(getByText('Without "alpha"'))
+      return waitFor(() => expect(getByTestId('search').textContent).toBe('?q=beta'))
+    })
+
+    it('offers no per-term drops when one word was merely repeated', () => {
+      // Two terms but one distinct word: dropping it and clearing the filter are
+      // the same action, which is the case this affordance withholds itself for.
+      const { queryByText } = renderBuckets('?q=alpha+alpha')
+      expect(queryByText('Without "alpha"')).toBeFalsy()
+      expect(queryByText('Clear filter')).toBeTruthy()
     })
 
     it('offers no per-term drops for a single term, where it would duplicate Clear', () => {

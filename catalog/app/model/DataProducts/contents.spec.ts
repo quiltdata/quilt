@@ -111,6 +111,56 @@ describe('model/DataProducts/contents', () => {
       expect(totalsForPath(e, 'raw/').fileCount).toBe(1)
     })
 
+    it('excludes a nested directory marker from the folder row it sits in', () => {
+      // The folder row and the header read the same manifest, so counting the
+      // marker made them disagree -- and because a marker carries no size, it also
+      // cleared `allSized` and blanked a total the folder fully knew.
+      const e = [
+        { logicalKey: 'raw/sub/' },
+        { logicalKey: 'raw/sub/a.txt', sizeBytes: 10 },
+        { logicalKey: 'raw/sub/b.txt', sizeBytes: 20 },
+      ]
+      const { dirs } = groupForPath(e, 'raw/')
+      expect(dirs[0]).toMatchObject({ fileCount: 2, sizeBytes: 30 })
+      expect(totalsForPath(e, 'raw/')).toEqual({ fileCount: 2, sizeBytes: 30 })
+    })
+
+    // Excluding the marker from the *counts* is not the same as dropping the entry:
+    // these three cover what a marker still has to do, and each one broke when the
+    // count fix skipped the entry outright.
+    it('shows a directory whose only manifest entry is its own marker', () => {
+      // An explicit `/`-suffixed key is how an S3-derived manifest represents an
+      // empty prefix. Dropping it left the folder invisible and unreachable while
+      // the object sat in the revision.
+      const { dirs } = groupForPath(
+        [{ logicalKey: 'raw/empty/' }, { logicalKey: 'raw/a.txt', sizeBytes: 1 }],
+        'raw/',
+      )
+      expect(dirs.map((d) => d.prefix)).toEqual(['raw/empty/'])
+      expect(dirs[0]).toMatchObject({ fileCount: 0 })
+    })
+
+    it('still reports a file shadowed by a marker-only directory', () => {
+      // `raw` and `raw/` in one manifest: the collision has to reach `shadowed`
+      // whether the directory side carries children or only its marker.
+      const { dirs, files, shadowed } = groupForPath(
+        [{ logicalKey: 'raw/' }, { logicalKey: 'raw' }],
+        '',
+      )
+      expect(dirs.map((d) => d.prefix)).toEqual(['raw/'])
+      expect(files).toEqual([])
+      expect(shadowed).toEqual(['raw'])
+    })
+
+    it('skips an empty logical key rather than listing a nameless file', () => {
+      const { dirs, files } = groupForPath(
+        [{ logicalKey: '' }, { logicalKey: 'a.txt' }],
+        '',
+      )
+      expect(dirs).toEqual([])
+      expect(files.map((f) => f.logicalKey)).toEqual(['a.txt'])
+    })
+
     it('ignores a key equal to the prefix rather than showing a nameless row', () => {
       const { dirs, files } = groupForPath(
         [{ logicalKey: 'raw/', sizeBytes: 0 }, { logicalKey: 'raw/a.tiff' }],
