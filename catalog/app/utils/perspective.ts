@@ -46,8 +46,7 @@ function usePerspective(
   config?: ViewConfig,
   onRender?: (tableEl: RegularTableElement) => void,
 ) {
-  const [state, setState] = React.useState<State | null>(null)
-  const [error, setError] = React.useState<Error | null>(null)
+  const [state, setState] = React.useState<State | Error | null>(null)
 
   React.useEffect(() => {
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
@@ -61,9 +60,9 @@ function usePerspective(
         viewer = renderViewer(container, attrs)
         table = await renderTable(data, viewer)
       } catch (e) {
-        const err = e instanceof Error ? e : new Error((e as any).message || `${e}`)
-        setError(err)
-        log.error(err)
+        const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
+        setState(error)
+        log.error(error)
         return
       }
 
@@ -108,7 +107,7 @@ function usePerspective(
 
   // NOTE: rethrow during render, because errors raised inside the async effect
   //       above never reach the enclosing `ErrorBoundary` on their own
-  if (error) throw error
+  if (state instanceof Error) throw state
 
   return state
 }
