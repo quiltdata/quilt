@@ -312,12 +312,19 @@ function ResultsBreadcrumbs({ children, className }: ResultsBreadcrumbsProps) {
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
+  const location = RRDom.useLocation()
   return (
     <div className={cx(classes.root, className)}>
       <M.Breadcrumbs classes={overrideClasses}>
         <RRDom.Link
           className={classes.breadcrumb}
-          to={urls.queriesAthenaWorkgroup(workgroup.data)}
+          // Keep the query string (e.g. the ?bucket= preference scope): the
+          // console branches on it, so dropping it here remounts the whole
+          // screen unscoped.
+          to={{
+            pathname: urls.queriesAthenaWorkgroup(workgroup.data),
+            search: location.search,
+          }}
         >
           Query Executions
         </RRDom.Link>

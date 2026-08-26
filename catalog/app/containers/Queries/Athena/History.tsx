@@ -150,7 +150,7 @@ function Row({ className, children }: RowProps) {
 interface LinkCellProps {
   children: React.ReactNode
   className: string
-  to?: string
+  to?: RRDom.LinkProps['to']
 }
 
 function LinkCell({ children, className, to }: LinkCellProps) {
@@ -181,7 +181,7 @@ const useExecutionStyles = M.makeStyles((t) => ({
 }))
 
 interface ExecutionProps {
-  to?: string
+  to?: RRDom.LinkProps['to']
   queryExecution: Model.QueryExecution
 }
 
@@ -251,6 +251,7 @@ interface HistoryProps {
 
 export default function History({ executions, onLoadMore }: HistoryProps) {
   const { urls } = NamedRoutes.use()
+  const location = RRDom.useLocation()
   const classes = useStyles()
 
   const pageSize = 10
@@ -308,7 +309,16 @@ export default function History({ executions, onLoadMore }: HistoryProps) {
               key={queryExecution.id}
               to={
                 queryExecution.status === 'SUCCEEDED'
-                  ? urls.queriesAthenaExecution(workgroup.data, queryExecution.id)
+                  ? {
+                      // Keep the query string (e.g. the ?bucket= preference
+                      // scope): the console branches on it, so dropping it here
+                      // remounts the whole screen unscoped.
+                      pathname: urls.queriesAthenaExecution(
+                        workgroup.data,
+                        queryExecution.id,
+                      ),
+                      search: location.search,
+                    }
                   : undefined
               }
             />
