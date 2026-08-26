@@ -209,19 +209,28 @@ describe('containers/Search/model', () => {
         ])
       })
 
-      it('offers exactly the options the two controls render', () => {
-        // Each control maps over its own list, so every entry needs a label and the
-        // default has to name a real option on both axes.
-        expect(model.FACET_ORDER_BY).toContain(model.DEFAULT_FACET_ORDERING.by)
-        expect(model.FACET_ORDER_DIRECTIONS).toContain(
-          model.DEFAULT_FACET_ORDERING.direction,
+      it('offers every combination of the two axes, exactly once', () => {
+        const combinations = model.FACET_ORDER_BY.flatMap((by) =>
+          model.FACET_ORDER_DIRECTIONS.map((direction) => `${by}:${direction}`),
         )
-        model.FACET_ORDER_BY.forEach((by) => {
-          expect(model.FACET_ORDER_BY_LABELS[by]).toBeTruthy()
-        })
-        model.FACET_ORDER_DIRECTIONS.forEach((d) => {
-          expect(model.FACET_ORDER_DIRECTION_LABELS[d]).toBeTruthy()
-        })
+        const offered = model.FACET_ORDERINGS.map((o) =>
+          model.serializeFacetOrdering(o.ordering),
+        )
+        expect(offered.slice().sort()).toEqual(combinations.slice().sort())
+        expect(new Set(offered).size).toBe(offered.length)
+      })
+
+      it('names every option, and the default is one of them', () => {
+        model.FACET_ORDERINGS.forEach((o) => expect(o.label).toBeTruthy())
+        expect(model.FACET_ORDERINGS.map((o) => o.label)).toEqual([
+          'Name A → Z',
+          'Name Z → A',
+          'Type A → Z',
+          'Type Z → A',
+        ])
+        expect(
+          model.FACET_ORDERINGS.map((o) => model.serializeFacetOrdering(o.ordering)),
+        ).toContain(model.serializeFacetOrdering(model.DEFAULT_FACET_ORDERING))
       })
     })
   })
