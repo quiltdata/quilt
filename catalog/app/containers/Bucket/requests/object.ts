@@ -1,6 +1,7 @@
 import type { S3 } from 'aws-sdk'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
+import { getArchiveState } from 'utils/glacier'
 import Log from 'utils/Logging'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
@@ -103,13 +104,12 @@ interface DeleteObjectArgs {
 
 export const deleteObject = async ({
   s3,
-  handle: { bucket, key, version },
+  handle: { bucket, key },
 }: DeleteObjectArgs): Promise<void> => {
   await s3
     .deleteObject({
       Bucket: bucket,
       Key: key,
-      VersionId: version,
     })
     .promise()
 }
@@ -130,7 +130,12 @@ const isObjectVersion = (v: ListItem): v is S3.ObjectVersion =>
 
 export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) => {
   const { Versions, DeleteMarkers } = await s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
+    .listObjectVersions({
+      Bucket: bucket,
+      Prefix: path,
+      EncodingType: 'url',
+      OptionalObjectAttributes: ['RestoreStatus'], // so restores show as available
+    })
     .promise()
   return ([...(Versions || []), ...(DeleteMarkers || [])] as ListItem[])
     .filter(({ Key }) => decodeS3Key(Key || '') === path)
@@ -142,7 +147,7 @@ export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) =
       id: v.VersionId,
       deleteMarker: isDeleteMarker(v),
       archived: isObjectVersion(v)
-        ? v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE'
+        ? !!getArchiveState(v.StorageClass, v.RestoreStatus).archived
         : false,
     }))
     .toSorted(({ lastModified: left }, { lastModified: right }) => {

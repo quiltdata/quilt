@@ -125,8 +125,13 @@ def lambda_handler(request):
         )
 
     # stream=True saves memory almost equal to file size
-    resp = requests.get(url, stream=True)
-    if resp.ok:
+    with requests.get(url, stream=True) as resp:
+        if not resp.ok:
+            return make_json_response(resp.status_code, {
+                'error': resp.reason,
+                'text': resp.text,
+            })
+
         content_iter = resp.iter_content(CHUNK)
         if input_type == 'csv':
             html, info = extract_csv(
@@ -156,17 +161,10 @@ def lambda_handler(request):
         assert isinstance(html, str), 'expected html parameter as string'
         assert isinstance(info, dict), 'expected info metadata to be a dict'
 
-        ret_val = {
+        return make_json_response(resp.status_code, {
             'info': info,
             'html': html,
-        }
-    else:
-        ret_val = {
-            'error': resp.reason,
-            'text': resp.text,
-        }
-
-    return make_json_response(resp.status_code, ret_val)
+        })
 
 
 def extract_csv(head, separator):

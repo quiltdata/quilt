@@ -7,7 +7,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   hintIcon: {
     color: t.palette.divider,
-    fontSize: '1rem',
+    fontSize: t.typography.body1.fontSize,
     marginLeft: '4px',
     verticalAlign: '-4px',
     '&:hover': {
@@ -24,7 +24,8 @@ interface KeywordWildcardFilterProps {
 }
 
 interface KeywordWildcardProps
-  extends Omit<M.TextFieldProps, keyof KeywordWildcardFilterProps>,
+  extends
+    Omit<M.TextFieldProps, keyof KeywordWildcardFilterProps>,
     KeywordWildcardFilterProps {}
 
 export default function KeywordWildcard({

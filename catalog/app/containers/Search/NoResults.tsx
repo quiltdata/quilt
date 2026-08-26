@@ -3,7 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Empty from 'components/Empty'
-import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
@@ -12,6 +11,10 @@ import assertNever from 'utils/assertNever'
 import * as Hit from './List/Hit'
 import { Table as TableSkeleton } from './Table/Skeleton'
 import * as SearchUIModel from './model'
+
+const ES_V = '6.8'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}`
+const ES_REF_SYNTAX = `${ES_REF}/query-dsl-query-string-query.html#query-string-syntax`
 
 interface SkeletonProps {
   className?: string
@@ -205,10 +208,12 @@ export function Error({
       case 'syntax':
         return (
           <>
-            Oops, couldn&apos;t parse that search.
+            The search cluster couldn&apos;t parse that query.
             <br />
             Try quoting{' '}
-            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Search)}>
+              your query
+            </StyledLink> or
             read about{' '}
             <StyledLink href={ES_REF_SYNTAX} target="_blank">
               supported query syntax
@@ -219,9 +224,11 @@ export function Error({
       case 'timeout':
         return (
           <>
-            Oops, the search cluster seems stressed.
+            The search cluster is under load and didn&apos;t answer in time.
             <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Network)}>
+              Try again
+            </StyledLink> or
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
@@ -229,9 +236,11 @@ export function Error({
       case 'unexpected':
         return (
           <>
-            Oops, something went wrong.
+            The search request failed for an unexpected reason.
             <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            <StyledLink onClick={() => onRefine(Refine.Network)}>
+              Try again
+            </StyledLink> or
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
@@ -243,7 +252,8 @@ export function Error({
 
   return (
     <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">{heading}</M.Typography>
+      {/* Headline, not Display (No-Display-Font Rule) -- matches Empty. */}
+      <M.Typography variant="h5">{heading}</M.Typography>
       <M.Typography variant="body1" align="center" className={classes.body}>
         {body}
       </M.Typography>

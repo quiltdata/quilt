@@ -1,9 +1,10 @@
-import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
+import HljsBoundary from 'utils/HljsBoundary'
+import hljs, { ensureLanguages } from 'utils/hljs'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
@@ -69,6 +70,7 @@ function JsonLoader({ gated, handle, children }: JsonLoaderProps) {
       } catch (e) {
         if (e instanceof SyntaxError) {
           const lang = 'json'
+          ensureLanguages([lang])
           // @ts-expect-error ts can't find appropriate type declaration
           const highlighted = R.map(hl(lang), { head, tail })
           return PreviewData.Text({
@@ -130,7 +132,9 @@ export const Loader = function GatedJsonLoader({
     }) => {
       const LoaderComponent = findLoader(firstBytes, options)
       return (
-        <LoaderComponent {...{ handle, children, gated: contentLength > MAX_SIZE }} />
+        <HljsBoundary fallback={children(AsyncResult.Init())}>
+          <LoaderComponent {...{ handle, children, gated: contentLength > MAX_SIZE }} />
+        </HljsBoundary>
       )
     },
     _: children,

@@ -343,6 +343,41 @@ class PackagePromoteTest(PackagePromoteTestBase):
                         },
                     }
 
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_result_top_hash_without_push_bookkeeping(self):
+        """The published revision comes off the returned package, not off private push state.
+
+        quilt3 8 dropped `Package._origin`, so a caller reaching into it publishes successfully and
+        then raises AttributeError -- reporting failure after the remote has already been mutated.
+        This runs the real promote flow against a `_push` whose result carries no `_origin`, which
+        is the shape the newer quilt3 hands back. The pin in pyproject.toml keeps CI on quilt3 7,
+        so nothing else here would notice.
+        """
+        expected_pkg = self.prepare_pkg(copy_data=True)
+        top_hash = expected_pkg.top_hash
+        self.setup_s3(expected_pkg=expected_pkg)
+
+        original_push = Package._push
+
+        def push_without_origin(pkg_self, *args, **kwargs):
+            result = original_push(pkg_self, *args, **kwargs)
+            for pkg in (pkg_self, result):
+                pkg.__dict__.pop('_origin', None)
+            return result
+
+        with (
+            self.mock_successors({self.dst_registry: {'copy_data': True}}),
+            mock.patch('t4_lambda_pkgpush.copy_file_list') as copy_file_list_mock,
+            mock.patch.object(Package, '_push', push_without_origin),
+        ):
+            copy_fn_mock = mock.Mock()
+            copy_fn_mock.return_value = [(entry.physical_key, None) for _lk, entry in expected_pkg.walk()]
+            copy_file_list_mock.return_value = copy_fn_mock
+
+            response = self.make_request({**self.src_params, **self.dst_pkg_loc_params})
+
+        assert response == {"result": {'top_hash': top_hash}}
+
     def test_no_auth(self):
         resp = self.make_request_base({}, credentials={})
         assert resp["error"]["name"] == "InvalidInputParameters"

@@ -1,9 +1,13 @@
 name: Deploy lambdas to S3 and ECR
 
+# `dev` builds Prod+GovCloud artifacts so the deployment `dev` branch can pin
+# bleeding-edge SHAs onto https://dev.quilttest.com.
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
+      - dev
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
@@ -30,7 +34,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build zip
         run: |
           BUILDER_IMAGE=amazon/aws-lambda-python:$(cat lambdas/${{ matrix.path }}/.python-version)
@@ -76,7 +80,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
         run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .

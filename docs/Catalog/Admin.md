@@ -75,6 +75,10 @@ You may also provide custom policies via ARN:
 The resulting permission set is equivalent to a union of all permissions
 provided by the policies attached to that role.
 
+> **Note:** a managed role's IAM policy is regenerated when its bucket permissions
+> are saved, so permissions added in a newer Quilt release reach existing managed
+> roles on their next save.
+
 
 ## Buckets
 
@@ -104,6 +108,15 @@ By default, when you add a bucket to the Quilt stack one of two things will happ
 If either of the above conditions fails, Quilt will not add the bucket in question.
 
 See [S3 Events, EventBridge](../EventBridge.md) for more.
+
+### Stack-managed bucket protections
+
+Manual bucket-management operations on stack-managed S3 buckets are denied by
+bucket policy. All configuration changes to a stack-managed bucket — including
+notifications, policies, and lifecycle rules — must go through CloudFormation
+rather than the S3 console, CLI, or API. This keeps each bucket's
+configuration in sync with the stack template and prevents drift that could
+break indexing or event delivery.
 
 ## Settings
 

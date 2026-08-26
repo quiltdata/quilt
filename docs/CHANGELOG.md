@@ -20,8 +20,33 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
+* [Added] Experimental: `Package.set_meta(meta, agent_context=True)` — opt-in keyword that records what Quilt can observe about a commit (STS principal, authentication path, quilt3 client version, canonical UTC timestamp) and stores `meta` with that context embedded at `agent_context.quilt`, before workflow validation and top-hash calculation. `authentication.type` is `quilt-catalog` only when the currently configured registry has a confirmed catalog login backing the cached credentials, not merely when some Quilt credentials happen to be cached; otherwise it's `aws`. Every key in `meta` — including siblings such as `agent_context.agent` and `agent_context.inputs` — is preserved; passing back metadata carrying a previous embed (such as from the package `push()` returns) replaces it with fresh context, while an `agent_context.quilt` value Quilt did not write or non-object metadata raises `QuiltException` before any AWS call, leaving the package's metadata untouched. Note the embedded timestamp gives every push a new top hash — `dedupe` no longer skips — and any workflow's package-metadata schema must allow the `agent_context` key. Without the keyword, `set_meta` is unchanged. Experimental: targeted at a pre-release; the keyword and its behavior may change ([#5192](https://github.com/quiltdata/quilt/pull/5192))
+* [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] The `QuiltConflictException` raised by `Package.push()` now names the destination bucket and package name, and leads with the routes that satisfy the check — re-using the package returned by the previous `push()`, or calling `Package.browse()` (CLI: `quilt3 install`) — before offering `force=True`/`--force` ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] `Package` no longer carries a `_origin` attribute or a `PackageRevInfo` class; the revision a package was read from or has published is tracked internally per package name. `Package.push()` returns the package it published, so `result.top_hash` is the published revision ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] `Package.push(force=True, dedupe=True)` re-reads the destination before accepting an equal-hash match, so a revision published by another writer during transfer is overwritten rather than reported as a skip ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Fixed] `Package.browse()` and `Package.install()` now recompute the manifest's top hash and raise `PackageException` when it does not match the revision that was resolved, instead of returning a package whose contents disagree with the hash it was pinned to. A cached manifest that fails the check is evicted, and a freshly downloaded one is verified before it is written into the manifest cache. The check is unconditional and cannot be skipped, so a call that previously succeeded against a corrupted cache entry or an externally modified manifest now fails ([#5184](https://github.com/quiltdata/quilt/pull/5184))
+* [Fixed] Concurrent `Package.browse()` calls for the same uncached manifest no longer download into a single shared temporary path, where they could overwrite one another's bytes and publish a partial manifest into the cache; each download now uses a unique temporary file ([#5184](https://github.com/quiltdata/quilt/pull/5184))
+
+### CLI
+
+* [Added] Experimental: `quilt3 push --agent-context` — mirrors the `agent_context` keyword on `Package.set_meta()`: writes Quilt-observed commit context to `agent_context.quilt`, composing with `--meta`; without the flag, behavior and package identity are unchanged. With the flag, `--dedupe` no longer skips (the embedded timestamp changes the top hash every push) and workflow metadata schemas must allow the `agent_context` key. Experimental: targeted at a pre-release; the flag and its behavior may change ([#5192](https://github.com/quiltdata/quilt/pull/5192))
+
+## 8.0.0 - 2026-08-04
+
+### Python API
+
 * [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
 * [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
+* [Fixed] `quilt3.delete_package()` on a local registry no longer deletes other packages sharing the same namespace ([#5140](https://github.com/quiltdata/quilt/pull/5140))
+* [Fixed] `Package.push()` no longer fails after the data is uploaded when cleaning up a temporary file created by `Package.set()`: a file that is already gone is ignored, which is also what happens when two logical keys share one serialized object and its temporary file is deleted twice, and any other removal error is logged instead of raised ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Package.push()` no longer uses a process pool to delete temporary files, so it works from a daemonic process (e.g. a prefork worker) and no longer requires callers to guard their entry point with `if __name__ == "__main__":` ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Bucket.delete_dir()` no longer stops partway through on zero-byte directory markers, leaving the directory half deleted ([#5158](https://github.com/quiltdata/quilt/pull/5158))
+
+### CLI
+
+* [Changed] `quilt3 login` no longer echoes the pasted code to the terminal (it is a long-lived credential) ([#5138](https://github.com/quiltdata/quilt/pull/5138))
 
 ## 7.3.0 - 2026-04-07
 

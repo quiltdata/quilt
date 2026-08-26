@@ -1,5 +1,4 @@
 import type { IntrospectionQuery } from 'graphql'
-
 export default {
   __schema: {
     queryType: {
@@ -14,42 +13,6 @@ export default {
         kind: 'OBJECT',
         name: 'APIKey',
         fields: [
-          {
-            name: 'id',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'ID',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'fingerprint',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'createdAt',
             type: {
@@ -75,6 +38,30 @@ export default {
             args: [],
           },
           {
+            name: 'fingerprint',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'lastUsedAt',
             type: {
               kind: 'SCALAR',
@@ -84,7 +71,7 @@ export default {
             args: [],
           },
           {
-            name: 'userEmail',
+            name: 'name',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -106,16 +93,20 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'userEmail',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'ID',
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
       },
       {
         kind: 'OBJECT',
@@ -153,6 +144,27 @@ export default {
         name: 'APIKeyAdminQueries',
         fields: [
           {
+            name: 'get',
+            type: {
+              kind: 'OBJECT',
+              name: 'APIKey',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'list',
             type: {
               kind: 'NON_NULL',
@@ -178,7 +190,7 @@ export default {
                 },
               },
               {
-                name: 'name',
+                name: 'fingerprint',
                 type: {
                   kind: 'SCALAR',
                   name: 'String',
@@ -186,7 +198,7 @@ export default {
                 },
               },
               {
-                name: 'fingerprint',
+                name: 'name',
                 type: {
                   kind: 'SCALAR',
                   name: 'String',
@@ -202,33 +214,8 @@ export default {
               },
             ],
           },
-          {
-            name: 'get',
-            type: {
-              kind: 'OBJECT',
-              name: 'APIKey',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Int',
       },
       {
         kind: 'UNION',
@@ -281,11 +268,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'Ok',
+            name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
-            name: 'InvalidInput',
+            name: 'Ok',
           },
         ],
       },
@@ -325,18 +312,6 @@ export default {
         name: 'AccessCounts',
         fields: [
           {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'counts',
             type: {
               kind: 'NON_NULL',
@@ -354,6 +329,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -362,24 +349,24 @@ export default {
         name: 'AccessCountsGroup',
         fields: [
           {
-            name: 'ext',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'counts',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
                 name: 'AccessCounts',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'ext',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -393,31 +380,59 @@ export default {
         name: 'AdminMutations',
         fields: [
           {
-            name: 'user',
+            name: 'apiKeys',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
-                name: 'UserAdminMutations',
+                name: 'APIKeyAdminMutations',
                 ofType: null,
               },
             },
             args: [],
           },
           {
-            name: 'setSsoConfig',
+            name: 'bucketRenameTabulatorTable',
             type: {
-              kind: 'UNION',
-              name: 'SetSsoConfigResult',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
             },
             args: [
               {
-                name: 'config',
+                name: 'bucketName',
                 type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'newTableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
                 },
               },
             ],
@@ -445,17 +460,6 @@ export default {
                 },
               },
               {
-                name: 'tableName',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
                 name: 'config',
                 type: {
                   kind: 'SCALAR',
@@ -463,30 +467,6 @@ export default {
                   ofType: null,
                 },
               },
-            ],
-          },
-          {
-            name: 'bucketRenameTabulatorTable',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BucketSetTabulatorTableResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'bucketName',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
               {
                 name: 'tableName',
                 type: {
@@ -498,15 +478,34 @@ export default {
                   },
                 },
               },
+            ],
+          },
+          {
+            name: 'packager',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackagerAdminMutations',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'setSsoConfig',
+            type: {
+              kind: 'UNION',
+              name: 'SetSsoConfigResult',
+              ofType: null,
+            },
+            args: [
               {
-                name: 'newTableName',
+                name: 'config',
                 type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
                 },
               },
             ],
@@ -536,24 +535,12 @@ export default {
             ],
           },
           {
-            name: 'packager',
+            name: 'user',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
-                name: 'PackagerAdminMutations',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'apiKeys',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'APIKeyAdminMutations',
+                name: 'UserAdminMutations',
                 ofType: null,
               },
             },
@@ -563,48 +550,23 @@ export default {
         interfaces: [],
       },
       {
-        kind: 'SCALAR',
-        name: 'Boolean',
-      },
-      {
         kind: 'OBJECT',
         name: 'AdminQueries',
         fields: [
           {
-            name: 'user',
+            name: 'apiKeys',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
-                name: 'UserAdminQueries',
+                name: 'APIKeyAdminQueries',
                 ofType: null,
               },
-            },
-            args: [],
-          },
-          {
-            name: 'ssoConfig',
-            type: {
-              kind: 'OBJECT',
-              name: 'SsoConfig',
-              ofType: null,
             },
             args: [],
           },
           {
             name: 'isDefaultRoleSettingDisabled',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'tabulatorOpenQuery',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -628,12 +590,33 @@ export default {
             args: [],
           },
           {
-            name: 'apiKeys',
+            name: 'ssoConfig',
+            type: {
+              kind: 'OBJECT',
+              name: 'SsoConfig',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'tabulatorOpenQuery',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'user',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
-                name: 'APIKeyAdminQueries',
+                name: 'UserAdminQueries',
                 ofType: null,
               },
             },
@@ -641,6 +624,10 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -653,6 +640,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -671,24 +670,24 @@ export default {
         name: 'BrowsingSession',
         fields: [
           {
-            name: 'id',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'ID',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'expires',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
                 name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
                 ofType: null,
               },
             },
@@ -752,75 +751,6 @@ export default {
         name: 'Bucket',
         fields: [
           {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'title',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'iconUrl',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'description',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'tags',
-            type: {
-              kind: 'LIST',
-              ofType: {
-                kind: 'NON_NULL',
-                ofType: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'relevanceScore',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'browsable',
             type: {
               kind: 'NON_NULL',
@@ -846,6 +776,75 @@ export default {
                     ofType: null,
                   },
                 },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'description',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'iconUrl',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'relevanceScore',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'tags',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
               },
             },
             args: [],
@@ -985,183 +984,6 @@ export default {
         name: 'BucketConfig',
         fields: [
           {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'title',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'iconUrl',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'description',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'linkedData',
-            type: {
-              kind: 'SCALAR',
-              name: 'Json',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'overviewUrl',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'tags',
-            type: {
-              kind: 'LIST',
-              ofType: {
-                kind: 'NON_NULL',
-                ofType: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'relevanceScore',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'lastIndexed',
-            type: {
-              kind: 'SCALAR',
-              name: 'Datetime',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'browsable',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'snsNotificationArn',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'scannerParallelShardsDepth',
-            type: {
-              kind: 'SCALAR',
-              name: 'Int',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'skipMetaDataIndexing',
-            type: {
-              kind: 'SCALAR',
-              name: 'Boolean',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'fileExtensionsToIndex',
-            type: {
-              kind: 'LIST',
-              ofType: {
-                kind: 'NON_NULL',
-                ofType: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'indexContentBytes',
-            type: {
-              kind: 'SCALAR',
-              name: 'Int',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'prefixes',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
             name: 'associatedPolicies',
             type: {
               kind: 'NON_NULL',
@@ -1198,6 +1020,156 @@ export default {
             args: [],
           },
           {
+            name: 'browsable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'description',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'fileExtensionsToIndex',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'iconUrl',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'indexContentBytes',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'lastIndexed',
+            type: {
+              kind: 'SCALAR',
+              name: 'Datetime',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'linkedData',
+            type: {
+              kind: 'SCALAR',
+              name: 'Json',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'overviewUrl',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'prefixes',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'relevanceScore',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'scannerParallelShardsDepth',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'skipMetaDataIndexing',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'snsNotificationArn',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'tabulatorTables',
             type: {
               kind: 'NON_NULL',
@@ -1211,6 +1183,33 @@ export default {
                     ofType: null,
                   },
                 },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'tags',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
               },
             },
             args: [],
@@ -1328,11 +1327,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'BucketRemoveSuccess',
+            name: 'BucketNotFound',
           },
           {
             kind: 'OBJECT',
-            name: 'BucketNotFound',
+            name: 'BucketRemoveSuccess',
           },
           {
             kind: 'OBJECT',
@@ -1380,10 +1379,6 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'BucketUpdateSuccess',
-          },
-          {
-            kind: 'OBJECT',
             name: 'BucketFileExtensionsToIndexInvalid',
           },
           {
@@ -1393,6 +1388,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'BucketNotFound',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketUpdateSuccess',
           },
           {
             kind: 'OBJECT',
@@ -1436,19 +1435,7 @@ export default {
         name: 'Canary',
         fields: [
           {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'region',
+            name: 'description',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1472,7 +1459,16 @@ export default {
             args: [],
           },
           {
-            name: 'title',
+            name: 'lastRun',
+            type: {
+              kind: 'SCALAR',
+              name: 'Datetime',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'name',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1484,7 +1480,16 @@ export default {
             args: [],
           },
           {
-            name: 'description',
+            name: 'ok',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'region',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1508,20 +1513,14 @@ export default {
             args: [],
           },
           {
-            name: 'ok',
+            name: 'title',
             type: {
-              kind: 'SCALAR',
-              name: 'Boolean',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'lastRun',
-            type: {
-              kind: 'SCALAR',
-              name: 'Datetime',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -1613,25 +1612,19 @@ export default {
         name: 'ContentIndexingSettings',
         fields: [
           {
-            name: 'extensions',
+            name: 'bytesDefault',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
               },
             },
             args: [],
           },
           {
-            name: 'bytesDefault',
+            name: 'bytesMax',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1655,13 +1648,19 @@ export default {
             args: [],
           },
           {
-            name: 'bytesMax',
+            name: 'extensions',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
               },
             },
             args: [],
@@ -1678,7 +1677,7 @@ export default {
         name: 'DatetimeExtents',
         fields: [
           {
-            name: 'min',
+            name: 'max',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1690,7 +1689,7 @@ export default {
             args: [],
           },
           {
-            name: 'max',
+            name: 'min',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1709,6 +1708,18 @@ export default {
         name: 'DatetimePackageUserMetaFacet',
         fields: [
           {
+            name: 'extents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'DatetimeExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'path',
             type: {
               kind: 'NON_NULL',
@@ -1721,12 +1732,12 @@ export default {
             args: [],
           },
           {
-            name: 'extents',
+            name: 'sortable',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'DatetimeExtents',
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -1757,6 +1768,14 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'SCALAR',
+        name: 'Float',
+      },
+      {
+        kind: 'SCALAR',
+        name: 'ID',
+      },
+      {
         kind: 'INTERFACE',
         name: 'IPackageUserMetaFacet',
         fields: [
@@ -1767,6 +1786,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -1818,10 +1849,10 @@ export default {
         name: 'InputError',
         fields: [
           {
-            name: 'path',
+            name: 'context',
             type: {
               kind: 'SCALAR',
-              name: 'String',
+              name: 'JsonRecord',
               ofType: null,
             },
             args: [],
@@ -1851,10 +1882,10 @@ export default {
             args: [],
           },
           {
-            name: 'context',
+            name: 'path',
             type: {
               kind: 'SCALAR',
-              name: 'JsonRecord',
+              name: 'String',
               ofType: null,
             },
             args: [],
@@ -1880,6 +1911,10 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Int',
       },
       {
         kind: 'OBJECT',
@@ -1944,6 +1979,18 @@ export default {
         name: 'KeywordPackageUserMetaFacet',
         fields: [
           {
+            name: 'extents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'path',
             type: {
               kind: 'NON_NULL',
@@ -1956,12 +2003,12 @@ export default {
             args: [],
           },
           {
-            name: 'extents',
+            name: 'sortable',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'KeywordExtents',
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -1979,6 +2026,18 @@ export default {
         kind: 'OBJECT',
         name: 'ManagedRole',
         fields: [
+          {
+            name: 'arn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
           {
             name: 'id',
             type: {
@@ -2004,13 +2063,19 @@ export default {
             args: [],
           },
           {
-            name: 'arn',
+            name: 'permissions',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'RoleBucketPermission',
+                    ofType: null,
+                  },
+                },
               },
             },
             args: [],
@@ -2033,24 +2098,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'permissions',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'RoleBucketPermission',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
@@ -2059,16 +2106,67 @@ export default {
         name: 'Me',
         fields: [
           {
-            name: 'name',
+            name: 'apiKey',
+            type: {
+              kind: 'OBJECT',
+              name: 'APIKey',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'apiKeys',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'APIKey',
+                    ofType: null,
+                  },
+                },
               },
             },
-            args: [],
+            args: [
+              {
+                name: 'fingerprint',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'name',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'status',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
           },
           {
             name: 'email',
@@ -2089,6 +2187,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -2124,69 +2234,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'apiKeys',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'APIKey',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [
-              {
-                name: 'name',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-              {
-                name: 'fingerprint',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-              {
-                name: 'status',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Any',
-                },
-              },
-            ],
-          },
-          {
-            name: 'apiKey',
-            type: {
-              kind: 'OBJECT',
-              name: 'APIKey',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
         ],
         interfaces: [],
       },
@@ -2194,6 +2241,36 @@ export default {
         kind: 'OBJECT',
         name: 'MutateUserAdminMutations',
         fields: [
+          {
+            name: 'addRoles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'roles',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'LIST',
+                    ofType: {
+                      kind: 'NON_NULL',
+                      ofType: {
+                        kind: 'SCALAR',
+                        name: 'String',
+                        ofType: null,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
           {
             name: 'delete',
             type: {
@@ -2205,6 +2282,104 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'removeRoles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'fallback',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'roles',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'LIST',
+                    ofType: {
+                      kind: 'NON_NULL',
+                      ofType: {
+                        kind: 'SCALAR',
+                        name: 'String',
+                        ofType: null,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'resetPassword',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'OperationResult',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'setActive',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'active',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'setAdmin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'admin',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
           },
           {
             name: 'setEmail',
@@ -2242,12 +2417,12 @@ export default {
             },
             args: [
               {
-                name: 'role',
+                name: 'append',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'SCALAR',
-                    name: 'String',
+                    name: 'Boolean',
                     ofType: null,
                   },
                 },
@@ -2267,166 +2442,7 @@ export default {
                 },
               },
               {
-                name: 'append',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Boolean',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'addRoles',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'UserResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'roles',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'LIST',
-                    ofType: {
-                      kind: 'NON_NULL',
-                      ofType: {
-                        kind: 'SCALAR',
-                        name: 'String',
-                        ofType: null,
-                      },
-                    },
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'removeRoles',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'UserResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'roles',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'LIST',
-                    ofType: {
-                      kind: 'NON_NULL',
-                      ofType: {
-                        kind: 'SCALAR',
-                        name: 'String',
-                        ofType: null,
-                      },
-                    },
-                  },
-                },
-              },
-              {
-                name: 'fallback',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-            ],
-          },
-          {
-            name: 'setAdmin',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'UserResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'admin',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Boolean',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'setActive',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'UserResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'active',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Boolean',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'resetPassword',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'OperationResult',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'Mutation',
-        fields: [
-          {
-            name: 'switchRole',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'SwitchRoleResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'roleName',
+                name: 'role',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
@@ -2437,6 +2453,25 @@ export default {
                 },
               },
             ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Mutation',
+        fields: [
+          {
+            name: 'admin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'AdminMutations',
+                ofType: null,
+              },
+            },
+            args: [],
           },
           {
             name: 'apiKeyCreate',
@@ -2491,6 +2526,270 @@ export default {
             ],
           },
           {
+            name: 'browsingSessionCreate',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BrowsingSessionCreateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'scope',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'ttl',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'browsingSessionDispose',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BrowsingSessionDisposeResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'browsingSessionRefresh',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BrowsingSessionRefreshResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'ttl',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketAdd',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketAddResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketRemove',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketRemoveResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketRenameTabulatorTable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucketName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'newTableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketSetTabulatorTable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucketName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'config',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketUpdate',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketUpdateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'packageConstruct',
             type: {
               kind: 'NON_NULL',
@@ -2535,6 +2834,14 @@ export default {
             },
             args: [
               {
+                name: 'destPrefix',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
                 name: 'params',
                 type: {
                   kind: 'NON_NULL',
@@ -2552,14 +2859,6 @@ export default {
                     kind: 'SCALAR',
                     name: 'Any',
                   },
-                },
-              },
-              {
-                name: 'destPrefix',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
                 },
               },
             ],
@@ -2587,17 +2886,6 @@ export default {
                 },
               },
               {
-                name: 'name',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
                 name: 'hash',
                 type: {
                   kind: 'NON_NULL',
@@ -2608,179 +2896,8 @@ export default {
                   },
                 },
               },
-            ],
-          },
-          {
-            name: 'admin',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'AdminMutations',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'bucketAdd',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BucketAddResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'input',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'bucketUpdate',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BucketUpdateResult',
-                ofType: null,
-              },
-            },
-            args: [
               {
                 name: 'name',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'input',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'bucketRemove',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BucketRemoveResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'name',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'bucketSetTabulatorTable',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BucketSetTabulatorTableResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'bucketName',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'tableName',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'config',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-            ],
-          },
-          {
-            name: 'bucketRenameTabulatorTable',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BucketSetTabulatorTableResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'bucketName',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'tableName',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'newTableName',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
@@ -2833,6 +2950,30 @@ export default {
                   ofType: {
                     kind: 'SCALAR',
                     name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'policyDelete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PolicyDeleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
                   },
                 },
               },
@@ -2907,25 +3048,65 @@ export default {
             ],
           },
           {
-            name: 'policyDelete',
+            name: 'restoreObject',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'UNION',
-                name: 'PolicyDeleteResult',
+                name: 'RestoreObjectResult',
                 ofType: null,
               },
             },
             args: [
               {
-                name: 'id',
+                name: 'bucket',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'SCALAR',
-                    name: 'ID',
+                    name: 'String',
                     ofType: null,
                   },
+                },
+              },
+              {
+                name: 'days',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'key',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tier',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'version',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
                 },
               },
             ],
@@ -2971,6 +3152,54 @@ export default {
                   ofType: {
                     kind: 'SCALAR',
                     name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleDelete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleDeleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleSetDefault',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleSetDefaultResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
                   },
                 },
               },
@@ -3045,141 +3274,23 @@ export default {
             ],
           },
           {
-            name: 'roleDelete',
+            name: 'switchRole',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'UNION',
-                name: 'RoleDeleteResult',
+                name: 'SwitchRoleResult',
                 ofType: null,
               },
             },
             args: [
               {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'roleSetDefault',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'RoleSetDefaultResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'browsingSessionCreate',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BrowsingSessionCreateResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'scope',
+                name: 'roleName',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'SCALAR',
                     name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'ttl',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Int',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'browsingSessionRefresh',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BrowsingSessionRefreshResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'ttl',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Int',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'browsingSessionDispose',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'BrowsingSessionDisposeResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
                     ofType: null,
                   },
                 },
@@ -3245,7 +3356,7 @@ export default {
         name: 'NumberExtents',
         fields: [
           {
-            name: 'min',
+            name: 'max',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -3257,7 +3368,7 @@ export default {
             args: [],
           },
           {
-            name: 'max',
+            name: 'min',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -3272,13 +3383,21 @@ export default {
         interfaces: [],
       },
       {
-        kind: 'SCALAR',
-        name: 'Float',
-      },
-      {
         kind: 'OBJECT',
         name: 'NumberPackageUserMetaFacet',
         fields: [
+          {
+            name: 'extents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'NumberExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
           {
             name: 'path',
             type: {
@@ -3292,12 +3411,12 @@ export default {
             args: [],
           },
           {
-            name: 'extents',
+            name: 'sortable',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'NumberExtents',
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -3317,11 +3436,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'ObjectsSearchResultSetPage',
+            name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
-            name: 'InvalidInput',
+            name: 'ObjectsSearchResultSetPage',
           },
           {
             kind: 'OBJECT',
@@ -3335,15 +3454,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'ObjectsSearchResultSet',
-          },
-          {
-            kind: 'OBJECT',
             name: 'EmptySearchResultSet',
           },
           {
             kind: 'OBJECT',
             name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'ObjectsSearchResultSet',
           },
           {
             kind: 'OBJECT',
@@ -3356,16 +3475,32 @@ export default {
         name: 'ObjectsSearchResultSet',
         fields: [
           {
-            name: 'total',
+            name: 'firstPage',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
+                kind: 'OBJECT',
+                name: 'ObjectsSearchResultSetPage',
                 ofType: null,
               },
             },
-            args: [],
+            args: [
+              {
+                name: 'order',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+              {
+                name: 'size',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
           },
           {
             name: 'stats',
@@ -3380,32 +3515,16 @@ export default {
             args: [],
           },
           {
-            name: 'firstPage',
+            name: 'total',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'ObjectsSearchResultSetPage',
+                kind: 'SCALAR',
+                name: 'Int',
                 ofType: null,
               },
             },
-            args: [
-              {
-                name: 'size',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Int',
-                  ofType: null,
-                },
-              },
-              {
-                name: 'order',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Any',
-                },
-              },
-            ],
+            args: [],
           },
         ],
         interfaces: [],
@@ -3449,6 +3568,18 @@ export default {
         name: 'ObjectsSearchStats',
         fields: [
           {
+            name: 'ext',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'modified',
             type: {
               kind: 'NON_NULL',
@@ -3467,18 +3598,6 @@ export default {
               ofType: {
                 kind: 'OBJECT',
                 name: 'NumberExtents',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'ext',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'KeywordExtents',
                 ofType: null,
               },
             },
@@ -3508,6 +3627,15 @@ export default {
         name: 'OperationError',
         fields: [
           {
+            name: 'context',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'message',
             type: {
               kind: 'NON_NULL',
@@ -3531,15 +3659,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'context',
-            type: {
-              kind: 'SCALAR',
-              name: 'JsonRecord',
-              ofType: null,
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
@@ -3549,11 +3668,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'Ok',
+            name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
-            name: 'InvalidInput',
+            name: 'Ok',
           },
           {
             kind: 'OBJECT',
@@ -3566,19 +3685,25 @@ export default {
         name: 'Package',
         fields: [
           {
-            name: 'bucket',
+            name: 'accessCounts',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
             },
-            args: [],
+            args: [
+              {
+                name: 'window',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
           },
           {
-            name: 'name',
+            name: 'bucket',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -3602,12 +3727,12 @@ export default {
             args: [],
           },
           {
-            name: 'revisions',
+            name: 'name',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'PackageRevisionList',
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -3632,22 +3757,16 @@ export default {
             ],
           },
           {
-            name: 'accessCounts',
+            name: 'revisions',
             type: {
-              kind: 'OBJECT',
-              name: 'AccessCounts',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'window',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Int',
-                  ofType: null,
-                },
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackageRevisionList',
+                ofType: null,
               },
-            ],
+            },
+            args: [],
           },
         ],
         interfaces: [],
@@ -3658,15 +3777,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'PackagePushSuccess',
-          },
-          {
-            kind: 'OBJECT',
             name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
             name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagePushSuccess',
           },
         ],
       },
@@ -3678,39 +3797,6 @@ export default {
         kind: 'OBJECT',
         name: 'PackageDir',
         fields: [
-          {
-            name: 'path',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'metadata',
-            type: {
-              kind: 'SCALAR',
-              name: 'JsonRecord',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'size',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'children',
             type: {
@@ -3729,27 +3815,15 @@ export default {
             },
             args: [],
           },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'UNION',
-        name: 'PackageEntry',
-        possibleTypes: [
           {
-            kind: 'OBJECT',
-            name: 'PackageFile',
+            name: 'metadata',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
           },
-          {
-            kind: 'OBJECT',
-            name: 'PackageDir',
-          },
-        ],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'PackageFile',
-        fields: [
           {
             name: 'path',
             type: {
@@ -3763,6 +3837,39 @@ export default {
             args: [],
           },
           {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'PackageEntry',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackageDir',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackageFile',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageFile',
+        fields: [
+          {
             name: 'metadata',
             type: {
               kind: 'SCALAR',
@@ -3772,12 +3879,12 @@ export default {
             args: [],
           },
           {
-            name: 'size',
+            name: 'path',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Float',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -3795,6 +3902,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -3802,18 +3921,6 @@ export default {
         kind: 'OBJECT',
         name: 'PackageList',
         fields: [
-          {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'page',
             type: {
@@ -3840,6 +3947,13 @@ export default {
                 },
               },
               {
+                name: 'order',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+              {
                 name: 'perPage',
                 type: {
                   kind: 'SCALAR',
@@ -3847,17 +3961,26 @@ export default {
                   ofType: null,
                 },
               },
-              {
-                name: 'order',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Any',
-                },
-              },
             ],
+          },
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'PackageOrdering',
       },
       {
         kind: 'UNION',
@@ -3865,15 +3988,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'PackagePushSuccess',
-          },
-          {
-            kind: 'OBJECT',
             name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
             name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagePushSuccess',
           },
         ],
       },
@@ -3913,85 +4036,40 @@ export default {
         name: 'PackageRevision',
         fields: [
           {
-            name: 'hash',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'modified',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'message',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'metadata',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'JsonRecord',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'userMeta',
-            type: {
-              kind: 'SCALAR',
-              name: 'JsonRecord',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'workflow',
+            name: 'accessCounts',
             type: {
               kind: 'OBJECT',
-              name: 'PackageWorkflow',
+              name: 'AccessCounts',
               ofType: null,
             },
-            args: [],
+            args: [
+              {
+                name: 'window',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
           },
           {
-            name: 'totalEntries',
+            name: 'contentsFlatMap',
             type: {
               kind: 'SCALAR',
-              name: 'Int',
+              name: 'PackageContentsFlatMap',
               ofType: null,
             },
-            args: [],
-          },
-          {
-            name: 'totalBytes',
-            type: {
-              kind: 'SCALAR',
-              name: 'Float',
-              ofType: null,
-            },
-            args: [],
+            args: [
+              {
+                name: 'max',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
           },
           {
             name: 'dir',
@@ -4036,40 +4114,85 @@ export default {
             ],
           },
           {
-            name: 'accessCounts',
+            name: 'hash',
             type: {
-              kind: 'OBJECT',
-              name: 'AccessCounts',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'window',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Int',
-                  ofType: null,
-                },
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
               },
-            ],
+            },
+            args: [],
           },
           {
-            name: 'contentsFlatMap',
+            name: 'message',
             type: {
               kind: 'SCALAR',
-              name: 'PackageContentsFlatMap',
+              name: 'String',
               ofType: null,
             },
-            args: [
-              {
-                name: 'max',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Int',
-                  ofType: null,
-                },
+            args: [],
+          },
+          {
+            name: 'metadata',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'JsonRecord',
+                ofType: null,
               },
-            ],
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'totalBytes',
+            type: {
+              kind: 'SCALAR',
+              name: 'Float',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'totalEntries',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'userMeta',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageWorkflow',
+              ofType: null,
+            },
+            args: [],
           },
         ],
         interfaces: [],
@@ -4080,11 +4203,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'PackageRevisionDeleteSuccess',
+            name: 'OperationError',
           },
           {
             kind: 'OBJECT',
-            name: 'OperationError',
+            name: 'PackageRevisionDeleteSuccess',
           },
         ],
       },
@@ -4108,18 +4231,6 @@ export default {
         kind: 'OBJECT',
         name: 'PackageRevisionList',
         fields: [
-          {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'page',
             type: {
@@ -4155,6 +4266,18 @@ export default {
               },
             ],
           },
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -4164,7 +4287,7 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'NumberPackageUserMetaFacet',
+            name: 'BooleanPackageUserMetaFacet',
           },
           {
             kind: 'OBJECT',
@@ -4176,11 +4299,11 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'TextPackageUserMetaFacet',
+            name: 'NumberPackageUserMetaFacet',
           },
           {
             kind: 'OBJECT',
-            name: 'BooleanPackageUserMetaFacet',
+            name: 'TextPackageUserMetaFacet',
           },
         ],
       },
@@ -4228,23 +4351,23 @@ export default {
             },
             args: [
               {
-                name: 'name',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
                 name: 'enabled',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'SCALAR',
                     name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
                     ofType: null,
                   },
                 },
@@ -4258,24 +4381,6 @@ export default {
         kind: 'OBJECT',
         name: 'PackagerAdminQueries',
         fields: [
-          {
-            name: 'eventRules',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'PackagerEventRule',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
           {
             name: 'eventRule',
             type: {
@@ -4297,6 +4402,24 @@ export default {
               },
             ],
           },
+          {
+            name: 'eventRules',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'PackagerEventRule',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -4305,24 +4428,24 @@ export default {
         name: 'PackagerEventRule',
         fields: [
           {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'enabled',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
                 name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -4337,7 +4460,7 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'PackagerEventRule',
+            name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
@@ -4345,7 +4468,25 @@ export default {
           },
           {
             kind: 'OBJECT',
+            name: 'PackagerEventRule',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'PackagesFirstPageResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
             name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSetPage',
           },
         ],
       },
@@ -4355,15 +4496,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'PackagesSearchResultSetPage',
-          },
-          {
-            kind: 'OBJECT',
             name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
             name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSetPage',
           },
         ],
       },
@@ -4371,10 +4512,6 @@ export default {
         kind: 'UNION',
         name: 'PackagesSearchResult',
         possibleTypes: [
-          {
-            kind: 'OBJECT',
-            name: 'PackagesSearchResultSet',
-          },
           {
             kind: 'OBJECT',
             name: 'EmptySearchResultSet',
@@ -4387,36 +4524,16 @@ export default {
             kind: 'OBJECT',
             name: 'OperationError',
           },
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSet',
+          },
         ],
       },
       {
         kind: 'OBJECT',
         name: 'PackagesSearchResultSet',
         fields: [
-          {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'stats',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'PackagesSearchStats',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'filteredUserMetaFacets',
             type: {
@@ -4459,12 +4576,20 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'PackagesSearchResultSetPage',
+                kind: 'UNION',
+                name: 'PackagesFirstPageResult',
                 ofType: null,
               },
             },
             args: [
+              {
+                name: 'ordering',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'PackageOrdering',
+                  ofType: null,
+                },
+              },
               {
                 name: 'size',
                 type: {
@@ -4473,14 +4598,31 @@ export default {
                   ofType: null,
                 },
               },
-              {
-                name: 'order',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Any',
-                },
-              },
             ],
+          },
+          {
+            name: 'stats',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackagesSearchStats',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
           },
         ],
         interfaces: [],
@@ -4524,6 +4666,18 @@ export default {
         name: 'PackagesSearchStats',
         fields: [
           {
+            name: 'entries',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'NumberExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'modified',
             type: {
               kind: 'NON_NULL',
@@ -4542,30 +4696,6 @@ export default {
               ofType: {
                 kind: 'OBJECT',
                 name: 'NumberExtents',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'entries',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'NumberExtents',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'workflow',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'KeywordExtents',
                 ofType: null,
               },
             },
@@ -4601,6 +4731,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -4609,36 +4751,24 @@ export default {
         name: 'Policy',
         fields: [
           {
-            name: 'id',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'ID',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'title',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'arn',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
                 ofType: null,
               },
             },
@@ -4692,6 +4822,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -4699,18 +4841,6 @@ export default {
         kind: 'OBJECT',
         name: 'PolicyBucketPermission',
         fields: [
-          {
-            name: 'policy',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'Policy',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'bucket',
             type: {
@@ -4734,6 +4864,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'policy',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Policy',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [
           {
@@ -4748,11 +4890,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'Ok',
+            name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
-            name: 'InvalidInput',
+            name: 'Ok',
           },
           {
             kind: 'OBJECT',
@@ -4766,15 +4908,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'Policy',
-          },
-          {
-            kind: 'OBJECT',
             name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
             name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Policy',
           },
         ],
       },
@@ -4783,79 +4925,13 @@ export default {
         name: 'Query',
         fields: [
           {
-            name: 'me',
-            type: {
-              kind: 'OBJECT',
-              name: 'Me',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'config',
+            name: 'admin',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
-                name: 'Config',
+                name: 'AdminQueries',
                 ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'bucketConfigs',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'BucketConfig',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'bucketConfig',
-            type: {
-              kind: 'OBJECT',
-              name: 'BucketConfig',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'name',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'buckets',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'Bucket',
-                    ofType: null,
-                  },
-                },
               },
             },
             args: [],
@@ -4882,28 +4958,10 @@ export default {
             ],
           },
           {
-            name: 'potentialCollaborators',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'Collaborator',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'packages',
+            name: 'bucketAccessCounts',
             type: {
               kind: 'OBJECT',
-              name: 'PackageList',
+              name: 'BucketAccessCounts',
               ofType: null,
             },
             args: [
@@ -4919,11 +4977,144 @@ export default {
                 },
               },
               {
-                name: 'filter',
+                name: 'window',
                 type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketConfig',
+            type: {
+              kind: 'OBJECT',
+              name: 'BucketConfig',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketConfigs',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'BucketConfig',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'buckets',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Bucket',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'config',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Config',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'defaultRole',
+            type: {
+              kind: 'UNION',
+              name: 'Role',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'me',
+            type: {
+              kind: 'OBJECT',
+              name: 'Me',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'objectAccessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'key',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'window',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
                 },
               },
             ],
@@ -4961,112 +5152,129 @@ export default {
             ],
           },
           {
-            name: 'searchObjects',
+            name: 'packages',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'ObjectsSearchResult',
-                ofType: null,
-              },
+              kind: 'OBJECT',
+              name: 'PackageList',
+              ofType: null,
             },
             args: [
               {
-                name: 'buckets',
+                name: 'bucket',
                 type: {
-                  kind: 'LIST',
+                  kind: 'NON_NULL',
                   ofType: {
-                    kind: 'NON_NULL',
-                    ofType: {
-                      kind: 'SCALAR',
-                      name: 'String',
-                      ofType: null,
-                    },
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
                   },
-                },
-              },
-              {
-                name: 'searchString',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
                 },
               },
               {
                 name: 'filter',
                 type: {
                   kind: 'SCALAR',
-                  name: 'Any',
+                  name: 'String',
+                  ofType: null,
                 },
               },
             ],
           },
           {
-            name: 'searchPackages',
+            name: 'policies',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'UNION',
-                name: 'PackagesSearchResult',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Policy',
+                    ofType: null,
+                  },
+                },
               },
+            },
+            args: [],
+          },
+          {
+            name: 'policy',
+            type: {
+              kind: 'OBJECT',
+              name: 'Policy',
+              ofType: null,
             },
             args: [
               {
-                name: 'buckets',
-                type: {
-                  kind: 'LIST',
-                  ofType: {
-                    kind: 'NON_NULL',
-                    ofType: {
-                      kind: 'SCALAR',
-                      name: 'String',
-                      ofType: null,
-                    },
-                  },
-                },
-              },
-              {
-                name: 'searchString',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-              {
-                name: 'filter',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Any',
-                },
-              },
-              {
-                name: 'userMetaFilters',
-                type: {
-                  kind: 'LIST',
-                  ofType: {
-                    kind: 'NON_NULL',
-                    ofType: {
-                      kind: 'SCALAR',
-                      name: 'Any',
-                    },
-                  },
-                },
-              },
-              {
-                name: 'latestOnly',
+                name: 'id',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'SCALAR',
-                    name: 'Boolean',
+                    name: 'ID',
                     ofType: null,
                   },
                 },
               },
             ],
+          },
+          {
+            name: 'potentialCollaborators',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Collaborator',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'role',
+            type: {
+              kind: 'UNION',
+              name: 'Role',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'Role',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
           },
           {
             name: 'searchMoreObjects',
@@ -5133,6 +5341,126 @@ export default {
             ],
           },
           {
+            name: 'searchObjects',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'ObjectsSearchResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'buckets',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'String',
+                      ofType: null,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'filter',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+              {
+                name: 'searchString',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'searchPackages',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackagesSearchResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'buckets',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'String',
+                      ofType: null,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'filter',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+              {
+                name: 'latestOnly',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'searchString',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'userMetaFilters',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'Any',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'status',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'StatusResult',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'subscription',
             type: {
               kind: 'NON_NULL',
@@ -5144,187 +5472,38 @@ export default {
             },
             args: [],
           },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RestoreObjectResult',
+        possibleTypes: [
           {
-            name: 'bucketAccessCounts',
-            type: {
-              kind: 'OBJECT',
-              name: 'BucketAccessCounts',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'bucket',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'window',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Int',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
+            kind: 'OBJECT',
+            name: 'InvalidInput',
           },
           {
-            name: 'objectAccessCounts',
-            type: {
-              kind: 'OBJECT',
-              name: 'AccessCounts',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'bucket',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'key',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-              {
-                name: 'window',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Int',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
+            kind: 'OBJECT',
+            name: 'OperationError',
           },
           {
-            name: 'admin',
+            kind: 'OBJECT',
+            name: 'RestoreObjectSuccess',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RestoreObjectSuccess',
+        fields: [
+          {
+            name: 'alreadyRestored',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'AdminQueries',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'policies',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'Policy',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'policy',
-            type: {
-              kind: 'OBJECT',
-              name: 'Policy',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'roles',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'UNION',
-                    name: 'Role',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'role',
-            type: {
-              kind: 'UNION',
-              name: 'Role',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'id',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'ID',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
-          {
-            name: 'defaultRole',
-            type: {
-              kind: 'UNION',
-              name: 'Role',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'status',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'StatusResult',
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -5339,11 +5518,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'UnmanagedRole',
+            name: 'ManagedRole',
           },
           {
             kind: 'OBJECT',
-            name: 'ManagedRole',
+            name: 'UnmanagedRole',
           },
         ],
       },
@@ -5368,18 +5547,6 @@ export default {
         name: 'RoleBucketPermission',
         fields: [
           {
-            name: 'role',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'Role',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'bucket',
             type: {
               kind: 'NON_NULL',
@@ -5402,6 +5569,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [
           {
@@ -5420,7 +5599,7 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'RoleNameReserved',
+            name: 'RoleHasTooManyPoliciesToAttach',
           },
           {
             kind: 'OBJECT',
@@ -5432,7 +5611,7 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'RoleHasTooManyPoliciesToAttach',
+            name: 'RoleNameReserved',
           },
         ],
       },
@@ -5461,6 +5640,10 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
+            name: 'RoleAssigned',
+          },
+          {
+            kind: 'OBJECT',
             name: 'RoleDeleteSuccess',
           },
           {
@@ -5474,10 +5657,6 @@ export default {
           {
             kind: 'OBJECT',
             name: 'RoleNameUsedBySsoConfig',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'RoleAssigned',
           },
         ],
       },
@@ -5631,11 +5810,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'RoleSetDefaultSuccess',
+            name: 'RoleDoesNotExist',
           },
           {
             kind: 'OBJECT',
-            name: 'RoleDoesNotExist',
+            name: 'RoleSetDefaultSuccess',
           },
           {
             kind: 'OBJECT',
@@ -5668,23 +5847,7 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'RoleUpdateSuccess',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'RoleNameReserved',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'RoleNameExists',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'RoleNameInvalid',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'RoleNameUsedBySsoConfig',
+            name: 'RoleHasTooManyPoliciesToAttach',
           },
           {
             kind: 'OBJECT',
@@ -5696,7 +5859,23 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'RoleHasTooManyPoliciesToAttach',
+            name: 'RoleNameExists',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameReserved',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameUsedBySsoConfig',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleUpdateSuccess',
           },
         ],
       },
@@ -5728,84 +5907,12 @@ export default {
         name: 'SearchHitObject',
         fields: [
           {
-            name: 'id',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'ID',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'score',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'bucket',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'key',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'version',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'size',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'modified',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
                 ofType: null,
               },
             },
@@ -5824,22 +5931,6 @@ export default {
             args: [],
           },
           {
-            name: 'indexedContent',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'SearchHitPackage',
-        fields: [
-          {
             name: 'id',
             type: {
               kind: 'NON_NULL',
@@ -5852,72 +5943,21 @@ export default {
             args: [],
           },
           {
-            name: 'score',
+            name: 'indexedContent',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
             },
             args: [],
           },
           {
-            name: 'bucket',
+            name: 'key',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'pointer',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'hash',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'size',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Float',
                 ofType: null,
               },
             },
@@ -5936,12 +5976,55 @@ export default {
             args: [],
           },
           {
-            name: 'totalEntriesCount',
+            name: 'score',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Int',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'version',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SearchHitPackage',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -5957,20 +6040,26 @@ export default {
             args: [],
           },
           {
-            name: 'meta',
+            name: 'hash',
             type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
           {
-            name: 'workflow',
+            name: 'id',
             type: {
-              kind: 'SCALAR',
-              name: 'JsonRecord',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -6004,6 +6093,96 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'meta',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'pointer',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'score',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'totalEntriesCount',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -6012,7 +6191,31 @@ export default {
         name: 'SearchHitPackageEntryMatchLocations',
         fields: [
           {
+            name: 'contents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'logicalKey',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'meta',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6035,30 +6238,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'meta',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'contents',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
@@ -6066,18 +6245,6 @@ export default {
         kind: 'OBJECT',
         name: 'SearchHitPackageMatchLocations',
         fields: [
-          {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'comment',
             type: {
@@ -6092,6 +6259,18 @@ export default {
           },
           {
             name: 'meta',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6134,6 +6313,27 @@ export default {
             args: [],
           },
           {
+            name: 'matchLocations',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'SearchHitPackageEntryMatchLocations',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'meta',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'physicalKey',
             type: {
               kind: 'NON_NULL',
@@ -6157,27 +6357,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'meta',
-            type: {
-              kind: 'SCALAR',
-              name: 'String',
-              ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'matchLocations',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'SearchHitPackageEntryMatchLocations',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
@@ -6187,15 +6366,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'SsoConfig',
-          },
-          {
-            kind: 'OBJECT',
             name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
             name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'SsoConfig',
           },
         ],
       },
@@ -6309,27 +6488,6 @@ export default {
             args: [],
           },
           {
-            name: 'stats',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'TestStatsTimeSeries',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'window',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'Int',
-                  ofType: null,
-                },
-              },
-            ],
-          },
-          {
             name: 'reports',
             type: {
               kind: 'NON_NULL',
@@ -6361,6 +6519,27 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'stats',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'TestStatsTimeSeries',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'window',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -6368,18 +6547,6 @@ export default {
         kind: 'OBJECT',
         name: 'StatusReport',
         fields: [
-          {
-            name: 'timestamp',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'renderedReportLocation',
             type: {
@@ -6392,6 +6559,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'timestamp',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -6399,18 +6578,6 @@ export default {
         kind: 'OBJECT',
         name: 'StatusReportList',
         fields: [
-          {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'page',
             type: {
@@ -6440,6 +6607,16 @@ export default {
                 },
               },
               {
+                name: 'order',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
                 name: 'perPage',
                 type: {
                   kind: 'NON_NULL',
@@ -6450,17 +6627,19 @@ export default {
                   },
                 },
               },
-              {
-                name: 'order',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
             ],
+          },
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
           },
         ],
         interfaces: [],
@@ -6478,6 +6657,10 @@ export default {
             name: 'Unavailable',
           },
         ],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
       },
       {
         kind: 'OBJECT',
@@ -6532,11 +6715,11 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'Me',
+            name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
-            name: 'InvalidInput',
+            name: 'Me',
           },
           {
             kind: 'OBJECT',
@@ -6568,7 +6751,7 @@ export default {
         name: 'TabulatorTable',
         fields: [
           {
-            name: 'name',
+            name: 'config',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6580,7 +6763,7 @@ export default {
             args: [],
           },
           {
-            name: 'config',
+            name: 'name',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6599,7 +6782,7 @@ export default {
         name: 'TestStats',
         fields: [
           {
-            name: 'passed',
+            name: 'failed',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6611,7 +6794,7 @@ export default {
             args: [],
           },
           {
-            name: 'failed',
+            name: 'passed',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6660,7 +6843,7 @@ export default {
             args: [],
           },
           {
-            name: 'passed',
+            name: 'failed',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6678,7 +6861,7 @@ export default {
             args: [],
           },
           {
-            name: 'failed',
+            name: 'passed',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6714,6 +6897,18 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'sortable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [
           {
@@ -6743,6 +6938,18 @@ export default {
         name: 'UnmanagedRole',
         fields: [
           {
+            name: 'arn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'id',
             type: {
               kind: 'NON_NULL',
@@ -6766,18 +6973,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'arn',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
@@ -6786,12 +6981,12 @@ export default {
         name: 'User',
         fields: [
           {
-            name: 'name',
+            name: 'dateJoined',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'String',
+                name: 'Datetime',
                 ofType: null,
               },
             },
@@ -6810,25 +7005,19 @@ export default {
             args: [],
           },
           {
-            name: 'dateJoined',
+            name: 'extraRoles',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'lastLogin',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'Role',
+                    ofType: null,
+                  },
+                },
               },
             },
             args: [],
@@ -6858,7 +7047,19 @@ export default {
             args: [],
           },
           {
-            name: 'isSsoOnly',
+            name: 'isAdminAssignmentDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isRoleAssignmentDisabled',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -6882,53 +7083,47 @@ export default {
             args: [],
           },
           {
+            name: 'isSsoOnly',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'lastLogin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'role',
             type: {
               kind: 'UNION',
               name: 'Role',
               ofType: null,
-            },
-            args: [],
-          },
-          {
-            name: 'extraRoles',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'UNION',
-                    name: 'Role',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'isRoleAssignmentDisabled',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'isAdminAssignmentDisabled',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
             },
             args: [],
           },
@@ -6991,24 +7186,6 @@ export default {
         name: 'UserAdminQueries',
         fields: [
           {
-            name: 'list',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'OBJECT',
-                    name: 'User',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
-          },
-          {
             name: 'get',
             type: {
               kind: 'OBJECT',
@@ -7029,6 +7206,24 @@ export default {
               },
             ],
           },
+          {
+            name: 'list',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'User',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -7038,15 +7233,15 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'User',
-          },
-          {
-            kind: 'OBJECT',
             name: 'InvalidInput',
           },
           {
             kind: 'OBJECT',
             name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'User',
           },
         ],
       },

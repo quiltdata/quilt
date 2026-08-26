@@ -82,7 +82,7 @@ export const fromS3Signer = (
 // The name can't contain more than one consecutive whitespace character
 const normalizeDocumentName = (name: string) =>
   name
-    .replace(/[^a-zA-Z0-9\s\-\(\)\[\]]/g, ' ') // Remove invalid characters
+    .replace(/[^a-zA-Z0-9\s\-()[\]]/g, ' ') // Remove invalid characters
     .replace(/\s+/g, ' ') // Replace multiple whitespace characters with a single space
     .trim() // Remove leading and trailing whitespace
 

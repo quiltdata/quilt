@@ -32,7 +32,7 @@ Policy without back-references to roles (avoids circular nesting).
 # quilt3.admin.api_keys
 Admin API for managing API keys.
 
-## list(email: str | None = None, key\_name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+## list(email: str | None = None, key\_name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> list[quilt3.api\_keys.APIKey]  {#list}
 
 List API keys. Optionally filter by user email, key name, fingerprint, or status.
 
@@ -92,7 +92,7 @@ __Arguments__
 List all bucket configurations in the registry.
 
 
-## add(name: str, title: str, \*, description: str | None = None, icon\_url: str | None = None, overview\_url: str | None = None, tags: List[str] | None = None, relevance\_score: int | None = None, sns\_notification\_arn: str | None = None, scanner\_parallel\_shards\_depth: int | None = None, skip\_meta\_data\_indexing: bool | None = None, file\_extensions\_to\_index: List[str] | None = None, index\_content\_bytes: int | None = None, delay\_scan: bool | None = None, browsable: bool | None = None, prefixes: List[str] | None = None) -> quilt3.admin.types.Bucket  {#add}
+## add(name: str, title: str, \*, description: str | None = None, icon\_url: str | None = None, overview\_url: str | None = None, tags: list[str] | None = None, relevance\_score: int | None = None, sns\_notification\_arn: str | None = None, scanner\_parallel\_shards\_depth: int | None = None, skip\_meta\_data\_indexing: bool | None = None, file\_extensions\_to\_index: list[str] | None = None, index\_content\_bytes: int | None = None, delay\_scan: bool | None = None, browsable: bool | None = None, prefixes: list[str] | None = None) -> quilt3.admin.types.Bucket  {#add}
 
 Add a new bucket to the registry.
 
@@ -116,7 +116,7 @@ __Arguments__
     If provided, only these prefixes will be indexed and verified for access.
 
 
-## update(name: str, title: str, \*, description: str | None = None, icon\_url: str | None = None, overview\_url: str | None = None, tags: List[str] | None = None, relevance\_score: int | None = None, sns\_notification\_arn: str | None = None, scanner\_parallel\_shards\_depth: int | None = None, skip\_meta\_data\_indexing: bool | None = None, file\_extensions\_to\_index: List[str] | None = None, index\_content\_bytes: int | None = None, browsable: bool | None = None, prefixes: List[str] | None = None) -> quilt3.admin.types.Bucket  {#update}
+## update(name: str, title: str, \*, description: str | None = None, icon\_url: str | None = None, overview\_url: str | None = None, tags: list[str] | None = None, relevance\_score: int | None = None, sns\_notification\_arn: str | None = None, scanner\_parallel\_shards\_depth: int | None = None, skip\_meta\_data\_indexing: bool | None = None, file\_extensions\_to\_index: list[str] | None = None, index\_content\_bytes: int | None = None, browsable: bool | None = None, prefixes: list[str] | None = None) -> quilt3.admin.types.Bucket  {#update}
 
 Update an existing bucket configuration.
 
@@ -166,12 +166,12 @@ __Arguments__
 Get the default role from the registry. Return `None` if no default role is set.
 
 
-## list() -> List[quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole]  {#list}
+## list() -> list[quilt3.admin.types.ManagedRole | quilt3.admin.types.UnmanagedRole]  {#list}
 
 Get a list of all roles in the registry.
 
 
-## create\_managed(name: str, policies: List[str] = ()) -> quilt3.admin.types.ManagedRole  {#create\_managed}
+## create\_managed(name: str, policies: list[str] = ()) -> quilt3.admin.types.ManagedRole  {#create\_managed}
 
 Create a managed role in the registry.
 
@@ -191,7 +191,7 @@ __Arguments__
 * __arn__:  Existing IAM role ARN.
 
 
-## update\_managed(id\_or\_name: str, \*, name: str, policies: List[str]) -> quilt3.admin.types.ManagedRole  {#update\_managed}
+## update\_managed(id\_or\_name: str, \*, name: str, policies: list[str]) -> quilt3.admin.types.ManagedRole  {#update\_managed}
 
 Update a managed role in the registry (full replacement).
 
@@ -213,7 +213,7 @@ __Arguments__
 * __arn__:  Existing IAM role ARN.
 
 
-## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: List[str] | None = None) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
+## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: list[str] | None = None) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
 
 Partially update a managed role — only specified fields are changed.
 
@@ -265,12 +265,12 @@ __Arguments__
 * __name__:  Username of user to get.
 
 
-## list() -> List[quilt3.admin.types.User]  {#list}
+## list() -> list[quilt3.admin.types.User]  {#list}
 
 Get a list of all users in the registry.
 
 
-## create(name: str, email: str, role: str, extra\_roles: List[str] | None = None) -> quilt3.admin.types.User  {#create}
+## create(name: str, email: str, role: str, extra\_roles: list[str] | None = None) -> quilt3.admin.types.User  {#create}
 
 Create a new user in the registry.
 
@@ -330,7 +330,7 @@ __Arguments__
 * __name__:  Username of user to update.
 
 
-## set\_role(name: str, role: str, extra\_roles: List[str] | None = None, \*, append: bool = False) -> quilt3.admin.types.User  {#set\_role}
+## set\_role(name: str, role: str, extra\_roles: list[str] | None = None, \*, append: bool = False) -> quilt3.admin.types.User  {#set\_role}
 
 Set the active and extra roles for a user.
 
@@ -342,7 +342,7 @@ __Arguments__
 * __append__:  If True, append the extra roles to the existing roles. If False, replace the existing roles.
 
 
-## add\_roles(name: str, roles: List[str]) -> quilt3.admin.types.User  {#add\_roles}
+## add\_roles(name: str, roles: list[str]) -> quilt3.admin.types.User  {#add\_roles}
 
 Add roles to a user.
 
@@ -352,7 +352,7 @@ __Arguments__
 * __roles__:  Roles to add to the user.
 
 
-## remove\_roles(name: str, roles: List[str], fallback: str | None = None) -> quilt3.admin.types.User  {#remove\_roles}
+## remove\_roles(name: str, roles: list[str], fallback: str | None = None) -> quilt3.admin.types.User  {#remove\_roles}
 
 Remove roles from a user.
 

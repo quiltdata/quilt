@@ -127,6 +127,17 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   )
 }
 
+const FACET_ORDERING_VALUES = SearchUIModel.FACET_ORDERINGS.map((o) =>
+  SearchUIModel.serializeFacetOrdering(o.ordering),
+)
+
+const FACET_ORDERING_LABELS: Record<string, string> = Object.fromEntries(
+  SearchUIModel.FACET_ORDERINGS.map((o) => [
+    SearchUIModel.serializeFacetOrdering(o.ordering),
+    o.label,
+  ]),
+)
+
 const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   list: {
     background: 'inherit',
@@ -143,6 +154,23 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   more: {
     marginTop: t.spacing(0.5),
   },
+  // A quiet row above the list, not a titled control: the label sits inline with
+  // the select so the pair reads as one caption-scale line rather than adding a
+  // second heading over a panel that already has one.
+  order: {
+    alignItems: 'baseline',
+    display: 'flex',
+    gap: t.spacing(0.5),
+    marginBottom: t.spacing(0.5),
+  },
+  orderLabel: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+  },
+  orderSelect: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+  },
 }))
 
 interface AvailablePackagesMetaFiltersProps {
@@ -153,6 +181,11 @@ interface AvailablePackagesMetaFiltersProps {
     visible: SearchUIModel.FacetTree
     hidden: SearchUIModel.FacetTree
   }
+  ordering: {
+    value: SearchUIModel.FacetOrdering
+    set: (value: SearchUIModel.FacetOrdering) => void
+    offered: boolean
+  }
   fetching: boolean
 }
 
@@ -160,6 +193,7 @@ function AvailablePackagesMetaFilters({
   className,
   filtering,
   facets,
+  ordering,
   fetching,
 }: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
@@ -198,6 +232,28 @@ function AvailablePackagesMetaFilters({
         },
         Disabled: () => null,
       })(filtering)}
+      {/* `offered` rather than a count taken here: withholding it turns on how many
+          fields exist, and `facets.available` is already narrowed by the filter box
+          on the client-filter path. */}
+      {ordering.offered && (
+        <div className={classes.order}>
+          <span className={classes.orderLabel} id="meta-order-label">
+            Sort by:
+          </span>
+          <FiltersUI.Select<string>
+            className={classes.orderSelect}
+            disableUnderline
+            disabled={fetching}
+            extents={FACET_ORDERING_VALUES}
+            getOptionLabel={(value) => FACET_ORDERING_LABELS[value]}
+            inputProps={{ 'aria-labelledby': 'meta-order-label' }}
+            onChange={(value) =>
+              ordering.set(SearchUIModel.parseFacetOrdering(value, ordering.value))
+            }
+            value={SearchUIModel.serializeFacetOrdering(ordering.value)}
+          />
+        </div>
+      )}
       <M.List dense disablePadding className={classes.list}>
         <FilterGroup disabled={fetching} items={facets.visible.children} />
         <M.Collapse in={expanded}>

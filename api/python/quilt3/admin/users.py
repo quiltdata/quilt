@@ -1,10 +1,10 @@
-import typing as T
+import builtins
 
 from .. import _graphql_client
 from . import exceptions, types, util
 
 
-def get(name: str) -> T.Optional[types.User]:
+def get(name: str) -> types.User | None:
     """
     Get a specific user from the registry. Return `None` if the user does not exist.
 
@@ -17,14 +17,14 @@ def get(name: str) -> T.Optional[types.User]:
     return types.User.from_gql(result)
 
 
-def list() -> T.List[types.User]:
+def list() -> builtins.list[types.User]:
     """
     Get a list of all users in the registry.
     """
     return [types.User.from_gql(u) for u in util.get_client().users_list()]
 
 
-def create(name: str, email: str, role: str, extra_roles: T.Optional[T.List[str]] = None) -> types.User:
+def create(name: str, email: str, role: str, extra_roles: builtins.list[str] | None = None) -> types.User:
     """
     Create a new user in the registry.
 
@@ -113,7 +113,7 @@ def reset_password(name: str) -> None:
 def set_role(
     name: str,
     role: str,
-    extra_roles: T.Optional[T.List[str]] = None,
+    extra_roles: builtins.list[str] | None = None,
     *,
     append: bool = False,
 ) -> types.User:
@@ -132,7 +132,7 @@ def set_role(
     return util.handle_user_mutation(result.set_role)
 
 
-def add_roles(name: str, roles: T.List[str]) -> types.User:
+def add_roles(name: str, roles: builtins.list[str]) -> types.User:
     """
     Add roles to a user.
 
@@ -148,8 +148,8 @@ def add_roles(name: str, roles: T.List[str]) -> types.User:
 
 def remove_roles(
     name: str,
-    roles: T.List[str],
-    fallback: T.Optional[str] = None,
+    roles: builtins.list[str],
+    fallback: str | None = None,
 ) -> types.User:
     """
     Remove roles from a user.

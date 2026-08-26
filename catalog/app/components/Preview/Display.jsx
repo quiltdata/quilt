@@ -7,6 +7,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import StyledLink from 'utils/StyledLink'
 
+import ArchivedMessage from './ArchivedMessage'
 import render from './render'
 import { PreviewError } from './types'
 
@@ -70,11 +71,17 @@ export default function PreviewDisplay({
               </>
             ),
           }),
-        Archived: () =>
-          renderMessage({
-            heading: 'Object Archived',
-            body: 'Preview not available',
-          }),
+        Archived: ({ handle, archive }) => (
+          <ArchivedMessage handle={handle} archive={archive}>
+            {({ heading, body, action }) =>
+              renderMessage({
+                heading,
+                body,
+                action: !noDl && action && renderAction(action),
+              })
+            }
+          </ArchivedMessage>
+        ),
         InvalidVersion: () =>
           renderMessage({
             heading: 'Invalid Version',

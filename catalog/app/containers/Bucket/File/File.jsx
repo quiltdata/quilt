@@ -28,6 +28,7 @@ import { readableBytes } from 'utils/string'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
+import PanelBoundary from '../PanelBoundary'
 import Section from '../Section'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
@@ -303,6 +304,7 @@ function File() {
 
   const path = s3paths.decode(encodedPath)
 
+  // Bump to refetch getObjectExistence below (toolbar reload, post-save).
   const [resetKey, setResetKey] = React.useState(0)
   const handleReload = React.useCallback(() => setResetKey(R.inc), [])
   const objExistsData = useData(requests.getObjectExistence, {
@@ -327,13 +329,23 @@ function File() {
     }),
   })
 
+  // Taken from the version-less head, so it reports the object's current state even
+  // while a pinned older version is on screen.
+  const objectDeleted = objExistsData.case({
+    _: () => false,
+    Ok: requests.ObjectExistence.case({
+      Exists: ({ deleted }) => !!deleted,
+      _: () => false,
+    }),
+  })
+
   const { notAvailable, fileVersionId } = versionExistsData.case({
     _: () => ({}),
     Err: () => ({ notAvailable: true }),
     Ok: requests.ObjectExistence.case({
       _: () => ({ notAvailable: true }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        notAvailable: deleted || archived,
+        notAvailable: deleted || !!archived,
         fileVersionId: versionId,
       }),
     }),
@@ -345,7 +357,7 @@ function File() {
     () => FileToolbar.CreateHandle(bucket, path, fileVersionId),
     [bucket, path, fileVersionId],
   )
-  const toolbarFeatures = FileToolbar.useFeatures(notAvailable)
+  const toolbarFeatures = FileToolbar.useFeatures(notAvailable, objectDeleted)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave
@@ -366,7 +378,16 @@ function File() {
           return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
         }
         if (h.archived) {
-          return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+          // The toolbar reload (handleReload) re-runs this guard via the
+          // getObjectExistence refetch.
+          return callback(
+            AsyncResult.Err(
+              Preview.PreviewError.Archived({
+                handle,
+                archive: { storageClass: h.archived, restoring: h.restoring },
+              }),
+            ),
+          )
         }
         return Preview.load(handle, callback, previewOptions)
       },
@@ -422,99 +443,137 @@ function File() {
           )}
         </FileToolbar.Toolbar>
       </div>
-      {objExistsData.case({
-        _: () => <CenteredProgress />,
-        Err: (e) => {
-          if (e.code === 'Forbidden') {
-            return (
-              <Message headline="Access Denied">
-                You don&apos;t have access to this object.
-              </Message>
-            )
-          }
-          // TODO: handle this more gracefully
-          throw e
-        },
-        Ok: requests.ObjectExistence.case({
-          Exists: ({ deleted }) => (
-            <>
-              {BucketPreferences.Result.match(
-                {
-                  Ok: ({ ui: { blocks } }) => (
-                    <>
-                      {!!cfg.analyticsBucket && !!blocks.analytics && (
-                        <Analytics {...{ bucket, path }} />
-                      )}
-                      {!deleted && blocks.meta && (
-                        <>
-                          <FileView.ObjectMeta handle={handle} />
-                          <FileView.ObjectTags handle={handle} />
-                        </>
-                      )}
-                    </>
-                  ),
-                  _: () => null,
-                },
-                prefs,
-              )}
-              {editorState.editing ? (
-                <FileEditorSection
-                  onPreview={editorState.onPreview}
-                  preview={editorState.preview}
-                >
-                  <FileEditor.Editor
-                    {...editorState}
-                    className={classes.editor}
-                    handle={handle}
-                    empty={deleted}
-                  />
-                </FileEditorSection>
-              ) : (
-                <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                  <div className={classes.preview}>
-                    {versionExistsData.case({
-                      _: () => <CenteredProgress />,
-                      Err: (e) => {
-                        throw e
-                      },
-                      Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                    })}
-                  </div>
-                </Section>
-              )}
-            </>
-          ),
-          _: () =>
-            editorState.editing ? (
-              <FileEditorSection
-                onPreview={editorState.onPreview}
-                preview={editorState.preview}
-              >
-                <FileEditor.Editor
-                  {...editorState}
-                  className={classes.editor}
-                  empty
-                  handle={handle}
-                />
-              </FileEditorSection>
-            ) : (
-              <>
-                <Message headline="No Such Object">
+      {/* The object head is this page's body. A failure here used to `throw e`
+          in render with no boundary between it and app.tsx's, so any non-
+          `Forbidden` head failure -- a network blip, a 500, a bucket
+          misconfiguration -- replaced the entire catalog with the app-level
+          error screen while the breadcrumbs and toolbar above were fine.
+          Contained to the body, which is the part that actually failed.
+
+          `render` (not children) because the `.case(...)` below is an inline
+          expression: as JSX children it would be evaluated in *this* render
+          pass, above the boundary, and the throw would sail past it.
+
+          Retry is `handleReload`, not `resetErrorBoundary`: the failed result
+          is held in `useData` state *above* this boundary, so a plain reset
+          would re-render the very same failure. `handleReload` bumps
+          `resetKey` and refetches; `resetKeys` then clears the error state as
+          the new attempt lands. */}
+      <PanelBoundary
+        title="This object could not be loaded"
+        onRetry={handleReload}
+        resetKeys={[resetKey]}
+        render={() =>
+          objExistsData.case({
+            _: () => <CenteredProgress />,
+            Err: (e) => {
+              if (e.code === 'Forbidden') {
+                return (
+                  <Message headline="Access Denied">
+                    You don&apos;t have access to this object.
+                  </Message>
+                )
+              }
+              // TODO: handle this more gracefully
+              throw e
+            },
+            Ok: requests.ObjectExistence.case({
+              Exists: ({ deleted }) => (
+                <>
                   {BucketPreferences.Result.match(
                     {
-                      Ok: ({ ui: { actions } }) =>
-                        actions.writeFile && (
-                          <FileEditor.AddFileButton onClick={editorState.onEdit} />
-                        ),
+                      Ok: ({ ui: { blocks } }) => (
+                        <>
+                          {!!cfg.analyticsBucket && !!blocks.analytics && (
+                            <Analytics {...{ bucket, path }} />
+                          )}
+                          {!deleted && blocks.meta && (
+                            <>
+                              <FileView.ObjectMeta handle={handle} />
+                              <FileView.ObjectTags handle={handle} />
+                            </>
+                          )}
+                        </>
+                      ),
                       _: () => null,
                     },
                     prefs,
                   )}
-                </Message>
-              </>
-            ),
-        }),
-      })}
+                  {editorState.editing ? (
+                    <FileEditorSection
+                      onPreview={editorState.onPreview}
+                      preview={editorState.preview}
+                    >
+                      <FileEditor.Editor
+                        {...editorState}
+                        className={classes.editor}
+                        handle={handle}
+                        empty={deleted}
+                      />
+                    </FileEditorSection>
+                  ) : (
+                    <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
+                      <div className={classes.preview}>
+                        {/* A preview that can't load is the most routine failure on
+                        this page, and it used to take the whole catalog with it.
+                        Scoped to the Preview section: the object's metadata,
+                        tags and toolbar above stay usable, which is often all
+                        the user needed. Same `render`/`onRetry` reasoning as the
+                        body boundary above. */}
+                        <PanelBoundary
+                          title="Preview unavailable"
+                          onRetry={handleReload}
+                          resetKeys={[resetKey]}
+                          render={() =>
+                            versionExistsData.case({
+                              _: () => <CenteredProgress />,
+                              Err: (e) => {
+                                throw e
+                              },
+                              Ok: withPreview(
+                                renderPreview(viewModes.handlePreviewResult),
+                              ),
+                            })
+                          }
+                        />
+                      </div>
+                    </Section>
+                  )}
+                </>
+              ),
+              _: () =>
+                editorState.editing ? (
+                  <FileEditorSection
+                    onPreview={editorState.onPreview}
+                    preview={editorState.preview}
+                  >
+                    <FileEditor.Editor
+                      {...editorState}
+                      className={classes.editor}
+                      empty
+                      handle={handle}
+                    />
+                  </FileEditorSection>
+                ) : (
+                  <>
+                    <Message headline="No Such Object">
+                      {BucketPreferences.Result.match(
+                        {
+                          Ok: ({ ui: { actions } }) =>
+                            actions.writeFile && (
+                              <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                            ),
+                          _: () => null,
+                        },
+                        prefs,
+                      )}
+                    </Message>
+                  </>
+                ),
+            }),
+          })
+        }
+      />
     </FileView.Root>
   )
 }

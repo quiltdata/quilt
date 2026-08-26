@@ -5,18 +5,31 @@ import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-do
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
 import cfg from 'constants/config'
+import * as URLS from 'constants/urls'
 import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { NotFoundPage } from 'containers/NotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { useFeature } from 'utils/features'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
+
+import { BucketQueriesRedirect } from './queryRedirects'
 
 const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 function RedirectTo({ path }) {
   const { search } = useLocation()
   return <Redirect to={`${path}${search}`} />
+}
+
+// /install leaves the SPA for the installation docs — react-router's
+// <Redirect> can't navigate off-app, so this hits the browser API directly.
+function InstallDocsRedirect() {
+  React.useEffect(() => {
+    window.location.replace(URLS.install)
+  }, [])
+  return null
 }
 
 const Activate = () => {
@@ -59,6 +72,36 @@ const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+// The query consoles always required an authenticated actor, so gate on auth
+// regardless of the app-level protect mode.
+const DataProducts = requireAuth()(
+  RT.mkLazy(() => import('containers/DataProducts'), Placeholder),
+)
+
+/**
+ * The flag must be read ahead of `requireAuth`: auth redirects to sign-in first,
+ * which discloses a flagged-off surface to an anonymous visitor on an OPEN stack.
+ * Redirects home, matching the screen, so flag-off lands in one place either way.
+ */
+function DataProductsGate() {
+  const { urls } = NamedRoutes.use()
+  const enabled = useFeature('data-products')
+  if (!enabled) return <Redirect to={urls.home()} />
+  return <DataProducts />
+}
+
+// `useFeature` suspends on a cold cache, and `mkLazy` puts its boundary *inside*
+// the component it returns -- too late for a read that happens before it. Without
+// one here the throw unwinds to the root boundary in `app.tsx`, which sits above
+// every provider, replacing the whole shell rather than this route's region.
+function DataProductsRoute() {
+  return (
+    <React.Suspense fallback={<Placeholder />}>
+      <DataProductsGate />
+    </React.Suspense>
+  )
+}
+const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -70,7 +113,10 @@ const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeho
 const OpenProfile = requireAuth()(
   RT.mkLazy(() => import('website/pages/OpenProfile'), Placeholder),
 )
-const Install = RT.mkLazy(() => import('website/pages/Install'), Placeholder)
+
+const BucketList = protect(
+  RT.mkLazy(() => import('website/pages/Landing/BucketList'), Placeholder),
+)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
@@ -83,8 +129,12 @@ export default function App() {
         <Home />
       </Route>
 
+      <Route path={paths.buckets} exact>
+        <BucketList />
+      </Route>
+
       <Route path={paths.install} exact>
-        <Install />
+        <InstallDocsRedirect />
       </Route>
 
       {!!cfg.legacyPackagesRedirect && (
@@ -138,12 +188,9 @@ export default function App() {
         <ConnectAuthorize />
       </Route>
 
-      {cfg.mode === 'OPEN' && (
-        // XXX: show profile in all modes?
-        <Route path={paths.profile} exact>
-          <OpenProfile />
-        </Route>
-      )}
+      <Route path={paths.profile} exact>
+        <OpenProfile />
+      </Route>
 
       <Route path={paths.admin}>
         <Admin />
@@ -155,6 +202,20 @@ export default function App() {
 
       <Route path={paths.bucketSearch} exact>
         <BucketSearchRedirect />
+      </Route>
+
+      {/* Registered unconditionally; `DataProductsRoute` reads the flag before
+          auth can redirect to sign-in. */}
+      <Route path={paths.dataProducts}>
+        <DataProductsRoute />
+      </Route>
+
+      <Route path={paths.queries}>
+        <Queries />
+      </Route>
+
+      <Route path={paths.bucketQueries}>
+        <BucketQueriesRedirect />
       </Route>
 
       <Route path={paths.bucketRoot}>

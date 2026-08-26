@@ -178,7 +178,7 @@ graph LR
 
 ### Package Promotion Workflow
 
-<!-- pytest-codeblocks:skip -->
+<!-- pytest.mark.skip -->
 ```python
 # Promote a package through environments
 import quilt3

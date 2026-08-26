@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import createDOMPurify from 'dompurify'
-import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
 import * as React from 'react'
@@ -8,6 +7,10 @@ import MarkdownIt from 'markdown-it'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
+import Skel from 'components/Skeleton'
+import HljsBoundary from 'utils/HljsBoundary'
+import log from 'utils/Logging'
+import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
 import * as tasklist from './parseTasklist'
@@ -97,27 +100,19 @@ const SANITIZE_OPTS = {
 
 // TODO: switch to pluggable react-aware renderer
 // TODO: use react-router's Link component for local links
+// No `hljs.highlightAuto` fallback: `utils/hljs` registers only a subset of
+// grammars, and auto-detection misfires when run against a partial registry.
+// Unlabeled or unsupported fences render as plain monospace via markdown-it's
+// default escaping. To highlight a new fence label, register it in `utils/hljs`.
 const highlight = (str: string, lang: string) => {
-  if (lang === 'none') {
-    return ''
-  }
   if (hljs.getLanguage(lang)) {
     try {
       return hljs.highlight(str, { language: lang }).value
     } catch (err) {
-      // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
-    }
-  } else {
-    try {
-      return hljs.highlightAuto(str).value
-    } catch (err) {
-      // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
+      log.error(err)
     }
   }
-  // istanbul ignore next
-  return '' // use external default escaping
+  return ''
 }
 
 const checkboxHandler = (md: MarkdownIt) => {
@@ -185,12 +180,24 @@ export const getRenderer = memoize(
       'uponSanitizeElement',
       htmlHandler(processLink, processImg) as $TSFixMe,
     )
-    return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+    return (data: string) => {
+      // Share one `env` between parse and render, as `md.render` does, so a
+      // future env-carrying plugin works across both phases.
+      const env = {}
+      const tokens = md.parse(data, env)
+      ensureLanguages(
+        tokens
+          .filter((t) => t.type === 'fence')
+          .map((t) => t.info.trim().split(/\s+/)[0])
+          .filter(Boolean),
+      )
+      return purify.sanitize(md.renderer.render(tokens, md.options, env), SANITIZE_OPTS)
+    }
   },
 )
 
 interface ContainerProps {
-  children: string
+  children?: string
   className?: string
 }
 
@@ -244,7 +251,7 @@ export function Container({ className, children }: ContainerProps) {
     <div
       className={cx(className, classes.root)}
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: children }}
+      dangerouslySetInnerHTML={{ __html: children ?? '' }}
     />
   )
 }
@@ -253,15 +260,40 @@ interface MarkdownProps extends RendererArgs, Omit<ContainerProps, 'children'> {
   data?: string
 }
 
-export default function Markdown({
-  data,
-  processImg,
-  processLink,
-  ...props
-}: MarkdownProps) {
+const useSkeletonStyles = M.makeStyles((t) => ({
+  line: {
+    height: t.spacing(3),
+    marginBottom: t.spacing(1),
+  },
+}))
+
+// Small (unlike the full-page Preview skeleton) because the default <Markdown>
+// also renders inline surfaces such as Chat messages.
+function LoadingSkeleton({ className }: Pick<ContainerProps, 'className'>) {
+  const classes = useSkeletonStyles()
+  return (
+    <div className={className}>
+      {[80, 50, 95].map((width, index) => (
+        <Skel className={classes.line} width={`${width}%`} key={`${width}_${index}`} />
+      ))}
+    </div>
+  )
+}
+
+// Separate child so getRenderer's Suspense throw lands inside HljsBoundary — an
+// inline call would throw during Markdown's own render, above the boundary.
+function MarkdownContent({ data, processImg, processLink, ...props }: MarkdownProps) {
   return (
     <Container {...props}>
       {getRenderer({ processImg, processLink })(data || '')}
     </Container>
+  )
+}
+
+export default function Markdown(props: MarkdownProps) {
+  return (
+    <HljsBoundary fallback={<LoadingSkeleton className={props.className} />}>
+      <MarkdownContent {...props} />
+    </HljsBoundary>
   )
 }
