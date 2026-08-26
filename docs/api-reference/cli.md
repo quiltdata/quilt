@@ -83,7 +83,9 @@ options:
 ```
 ## `graphql`
 ```
-usage: quilt3 graphql [-h] [--variables VARIABLES] query
+usage: quilt3 graphql [-h] [--variables VARIABLES]
+                      [--operation-name OPERATION_NAME]
+                      query
 
 Execute a GraphQL query or mutation against the registry
 
@@ -96,6 +98,9 @@ options:
   --variables VARIABLES
                         Variables for the query. Format: A json string with
                         keys in double quotes '{"key": "value"}'
+  --operation-name OPERATION_NAME
+                        Name of the operation to execute, if the document
+                        contains more than one
 ```
 ## `install`
 ```

@@ -305,9 +305,19 @@ GRAPHQL_QUERY = 'query { config { region } }'
 
 def test_graphql_parse_args():
     parser = create_parser()
-    args = parser.parse_args(('graphql', GRAPHQL_QUERY, '--variables', '{"name": "foo/bar"}'))
+    args = parser.parse_args(
+        (
+            'graphql',
+            GRAPHQL_QUERY,
+            '--variables',
+            '{"name": "foo/bar"}',
+            '--operation-name',
+            'GetConfig',
+        )
+    )
     assert args.query == GRAPHQL_QUERY
     assert args.variables == {'name': 'foo/bar'}
+    assert args.operation_name == 'GetConfig'
 
 
 def test_graphql(capsys):
@@ -315,7 +325,7 @@ def test_graphql(capsys):
         execute_mock.return_value = {'config': {'region': 'us-east-1'}}
         main.main(('graphql', GRAPHQL_QUERY))
 
-        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None)
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None, operation_name=None)
         captured = capsys.readouterr()
         assert json.loads(captured.out) == {'config': {'region': 'us-east-1'}}
 
@@ -325,7 +335,15 @@ def test_graphql_with_variables(capsys):
         execute_mock.return_value = {'package': None}
         main.main(('graphql', GRAPHQL_QUERY, '--variables', '{"name": "foo/bar"}'))
 
-        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables={'name': 'foo/bar'})
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables={'name': 'foo/bar'}, operation_name=None)
+
+
+def test_graphql_with_operation_name(capsys):
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        execute_mock.return_value = {'config': {'region': 'us-east-1'}}
+        main.main(('graphql', GRAPHQL_QUERY, '--operation-name', 'GetConfig'))
+
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None, operation_name='GetConfig')
 
 
 def test_graphql_stdin(capsys, monkeypatch):
@@ -334,7 +352,7 @@ def test_graphql_stdin(capsys, monkeypatch):
         execute_mock.return_value = {}
         main.main(('graphql', '-'))
 
-        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None)
+        execute_mock.assert_called_once_with(GRAPHQL_QUERY, variables=None, operation_name=None)
 
 
 def test_graphql_invalid_variables(capsys):
@@ -344,6 +362,17 @@ def test_graphql_invalid_variables(capsys):
 
         captured = capsys.readouterr()
         assert 'is not a valid json string' in captured.err
+        execute_mock.assert_not_called()
+
+
+@pytest.mark.parametrize('variables', ('[1, 2]', '42', 'true', '"str"', 'null'))
+def test_graphql_non_object_variables(capsys, variables):
+    with patch('quilt3.main.graphql.execute') as execute_mock:
+        with pytest.raises(SystemExit):
+            main.main(('graphql', GRAPHQL_QUERY, '--variables', variables))
+
+        captured = capsys.readouterr()
+        assert 'is not a valid json object' in captured.err
         execute_mock.assert_not_called()
 
 

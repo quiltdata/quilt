@@ -29,6 +29,13 @@ def parse_arg_json(value):
         raise argparse.ArgumentTypeError(f'{value!r} is not a valid json string.')
 
 
+def parse_arg_json_object(value):
+    result = parse_arg_json(value)
+    if not isinstance(result, dict):
+        raise argparse.ArgumentTypeError(f'{value!r} is not a valid json object.')
+    return result
+
+
 def parse_positive_int(value):
     value = int(value)
     if value <= 0:
@@ -193,13 +200,13 @@ def cmd_list_packages(registry):
         print(package_name)
 
 
-def cmd_graphql(query, variables):
+def cmd_graphql(query, variables, operation_name):
     if query == "-":
         query = sys.stdin.read()
     if not query.strip():
         raise QuiltException("Empty GraphQL document.")
     try:
-        data = graphql.execute(query, variables=variables)
+        data = graphql.execute(query, variables=variables, operation_name=operation_name)
     except graphql.GraphQLOperationError as ex:
         # The GraphQL spec allows errors alongside partial data; keep them on
         # separate streams so stdout stays valid JSON.
@@ -421,7 +428,12 @@ def create_parser():
             Variables for the query.
             Format: A json string with keys in double quotes '{"key": "value"}'
             """,
-        type=parse_arg_json,
+        type=parse_arg_json_object,
+    )
+    graphql_p.add_argument(
+        "--operation-name",
+        help="Name of the operation to execute, if the document contains more than one",
+        type=str,
     )
     graphql_p.set_defaults(func=cmd_graphql)
 
