@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Package revision line: the package name, "@ revision" selector and its shortcuts lay out on two explicit tiers — one line when wide (the name truncates first; the revision control and shortcuts never separate), and at narrow widths the name takes its own wrapping line with the revision cluster grouped beneath, instead of arbitrary inline wrapping ([#5228](https://github.com/quiltdata/quilt/pull/5228))
 - [Changed] Package top bar: the breadcrumbs and action cluster lay out on two explicit tiers — one row when wide (crumbs truncate first, actions never squash), and at medium widths the whole action cluster moves onto its own right-anchored row below full-width crumbs, wrapping with even gaps instead of crushing ([#5227](https://github.com/quiltdata/quilt/pull/5227))
 - [Removed] The unbaked data-products GraphQL contract (added in [#5203](https://github.com/quiltdata/quilt/pull/5203), never served by a registry) is out of the schema; the `data-products` preview UI is unaffected and keeps reading fixture data ([#5223](https://github.com/quiltdata/quilt/pull/5223))
 - [Changed] Search sidebar: the package metadata list is sorted from one "Sort by" control, sitting directly above the list ([#5222](https://github.com/quiltdata/quilt/pull/5222))
