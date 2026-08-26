@@ -122,27 +122,52 @@ const isStillBrowsingPackage = (
 }
 
 const useTopBarStyles = M.makeStyles((t) => ({
+  // Two explicit tiers instead of emergent flex crush. Wide: one grid row
+  // (crumbs | actions) — crumbs truncate/wrap first, the action cluster never
+  // squashes. Stacked (≤1100px viewport): the cluster moves to its own
+  // full-width row below the crumbs, keeping the wide tier's right anchor so
+  // the (often icon-collapsed) strip doesn't sit parked at the left edge; it
+  // wraps with even 8px gaps so it never overflows, and crumbs get the full
+  // width.
   topBar: {
-    alignItems: 'flex-end',
-    display: 'flex',
+    alignItems: 'end',
+    columnGap: t.spacing(2),
+    display: 'grid',
+    gridTemplateAreas: '"crumbs actions"',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
     marginBottom: t.spacing(2),
     marginTop: t.spacing(0.5),
+    '@media (max-width: 1100px)': {
+      gridTemplateAreas: '"crumbs" "actions"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    },
   },
   crumbs: {
     ...t.typography.body1,
-    maxWidth: 'calc(100% - 160px)',
+    gridArea: 'crumbs',
+    minWidth: 0,
     overflowWrap: 'break-word',
-    [t.breakpoints.down('xs')]: {
-      maxWidth: 'calc(100% - 40px)',
-    },
   },
   content: {
     alignItems: 'center',
     display: 'flex',
-    flexShrink: 0,
+    flexWrap: 'nowrap',
+    gridArea: 'actions',
     marginBottom: -3,
-    marginLeft: 'auto',
     marginTop: -3,
+    '&:empty': {
+      display: 'none',
+    },
+    '@media (max-width: 1100px)': {
+      flexWrap: 'wrap',
+      gap: t.spacing(1),
+      justifyContent: 'flex-end',
+      marginBottom: 0,
+      marginTop: t.spacing(1),
+      '& > *': {
+        margin: 0,
+      },
+    },
   },
 }))
 
