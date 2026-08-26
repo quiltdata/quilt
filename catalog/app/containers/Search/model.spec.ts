@@ -1,3 +1,4 @@
+import { renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
 import * as KTree from 'utils/KeyedTree'
@@ -412,6 +413,50 @@ describe('containers/Search/model', () => {
       expect(model.serializeSearchUrlState(fromLegacyS).get('s')).toBe(
         'sys:modified:desc',
       )
+    })
+  })
+
+  describe('useOrderingOffered', () => {
+    const T = model.FACET_ORDERING_THRESHOLD
+
+    it('withholds the control below the threshold', () => {
+      const { result } = renderHook(() => model.useOrderingOffered(T - 1, T - 1))
+      expect(result.current).toBe(false)
+    })
+
+    it('offers the control at the threshold', () => {
+      const { result } = renderHook(() => model.useOrderingOffered(T, T))
+      expect(result.current).toBe(true)
+    })
+
+    it('keeps the control once offered, however far the list narrows', () => {
+      // The flicker: typing in "Find metadata" narrows the list, and a control
+      // that reappraised every keystroke would vanish mid-word.
+      const { result, rerender } = renderHook(
+        ({ total, shown }) => model.useOrderingOffered(total, shown),
+        { initialProps: { total: T, shown: T } },
+      )
+      expect(result.current).toBe(true)
+      rerender({ total: 1, shown: 1 })
+      expect(result.current).toBe(true)
+    })
+
+    it('withholds the control while nothing is displayed', () => {
+      // A live "Sort by" above "No metadata found" sorts nothing.
+      const { result, rerender } = renderHook(
+        ({ total, shown }) => model.useOrderingOffered(total, shown),
+        { initialProps: { total: T, shown: T } },
+      )
+      expect(result.current).toBe(true)
+      rerender({ total: T, shown: 0 })
+      expect(result.current).toBe(false)
+    })
+
+    it('does not carry the offer across mounts', () => {
+      const { result: first } = renderHook(() => model.useOrderingOffered(T, T))
+      expect(first.current).toBe(true)
+      const { result: second } = renderHook(() => model.useOrderingOffered(1, 1))
+      expect(second.current).toBe(false)
     })
   })
 })

@@ -1300,10 +1300,9 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
     state,
     children,
     // Neither count alone is the pre-filter total on this path: `available` is
-    // the server-filtered result (so it vanishes the control as matches narrow),
-    // and `initial` is the truncated list minus applied filters (so it withholds
-    // the control when a text query returns far more than the truncated list
-    // held). Offer whenever either is large enough.
+    // the server-filtered result, and `initial` is the truncated list minus
+    // applied filters — which understates it when a text query matches far more
+    // than the truncated list held. Take whichever is larger.
     totalAvailable: Math.max(initial.length, available.length),
   })
 }
@@ -1352,6 +1351,23 @@ function AvailablePackagesMetaFiltersClientFilter({
   })
 }
 
+/**
+ * Whether to offer the ordering switcher.
+ *
+ * Monotonic per mount: once enough fields have been seen the control stays, so
+ * narrowing the list by typing cannot make it flicker away mid-keystroke. It is
+ * withheld while nothing is displayed at all, because a live "Sort by" above "No
+ * metadata found" sorts nothing.
+ *
+ * Exported for testing: every visibility rule is here, so the hook is the only
+ * place the question can be answered.
+ */
+export function useOrderingOffered(totalAvailable: number, displayed: number): boolean {
+  const maxSeen = React.useRef(0)
+  maxSeen.current = Math.max(maxSeen.current, totalAvailable)
+  return displayed > 0 && maxSeen.current >= FACET_ORDERING_THRESHOLD
+}
+
 // Every `Ready` path funnels through here before the tree reaches the panel, so
 // this is the one place the ordering can own both the sort and the split.
 function AvailablePackagesMetaFiltersGroup({
@@ -1380,7 +1396,7 @@ function AvailablePackagesMetaFiltersGroup({
     [available, ordering],
   )
 
-  const offered = totalAvailable >= FACET_ORDERING_THRESHOLD
+  const offered = useOrderingOffered(totalAvailable, available?.length ?? 0)
 
   const orderingState = React.useMemo(
     () => ({ value: ordering, set: setOrdering, offered }),
