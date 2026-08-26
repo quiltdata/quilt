@@ -208,7 +208,7 @@ export default function BucketsPermissions({
           }
         >
           <M.Icon fontSize="small" color="disabled" className={classes.icon}>
-            info_outlined
+            info_outline
           </M.Icon>
         </M.Tooltip>
         {GQL.fold(bucketsData, {
