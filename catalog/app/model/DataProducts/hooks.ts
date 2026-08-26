@@ -45,7 +45,16 @@ import type { DataProduct } from './types'
 let adapterPromise: Promise<DataProductAdapter> | null = null
 function loadAdapter(): Promise<DataProductAdapter> {
   if (!adapterPromise) {
-    adapterPromise = import('./fixtureAdapter').then((m) => m.fixtureAdapter)
+    adapterPromise = import('./fixtureAdapter').then(
+      (m) => m.fixtureAdapter,
+      (e) => {
+        // Never latch a rejection: a failed chunk fetch (deploy rotated the
+        // hashes, network blip) must be retryable on the next read, not a
+        // permanent break until hard reload.
+        adapterPromise = null
+        throw e
+      },
+    )
   }
   return adapterPromise
 }
@@ -214,24 +223,9 @@ export function useContents(productId: string, member: string): ContentsResult {
   ) as ContentsResult
 }
 
-const AdapterResource = Cache.createResource({
-  name: 'DataProducts.adapter',
-  fetch: () => loadAdapter(),
-  // @ts-expect-error
-  key: () => 'adapter',
-})
-
-/**
- * The adapter itself, for the one thing hooks cannot express: asking whether a
- * write path exists.
- *
- * Exposed so a container can call `supportsRequests(useAdapter())` and disable
- * its submit affordance honestly, instead of hardcoding "no adapter yet".
- *
- * Suspends, like the rest: the adapter is loaded on demand so it stays out of
- * the chunks a flag-off deployment downloads. Only call it where the product
- * screens already suspend -- never to decide whether to show them.
- */
-export function useAdapter(): DataProductAdapter {
-  return Cache.useData(AdapterResource, {}, { suspend: true }) as DataProductAdapter
-}
+// There was a `useAdapter()` here, exposing the adapter so a container could ask
+// `supportsRequests(...)` before offering a submit affordance. It had no callers,
+// and once the adapter loads lazily it could only be a suspending read -- which
+// is the wrong shape for gating an affordance: it blanks the subtree to decide
+// one button's disabled state. Re-add it as a non-suspending capability flag
+// resolved alongside data the screen already awaits, not as a bare adapter read.

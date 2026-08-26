@@ -654,6 +654,12 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
     [user.extraRoles, user.role],
   )
 
+  // One expression for the whole dialog. The registry couples these (isService
+  // implies isRoleAssignmentDisabled), but gating only the selector on the pair
+  // left the title and a live Save button behind if that ever stops holding --
+  // a Save that submits unchanged values and silently changes nothing.
+  const readOnly = user.isRoleAssignmentDisabled || user.isService
+
   return (
     <RF.Form<FormValues>
       onSubmit={onSubmit}
@@ -672,7 +678,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
       }) => (
         <>
           <M.DialogTitle>
-            {user.isRoleAssignmentDisabled
+            {readOnly
               ? `Roles assigned to "${user.name}"`
               : `Assign roles to "${user.name}"`}
           </M.DialogTitle>
@@ -680,14 +686,10 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelect.Value> name="roles" validate={RoleSelect.validate}>
                 {(props) => (
-                  // The registry couples these: isService implies
-                  // isRoleAssignmentDisabled. `|| isService` keeps the selector
-                  // read-only even if that stops holding — and only the selector:
-                  // the title and actions still read isRoleAssignmentDisabled.
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
-                    nonAssignable={user.isRoleAssignmentDisabled || user.isService}
+                    nonAssignable={readOnly}
                     nonAssignableReason={user.isService ? 'service' : 'sso'}
                     {...props}
                   />
@@ -698,7 +700,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
               </Form.FormErrorAuto>
             </DialogForm>
           </M.DialogContent>
-          {user.isRoleAssignmentDisabled ? (
+          {readOnly ? (
             <M.DialogActions>
               <M.Button color="primary" onClick={close} variant="contained">
                 Close
@@ -964,15 +966,17 @@ export const columns: Table.Column<User>[] = [
     getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => (
       <EditableSwitch
         hint="Admins can see this page, add/remove users, and make/remove admins"
-        disabled={isSelf || u.isAdminAssignmentDisabled}
+        // `|| isService` matches the Enabled column and the roles dialog: the
+        // registry couples the flags, but the guard must not depend on that.
+        disabled={isSelf || u.isAdminAssignmentDisabled || u.isService}
         disabledReason={
           isSelf
             ? 'You cannot change your own admin status'
-            : u.isAdminAssignmentDisabled
-              ? u.isService
-                ? 'This service user is managed by the stack'
-                : 'Admin capabilities for this user are managed by the SSO configuration'
-              : undefined
+            : u.isService
+              ? 'This service user is managed by the stack'
+              : u.isAdminAssignmentDisabled
+                ? 'Admin capabilities for this user are managed by the SSO configuration'
+                : undefined
         }
         checked={u.isAdmin}
         onChange={(admin) =>

@@ -21,6 +21,11 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Athena Queries: a console opened with a `?bucket=` scope — which every legacy per-bucket queries URL redirects to — honors that bucket's `ui.athena.defaultWorkgroup` again; the workspace re-home had silently dropped the preference, landing customers on the alphabetically-first workgroup ([#5217](https://github.com/quiltdata/quilt/pull/5217))
+- [Fixed] Search sidebar: the "Sort by" control no longer disappears while typing in "Find metadata" on stacks with truncated facet lists, and it has an accessible name — its label used to land on a hidden input, reading as an unnamed button to assistive tech ([#5217](https://github.com/quiltdata/quilt/pull/5217))
+- [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5217](https://github.com/quiltdata/quilt/pull/5217))
+- [Fixed] Admin Users: a disabled Enabled or Admin switch explains why on hover — "you can't deactivate yourself" and "managed by the stack" used to render as the same mute, dead control — and the roles dialog reads as read-only end to end for service users rather than offering a Save the registry refuses ([#5217](https://github.com/quiltdata/quilt/pull/5217))
+- [Changed] With the `data-products` preview off, the demo fixture data no longer ships in the bundles a browser downloads on the volumes landing; the adapter behind the preview loads only when the feature is on ([#5217](https://github.com/quiltdata/quilt/pull/5217))
 - [Changed] Search sidebar: the package metadata list is sorted from one "Sort by" control, sitting directly above the list ([#5222](https://github.com/quiltdata/quilt/pull/5222))
 - [Fixed] Volumes list: the "Shared with" readout no longer overlaps a bucket's tags, and the extra space inside it is gone ([#5220](https://github.com/quiltdata/quilt/pull/5220))
 - [Fixed] Front door: the example-query chips show real package handles, a mix of prompts rather than five recent packages, and icons that match the rest of the app ([#5219](https://github.com/quiltdata/quilt/pull/5219))
