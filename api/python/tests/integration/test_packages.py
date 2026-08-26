@@ -1245,9 +1245,7 @@ class PackageTest(QuiltTestCase):
 
         cache_dir = quilt3.packages.CACHE_PATH / 'manifest'
         cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = (
-            cache_dir / hashlib.sha256(str(pkg_registry.manifest_pk(pkg_name, top_hash)).encode()).hexdigest()
-        )
+        cache_path = cache_dir / hashlib.sha256(str(pkg_registry.manifest_pk(pkg_name, top_hash)).encode()).hexdigest()
         # Truncated mid-line: valid JSONL prefix, unparseable as a whole.
         cache_path.write_bytes(REMOTE_MANIFEST.read_bytes()[:40])
 
@@ -1283,9 +1281,7 @@ class PackageTest(QuiltTestCase):
         lines[1] = json.dumps(entry).encode()
         manifest = b'\n'.join(lines) + b'\n'
 
-        self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, top_hash=top_hash, manifest=manifest
-        )
+        self.setup_s3_stubber_pkg_install(pkg_registry, pkg_name, top_hash=top_hash, manifest=manifest)
 
         with pytest.raises(PackageException) as exc_info:
             Package.browse(pkg_name, registry=registry)
