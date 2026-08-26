@@ -44,17 +44,12 @@ import type { DataProduct } from './types'
  * When a GraphQL-backed adapter lands this becomes a build- or config-time
  * choice here, and no container changes. That is the whole point of the port.
  */
-/**
- * The adapter used when the real one cannot be fetched.
- *
- * Empty answers rather than a rejection, because the resources below go through
- * `ResourceCache`: a stored rejection is rethrown on every later read and never
- * evicted, so one failed chunk fetch would blank the catalog through the root
- * error boundary until a hard reload. These are the same values the port already
- * produces for an adapter that cannot browse or fetch, so no call site needs a
- * new branch. It implements neither `listContents` nor `fetchEntry`, so those
- * resources take their existing unsupported path.
- */
+
+// Stands in when the adapter chunk cannot be fetched. Empty answers rather than a
+// rejection: `ResourceCache` stores a rejection and rethrows it on every later
+// read without evicting the entry, so one failed fetch would blank the catalog
+// through the root error boundary. These match what the port already returns for
+// an adapter that cannot browse or fetch, so no call site needs a new branch.
 const unavailableAdapter: DataProductAdapter = {
   listProducts: async () => [],
   getProduct: async () => null,
@@ -246,10 +241,3 @@ export function useContents(productId: string, member: string): ContentsResult {
     { suspend: true },
   ) as ContentsResult
 }
-
-// There was a `useAdapter()` here, exposing the adapter so a container could ask
-// `supportsRequests(...)` before offering a submit affordance. It had no callers,
-// and once the adapter loads lazily it could only be a suspending read -- which
-// is the wrong shape for gating an affordance: it blanks the subtree to decide
-// one button's disabled state. Re-add it as a non-suspending capability flag
-// resolved alongside data the screen already awaits, not as a bare adapter read.
