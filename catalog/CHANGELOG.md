@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Rendered-markdown table borders and the Qurator chat input's corner radius now use theme tokens (divider color, 4px radius) instead of hard-coded values ([#N](https://github.com/quiltdata/quilt/pull/N))
+- [Fixed] Rendered-markdown table borders and the Qurator chat input's corner radius now use theme tokens (divider color, 4px radius) instead of hard-coded values ([#5229](https://github.com/quiltdata/quilt/pull/5229))
 - [Removed] The unbaked data-products GraphQL contract (added in [#5203](https://github.com/quiltdata/quilt/pull/5203), never served by a registry) is out of the schema; the `data-products` preview UI is unaffected and keeps reading fixture data ([#5223](https://github.com/quiltdata/quilt/pull/5223))
 - [Changed] Search sidebar: the package metadata list is sorted from one "Sort by" control, sitting directly above the list ([#5222](https://github.com/quiltdata/quilt/pull/5222))
 - [Fixed] Volumes list: the "Shared with" readout no longer overlaps a bucket's tags, and the extra space inside it is gone ([#5220](https://github.com/quiltdata/quilt/pull/5220))
