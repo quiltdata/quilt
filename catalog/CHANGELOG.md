@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Volumes list: the "Shared with" readout no longer overlaps a bucket's tags, and the extra space inside it is gone ([#5220](https://github.com/quiltdata/quilt/pull/5220))
 - [Fixed] Front door: the example-query chips show real package handles, a mix of prompts rather than five recent packages, and icons that match the rest of the app ([#5219](https://github.com/quiltdata/quilt/pull/5219))
 - [Changed] Bucket identity tints go from six to fifteen, so a wall of same-prefix volumes reads as distinct objects rather than a few colors repeating. Same scheme — a pale ground with a dark ink of its own hue, initials clearing AA — in two tiers so a hue family can contribute twice; the accent, semantic and error hues stay excluded ([#5210](https://github.com/quiltdata/quilt/pull/5210))
 - [Fixed] Admin Buckets and role bucket-permission lists show the same per-bucket mark the volumes landing does — a bucket with no custom icon wears its tinted initials disc instead of an anonymous glyph stub, so one bucket reads as one object on every screen ([#5210](https://github.com/quiltdata/quilt/pull/5210))
