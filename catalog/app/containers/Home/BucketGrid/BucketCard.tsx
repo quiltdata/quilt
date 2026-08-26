@@ -104,10 +104,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
+    gap: t.spacing(1),
     padding: t.spacing(2),
-  },
-  bodySpacer: {
-    flexGrow: 1,
   },
   // Not raised above the navigation overlay: raising the row lifts its
   // `space-between` gap too, and clicks in that whitespace stop navigating. Only
@@ -117,6 +115,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'space-between',
+    // Absorbs the slack that row-height equalization leaves; `body`'s gap is
+    // the floor when there is none.
+    marginTop: 'auto',
   },
   // The icon is a fixed-size disc: without this it inherits `flex-shrink: 1`
   // and a long title squashes the circle into an ellipse.
@@ -256,7 +257,6 @@ export default function BucketCard({
             {bucket.description}
           </M.Typography>
         )}
-        <div className={classes.bodySpacer} />
         <div className={classes.bottomRow}>
           <div className={classes.tags}>
             {visibleTags.map((tg) => (

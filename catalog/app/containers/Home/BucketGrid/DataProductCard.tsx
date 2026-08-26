@@ -54,16 +54,17 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
+    gap: t.spacing(1),
     padding: t.spacing(2),
-  },
-  bodySpacer: {
-    flexGrow: 1,
   },
   bottomRow: {
     alignItems: 'center',
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'space-between',
+    // Absorbs the slack that row-height equalization leaves; `body`'s gap is
+    // the floor when there is none.
+    marginTop: 'auto',
   },
   // Matches BucketIcon's footprint so a DP card's identity block aligns with a
   // bucket card's in the same grid row.
@@ -142,7 +143,6 @@ export default function DataProductCard({ product }: DataProductCardProps) {
             {product.description}
           </M.Typography>
         )}
-        <div className={classes.bodySpacer} />
         <div className={classes.bottomRow}>
           {/* Curation is capability-gated: only Unity has the primitive, so
               elsewhere the chip is absent rather than empty. An unconditional
