@@ -18,43 +18,51 @@ const useStyles = M.makeStyles((t) => ({
       content: '""',
       left: 0,
       position: 'absolute',
+      right: 0,
       top: 0,
-      transition: '.3s ease background-color, .3s ease width',
+      transform: 'scaleX(0)',
+      transformOrigin: 'left',
+      transition: '.3s ease background-color, .3s ease transform',
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      '&:after': {
+        transition: 'none',
+      },
     },
     '&$tooGuessable': {
       backgroundColor: fade(t.palette.error.dark, 0.3),
     },
     '&$tooGuessable:after': {
       backgroundColor: t.palette.error.dark,
-      width: '10%',
+      transform: 'scaleX(0.1)',
     },
     '&$veryGuessable': {
       backgroundColor: fade(t.palette.error.main, 0.3),
     },
     '&$veryGuessable:after': {
       backgroundColor: t.palette.error.main,
-      width: '33%',
+      transform: 'scaleX(0.33)',
     },
     '&$somewhatGuessable': {
       backgroundColor: fade(t.palette.warning.dark, 0.3),
     },
     '&$somewhatGuessable:after': {
       backgroundColor: t.palette.warning.dark,
-      width: '55%',
+      transform: 'scaleX(0.55)',
     },
     '&$safelyUnguessable': {
       backgroundColor: fade(t.palette.success.light, 0.3),
     },
     '&$safelyUnguessable:after': {
       backgroundColor: t.palette.success.light,
-      width: '78%',
+      transform: 'scaleX(0.78)',
     },
     '&$veryUnguessable': {
       backgroundColor: fade(t.palette.success.dark, 0.3),
     },
     '&$veryUnguessable:after': {
       backgroundColor: t.palette.success.dark,
-      width: '100%',
+      transform: 'scaleX(1)',
     },
   },
   tooGuessable: {},

@@ -58,7 +58,10 @@ const useStyles = M.makeStyles((t) => ({
     marginLeft: '12px',
     padding: '0 16px 0 0',
     position: 'relative',
-    transition: 'margin 0.3s ease',
+    transition: 'transform 0.3s ease',
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
   },
   moreIconized: {
     marginLeft: '4px',
@@ -69,15 +72,20 @@ const useStyles = M.makeStyles((t) => ({
   avatarWrapper: {
     display: 'flex',
     flexDirection: 'row-reverse', // workaround for z-index
-    transition: 'margin 0.3s ease',
+    transition: 'transform 0.3s ease',
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
     '& &': {
       margin: '0 0 0 -8px',
     },
+    // wrappers are nested, so the 10px shift compounds with depth --
+    // same cumulative spread the animated margins (-8px -> 2px) produced
     '&:hover &': {
-      margin: '0 0 0 2px',
+      transform: 'translateX(10px)',
     },
-    '&:hover $more': {
-      marginLeft: '4px',
+    '&:hover $more:not($moreIconized)': {
+      transform: 'translateX(-8px)',
     },
   },
 }))

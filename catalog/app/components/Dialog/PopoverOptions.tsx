@@ -95,13 +95,12 @@ function TabPanel({ children, className }: TabPanelProps) {
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles(() => ({
+  // Tab widths differ (via the per-tab className), but a container width
+  // can't animate off the main thread -- the switch relies on the panel's
+  // opacity fade instead of a width transition.
   root: {
     overflow: 'hidden',
-    transition: t.transitions.create('width', {
-      duration: t.transitions.duration.short,
-      easing: t.transitions.easing.easeOut,
-    }),
   },
   '@keyframes activate': {
     '0%': {
