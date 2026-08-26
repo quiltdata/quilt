@@ -139,7 +139,7 @@ export default function DataProductCard({ product }: DataProductCardProps) {
       </Link>
       <div className={classes.body}>
         {!!product.description && (
-          <M.Typography className={classes.description} component="p" variant="caption">
+          <M.Typography className={classes.description} component="p" variant="body2">
             {product.description}
           </M.Typography>
         )}

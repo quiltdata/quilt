@@ -172,9 +172,9 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
-  // A matching tag reads as "selected" via the Indicator Rule's amber, never
-  // a solid fill: a wash + a matching border, layered on top of the chip's
-  // own `color="default"` ground rather than replacing it with a fill.
+  // A matching tag reads as "selected" via the Indicator Rule's amber, never a
+  // solid fill: an amber wash and border on the outlined chip. Both states
+  // carry a border, so selecting a tag does not resize it.
   matching: {
     backgroundColor: fade(t.palette.secondary.main, 0.15),
     border: `1px solid ${t.palette.secondary.main}`,
@@ -253,7 +253,7 @@ export default function BucketCard({
       </Link>
       <div className={classes.body}>
         {!!bucket.description && (
-          <M.Typography className={classes.description} component="p" variant="caption">
+          <M.Typography className={classes.description} component="p" variant="body2">
             {bucket.description}
           </M.Typography>
         )}
@@ -265,6 +265,7 @@ export default function BucketCard({
                 className={cx(classes.tag, { [classes.matching]: tagIsMatching(tg) })}
                 label={tg}
                 size="small"
+                variant="outlined"
                 clickable
                 color="default"
                 onClick={handleTagClick(tg)}
