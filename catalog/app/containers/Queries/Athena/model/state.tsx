@@ -65,8 +65,7 @@ export const Ctx = React.createContext<State | null>(null)
 interface ProviderProps {
   /**
    * `ui.athena` from the `?bucket=` scope's preferences. The console is
-   * workspace-global, so this only arrives when a bucket is in scope — which is
-   * exactly when `defaultWorkgroup` was ever honored before the re-home.
+   * workspace-global, so this only arrives when a bucket is in scope.
    */
   preferences?: BucketPreferences.AthenaPreferences
   children: React.ReactNode
@@ -84,7 +83,11 @@ export function Provider({ preferences, children }: ProviderProps) {
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 
   const workgroups = requests.useWorkgroups()
-  const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
+  const workgroup = requests.useWorkgroup(
+    workgroups,
+    workgroupId,
+    preferences?.defaultWorkgroup,
+  )
   const queries = requests.useQueries(workgroup.data)
   const query = requests.useQuery(queries.data, execution)
   const queryBody = requests.useQueryBody(query.value, query.setValue, execution)
