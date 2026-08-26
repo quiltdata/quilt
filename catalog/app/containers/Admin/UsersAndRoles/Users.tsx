@@ -655,9 +655,8 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
   )
 
   // One expression for the whole dialog. The registry couples these (isService
-  // implies isRoleAssignmentDisabled), but gating only the selector on the pair
-  // left the title and a live Save button behind if that ever stops holding --
-  // a Save that submits unchanged values and silently changes nothing.
+  // implies isRoleAssignmentDisabled), but nothing here may depend on that: a
+  // live Save the registry refuses submits unchanged values and reports success.
   const readOnly = user.isRoleAssignmentDisabled || user.isService
 
   return (
@@ -783,8 +782,10 @@ interface EditableSwitchProps {
   disabled?: boolean
   /** Why the control is disabled — a disabled switch with no cause is
    * indistinguishable from a rendering bug, and two different causes (self,
-   * service user) sit in the same column. */
-  disabledReason?: NonNullable<React.ReactNode>
+   * service user) sit in the same column. A string, not a node: it is also the
+   * wrapper's accessible name, which is the only way a keyboard or
+   * screen-reader admin reaches the reason at all. */
+  disabledReason?: string
   checked: boolean
   onChange: (v: boolean) => void
   hint: NonNullable<React.ReactNode>
@@ -807,8 +808,13 @@ export function EditableSwitch({
     if (!disabledReason) return sw
     return (
       <M.Tooltip title={disabledReason}>
-        {/* a disabled element fires no events, so the tooltip needs a live wrapper */}
-        <span>{sw}</span>
+        {/* A disabled switch fires no events and is out of the tab order, so the
+            reason needs a live wrapper that is focusable and named — otherwise it
+            is mouse-only. */}
+        {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the span is the only reachable carrier of the reason */}
+        <span tabIndex={0} aria-label={disabledReason}>
+          {sw}
+        </span>
       </M.Tooltip>
     )
   }
@@ -865,8 +871,12 @@ function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps)
       fullWidth: true,
     })
 
+  // Same pair as the dialog this opens and the switch columns: the registry
+  // couples the flags, but nothing here may depend on that holding.
+  const readOnly = user.isRoleAssignmentDisabled || user.isService
+
   return (
-    <M.Tooltip title={user.isRoleAssignmentDisabled ? 'Click to view' : 'Click to edit'}>
+    <M.Tooltip title={readOnly ? 'Click to view' : 'Click to edit'}>
       <Clickable onClick={edit}>
         {user.role?.name ?? emptyRole}
         {user.extraRoles.length > 0 && <Hint> +{user.extraRoles.length}</Hint>}
@@ -893,6 +903,26 @@ interface ColumnDisplayProps {
   isSelf: boolean
 }
 
+const MANAGED_BY_STACK = 'This service user is managed by the stack'
+
+// One resolver per switch column, so the guard and its explanation cannot drift:
+// `disabled` is derived from whether there is a reason, never stated separately.
+function whyEnabledDisabled(user: User, isSelf: boolean): string | undefined {
+  if (isSelf) return 'You cannot deactivate your own account'
+  if (user.isService) return MANAGED_BY_STACK
+  return undefined
+}
+
+function whyAdminDisabled(user: User, isSelf: boolean): string | undefined {
+  if (isSelf) return 'You cannot change your own admin status'
+  // `isService` before the SSO flag: the registry couples them, but the guard
+  // must not depend on that, and "managed by the stack" is the truer reason.
+  if (user.isService) return MANAGED_BY_STACK
+  if (user.isAdminAssignmentDisabled)
+    return 'Admin capabilities for this user are managed by the SSO configuration'
+  return undefined
+}
+
 // Exported for testing: a disabled control's explanation lives in the column that
 // renders it, so only the call site proves it is there.
 export const columns: Table.Column<User>[] = [
@@ -900,21 +930,18 @@ export const columns: Table.Column<User>[] = [
     id: 'isActive',
     label: 'Enabled',
     getValue: (u) => u.isActive,
-    getDisplay: (_v, u, { setActive, isSelf }: ColumnDisplayProps) => (
-      <EditableSwitch
-        hint="Deactivated users can't sign in and use the Catalog"
-        disabled={isSelf || u.isService}
-        disabledReason={
-          isSelf
-            ? 'You cannot deactivate your own account'
-            : u.isService
-              ? 'This service user is managed by the stack'
-              : undefined
-        }
-        checked={u.isActive}
-        onChange={(active) => setActive(u.name, active)}
-      />
-    ),
+    getDisplay: (_v, u, { setActive, isSelf }: ColumnDisplayProps) => {
+      const reason = whyEnabledDisabled(u, isSelf)
+      return (
+        <EditableSwitch
+          hint="Deactivated users can't sign in and use the Catalog"
+          disabled={reason !== undefined}
+          disabledReason={reason}
+          checked={u.isActive}
+          onChange={(active) => setActive(u.name, active)}
+        />
+      )
+    },
     props: { padding: 'none' },
   },
   {
@@ -963,32 +990,25 @@ export const columns: Table.Column<User>[] = [
     id: 'isAdmin',
     label: 'Admin',
     getValue: (u) => u.isAdmin,
-    getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => (
-      <EditableSwitch
-        hint="Admins can see this page, add/remove users, and make/remove admins"
-        // `|| isService` matches the Enabled column and the roles dialog: the
-        // registry couples the flags, but the guard must not depend on that.
-        disabled={isSelf || u.isAdminAssignmentDisabled || u.isService}
-        disabledReason={
-          isSelf
-            ? 'You cannot change your own admin status'
-            : u.isService
-              ? 'This service user is managed by the stack'
-              : u.isAdminAssignmentDisabled
-                ? 'Admin capabilities for this user are managed by the SSO configuration'
-                : undefined
-        }
-        checked={u.isAdmin}
-        onChange={(admin) =>
-          openDialog<boolean>(
-            ({ close }) => <ConfirmAdminRights {...{ close, admin, name: u.name }} />,
-            DIALOG_PROPS,
-          ).then((res) => {
-            if (!res) throw new Error('cancel')
-          })
-        }
-      />
-    ),
+    getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => {
+      const reason = whyAdminDisabled(u, isSelf)
+      return (
+        <EditableSwitch
+          hint="Admins can see this page, add/remove users, and make/remove admins"
+          disabled={reason !== undefined}
+          disabledReason={reason}
+          checked={u.isAdmin}
+          onChange={(admin) =>
+            openDialog<boolean>(
+              ({ close }) => <ConfirmAdminRights {...{ close, admin, name: u.name }} />,
+              DIALOG_PROPS,
+            ).then((res) => {
+              if (!res) throw new Error('cancel')
+            })
+          }
+        />
+      )
+    },
     props: { padding: 'none' },
   },
 ]
