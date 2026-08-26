@@ -16,6 +16,8 @@
  * inside the app's root Suspense boundary, which is everywhere these render.
  */
 
+import * as Sentry from '@sentry/react'
+
 import * as Cache from 'utils/ResourceCache'
 
 import type { ContentsResult, DataProductAdapter, EntryBodyResult } from './adapter'
@@ -42,17 +44,39 @@ import type { DataProduct } from './types'
  * When a GraphQL-backed adapter lands this becomes a build- or config-time
  * choice here, and no container changes. That is the whole point of the port.
  */
+/**
+ * The adapter used when the real one cannot be fetched.
+ *
+ * Empty answers rather than a rejection, because the resources below go through
+ * `ResourceCache`: a stored rejection is rethrown on every later read and never
+ * evicted, so one failed chunk fetch would blank the catalog through the root
+ * error boundary until a hard reload. These are the same values the port already
+ * produces for an adapter that cannot browse or fetch, so no call site needs a
+ * new branch. It implements neither `listContents` nor `fetchEntry`, so those
+ * resources take their existing unsupported path.
+ */
+const unavailableAdapter: DataProductAdapter = {
+  listProducts: async () => [],
+  getProduct: async () => null,
+  listRequests: async () => [],
+  listConnections: async () => [],
+}
+
 let adapterPromise: Promise<DataProductAdapter> | null = null
 function loadAdapter(): Promise<DataProductAdapter> {
   if (!adapterPromise) {
     adapterPromise = import('./fixtureAdapter').then(
       (m) => m.fixtureAdapter,
       (e) => {
-        // Never latch a rejection: a failed chunk fetch (deploy rotated the
-        // hashes, network blip) must be retryable on the next read, not a
-        // permanent break until hard reload.
+        // Never latch the failure: a failed chunk fetch (deploy rotated the
+        // hashes, network blip) must be retryable on the next read.
         adapterPromise = null
-        throw e
+        // eslint-disable-next-line no-console
+        console.error('Error loading the data products adapter:')
+        // eslint-disable-next-line no-console
+        console.dir(e)
+        Sentry.captureException(e)
+        return unavailableAdapter
       },
     )
   }
