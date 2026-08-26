@@ -891,7 +891,9 @@ interface ColumnDisplayProps {
   isSelf: boolean
 }
 
-const columns: Table.Column<User>[] = [
+// Exported for testing: a disabled control's explanation lives in the column that
+// renders it, so only the call site proves it is there.
+export const columns: Table.Column<User>[] = [
   {
     id: 'isActive',
     label: 'Enabled',
@@ -963,6 +965,15 @@ const columns: Table.Column<User>[] = [
       <EditableSwitch
         hint="Admins can see this page, add/remove users, and make/remove admins"
         disabled={isSelf || u.isAdminAssignmentDisabled}
+        disabledReason={
+          isSelf
+            ? 'You cannot change your own admin status'
+            : u.isAdminAssignmentDisabled
+              ? u.isService
+                ? 'This service user is managed by the stack'
+                : 'Admin capabilities for this user are managed by the SSO configuration'
+              : undefined
+        }
         checked={u.isAdmin}
         onChange={(admin) =>
           openDialog<boolean>(
